@@ -1,0 +1,24 @@
+FOLLOW_AUDIT_TESTS {"passed":7}
+
+--- stderr ---
+13 | const input=resolve(process.argv[2]??'audit-input'),frozen=resolve(process.argv[3]??'follow-up-input'),cfg=JSON.parse(readFileSync(join(frozen,'config.json'),'utf8')),inventory=JSON.parse(readFileSync(join(input,'SHA256.json'),'utf8'))
+14 | for(const[p,h]of Object.entries(inventory))assert.equal(sha(readFileSync(join(input,p))),h,p)
+15 | assert.equal(sha(readFileSync(join(frozen,'checksums.json'))),'6260eb18271a96cf67461fe7e0aa9ec5c2ff155d8201b1a8c49569fb02506fd8')
+16 | const frozenHashes=JSON.parse(readFileSync(join(frozen,'checksums.json'),'utf8'));for(const[p,h]of Object.entries(frozenHashes))assert.equal(sha(readFileSync(join(frozen,p))),h,p)
+17 | const read=(name:string)=>readFileSync(join(input,name),'utf8'),p1=read('a8-p1-control-five.log'),effect=read('a8-effect-five-same-cpu.log'),p1Sources=events(p1,'FOLLOW_SOURCE'),effectSources=events(effect,'FOLLOW_SOURCE'),p1Rows=events(p1,'FOLLOW_P1'),paxos=events(p1,'FOLLOW_PAXOS'),p1Steps=events(p1,'FOLLOW_STEP'),effectSteps=events(effect,'FOLLOW_STEP'),pairs=events(effect,'FOLLOW_EFFECT_PAIR')
+18 | assert.equal(p1Sources.length,2);assert.equal(effectSources.length,2);assert.equal(p1Rows.length,10);assert.equal(paxos.length,6);assert.equal(p1Steps.length,26);assert.equal(effectSteps.length,10);assert.equal(pairs.length,5)
+            ^
+AssertionError: Expected values to be strictly equal:
+
+0 !== 2
+
+ generatedMessage: true,
+     actual: 0,
+   expected: 2,
+   operator: "strictEqual",
+       diff: "simple",
+       code: "ERR_ASSERTION"
+
+      at /work/gdp-wired/audit-data/source/audit.ts:18:8
+
+Bun v1.4.3 (Linux x64)

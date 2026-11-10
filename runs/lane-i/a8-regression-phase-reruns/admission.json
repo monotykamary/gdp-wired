@@ -1,0 +1,21 @@
+{
+  "status": "completed; all four five-pair cohorts prove on both sources; EPYC coverage supplied by separately recorded recovery batch",
+  "task": "21578b98-3ac1-4b0f-9532-e265f7a891fb",
+  "batch": "20261110-093523-9mb9xi",
+  "candidate": "a8bbe0984f270070eba9bc166a89909d0c67597e",
+  "baseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
+  "data": "/private/tmp/lane-i-a8-reruns.ZV7hga",
+  "jobs": [
+    "two-phase-traced-1",
+    "two-phase-traced-2",
+    "two-phase-traced-3",
+    "two-phase-traced-4"
+  ],
+  "pairsPerJob": 5,
+  "phaseTracing": "GDP_INFER_TRACE=2 plus unchanged native counters; observer only",
+  "selection": "Before looking at verdicts, lowest job name per required CPU class is primary. Retain all other complete cohorts and partial outcomes.",
+  "requiredCpu": "AMD EPYC 4585PX 16-Core Processor",
+  "missingCpuCoverageIsFailure": true,
+  "nativeProtocolMs": 60000,
+  "productionChanges": false
+}

@@ -1,0 +1,31 @@
+SOURCE_CHECK_DIAG {"exit":1,"signal":null,"wallMs":48036.529525,"classification":"nonzero","oomDelta":0,"stdout":"\n  \u001b[38;2;225;80;80;1m×\u001b[0m \u001b[38;2;225;80;80;1mtypescript(require-array-sort-compare): Require 'compare' argument.\u001b[0m\n    ╭─[\u001b[38;2;92;157;255;1mresearch/lane-i/follow-up/regression-audit.ts\u001b[0m:19:51]\n \u001b[2m18\u001b[0m │   if(!a.eligible){assert.equal(events(text,'REGRESSION_CPU_SKIP').length,1);assert.equal(sources.length+runs.length+pairs.length+summary.length,0);skips.push({group,name,cpu:a.cpu});continue}\n \u001b[2m19\u001b[0m │   assert.equal(sources.length,2);assert.deepEqual(sources.map(s=>s.side).sort(),['base','candidate']);assert.equal(runs.length,10);assert.equal(pairs.length,5);assert.equal(summary.length,1);assert.equal(clean.length,2);assert(clean.every(x=>x.dirty===''))\n    · \u001b[38;2;246;87;248m                                                  ─────────────────────────────\u001b[0m\n \u001b[2m20\u001b[0m │   for(const s of sources){assert.equal(s.cpu,a.cpu);assert.equal(s.revision,s.side==='base'?manifest.base:manifest.candidate);assert.deepEqual(s.sources,manifest.sources[s.side]);assert(s.meta.clean)}\n    ╰────\n\nFound 0 warnings and 1 error.\nFinished in 15.7s on 1646 files with 100 rules using 8 threads.\n","stderr":"$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config\nerror: script \"check\" exited with code 1\n"}
+
+--- stderr ---
+12 |  for(const name of readdirSync(join(input,'source')).filter(n=>n.endsWith('.ts')))copyFileSync(join(input,'source',name),join(target,name))
+13 |  for(const[p,h]of Object.entries(cfg.sources.candidate))if(sha(readFileSync(join(root,p)))!==h)throw Error('candidate source changed '+p)
+14 |  command('bun',['install','--frozen-lockfile'],root)
+15 |  const checked=await runResourceMeasured('bun',['run','check'],root,'follow-up-tools-check',600)
+16 |  console.log('FOLLOW_TOOLS_CHECK '+JSON.stringify({exit:checked.status,signal:checked.signal,wallMs:checked.wallMs,resources:checked.resources,stdout:checked.stdout,stderr:checked.stderr}))
+17 |  if(checked.status!==0)throw Error('follow-up source check failed')
+                                  ^
+error: follow-up source check failed
+      at /work/gdp-wired/current-audit/validate-tools.ts:17:30
+
+Bun v1.4.3 (Linux x64)
+
+COMMITLINT_DIAG
+
+--- stderr ---
+Resolving dependencies
+Resolved, downloaded and extracted [443]
+Saved lockfile
+file:///tmp/tmp.9SSwlZvyEQ/node_modules/@commitlint/cli/lib/cli.js:132
+        throw err;
+        ^
+
+TypeError: Could not find git root from /tmp/tmp.9SSwlZvyEQ
+    at getEditCommit (file:///tmp/tmp.9SSwlZvyEQ/node_modules/@commitlint/read/lib/get-edit-commit.js:8:15)
+    at async main (file:///tmp/tmp.9SSwlZvyEQ/node_modules/@commitlint/cli/lib/cli.js:179:19)
+
+Node.js v20.20.2
+

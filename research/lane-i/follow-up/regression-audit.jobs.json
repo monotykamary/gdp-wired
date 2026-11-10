@@ -1,0 +1,10 @@
+[
+  {
+    "name": "regression-receipt-audit",
+    "cmd": "set -euo pipefail; bun -e 'console.log(require(\"node:fs\").readFileSync(\"epyc/follow-up-commitlint.log\",\"utf8\").slice(-6000))'; bun followup-source/regression-audit.ts .",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 120,
+    "vm_type": "large"
+  }
+]

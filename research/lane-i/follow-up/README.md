@@ -50,7 +50,7 @@ pass will not erase the earlier failure or prove that it was noise.
 See `helper-integration.json`. Do not merge entire lane branches: they include
 unrelated changes and may replace this lane's scheduling/symbolic-domain fixes.
 
-1. **Original-model identity first.** At inspection, B's canonical models blob
+1. **Original-model identity first.** At initial inspection, B's canonical models blob
    matches `8214a543` / `a8bbe098` (`0541fa9436e307a6fb716aa5064637b30b893b79`);
    F and E still have the earlier routing blob
    `0d5521e2e4dcbf6ac2ea7116ecee23497a0ec66b`. Existing saved P* families are
@@ -82,7 +82,14 @@ unrelated changes and may replace this lane's scheduling/symbolic-domain fixes.
 
 `jobs.json` runs only on boat. Staging is file/git-only; it reuses immutable
 packs by hard link and adds the 142-KB control pack. Batch
-`20261110-080834-7ilqre` is registered in
-`runs/lane-i/gated-follow-up/admission.json`; final measurements and an
-independent receipt audit are pending. Keep at most one local controller and
-no parallel local computation. No subagents are in use.
+`20261110-080834-7ilqre` completed both measurement workers. The first
+audit correctly rejected the collector's 400,000-byte p1 tail. The original
+816,127-byte stdout and empty stderr were recovered through the Boat API,
+with matching remote/local SHA-256; the recovery VM was stopped. The
+complete-evidence audit passed. The original failure remains preserved.
+The CPU-qualified regression audit also passed; its native measurements
+and adjudication boundary are in `lane-d-adjudication.md`. Final research-
+tooling validation and commitlint passed. Keep one lightweight local waiter per batch.
+All receipt aggregation, parsing, audits and checks now run as boat jobs;
+reuse existing immutable source archives/packs, without local tree copies.
+No subagents are in use.

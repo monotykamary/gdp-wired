@@ -1,0 +1,16 @@
+{
+  "status": "EPYC cohort completed: 5/5 per source; default-size probe skipped; commitlint job failed at Git-root lookup and is retained, later file-stdin check passed",
+  "task": "d1cc417b-c7e0-4bfb-8a97-8f5c5a420197",
+  "batch": "20261110-094226-z4i3mc",
+  "data": "/private/tmp/lane-i-a8-reruns.UOtgn8",
+  "reason": "Large gate workers supplied only Ryzen CPUs; use distinct VM sizes and submission-class placement without accepting a different CPU as EPYC.",
+  "requiredCpu": "AMD EPYC 4585PX 16-Core Processor",
+  "nativeProtocolMs": 60000,
+  "trace": "GDP_INFER_TRACE=2",
+  "workerNames": [
+    "two-phase-epyc-default",
+    "two-phase-epyc-xlarge"
+  ],
+  "skipDoesNotCount": true,
+  "commitlint": "Independent temporary install of @commitlint/cli and config-conventional; no proof/typecheck repetition."
+}

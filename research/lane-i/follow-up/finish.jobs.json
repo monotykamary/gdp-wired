@@ -1,0 +1,16 @@
+[
+  {
+    "name": "follow-up-commitlint-stdin",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 300,
+    "cmd": "set -euo pipefail; temp=$(mktemp -d); trap 'rm -rf \"$temp\"' EXIT; printf '{\"private\":true}\\n' > \"$temp/package.json\"; (cd \"$temp\" && bun add --dev @commitlint/cli@19.8.1 @commitlint/config-conventional@19.8.1 > /dev/null); printf \"module.exports={extends:['@commitlint/config-conventional']};\\n\" > \"$temp/commitlint.config.cjs\"; for name in checkpoint-message.txt result-message.txt; do file=\"$PWD/gate-reruns-input/$name\"; \"$temp/node_modules/.bin/commitlint\" --cwd \"$temp\" < \"$file\"; printf 'FOLLOW_COMMITLINT %s\\n' \"$name\"; sha256sum \"$file\"; done"
+  },
+  {
+    "name": "regression-summary",
+    "cpu": 1,
+    "memory": 2048,
+    "timeout": 60,
+    "cmd": "bun -e 'import{readFileSync}from\"node:fs\";const tag=\"REGRESSION_RECEIPT_AUDIT \",line=readFileSync(\"audited/regression-receipt-audit.log\",\"utf8\").split(\"\\n\").find(l=>l.startsWith(tag));if(!line)throw Error(\"missing audited result\");const r=JSON.parse(line.slice(tag.length)),range=a=>a.length?[Math.min(...a),Math.max(...a)]:null,side=(c,s)=>({passed:c[s+\"Pass\"],processMs:range(c.pairs.map(p=>p[s].wallMs)),rootMs:range(c.pairs.map(p=>p[s].rootMs).filter(n=>typeof n===\"number\")),nativeTestPasses:c.pairs.map(p=>p[s].pass??0).reduce((a,b)=>a+b,0),maxNativeCaseMs:Math.max(0,...c.pairs.flatMap(p=>(p[s].cases??[]).flatMap(l=>[...l.matchAll(/\\[([\\d.]+)ms\\]/g)].map(m=>Number(m[1])))))}),primary=r.cohorts.filter(c=>[r.primaryEpyc,r.primaryOther].includes(c.name));const summary={auditSourceSha256:r.auditSourceSha256,requiredCpuCoverage:r.requiredCpuCoverage,primaryEpyc:r.primaryEpyc,primaryOther:r.primaryOther,majorityRegressions:r.majorityRegressions,skipped:r.skips,cohorts:r.cohorts.map(c=>({name:c.name,cpu:c.cpu,mode:c.mode,base:side(c,\"base\"),candidate:side(c,\"candidate\"),candidateOnlyLosses:c.candidateOnlyLosses})),primaryPhaseExample:primary.map(c=>({name:c.name,base:c.pairs[0].base.phases.map(p=>({phase:p.phase,ms:p.ms})),candidate:c.pairs[0].candidate.phases.map(p=>({phase:p.phase,ms:p.ms}))})),inputHashes:r.inputHashes};console.log(\"REGRESSION_FINAL_SUMMARY \"+JSON.stringify(summary,null,2));if(!r.requiredCpuCoverage||r.majorityRegressions.length)process.exitCode=1;'"
+  }
+]

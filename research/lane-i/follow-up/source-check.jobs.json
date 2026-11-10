@@ -1,0 +1,10 @@
+[
+  {
+    "name": "follow-up-source-check",
+    "cmd": "set -euo pipefail; cp -a audit-data/follow-up-input/. .; mkdir -p current-audit/source; cp followup-source/*.ts current-audit/source/; cp audit-data/resource-run.ts current-audit/; cp followup-source/validate-tools.ts current-audit/; bun -e 'import{readdirSync,readFileSync,writeFileSync}from\"node:fs\";import{createHash}from\"node:crypto\";const h=Object.fromEntries(readdirSync(\"current-audit/source\").map(n=>[n,createHash(\"sha256\").update(readFileSync(\"current-audit/source/\"+n)).digest(\"hex\")]));writeFileSync(\"current-audit/source-manifest.json\",JSON.stringify(h));console.log(\"FOLLOW_SOURCE_INPUT \"+JSON.stringify(h))'; bun current-audit/validate-tools.ts current-audit .",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

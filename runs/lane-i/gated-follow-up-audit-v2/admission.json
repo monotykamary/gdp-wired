@@ -1,0 +1,21 @@
+{
+  "status": "running",
+  "task": "901af592-0614-4061-97c9-b848e761b61a",
+  "data": "/private/tmp/lane-i-follow-up-audit.1mxtvx",
+  "sourceRevision": "a8bbe0984f270070eba9bc166a89909d0c67597e",
+  "recoveredStdoutBytes": 816127,
+  "recoveredStdoutSha256": "777245aa64a873fe8800229a597cfce9c2c5d37d545a231b36293de4886f29cb",
+  "originalCollectorTailBytes": 400000,
+  "recoveryVm": "bx_5f56ms2a",
+  "recoveryVmStopped": true,
+  "measurementRerun": false,
+  "requirements": [
+    "exact-original-input-hashes",
+    "remote-local-full-log-hash-and-tail-match",
+    "complete-five-pair-cardinality",
+    "fresh-native-replay-of-ten-certificates",
+    "complete-unchanged-effect-case-outcomes",
+    "type-and-lint",
+    "commitlint"
+  ]
+}

@@ -1,0 +1,11 @@
+12 |  for(const name of readdirSync(join(input,'source')).filter(n=>n.endsWith('.ts')))copyFileSync(join(input,'source',name),join(target,name))
+13 |  for(const[p,h]of Object.entries(cfg.sources.candidate))if(sha(readFileSync(join(root,p)))!==h)throw Error('candidate source changed '+p)
+14 |  command('bun',['install','--frozen-lockfile'],root)
+15 |  const checked=await runResourceMeasured('bun',['run','check'],root,'follow-up-tools-check',600)
+16 |  console.log('FOLLOW_TOOLS_CHECK '+JSON.stringify({exit:checked.status,signal:checked.signal,wallMs:checked.wallMs,resources:checked.resources,stdout:checked.stdout,stderr:checked.stderr}))
+17 |  if(checked.status!==0)throw Error('follow-up source check failed')
+                                  ^
+error: follow-up source check failed
+      at /work/gdp-wired/audit-data/validate-tools.ts:17:30
+
+Bun v1.4.3 (Linux x64)

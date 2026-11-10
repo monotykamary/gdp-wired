@@ -1,0 +1,449 @@
+REGRESSION_FINAL_SUMMARY {
+  "auditSourceSha256": "0d01cc56a48336019de9d31f97253147e7811dcb9a89cfc1873d72dccfccd424",
+  "requiredCpuCoverage": true,
+  "primaryEpyc": "two-phase-epyc-xlarge",
+  "primaryOther": "two-phase-traced-1",
+  "majorityRegressions": [],
+  "skipped": [
+    {
+      "group": "initial",
+      "name": "two-phase-epyc-4",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    {
+      "group": "initial",
+      "name": "two-phase-epyc-3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    {
+      "group": "initial",
+      "name": "two-phase-epyc-2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    {
+      "group": "initial",
+      "name": "two-phase-epyc-1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    {
+      "group": "epyc",
+      "name": "two-phase-epyc-default",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor"
+    }
+  ],
+  "cohorts": [
+    {
+      "name": "two-phase-other-1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "mode": "two-phase-other",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          6799.945026000001,
+          12901.511613000002
+        ],
+        "rootMs": [
+          6760,
+          12857
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          6724.618362000001,
+          11301.702864000006
+        ],
+        "rootMs": [
+          6679,
+          11223
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "infer-five-pairs",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "mode": "infer",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          1946.0284750000064,
+          2075.4099720000013
+        ],
+        "rootMs": null,
+        "nativeTestPasses": 5,
+        "maxNativeCaseMs": 2038.7
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          1842.3564100000003,
+          1996.0785529999994
+        ],
+        "rootMs": null,
+        "nativeTestPasses": 5,
+        "maxNativeCaseMs": 1954.29
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "sums-five-pairs",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "mode": "sums",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          1906.5924320000013,
+          2184.2378739999986
+        ],
+        "rootMs": null,
+        "nativeTestPasses": 35,
+        "maxNativeCaseMs": 1554.16
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          1743.1895829999994,
+          2171.4791509999995
+        ],
+        "rootMs": null,
+        "nativeTestPasses": 35,
+        "maxNativeCaseMs": 1445.71
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "two-phase-other-2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "mode": "two-phase-other",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          27186.300534000038,
+          34360.22235300002
+        ],
+        "rootMs": [
+          27023,
+          34201
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          27811.035325999954,
+          38874.72606800002
+        ],
+        "rootMs": [
+          27671,
+          38635
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "two-phase-traced-4",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "mode": "two-phase-any",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          11301.768304999998,
+          13677.270726000002
+        ],
+        "rootMs": [
+          11230,
+          13567
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          11602.577372,
+          15207.779056999992
+        ],
+        "rootMs": [
+          11544,
+          15130
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "two-phase-traced-1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "mode": "two-phase-any",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          8605.235850000005,
+          11783.863852999988
+        ],
+        "rootMs": [
+          8524,
+          11690
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          8961.196658,
+          12375.521827999997
+        ],
+        "rootMs": [
+          8804,
+          12281
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "two-phase-traced-3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "mode": "two-phase-any",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          9269.323896000002,
+          10177.23932
+        ],
+        "rootMs": [
+          9209,
+          10119
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          10144.533844999998,
+          11278.984066999998
+        ],
+        "rootMs": [
+          10075,
+          11207
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "two-phase-traced-2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "mode": "two-phase-any",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          6498.191057999997,
+          9135.496836999999
+        ],
+        "rootMs": [
+          6463,
+          9097
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          6751.530186000004,
+          9798.018105999996
+        ],
+        "rootMs": [
+          6706,
+          9736
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "two-phase-epyc-xlarge",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "mode": "two-phase-epyc",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          9340.651667999991,
+          11419.596697
+        ],
+        "rootMs": [
+          9289,
+          11347
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          9964.349870000002,
+          14211.460744000004
+        ],
+        "rootMs": [
+          9831,
+          14139
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidateOnlyLosses": []
+    }
+  ],
+  "primaryPhaseExample": [
+    {
+      "name": "two-phase-traced-1",
+      "base": [
+        {
+          "phase": "start",
+          "ms": 241
+        },
+        {
+          "phase": "runs",
+          "ms": 652
+        },
+        {
+          "phase": "candidates",
+          "ms": 213
+        },
+        {
+          "phase": "houdini",
+          "ms": 576
+        },
+        {
+          "phase": "kernel",
+          "ms": 3684
+        },
+        {
+          "phase": "end",
+          "ms": 1320
+        }
+      ],
+      "candidate": [
+        {
+          "phase": "start",
+          "ms": 222
+        },
+        {
+          "phase": "runs",
+          "ms": 560
+        },
+        {
+          "phase": "candidates",
+          "ms": 196
+        },
+        {
+          "phase": "houdini",
+          "ms": 682
+        },
+        {
+          "phase": "kernel",
+          "ms": 3974
+        },
+        {
+          "phase": "end",
+          "ms": 1313
+        }
+      ]
+    },
+    {
+      "name": "two-phase-epyc-xlarge",
+      "base": [
+        {
+          "phase": "start",
+          "ms": 274
+        },
+        {
+          "phase": "runs",
+          "ms": 855
+        },
+        {
+          "phase": "candidates",
+          "ms": 241
+        },
+        {
+          "phase": "houdini",
+          "ms": 710
+        },
+        {
+          "phase": "kernel",
+          "ms": 4391
+        },
+        {
+          "phase": "end",
+          "ms": 1484
+        }
+      ],
+      "candidate": [
+        {
+          "phase": "start",
+          "ms": 263
+        },
+        {
+          "phase": "runs",
+          "ms": 508
+        },
+        {
+          "phase": "candidates",
+          "ms": 204
+        },
+        {
+          "phase": "houdini",
+          "ms": 594
+        },
+        {
+          "phase": "kernel",
+          "ms": 4581
+        },
+        {
+          "phase": "end",
+          "ms": 1621
+        }
+      ]
+    }
+  ],
+  "inputHashes": {
+    "initial/placement.json": "4cb34a99e2ee7ef0d1b409baa98bd1400f372e70bb64380829e299ed4fcd95c1",
+    "initial/input-manifest.json": "0267412a0a525160035d0a3cff7a11bfd915f71f309256bd50ef7d740cac47a0",
+    "initial/summary.tsv": "c3816a114b9e3b59b93ce6dd9872b03fa81305b568575184fedd3e4ecfef9032",
+    "initial/two-phase-other-1.log": "8eed5e208514af6508770550bf1676b224923e96783a0aa537cd5702458c01f9",
+    "initial/infer-five-pairs.log": "ef34e366eb30442811a2ad745325d809562a37698038844584327818b8c78c65",
+    "initial/two-phase-epyc-4.log": "24a02a9b02f201112322f1b5f532a68e1b5268d96d57e9debc4ee0fbff7f9a20",
+    "initial/sums-five-pairs.log": "3d4f439bcc9f0e6c2dd24374862ce28ed685416842ea961314165d52e2ab61eb",
+    "initial/two-phase-epyc-3.log": "8a751d99f04c432508c1ef6ec9268a7af684ea317e6113216bdc458ff23b498d",
+    "initial/two-phase-epyc-2.log": "5b6c5fcbe7696e38ac273a386510afd71ae8edfbc5a994fd1a3fada816fa90f7",
+    "initial/two-phase-epyc-1.log": "dfe5a58929f57d0b07129d9a2b186f9ef79e6f5dfee1a2c89f7fb0ce231a0fb5",
+    "initial/two-phase-other-2.log": "9a5b39147b4b7781a40f296587304e25bce5dc18b25b2089e9bb5bae27ce1ce2",
+    "phased/placement.json": "ac8ca5ebad5cd74025a914c3fc87b9228b781b166144c0eab5c7b5b7655ba609",
+    "phased/input-manifest.json": "121524ac109edfdec3b303e6c2e9f2593523c0eadb079a14e25e843f73151336",
+    "phased/summary.tsv": "9e213c4a142d04814081fdd4ac3205be2f41eae8c3385ea1487a7b097d8aef6c",
+    "phased/two-phase-traced-4.log": "d7f57c4199f3451ea4d22dd6f53fa968c0acf1024ae6e0a38f45460e181adc0f",
+    "phased/two-phase-traced-1.log": "1ea45aa89fc249db8ab799e4b88dcb42e06b24aa93c60409d40b790d20b5b63e",
+    "phased/two-phase-traced-3.log": "82b4cdd781130c13745594c112a3d4b2d73aed7549f9072bb90e4dfc3d9b09af",
+    "phased/two-phase-traced-2.log": "b6d40bad0b53742c86adc77764c87f86571c2c75453b6d7cc74dd027cf70e606",
+    "epyc/placement.json": "89ae98ea867ceb77ca2bd720e33b6a52c78f39b261ea57beae4778e40376101b",
+    "epyc/input-manifest.json": "eb9121ce936ac2f1a30ea6bb657240c1a0346509b00bb88b2709a1b73bf8d18c",
+    "epyc/summary.tsv": "b999003549ac8565ebf56842785843b03800e5a5ca9c24c6e037f1e8d23ceb11",
+    "epyc/two-phase-epyc-xlarge.log": "01f8034530151db5eecd92332456c5b19434c756026586d6e07d4e784593a865",
+    "epyc/two-phase-epyc-default.log": "dfedc04a313e98c608624d5731c1c6ceac63c296227f9dceda120b733ef298c6"
+  }
+}

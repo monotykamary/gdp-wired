@@ -1,0 +1,454 @@
+FOLLOW_SOURCE_INPUT {"regression-audit.ts":"fa621e82d927e81417957408fe353d3f6d218f26eceec36b19bc65eb33789d0c","gated-follow-up.ts":"6796d15ee6d879693b2a82c8cc1cd03290b7b12c44fad689b0108bd4416a332c","stage.ts":"8649b666623362819638920e62e12b5091f26db660311ad08a8a8e0cd5d50231","audit.ts":"be55b702ce4cb38645d3bca194096906e72ab7628c61b6b98ceb4e9b6e3f67e7","validate-tools.ts":"cfc9b0a297961cedef527c66aff5209008ef065eb215ab493e73d5d0a80644fc","regression-worker.ts":"58bbb07b1faeeab00f6c8330d2a4776247a2cae67b152bae12f012e0a6e30550","resource-run.ts":"7583b5aa8ec178f9ca49531ce86a1a3c83068166cb0cff62bdb3f45e6b35094c"}
+BAR_RESOURCE_BEGIN {"label":"follow-up-tools-check","pid":35195,"at":"2026-11-10T02:53:06.223Z","cgroup":"/user.slice/user-1000.slice/user@1000.service/app.slice/ascii-cmd-027835d4-ff49-4372-9829-3450fa31095d.scope","memoryMax":"max"}
+BAR_RESOURCE_END {"label":"follow-up-tools-check","status":0,"signal":null,"classification":"completed","wallMs":67614.76896,"oomDelta":0,"peakRssKiB":3192368,"minAvailableKiB":3212140,"pids":[35195,35196,35197,35198]}
+FOLLOW_TOOLS_CHECK {"exit":0,"signal":null,"wallMs":67614.76896,"resources":{"telemetryVersion":2,"label":"follow-up-tools-check","strictSeconds":600,"before":{"at":"2026-11-10T02:53:06.223Z","uptime":"459.43 2574.35","memory":{"MemTotal":16375780,"MemFree":9144384,"MemAvailable":13887516,"Buffers":271948,"Cached":3910928,"SwapCached":8,"Active":2301864,"Inactive":3437960,"Active(anon)":1444736,"Inactive(anon)":194148,"Active(file)":857128,"Inactive(file)":3243812,"Unevictable":98932,"Mlocked":98932,"SwapTotal":2097148,"SwapFree":2096880,"Zswap":0,"Zswapped":0,"Dirty":662996,"Writeback":92,"AnonPages":1655988,"Mapped":501212,"Shmem":1420,"KReclaimable":988100,"Slab":1178664,"SReclaimable":988100,"SUnreclaim":190564,"KernelStack":9120,"PageTables":18584,"SecPageTables":0,"NFS_Unstable":0,"Bounce":0,"WritebackTmp":0,"CommitLimit":10285036,"Committed_AS":4217360,"VmallocTotal":34359738367,"VmallocUsed":24068,"VmallocChunk":0,"Percpu":5984,"HardwareCorrupted":0,"AnonHugePages":4096,"ShmemHugePages":0,"ShmemPmdMapped":0,"FileHugePages":0,"FilePmdMapped":0,"Unaccepted":0,"HugePages_Total":0,"HugePages_Free":0,"HugePages_Rsvd":0,"HugePages_Surp":0,"Hugepagesize":2048,"Hugetlb":0,"DirectMap4k":188416,"DirectMap2M":8200192,"DirectMap1G":10485760},"vmstat":{"nr_free_pages":2286096,"nr_zone_inactive_anon":48537,"nr_zone_active_anon":361184,"nr_zone_inactive_file":810953,"nr_zone_active_file":214282,"nr_zone_unevictable":24733,"nr_zone_write_pending":165772,"nr_mlock":24733,"nr_bounce":0,"nr_zspages":0,"nr_free_cma":0,"nr_unaccepted":0,"numa_hit":53565088,"numa_miss":0,"numa_foreign":0,"numa_interleave":73,"numa_local":53565088,"numa_other":0,"nr_inactive_anon":48537,"nr_active_anon":361184,"nr_inactive_file":810953,"nr_active_file":214282,"nr_unevictable":24733,"nr_slab_reclaimable":247025,"nr_slab_unreclaimable":47641,"nr_isolated_anon":0,"nr_isolated_file":0,"workingset_nodes":24050,"workingset_refault_anon":0,"workingset_refault_file":7163057,"workingset_activate_anon":0,"workingset_activate_file":6003030,"workingset_restore_anon":0,"workingset_restore_file":6435,"workingset_nodereclaim":66824,"nr_anon_pages":413997,"nr_mapped":125433,"nr_file_pages":1045721,"nr_dirty":165749,"nr_writeback":23,"nr_writeback_temp":0,"nr_shmem":355,"nr_shmem_hugepages":0,"nr_shmem_pmdmapped":0,"nr_file_hugepages":0,"nr_file_pmdmapped":0,"nr_anon_transparent_hugepages":2,"nr_vmscan_write":2,"nr_vmscan_immediate_reclaim":0,"nr_dirtied":15086746,"nr_written":14204921,"nr_throttled_written":0,"nr_kernel_misc_reclaimable":0,"nr_foll_pin_acquired":213,"nr_foll_pin_released":213,"nr_kernel_stack":9120,"nr_page_table_pages":4646,"nr_sec_page_table_pages":0,"nr_swapcached":2,"pgpromote_success":0,"pgpromote_candidate":0,"pgdemote_kswapd":0,"pgdemote_direct":0,"pgdemote_khugepaged":0,"nr_dirty_threshold":653680,"nr_dirty_background_threshold":326441,"pgpgin":32694431,"pgpgout":57536178,"pswpin":0,"pswpout":2,"pgalloc_dma":512,"pgalloc_dma32":4963955,"pgalloc_normal":61145416,"pgalloc_movable":0,"pgalloc_device":0,"allocstall_dma":0,"allocstall_dma32":0,"allocstall_normal":53,"allocstall_movable":1536,"allocstall_device":0,"pgskip_dma":0,"pgskip_dma32":0,"pgskip_normal":0,"pgskip_movable":0,"pgskip_device":0,"pgfree":69019663,"pgactivate":1141,"pgdeactivate":0,"pglazyfree":0,"pgfault":27140910,"pgmajfault":20777,"pglazyfreed":0,"pgrefill":221970,"pgreuse":437874,"pgsteal_kswapd":4859944,"pgsteal_direct":156108,"pgsteal_khugepaged":0,"pgscan_kswapd":4863992,"pgscan_direct":156713,"pgscan_khugepaged":0,"pgscan_direct_throttle":0,"pgscan_anon":3,"pgscan_file":10679234,"pgsteal_anon":0,"pgsteal_file":10674584,"zone_reclaim_failed":0,"pginodesteal":0,"slabs_scanned":1354752,"kswapd_inodesteal":78429,"kswapd_low_wmark_hit_quickly":343,"kswapd_high_wmark_hit_quickly":16,"pageoutrun":461,"pgrotated":1818,"drop_pagecache":0,"drop_slab":0,"oom_kill":0,"numa_pte_updates":0,"numa_huge_pte_updates":0,"numa_hint_faults":0,"numa_hint_faults_local":0,"numa_pages_migrated":0,"pgmigrate_success":626485,"pgmigrate_fail":1219,"thp_migration_success":0,"thp_migration_fail":0,"thp_migration_split":0,"compact_migrate_scanned":2817639,"compact_free_scanned":14690781,"compact_isolated":1260216,"compact_stall":343,"compact_fail":231,"compact_success":112,"compact_daemon_wake":220,"compact_daemon_migrate_scanned":1970468,"compact_daemon_free_scanned":13847258,"htlb_buddy_alloc_success":0,"htlb_buddy_alloc_fail":0,"unevictable_pgs_culled":68663,"unevictable_pgs_scanned":0,"unevictable_pgs_rescued":24012,"unevictable_pgs_mlocked":48745,"unevictable_pgs_munlocked":56,"unevictable_pgs_cleared":0,"unevictable_pgs_stranded":23956,"thp_fault_alloc":1025,"thp_fault_fallback":61,"thp_fault_fallback_charge":0,"thp_collapse_alloc":1,"thp_collapse_alloc_failed":0,"thp_file_alloc":0,"thp_file_fallback":0,"thp_file_fallback_charge":0,"thp_file_mapped":0,"thp_split_page":0,"thp_split_page_failed":0,"thp_deferred_split_page":252,"thp_split_pmd":255,"thp_scan_exceed_none_pte":0,"thp_scan_exceed_swap_pte":0,"thp_scan_exceed_share_pte":0,"thp_split_pud":0,"thp_zero_page_alloc":1,"thp_zero_page_alloc_failed":0,"thp_swpout":0,"thp_swpout_fallback":0,"balloon_inflate":0,"balloon_deflate":0,"balloon_migrate":0,"swap_ra":0,"swap_ra_hit":0,"ksm_swpin_copy":0,"cow_ksm":0,"zswpin":0,"zswpout":0,"zswpwb":0,"direct_map_level2_splits":79,"direct_map_level3_splits":5,"nr_unstable":0},"cgroup":"/user.slice/user-1000.slice/user@1000.service/app.slice/ascii-cmd-027835d4-ff49-4372-9829-3450fa31095d.scope","events":{"low":0,"high":0,"max":0,"oom":0,"oom_kill":0,"oom_group_kill":0},"memoryMax":"max","memoryCurrent":"2354331648"},"after":{"at":"2026-11-10T02:54:13.839Z","uptime":"527.04 2886.82","memory":{"MemTotal":16375780,"MemFree":10846872,"MemAvailable":13755252,"Buffers":126064,"Cached":2556124,"SwapCached":4292,"Active":817500,"Inactive":3368572,"Active(anon)":322588,"Inactive(anon)":1263028,"Active(file)":494912,"Inactive(file)":2105544,"Unevictable":98932,"Mlocked":98932,"SwapTotal":2097148,"SwapFree":2059800,"Zswap":0,"Zswapped":0,"Dirty":92,"Writeback":0,"AnonPages":1598744,"Mapped":442032,"Shmem":1280,"KReclaimable":852288,"Slab":1036244,"SReclaimable":852288,"SUnreclaim":183956,"KernelStack":9068,"PageTables":18876,"SecPageTables":0,"NFS_Unstable":0,"Bounce":0,"WritebackTmp":0,"CommitLimit":10285036,"Committed_AS":4197572,"VmallocTotal":34359738367,"VmallocUsed":24532,"VmallocChunk":0,"Percpu":5984,"HardwareCorrupted":0,"AnonHugePages":4096,"ShmemHugePages":0,"ShmemPmdMapped":0,"FileHugePages":0,"FilePmdMapped":0,"Unaccepted":0,"HugePages_Total":0,"HugePages_Free":0,"HugePages_Rsvd":0,"HugePages_Surp":0,"Hugepagesize":2048,"Hugetlb":0,"DirectMap4k":188416,"DirectMap2M":8200192,"DirectMap1G":10485760},"vmstat":{"nr_free_pages":2711718,"nr_zone_inactive_anon":315757,"nr_zone_active_anon":80641,"nr_zone_inactive_file":526386,"nr_zone_active_file":123728,"nr_zone_unevictable":24733,"nr_zone_write_pending":23,"nr_mlock":24733,"nr_bounce":0,"nr_zspages":0,"nr_free_cma":0,"nr_unaccepted":0,"numa_hit":58294149,"numa_miss":0,"numa_foreign":0,"numa_interleave":73,"numa_local":58294149,"numa_other":0,"nr_inactive_anon":315757,"nr_active_anon":80647,"nr_inactive_file":526386,"nr_active_file":123728,"nr_unevictable":24733,"nr_slab_reclaimable":213072,"nr_slab_unreclaimable":45989,"nr_isolated_anon":0,"nr_isolated_file":0,"workingset_nodes":27918,"workingset_refault_anon":0,"workingset_refault_file":7163079,"workingset_activate_anon":0,"workingset_activate_file":6003030,"workingset_restore_anon":0,"workingset_restore_file":6435,"workingset_nodereclaim":68995,"nr_anon_pages":399686,"nr_mapped":110508,"nr_file_pages":671620,"nr_dirty":23,"nr_writeback":0,"nr_writeback_temp":0,"nr_shmem":320,"nr_shmem_hugepages":0,"nr_shmem_pmdmapped":0,"nr_file_hugepages":0,"nr_file_pmdmapped":0,"nr_anon_transparent_hugepages":2,"nr_vmscan_write":9175,"nr_vmscan_immediate_reclaim":0,"nr_dirtied":15108044,"nr_written":14399467,"nr_throttled_written":0,"nr_kernel_misc_reclaimable":0,"nr_foll_pin_acquired":213,"nr_foll_pin_released":213,"nr_kernel_stack":9068,"nr_page_table_pages":4719,"nr_sec_page_table_pages":0,"nr_swapcached":1073,"pgpromote_success":0,"pgpromote_candidate":0,"pgdemote_kswapd":0,"pgdemote_direct":0,"pgdemote_khugepaged":0,"nr_dirty_threshold":663777,"nr_dirty_background_threshold":331483,"pgpgin":32696733,"pgpgout":58342994,"pswpin":0,"pswpout":9175,"pgalloc_dma":512,"pgalloc_dma32":5606286,"pgalloc_normal":66181185,"pgalloc_movable":0,"pgalloc_device":0,"allocstall_dma":0,"allocstall_dma32":0,"allocstall_normal":53,"allocstall_movable":2183,"allocstall_device":0,"pgskip_dma":0,"pgskip_dma32":0,"pgskip_normal":0,"pgskip_movable":0,"pgskip_device":0,"pgfree":75123477,"pgactivate":4675,"pgdeactivate":0,"pglazyfree":0,"pgfault":31508442,"pgmajfault":20813,"pglazyfreed":0,"pgrefill":417620,"pgreuse":460616,"pgsteal_kswapd":5156771,"pgsteal_direct":196432,"pgsteal_khugepaged":0,"pgscan_kswapd":5175364,"pgscan_direct":202994,"pgscan_khugepaged":0,"pgscan_direct_throttle":0,"pgscan_anon":17388,"pgscan_file":11019502,"pgsteal_anon":8101,"pgsteal_file":11003634,"zone_reclaim_failed":0,"pginodesteal":0,"slabs_scanned":2066524,"kswapd_inodesteal":79053,"kswapd_low_wmark_hit_quickly":382,"kswapd_high_wmark_hit_quickly":20,"pageoutrun":511,"pgrotated":10991,"drop_pagecache":0,"drop_slab":0,"oom_kill":0,"numa_pte_updates":0,"numa_huge_pte_updates":0,"numa_hint_faults":0,"numa_hint_faults_local":0,"numa_pages_migrated":0,"pgmigrate_success":639072,"pgmigrate_fail":1223,"thp_migration_success":0,"thp_migration_fail":0,"thp_migration_split":0,"compact_migrate_scanned":2977097,"compact_free_scanned":14845954,"compact_isolated":1285575,"compact_stall":343,"compact_fail":231,"compact_success":112,"compact_daemon_wake":270,"compact_daemon_migrate_scanned":2129926,"compact_daemon_free_scanned":14002431,"htlb_buddy_alloc_success":0,"htlb_buddy_alloc_fail":0,"unevictable_pgs_culled":68663,"unevictable_pgs_scanned":0,"unevictable_pgs_rescued":24012,"unevictable_pgs_mlocked":48745,"unevictable_pgs_munlocked":56,"unevictable_pgs_cleared":0,"unevictable_pgs_stranded":23956,"thp_fault_alloc":1473,"thp_fault_fallback":61,"thp_fault_fallback_charge":0,"thp_collapse_alloc":2,"thp_collapse_alloc_failed":0,"thp_file_alloc":0,"thp_file_fallback":0,"thp_file_fallback_charge":0,"thp_file_mapped":0,"thp_split_page":0,"thp_split_page_failed":0,"thp_deferred_split_page":367,"thp_split_pmd":375,"thp_scan_exceed_none_pte":0,"thp_scan_exceed_swap_pte":0,"thp_scan_exceed_share_pte":0,"thp_split_pud":0,"thp_zero_page_alloc":1,"thp_zero_page_alloc_failed":0,"thp_swpout":0,"thp_swpout_fallback":0,"balloon_inflate":0,"balloon_deflate":0,"balloon_migrate":0,"swap_ra":0,"swap_ra_hit":0,"ksm_swpin_copy":0,"cow_ksm":0,"zswpin":0,"zswpout":0,"zswpwb":0,"direct_map_level2_splits":79,"direct_map_level3_splits":5,"nr_unstable":0},"cgroup":"/user.slice/user-1000.slice/user@1000.service/app.slice/ascii-cmd-027835d4-ff49-4372-9829-3450fa31095d.scope","events":{"low":0,"high":0,"max":0,"oom":0,"oom_kill":0,"oom_group_kill":0},"memoryMax":"max","memoryCurrent":"1895096320"},"pid":35195,"seenPids":[35195,35196,35197,35198],"peakRssKiB":3192368,"minAvailableKiB":3212140,"pidPeaksKiB":{"35195":2164,"35196":8452,"35197":212552,"35198":3178124},"samples":[{"elapsedMs":2,"rssKiB":2164,"pids":[35195],"availableKiB":13886760},{"elapsedMs":254,"rssKiB":120920,"pids":[35195,35196,35197,35198],"availableKiB":13826036},{"elapsedMs":504,"rssKiB":197124,"pids":[35195,35196,35197,35198],"availableKiB":13779256},{"elapsedMs":754,"rssKiB":283424,"pids":[35195,35196,35197,35198],"availableKiB":13690352},{"elapsedMs":1005,"rssKiB":383600,"pids":[35195,35196,35197,35198],"availableKiB":13606996},{"elapsedMs":1255,"rssKiB":461816,"pids":[35195,35196,35197,35198],"availableKiB":13522396},{"elapsedMs":1505,"rssKiB":549388,"pids":[35195,35196,35197,35198],"availableKiB":13442388},{"elapsedMs":1755,"rssKiB":639724,"pids":[35195,35196,35197,35198],"availableKiB":13336336},{"elapsedMs":2006,"rssKiB":689496,"pids":[35195,35196,35197,35198],"availableKiB":13288776},{"elapsedMs":2256,"rssKiB":758292,"pids":[35195,35196,35197,35198],"availableKiB":13217216},{"elapsedMs":2506,"rssKiB":844668,"pids":[35195,35196,35197,35198],"availableKiB":13128784},{"elapsedMs":2757,"rssKiB":929716,"pids":[35195,35196,35197,35198],"availableKiB":13032528},{"elapsedMs":3008,"rssKiB":969272,"pids":[35195,35196,35197,35198],"availableKiB":13000272},{"elapsedMs":3258,"rssKiB":1019748,"pids":[35195,35196,35197,35198],"availableKiB":12943824},{"elapsedMs":3508,"rssKiB":1078284,"pids":[35195,35196,35197,35198],"availableKiB":12886620},{"elapsedMs":3758,"rssKiB":1131356,"pids":[35195,35196,35197,35198],"availableKiB":12839244},{"elapsedMs":4009,"rssKiB":1184356,"pids":[35195,35196,35197,35198],"availableKiB":12790860},{"elapsedMs":4259,"rssKiB":1211400,"pids":[35195,35196,35197,35198],"availableKiB":12766668},{"elapsedMs":4509,"rssKiB":1220932,"pids":[35195,35196,35197,35198],"availableKiB":12758604},{"elapsedMs":4760,"rssKiB":1233552,"pids":[35195,35196,35197,35198],"availableKiB":12749784},{"elapsedMs":5010,"rssKiB":1243520,"pids":[35195,35196,35197,35198],"availableKiB":12738948},{"elapsedMs":5260,"rssKiB":1253756,"pids":[35195,35196,35197,35198],"availableKiB":12723324},{"elapsedMs":5511,"rssKiB":1261556,"pids":[35195,35196,35197,35198],"availableKiB":12711228},{"elapsedMs":5761,"rssKiB":1272428,"pids":[35195,35196,35197,35198],"availableKiB":12706188},{"elapsedMs":6012,"rssKiB":1281996,"pids":[35195,35196,35197,35198],"availableKiB":12692076},{"elapsedMs":6262,"rssKiB":1292208,"pids":[35195,35196,35197,35198],"availableKiB":12677008},{"elapsedMs":6512,"rssKiB":1301608,"pids":[35195,35196,35197,35198],"availableKiB":12665416},{"elapsedMs":6763,"rssKiB":1309640,"pids":[35195,35196,35197,35198],"availableKiB":12659620},{"elapsedMs":7013,"rssKiB":1317672,"pids":[35195,35196,35197,35198],"availableKiB":12649540},{"elapsedMs":7263,"rssKiB":1326028,"pids":[35195,35196,35197,35198],"availableKiB":12644500},{"elapsedMs":7514,"rssKiB":1337720,"pids":[35195,35196,35197,35198],"availableKiB":12631396},{"elapsedMs":7764,"rssKiB":1346308,"pids":[35195,35196,35197,35198],"availableKiB":12623348},{"elapsedMs":8014,"rssKiB":1371792,"pids":[35195,35196,35197,35198],"availableKiB":12599156},{"elapsedMs":8264,"rssKiB":1394532,"pids":[35195,35196,35197,35198],"availableKiB":12573200},{"elapsedMs":8515,"rssKiB":1431328,"pids":[35195,35196,35197,35198],"availableKiB":12542960},{"elapsedMs":8765,"rssKiB":1451432,"pids":[35195,35196,35197,35198],"availableKiB":12502640},{"elapsedMs":9016,"rssKiB":1460496,"pids":[35195,35196,35197,35198],"availableKiB":12494576},{"elapsedMs":9266,"rssKiB":1472440,"pids":[35195,35196,35197,35198],"availableKiB":12494576},{"elapsedMs":9516,"rssKiB":1484896,"pids":[35195,35196,35197,35198],"availableKiB":12486512},{"elapsedMs":9767,"rssKiB":1493556,"pids":[35195,35196,35197,35198],"availableKiB":12482732},{"elapsedMs":10017,"rssKiB":1517404,"pids":[35195,35196,35197,35198],"availableKiB":12451988},{"elapsedMs":10267,"rssKiB":1542444,"pids":[35195,35196,35197,35198],"availableKiB":12411920},{"elapsedMs":10517,"rssKiB":1552816,"pids":[35195,35196,35197,35198],"availableKiB":12403604},{"elapsedMs":10767,"rssKiB":1565636,"pids":[35195,35196,35197,35198],"availableKiB":12394304},{"elapsedMs":11018,"rssKiB":1573716,"pids":[35195,35196,35197,35198],"availableKiB":12385484},{"elapsedMs":11268,"rssKiB":1581864,"pids":[35195,35196,35197,35198],"availableKiB":12360196},{"elapsedMs":11518,"rssKiB":1594076,"pids":[35195,35196,35197,35198],"availableKiB":12318072},{"elapsedMs":11769,"rssKiB":1605660,"pids":[35195,35196,35197,35198],"availableKiB":12100564},{"elapsedMs":12020,"rssKiB":1613504,"pids":[35195,35196,35197,35198],"availableKiB":12126644},{"elapsedMs":12270,"rssKiB":1620208,"pids":[35195,35196,35197,35198],"availableKiB":12172268},{"elapsedMs":12520,"rssKiB":1627564,"pids":[35195,35196,35197,35198],"availableKiB":12180480},{"elapsedMs":12771,"rssKiB":1638568,"pids":[35195,35196,35197,35198],"availableKiB":12190704},{"elapsedMs":13021,"rssKiB":1659812,"pids":[35195,35196,35197,35198],"availableKiB":12175264},{"elapsedMs":13271,"rssKiB":1669564,"pids":[35195,35196,35197,35198],"availableKiB":12133440},{"elapsedMs":13522,"rssKiB":1694752,"pids":[35195,35196,35197,35198],"availableKiB":12062536},{"elapsedMs":13772,"rssKiB":1728524,"pids":[35195,35196,35197,35198],"availableKiB":12004828},{"elapsedMs":14023,"rssKiB":1762900,"pids":[35195,35196,35197,35198],"availableKiB":11951656},{"elapsedMs":14274,"rssKiB":1802824,"pids":[35195,35196,35197,35198],"availableKiB":11833764},{"elapsedMs":14524,"rssKiB":1838984,"pids":[35195,35196,35197,35198],"availableKiB":11775964},{"elapsedMs":14774,"rssKiB":1871860,"pids":[35195,35196,35197,35198],"availableKiB":11739400},{"elapsedMs":15025,"rssKiB":1900404,"pids":[35195,35196,35197,35198],"availableKiB":11712188},{"elapsedMs":15275,"rssKiB":1929404,"pids":[35195,35196,35197,35198],"availableKiB":11695308},{"elapsedMs":15525,"rssKiB":1964020,"pids":[35195,35196,35197,35198],"availableKiB":11689808},{"elapsedMs":15775,"rssKiB":1986872,"pids":[35195,35196,35197,35198],"availableKiB":11691216},{"elapsedMs":16026,"rssKiB":2010536,"pids":[35195,35196,35197,35198],"availableKiB":11666772},{"elapsedMs":16276,"rssKiB":2039192,"pids":[35195,35196,35197,35198],"availableKiB":11562896},{"elapsedMs":16526,"rssKiB":2087124,"pids":[35195,35196,35197,35198],"availableKiB":11267288},{"elapsedMs":16777,"rssKiB":2120432,"pids":[35195,35196,35197,35198],"availableKiB":11089416},{"elapsedMs":17028,"rssKiB":2146620,"pids":[35195,35196,35197,35198],"availableKiB":11007988},{"elapsedMs":17278,"rssKiB":2173504,"pids":[35195,35196,35197,35198],"availableKiB":10807468},{"elapsedMs":17529,"rssKiB":2191508,"pids":[35195,35196,35197,35198],"availableKiB":10510340},{"elapsedMs":17780,"rssKiB":2206452,"pids":[35195,35196,35197,35198],"availableKiB":10161984},{"elapsedMs":18032,"rssKiB":2227228,"pids":[35195,35196,35197,35198],"availableKiB":9735728},{"elapsedMs":18281,"rssKiB":2256040,"pids":[35195,35196,35197,35198],"availableKiB":9661484},{"elapsedMs":18531,"rssKiB":2285328,"pids":[35195,35196,35197,35198],"availableKiB":10069148},{"elapsedMs":18782,"rssKiB":2330528,"pids":[35195,35196,35197,35198],"availableKiB":10050928},{"elapsedMs":19033,"rssKiB":2354344,"pids":[35195,35196,35197,35198],"availableKiB":10065952},{"elapsedMs":19282,"rssKiB":2369744,"pids":[35195,35196,35197,35198],"availableKiB":10119628},{"elapsedMs":19533,"rssKiB":2403336,"pids":[35195,35196,35197,35198],"availableKiB":10140860},{"elapsedMs":19783,"rssKiB":2452348,"pids":[35195,35196,35197,35198],"availableKiB":10095564},{"elapsedMs":20034,"rssKiB":2475756,"pids":[35195,35196,35197,35198],"availableKiB":10064288},{"elapsedMs":20284,"rssKiB":2492532,"pids":[35195,35196,35197,35198],"availableKiB":10069128},{"elapsedMs":20535,"rssKiB":2513260,"pids":[35195,35196,35197,35198],"availableKiB":10114756},{"elapsedMs":20785,"rssKiB":2472216,"pids":[35195,35196,35197,35198],"availableKiB":10158012},{"elapsedMs":21036,"rssKiB":2476632,"pids":[35195,35196,35197,35198],"availableKiB":10165620},{"elapsedMs":21286,"rssKiB":2478304,"pids":[35195,35196,35197,35198],"availableKiB":10267376},{"elapsedMs":21536,"rssKiB":2478388,"pids":[35195,35196,35197,35198],"availableKiB":10280264},{"elapsedMs":21787,"rssKiB":2478588,"pids":[35195,35196,35197,35198],"availableKiB":10299604},{"elapsedMs":22037,"rssKiB":2479936,"pids":[35195,35196,35197,35198],"availableKiB":10299680},{"elapsedMs":22288,"rssKiB":2482124,"pids":[35195,35196,35197,35198],"availableKiB":10303588},{"elapsedMs":22538,"rssKiB":2489620,"pids":[35195,35196,35197,35198],"availableKiB":10302944},{"elapsedMs":22788,"rssKiB":2493452,"pids":[35195,35196,35197,35198],"availableKiB":10303356},{"elapsedMs":23039,"rssKiB":2494720,"pids":[35195,35196,35197,35198],"availableKiB":10304844},{"elapsedMs":23289,"rssKiB":2497940,"pids":[35195,35196,35197,35198],"availableKiB":10308380},{"elapsedMs":23539,"rssKiB":2498940,"pids":[35195,35196,35197,35198],"availableKiB":10313064},{"elapsedMs":23790,"rssKiB":2500196,"pids":[35195,35196,35197,35198],"availableKiB":10309640},{"elapsedMs":24040,"rssKiB":2504736,"pids":[35195,35196,35197,35198],"availableKiB":10308940},{"elapsedMs":24290,"rssKiB":2525408,"pids":[35195,35196,35197,35198],"availableKiB":10289112},{"elapsedMs":24541,"rssKiB":2549720,"pids":[35195,35196,35197,35198],"availableKiB":10291364},{"elapsedMs":24791,"rssKiB":2578576,"pids":[35195,35196,35197,35198],"availableKiB":10285356},{"elapsedMs":25042,"rssKiB":2612844,"pids":[35195,35196,35197,35198],"availableKiB":10277744},{"elapsedMs":25292,"rssKiB":2620420,"pids":[35195,35196,35197,35198],"availableKiB":10284180},{"elapsedMs":25542,"rssKiB":2625372,"pids":[35195,35196,35197,35198],"availableKiB":10335796},{"elapsedMs":25792,"rssKiB":2628904,"pids":[35195,35196,35197,35198],"availableKiB":10369148},{"elapsedMs":26043,"rssKiB":2635640,"pids":[35195,35196,35197,35198],"availableKiB":10431960},{"elapsedMs":26293,"rssKiB":2643452,"pids":[35195,35196,35197,35198],"availableKiB":10475956},{"elapsedMs":26544,"rssKiB":2651812,"pids":[35195,35196,35197,35198],"availableKiB":10535424},{"elapsedMs":26794,"rssKiB":2690884,"pids":[35195,35196,35197,35198],"availableKiB":10563828},{"elapsedMs":27045,"rssKiB":2704072,"pids":[35195,35196,35197,35198],"availableKiB":10593564},{"elapsedMs":27295,"rssKiB":2727536,"pids":[35195,35196,35197,35198],"availableKiB":10617000},{"elapsedMs":27545,"rssKiB":2758472,"pids":[35195,35196,35197,35198],"availableKiB":10622172},{"elapsedMs":27795,"rssKiB":2806588,"pids":[35195,35196,35197,35198],"availableKiB":10586500},{"elapsedMs":28046,"rssKiB":2857200,"pids":[35195,35196,35197,35198],"availableKiB":10574736},{"elapsedMs":28296,"rssKiB":2898992,"pids":[35195,35196,35197,35198],"availableKiB":10534416},{"elapsedMs":28546,"rssKiB":2937284,"pids":[35195,35196,35197,35198],"availableKiB":10503000},{"elapsedMs":28797,"rssKiB":2972088,"pids":[35195,35196,35197,35198],"availableKiB":10490452},{"elapsedMs":29051,"rssKiB":2989084,"pids":[35195,35196,35197,35198],"availableKiB":10479776},{"elapsedMs":29301,"rssKiB":3010924,"pids":[35195,35196,35197,35198],"availableKiB":10486148},{"elapsedMs":29551,"rssKiB":3038368,"pids":[35195,35196,35197,35198],"availableKiB":10477360},{"elapsedMs":29802,"rssKiB":3064896,"pids":[35195,35196,35197,35198],"availableKiB":10463028},{"elapsedMs":30053,"rssKiB":3084628,"pids":[35195,35196,35197,35198],"availableKiB":10598852},{"elapsedMs":30305,"rssKiB":3091408,"pids":[35195,35196,35197,35198],"availableKiB":10585748},{"elapsedMs":30555,"rssKiB":3097912,"pids":[35195,35196,35197,35198],"availableKiB":10629556},{"elapsedMs":30805,"rssKiB":3103160,"pids":[35195,35196,35197,35198],"availableKiB":10613064},{"elapsedMs":31056,"rssKiB":3109284,"pids":[35195,35196,35197,35198],"availableKiB":10603412},{"elapsedMs":31306,"rssKiB":3114596,"pids":[35195,35196,35197,35198],"availableKiB":10600060},{"elapsedMs":31557,"rssKiB":3121524,"pids":[35195,35196,35197,35198],"availableKiB":10603988},{"elapsedMs":31807,"rssKiB":3125980,"pids":[35195,35196,35197,35198],"availableKiB":10595932},{"elapsedMs":32058,"rssKiB":3130152,"pids":[35195,35196,35197,35198],"availableKiB":10596080},{"elapsedMs":32308,"rssKiB":3135224,"pids":[35195,35196,35197,35198],"availableKiB":10596080},{"elapsedMs":32558,"rssKiB":3139652,"pids":[35195,35196,35197,35198],"availableKiB":10589936},{"elapsedMs":32808,"rssKiB":3145524,"pids":[35195,35196,35197,35198],"availableKiB":10590288},{"elapsedMs":33059,"rssKiB":3149456,"pids":[35195,35196,35197,35198],"availableKiB":10590036},{"elapsedMs":33310,"rssKiB":3153248,"pids":[35195,35196,35197,35198],"availableKiB":10589280},{"elapsedMs":33560,"rssKiB":3158628,"pids":[35195,35196,35197,35198],"availableKiB":10590532},{"elapsedMs":33810,"rssKiB":3169732,"pids":[35195,35196,35197,35198],"availableKiB":10582468},{"elapsedMs":34061,"rssKiB":3173952,"pids":[35195,35196,35197,35198],"availableKiB":10578436},{"elapsedMs":34311,"rssKiB":3181456,"pids":[35195,35196,35197,35198],"availableKiB":10568860},{"elapsedMs":34563,"rssKiB":3187344,"pids":[35195,35196,35197,35198],"availableKiB":10574292},{"elapsedMs":34813,"rssKiB":3192368,"pids":[35195,35196,35197,35198],"availableKiB":10574848},{"elapsedMs":35063,"rssKiB":14244,"pids":[35195,35196,35197,35198],"availableKiB":12133296},{"elapsedMs":35313,"rssKiB":150516,"pids":[35195,35196,35197],"availableKiB":13718844},{"elapsedMs":35563,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":13616052},{"elapsedMs":35817,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":13288452},{"elapsedMs":36068,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":12980764},{"elapsedMs":36320,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":12901644},{"elapsedMs":36570,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":12684168},{"elapsedMs":36822,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":12407724},{"elapsedMs":37072,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":12307932},{"elapsedMs":37322,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":12171600},{"elapsedMs":37573,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":12006300},{"elapsedMs":37824,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":11837964},{"elapsedMs":38075,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":11644680},{"elapsedMs":38327,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":11483652},{"elapsedMs":38577,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":11363700},{"elapsedMs":38827,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":11352108},{"elapsedMs":39078,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":11173440},{"elapsedMs":39328,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":11002584},{"elapsedMs":39579,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":10708248},{"elapsedMs":39829,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":10434324},{"elapsedMs":40080,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":10201476},{"elapsedMs":40331,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":10082812},{"elapsedMs":40581,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9940180},{"elapsedMs":40835,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9836860},{"elapsedMs":41085,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9741352},{"elapsedMs":41339,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9714136},{"elapsedMs":41589,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9714640},{"elapsedMs":41840,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9572764},{"elapsedMs":42090,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9492124},{"elapsedMs":42341,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9460120},{"elapsedMs":42657,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9373180},{"elapsedMs":42907,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9267592},{"elapsedMs":43157,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9205096},{"elapsedMs":43407,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9185188},{"elapsedMs":43658,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9153940},{"elapsedMs":43908,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9140856},{"elapsedMs":44158,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9100536},{"elapsedMs":44478,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9072564},{"elapsedMs":44728,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9064500},{"elapsedMs":44978,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9064500},{"elapsedMs":45229,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9056436},{"elapsedMs":45479,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9006792},{"elapsedMs":45730,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":9004776},{"elapsedMs":45980,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8989656},{"elapsedMs":46230,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8942532},{"elapsedMs":46631,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8913580},{"elapsedMs":46880,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8880568},{"elapsedMs":47131,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8825128},{"elapsedMs":47471,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8793880},{"elapsedMs":47721,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8753812},{"elapsedMs":47971,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8721556},{"elapsedMs":48222,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8680732},{"elapsedMs":48472,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8647468},{"elapsedMs":48722,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8586988},{"elapsedMs":49069,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8545660},{"elapsedMs":49319,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8521720},{"elapsedMs":49569,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8468304},{"elapsedMs":49819,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8432268},{"elapsedMs":50070,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8403288},{"elapsedMs":50320,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8376576},{"elapsedMs":50570,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8356416},{"elapsedMs":50821,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8302992},{"elapsedMs":51071,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8254608},{"elapsedMs":51321,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8163904},{"elapsedMs":51572,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8107968},{"elapsedMs":51822,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8059836},{"elapsedMs":52072,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8027592},{"elapsedMs":52323,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":8007684},{"elapsedMs":52573,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7977192},{"elapsedMs":52823,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7924776},{"elapsedMs":53074,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7870344},{"elapsedMs":53324,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7850436},{"elapsedMs":53574,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7798272},{"elapsedMs":53824,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7789200},{"elapsedMs":54074,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7763612},{"elapsedMs":54324,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7740932},{"elapsedMs":54577,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7703888},{"elapsedMs":54828,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7676924},{"elapsedMs":55127,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7675828},{"elapsedMs":55377,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7652500},{"elapsedMs":55628,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7567576},{"elapsedMs":55880,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7356668},{"elapsedMs":56130,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7383160},{"elapsedMs":56383,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7284660},{"elapsedMs":56633,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7181088},{"elapsedMs":56886,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7086588},{"elapsedMs":57168,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":7022580},{"elapsedMs":57418,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":6918756},{"elapsedMs":57669,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":6918000},{"elapsedMs":57919,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":6917704},{"elapsedMs":58169,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":6897040},{"elapsedMs":58419,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":6777592},{"elapsedMs":58669,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":6680824},{"elapsedMs":58920,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":6584056},{"elapsedMs":59170,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":6503416},{"elapsedMs":59420,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":6391528},{"elapsedMs":59671,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":6275104},{"elapsedMs":59921,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":6126928},{"elapsedMs":60173,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":5989336},{"elapsedMs":60423,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":5819236},{"elapsedMs":60673,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":5694244},{"elapsedMs":60924,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":5645668},{"elapsedMs":61174,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":5566288},{"elapsedMs":61424,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":5509344},{"elapsedMs":61675,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":5453148},{"elapsedMs":61926,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":5388888},{"elapsedMs":62176,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":5300184},{"elapsedMs":62426,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":5243988},{"elapsedMs":62676,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":5195604},{"elapsedMs":62927,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":5102700},{"elapsedMs":63178,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":4911848},{"elapsedMs":63428,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":4726380},{"elapsedMs":63678,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":4653256},{"elapsedMs":63930,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":4440644},{"elapsedMs":64180,"rssKiB":223168,"pids":[35195,35196,35197],"availableKiB":4391532},{"elapsedMs":64430,"rssKiB":223152,"pids":[35195,35196,35197],"availableKiB":4338164},{"elapsedMs":64681,"rssKiB":223152,"pids":[35195,35196,35197],"availableKiB":4207948},{"elapsedMs":64933,"rssKiB":223152,"pids":[35195,35196,35197],"availableKiB":4158640},{"elapsedMs":65181,"rssKiB":223152,"pids":[35195,35196,35197],"availableKiB":4138268},{"elapsedMs":65432,"rssKiB":223152,"pids":[35195,35196,35197],"availableKiB":4137008},{"elapsedMs":65682,"rssKiB":223152,"pids":[35195,35196,35197],"availableKiB":4145196},{"elapsedMs":65932,"rssKiB":223152,"pids":[35195,35196,35197],"availableKiB":4041564},{"elapsedMs":66183,"rssKiB":223152,"pids":[35195,35196,35197],"availableKiB":3902168},{"elapsedMs":66434,"rssKiB":223152,"pids":[35195,35196,35197],"availableKiB":3827724},{"elapsedMs":66684,"rssKiB":223152,"pids":[35195,35196,35197],"availableKiB":3752056},{"elapsedMs":66934,"rssKiB":223152,"pids":[35195,35196,35197],"availableKiB":3601948},{"elapsedMs":67185,"rssKiB":223152,"pids":[35195,35196,35197],"availableKiB":3212140},{"elapsedMs":67435,"rssKiB":223152,"pids":[35195,35196,35197],"availableKiB":9195640}],"oomDelta":0,"kernelPidOom":false,"kernel":"","journalExit":0,"journalError":"","watchdog":false,"classification":"completed","capture":"files, not bounded spawn buffers"},"stdout":"Found 0 warnings and 0 errors.\nFinished in 32.4s on 1646 files with 100 rules using 8 threads.\n","stderr":"$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config\n"}
+FOLLOW_TOOLS_CLEAN {"candidate":"a8bbe0984f270070eba9bc166a89909d0c67597e","sourceOverlay":"research/lane-i/follow-up only; original production sources unchanged"}
+REGRESSION_FINAL_SUMMARY {
+  "auditSourceSha256": "fa621e82d927e81417957408fe353d3f6d218f26eceec36b19bc65eb33789d0c",
+  "requiredCpuCoverage": true,
+  "primaryEpyc": "two-phase-epyc-xlarge",
+  "primaryOther": "two-phase-traced-1",
+  "majorityRegressions": [],
+  "skipped": [
+    {
+      "group": "initial",
+      "name": "two-phase-epyc-4",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    {
+      "group": "initial",
+      "name": "two-phase-epyc-3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    {
+      "group": "initial",
+      "name": "two-phase-epyc-2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    {
+      "group": "initial",
+      "name": "two-phase-epyc-1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    {
+      "group": "epyc",
+      "name": "two-phase-epyc-default",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor"
+    }
+  ],
+  "cohorts": [
+    {
+      "name": "two-phase-other-1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "mode": "two-phase-other",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          6799.945026000001,
+          12901.511613000002
+        ],
+        "rootMs": [
+          6760,
+          12857
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          6724.618362000001,
+          11301.702864000006
+        ],
+        "rootMs": [
+          6679,
+          11223
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "infer-five-pairs",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "mode": "infer",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          1946.0284750000064,
+          2075.4099720000013
+        ],
+        "rootMs": null,
+        "nativeTestPasses": 5,
+        "maxNativeCaseMs": 2038.7
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          1842.3564100000003,
+          1996.0785529999994
+        ],
+        "rootMs": null,
+        "nativeTestPasses": 5,
+        "maxNativeCaseMs": 1954.29
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "sums-five-pairs",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "mode": "sums",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          1906.5924320000013,
+          2184.2378739999986
+        ],
+        "rootMs": null,
+        "nativeTestPasses": 35,
+        "maxNativeCaseMs": 1554.16
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          1743.1895829999994,
+          2171.4791509999995
+        ],
+        "rootMs": null,
+        "nativeTestPasses": 35,
+        "maxNativeCaseMs": 1445.71
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "two-phase-other-2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "mode": "two-phase-other",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          27186.300534000038,
+          34360.22235300002
+        ],
+        "rootMs": [
+          27023,
+          34201
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          27811.035325999954,
+          38874.72606800002
+        ],
+        "rootMs": [
+          27671,
+          38635
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "two-phase-traced-4",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "mode": "two-phase-any",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          11301.768304999998,
+          13677.270726000002
+        ],
+        "rootMs": [
+          11230,
+          13567
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          11602.577372,
+          15207.779056999992
+        ],
+        "rootMs": [
+          11544,
+          15130
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "two-phase-traced-1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "mode": "two-phase-any",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          8605.235850000005,
+          11783.863852999988
+        ],
+        "rootMs": [
+          8524,
+          11690
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          8961.196658,
+          12375.521827999997
+        ],
+        "rootMs": [
+          8804,
+          12281
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "two-phase-traced-3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "mode": "two-phase-any",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          9269.323896000002,
+          10177.23932
+        ],
+        "rootMs": [
+          9209,
+          10119
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          10144.533844999998,
+          11278.984066999998
+        ],
+        "rootMs": [
+          10075,
+          11207
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "two-phase-traced-2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "mode": "two-phase-any",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          6498.191057999997,
+          9135.496836999999
+        ],
+        "rootMs": [
+          6463,
+          9097
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          6751.530186000004,
+          9798.018105999996
+        ],
+        "rootMs": [
+          6706,
+          9736
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidateOnlyLosses": []
+    },
+    {
+      "name": "two-phase-epyc-xlarge",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "mode": "two-phase-epyc",
+      "base": {
+        "passed": 5,
+        "processMs": [
+          9340.651667999991,
+          11419.596697
+        ],
+        "rootMs": [
+          9289,
+          11347
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidate": {
+        "passed": 5,
+        "processMs": [
+          9964.349870000002,
+          14211.460744000004
+        ],
+        "rootMs": [
+          9831,
+          14139
+        ],
+        "nativeTestPasses": 0,
+        "maxNativeCaseMs": 0
+      },
+      "candidateOnlyLosses": []
+    }
+  ],
+  "primaryPhaseExample": [
+    {
+      "name": "two-phase-traced-1",
+      "base": [
+        {
+          "phase": "start",
+          "ms": 241
+        },
+        {
+          "phase": "runs",
+          "ms": 652
+        },
+        {
+          "phase": "candidates",
+          "ms": 213
+        },
+        {
+          "phase": "houdini",
+          "ms": 576
+        },
+        {
+          "phase": "kernel",
+          "ms": 3684
+        },
+        {
+          "phase": "end",
+          "ms": 1320
+        }
+      ],
+      "candidate": [
+        {
+          "phase": "start",
+          "ms": 222
+        },
+        {
+          "phase": "runs",
+          "ms": 560
+        },
+        {
+          "phase": "candidates",
+          "ms": 196
+        },
+        {
+          "phase": "houdini",
+          "ms": 682
+        },
+        {
+          "phase": "kernel",
+          "ms": 3974
+        },
+        {
+          "phase": "end",
+          "ms": 1313
+        }
+      ]
+    },
+    {
+      "name": "two-phase-epyc-xlarge",
+      "base": [
+        {
+          "phase": "start",
+          "ms": 274
+        },
+        {
+          "phase": "runs",
+          "ms": 855
+        },
+        {
+          "phase": "candidates",
+          "ms": 241
+        },
+        {
+          "phase": "houdini",
+          "ms": 710
+        },
+        {
+          "phase": "kernel",
+          "ms": 4391
+        },
+        {
+          "phase": "end",
+          "ms": 1484
+        }
+      ],
+      "candidate": [
+        {
+          "phase": "start",
+          "ms": 263
+        },
+        {
+          "phase": "runs",
+          "ms": 508
+        },
+        {
+          "phase": "candidates",
+          "ms": 204
+        },
+        {
+          "phase": "houdini",
+          "ms": 594
+        },
+        {
+          "phase": "kernel",
+          "ms": 4581
+        },
+        {
+          "phase": "end",
+          "ms": 1621
+        }
+      ]
+    }
+  ],
+  "inputHashes": {
+    "initial/placement.json": "4cb34a99e2ee7ef0d1b409baa98bd1400f372e70bb64380829e299ed4fcd95c1",
+    "initial/input-manifest.json": "0267412a0a525160035d0a3cff7a11bfd915f71f309256bd50ef7d740cac47a0",
+    "initial/summary.tsv": "c3816a114b9e3b59b93ce6dd9872b03fa81305b568575184fedd3e4ecfef9032",
+    "initial/two-phase-other-1.log": "8eed5e208514af6508770550bf1676b224923e96783a0aa537cd5702458c01f9",
+    "initial/infer-five-pairs.log": "ef34e366eb30442811a2ad745325d809562a37698038844584327818b8c78c65",
+    "initial/two-phase-epyc-4.log": "24a02a9b02f201112322f1b5f532a68e1b5268d96d57e9debc4ee0fbff7f9a20",
+    "initial/sums-five-pairs.log": "3d4f439bcc9f0e6c2dd24374862ce28ed685416842ea961314165d52e2ab61eb",
+    "initial/two-phase-epyc-3.log": "8a751d99f04c432508c1ef6ec9268a7af684ea317e6113216bdc458ff23b498d",
+    "initial/two-phase-epyc-2.log": "5b6c5fcbe7696e38ac273a386510afd71ae8edfbc5a994fd1a3fada816fa90f7",
+    "initial/two-phase-epyc-1.log": "dfe5a58929f57d0b07129d9a2b186f9ef79e6f5dfee1a2c89f7fb0ce231a0fb5",
+    "initial/two-phase-other-2.log": "9a5b39147b4b7781a40f296587304e25bce5dc18b25b2089e9bb5bae27ce1ce2",
+    "phased/placement.json": "ac8ca5ebad5cd74025a914c3fc87b9228b781b166144c0eab5c7b5b7655ba609",
+    "phased/input-manifest.json": "121524ac109edfdec3b303e6c2e9f2593523c0eadb079a14e25e843f73151336",
+    "phased/summary.tsv": "9e213c4a142d04814081fdd4ac3205be2f41eae8c3385ea1487a7b097d8aef6c",
+    "phased/two-phase-traced-4.log": "d7f57c4199f3451ea4d22dd6f53fa968c0acf1024ae6e0a38f45460e181adc0f",
+    "phased/two-phase-traced-1.log": "1ea45aa89fc249db8ab799e4b88dcb42e06b24aa93c60409d40b790d20b5b63e",
+    "phased/two-phase-traced-3.log": "82b4cdd781130c13745594c112a3d4b2d73aed7549f9072bb90e4dfc3d9b09af",
+    "phased/two-phase-traced-2.log": "b6d40bad0b53742c86adc77764c87f86571c2c75453b6d7cc74dd027cf70e606",
+    "epyc/placement.json": "89ae98ea867ceb77ca2bd720e33b6a52c78f39b261ea57beae4778e40376101b",
+    "epyc/input-manifest.json": "eb9121ce936ac2f1a30ea6bb657240c1a0346509b00bb88b2709a1b73bf8d18c",
+    "epyc/summary.tsv": "b999003549ac8565ebf56842785843b03800e5a5ca9c24c6e037f1e8d23ceb11",
+    "epyc/two-phase-epyc-xlarge.log": "01f8034530151db5eecd92332456c5b19434c756026586d6e07d4e784593a865",
+    "epyc/two-phase-epyc-default.log": "dfedc04a313e98c608624d5731c1c6ceac63c296227f9dceda120b733ef298c6"
+  }
+}

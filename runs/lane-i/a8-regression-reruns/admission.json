@@ -1,0 +1,12 @@
+{
+  "status": "completed; zero candidate-only losses in every measured cohort; four CPU skips retained; Lane D adjudication requested",
+  "task": "d27fe12d-5e00-4552-9131-e805b6e4bb39",
+  "candidate": "a8bbe0984f270070eba9bc166a89909d0c67597e",
+  "baseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
+  "gateStatus": "Lane D RED; original failures preserved",
+  "data": "/private/tmp/lane-i-a8-reruns.wFwSTE",
+  "cpuSelection": "CPU-ineligible workers exit before restoration or measurement. Lowest-name complete eligible cohort is primary; all other cohorts and skips retained.",
+  "phaseInstrumentation": "Passive existing count-phase counters plus native root and process wall times; no timing budget changes.",
+  "majorityRule": "Three or more baseline-pass/candidate-fail pairs out of five trigger generic root-cause repair; otherwise report all numbers for coordinator adjudication.",
+  "productionChanges": false
+}

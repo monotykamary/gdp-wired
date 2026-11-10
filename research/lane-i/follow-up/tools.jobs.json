@@ -1,0 +1,10 @@
+[
+  {
+    "name": "follow-up-tools-only",
+    "cmd": "set -euo pipefail; cp -a audit-data/follow-up-input/. .; bun audit-data/source/audit.ts --self-test; bun audit-data/validate-tools.ts audit-data .",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

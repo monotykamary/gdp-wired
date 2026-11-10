@@ -1,0 +1,3 @@
+// Observe existing counters only; no flag, budget, model or solver modification.
+import{cprof}from'./core/counts.ts'
+process.once('beforeExit',()=>console.log('REGRESSION_PHASE '+JSON.stringify({nativeCountPhases:cprof,note:'Native cumulative timers; nested phases are not additive.'})))

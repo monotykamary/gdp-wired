@@ -1,13 +1,53 @@
 # RESUME — ACTIVE (user explicitly resumed)
 
-## Active follow-up — a8bbe098 remains frozen
+## Latest priority — a8bbe098 RED entries ready for Lane D adjudication
+
+Lane D's `final-a8bbe098-results.md` is RED: same-VM `two_phase_commit`
+loss on EPYC 4585PX plus the accounts inference assertion and sums timeout.
+User requires five strict protocol pairs on that CPU and five on another,
+plus five same-VM pairs each for `infer.test.ts:47` and `sums.test.ts`.
+Three or more candidate-only losses in a five-pair cohort trigger generic
+repair; otherwise report all numbers under the coordinator's adjudication
+rule. No budget, test or canonical-model change has been made.
+
+- **All required cohorts completed with zero candidate-only losses.**
+  `two_phase_commit`: 5/5 proven per source on EPYC 4585PX and 5/5 per
+  source on the primary Ryzen 9 9950X. All seven retained protocol cohorts
+  total 35 pairs / 70 proven processes. Accounts inference: 5/5 per side.
+  Sums: 35/35 native cases per side across five full-file runs.
+- Original 60-second protocol, 15-second inference and 5-second sums
+  limits are unchanged. Actual EPYC coverage is verified; five Ryzen-only
+  eligibility skips are not counted as protocol runs. Native inference
+  phase traces, source hashes and all extra cohorts are retained.
+- Independent receipt audit passed; final seven-file tooling overlay
+  passes the 1,646-file type/lint check, zero warnings/errors and zero OOM
+  delta, in `20261110-095250-95qs99`. Commitlint passed separately in
+  `20261110-095211-rt8xfl`. Earlier tooling failures remain recorded.
+- **Request Lane D adjudication**, not automatic promotion of the full
+  gate: `research/lane-i/follow-up/lane-d-adjudication.md`. No speculative
+  generic repair is justified by a zero-loss cohort.
+- Lane A integration is queued in `research/lane-i/follow-up/lane-a-intake.json`:
+  Section 17.7's generic Q2 row-load family and guarded Inv1758 family, as soon
+  as the original-model generator change is gated. Preserve original model
+  blob `0541fa9436e307a6fb716aa5064637b30b893b79`; all P* results stay research-only.
+
+Verified earlier follow-up: p1 is 1152.3382236 on both sources in all five
+pairs; a8's three canonical Paxos runs retain 6,915,544 / 1,037,946 work.
+The old 97463c56 cost control itself returns unknown in its three whole-
+Paxos runs; it is not the whole-Paxos work baseline. Effect passes 5/5 per
+source on one EPYC 4585PX. This does not erase the RED gate or prove a flake
+cause. Details: `research/lane-i/follow-up/results.md`.
+
+
+## Completed measurement follow-up — a8bbe098 remains frozen
 
 Boat batch `20261110-080834-7ilqre` is submitted under task
 `8012abb4-b186-406c-816f-2cb2c9fa8448`: five new p1 pairs against Lane B's
 validated `97463c56`, three whole-Paxos repetitions per source, and five
 fresh-process pairs of the exact effect-pool CLI test on one exclusive VM.
-Measurements, source verification and an independent receipt audit are
-**pending**. No production source, gate candidate or timeout was changed.
+Measurements, source verification, independent native replay/receipt
+audits, type/lint and commitlint completed. No production source, gate
+candidate or timeout was changed.
 
 **Helper quarantine:** Lane B now identifies frozen family `5dbdbf...` as
 P*, not the original IC3Syn encoding. Earlier conditional helper results
@@ -19,7 +59,9 @@ blob. None of their new helpers is enabled or merged. Original-model
 recapture, original-goal INIT/STEP, unchanged allowance, census and paired
 gates are required by `research/lane-i/follow-up/helper-integration.json`.
 Details: `research/lane-i/follow-up/README.md`. No subagents are running;
-local work stays limited to file/git operations and one boat controller.
+local work stays limited to file/git coordination and one waiter per boat
+batch. All new receipt parsing, collection logic, audits and checks run
+on boat, with zero subagents and no new local whole-tree copies.
 
 ### Historical checkpoints below (not superseded by pending follow-ups)
 

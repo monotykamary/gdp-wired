@@ -1,0 +1,32 @@
+[
+  {
+    "name": "two-phase-epyc-default",
+    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-epyc two-phase-epyc-default",
+    "env": {
+      "GDP_INFER_TRACE": "2"
+    },
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 1200,
+    "vm_type": "default"
+  },
+  {
+    "name": "two-phase-epyc-xlarge",
+    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-epyc two-phase-epyc-xlarge",
+    "env": {
+      "GDP_INFER_TRACE": "2"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "xlarge"
+  },
+  {
+    "name": "follow-up-commitlint",
+    "cmd": "set -euo pipefail; temp=$(mktemp -d); trap 'rm -rf \"$temp\"' EXIT; printf '{\"private\":true}\\n' > \"$temp/package.json\"; (cd \"$temp\" && bun add --dev @commitlint/cli@19.8.1 @commitlint/config-conventional@19.8.1 > /dev/null); printf \"module.exports={extends:['@commitlint/config-conventional']};\\n\" > \"$temp/commitlint.config.cjs\"; for name in checkpoint-message.txt result-message.txt; do file=\"$PWD/gate-reruns-input/$name\"; \"$temp/node_modules/.bin/commitlint\" --cwd \"$temp\" --edit \"$file\"; printf 'FOLLOW_COMMITLINT %s\\n' \"$name\"; sha256sum \"$file\"; done",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 300,
+    "vm_type": "large"
+  }
+]

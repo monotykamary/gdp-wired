@@ -5,8 +5,38 @@
   "quarantinedLegacyFamilySha256": "5dbdbf766e9949b051d0764920f1bcc3707690cd6852fca6d0bcf18674fbdac4",
   "commonReleaseChecks": ["original-model-and-family-identity", "original-goal-init-and-all-operation-step", "shared-original-attempt-allowance", "fresh-native-custody-and-mutation-refusal", "required-real-Lean-checks", "complete-test-roster-and-source-check", "original-29-normal-and-broken-census", "same-CPU-off-on-pairs-and-p1-Paxos-controls", "independent-Lane-D-gate"],
   "helpers": [
-    {"lane":"B","name":"Inv* adapter","enabled":false,"workingTreeDirtyAtInspection":true,"inspectedHead":"538244d4d5e3ef06adb228f29201f746108611e9","report":"../gdp-wired-trackM/research/track-m/production-adapter-plan.md","boundary":"../gdp-wired-trackM/research/track-m/model-encoding-boundary.md","status":"blocked: re-capture original family, complete original-goal composition and original-allowance acceptance","historicalEvidence":"Seven P* per-op INIT/STEP pairs and generic component extraction; not original-model credit","defaultSwitch":"GDP_COUNT_FRAMES is explicit opt-in in lane B; new generic components are not connected to the default solver","wholeBranchMergeAllowed":false},
-    {"lane":"F","name":"Inv2973-half compositions","enabled":false,"workingTreeDirtyAtInspection":true,"inspectedHead":"7c3091ad2b9a373c52cf2671dfe8c1a91ad46023","report":"../gdp-wired-trackL/research/track-m/HALF-GUARD-COMPOSITION.md","status":"blocked: original-model recapture, ops 1/5/6, full original-goal composition and allowance","historicalEvidence":"Legacy-family STEP 0/2/3/4 and new INIT 0/4; op 0 184.68 units / 10.671s, op 4 713 units / 3.331s; not 500-unit successes","wholeBranchMergeAllowed":false},
-    {"lane":"E","name":"Inv1758 proof","enabled":false,"workingTreeDirtyAtInspection":true,"inspectedHead":"5823c863569785886991fb8c35af4ac483f7ac8a","report":"../gdp-wired-trackP/research/mldr-rows/WALL-TIMING.md","status":"blocked: original-model recapture and original 4800ms wall acceptance","historicalEvidence":"Conditional proof 622.6651168 units; one complete slicing pair 11.60s to 8.89s, still above original 4.8s; other pairs censored","wholeBranchMergeAllowed":false}
+    {
+      "lane": "B", "name": "Inv* adapter", "enabled": false,
+      "inspectedHead": "741cfbe7a4004121026dcea6c22fcb0225e24101", "workingTreeDirtyAtInspection": true,
+      "report": "../gdp-wired-trackM/research/track-m/production-adapter-plan.md",
+      "boundary": "../gdp-wired-trackM/research/track-m/model-encoding-boundary.md",
+      "originalFamilySha256": "f5b807240c56e799fe2442b89272852a396af627c4eba9cbf5f2a4a543ef3373",
+      "originalFamily": "43 generated laws, zero supplied; target at index 30; historical p1 absent",
+      "reportedOriginalComponents": "Conditional INIT/STEP for all seven ops; native/Lean custody complete for 0/1/2/3/5, replay for 4/6 and shared-budget composition pending in the dirty worktree",
+      "status": "blocked: complete original-goal shared-allowance composition, remaining custody, census and paired acceptance",
+      "historicalEvidence": "Seven legacy P* per-op proofs remain quarantined; no equivalence assumed",
+      "defaultSwitch": "GDP_COUNT_FRAMES is explicit opt-in; new generic components remain outside the default solver",
+      "wholeBranchMergeAllowed": false
+    },
+    {
+      "lane": "F", "name": "Inv2973-half compositions", "enabled": false,
+      "inspectedHead": "9792597bfc45cfff302d33df530ce562164029a5", "workingTreeDirtyAtInspection": true,
+      "report": "../gdp-wired-trackL/research/track-m/HALF-GUARD-COMPOSITION.md",
+      "wallReport": "../gdp-wired-trackL/research/track-m/HALF-WALL-PROFILE.md",
+      "reportedFrozenProgress": "op0 now fits its frozen 500-unit/2000-ms harness in three trials (184.6818556 units; 844-1048 ms); fresh native replay and six mutation refusals pass",
+      "status": "blocked: original IC3Syn model recapture, ops 1/5/6, exact-packet Lean custody, full original-goal composition and census/pairs",
+      "historicalEvidence": "Legacy STEP 0/2/3/4 retained; improved frozen-harness timing is not original-model credit",
+      "canonicalModelsBlobAtInspection": "0d5521e2e4dcbf6ac2ea7116ecee23497a0ec66b",
+      "wholeBranchMergeAllowed": false
+    },
+    {
+      "lane": "E", "name": "Inv1758 proof", "enabled": false,
+      "inspectedHead": "5ebf00fffb05a02537c76478e311e7c761666b67", "workingTreeDirtyAtInspection": true,
+      "report": "../gdp-wired-trackP/research/mldr-rows/WALL-TIMING.md",
+      "status": "blocked: original-model recapture and original 4800-ms wall acceptance; all three genuine normal attempts remain unknown",
+      "historicalEvidence": "622.6651168-unit conditional proof; one complete slicing pair 11.60s to 8.89s. Later prover-only and memo experiments do not establish normal-budget acceptance",
+      "canonicalModelsBlobAtInspection": "0d5521e2e4dcbf6ac2ea7116ecee23497a0ec66b",
+      "wholeBranchMergeAllowed": false
+    }
   ]
 }

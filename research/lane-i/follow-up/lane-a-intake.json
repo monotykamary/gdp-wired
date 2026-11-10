@@ -1,0 +1,18 @@
+{
+  "lane": "A",
+  "status": "waiting for a specifically gated generator commit",
+  "integrationPriority": "integrate each qualified generator subchange promptly; do not claim both omissions filled until both families occur in original-model generation",
+  "lastInspectedHead": "b1ee0778dbd7333c0b3f66c5e469299e189edea2",
+  "producerStatus": {"finitePrefix":"ef509fab: deterministic 2000-work-unit admission, original-model 87-pair census pending", "loadedRows":"3f271711 and successor b1ee0778: normalized boolean marker writes; original-model validation/census pending; separate later source", "guardedRows":"required G-guard; no gated source identified yet"},
+  "requiredCanonicalModelsBlob": "0541fa9436e307a6fb716aa5064637b30b893b79",
+  "forbiddenCanonicalRoutingBlob": "0d5521e2e4dcbf6ac2ea7116ecee23497a0ec66b",
+  "design": "MLDR-DESIGN.md Section 17.7.4",
+  "expectedGenericFamilies": [
+    {"name":"G-load","purpose":"Q2: started=0 and Copied[a] implies row a = C0","discovery":"plain-key source map loaded into a bounded row, constant write marker and smallest sample-valid source guard; no protocol names"},
+    {"name":"G-guard","purpose":"guarded Inv1758: copied-marker rows, or a valid scalar phase guard","discovery":"sample-false versioned-row equality strengthened by both row markers; scalar guard fallback only when no load marker exists"}
+  ],
+  "requiredEvidence": ["exact gated commit and source manifest", "original MLDR model and new generated family hashes", "Q2 and guarded Inv1758 discovered without supplied laws", "unconditional false variants refused", "ordinary proof replay and unchanged attempt limits", "29 original-protocol generation-list comparison with every changed list explained", "complete test registration and source checks", "paired census/gate acceptance or explicit coordinator adjudication"],
+  "mergePolicy": "curated generator/test commits, not a whole branch merge; preserve mixed-clause scheduling, symbolic-domain terms, roster completeness and original model routing",
+  "pStarProofs": "research-only; never production acceptance or equivalence evidence",
+  "currentGate": "a8bbe098 is RED; prepare a separate next candidate only"
+}

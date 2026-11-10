@@ -1,0 +1,12 @@
+{
+  "batch": "20261110-092000-c78bnb",
+  "status": "failed: p1 source headers and early pairs absent from collector tail",
+  "workerExit": 1,
+  "failedAt": "audit.ts exact source cardinality (0 instead of 2)",
+  "cause": "Original p1 log was truncated to the collector 400000-byte stdout cap",
+  "measurementRerun": false,
+  "measurementsRemain": "raw completed, not independently accepted yet",
+  "recoveryTask": "79a5c4d9-bc51-4739-ae8e-482a505ef42e",
+  "recoveryVm": "bx_5f56ms2a",
+  "recoveryTtlSeconds": 120
+}

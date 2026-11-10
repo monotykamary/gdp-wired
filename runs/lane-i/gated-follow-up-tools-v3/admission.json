@@ -1,0 +1,12 @@
+{
+  "status": "failed only at absent commitlint executable after passing ten parser checks and type/lint; superseded by separate passing commitlint and final verification",
+  "task": "02b8a79b-4466-4bf3-8a6c-3750664c4981",
+  "data": "/private/tmp/lane-i-follow-up-audit.MiU3ls",
+  "scope": "corrected tool self-tests, source type/lint and commitlint only; completed native proofs not repeated",
+  "priorNativeAudit": {
+    "batch": "20261110-092542-j9am19",
+    "nativeChecks": 10,
+    "fullLogSha256": "d42735786325a984d881d169a84e95d9c94eb9935ba29ec3dd1c6f4daff57fe1"
+  },
+  "priorSourceCheck": "typecheck passed, lint rejected one control-regex in new audit tooling"
+}

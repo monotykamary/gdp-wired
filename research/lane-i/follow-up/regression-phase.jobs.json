@@ -1,0 +1,46 @@
+[
+  {
+    "name": "two-phase-traced-1",
+    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-any two-phase-traced-1",
+    "env": {
+      "GDP_INFER_TRACE": "2"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "two-phase-traced-2",
+    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-any two-phase-traced-2",
+    "env": {
+      "GDP_INFER_TRACE": "2"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "two-phase-traced-3",
+    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-any two-phase-traced-3",
+    "env": {
+      "GDP_INFER_TRACE": "2"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "two-phase-traced-4",
+    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-any two-phase-traced-4",
+    "env": {
+      "GDP_INFER_TRACE": "2"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  }
+]

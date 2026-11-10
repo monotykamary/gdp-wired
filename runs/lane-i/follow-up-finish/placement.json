@@ -1,0 +1,20 @@
+{
+ "follow-up-commitlint-stdin": {
+  "vm": "bx_7ah56czc",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 2,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "regression-summary": {
+  "vm": "bx_3z89j5rt",
+  "type": "default",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 2,
+  "vm_vcpus": 4,
+  "exclusive": false,
+  "co_tenants": 0
+ }
+}

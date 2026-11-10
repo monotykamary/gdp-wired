@@ -1,0 +1,66 @@
+[
+  {
+    "name": "two-phase-epyc-1",
+    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-epyc two-phase-epyc-1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "two-phase-epyc-2",
+    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-epyc two-phase-epyc-2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "two-phase-epyc-3",
+    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-epyc two-phase-epyc-3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "two-phase-epyc-4",
+    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-epyc two-phase-epyc-4",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "two-phase-other-1",
+    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-other two-phase-other-1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "two-phase-other-2",
+    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-other two-phase-other-2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "infer-five-pairs",
+    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts infer infer-five-pairs",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "sums-five-pairs",
+    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts sums sums-five-pairs",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  }
+]

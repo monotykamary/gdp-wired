@@ -1,0 +1,45 @@
+{
+  "data": "/private/tmp/lane-i-a8-reruns.wFwSTE",
+  "sources": {
+    "base": {
+      "core/infer.test.ts": "3f33f82f0696608f2b1371f4703bebebeed75a5224286b57abc34ab82d824cbb",
+      "core/sums.test.ts": "59cc147869a5a1e04345403f11a6550ccc5812e990a0401519a3414b923cf186",
+      "core/infer.ts": "611af51e3924d83b4102bc3d3ba84b4672789c3eb11e97b43b951a8ded71eaf6",
+      "core/counts.ts": "a010366e341b4fb162b0e22acef951980c0a8db297fe1273395d433fdaa7196e",
+      "kernel/prove.ts": "c52fdeece6b9471aa1b0b957cac6aec72267543b568d764ea5438543d90205fb",
+      "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+      "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+      "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66"
+    },
+    "candidate": {
+      "core/infer.test.ts": "3f33f82f0696608f2b1371f4703bebebeed75a5224286b57abc34ab82d824cbb",
+      "core/sums.test.ts": "59cc147869a5a1e04345403f11a6550ccc5812e990a0401519a3414b923cf186",
+      "core/infer.ts": "2c2e7ba05e15a4040ba905bf3960dea1f97b7dd0c29577b0e169ae522da9e784",
+      "core/counts.ts": "7a4c830848afa2d05393bdd00c546393092cf1f94d5ce9cdee8a2aad9189abd4",
+      "kernel/prove.ts": "d4006a262a1c68e7ef74f4233ba3f39ea447516696a3f6de4ae62f2e44f29af7",
+      "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+      "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+      "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66"
+    }
+  },
+  "hashes": {
+    "regression-worker.ts": "03145d0ccb19c84efd4895abaab1e72184015a7a5f3fcd188aca191aa9a845aa",
+    "resource-run.ts": "84862f30dd4e87fd7fcd3c5b26a0e5c2b3fce8ad15591464b58b3f8918f6b856",
+    "phase-preload.ts": "4908bf14a9f1bc18bb0168eeb754b839e402ea5d2f0b25a899e3bd5d904a9ee7"
+  },
+  "candidate": "a8bbe0984f270070eba9bc166a89909d0c67597e",
+  "base": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
+  "cpuCohorts": [
+    "AMD EPYC 4585PX 16-Core Processor",
+    "one other model per eligible worker"
+  ],
+  "nativeBudgets": {
+    "protocol": 60000,
+    "infer": 15000,
+    "inferBun": 60000,
+    "sumsBun": 5000
+  },
+  "majorityRule": "at least three candidate-only losses in a complete five-pair cohort",
+  "selection": "lowest job name among complete CPU-eligible cohorts is primary; retain all others",
+  "regressionSha256": "decd8f9eaab06402ea0811e9881bb4298cf7537ba88060a4d039eab90e323d7e"
+}

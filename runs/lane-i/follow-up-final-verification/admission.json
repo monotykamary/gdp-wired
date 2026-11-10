@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "task": "3f464e75-88c7-46c4-be24-0aec9ebcdc22",
+  "batch": "20261110-095250-95qs99",
+  "sourceCheck": "TypeScript plus type-aware oxlint with deny-warnings, 1646 files, no warnings/errors",
+  "toolOverlayFiles": 7,
+  "oomDelta": 0,
+  "auditSourceSha256": "fa621e82d927e81417957408fe353d3f6d218f26eceec36b19bc65eb33789d0c",
+  "requiredCpuCoverage": true,
+  "majorityRegressions": [],
+  "protocolPairs": 35,
+  "protocolNativeProven": 70,
+  "inferPassPerSide": 5,
+  "sumsNativePassPerSide": 35,
+  "cpuSkipsNotCounted": 5,
+  "commitlintBatch": "20261110-095211-rt8xfl",
+  "commitMessageSha256": "a76624c647a6dd6da2c5df45c45611d083b0016320fbe494cd11a8cee39860bd",
+  "gateStatus": "RED pending Lane D adjudication; not a full-suite gate pass",
+  "productionChanges": false,
+  "helperEnablement": false,
+  "execution": "All new receipt parsing, aggregation, audits and checks on boat; zero subagents; no new local whole-tree copies."
+}

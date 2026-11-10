@@ -1,0 +1,2 @@
+REGRESSION_ADMISSION {"name":"two-phase-epyc-1","mode":"two-phase-epyc","cpu":"AMD Ryzen 9 9950X 16-Core Processor","eligible":false,"bun":"1.4.3","affinity":"0-7"}
+REGRESSION_CPU_SKIP {"name":"two-phase-epyc-1","mode":"two-phase-epyc","cpu":"AMD Ryzen 9 9950X 16-Core Processor","reason":"not requested CPU cohort; no test or proof attempted"}

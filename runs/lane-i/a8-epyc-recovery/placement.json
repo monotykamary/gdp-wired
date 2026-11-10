@@ -1,0 +1,29 @@
+{
+ "two-phase-epyc-default": {
+  "vm": "bx_3z89j5rt",
+  "type": "default",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 4,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "two-phase-epyc-xlarge": {
+  "vm": "bx_633dfam7",
+  "type": "xlarge",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 16,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "follow-up-commitlint": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 2,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}

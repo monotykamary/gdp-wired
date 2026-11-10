@@ -1,0 +1,2 @@
+REGRESSION_ADMISSION {"name":"two-phase-epyc-default","mode":"two-phase-epyc","cpu":"AMD Ryzen 7 9700X 8-Core Processor","eligible":false,"bun":"1.4.3","affinity":"0-3"}
+REGRESSION_CPU_SKIP {"name":"two-phase-epyc-default","mode":"two-phase-epyc","cpu":"AMD Ryzen 7 9700X 8-Core Processor","reason":"not requested CPU cohort; no test or proof attempted"}
