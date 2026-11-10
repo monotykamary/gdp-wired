@@ -1,0 +1,12 @@
+name = "gdp-wired"
+hooks = "hooks.py"
+[run]
+pre = "export GDP_CYCLIC_LOG=1; "
+[boat]
+prefix = "gdpw"
+final_prefix = "sc"
+image_salt = "gdpw-image-v1"
+vm_type = "large"
+path = ["~/.bun/bin", "~/.elan/bin", "/usr/lib/jvm/temurin-17/bin", "/opt/sol", "/opt/foundry", "/opt/swift/usr/bin"]
+env = { JAVA_HOME = "/usr/lib/jvm/temurin-17" }
+mounts = ["/bench", "/smt", "/vamp", "/sv"]

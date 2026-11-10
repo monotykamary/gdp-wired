@@ -1,0 +1,50 @@
+[
+  {
+    "name": "raw-consensus-default",
+    "cmd": "bun recovery-input/materialize.ts && bun recovery-input/compose.ts canonical && bun f4-input/pilot.ts consensus",
+    "cpu": 2,
+    "memory": 6144,
+    "timeout": 3700,
+    "vm_type": "default"
+  },
+  {
+    "name": "raw-consensus_epr-default",
+    "cmd": "bun recovery-input/materialize.ts && bun recovery-input/compose.ts canonical && bun f4-input/pilot.ts consensus_epr",
+    "cpu": 2,
+    "memory": 6144,
+    "timeout": 3700,
+    "vm_type": "default"
+  },
+  {
+    "name": "raw-mldr-default",
+    "cmd": "bun recovery-input/materialize.ts && bun recovery-input/compose.ts canonical && bun f4-input/pilot.ts mldr",
+    "cpu": 2,
+    "memory": 6144,
+    "timeout": 3700,
+    "vm_type": "default"
+  },
+  {
+    "name": "raw-consensus-large",
+    "cmd": "bun recovery-input/materialize.ts && bun recovery-input/compose.ts canonical && bun f4-input/pilot.ts consensus",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 3700,
+    "vm_type": "large"
+  },
+  {
+    "name": "raw-consensus_epr-large",
+    "cmd": "bun recovery-input/materialize.ts && bun recovery-input/compose.ts canonical && bun f4-input/pilot.ts consensus_epr",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 3700,
+    "vm_type": "large"
+  },
+  {
+    "name": "raw-mldr-large",
+    "cmd": "bun recovery-input/materialize.ts && bun recovery-input/compose.ts canonical && bun f4-input/pilot.ts mldr",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 3700,
+    "vm_type": "large"
+  }
+]

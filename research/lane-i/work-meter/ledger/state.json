@@ -6,7 +6,7 @@
   "batch": "20261110-123336-6maehh",
   "resultDirectory": "runs/lane-i/complete-structural",
   "includesGeneratedConstructors": false,
-  "next": "Commit current research checkpoint after clean tooling recheck; proceed to Bun fresh-process raw determinism pilot on frozen canonical source. No W or final F3 claim.",
+  "next": "Collect immutable six-pair Bun pilot; verify actual CPU classes and cross-VM fingerprints. First mutable-tree dispatch ran no jobs; keep its failure. Do not choose W.",
   "productionChanged": false,
   "weightsCalibrated": false,
   "f3Implemented": false,
@@ -39,7 +39,13 @@
       "subagents": 0
     }
   },
-  "activeTasks": [],
+  "activeTasks": [
+    {
+      "task": "b6b14f83-fb85-450f-be52-ad8a67f24bb0",
+      "pid": 549052,
+      "results": "runs/lane-i/resume-raw-census-frozen"
+    }
+  ],
   "rerunFirst": [],
   "verified": {
     "gateBatch": "20261110-123003-1cvbpa",
@@ -69,12 +75,12 @@
     "receiptAudit": "20261110-202451-eom7lj"
   },
   "toolingValidation": {
-    "batch": "20261110-204637-14ydr9",
+    "batch": "20261110-205639-plp2u8",
     "typeLint": true,
-    "files": 1686,
+    "files": 1687,
     "warnings": 0,
     "errors": 0,
-    "commitlintBatch": "20261110-204538-t42ntt"
+    "commitlint": true
   },
   "verifiedSourceChain": [
     {
@@ -133,5 +139,13 @@
     "workerInspector": false,
     "externalPauseBeforeReturn": false,
     "initializedExternalPauseBeforeReturn": false
+  },
+  "censusRunner": {
+    "path": "/tmp/lane-i-raw-census-41d39043",
+    "revision": "221c68636dce2d1b230a062e96ac3d749dc99091",
+    "image": "sc-f0d8daeee6c3",
+    "tree": "1955e0ede4c4",
+    "files": 25,
+    "recipe": "research/lane-i/work-meter/f4/freeze.sh"
   }
 }

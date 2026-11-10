@@ -1,0 +1,25 @@
+[Bounded shell log: starts with retained pre-spill tail; 8 MiB total cap, then further output is omitted. Not a full-output archive.]
+controller: gdp-wired main at f76cc6393a0b
+[boat] batch 20261110-204935-5f87ob: gdp-wired, image sc-f0d8daeee6c3, tree 00f6f8023a28 (4799 files), cache olean 001de680457b (0 here)
+[boat] 6 jobs to the scheduler (submission) + 3 default + 3 large (times from a guess)
+Traceback (most recent call last):
+  File "/home/user/.local/bin/supercomputer", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/__main__.py", line 268, in main
+    _run(a)
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/__main__.py", line 58, in _run
+    fanout.run_jobs(app, spec, a.out, pre, cmd, mjobs, backend=a.backend, vms=a.vms, idle=None if a.idle < 0 else a.idle, teardown=a.teardown,
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/fanout.py", line 190, in run_jobs
+    got, bsum = boat.boat_jobs(mine, out, pre, cmd, vms=vms, idle=idle, teardown=teardown, durations=durations, vm_type=vm_type, max_vms=max_vms,
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/boat.py", line 3220, in boat_jobs
+    sess.run(items, done, on_lost=(lambda it, why: on_lost(it["name"], why)) if on_lost else None, max_wait=max_wait)
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/boat.py", line 2741, in run
+    self.client.push_tree(self.tree)
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/scheduler.py", line 4437, in push_tree
+    raise RuntimeError(f"{by[k]} changed while the batch shipped it: run again")
+RuntimeError: research/lane-i/work-meter/ledger/state.json changed while the batch shipped it: run again
+
+
+[Process exited with code 1]

@@ -55,6 +55,21 @@ check **passes with zero warnings/errors across 1,682 files** in
 also pass commitlint. The intermediate lint failure remains in
 `runs/lane-i/resume-checkpoint-recheck/`.
 
+### Raw-determinism pilot, not full F4
+
+A six-job Bun pilot now uses frozen source `41d39043`: fresh-process pairs for
+`consensus`, `consensus_epr` and `mldr`, on `default` and `large` VM classes.
+Actual CPU labels and every raw counter are recorded; the fixed legacy
+15,000,000 allowance is not a selected final W. The first dispatch was aborted
+by an input-file upload race, with no census result rows. Its retry uses an
+immutable 25-file runner and one reusable 147 MB input snapshot, not another
+full worktree. Recipe: `research/lane-i/work-meter/f4/freeze.sh`.
+
+Census tooling passes type/lint with zero warnings/errors across 1,687 files
+and all prepared commit messages pass (`20261110-205639-plp2u8`). The initial
+subprocess typing failure is retained. Pilot results and actual cross-CPU
+coverage remain pending.
+
 ### F3 progress, not completion
 
 Original MLDR Node pilot `20261110-202238-v6auwd` retained **identical raw vectors

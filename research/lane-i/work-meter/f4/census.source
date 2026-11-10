@@ -1,0 +1,20 @@
+import {strict as assert} from 'node:assert'
+import {createHash} from 'node:crypto'
+import {readFileSync} from 'node:fs'
+import {arch, cpus} from 'node:os'
+import {run} from './facade.ts'
+const id = process.argv[2]!, repetition = Number(process.argv[3])
+const work = 15_000_000
+const measured = run(id, work)
+for (const [key, total] of Object.entries(measured.raw)) {
+  const amounts = Object.values(measured.phases).map(phase => phase.raw[key] ?? 0)
+  assert(amounts.every(n => Number.isSafeInteger(n) && n >= 0), key + ' nonnegative phase observations')
+  assert.equal(amounts.reduce((a, b) => a + b, 0), total, key + ' exclusive phase reconciliation')
+}
+const tuple = {id, work, result: measured.result, raw: measured.raw}
+const fingerprint = createHash('sha256').update(JSON.stringify(tuple)).digest('hex')
+console.log('RAW_CENSUS_RECORD ' + JSON.stringify({...tuple, fingerprint, repetition, source: process.env.RAW_CENSUS_SOURCE,
+  cpu: cpus()[0]?.model, arch: arch(), runtime: process.versions.bun,
+  affinity: readFileSync('/proc/self/status', 'utf8').match(/^Cpus_allowed_list:\s*(.*)$/m)?.[1],
+  phaseReconciliation: true, unitModel: 'legacy fixed allowance for raw determinism only; not calibrated W',
+  seedPolicy: 'production defaults, no override'}))

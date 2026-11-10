@@ -1,0 +1,9 @@
+# Reuse the existing image layers; the census data is separately frozen.
+import importlib.util
+from pathlib import Path
+ROOT = Path(Path(__file__).with_name('source-root.txt').read_text().strip())
+spec = importlib.util.spec_from_file_location('lane_i_image_hooks', ROOT / 'supercomputer/hooks.py')
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+def layers(_root):
+    return module.layers(ROOT)
