@@ -12,7 +12,7 @@ try {
   const text=run('bun',[join(input,'bench-child.ts'),roots[tag]!,tag,'200000'],roots[tag]!,env)
   process.stdout.write(text);const line=text.split('\n').find(s=>s.startsWith('ADMISSION_MEASURE '));a(line);rows.push(JSON.parse(line.slice(18)))
  }
- for(const r of rows){a.deepEqual(r.raw,rows[0].raw);a.equal(r.units,rows[0].units);a.equal(r.checksum,rows[0].checksum);a.equal(r.bootId,rows[0].bootId);a.equal(r.admissionCallsPerNode,1)}
+ for(const r of rows){a.deepEqual(r.raw,rows[0]!.raw);a.equal(r.units,rows[0]!.units);a.equal(r.checksum,rows[0]!.checksum);a.equal(r.bootId,rows[0]!.bootId);a.equal(r.admissionCallsPerNode,1)}
  const mean=(tag:string)=>rows.filter(r=>r.tag===tag).reduce((n,r)=>n+r.wallMs,0)/2
- console.log('ADMISSION_PAIR '+JSON.stringify({baseline:readFileSync(join(input,'baseline-source.txt'),'utf8').trim(),candidate:readFileSync(join(input,'source.txt'),'utf8').trim(),baselineMs:mean('baseline'),candidateMs:mean('candidate'),speedup:mean('baseline')/mean('candidate'),rawIdentical:true,units:rows[0].units,rows}))
+ console.log('ADMISSION_PAIR '+JSON.stringify({baseline:readFileSync(join(input,'baseline-source.txt'),'utf8').trim(),candidate:readFileSync(join(input,'source.txt'),'utf8').trim(),baselineMs:mean('baseline'),candidateMs:mean('candidate'),speedup:mean('baseline')/mean('candidate'),rawIdentical:true,units:rows[0]!.units,rows}))
 }finally{for(const root of Object.values(roots))rmSync(root,{recursive:true,force:true})}
