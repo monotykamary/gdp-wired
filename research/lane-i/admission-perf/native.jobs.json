@@ -1,0 +1,20 @@
+[
+  {
+    "name": "admission-native-finite",
+    "cmd": "bun port-input/native-pair.ts finite",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 2400,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "admission-native-compiled",
+    "cmd": "bun port-input/native-pair.ts compiled",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 2400,
+    "vm_type": "large",
+    "timing": true
+  }
+]

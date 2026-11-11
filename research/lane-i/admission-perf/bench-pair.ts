@@ -7,7 +7,7 @@ function run(cmd:string,args:string[],cwd:string,env=process.env){const r=spawnS
 try {
  for(const key of ['baseline','candidate']){const root=roots[key]=mkdtempSync('/tmp/admit-'+key+'-');run('tar',['-xf',join(input,key==='baseline'?'baseline.tar':'source.tar'),'-C',root],root);for(const vendor of ['gdp-ts','handwired'])run('tar',['-xf',join(input,vendor+'.tar'),'-C',root],root);run('bun',['install','--frozen-lockfile'],root)}
  const env={...Object.fromEntries(Object.entries(process.env).filter(([k])=>!k.startsWith('GDP_'))),GDP_WORK_FULL:'1',GDP_WORK_STEPS:'0'}
- const rows=[]
+ const rows:{tag:string,raw:Record<string,number>,units:number,checksum:number,bootId:string,admissionCallsPerNode:number,wallMs:number}[]=[]
  for(const tag of ['baseline','candidate','candidate','baseline']){
   const text=run('bun',[join(input,'bench-child.ts'),roots[tag]!,tag,'200000'],roots[tag]!,env)
   process.stdout.write(text);const line=text.split('\n').find(s=>s.startsWith('ADMISSION_MEASURE '));a(line);rows.push(JSON.parse(line.slice(18)))
