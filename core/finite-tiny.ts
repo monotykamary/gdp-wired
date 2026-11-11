@@ -3,8 +3,24 @@ import {traceNow as countedTraceNow} from './wall.ts'
 // The consumer MUST independently check m.pre, ALL m.facts, the WHOLE current
 // family, the source interpreter's enabled step, and each reported post-law. This module owns no
 // solver/kernel policy and never extends the enclosing cooperative wall.
-import {type C, type E, type Law, type Machine, type Request, type State, cpair, cunpair, walk} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type State, cpair, cunpair, walk, compileFunction} from './machine.ts'
 import {checkWall, WallExpired} from './wall.ts'
+import {tinyNode, tinyTerm, tinyBlock} from './work-observe.ts'
+import {completeWorkProfile} from './work-profile.ts'
+// Only closed generated operators enter this helper. Its lexical tick counts
+// an executed predicate node, interval binding or transition binding; native
+// short-circuit branches that were not executed are not charged.
+const tinyPrefix = completeWorkProfile.enabled ? '__tinyWork();' : ''
+const tinyExpression = (code: string): string => completeWorkProfile.enabled ? `(__tinyWork(),${code})` : code
+const originalSize = (code: string): number => code.length - (code.split('(__tinyWork(),').length - 1) * ('(__tinyWork(),'.length + 1)
+const tinyCheck = (phase: string): void => { tinyTerm(); checkWall(phase) }
+function tinyNative<T>(body: string): T {
+  if (!completeWorkProfile.enabled) return compileFunction<T>(['v', 'd'], body)
+  const code = tinyPrefix + body
+  const maximum = code.split('__tinyWork()').length - 1
+  const execute = compileFunction<(v: number[], d: number | undefined, tick: () => void) => unknown>(['v', 'd', '__tinyWork'], code)
+  return ((v: number[], d?: number) => tinyBlock(maximum, () => execute(v, d, tinyTerm))) as T
+}
 type Env = Record<string, number>
 type NumericOp = Extract<E['op'], 'add' | 'sub' | 'prod' | 'min' | 'max' | 'tup'>
 type Term = {id: number, code: string, args: Term[], deps: number[], lo: number, hi: number, arithmetic?: NumericOp, values?: number[], choice?: {c: Pred, a: Term, b: Term}}
@@ -31,7 +47,7 @@ const negate = (x: Pred): Pred => typeof x === 'boolean' ? !x : x.op === 'not' ?
 const dependencyCache = new WeakMap<object, number[]>()
 const depsOf = (p: Pred): number[] => {
   if (typeof p === 'boolean') return []
-  checkWall('tiny dependencies')
+  tinyCheck('tiny dependencies')
   const hit = dependencyCache.get(p)
   if (hit) return hit
   const out = p.op === 'atom' ? unique([...p.a.deps, ...p.b.deps]) : p.op === 'not' ? depsOf(p.x) : unique(p.xs.flatMap(depsOf))
@@ -60,7 +76,7 @@ class Compiler {
   ref(t: Term): string { return `t${t.id}` }
   slot(i: number): Term { const vs = this.slots[i]!.values; return this.term(`v[${i}]`, [], Math.min(...vs), Math.max(...vs), [i]) }
   binary(op: NumericOp, a: Term, b: Term): Term {
-    checkWall('tiny arithmetic compile')
+    tinyCheck('tiny arithmetic compile')
     const finish = (t: Term): Term => {
       t.arithmetic = op
       if (a.values && b.values && a.values.length * b.values.length <= 256) t.values = unique(a.values.flatMap(x => b.values!.map(y => op === 'add' ? x + y : op === 'sub' ? Math.max(0, x - y) : op === 'prod' ? x * y : op === 'min' ? Math.min(x, y) : op === 'max' ? Math.max(x, y) : cpair(x, y)))).sort((x, y) => x - y)
@@ -83,7 +99,7 @@ class Compiler {
     throw new Unsupported('nonconstant tuple')
   }
   compare(cmp: '<' | '<=' | '=', a: Term, b: Term): Pred {
-    checkWall('tiny comparison compile')
+    tinyCheck('tiny comparison compile')
     if (cmp === '=') { if (a.id === b.id) return true; if (a.hi < b.lo || b.hi < a.lo) return false; if (a.lo === a.hi && b.lo === b.hi) return a.lo === b.lo }
     if (cmp === '<') { if (a.hi < b.lo) return true; if (a.lo >= b.hi) return false }
     if (cmp === '<=') { if (a.hi <= b.lo) return true; if (a.lo > b.hi) return false }
@@ -108,7 +124,7 @@ class Compiler {
     return out
   }
   expression(e: E, env: Env, post = false, stack: string[] = []): Term {
-    checkWall('tiny compile expression')
+    tinyCheck('tiny compile expression')
     if (stack.length > 48) throw new Unsupported('recursive count/flag')
     switch (e.op) {
       case 'const': return this.constant(e.value)
@@ -134,7 +150,7 @@ class Compiler {
           if (key.values && key.values.length > 256) throw new Unsupported('many dynamic map keys')
           const keys = key.values ?? Array.from({length: key.hi - key.lo + 1}, (_, i) => key.lo + i)
           let out = this.read(e.map, keys.at(-1)!, env, post, stack)
-          for (const k of keys.slice(0, -1).reverse()) { checkWall('tiny dynamic reads'); out = this.conditional(this.compare('=', key, this.constant(k)), this.read(e.map, k, env, post, stack), out) }
+          for (const k of keys.slice(0, -1).reverse()) { tinyCheck('tiny dynamic reads'); out = this.conditional(this.compare('=', key, this.constant(k)), this.read(e.map, k, env, post, stack), out) }
           return out
         }
         return this.read(e.map, key.lo, env, post, stack)
@@ -142,7 +158,7 @@ class Compiler {
     }
   }
   read(map: string, key: number, env: Env, post: boolean, stack: string[]): Term {
-    checkWall('tiny compile read')
+    tinyCheck('tiny compile read')
     const id = JSON.stringify([map, key, post, this.environmentKey(env)])
     const hit = this.reads.get(id)
     if (hit) return hit
@@ -158,7 +174,7 @@ class Compiler {
       const bound = this.expression(d.below, at, post, stack)
       if (bound.lo !== bound.hi || bound.hi > 16) throw new Unsupported('nonconstant/large count bound')
       let out = this.constant(0)
-      for (let k = 0; k < bound.hi; k++) { checkWall('tiny count expansion'); out = this.binary('add', out, this.expression(d.body, {...at, [d.key]: k}, post, [...stack, `count:${map}`])) }
+      for (let k = 0; k < bound.hi; k++) { tinyCheck('tiny count expansion'); out = this.binary('add', out, this.expression(d.body, {...at, [d.key]: k}, post, [...stack, `count:${map}`])) }
       return out
     }
     if (this.m.fns?.[map]) throw new Unsupported('external function')
@@ -174,7 +190,7 @@ class Compiler {
     throw new Unsupported(`unknown map ${map}`)
   }
   condition(c: C, env: Env, post = false, stack: string[] = []): Pred {
-    checkWall('tiny compile predicate')
+    tinyCheck('tiny compile predicate')
     if (stack.length > 48) throw new Unsupported('recursive count/flag')
     switch (c.op) {
       case '<': case '<=': case '=': return this.compare(c.op, this.expression(c.a, env, post, stack), this.expression(c.b, env, post, stack))
@@ -197,14 +213,14 @@ class Compiler {
     }
   }
   predicateCode(p: Pred, rank: number[] | undefined, used: Term[], polarity = true): string {
-    checkWall('tiny predicate code')
-    if (typeof p === 'boolean') return String(p === polarity)
-    if (p.op === 'not') return this.predicateCode(p.x, rank, used, !polarity)
-    if (p.op === 'and' || p.op === 'or') return '(' + p.xs.map(x => this.predicateCode(x, rank, used, polarity)).join((p.op === 'and') === polarity ? '&&' : '||') + ')'
+    tinyCheck('tiny predicate code')
+    if (typeof p === 'boolean') return tinyExpression(String(p === polarity))
+    if (p.op === 'not') return tinyExpression(this.predicateCode(p.x, rank, used, !polarity))
+    if (p.op === 'and' || p.op === 'or') return tinyExpression('(' + p.xs.map(x => this.predicateCode(x, rank, used, polarity)).join((p.op === 'and') === polarity ? '&&' : '||') + ')')
     used.push(p.a, p.b)
     const ds = unique([...p.a.deps, ...p.b.deps]), ready = rank ? Math.max(-1, ...ds.map(i => rank[i]!)) + 1 : 0
     const test = `(${this.ref(p.a)}${p.cmp === '=' ? '===' : p.cmp}${this.ref(p.b)})`
-    return `(${rank && ready > 0 ? `d<${ready}||` : ''}${polarity ? test : '!' + test})`
+    return tinyExpression(`(${rank && ready > 0 ? `d<${ready}||` : ''}${polarity ? test : '!' + test})`)
   }
   // Three-valued interval truth: -1=false, 0=unknown, 1=true. Only a
   // definitely true target rules out its negation; intersecting bounds stay
@@ -213,13 +229,13 @@ class Compiler {
     const lines: string[] = [], ranges = new Map<number, {lo: string, hi: string}>(), truths = new WeakMap<object, string>()
     let chars = 0, next = 0
     const emit = (line: string): void => {
-      checkWall('tiny interval code')
-      chars += line.length
+      tinyCheck('tiny interval code')
+      chars += originalSize(line)
       if (chars > 65_536) throw new Unsupported('large interval screen')
-      lines.push(line)
+      lines.push(tinyPrefix + line)
     }
     const range = (t: Term): {lo: string, hi: string} => {
-      checkWall('tiny interval term')
+      tinyCheck('tiny interval term')
       if (t.lo < 0 || t.hi < t.lo) throw new Unsupported('non-natural interval')
       const hit = ranges.get(t.id)
       if (hit) return hit
@@ -244,7 +260,7 @@ class Compiler {
       return out
     }
     const truth = (q: Pred): string => {
-      checkWall('tiny interval predicate')
+      tinyCheck('tiny interval predicate')
       if (typeof q === 'boolean') return q ? '1' : '-1'
       const hit = truths.get(q)
       if (hit) return hit
@@ -264,34 +280,34 @@ class Compiler {
     const result = truth(p)
     emit(`return ${result}!==1;`)
     // oxlint-disable-next-line typescript/no-implied-eval
-    return new Function('v', 'd', lines.join('')) as (v: number[], depth: number) => boolean
+    return tinyNative<(v: number[], depth: number) => boolean>(lines.join(''))
   }
   compileValues(values: Term[], order?: number[]): (v: number[], depth?: number) => number[] {
-    checkWall('tiny transition code')
+    tinyCheck('tiny transition code')
     const rank = order ? this.slots.map((_, i) => order.indexOf(i)) : undefined
     const seen = new Set<number>(), lines: string[] = []
     let chars = 0
     const emit = (t: Term): void => {
-      checkWall('tiny transition terms')
+      tinyCheck('tiny transition terms')
       if (seen.has(t.id)) return
       seen.add(t.id); t.args.forEach(emit)
       const ready = rank ? Math.max(-1, ...t.deps.map(i => rank[i]!)) + 1 : 0
       const line = `const t${t.id}=${ready > 0 ? `d>=${ready}?${t.code}:0` : t.code};`
-      chars += line.length
+      chars += originalSize(line)
       if (chars > 65_536) throw new Unsupported('large transition screen')
-      lines.push(line)
+      lines.push(tinyPrefix + line)
     }
     values.forEach(emit)
     // Only closed AST operators, validated numerical literals and slot indices;
     // callback replay, never this generated transition, authorizes a CTI.
     // oxlint-disable-next-line typescript/no-implied-eval
-    return new Function('v', 'd', `${lines.join('')}return [${values.map(t => this.ref(t)).join(',')}];`) as (v: number[], depth?: number) => number[]
+    return tinyNative<(v: number[], depth?: number) => number[]>(`${lines.join('')}return [${values.map(t => this.ref(t)).join(',')}];`)
   }
   // Upper truth bound, not a two-valued evaluation of an incomplete state.
   // true includes UNKNOWN; false rules out this polarity for every completion.
   // In particular, polarity=false cannot prune on an unassigned atom.
   compile(p: Pred, order?: number[], polarity = true, readyAt?: number[]): (v: number[], depth: number) => boolean {
-    checkWall('tiny generate screen')
+    tinyCheck('tiny generate screen')
     // Keep native compilation and hot execution in bounded clauses rather
     // than one giant predicate. Partial-assignment polarity is unchanged.
     if (typeof p === 'boolean') return () => p === polarity
@@ -309,7 +325,7 @@ class Compiler {
         this.compile({op: p.op, xs: p.xs.slice(middle)}, order, polarity, readyAt)]
       return (v, depth) => {
         for (const test of tests) {
-          checkWall('tiny predicate clause')
+          tinyCheck('tiny predicate clause')
           if (test(v, depth) !== all) return !all
         }
         return all
@@ -318,7 +334,7 @@ class Compiler {
     return this.compileNative(p, order, polarity, readyAt)
   }
   compileNative(p: Pred, order?: number[], polarity = true, readyAt?: number[]): (v: number[], depth: number) => boolean {
-    checkWall('tiny native clause')
+    tinyCheck('tiny native clause')
     const rank = readyAt ? readyAt.map(depth => depth - 1) : order ? this.slots.map((_, i) => order.indexOf(i)) : undefined, used: Term[] = []
     // An atomic predicate is unknown until ALL of its dependencies are set.
     // Its old per-term placeholders could not affect that result, so return
@@ -328,29 +344,29 @@ class Compiler {
     const ready = rank && atomic ? Math.max(-1, ...depsOf(p).map(i => rank[i]!)) + 1 : 0
     const guard = ready > 0 ? `if(d<${ready})return true;` : ''
     const code = this.predicateCode(p, atomic ? undefined : rank, used, polarity), seen = new Set<number>(), lines: string[] = []
-    let chars = guard.length + code.length
+    let chars = guard.length + originalSize(code)
     if (chars > 65_536) throw new Unsupported('large generated screen')
     const emit = (t: Term): void => {
-      checkWall('tiny term code')
+      tinyCheck('tiny term code')
       if (seen.has(t.id)) return
       seen.add(t.id); t.args.forEach(emit)
       const termReady = rank && !atomic ? Math.max(-1, ...t.deps.map(i => rank[i]!)) + 1 : 0
       const line = `const t${t.id}=${termReady > 0 ? `d>=${termReady}?${t.code}:0` : t.code};`
-      chars += line.length
+      chars += originalSize(line)
       if (chars > 65_536) throw new Unsupported('large generated screen')
-      lines.push(line)
+      lines.push(tinyPrefix + line)
     }
     used.forEach(emit)
     // Closed AST operators, validated numerical literals and slot indices only;
     // no identifier or external function source is interpolated. This is an
     // UNTRUSTED screen: the callback must independently replay every proposal.
     // oxlint-disable-next-line typescript/no-implied-eval
-    return new Function('v', 'd', `${guard}${lines.join('')}return ${code};`) as (v: number[], d: number) => boolean
+    return tinyNative<(v: number[], d: number) => boolean>(`${guard}${lines.join('')}return ${code};`)
   }
 }
 const uniqueTerms = (ts: Term[]) => [...new Map(ts.map(t => [t.id, t])).values()]
 function bindings(names: string[], domain: number[], env: Env): Env[] {
-  checkWall('tiny bindings')
+  tinyCheck('tiny bindings')
   if (!names.length) return [env]
   if (names.length > 5) throw new Unsupported('many binders')
   return domain.flatMap(k => bindings(names.slice(1), domain, {...env, [names[0]!]: k}))
@@ -361,7 +377,7 @@ function gridKeys(m: Machine, size: number): Record<string, number[]> {
   const cells: Record<string, number[]> = {}
   for (const [name] of Object.entries(m.maps ?? {})) cells[name] = Array.from({length: size}, (_, i) => i)
   for (const d of Object.values(m.counts ?? {})) walk(d.body, o => {
-    checkWall('tiny grid inference')
+    tinyCheck('tiny grid inference')
     if (o.op !== 'get' || !Object.hasOwn(cells, String(o.map))) return
     const key = o.key as E
     if (key.op === 'add') {
@@ -376,7 +392,7 @@ function tinyScope(params: Env, stateValues: number[], options: TinyFiniteOption
   return {params: {...params}, scalarValues: [...stateValues], cellValues: [...stateValues], cells: {}, inputValues: {}, inputCells: {}, binderValues: [], postTargetPruning: options.postTargetPruning === true, postTargetIntervals: options.postTargetIntervals === true, seedNeighborhood: options.seedTransitions !== undefined, seedUniformMaps: options.seedTransitions !== undefined && options.seedUniformMaps === true}
 }
 function tinyLayout(source: Machine, m: Machine, params: Env, stateValues: number[], scope: TinyFiniteStatistics['scope']): {slots: Slot[], stateSlots: number} {
-  checkWall('tiny start')
+  tinyCheck('tiny start')
   if (!stateValues.length || stateValues.length > 4 || stateValues.some(n => !Number.isSafeInteger(n) || n < 0)) throw new Unsupported('invalid finite value domain')
   if (source.history || source.leasts || source.sums) throw new Unsupported('history/least/sums')
   if (!source.params.every(p => Number.isSafeInteger(params[p]) && params[p]! >= 0)) throw new Unsupported('missing/non-natural params')
@@ -388,15 +404,15 @@ function tinyLayout(source: Machine, m: Machine, params: Env, stateValues: numbe
   scope.cells = gridKeys(m, size)
   scope.binderValues = Array.from({length: size}, (_, i) => i)
   const slots: Slot[] = Object.keys(source.state).map(name => ({name, values: stateValues}))
-  for (const name of Object.keys(source.maps ?? {})) for (const key of scope.cells[name] ?? []) { checkWall('tiny state coordinates'); slots.push({name, key, values: stateValues}) }
+  for (const name of Object.keys(source.maps ?? {})) for (const key of scope.cells[name] ?? []) { tinyCheck('tiny state coordinates'); slots.push({name, key, values: stateValues}) }
   const stateSlots = slots.length
   for (const name of source.inputs) {
-    checkWall('tiny request domains')
+    tinyCheck('tiny request domains')
     // Explicit conjunctive natural bounds are domain hints; other inputs use
     // 0..size. No domain or quotient is a trusted pruning justification.
     let hi = 16, bounded = false
     for (const c of conjuncts(source.assume ?? {op: 'and', xs: []})) {
-      checkWall('tiny numeric bounds')
+      tinyCheck('tiny numeric bounds')
       if ((c.op === '<' || c.op === '<=') && c.a.op === 'var' && c.a.name === name) {
         const b = c.b.op === 'const' ? c.b.value : c.b.op === 'var' ? params[c.b.name] : undefined
         if (b !== undefined) { hi = Math.min(hi, b - Number(c.op === '<')); bounded = true }
@@ -408,7 +424,7 @@ function tinyLayout(source: Machine, m: Machine, params: Env, stateValues: numbe
     scope.inputValues[name] = values; slots.push({name, request: true, values})
   }
   for (const name of source.inputMaps ?? []) {
-    checkWall('tiny carried coordinates')
+    tinyCheck('tiny carried coordinates')
     scope.inputCells[name] = Array.from({length: size}, (_, i) => i)
     for (const key of scope.inputCells[name]!) slots.push({name, key, request: true, values: [0, 1]})
   }
@@ -419,7 +435,7 @@ function materializeTiny(source: Machine, slots: Slot[], values: readonly number
   const preState: State = {scalars:{},maps:Object.fromEntries(Object.keys(source.maps??{}).map(name=>[name,new Map<number,number>()]))}
   const request: Request = Object.fromEntries((source.inputMaps??[]).map(name=>[name,new Map<number,number>()]))
   for(let i=0;i<slots.length;i++){
-    checkWall('tiny candidate materialization')
+    tinyCheck('tiny candidate materialization')
     const s=slots[i]!, value=s.request&&s.key===undefined&&Object.hasOwn(fixed,s.name)?fixed[s.name]!:values[i]!
     if(s.request){if(s.key===undefined)request[s.name]=value;else(request[s.name] as Map<number,number>).set(s.key,value)}
     else if(s.key===undefined)preState.scalars[s.name]=value
@@ -431,7 +447,7 @@ function walkTinySeedVectors(source: Machine, params: Env, slots: Slot[], option
   const bases: number[][] = [], seen = new Set<string>()
   let attempts = 0
   for (const seed of options.seedTransitions?.slice(-8) ?? []) {
-    checkWall('tiny seed projection')
+    tinyCheck('tiny seed projection')
     if (!Object.keys(params).every(key => seed.params[key] === params[key])) continue
     const values: number[] = []
     for (const slot of slots) {
@@ -445,7 +461,7 @@ function walkTinySeedVectors(source: Machine, params: Env, slots: Slot[], option
     if (values.length === slots.length) bases.push(values)
   }
   const attempt = (values: number[], coupled = false): boolean => {
-    checkWall('tiny seed attempt')
+    tinyCheck('tiny seed attempt')
     if (attempts >= 256) return false
     const key = values.join(',')
     if (seen.has(key)) return true
@@ -457,7 +473,7 @@ function walkTinySeedVectors(source: Machine, params: Env, slots: Slot[], option
   if (options.seedUniformMaps) {
     const grouped = new Map<string, number[]>()
     for (const [i, slot] of slots.entries()) {
-      checkWall('tiny seed map grouping')
+      tinyCheck('tiny seed map grouping')
       if (slot.key === undefined) continue
       const key = `${Number(!!slot.request)}:${slot.name}`, group = grouped.get(key) ?? []
       group.push(i); grouped.set(key, group)
@@ -465,7 +481,7 @@ function walkTinySeedVectors(source: Machine, params: Env, slots: Slot[], option
     const groups = [...grouped.values()].filter(group => group.length > 1)
       .sort((a, b) => Number(!!slots[b[0]!]!.request) - Number(!!slots[a[0]!]!.request))
     for (const group of groups) for (const base of bases) for (const value of slots[group[0]!]!.values) {
-      checkWall('tiny seed uniform map')
+      tinyCheck('tiny seed uniform map')
       if (!group.every(i => slots[i]!.values.includes(value)) || group.every(i => base[i] === value)) continue
       const values = base.slice(); for (const i of group) values[i] = value
       if (!attempt(values, true)) return
@@ -475,7 +491,7 @@ function walkTinySeedVectors(source: Machine, params: Env, slots: Slot[], option
   // neighborhood consuming the entire fixed attempt allowance.
   const axes = [...slots.keys()].sort((a, b) => Number(!!slots[b]!.request) - Number(!!slots[a]!.request) || a - b)
   for (const i of axes) for (const base of bases) for (const value of slots[i]!.values) {
-    checkWall('tiny seed neighbor')
+    tinyCheck('tiny seed neighbor')
     if (value === base[i]) continue
     const values = base.slice(); values[i] = value
     if (!attempt(values)) return
@@ -531,7 +547,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     if (source.pre) pres.push(compiler.condition(source.pre, params))
     const instances = new Map<Law, Env[]>()
     for (const law of family) {
-      checkWall('tiny family compile')
+      tinyCheck('tiny family compile')
       if (law.some?.length) { unknown(new Unsupported('existential law')); continue }
       if ([law.forall, ...law.keys ?? []].some(k => k !== undefined && (k in source.state || source.params.includes(k) || source.inputs.includes(k)))) { unknown(new Unsupported('shadowing law binder')); continue }
       try {
@@ -547,7 +563,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     // quotients request coordinates irrelevant to that operation slice.
     const dispatches = new Map<string, Set<number>>()
     walk(source.step, o => {
-      checkWall('tiny dispatch inference')
+      tinyCheck('tiny dispatch inference')
       if (o.op !== '=') return
       const a = o.a as E, b = o.b as E
       const [v, k] = a.op === 'var' ? [a, b] : [b, a]
@@ -559,7 +575,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     const slices = dispatch ? scope.inputValues[dispatch]!.map(value => ({...params, [dispatch]: value})) : [params]
     const emitted = new Set<Law>(), highs = slots.map(s => Math.max(...s.values))
     const writeFlags = new Set<string>()
-    walk([source.step.state, source.step.maps], o => { checkWall('tiny write flags'); if (o.op === 'flag') writeFlags.add(o.name as string) })
+    walk([source.step.state, source.step.maps], o => { tinyCheck('tiny write flags'); if (o.op === 'flag') writeFlags.add(o.name as string) })
     const slotValue = (c: Compiler, i: number, env: Env, post: boolean): Term => {
       const s = slots[i]!
       return s.key === undefined ? c.expression({op:'var',name:s.name},env,post) : c.read(s.name,s.key,env,post,[])
@@ -575,7 +591,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     const flatPreds = (p: Pred): Pred[] => typeof p !== 'boolean' && p.op === 'and' ? p.xs.flatMap(flatPreds) : [p]
     const operations: {fixed: Env, order: number[], gate: (v:number[],d:number)=>boolean, step:(v:number[])=>number[], outputs: Term[], mayFail?: (v:number[],d:number)=>boolean}[] = []
     for(const fixed of slices){
-      checkWall('tiny operation compile')
+      tinyCheck('tiny operation compile')
       try {
         const outputs = slots.slice(0,stateSlots).map((_,i)=>slotValue(compiler,i,fixed,true))
         if(outputs.every((t,i)=>t.id===compiler.slot(i).id)) continue
@@ -587,7 +603,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
         const degrees = slots.map((_,i)=>clauses.reduce((sum,ds)=>sum+(ds.includes(i)?1/Math.max(1,ds.length):0),0))
         const order = slots.map((_,i)=>i).filter(i=>i>=stateSlots&&relevant.has(i)).sort((a,b)=>degrees[b]!-degrees[a]!||a-b)
         operations.push({fixed,order,gate:compiler.compile(enabled,order),step:compiler.compileValues(outputs),outputs})
-        outputs.forEach((t,i)=>{checkWall('tiny post ranges'); highs[i]=Math.max(highs[i]!,t.hi)})
+        outputs.forEach((t,i)=>{tinyCheck('tiny post ranges'); highs[i]=Math.max(highs[i]!,t.hi)})
         stats.scenarios++
       } catch(e) { if(e instanceof WallExpired) throw e; unknown(e) }
     }
@@ -595,7 +611,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     const postCompiler = new Compiler(source,m,params,postSlots,scope.cells,scope.binderValues)
     const targets: Law[] = [], predicates: Pred[] = []
     for(const [law,ats] of instances){
-      checkWall('tiny shared post predicates')
+      tinyCheck('tiny shared post predicates')
       try {
         const p = conjunction(ats.map(at=>postCompiler.condition(law.holds,at)))
         if(p===true) continue
@@ -608,7 +624,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     const stateOrder = slots.slice(0,stateSlots).map((_,i)=>i).sort((a,b)=>degrees[b]!-degrees[a]!||a-b)
     const preTest = compiler.compile(pre,stateOrder), v = slots.map(s=>s.values[0]!)
     if (options.postTargetPruning) for (const op of operations) {
-      checkWall('tiny post-target circuit')
+      tinyCheck('tiny post-target circuit')
       try {
         const order = [...stateOrder, ...op.order], rank = slots.map((_, i) => order.indexOf(i))
         // A post coordinate is unknown until every source dependency of its
@@ -617,7 +633,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
         const changed = new Set(op.outputs.flatMap((t, i) => t.id === compiler.slot(i).id ? [] : [i]))
         const needed = new Set<number>(), screens: {law: Law, mayFail: (v: number[], d: number) => boolean}[] = []
         for (const [i, law] of targets.entries()) {
-          checkWall('tiny post-target predicate')
+          tinyCheck('tiny post-target predicate')
           const p = predicates[i]!, deps = depsOf(p)
           // Unchanged primitive dependencies preserve this full-family law.
           if (!deps.some(j => changed.has(j))) continue
@@ -662,21 +678,21 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     const propose = (fixed:Env, violated:Law[]):void=>{
       const {pre: preState, request} = materializeTiny(source, slots, v, fixed)
       const accepted=onCandidate(preState,request,violated);stats.candidates++
-      if(accepted!==false)for(const law of violated){checkWall('tiny proposed targets');emitted.add(law)}
+      if(accepted!==false)for(const law of violated){tinyCheck('tiny proposed targets');emitted.add(law)}
     }
     const visit = ():void=>{
-      stats.states++;checkWall('tiny lawful state')
+      stats.states++;tinyCheck('tiny lawful state')
       for(const op of operations){
-        checkWall('tiny operation slice')
+        tinyCheck('tiny operation slice')
         for(let i=stateSlots;i<slots.length;i++)v[i]=slots[i]!.values[0]!
         for(const name of source.inputs)if(Object.hasOwn(op.fixed,name))v[slots.findIndex(s=>s.request&&s.key===undefined&&s.name===name)]=op.fixed[name]!
         const requests = (d:number):void=>{
-          stats.nodes++;checkWall('tiny request assignment')
+          tinyNode();stats.nodes++;tinyCheck('tiny request assignment')
           if(!op.gate(v,d))return
           if (op.mayFail && !op.mayFail(v, stateOrder.length + d)) { stats.postRequestPrunes++; return }
           if(d<op.order.length){
             const i=op.order[d]!
-            for(const value of slots[i]!.values){checkWall('tiny request values');v[i]=value;requests(d+1)}
+            for(const value of slots[i]!.values){tinyCheck('tiny request values');v[i]=value;requests(d+1)}
             return
           }
           const values=op.step(v)
@@ -690,24 +706,24 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
       }
     }
     const states = (d:number):void=>{
-      stats.nodes++;checkWall('tiny state assignment')
+      tinyNode();stats.nodes++;tinyCheck('tiny state assignment')
       if(!preTest(v,d))return
       if (options.postTargetPruning && operations.every(op => !op.mayFail!(v, d))) { stats.postStatePrunes++; return }
       if(d===stateOrder.length){visit();return}
       const i=stateOrder[d]!
       // Ones first reaches enabled guards early; both values remain enumerated.
-      for(const value of [...slots[i]!.values].reverse()){checkWall('tiny state values');v[i]=value;states(d+1)}
+      for(const value of [...slots[i]!.values].reverse()){tinyCheck('tiny state values');v[i]=value;states(d+1)}
     }
     // A seed is only an untrusted coordinate suggestion, never a drop. Project
     // the last eight into this exact finite grid, try radius-one neighbors,
     // then retain the ordinary full traversal. Every proposal uses the same
     // independent callback. Snapshot before callbacks can add later seeds.
     if (options.seedTransitions) walkTinySeedVectors(source, params, slots, options, (values, coupled) => {
-      stats.seedModels++; stats.nodes++; if (coupled) stats.seedCoupledModels++
+      tinyNode();stats.seedModels++; stats.nodes++; if (coupled) stats.seedCoupledModels++
       for (let i = 0; i < values.length; i++) v[i] = values[i]!
       if (!preTest(v, stateOrder.length)) return
       for (const op of operations) {
-        checkWall('tiny seed operation')
+        tinyCheck('tiny seed operation')
         if (slots.some((s, i) => s.request && s.key === undefined && Object.hasOwn(op.fixed, s.name) && v[i] !== op.fixed[s.name])) continue
         if (!op.gate(v, op.order.length)) continue
         const outputs = op.step(v)

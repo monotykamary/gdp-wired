@@ -3,8 +3,9 @@ import {traceNow as countedTraceNow} from './wall.ts'
 // unknown; only an actual enabled step from a state satisfying the WHOLE
 // current family may remove a non-caller. The checked prover sees survivors.
 import {type C, type E, type Law, type Machine, type Request, type State, carriedView, compileC, compileE, fastStep, interpret, seeded, walk} from './machine.ts'
-import {checkWall, searchWall, WallExpired} from './wall.ts'
+import {checkWall, searchWall, WallExpired, BudgetExpired} from './wall.ts'
 import {boundaryState, lawFrontiers} from './finite-frontiers.ts'
+import {withReachabilityWork, reachState, reachEdge} from './work-observe.ts'
 import {wallAt, withWall} from '../kernel/prove.ts'
 import {type TinyFiniteOptions, type TinyFiniteStatistics, type TinySeedStatistics, tinyFiniteCandidates, tinySeedCandidates} from './finite-tiny.ts'
 type Env = Record<string, number>
@@ -59,7 +60,7 @@ export function finiteEvaluator(m: Machine, stop: () => boolean = () => false): 
     let nested = false; walk(law.holds, o => { if (o.op === 'all') nested = true })
     return {keys, cover, guards: gs, test: compileC(law.holds, m), supported: !nested && !law.some?.length && !keys.some(k => k in m.state || m.params.includes(k)) && ![...variables(law.holds)].some(k => m.inputs.includes(k) && !keys.includes(k))}
   }
-  return (law, p, st) => {
+  return (law, p, st) => withReachabilityWork(() => {
     checkWall('finite law')
     if (stop()) return undefined
     let entry = cache.get(st)
@@ -92,10 +93,10 @@ export function finiteEvaluator(m: Machine, stop: () => boolean = () => false): 
       return undefined
     }
     let truth: Truth
-    try { truth = go(shape.cover) } catch (e) { if (e instanceof WallExpired) throw e; truth = undefined }
+    try { truth = go(shape.cover) } catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; truth = undefined }
     entry.values.set(law, truth)
     return truth
-  }
+  })
 }
 export type FiniteDrop = {round: number, law: Law, params: Env, pre: State, request: Request, post: State}
 export const finiteDump: {onStart?: (value: {machine: Machine, caller: Law[], candidates: Law[]}) => void, onDrop?: (drop: FiniteDrop) => void} = {}
@@ -104,10 +105,10 @@ export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candid
   const start = countedTraceNow(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
   let survivors = candidates.slice(), timedOut = false
   try {
-    return withWall(end, () => finiteHoudiniWithin(source, m, caller, candidates, samples, {...options, onDrop: drop => {
+    return withWall(end, () => withReachabilityWork(() => finiteHoudiniWithin(source, m, caller, candidates, samples, {...options, onDrop: drop => {
       survivors = survivors.filter(law => law !== drop.law)
       options.onDrop?.(drop)
-    }}))
+    }})))
   } catch (error) {
     if (!(error instanceof WallExpired)) throw error
     // An enclosing deadline must still cancel the caller. Only expiration of
@@ -141,7 +142,7 @@ export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], ca
   const start = countedTraceNow(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
   let survivors = candidates.slice(), timedOut = false
   try {
-    return withWall(end, () => {
+    return withWall(end, () => withReachabilityWork(() => {
       if (source.history || m.history || Object.keys(source.leasts ?? {}).length || Object.keys(m.leasts ?? {}).length || Object.keys(source.sums ?? {}).length || Object.keys(m.sums ?? {}).length) return survivors
       finiteDump.onStart?.({machine: m, caller, candidates})
       const evaluate = finiteEvaluator(m), run = interpret(source), protectedLaws = new Set(caller)
@@ -153,11 +154,11 @@ export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], ca
         for (const p of params) {
           checkWall('tiny Houdini instance')
           const certify = (pre: State, request: Request): boolean => {
-            checkWall('tiny Houdini certification')
+            checkWall('tiny Houdini certification'); reachState()
             // The screen's constraints and reported post-laws are not trusted.
             if (!family.every(law => evaluate(law, p, pre) === true)) return false
             let post: State
-            try { post = run.step(p, pre, request) } catch (e) { if (e instanceof WallExpired) throw e; return false }
+            try { reachEdge(); post = run.step(p, pre, request) } catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; return false }
             let accepted = false
             for (const law of survivors) {
               if (protectedLaws.has(law) || removed.has(law) || evaluate(law, p, post) !== false) continue
@@ -190,7 +191,7 @@ export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], ca
         if (!removed.size) return survivors
       }
       return survivors
-    })
+    }))
   } catch (e) {
     if (!(e instanceof WallExpired)) throw e
     checkWall('tiny Houdini outer completion')
@@ -238,6 +239,7 @@ function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candida
     let accepted = 0, steps = 0
     const rejecting = (p: Env, st: State): Law | undefined => { for (const law of family) if (evaluate(law, p, st) !== true) { failures.set(law, (failures.get(law) ?? 0) + 1); return law } return undefined }
     const visit = (p: Env, pre: State): boolean => {
+      reachState()
       const by = rejecting(p, pre)
       if (by) { rejected.push({p, st: pre, by}); return false }
       const bound = Math.max(3, ...Object.values(p))
@@ -246,7 +248,7 @@ function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candida
         const request: Request = Object.fromEntries(numericInputs.map(({name, bound: b}) => [name, rng(b)]))
         for (const mp of source.inputMaps ?? []) request[mp] = new Map(Array.from({length: bound}, (_, i) => [i, 1] as [number, number]).filter(() => rng(2)))
         let post: State
-        try { post = step(p, pre, request) } catch (e) { if (e instanceof WallExpired) throw e; continue }
+        try { reachEdge(); post = step(p, pre, request) } catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; continue }
         steps++
         // Laws are state-only. An enabled semantic no-op preserves the already
         // checked family, even if the interpreter allocated fresh map objects.

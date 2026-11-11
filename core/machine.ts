@@ -10,6 +10,7 @@ import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, s
 import {runtimeWall} from './runtime-wall.ts'
 import {traceNow} from './trace-clock.ts'
 import {coreMeter} from './meter.ts'
+import {observeEval} from './work-observe.ts'
 import {observeAst} from './meter.ts'
 
 
@@ -382,7 +383,7 @@ const exact = (v: number): number => {
 // (a value is a number: a name like constructor or toString, read through an object's prototype, is no value of it)
 const num = (x: unknown): number | undefined => (typeof x === 'number' ? x : undefined)
 export function evalE(e: E, env: Env, st: State, m: Machine): number {
-  coreMeter.evals += 1
+  observeEval()
   switch (e.op) {
     case 'var': { const v = num(env[e.name]) ?? num(st.scalars[e.name]); if (v === undefined) throw new Error(`no value for ${e.name}`); return v }
     case 'const': return e.value
@@ -415,7 +416,7 @@ const directCall = (d: DirectFn): ((...args: number[]) => number) => {
   // Arithmetic inside an equation is evaluated just as in generated code; no paired key is needed for calls.
   const memo = new Map<string, [number, number]>()
   const value = (e: E, env: Env): number => {
-    coreMeter.evals += 1
+    observeEval()
     switch (e.op) {
       case 'const': return e.value
       case 'var': return env[e.name]!
@@ -434,7 +435,7 @@ const directCall = (d: DirectFn): ((...args: number[]) => number) => {
     }
   }
   const condition = (c: C, env: Env): boolean => {
-    coreMeter.evals += 1
+    observeEval()
     switch (c.op) {
       case '<': return value(c.a, env) < value(c.b, env)
       case '<=': return value(c.a, env) <= value(c.b, env)
@@ -516,7 +517,7 @@ export function pairedArgs(key: E, n: number): E[] | undefined {
 }
 const alike = (a: E, b: E): boolean => a === b || JSON.stringify(a) === JSON.stringify(b)
 export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
-  coreMeter.evals += 1
+  observeEval()
   switch (c.op) {
     case '<': return evalE(c.a, env, st, m) < evalE(c.b, env, st, m)
     case '<=': return evalE(c.a, env, st, m) <= evalE(c.b, env, st, m)
@@ -538,7 +539,7 @@ export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
 export function compileE(e: E, m: Machine): (env: Env, st: State) => number {
   const run = compileENode(e, m)
   // A get either charges its own node or delegates it to evalE, never both.
-  return e.op === 'get' ? run : (env, st) => { coreMeter.evals += 1; return run(env, st) }
+  return e.op === 'get' ? run : (env, st) => { observeEval(); return run(env, st) }
 }
 function compileENode(e: E, m: Machine): (env: Env, st: State) => number {
   switch (e.op) {
@@ -558,7 +559,7 @@ function compileENode(e: E, m: Machine): (env: Env, st: State) => number {
       return (env, st) => {
         const fn = m.fns?.[map]
         if (fn?.call && pairedArgs(e.key, fn.arity!)) return evalE(e, env, st, m)
-        coreMeter.evals += 1
+        observeEval()
         const k = key(env, st)
         return fn ? naturalIn(fnOf(fn)(k), `${map}(${k})`) : st.maps[map]!.get(k) ?? st.defaults?.[map] ?? m.maps![map]!
       }
@@ -568,7 +569,7 @@ function compileENode(e: E, m: Machine): (env: Env, st: State) => number {
 export function compileC(c: C, m: Machine): (env: Env, st: State) => boolean {
   const run = compileCNode(c, m)
   // Quantified conditions delegate the whole evaluation to the interpreter.
-  return c.op === 'all' ? run : (env, st) => { coreMeter.evals += 1; return run(env, st) }
+  return c.op === 'all' ? run : (env, st) => { observeEval(); return run(env, st) }
 }
 function compileCNode(c: C, m: Machine): (env: Env, st: State) => boolean {
   switch (c.op) {
@@ -1081,7 +1082,7 @@ export function fastStep(m: Machine): ((params: Env, st: State, input: Request) 
   const only = cs.length ? {...m, counts: decls} : m, tick = () => { coreMeter.ticks += 1; runtimeWall.check?.('derived count') }
   return (params, st, input) => {
     // Section 18's static expression-node charge per compiled step invocation.
-    coreMeter.evals += stepEvals
+    observeEval(stepEvals, true)
     if (!cs.length) return js.step(params, st, input)
     const view = compiledCells ? js.cells!(params, st, input, tick) : carriedView(only, st, input, undefined, params).maps, carried: Request = {...input}
     for (const c of cs) carried[c] = view[c]!

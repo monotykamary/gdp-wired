@@ -1,6 +1,6 @@
 // Cooperative cancellation of untrusted search. Legacy callers retain their
 // wall; an explicit work scope never consults it or grants completion headroom.
-import {pastWall, clock, searchNow, wallAt, inBudget, inWorkScope, checkBudget} from '../kernel/prove.ts'
+import {pastWall, clock, searchNow, wallAt, inBudget, inWorkScope, checkBudget, checkWorkAdmission, remainingWork} from '../kernel/prove.ts'
 import {runtimeWall} from './runtime-wall.ts'
 export {withBudget, budgetEnd, inBudget, checkBudget, checkWorkEndpoint, BudgetExpired, searchNow} from '../kernel/prove.ts'
 export {traceNow} from './trace-clock.ts'
@@ -24,3 +24,5 @@ export function checkWall(phase: string): void {
 }
 // The interpreter must not import the proof engine just to check cancellation.
 runtimeWall.check = checkWall
+runtimeWall.admit = checkWorkAdmission
+runtimeWall.remaining = remainingWork

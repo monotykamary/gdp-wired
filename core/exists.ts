@@ -1,4 +1,5 @@
-import {traceNow as countedTraceNow} from './wall.ts'
+import {traceNow as countedTraceNow, BudgetExpired} from './wall.ts'
+import {withReachabilityWork, reachState, reachEdge} from './work-observe.ts'
 // There exists: a law ∃ x. P(x) (core/machine.ts's Law with `some`: x a natural, or an integer as two, x and x$neg),
 // proven through a witness. Nothing here is trusted: the kernel proves a plain law of a plain machine, and the Lean
 // export states the existential again, proven by ⟨witness, proof⟩ (lean-kernel/Ghost.lean's some_updAll).
@@ -138,12 +139,16 @@ const atomsOf2 = (c: C): C[] => (c.op === 'and' || c.op === 'or' ? c.xs.flatMap(
 // taken as often as any other. Each state's step from the state it was first reached from is kept: `pathTo`.)
 const pathTo = new WeakMap<State, [State, Request]>()
 export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000, walks = 0): State[] {
+  return withReachabilityWork(() => smallWithin(m, p, b, cap, work, walks))
+}
+function smallWithin(m: Machine, p: Env, b: number, cap: number, work: number, walks: number): State[] {
+  reachState()
   // (past a thousand steps, through the generated JavaScript, fastStep: the interpreter's states, as compile.test.ts holds
   // them; a small machine's few steps cost less than its compiling)
   checkWall('sample setup')
   const run = interpret(m), start = run.init(p)
   let steps = 0, fast = run.step
-  const step = (p2: Env, st: State, r: Request): State => { if (++steps === 1000) fast = fastStep(m) ?? run.step; return fast(p2, st, r) }
+  const step = (p2: Env, st: State, r: Request): State => { reachEdge(); if (++steps === 1000) fast = fastStep(m) ?? run.step; return fast(p2, st, r) }
   const subsets = Array.from({length: 1 << b}, (_, s) => new Map(Array.from({length: b}, (_, i) => i).filter(i => (s >> i) & 1).map(i => [i, 1] as [number, number])))
   // (an input the assumption keeps below a few values, an action's, over all of them; the rest below b)
   const below = (i: string) => Math.max(b, ...(m.assume ? atomsOf2(m.assume) : []).flatMap(c => (c.op === '<' && c.a.op === 'var' && c.a.name === i && c.b.op === 'const' && c.b.value <= 8 ? [c.b.value] : [])))
@@ -173,7 +178,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
   const reached = (next: State, from: State, r: Request): State => {
     const h = hashOf(next), bucket = seen.get(h)
     if (bucket) { for (const had of bucket) if (equal(had, next)) return had; bucket.push(next) } else seen.set(h, [next])
-    all.push(next); pathTo.set(next, [from, r]); return next
+    reachState(); all.push(next); pathTo.set(next, [from, r]); return next
   }
   while (queue.length && all.length < cap && work > 0) {
     const st = queue.shift()!
@@ -181,7 +186,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
       checkWall('sample BFS')
       if (--work < 0) break
       let next: State
-      try { next = step(p, st, r) } catch { continue }
+      try { next = step(p, st, r) } catch (error) { if (error instanceof BudgetExpired) throw error; continue }
       const n0 = all.length
       if (reached(next, st, r) && all.length > n0) queue.push(next)
     }
@@ -200,7 +205,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
         checkWall('sample walks')
         const r = reqs[rnd(reqs.length)]!
         let next: State
-        try { next = step(p, st, r) } catch { continue }
+        try { next = step(p, st, r) } catch (error) { if (error instanceof BudgetExpired) throw error; continue }
         const kd = kindOf(st, next)
         if (kd) by.set(kd, [...by.get(kd) ?? [], [next, r]])
       }
@@ -277,6 +282,9 @@ export function trueSmall(m: Machine, laws: Law[], ghosted?: Machine): boolean {
 const views = new WeakMap<Machine, WeakMap<State, State>>()
 const sampleTests = new WeakMap<Machine, WeakMap<C, ReturnType<typeof compileC>>>()
 export function holdsAt(m: Machine, law: Law, p: Env, st: State, b: number): boolean {
+  return withReachabilityWork(() => holdsAtWithin(m, law, p, st, b))
+}
+function holdsAtWithin(m: Machine, law: Law, p: Env, st: State, b: number): boolean {
   let machineViews = views.get(m)
   if (!machineViews) views.set(m, (machineViews = new WeakMap()))
   let view = machineViews.get(st)

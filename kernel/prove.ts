@@ -258,6 +258,13 @@ export class BudgetExpired extends Error {
 export function checkWorkEndpoint(phase: string): void {
   if (budgetUnitsEnd !== undefined && fullWork() > budgetUnitsEnd) throw new BudgetExpired(phase)
 }
+// Pre-step admission for new native primitive counters. No credit is minted and
+// no local deadline is promoted to whole-search cancellation.
+export function checkWorkAdmission(units: number, phase: string): void {
+  if (!Number.isFinite(units) || units < 0) throw new RangeError('work charge must be finite and nonnegative')
+  if (budgetUnitsEnd !== undefined && fullWork() + units > budgetUnitsEnd) throw new BudgetExpired(phase)
+}
+export const remainingWork = (): number => budgetUnitsEnd === undefined ? Infinity : Math.max(0, budgetUnitsEnd - fullWork())
 export function checkBudget(phase: string): void {
   if (budgetUnitsEnd !== undefined && (fullWork() > budgetUnitsEnd
     || completeWorkProfile.enabled && clock() > withinDeadline(budgetEnd()))) throw new BudgetExpired(phase)
