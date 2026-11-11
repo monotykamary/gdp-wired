@@ -1,0 +1,19 @@
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+research/lane-i/request-quotient/skipped-oracle.test.ts:
+(pass) TypeError is reported and never counted as semantic refusal [0.34ms]
+(pass) ordinary Error is reported and never counted as semantic refusal [0.05ms]
+(pass) BudgetExpired is reported and never counted as semantic refusal [0.01ms]
+(pass) unexpected RangeError is reported and never counted as semantic refusal
+(pass) forged guard-message RangeError is reported and never counted as semantic refusal
+(pass) only the source-bound assumption marker authorizes a guard refusal [0.22ms]
+(pass) a distinct successor is not swallowed as refusal [6.51ms]
+(pass) a missing class representative fails closed before invoking the step [0.06ms]
+(pass) unmarked non-Error throws fail closed too [0.06ms]
+
+ 9 pass
+ 0 fail
+ 43 expect() calls
+Ran 9 tests across 1 file. [36.00ms]

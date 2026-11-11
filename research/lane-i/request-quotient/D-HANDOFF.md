@@ -1,5 +1,18 @@
 # D handoff: opt-in request quotient
 
+## Subsequent test-only Q1 repair
+
+See `Q1-STRICT.md`: all 29 models /49 parameter runs pass, with 301,348
+source-branded assumption refusals and zero unexpected errors. All historical
+counts and sample digests match. Nine negative/positive controls pass (43
+assertions); final types/lint pass on 1,856 files. No runtime change.
+
+D accepted the separate recovered-input custody repair. `INPUT-CUSTODY.md` and
+its unchanged auditor/native receipt retain the original tar hashes, original
+b17 wrapper, and exact research-only overlays. Their acceptance does not by
+itself attest every loaded binary/module or source-to-Git identity.
+
+
 ## Pin and scope
 
 Review **bfe647cfd3b81e10c497ca4d5911a8097a02586b**, parent

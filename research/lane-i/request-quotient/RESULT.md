@@ -1,5 +1,13 @@
 # Request quotient on the gated release integration
 
+> Q1 qualification (subsequent D review): the historical 5e52d5ee oracle below
+> counted every caught non-budget exception as a refusal. Its 301,348 throws
+> were therefore unclassified, not demonstrated semantic refusals. They remain
+> recorded below without being deleted. A separately authorized strict rerun,
+> with source-branded guard refusals and fail-closed error controls, is complete:
+> all 301,348 are authenticated guard refusals, zero unexpected. See
+> `Q1-STRICT.md`; old evidence is not rewritten. Runtime bfe647cf is unchanged.
+
 **Runtime source:** `bfe647cfd3b81e10c497ca4d5911a8097a02586b`.
 **Parent:** D-scoped-GREEN `4c1c05dc` / runtime `2de2ce89`.
 **Status:** all local source, compatibility, timing, Q1 oracle and static gates pass.

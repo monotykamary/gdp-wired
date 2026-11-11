@@ -1,0 +1,16 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [894.00ms]
+QUOTIENT_SKIPPED_AUDIT {"id":"mldr","source":"bfe647cfd3b81e10c497ca4d5911a8097a02586b","originalSamplerSHA256":"4311cd92c1764de91a03a22ff85276b539e6dd4ca81b92ff66583b95e86b3c86","instrumentedSamplerSHA256":"bb4f8d3f6f1c461f8d5c086c1c5f9ba65eaf2138e6f64c24622c4ed0105f98ad","originalInterpreterSHA256":"03d69e7e9e768a7e6735294f819da90d965f73d72c4134ab9ef74715d36f51bf","instrumentedInterpreterSHA256":"f59ea5bd20e19742390a9fbc2f2c5c0a3f422515a2f942508d9e06246d322ed4","adapterEdits":2,"interpreterAdapterEdits":1,"skipped":309788,"matched":215092,"refused":94696,"kept":556,"unexpected":0,"refusalKinds":{"guard":94696,"precondition":0,"declaredFailure":0,"unexpected":0},"exceptionHistogram":[{"kind":"guard-refusal","exceptionClass":"RangeError","message":"mongo logless dynamic raft: the request fails the rule's assumption, so no proof covers the step it would take","origin":{"file":"core/machine.ts","sha256":"03d69e7e9e768a7e6735294f819da90d965f73d72c4134ab9ef74715d36f51bf","line":819,"expression":"if (m.assume && !evalC(m.assume, env, st, plain)) throw new RangeError(refused(m))","guardSHA256":"8d86099fd699a29612a21bc6ff82602c7af1beeb4b93c5920d33bdbb4ea26a00"},"count":94696}],"rows":[{"params":{"size":2},"states":32,"digest":"d3e0284b91494d088aac29976b52336b68b0f4f2747557f248e5d1bf984ce964","skipped":106724,"matched":21748,"refused":84976,"kept":172,"unexpected":0,"exceptionHistogram":[{"kind":"guard-refusal","exceptionClass":"RangeError","message":"mongo logless dynamic raft: the request fails the rule's assumption, so no proof covers the step it would take","origin":{"file":"core/machine.ts","sha256":"03d69e7e9e768a7e6735294f819da90d965f73d72c4134ab9ef74715d36f51bf","line":819,"expression":"if (m.assume && !evalC(m.assume, env, st, plain)) throw new RangeError(refused(m))","guardSHA256":"8d86099fd699a29612a21bc6ff82602c7af1beeb4b93c5920d33bdbb4ea26a00"},"count":84976}]},{"params":{"size":3},"states":1504,"digest":"1b6d20dc9afe3649c4b767f3ba7c045b3a5c2ad490d1f02f71b1b4c9f51c6df0","skipped":203064,"matched":193344,"refused":9720,"kept":384,"unexpected":0,"exceptionHistogram":[{"kind":"guard-refusal","exceptionClass":"RangeError","message":"mongo logless dynamic raft: the request fails the rule's assumption, so no proof covers the step it would take","origin":{"file":"core/machine.ts","sha256":"03d69e7e9e768a7e6735294f819da90d965f73d72c4134ab9ef74715d36f51bf","line":819,"expression":"if (m.assume && !evalC(m.assume, env, st, plain)) throw new RangeError(refused(m))","guardSHA256":"8d86099fd699a29612a21bc6ff82602c7af1beeb4b93c5920d33bdbb4ea26a00"},"count":9720}]}],"workMode":"logical trial budget only; no counted endpoint during oracle re-execution"}

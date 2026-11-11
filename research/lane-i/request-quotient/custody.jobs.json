@@ -1,0 +1,10 @@
+[
+  {
+    "name": "quotient-retained-input-custody",
+    "cmd": "bun research/lane-i/request-quotient/audit-input-custody.ts custody-input",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 600,
+    "vm_type": "large"
+  }
+]
