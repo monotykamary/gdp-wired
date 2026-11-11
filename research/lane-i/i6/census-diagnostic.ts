@@ -13,7 +13,7 @@ const [dir,beforeDir,offDir,source]=process.argv.slice(2)
 const old=['fm','fcells','plainRows','values','copies','edges','scan','pivotRows','unitRows','unfoldRows','goalNodes','translateRows','tableCells','checkSteps','astNodes','evals','cubeTests','ticks','cdclNodes','epr']
 const native=['tinyNodes','tinyTerms','reachStates','reachEdges','reachEvals','reachCompiledEvals'],keys=[...old,...native]
 const legacy=[2.33,.0123,7.93,.672,.735,.0435,.0765,.599,15.6,.735,.492,7.93]
-const read=(path:string)=>{const line=readFileSync(path,'utf8').split('\n').find(s=>s.startsWith('CANDIDATE_RECEIPT '));a(line,path);const e=JSON.parse(line.slice(18)),b=Buffer.from(e.gzipBase64,'base64');a.equal(createHash('sha256').update(b).digest('hex'),e.sha256,path);return JSON.parse(gunzipSync(b).toString())}
+const read=(path:string)=>{const line=readFileSync(path,'utf8').split('\n').find(s=>s.startsWith('CANDIDATE_RECEIPT '));a(line,path);if(!line)throw Error('missing receipt '+path);const e=JSON.parse(line.slice(18)),b=Buffer.from(e.gzipBase64,'base64');a.equal(createHash('sha256').update(b).digest('hex'),e.sha256,path);return JSON.parse(gunzipSync(b).toString())}
 const stable=(v:any):any=>Array.isArray(v)?v.map(stable):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).filter(([k])=>!['wallMs','exclusiveWallMs',...native].includes(k)).map(([k,x])=>[k,stable(x)])):v
 const normalize=(r:any)=>stable(Object.fromEntries(Object.entries(r).filter(([k])=>k!=='source'&&k!=='target')))
 const near=(x:number,y:number)=>a(Math.abs(x-y)<Math.max(1e-5,Math.abs(x)*1e-11),`${x} != ${y}`)

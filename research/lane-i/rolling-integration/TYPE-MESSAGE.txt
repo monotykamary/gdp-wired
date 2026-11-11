@@ -1,0 +1,1 @@
+test: narrow diagnostic receipt input before parsing
