@@ -4,6 +4,7 @@ import {type Law} from './machine.ts'
 import {clock, withDeadline} from '../kernel/prove.ts'
 import {isLocalCountExpiration} from './count-tier-budget.ts'
 import {type CountPremiseContext} from './count-premise-view.ts'
+import {withTableAdmission} from './table-admission.ts'
 
 export function countPremiseSearch<T>(family: Law[], until: number,
   contexts: (until: number) => CountPremiseContext[],
@@ -25,7 +26,7 @@ export function countPremiseSearch<T>(family: Law[], until: number,
       seen.add(key)
       try {
         const result = withDeadline(localEnd, () => {
-          const proposed = probe(context.laws, localEnd)
+          const proposed = withTableAdmission(() => probe(context.laws, localEnd))
           return clock() < localEnd ? accept(context, proposed, localEnd) : undefined
         })
         observe?.({phase: 'premise-context', outcome: result !== undefined ? 'proved' : 'declined', local: context.laws.length, whole: family.length, guardReads: context.guardReads})
@@ -39,5 +40,5 @@ export function countPremiseSearch<T>(family: Law[], until: number,
     if (!isLocalCountExpiration(error, until) && !decline(error)) throw error
   }
   observe?.({phase: 'premise-context', outcome: 'fallback', local: family.length, whole: family.length})
-  return probe(family, until)
+  return withTableAdmission(() => probe(family, until))
 }

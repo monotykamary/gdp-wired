@@ -1,0 +1,27 @@
+// Disposable observation only: raw writes and their order are unchanged.
+Error.stackTraceLimit=40
+import {protocols} from './protocols/ic3syn/models.ts'
+import {proveRule} from '../core/dsl.ts'
+import {coreMeter} from '../core/meter.ts'
+import {costs} from '../core/solver.ts'
+import {eprMeter} from '../kernel/epr.ts'
+import {fullWork,budgetEnd} from '../kernel/prove.ts'
+import {rawWork,legacyWeights,completeWorkWeights} from '../core/work-meter.ts'
+const p=protocols.find(p=>p.id==='mldr')!,rule=p.make(),laws=p.laws(rule)
+const before=rawWork(),start=fullWork(),W=225000000,events:object[]=[]
+let approximate=start
+function watch(object:Record<string,number>,key:string,weight:number){
+ let value=object[key]!
+ Object.defineProperty(object,key,{configurable:true,enumerable:true,get:()=>value,set:(next:number)=>{
+  approximate+=(next-value)*weight;value=next
+  if(approximate-start>=W-1024&&events.length<12){
+   const used=fullWork()-start
+   if(used>W){const event={key,used,rootEnd:budgetEnd(),at:fullWork()/250,stack:new Error('first strict-W crossing').stack};events.push(event);console.log('STRICT_W_CROSSING '+JSON.stringify(event))}
+  }
+ }})
+}
+for(const [key,weight] of legacyWeights)watch(costs,key,weight)
+for(const [key,weight] of Object.entries(completeWorkWeights()!))watch(key==='epr'?eprMeter: key==='cdclNodes'?costs:coreMeter,key==='epr'?'n':key,weight)
+Object.defineProperty(performance,'now',{configurable:true,value:()=>{throw Error('clock read in strict-W probe')}})
+const verdict=proveRule(rule,laws,{search:{work:W}}),after=rawWork()
+console.log('STRICT_W_PROBE '+JSON.stringify({W,used:fullWork()-start,rounded:Math.round(fullWork()-start),verdict,events,raw:Object.fromEntries(Object.keys(after).map(key=>[key,after[key as keyof typeof after]-before[key as keyof typeof before]]))}))

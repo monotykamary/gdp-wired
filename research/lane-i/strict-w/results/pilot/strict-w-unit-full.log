@@ -1,0 +1,69 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [574.00ms]
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/table-admission.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+SyntaxError: Export named 'fullWork' not found in module '/tmp/rolling-integration-QKaLCL/core/wall.ts'.
+-------------------------------
+
+
+core/evaluation-admission.test.ts:
+(pass) scoped evaluation counts are unchanged without an active budget [0.49ms]
+(pass) ordinary interpreter batches reduce admission calls without granting units [0.53ms]
+(pass) zero and near-endpoint budgets refuse before another evaluation [0.19ms]
+(pass) nested and exceptional scopes do not retain a stale evaluation credit [0.09ms]
+(pass) a large compiled charge is admitted as one exact block [0.04ms]
+
+core/count-premise-integration.test.ts:
+(pass) production containment transports a local proof to the full row layout [17.45ms]
+(pass) production fallback can prove a full goal after its contained local model [12.79ms]
+
+core/reader-endpoint.test.ts:
+(pass) reader checkpoints stop an exhausted root before changing work [0.33ms]
+(pass) reader endpoint hooks do not promote a local deadline to root expiry [0.10ms]
+(pass) reader is usable with no endpoint after exceptional unwind [0.07ms]
+
+core/count-premise-search.test.ts:
+(pass) a checked local result wins; an unchecked proposal never does [0.20ms]
+(pass) a local refutation or unknown always falls back, and genuine full refutation survives [0.13ms]
+(pass) integer-charge local expiration leaves a positive full-context reserve [0.37ms]
+(pass) selection exhaustion also returns to full context [0.35ms]
+(pass) an exact local endpoint cannot return an unchecked local result [0.16ms]
+(pass) an explicitly unsupported local proposal cannot suppress the full fallback [0.06ms]
+(pass) outer expiration and unrelated exceptions propagate unchanged [0.12ms]
+
+ 17 pass
+ 1 fail
+ 1 error
+ 52 expect() calls
+Ran 18 tests across 5 files. [96.00ms]
+2 | import {createHash} from 'node:crypto'
+3 | import {readFileSync,writeFileSync,mkdtempSync,rmSync,existsSync} from 'node:fs'
+4 | import {join,resolve} from 'node:path'
+5 | import {spawnSync} from 'node:child_process'
+6 | const input=resolve('port-input'),root=mkdtempSync('/tmp/rolling-integration-'),[mode,...files]=process.argv.slice(2)
+7 | function run(command:string,args:string[]){const p=spawnSync(command,args,{cwd:root,env:process.env,encoding:'utf8',timeout:800000,maxBuffer:64*1024*1024});process.stdout.write(p.stdout??'');process.stderr.write(p.stderr??'');if(p.error||p.status!==0)throw Error(`${command} failed (${p.status}): ${p.error??''}`);return p.stdout??''}
+                                                                                                                                                                                                                                                                     ^
+error: bun failed (1): 
+      at run (/work/gdp-wired/port-input/run.ts:7:258)
+      at /work/gdp-wired/port-input/run.ts:31:24
+
+Bun v1.4.3 (Linux x64)

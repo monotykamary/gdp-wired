@@ -1,0 +1,8 @@
+[
+  {
+    "name": "strict-w-isolated-table-benchmark",
+    "cmd": "bun port-input/run.ts table-benchmark",
+    "env": {"GDP_WORK_FULL":"1","GDP_WORK_STEPS":"0"},
+    "cpu":4,"memory":8192,"timeout":600,"vm_type":"large"
+  }
+]

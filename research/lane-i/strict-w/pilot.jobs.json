@@ -1,0 +1,66 @@
+[
+  {
+    "name": "strict-w-endpoint-pilot",
+    "cmd": "bun port-input/run.ts probe",
+    "env": {
+      "GDP_WORK_FULL": "1",
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_FRAMES": "1",
+      "GDP_COUNT_REJECTIONS": "1",
+      "GDP_COUNT_STRATEGIES": "1",
+      "GDP_COUNT_TIERS": "1",
+      "GDP_REQUEST_QUOTIENT": "1",
+      "GDP_COUNT_ROW_DEFER_CHECKS": "1",
+      "GDP_COUNT_FINAL_DEFER_CHECKS": "1",
+      "GDP_COUNT_LIFTED": "1",
+      "GDP_COUNT_LIFTED_PREREQUISITES": "1",
+      "GDP_COUNT_LIFTED_REPLACEMENT": "1"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-w-unit-full",
+    "cmd": "bun port-input/run.ts test core/table-admission.test.ts core/count-premise-integration.test.ts core/count-premise-search.test.ts core/evaluation-admission.test.ts core/reader-endpoint.test.ts",
+    "env": {
+      "GDP_WORK_FULL": "1",
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_FRAMES": "1",
+      "GDP_COUNT_REJECTIONS": "1",
+      "GDP_COUNT_STRATEGIES": "1",
+      "GDP_COUNT_TIERS": "1",
+      "GDP_REQUEST_QUOTIENT": "1",
+      "GDP_COUNT_ROW_DEFER_CHECKS": "1",
+      "GDP_COUNT_FINAL_DEFER_CHECKS": "1",
+      "GDP_COUNT_LIFTED": "1",
+      "GDP_COUNT_LIFTED_PREREQUISITES": "1",
+      "GDP_COUNT_LIFTED_REPLACEMENT": "1"
+    },
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-w-unit-legacy",
+    "cmd": "bun port-input/run.ts test core/table-admission.test.ts core/count-premise-integration.test.ts core/count-premise-search.test.ts core/evaluation-admission.test.ts",
+    "env": {
+      "GDP_WORK_FULL": "0",
+      "GDP_WORK_STEPS": "0"
+    },
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-w-types",
+    "cmd": "bun port-input/run.ts types",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

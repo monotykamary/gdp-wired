@@ -1,0 +1,221 @@
+diff --git a/core/count-premise-search.ts b/core/count-premise-search.ts
+index f45ab1c3..4b28588f 100644
+--- a/core/count-premise-search.ts
++++ b/core/count-premise-search.ts
+@@ -4,6 +4,7 @@ import {type Law} from './machine.ts'
+ import {clock, withDeadline} from '../kernel/prove.ts'
+ import {isLocalCountExpiration} from './count-tier-budget.ts'
+ import {type CountPremiseContext} from './count-premise-view.ts'
++import {withTableAdmission} from './table-admission.ts'
+ 
+ export function countPremiseSearch<T>(family: Law[], until: number,
+   contexts: (until: number) => CountPremiseContext[],
+@@ -25,7 +26,7 @@ export function countPremiseSearch<T>(family: Law[], until: number,
+       seen.add(key)
+       try {
+         const result = withDeadline(localEnd, () => {
+-          const proposed = probe(context.laws, localEnd)
++          const proposed = withTableAdmission(() => probe(context.laws, localEnd))
+           return clock() < localEnd ? accept(context, proposed, localEnd) : undefined
+         })
+         observe?.({phase: 'premise-context', outcome: result !== undefined ? 'proved' : 'declined', local: context.laws.length, whole: family.length, guardReads: context.guardReads})
+@@ -39,5 +40,5 @@ export function countPremiseSearch<T>(family: Law[], until: number,
+     if (!isLocalCountExpiration(error, until) && !decline(error)) throw error
+   }
+   observe?.({phase: 'premise-context', outcome: 'fallback', local: family.length, whole: family.length})
+-  return probe(family, until)
++  return withTableAdmission(() => probe(family, until))
+ }
+diff --git a/core/meter.ts b/core/meter.ts
+index a967cc4d..a7634e6b 100644
+--- a/core/meter.ts
++++ b/core/meter.ts
+@@ -1,19 +1,23 @@
+ import {completeWorkProfile} from './work-profile.ts'
++import {tableAdmissionHook} from './table-admission-hook.ts'
+ 
+-// Raw observations only. No callback, budget, clock, reset or proof decision.
+-// Kept outside the admitted kernel tree; search policy owns aggregation.
++// Raw storage has no budget, clock, reset or proof decision. Only the table
++// observation helpers can consult an optional untrusted search-admission scope;
++// outside that scope all observations retain their original raw behavior.
+ export const coreMeter = {tableCells: 0, checkSteps: 0, astNodes: 0, evals: 0, cubeTests: 0, ticks: 0, tinyNodes: 0, tinyTerms: 0, reachStates: 0, reachEdges: 0, reachEvals: 0, reachCompiledEvals: 0}
+ // Evaluate the child before charging the allocation; never charge reused trees.
+ export function observeAst<T>(node: T): T { coreMeter.astNodes += 1; return node }
+ 
+ // The three previously unwired columns are opt-in so default raw vectors stay
+-// exact. These are observations, never callbacks into search or budget policy.
+-export function observeTableCells(count = 1): void { if (completeWorkProfile.enabled) coreMeter.tableCells += count }
++// exact. Check/cube observations stay pure; table admission is scoped above.
++export function observeTableCells(count = 1): void {
++  if (completeWorkProfile.enabled) { tableAdmissionHook.admit?.(count); coreMeter.tableCells += count }
++}
+ export function observeCheckStep(): void { if (completeWorkProfile.enabled) coreMeter.checkSteps += 1 }
+ export function observeCubeTest(): void { if (completeWorkProfile.enabled) coreMeter.cubeTests += 1 }
+ export function observeLinearRows(rows: readonly Record<string, number>[]): void {
+-  if (completeWorkProfile.enabled) for (const row of rows) coreMeter.tableCells += Object.keys(row).length
++  if (completeWorkProfile.enabled) for (const row of rows) observeTableCells(Object.keys(row).length)
+ }
+ export function observeConstraintRows(rows: readonly {lin: Record<string, number>}[], start = 0): void {
+-  if (completeWorkProfile.enabled) for (let i = start; i < rows.length; i++) coreMeter.tableCells += Object.keys(rows[i]!.lin).length
++  if (completeWorkProfile.enabled) for (let i = start; i < rows.length; i++) observeTableCells(Object.keys(rows[i]!.lin).length)
+ }
+diff --git a/core/table-admission-hook.ts b/core/table-admission-hook.ts
+new file mode 100644
+index 00000000..96066bd5
+--- /dev/null
++++ b/core/table-admission-hook.ts
+@@ -0,0 +1,3 @@
++// Dependency-free bridge: active only while untrusted count search opts in.
++// The raw counter storage and protected reader own no admission policy.
++export const tableAdmissionHook: {admit?: (count: number) => void, invalidate?: () => void} = {}
+diff --git a/core/table-admission.test.ts b/core/table-admission.test.ts
+new file mode 100644
+index 00000000..56e8ff31
+--- /dev/null
++++ b/core/table-admission.test.ts
+@@ -0,0 +1,86 @@
++import {expect,test} from 'bun:test'
++import {costs} from './solver.ts'
++import {coreMeter,observeTableCells,observeLinearRows,observeConstraintRows} from './meter.ts'
++import {rawWork,workKeys,legacyWeights} from './work-meter.ts'
++import {eprMeter} from '../kernel/epr.ts'
++import {Reader,type Trail} from '../kernel/reader.ts'
++import {BudgetExpired,withBudget} from './wall.ts'
++import {fullWork} from '../kernel/prove.ts'
++import {completeWorkProfile} from './work-profile.ts'
++import {runtimeWall} from './runtime-wall.ts'
++import {withTableAdmission} from './table-admission.ts'
++import {tableAdmissionHook} from './table-admission-hook.ts'
++const full=completeWorkProfile.enabled?test:test.skip
++const trail:Trail={get:()=>undefined,stamp:()=>0,size:()=>0,lin:()=>{throw Error('empty trail')}}
++test('unscoped and ample scoped tables keep all raw observations',()=>{
++ const run=()=>{observeTableCells(7);observeLinearRows([{x:1,y:2},{}]);observeConstraintRows([{lin:{z:1}}],0)}
++ const before=rawWork();run();const plain=rawWork();withBudget(100000,()=>withTableAdmission(run));const scoped=rawWork()
++ for(const key of workKeys)expect(scoped[key]-plain[key],key).toBe(plain[key]-before[key])
++ expect(scoped.tableCells-plain.tableCells).toBe(completeWorkProfile.enabled?10:0)
++ expect(tableAdmissionHook.admit).toBeUndefined()
++})
++full('ample scoped reader decisions preserve results and all 26 raw buckets',()=>{
++ const run=()=>{const r=new Reader({name:'paired reader',hyps:[]},trail),lin={row_key:1,other_key:-1};return[r.dec(lin),r.dec(lin),r.dec({third_key:1,'1':-2})]}
++ const before=rawWork(),plain=run(),middle=rawWork(),scoped=withBudget(100000,()=>withTableAdmission(run)),after=rawWork()
++ expect(scoped).toEqual(plain)
++ for(const key of workKeys)expect(after[key]-middle[key],key).toBe(middle[key]-before[key])
++})
++full('table admission batches 1024 visits without adding raw units',()=>{
++ const prior=runtimeWall.admit;let calls=0
++ runtimeWall.admit=(units,phase)=>{calls++;prior?.(units,phase)}
++ const start=fullWork(),before=rawWork()
++ try{withBudget(100000,()=>withTableAdmission(()=>{for(let i=0;i<1024;i++)observeTableCells()}))}finally{runtimeWall.admit=prior}
++ expect(calls).toBeLessThan(20);expect(calls).toBeGreaterThan(0)
++ expect(rawWork().tableCells-before.tableCells).toBe(1024)
++ expect(fullWork()-start).toBeCloseTo(1024*completeWorkProfile.weights.tableCells,5)
++})
++full('zero, near-endpoint and oversized table batches never charge an unaffordable visit',()=>{
++ const weight=completeWorkProfile.weights.tableCells
++ for(const allowance of [0,2*weight,9*weight]){
++  const before=coreMeter.tableCells,start=fullWork()
++  expect(()=>withBudget(allowance,()=>withTableAdmission(()=>{if(allowance===9*weight)observeTableCells(10);else for(let i=0;i<3;i++)observeTableCells()}))).toThrow(BudgetExpired)
++  expect(fullWork()-start).toBeLessThanOrEqual(allowance+0.00001)
++  expect(coreMeter.tableCells-before).toBe(allowance===2*weight?2:0)
++ }
++})
++full('every other raw bucket invalidates cached permission',()=>{
++ const weights=Object.fromEntries([...legacyWeights,...Object.entries(completeWorkProfile.weights)])
++ for(const key of workKeys.filter(key=>key!=='tableCells')){
++  const scale=Math.ceil(512/weights[key]!),start=fullWork(),before=coreMeter.tableCells,W=completeWorkProfile.weights.tableCells+weights[key]!*scale+0.25
++  expect(()=>withBudget(W,()=>withTableAdmission(()=>{
++   observeTableCells()
++   if(key==='epr')eprMeter.n+=scale
++   else if(key in coreMeter)(coreMeter as Record<string,number>)[key]!+=scale
++   else (costs as Record<string,number>)[key]!+=scale
++   observeTableCells()
++  }))).toThrow(BudgetExpired)
++  expect(coreMeter.tableCells-before,key).toBe(1);expect(fullWork()-start,key).toBeLessThanOrEqual(W)
++ }
++})
++full('direct table writes and a smaller nested budget cannot reuse cached permission',()=>{
++ let before=coreMeter.tableCells
++ expect(()=>withBudget(1000,()=>withTableAdmission(()=>{observeTableCells();coreMeter.tableCells+=999;observeTableCells()}))).toThrow(BudgetExpired)
++ expect(coreMeter.tableCells-before).toBe(1000)
++ before=coreMeter.tableCells
++ withBudget(1000,()=>withTableAdmission(()=>{
++  observeTableCells();expect(()=>withBudget(0,()=>observeTableCells())).toThrow(BudgetExpired);observeTableCells()
++ }))
++ expect(coreMeter.tableCells-before).toBe(2)
++})
++full('primitive refusal and exceptional nested scopes discard permission and restore the hooks',()=>{
++ const hook=tableAdmissionHook.admit,admit=runtimeWall.admit
++ expect(()=>withBudget(1000,()=>withTableAdmission(()=>{
++  observeTableCells();expect(()=>withTableAdmission(()=>{observeTableCells();throw Error('unwind')})).toThrow('unwind');observeTableCells()
++  expect(()=>runtimeWall.admit!(1001,'refusal')).toThrow(BudgetExpired)
++  const before=coreMeter.tableCells;expect(()=>observeTableCells()).toThrow(BudgetExpired);expect(coreMeter.tableCells).toBe(before)
++ }))).toThrow(BudgetExpired)
++ expect(tableAdmissionHook.admit).toBe(hook);expect(runtimeWall.admit).toBe(admit)
++ expect(()=>withBudget(0,()=>withTableAdmission(()=>observeTableCells()))).toThrow(BudgetExpired)
++})
++full('the unchanged reader canonicalizer stops before exceeding a tight allowance',()=>{
++ for(const W of [0,1,5,17,31]){
++  const r=new Reader({name:'canonical bound',hyps:[]},trail),start=fullWork()
++  expect(()=>withBudget(W,()=>withTableAdmission(()=>r.dec({long_variable_name:1,other_variable:-1})))).toThrow(BudgetExpired)
++  expect(fullWork()-start).toBeLessThanOrEqual(W)
++ }
++})
+diff --git a/core/table-admission.ts b/core/table-admission.ts
+new file mode 100644
+index 00000000..2c321e68
+--- /dev/null
++++ b/core/table-admission.ts
+@@ -0,0 +1,52 @@
++// Scoped admission for table work performed by the ordinary count model step.
++// Protected readers and canonicalizers are unchanged. Credit is permission to
++// do work, never a raw charge or an addition to the active budget.
++import {coreMeter} from './meter.ts'
++import {costs} from './solver.ts'
++import {eprMeter} from '../kernel/epr.ts'
++import {budgetEnd,inBudget} from './wall.ts'
++import {rawWork,type RawWork} from './work-meter.ts'
++import {completeWorkProfile} from './work-profile.ts'
++import {runtimeWall} from './runtime-wall.ts'
++import {tableAdmissionHook} from './table-admission-hook.ts'
++
++// A cheap equality guard, not a weighted sum. Cached permission is usable only
++// while every other raw bucket is unchanged. Interleaved work therefore cannot
++// spend the same allowance twice; direct/raw table writes also invalidate it.
++function sameOtherWork(w:RawWork):boolean{
++ return w.fm===costs.fm&&w.fcells===costs.fcells&&w.plainRows===costs.plainRows
++ &&w.values===costs.values&&w.copies===costs.copies&&w.edges===costs.edges
++ &&w.scan===costs.scan&&w.pivotRows===costs.pivotRows&&w.unitRows===costs.unitRows
++ &&w.unfoldRows===costs.unfoldRows&&w.goalNodes===costs.goalNodes&&w.translateRows===costs.translateRows
++ &&w.checkSteps===coreMeter.checkSteps&&w.astNodes===coreMeter.astNodes&&w.evals===coreMeter.evals
++ &&w.cubeTests===coreMeter.cubeTests&&w.ticks===coreMeter.ticks&&w.cdclNodes===costs.cdclNodes
++ &&w.epr===eprMeter.n&&w.tinyNodes===coreMeter.tinyNodes&&w.tinyTerms===coreMeter.tinyTerms
++ &&w.reachStates===coreMeter.reachStates&&w.reachEdges===coreMeter.reachEdges
++ &&w.reachEvals===coreMeter.reachEvals&&w.reachCompiledEvals===coreMeter.reachCompiledEvals
++}
++export function withTableAdmission<T>(run:()=>T):T{
++ if(!completeWorkProfile.enabled||!inBudget())return run()
++ const previous={...tableAdmissionHook},priorAdmit=runtimeWall.admit
++ previous.invalidate?.()
++ let credit=0,end=budgetEnd(),other=rawWork(),expectedTables=coreMeter.tableCells
++ const invalidate=()=>{credit=0}
++ // Refusal or admission by another primitive cannot leave a stale permission.
++ runtimeWall.admit=(units,phase)=>{invalidate();priorAdmit?.(units,phase)}
++ tableAdmissionHook.invalidate=invalidate
++ tableAdmissionHook.admit=count=>{
++  if(!Number.isSafeInteger(count)||count<0)throw new RangeError('table work must be a nonnegative safe integer')
++  if(end!==budgetEnd()||expectedTables!==coreMeter.tableCells||!sameOtherWork(other))credit=0
++  if(credit<count){
++   const weight=completeWorkProfile.weights.tableCells
++   const maximum=Math.max(count,Math.max(1,Math.min(256,Math.floor(256/weight))))
++   const block=(runtimeWall.remaining?.()??Infinity)>=maximum*weight?maximum:count
++   runtimeWall.admit?.(block*weight,'count reader tables')
++   credit=block;other=rawWork();end=budgetEnd()
++  }
++  credit-=count;expectedTables=coreMeter.tableCells+count
++ }
++ try{return run()}finally{
++  credit=0;tableAdmissionHook.admit=previous.admit;tableAdmissionHook.invalidate=previous.invalidate
++  runtimeWall.admit=priorAdmit;previous.invalidate?.()
++ }
++}

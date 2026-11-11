@@ -1,0 +1,15 @@
+import {strict as a} from 'node:assert'
+import {protocols} from './protocols/ic3syn/models.ts'
+import {proveRule} from '../core/dsl.ts'
+import {countsDump} from '../core/counts.ts'
+import {fullWork} from '../kernel/prove.ts'
+import {rawWork,workKeys} from '../core/work-meter.ts'
+const p=protocols.find(p=>p.id==='mldr')!,rule=p.make(),laws=p.laws(rule),W=225000000
+let candidates=0,uncheckedInvProposals=0
+countsDump.on=(event:object)=>{const e=event as {phase:string,laws?:unknown[],law?:string,proposed?:boolean,checked?:boolean,status?:string};if(e.phase==='candidates')candidates=e.laws!.length;if(e.phase==='count-strategy-result'&&e.law==='inX: no quorum canVote/3'&&e.proposed===true&&e.checked===false&&e.status==='unchecked')uncheckedInvProposals++}
+const before=rawWork(),start=fullWork()
+Object.defineProperty(performance,'now',{configurable:true,value:()=>{throw Error('clock read in strict-W endpoint')}})
+const verdict=proveRule(rule,laws,{search:{work:W}}),used=fullWork()-start,after=rawWork()
+countsDump.on=undefined
+console.log('STRICT_W_ENDPOINT '+JSON.stringify({W,used,within:used<=W,candidates,uncheckedInvProposals,verdict,flags:Object.fromEntries(Object.entries(process.env).filter(([key])=>key.startsWith('GDP_'))),raw:Object.fromEntries(workKeys.map(key=>[key,after[key]-before[key]]))}))
+a(used<=W,'strict W exceeded: '+used);a.equal(candidates,49);a(uncheckedInvProposals>0,'unchecked Inv* proposal did not return');a.equal(verdict.proven,false)

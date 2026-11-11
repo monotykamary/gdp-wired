@@ -1,0 +1,17 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [391.00ms]
+TABLE_ADMISSION_BENCHMARK {"records":[{"mode":"baseline","ms":3.1845730000000003,"units":1000000,"admissionCalls":0,"tableCells":1000000},{"mode":"batch","ms":12.471937000000004,"units":1000000,"admissionCalls":3970,"tableCells":1000000},{"mode":"per-node","ms":23.241011,"units":1000000,"admissionCalls":1000000,"tableCells":1000000},{"mode":"per-node","ms":17.077526999999996,"units":1000000,"admissionCalls":1000000,"tableCells":1000000},{"mode":"batch","ms":15.544071000000002,"units":1000000,"admissionCalls":3970,"tableCells":1000000},{"mode":"baseline","ms":3.8149080000000026,"units":1000000,"admissionCalls":0,"tableCells":1000000}]}
+ROLLING_GATE {"sourceTree":"340557e57aa51ca91678dd46a3cbed1017c07c3f","mode":"table-benchmark","files":[],"protected":181}

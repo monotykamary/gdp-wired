@@ -1,0 +1,17 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [674.00ms]
+STRICT_W_ENDPOINT {"W":225000000,"used":224999999.62510002,"within":true,"candidates":49,"uncheckedInvProposals":1,"verdict":{"proven":false,"checked":false,"stuck":"unknown","why":"work budget (premise-replay)"},"flags":{"GDP_COUNT_FRAMES":"1","GDP_CYCLIC_LOG":"1","GDP_WORK_STEPS":"0","GDP_COUNT_ROW_DEFER_CHECKS":"1","GDP_COUNT_FINAL_DEFER_CHECKS":"1","GDP_REQUEST_QUOTIENT":"1","GDP_COUNT_REJECTIONS":"1","GDP_COUNT_LIFTED":"1","GDP_COUNT_LIFTED_PREREQUISITES":"1","GDP_COUNT_TIERS":"1","GDP_COUNT_LIFTED_REPLACEMENT":"1","GDP_WORK_FULL":"1","GDP_COUNT_STRATEGIES":"1"},"raw":{"fm":23850,"fcells":147082,"plainRows":13325,"values":3616994,"copies":1200735,"edges":10566250,"scan":42289967,"pivotRows":86169,"unitRows":13384,"unfoldRows":261144,"goalNodes":601091,"translateRows":0,"tableCells":175168146,"checkSteps":34176,"astNodes":21914,"evals":32274795,"cubeTests":1364717,"ticks":343350,"cdclNodes":139754,"epr":0,"tinyNodes":0,"tinyTerms":0,"reachStates":1728,"reachEdges":491852,"reachEvals":65661479,"reachCompiledEvals":296361670}}
+ROLLING_GATE {"sourceTree":"71832531d400be05ad2eb1a370d7b34d11e199b5","mode":"endpoint","files":[],"protected":181}

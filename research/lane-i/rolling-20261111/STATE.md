@@ -1,16 +1,17 @@
-# Latest committed handoffs — HOLD retained; no active code gate
+# Latest source checkpoint — strict W gates PASS, other holds retained
 
-- C2source b4da69cf4755fb806f588a9b2639bab494460fe9. Core/kernel exactlynative
-  cd7d6d20; finalsourcef82 typespass; fresh19/38native+mutants twice; fixture
-  0a608511 JSON /983dca66gzip committed. Source/native only, NOLeanpromotion.
-- GENrunner9312f3ec2a9dd6ee8c527e90752fabdf55741c78 deliveredFable with exact
-  command/pin/archive/depsSHA. Staticchecks only; no stagebenchmark. Missing
-  full49identity needsD-approvedcapture thenfreeze beforeacceptedrow.
-- AsolejointSCCsource d86a713d currently13gates, UNCOMMITTED/notDstaged.
-  Icounts/reserve/publictest drafts remainfrozen, neverincludedinC2commit.
-- D51ee runtime/profile unchanged; exactfailedcase000 identityc0a2/da5d908e/
-  651eb9. No mainmerge/push; .reflex-saved untouched. Onlydocscommitlintbelow
-  may be active while this note isbeingcommitted.
+See research/lane-i/strict-w/HANDOFF.md and RESULT.md. Finaltree340557e5:
+F12actual224999999.62510002 <=225M; exactly51fewer tablecells, allother25raw
+buckets unchanged. Clean9/F13 pass; finaltypes/lint/commitlint/fullscope25/217,
+native19/38+4mutants, strict28exactpairs27proven/1unknown unchanged. No prices,
+root/tier/protected changes. Sourcecommit owns this note; no mainmerge/push.
+
+A826+G1908 diagnostic57a8f1a9 staysfrozen with15keys. Aowns two9950Xruns and
+separate direct-admit fallback-deadline fix. No Acode imported here; drafts
+remain unstaged. Dcalibration/Lean/C2/familyholds remain. AllIownedjobs done.
+
+Prior committed handoffs: C2b4da69cf researchnativeonly; GEN9312f3ec no anchored
+measurement or49identityfreeze. Their source gates do not establishpromotion.
 
 # Historical checkpoint notes — see C2-RESULT.md and generation-row/HANDOFF.md
 
