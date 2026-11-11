@@ -1,3 +1,18 @@
+# ACTIVE — hard cap verified; counter correction required before calibration
+
+Hard-cap runtime **efd70276**, evidence `research/lane-i/hard-cap/`: all 28
+originals retain 10 checked proofs/18 unknowns; max 15,000,430 at 15M against
+stated 1,024 slack. Pre-endpoint query/event prefixes and flags-off normalized
+receipts exact. 22 tests/100 assertions; type/lint 1,776 files; 134 protected
+identities. All owned batches terminal. Details: `hard-cap/RESULT.md`.
+
+**D calibration HELD. Do not use efd70276 as its pin.** Added user task: count
+tiny nodes, reweight reachability, measure E1/E2 units vs wall, integrate and
+validate, then send one exact claude/mldr-integ pin to ic3-lean for both 174
+calibration cases and 29 confirmations. A/D notified; next-work details in
+`hard-cap/STATUS.md`. No counter source edits yet. Fable runnable fixture:
+claude/fable-tiny f9923ed0.
+
 # RESUME — COMPLETED 2026-11-11 common counted API
 
 ## LATEST — compatible API validated; new clock composition PENDING-D

@@ -1,0 +1,259 @@
+diff --git a/core/dsl.ts b/core/dsl.ts
+index 7c4432c7..21068382 100644
+--- a/core/dsl.ts
++++ b/core/dsl.ts
+@@ -23,7 +23,7 @@ import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
+ import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
+ import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
+ import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
+-import {WallExpired, checkWall, searchWall, withBudget, BudgetExpired} from './wall.ts'
++import {WallExpired, checkWall, checkWorkEndpoint, searchWall, withBudget, BudgetExpired} from './wall.ts'
+ import {completeWorkProfile} from './work-profile.ts'
+ import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
+ import {discover} from './discover.ts'
+@@ -2833,9 +2833,12 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
+   const facts = (m.facts ?? []).filter(f => !isArithmetic(f.name.slice(0, f.name.indexOf(':'))))
+   const holds = (f: Law, params: Record<string, number>): boolean => {
+     const names = f.forall ? [f.forall, ...(f.keys ?? [])] : [], top = names.length > 1 ? bound : 2 * bound
+-    const at = (env: Record<string, number>, i: number): boolean => (i === names.length ? evalC(f.holds, env, {scalars: {}, maps: {}}, m)
+-      : Array.from({length: top + 1}, (_, key) => key).every(key => at({...env, [names[i]!]: key}, i + 1)))
+-    try { return at(params, 0) } catch { return false }
++    const at = (env: Record<string, number>, i: number): boolean => {
++      checkWorkEndpoint('refutation fact bindings')
++      return i === names.length ? evalC(f.holds, env, {scalars: {}, maps: {}}, m)
++        : Array.from({length: top + 1}, (_, key) => key).every(key => at({...env, [names[i]!]: key}, i + 1))
++    }
++    try { return at(params, 0) } catch (e) { if (e instanceof WallExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); return false }
+   }
+   // (those that read no param once)
+   const readsParams = (f: Law) => m.params.some(p => JSON.stringify(f.holds).includes(`"name":${JSON.stringify(p)}`))
+@@ -2844,7 +2847,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
+     && facts.filter(readsParams).every(f => holds(f, params))
+   const cap = watchWork.n + perTrial * budget.trials
+   try {
+-    const late = () => pastWall() || budget.until !== undefined && countedSearchNow() > budget.until
++    const late = () => { checkWorkEndpoint('refutation poll'); return pastWall() || budget.until !== undefined && countedSearchNow() > budget.until }
+     for (let trial = 0; trial < budget.trials && watchWork.n <= cap && !late(); trial++) {
+       // (`mixed`: the trials in turn at bounds 1 to 4, every fourth near)
+       const bound = budget.mixed ? 1 + trial % 4 : budget.bound, guided = guides, near = budget.mixed && trial % 4 ? undefined : budget.near
+@@ -2891,7 +2894,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
+       for (const sl of steps1) if (!watch(m, run, sl, params, bound).step(st, input, next)) return {goal: `${sl.name} @step law`, witness: witness()}
+       for (const l of lawsHere) if (!watch(m, run, l, params, bound).step(st, input, next)) return {goal: `${l.name} @step`, witness: witness()}
+     }
+-  } catch (e) { if (e instanceof WallExpired) throw e; return undefined }
++  } catch (e) { if (e instanceof WallExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); return undefined }
+   return undefined
+ }
+ // The kernel's report as a verdict: its first goal left unproven, with its counterexample and why.
+@@ -2945,6 +2948,7 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
+   r = r.withSumsOf(laws)
+   noting(r, laws)
+   const refuted = refuteByRuns(r, laws)
++  checkWorkEndpoint('refutation result')
+   // A state the laws allow whose step breaks one, with no run to it (a wide rule's: what the kernel's step goal would end
+   // at), is a counterexample to induction: the laws may still hold, so the search goes on from it, as from the kernel's.
+   // (A step law broken so is refused, proveSteps below: it holds from every state the laws allow, reached or not.)
+@@ -2990,6 +2994,7 @@ function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
+   r = r.withSumsOf(laws, stepLaws)
+   noting(r, laws, stepLaws)
+   const refuted = refuteByRuns(r, laws, stepLaws)
++  checkWorkEndpoint('refutation result')
+   // (a step law broken from a state the laws allow, with no run to it: the laws may need an invariant there, or the run
+   // be further than these runs go; the search goes on from it, as from the kernel's)
+   if (refuted) return refuted.run ? refutedVerdict(refuted) : searched(r, laws, stepLaws, refutedVerdict(refuted), opts)
+diff --git a/core/fresh.ts b/core/fresh.ts
+index 63e5191e..00e53efe 100644
+--- a/core/fresh.ts
++++ b/core/fresh.ts
+@@ -12,6 +12,7 @@ import {type C, type E, type Law, type Machine, type State, evalC, interpret, se
+ import {clock, counted, fullRate, proveSetFast, withDeadline} from '../kernel/prove.ts'
+ import {allowed, watch} from './watch.ts'
+ import type {Draws} from './live.ts'
++import {checkWorkEndpoint} from './wall.ts'
+ 
+ const v = (name: string): E => ({op: 'var', name}), get = (map: string, key: E): E => ({op: 'get', map, key})
+ export type FreshLaw = {law: Law, text: string}
+@@ -21,6 +22,7 @@ export type FreshLaw = {law: Law, text: string}
+ export const freshLaws = (m: Machine, kinds: Law[], draws: Draws, opts: {ms?: number} = {}): FreshLaw[] =>
+   counted(fullRate, () => withDeadline(clock() + (opts.ms ?? 5000), () => fresh(m, kinds, draws, opts)), true)
+ function fresh(m: Machine, kinds: Law[], draws: Draws, opts: {ms?: number}): FreshLaw[] {
++  checkWorkEndpoint('fresh entry')
+   const maps = Object.entries(m.maps ?? {}).filter(([n]) => !(m.inputMaps ?? []).includes(n))
+   if (!maps.length || m.history) return []
+   const until = clock() + (opts.ms ?? 5000), run = interpret(m), rand = seeded(53), bound = 4
+@@ -30,9 +32,11 @@ function fresh(m: Machine, kinds: Law[], draws: Draws, opts: {ms?: number}): Fre
+   // a cell written at b): each map no step wrote past it, and each it was seen bounding
+   const past = new Set<string>(), bounds = new Set<string>()
+   for (let trial = 0; trial < 60 && clock() < until; trial++) {
++    checkWorkEndpoint('fresh trial')
+     let ps: Record<string, number>, st: State
+     try { ps = draws.params(rand, bound); if (m.pre && !evalC(m.pre, ps, {scalars: {}, maps: {}}, m)) continue; st = run.init(ps) } catch { continue }
+     for (let d = 0, tries = 0; d < 20 && tries < 60; tries++) {
++      checkWorkEndpoint('fresh step')
+       try {
+         const input = draws.input(rand, bound, ps)
+         if (!allowed(m, run, ps, st, input)) continue
+@@ -69,7 +73,7 @@ function fresh(m: Machine, kinds: Law[], draws: Draws, opts: {ms?: number}): Fre
+     const init = m.maps![map]!
+     cands.push({law: {name: `keys up to ${c}: ${map} unset past it`, holds: {op: 'or', xs: [{op: '<=', a: v(key), b: v(c)}, {op: '=', a: get(map, v(key)), b: {op: 'const', value: init}}]}, forall: key}, text: `∀k. ${c} < k → ${map}[k] = ${init}`})
+   }
+-  let alive = cands.filter(f => states.every(({ps, st}) => { try { return watch(m, run, f.law, ps, bound).start(st) } catch { return false } }))
++  let alive = cands.filter(f => states.every(({ps, st}) => { checkWorkEndpoint('fresh validation'); try { return watch(m, run, f.law, ps, bound).start(st) } catch { return false } }))
+   while (alive.length && clock() < until) {
+     let out: ReturnType<typeof proveSetFast>
+     try { out = proveSetFast(m, [...kinds, ...alive.map(f => f.law)]) } catch { return [] }
+diff --git a/core/infer.ts b/core/infer.ts
+index 6a53df2b..94c4d593 100644
+--- a/core/infer.ts
++++ b/core/infer.ts
+@@ -1,4 +1,4 @@
+-import {searchNow as countedSearchNow} from './wall.ts'
++import {searchNow as countedSearchNow, checkWorkEndpoint} from './wall.ts'
+ // Invariants nobody wrote: a law that holds but isn't inductive, proven with laws the search finds. Nothing here is
+ // trusted; what it finds is proven by the kernel with the rule's own laws, as laws of the same rule.
+ //   - runs: random runs from the start (params and requests by their kinds, the assumption met) give reachable states,
+@@ -298,7 +298,7 @@ export function domainStep(m: Machine, most = 20_000): ((params: Env, st: State,
+     for (const r of each) {
+       const far = r.names.map(() => D + 1)
+       r.names.forEach((nm, i) => (env[nm] = far[i]!))
+-      const fallback = r.f(env, st), cells = new Map<number, number>(), at = (xs: number[]) => { r.names.forEach((nm, i) => (env[nm] = xs[i]!)); const v = r.f(env, st); if (v !== fallback) cells.set(xs.slice(0, -1).reduceRight((b, a) => cpair(a, b), xs.at(-1)!), v) }
++      const fallback = r.f(env, st), cells = new Map<number, number>(), at = (xs: number[]) => { checkWorkEndpoint('inference relation tuple'); r.names.forEach((nm, i) => (env[nm] = xs[i]!)); const v = r.f(env, st); if (v !== fallback) cells.set(xs.slice(0, -1).reduceRight((b, a) => cpair(a, b), xs.at(-1)!), v) }
+       // (the tuples it holds and those its pins allow, where its cells are 0 by default; else every tuple below D)
+       const pins = fallback === 0 && !st.defaults?.[r.mp] && !m.maps?.[r.mp] ? pinsOf(r, env, st) : undefined
+       if (r.n === 1) for (const k of st.maps[r.mp]?.keys() ?? []) if (k >= D) at([k])
+@@ -678,6 +678,7 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
+   return withTrees(() => quietly(() => withDeadline(clock() + (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - countedSearchNow())), () => inferLawsSearch(target, laws, stepLaws, opts))))
+ }
+ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
++  checkWorkEndpoint('inference entry')
+   // (GDP_INFER_TRACE=2: each phase's progress too, to stderr)
+   if (env.GDP_INFER_TRACE === '2' && !opts.progress) opts = {...opts, progress: (phase, info) => (globalThis as unknown as {process: {stderr: {write: (s: string) => void}}}).process.stderr.write(`[infer ${phase}] ${JSON.stringify(info)}\n`)}
+   const t0 = countedSearchNow(), ms = opts.ms ?? 20000, wallUntil = opts.wall ?? t0 + ms, rule = isRule(target) ? target.withSumsOf(laws, stepLaws) : undefined
+@@ -686,7 +687,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+   const now = (): number => (timed ? countedSearchNow() - t0
+     : used.tries / inferRates.tries + used.rows / inferRates.rows + used.evals / inferRates.evals + used.watched / inferRates.watched + (work.n - w0) / inferRates.work)
+   let stopped = false
+-  const stop = () => stopped || (stopped = countedSearchNow() > wallUntil)
++  const stop = () => { checkWorkEndpoint('inference poll'); return stopped || (stopped = countedSearchNow() > wallUntil) }
+   // The engine's clock (the stage below, from the small instance on): counted as `now` is, with the EPR path's work
+   // (kernel/epr.ts's eprMeter) and the views' rows beside it, so that every choice it makes by its budget (a BFS cut, the
+   // filter, a goal's cap, a round's growth) is the same on any machine; the wall (`stop`, `until` past `ms`) only ends it.
+@@ -775,6 +776,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+   // of 5 but 0, say: a trial whose steps moved nothing doubles the bound at once)
+   const skolems = m.inputs.some(i => i.startsWith('some$a'))
+   for (let trial = 0, bound = 2, stuck = false; moreRuns(trial); trial++, bound = trial % 20 === 0 || stuck ? (bound >= 1024 ? 2 : bound * 2) : bound) {
++    checkWorkEndpoint('inference trial')
+     stuck = false; trials++
+     // (a rule with maps: one trial in four goes on from a sample, of 64 drawn, holding the value of a state variable the
+     // fewest states offered held, its requests at the smallest bound. The hull's bounds come from the states past the
+@@ -797,6 +799,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+     }
+     let took = 0
+     for (let d = 0, tries = 0; d < 40 && tries < 200; tries++) {
++      checkWorkEndpoint('inference sample')
+       used.tries++
+       const input = randomInput(params, rare ? 2 : bound)
+       let next: State
+@@ -1512,6 +1515,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+         // (the frame, places and extra terms compiled once a view (`compiled`); one env the keys are set in, as each
+         // assignment's own copy was: a level reads only the keys above it)
+         const go = (i: number, env: Env): void => {
++          checkWorkEndpoint('inference view bindings')
+           if (i === v.vars.length) {
+             try { if (!compiled.frame(env, st)) return } catch { return }
+             const row: Env = {...params, ...st.scalars}, cells: [string, string, number][] = []
+@@ -2299,6 +2303,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+           }
+         }
+         const stepIn = (tb: typeof tables[number], params: Env, st: State, input: Request): State | undefined => {
++          checkWorkEndpoint('inference instance step')
+           try { if (tb.js) return tb.js(params, st, input); return allowed(tb.m, tb.run, params, st, input) ? tb.run.step(params, st, input) : undefined } catch { return undefined }
+         }
+         const stepOf = (params: Env, st: State, input: Request) => stepIn(tables[0]!, params, st, input)
+@@ -3389,7 +3394,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+     // (unproven, the search below begins as it would have: the candidates and the counterexamples as they were)
+     if (why === 'inductive') chosen = cone
+     else { pool = pool0; ctis.length = ctis0 }
+-  } catch (e) { pool = pool0; ctis.length = ctis0; chosen = []; opts.progress?.('join failed', {why: String((e as Error).stack).slice(0, 1500)}) }
++  } catch (e) { checkWorkEndpoint('inference failure'); pool = pool0; ctis.length = ctis0; chosen = []; opts.progress?.('join failed', {why: String((e as Error).stack).slice(0, 1500)}) }
+   // The search proves one law at a time (proveLaw), each with every law assumed, and keeps what it proved while laws
+   // are only added (more laws assumed keep a proof a proof); dropping one forgets it all. Once every law is proven so,
+   // the set is proven as a whole, by the rule's own prover: that verdict is the answer.
+diff --git a/core/wall.ts b/core/wall.ts
+index 6fc7518f..3c4fe9a2 100644
+--- a/core/wall.ts
++++ b/core/wall.ts
+@@ -2,7 +2,7 @@
+ // wall; an explicit work scope never consults it or grants completion headroom.
+ import {pastWall, clock, searchNow, wallAt, inBudget, inWorkScope, checkBudget} from '../kernel/prove.ts'
+ import {runtimeWall} from './runtime-wall.ts'
+-export {withBudget, budgetEnd, inBudget, checkBudget, BudgetExpired, searchNow} from '../kernel/prove.ts'
++export {withBudget, budgetEnd, inBudget, checkBudget, checkWorkEndpoint, BudgetExpired, searchNow} from '../kernel/prove.ts'
+ export {traceNow} from './trace-clock.ts'
+ // CLI proposal loops historically use epoch milliseconds rather than performance.
+ // Preserve that fallback, but share the work clock in either opt-in work mode.
+diff --git a/core/watch.ts b/core/watch.ts
+index 0dde3d54..129a8824 100644
+--- a/core/watch.ts
++++ b/core/watch.ts
+@@ -10,7 +10,7 @@
+ import {type C, type E, type Law, type Machine, type Request, type State, carriedView, evalC, evalE, type interpret, numbersOf, walk} from './machine.ts'
+ import type {StepLaw} from '../kernel/kernel.ts'
+ import {someHolds} from './exists.ts'
+-import {checkWall} from './wall.ts'
++import {checkWall, inBudget, checkWorkEndpoint} from './wall.ts'
+ 
+ export type Watched = Law | StepLaw
+ export const isStepLaw = (w: Watched): w is StepLaw => 'then' in w
+@@ -106,8 +106,11 @@ export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound:
+   const turn = names.some(x => !mapRead.has(x)) ? turns(isStepLaw(w) ? w.then : w.holds, names) : undefined
+   const atKeys = (keys: number[][], env: Env, f: (env: Env) => boolean, st?: State, mm?: Machine): boolean => {
+     let visited = 0
++    const work = inBudget()
+     const go = (i: number): boolean => {
+-      if ((visited++ & 255) === 0) checkWall('preflight law bindings')
++      const tick = visited++
++      if ((tick & 255) === 0) checkWall('preflight law bindings')
++      else if (work && (tick & 15) === 0) checkWorkEndpoint('preflight law bindings')
+       if (i === names.length) { watchWork.n++; return f(env) }
+       const more = turn && st && mm && !mapRead.has(names[i]!) ? turn(i, env, st, mm).filter(k => !keys[i]!.includes(k)) : []
+       for (const key of more.length ? [...keys[i]!, ...more] : keys[i]!) { env[names[i]!] = key; if (!go(i + 1)) return false }
+diff --git a/kernel/prove.ts b/kernel/prove.ts
+index 91779db5..e188da68 100644
+--- a/kernel/prove.ts
++++ b/kernel/prove.ts
+@@ -254,6 +254,10 @@ export const budgetEnd = (): number => (budgetUnitsEnd ?? Infinity) / fullRate
+ export class BudgetExpired extends Error {
+   constructor(readonly phase: string) { super(`work budget (${phase})`); this.name = 'BudgetExpired' }
+ }
++// Hard-stop checkpoints must not turn a local search deadline into a whole-run stop.
++export function checkWorkEndpoint(phase: string): void {
++  if (budgetUnitsEnd !== undefined && fullWork() > budgetUnitsEnd) throw new BudgetExpired(phase)
++}
+ export function checkBudget(phase: string): void {
+   if (budgetUnitsEnd !== undefined && (fullWork() > budgetUnitsEnd
+     || completeWorkProfile.enabled && clock() > withinDeadline(budgetEnd()))) throw new BudgetExpired(phase)
+@@ -288,7 +292,10 @@ export const withWork = <T>(cap: number, f: () => T): T => { const outer = workC
+ // (the EPR path's propositional search, a node's propagation, building a large goal's rows) stops there too, and past it
+ // every goal is left unknown, whatever its own budget. Untrusted: it only stops a search.
+ let wallEnd = Infinity
+-export const pastWall = (): boolean => inWorkScope() ? clock() > withinDeadline(budgetEnd()) : wallEnd !== Infinity && searchNow() > wallEnd
++export const pastWall = (): boolean => {
++  checkWorkEndpoint('prover boundary')
++  return inWorkScope() ? clock() > withinDeadline(budgetEnd()) : wallEnd !== Infinity && searchNow() > wallEnd
++}
+ export function withWall<T>(end: number, f: () => T): T {
+   // Scoped callers supply searchWall()/clock() endpoints in counted units.
+   // Keep A's inherited deadline semantics without consulting the wall clock.
+@@ -301,7 +308,10 @@ export function withWall<T>(end: number, f: () => T): T {
+ const ranOut = (): boolean => pastWall() || withinDeadline(Infinity) <= clock()
+ // (the wall's end in force, Infinity where none: a search inside that stops itself there)
+ export const wallAt = (): number => inWorkScope() ? withinDeadline(budgetEnd()) : wallEnd
+-export const late = (until: number): boolean => clock() > until || (workCap !== Infinity && fullWork() > workCap) || pastWall()
++export const late = (until: number): boolean => {
++  checkWorkEndpoint('prover poll')
++  return clock() > until || (workCap !== Infinity && fullWork() > workCap) || pastWall()
++}
+ // A budget's end, within the deadline (a translation's own bound, core/cyclic.ts's, kept by the export's GDP_CERT_MS).
+ export const withinDeadline = (until: number): number => Math.min(until, deadline - eprTimeSince(deadlineEpr))
+ export function withDeadline<T>(until: number, f: () => T): T {

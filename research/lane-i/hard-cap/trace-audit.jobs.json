@@ -1,0 +1,1 @@
+[{"name":"trace-audit","cmd":"bun trace-input/analyze-probes.ts trace-input/probe trace-input/baseline && bun trace-input/analyze-probes.ts trace-input/loop-probe trace-input/baseline","cpu":2,"memory":4096,"timeout":120,"vm_type":"large"}]

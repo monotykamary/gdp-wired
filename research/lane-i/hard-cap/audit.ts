@@ -29,11 +29,15 @@ for(const [id,n] of now){
  assert.equal(n.knobs.GDP_WORK_FULL,'1');assert.equal(n.clockReads,0)
  assert.equal(n.result.proven,b.result.proven,id);assert.equal(n.result.checked,b.result.checked,id);assert.equal(n.result.verdict,b.result.verdict,id)
  assert(n.searchUnits<=15000000+1024+1e-6,`over cap: ${id} ${n.searchUnits}`)
+ const beforeEndpoint=(xs:any[])=>xs.filter(q=>q.atUnits<=15000000)
+ assert.deepEqual(beforeEndpoint(n.queries),beforeEndpoint(b.queries),'query prefix drift '+id)
+ assert.deepEqual(beforeEndpoint(n.events),beforeEndpoint(b.events),'event prefix drift '+id)
  if(n.result.proven){assert.deepEqual(n.raw,b.raw,id);assert.deepEqual(n.queries,b.queries,id)}
  else assert.equal(n.result.verdict,'unknown',id)
  assert.equal(x.knobs.GDP_WORK_FULL,'0');assert.equal(y.knobs.GDP_WORK_FULL,'0')
  assert.equal(x.knobs.GDP_WORK_STEPS,'0');assert.equal(y.knobs.GDP_WORK_STEPS,'0')
- const omitProvenance=(r:any)=>Object.fromEntries(Object.entries(r).filter(([k])=>k!=='source'&&k!=='target'))
+ const stable=(value:any):any=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).filter(([k])=>k!=='wallMs'&&k!=='exclusiveWallMs').map(([k,v])=>[k,stable(v)])):value
+ const omitProvenance=(r:any)=>stable(Object.fromEntries(Object.entries(r).filter(([k])=>k!=='source'&&k!=='target')))
  assert.deepEqual(omitProvenance(x),omitProvenance(y),'flags-off drift '+id)
  rows.push({id,before:b.searchUnits,after:n.searchUnits,slack:Math.max(0,n.searchUnits-15000000),verdict:n.result.verdict,checked:n.result.checked,why:n.result.why,flagsOffIdentical:true})
 }

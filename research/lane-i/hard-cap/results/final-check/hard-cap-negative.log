@@ -1,0 +1,48 @@
+FROZEN_CHECKING {"preserved":134,"proverBody":"exact below cancellation header"}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [1014.00ms]
+bun test v1.4.3 (c6da4a4d3)
+BASELINE_GUARD_REJECTED
+FROZEN_CHECKING {"preserved":134,"proverBody":"exact below cancellation header"}
+HARD_CAP_GATE {"mode":"negative","source":"efd702761f03c320939679912e6d0f2579696010"}
+
+--- stderr ---
+
+core/hard-cap.test.ts:
+cyclic: {"kind":"machine","name":"bounded polling","cert":true,"usual":true,"cyclic":true,"ms":47,"usualMs":10,"route":"translated","leaves":7,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) bounded polling protocol proves its slack and rejects the always-spend mutant [76.08ms]
+38 |   assert(!v.proven&&!v.checked&&v.stuck==='unknown'&&v.why.startsWith('work budget ('),JSON.stringify(v));
+39 |   assert(used<=cap+1024,JSON.stringify({cap,used}));
+40 |  }
+41 |  console.log('HARD_CAP_CONTROL_PASS');`
+42 |  const r=spawnSync(process.execPath,['--eval',code],{env:{...process.env,GDP_WORK_FULL:'1',GDP_WORK_STEPS:'0'},encoding:'utf8',timeout:60000})
+43 |  expect(r.status,r.stderr).toBe(0);expect(r.stdout).toContain('HARD_CAP_CONTROL_PASS')
+                                ^
+error: SyntaxError: Export named 'checkWorkEndpoint' not found in module '/tmp/hard-cap-jMZKrv/kernel/prove.ts'.
+
+Bun v1.4.3 (Linux x64)
+
+
+Expected: 0
+Received: 1
+
+      at <anonymous> (/tmp/hard-cap-jMZKrv/core/hard-cap.test.ts:43:28)
+(fail) counted binding loops and public stops preserve a 1024-unit slack [81.39ms]
+
+ 1 pass
+ 1 fail
+ 4 expect() calls
+Ran 2 tests across 1 file. [376.00ms]

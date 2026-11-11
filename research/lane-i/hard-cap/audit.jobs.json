@@ -1,0 +1,1 @@
+[{"name":"hard-cap-audit","cmd":"bun audit-input/audit.ts audit-input/on audit-input/before audit-input/on audit-input/off-old efd702761f03c320939679912e6d0f2579696010","cpu":2,"memory":4096,"timeout":120,"vm_type":"large"}]

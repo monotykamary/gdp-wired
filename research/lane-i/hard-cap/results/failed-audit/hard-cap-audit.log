@@ -1,0 +1,135 @@
+
+--- stderr ---
+35 |  if(n.result.proven){assert.deepEqual(n.raw,b.raw,id);assert.deepEqual(n.queries,b.queries,id)}
+36 |  else assert.equal(n.result.verdict,'unknown',id)
+37 |  assert.equal(x.knobs.GDP_WORK_FULL,'0');assert.equal(y.knobs.GDP_WORK_FULL,'0')
+38 |  assert.equal(x.knobs.GDP_WORK_STEPS,'0');assert.equal(y.knobs.GDP_WORK_STEPS,'0')
+39 |  const omitProvenance=(r:any)=>Object.fromEntries(Object.entries(r).filter(([k])=>k!=='source'&&k!=='target'))
+40 |  assert.deepEqual(omitProvenance(x),omitProvenance(y),'flags-off drift '+id)
+             ^
+AssertionError: flags-off drift sharded_kv_no_lost_keys
++ actual - expected
+... Skipped lines
+
+  {
+    allowance: 15000000,
+    events: [],
+    id: 'sharded_kv_no_lost_keys',
+    knobs: {
+...
+        exclusiveUnits: 0,
++       exclusiveWallMs: 0.2785820000000001,
+-       exclusiveWallMs: 0.2685109999999966,
+        id: 2,
+        name: 'protocol.construct',
+        parentId: 1,
+        raw: {
+          astNodes: 0,
+...
+        units: 0,
++       wallMs: 0.2785820000000001
+-       wallMs: 0.2685109999999966
+      },
+      {
+        completed: true,
+        depth: 1,
+        exclusiveRaw: {
+...
+        exclusiveUnits: 0,
++       exclusiveWallMs: 11.169810999999982,
+-       exclusiveWallMs: 1.3064549999999997,
+        id: 3,
+        name: 'protocol.laws',
+        parentId: 1,
+        raw: {
+          astNodes: 0,
+...
+        units: 0,
++       wallMs: 11.169810999999982
+-       wallMs: 1.3064549999999997
+      },
+      {
+        completed: true,
+        depth: 1,
+        exclusiveRaw: {
+...
+        exclusiveUnits: 1938536.8861,
++       exclusiveWallMs: 173530.309548,
+-       exclusiveWallMs: 163922.086584,
+        id: 4,
+        name: 'rule.prove',
+        parentId: 1,
+        raw: {
+          astNodes: 207,
+...
+        units: 1938536.8861,
++       wallMs: 173530.309548
+-       wallMs: 163922.086584
+      },
+      {
+        completed: true,
+        depth: 0,
+        exclusiveRaw: {
+...
+        exclusiveUnits: 0,
++       exclusiveWallMs: 0.36955000000307336,
+-       exclusiveWallMs: 0.29627500000060536,
+        id: 1,
+        name: 'original:sharded_kv_no_lost_keys',
+        parentId: null,
+        raw: {
+          astNodes: 207,
+...
+        units: 1938536.8861,
++       wallMs: 173542.127491
+-       wallMs: 163923.957825
+      }
+    ],
+    queries: [
+      {
+        atUnits: 71.196,
+
+ generatedMessage: false,
+     actual: {
+  schema: "lane-i-candidate-v1",
+  status: "COUNTED-PORT-PENDING-D",
+  id: "sharded_kv_no_lost_keys",
+  variant: "original",
+  allowance: 15000000,
+  unitStatus: "UNCALIBRATED",
+  knobs: [Object ...],
+  laws: [Array ...],
+  result: [Object ...],
+  units: 1938536.8861,
+  searchUnits: 1938536.8861,
+  raw: [Object ...],
+  searchRaw: [Object ...],
+  phases: [Array ...],
+  events: [],
+  queries: [Array ...],
+},
+   expected: {
+  schema: "lane-i-candidate-v1",
+  status: "COUNTED-PORT-PENDING-D",
+  id: "sharded_kv_no_lost_keys",
+  variant: "original",
+  allowance: 15000000,
+  unitStatus: "UNCALIBRATED",
+  knobs: [Object ...],
+  laws: [Array ...],
+  result: [Object ...],
+  units: 1938536.8861,
+  searchUnits: 1938536.8861,
+  raw: [Object ...],
+  searchRaw: [Object ...],
+  phases: [Array ...],
+  events: [],
+  queries: [Array ...],
+},
+   operator: "deepStrictEqual",
+       diff: "simple",
+       code: "ERR_ASSERTION"
+
+      at /work/gdp-wired/audit-input/audit.ts:40:9
+
+Bun v1.4.3 (Linux x64)

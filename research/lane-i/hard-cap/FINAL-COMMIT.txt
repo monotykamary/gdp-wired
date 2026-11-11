@@ -1,0 +1,5 @@
+docs: record hard-cap verification and D handoff
+
+Record exact loop attribution, minimal cancellation-only patches, final
+source receipts and the flags-off comparison. Preserve failed pilots and
+the distinction between the outer endpoint and local search deadlines.
