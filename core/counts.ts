@@ -56,6 +56,7 @@ import {type CountTierBudget,countTierBudget,remainingCountTierBudget,ordinaryTi
 import {countRejectionBudget,remainingRejectionAllowance} from './count-rejection-budget.ts'
 import {countGenerationPhase} from './count-generation-phase.ts'
 import {countReachabilityScreen,type CountReachabilityFunding} from './count-reachability.ts'
+import {reconcileReachableRejections,withoutReachableRejections} from './count-reachability-reconcile.ts'
 import {rejectionStage} from './rejection-discovery.ts'
 import {type RejectionStage,rejectionFamily} from './rejection-stage.ts'
 import {reserveCountClosing,reserveCheckedCountClosing,countOrdinaryUntil,type CountClosingBudget} from './count-closing-budget.ts'
@@ -645,7 +646,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
     const setup=clock(),key=JSON.stringify(m)
     if(tierRun.reachability?.key!==key)tierRun.reachability={key,screen:countReachabilityScreen(tierRun.source??m,m,caller,workAllowance,undefined,tierRun.reachFunding??=new Map())}
     reach=tierRun.reachability.screen
-    const rejected=new Set(reach.rejected());set=set.filter(l=>!rejected.has(l))
+    set=withoutReachableRejections(set,reach.rejectedNames())
     countsDump.on?.({phase:'count-reachability-setup',units:(clock()-setup)*fullRate})
   }
   const scopeEnabled = env.GDP_COUNT_STRATEGIES === '1'
@@ -706,18 +707,26 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
     const queue=countPrerequisiteComponents(order.map(l=>l.name),planned.requirements,[...selected].map(l=>l.name),[...remembered.committed],{...planned,discoveryFirst:true,proofGuided,discoveryContexts:remembered.discoveryContexts,targets:caller.map(l=>l.name),held:new Map([...scopes].map(([name,scope])=>[name,scope.premises.map(p=>p.name)])),discovered:[...remembered.discovered],failed:[...remembered.failed]})
     const ordinaryCount=Math.max(1,set.filter(l=>!selected.has(l)).length)
     const reachSummary=()=>{if(reach)countsDump.on?.({phase:'count-reachability-summary',rows:reach.receipts(initial),replayEvidence:reach.evidence})}
+    let activeAttempt:string|undefined,restarted=false
+    const members=new Set(order.map(law=>law.name))
+    const reconcile=()=>{
+      if(!reach)return
+      const delta=reconcileReachableRejections(queue,members,reach.rejectedNames(),scopes,remembered.committed,activeAttempt)
+      if(!delta.rejected.length)return
+      activeAttempt=undefined;restarted=true
+      remembered.failed=new Set(queue.failed());remembered.discoveryContexts=queue.discoveryContexts()
+      set=withoutReachableRejections(set,delta.rejected)
+      countsDump.on?.({phase:'count-reachability-invalidated',...delta})
+    }
     const probe=(law:Law,ordinary:number,citing:number,end:number)=>{
       if(!reach)return undefined
-      const before=clock(),row=beforeClosing(()=>reach.screen(law,ordinary,citing,end,attempts.countermodel(law)))
+      reconcile();if(restarted)return undefined
+      const before=clock()
+      let row:ReturnType<typeof reach.screen>|undefined
+      try{row=beforeClosing(()=>reach.screen(law,ordinary,citing,end,attempts.countermodel(law)))}
+      finally{reconcile()}
       if(row)countsDump.on?.({phase:'count-reachability',...row,invocationUnits:(clock()-before)*fullRate})
       return row
-    }
-    const rejectReachable=(names:readonly string[])=>{
-      const invalidated=queue.reject(names)
-      for(const name of [...names,...invalidated]){scopes.delete(name);remembered.committed.delete(name)}
-      remembered.failed=new Set(queue.failed());remembered.discoveryContexts=queue.discoveryContexts()
-      set=set.filter(l=>!names.includes(l.name))
-      countsDump.on?.({phase:'count-reachability-invalidated',rejected:names,invalidated})
     }
     const updateReserve=()=>{
       if(!proofGuided)return
@@ -726,6 +735,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       budget=tierRun.budget=closingBudget;until=closingBudget.searchUntil
       countsDump.on?.({phase:'count-closing-reserve',at:clock(),checkedPackets:costs.length,checkedWork:costs.reduce((a,b)=>a+b,0),...closingBudget})
     }
+    reconcile()
     updateReserve()
     attempts.houdini=true
     countsDump.on?.({phase:'count-prerequisite-plan',premises:Object.fromEntries(planned.requirements),recipes:Object.fromEntries(planned.recipes),until,rootUntil:closingBudget!.until})
@@ -745,14 +755,17 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
     const alreadyClosed=closeReady()
     if(alreadyClosed)return alreadyClosed
     while(clock()<until){
+      restarted=false
       const decision=queue.next()
       if(!decision)break
+      activeAttempt=decision.kind==='attempt'?decision.name:undefined
       if(decision.kind==='ready'){
         let blocked=false
         if(reach)for(const name of decision.members){
           const member=set.find(l=>l.name===name)!,row=probe(member,0,scopes.get(name)?.checkWork??0,until)
           if(reach.safety()==='broken')return {proven:false,laws:set,m,why:'reachable caller counterexample'}
-          if(row?.outcome==='rejected'){rejectReachable([name]);blocked=true;break}
+          if(restarted){blocked=true;break}
+          if(row?.outcome==='rejected')return {proven:false,laws:set,m,why:'rejected member remained ready'}
           if(!row){blocked=true;break}
         }
         if(blocked)continue
@@ -780,7 +793,8 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       if(reach&&!discoveryOnly&&!allowStrategy){
         const row=probe(law,allotted,0,end)
         if(reach.safety()==='broken')return {proven:false,laws:set,m,why:'reachable caller counterexample'}
-        if(row?.outcome==='rejected'){rejectReachable([law.name]);updateReserve();continue}
+        if(restarted){updateReserve();continue}
+        if(row?.outcome==='rejected')return {proven:false,laws:set,m,why:'rejected prerequisite remained active'}
         if(!row)break
       }
       attempted.add(JSON.stringify([key,law.name]))
@@ -807,7 +821,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         if(!isLocalCountExpiration(error,withinDeadline(closingBudget!.until)))throw error
         expired=true
       }
-      const reachFailed:string[]=[]
+      let rejectedPremise=false
       if(scope&&reach){
         const citedBy=law.name,reducedScopeSize=scope.premises.length,citingWork=clock()-start
         for(const premise of scope.premises){
@@ -816,15 +830,17 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
           const row=probe(dependency,0,citingWork,until)
           countsDump.on?.({phase:'count-required-promotion-screen',law:premise.name,citedBy,reducedScopeSize,screened:!!row,outcome:row?.outcome})
           if(reach.safety()==='broken')return {proven:false,laws:set,m,why:'reachable caller counterexample'}
-          if(row?.outcome==='rejected')reachFailed.push(premise.name)
+          if(restarted){scope=undefined;break}
+          if(row?.outcome==='rejected')rejectedPremise=true
           if(!row){expired=true;scope=undefined;break}
         }
-        if(reachFailed.length)scope=undefined
+        if(rejectedPremise)scope=undefined
       }
-      let status:ComponentOutcome=reachFailed.length?{kind:'unknown',reason:'reachable-refuted premise'}:scope?{kind:'proof',citations:scope.premises.map(p=>p.name)}:expired?{kind:'unknown',reason:'budget-expired'}:'proof'in result?(proofGuided?{kind:'unknown',reason:'checked rescope declined'}:{kind:'refused',reason:'returned proof has no valid scope'}):result.refuted?{kind:'refuted'}:{kind:'unknown',reason:result.reason??result.stuck}
+      if(restarted){updateReserve();continue}
+      let status:ComponentOutcome=rejectedPremise?{kind:'unknown',reason:'reachable-refuted premise'}:scope?{kind:'proof',citations:scope.premises.map(p=>p.name)}:expired?{kind:'unknown',reason:'budget-expired'}:'proof'in result?(proofGuided?{kind:'unknown',reason:'checked rescope declined'}:{kind:'refused',reason:'returned proof has no valid scope'}):result.refuted?{kind:'refuted'}:{kind:'unknown',reason:result.reason??result.stuck}
       if((discoveryOnly||proofGuided)&&status.kind==='refuted')status={kind:'unknown',reason:'narrow-sat'}
       const outcome=queue.finish(law.name,status)
-      if(reachFailed.length)rejectReachable(reachFailed)
+      activeAttempt=undefined
       remembered.failed=new Set(queue.failed())
       if(proofGuided)remembered.discoveryContexts=queue.discoveryContexts()
       for(const invalidated of outcome.invalidated){scopes.delete(invalidated);remembered.committed.delete(invalidated)}

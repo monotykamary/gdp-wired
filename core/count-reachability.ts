@@ -11,6 +11,7 @@ import {requestQuotient} from './request-quotient.ts'
 import {coreMeter} from './meter.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {runtimeWall} from './runtime-wall.ts'
+import {strategyLawKey} from './strategy-premises.ts'
 import {reachEdge,reachState,withReachabilityWork} from './work-observe.ts'
 import {BudgetExpired,checkBudget,clock,fullRate,keyValue} from '../kernel/prove.ts'
 import {WallExpired} from './wall.ts'
@@ -65,14 +66,24 @@ function tightLaw(law:Law):Law{
  return {...law,holds:tighten(law.holds)}
 }
 export function countReachabilityScreen(source:Machine,m:Machine,caller:readonly Law[],root:number,samplesHint?:()=>readonly {p:Params,sts:readonly State[]}[],funding:CountReachabilityFunding=new Map()){
- const ledger=createRejectionStage(source,m,caller,[],root),evaluate=finiteEvaluator(m),run=interpret(source,tick),receipts=new Map<Law,CountReachabilityReceipt>()
+ const ledger=createRejectionStage(source,m,caller,[],root),evaluate=finiteEvaluator(m),run=interpret(source,tick),receipts=new Map<string,CountReachabilityReceipt>()
+ // Keep the ledger's canonical objects private. Evidence is intentionally
+ // cloned; only request-unique validated names cross the scheduler boundary.
+ const registered=new Map(caller.map(law=>[law.name,{law,key:strategyLawKey(law)}]))
+ const refresh=():string[]=>{
+  const active=new Set(ledger.active()),rejected:string[]=[]
+  for(const [name,entry]of registered)if(!active.has(entry.law)){
+   rejected.push(name);const row=receipts.get(name);if(row)row.outcome='rejected'
+  }
+  return rejected
+ }
  const seedSamples=()=>samplesHint?.()??(retainedSamples(source).length?retainedSamples(source):retainedSamples(m))
  const replay=(law:Law,node:Node):boolean=>{
   tick();if(evaluate(law,node.p,node.state)!==false)return false
   // The candidate state's origin is never trusted, even when it was cached.
   // Publication is atomic inside the existing rejection ledger.
   ledger.reachable(node.p,node.path)
-  return !!ledger.safety()||!ledger.active().includes(law)
+  refresh();return !!ledger.safety()||!ledger.active().includes(law)
  }
  const step=(node:Node,request:Request):Node|undefined=>{
   tick();try{reachEdge();const state=run.step(node.p,node.state,request);reachState();const path:Request[]=[];for(const r of node.path){tick();path.push(r)}path.push(request);return {p:node.p,state,path,depth:node.depth+1}}
@@ -81,14 +92,17 @@ export function countReachabilityScreen(source:Machine,m:Machine,caller:readonly
  const initial=(p:Params):Node|undefined=>{tick();try{reachState();return {p,state:run.init(p),path:[],depth:0}}catch(error){if(error instanceof BudgetExpired||error instanceof WallExpired)throw error;return undefined}}
  function screen(law:Law,ordinary:number,citing:number,until:number,model?:CountReachabilityModel):CountReachabilityReceipt{
   checkBudget('reachable promotion parent')
-  const previous=receipts.get(law);if(previous)return previous
-  ledger.addCandidates([law])
+  const existing=registered.get(law.name),keyOfLaw=strategyLawKey(law)
+  if(existing&&existing.key!==keyOfLaw)throw Error('ambiguous reachable candidate name')
+  if(!existing){registered.set(law.name,{law,key:keyOfLaw});ledger.addCandidates([law])}
+  law=registered.get(law.name)!.law
+  refresh();const previous=receipts.get(law.name);if(previous)return previous
   // Names are unique within a request. A changed/reordered body with the
   // same name may lose reuse, but must never earn another search grant.
   const key=law.name,fund=funding.get(key)??{grant:countReachabilityAllowance(root,ordinary,citing),used:0};funding.set(key,fund)
   const grant=Math.max(0,fund.grant-fund.used),start=clock(),end=Math.min(until,start+grant)
   const row:CountReachabilityReceipt={law:law.name,stage:'samples',outcome:'no-witness',granted:Math.max(0,end-start)*fullRate,used:0,incomplete:true,phases:[],maxSize:0,maxDepth:0}
-  receipts.set(law,row)
+  receipts.set(law.name,row)
   let found=false
   const seen=(node:Node)=>{row.maxSize=Math.max(row.maxSize,...Object.values(node.p),0);row.maxDepth=Math.max(row.maxDepth,node.depth);return found=replay(law,node)}
   const phase=(stage:CountReachabilityReceipt['stage'],allowance:number,body:()=>void)=>{
@@ -148,8 +162,8 @@ export function countReachabilityScreen(source:Machine,m:Machine,caller:readonly
    if(found)row.outcome=ledger.safety()==='broken'?'broken':'rejected'
    else if(clock()>=end)row.outcome='exhausted'
    return row
-  }finally{const spent=clock()-start;fund.used+=spent;row.used=spent*fullRate}
+  }finally{const spent=clock()-start;fund.used+=spent;row.used=spent*fullRate;refresh()}
  }
- return {screen,evidence:ledger.evidence,rejected:()=>ledger.evidence().filter(e=>e.kind==='reachable').map(e=>e.law),safety:ledger.safety,
-  receipts:(laws:readonly Law[])=>laws.map(law=>({...receipts.get(law)??{law:law.name,stage:'not-required' as const,outcome:'not-required' as const,granted:0,used:0,incomplete:true as const,phases:[],maxSize:0,maxDepth:0},cumulativeUsed:(funding.get(law.name)?.used??0)*fullRate}))}
+ return {screen,evidence:ledger.evidence,rejectedNames:refresh,rejected:()=>refresh().map(name=>registered.get(name)!.law),safety:ledger.safety,
+  receipts:(laws:readonly Law[])=>{refresh();return laws.map(law=>({...receipts.get(law.name)??{law:law.name,stage:'not-required' as const,outcome:'not-required' as const,granted:0,used:0,incomplete:true as const,phases:[],maxSize:0,maxDepth:0},cumulativeUsed:(funding.get(law.name)?.used??0)*fullRate}))}}
 }
