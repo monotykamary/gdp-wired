@@ -1,0 +1,4 @@
+test(research): retain invalid profiler timing evidence
+
+Keep signed or non-finite sample deltas rejected. Record the exact failing
+sample and preserve at most two bounded raw profiles for independent diagnosis.

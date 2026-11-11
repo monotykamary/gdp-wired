@@ -41,10 +41,16 @@
   },
   "activeTasks": [
     {
-      "task": "bd31d2b5-3a17-45f7-ac67-15ab5dfd69e1",
-      "pid": 686001,
-      "results": "runs/lane-i/resume-timed-f3",
-      "purpose": "timestamped original-model observer on exact 32a59b2a versus recorded same-source off baseline"
+      "task": "7e953a2b-e52f-4925-9399-6c4053e9f6eb",
+      "pid": 918750,
+      "results": "runs/lane-i/resume-timed-diagnostic-routed",
+      "purpose": "same immutable diagnostic source, explicit per-directory data routing; prior dispatch ran no solver"
+    },
+    {
+      "task": "af8721ee-2350-4e42-97c5-d1856d3cd265",
+      "pid": 912632,
+      "results": "runs/lane-i/resume-profile-archive-tooling",
+      "purpose": "full tooling and independent archive negative controls"
     }
   ],
   "rerunFirst": [],
@@ -629,12 +635,12 @@
       "errors": 0
     }
   },
-  "remainingF3Attribution": "Observer currently ranks the last 25 CPU samples by count without per-sample timestamp filtering; stable heartbeat windows are real, but attribution to a particular native operation is unqualified. Next: filter timeDeltas to the actual quiet interval and retain no-recent-sample windows as unattributed.",
+  "remainingF3Attribution": "Timestamp filtering implemented; actual profiler returned an invalid sample delta. Preserve raw evidence and keep strict rejection until cause understood. No F3 qualification.",
   "f3TimedAttribution": {
-    "status": "eight unit tests, real blocking capability and type/lint passed; original-model timed run pending",
+    "status": "original timed pilot failed strict audit on invalid sample delta; diagnostic retry in flight",
     "selection": "profile.startTime plus cumulative timeDeltas; only samples inside the quiet interval",
     "missingSamples": "retain the raw quiet window with an empty, unattributed stack",
-    "originalModelRerun": "running against a recorded same-source off baseline; no overhead claim",
+    "originalModelRerun": "runs/lane-i/resume-timed-f3: exact raw/verdict/phase equality, invalid timing, not qualified",
     "scope": "diagnostic attribution only; no production change or F3 completion claim",
     "testBatch": "20261110-222458-ek322b",
     "tests": 8,
@@ -645,6 +651,22 @@
     "pilotTooling": {
       "batch": "20261110-222705-ud08x7",
       "files": 1704,
+      "typeLint": true,
+      "commitlint": true,
+      "warnings": 0,
+      "errors": 0
+    },
+    "failedResultDirectory": "runs/lane-i/resume-timed-f3",
+    "diagnosticRoutingFailure": {
+      "batch": "20261111-005922-mew7r5",
+      "results": "runs/lane-i/resume-timed-diagnostic",
+      "reason": "default data destination nested inputs under data/; no solver ran",
+      "retryResults": "runs/lane-i/resume-timed-diagnostic-routed",
+      "retryBatch": "20261111-010216-e0ogvi"
+    },
+    "diagnosticTooling": {
+      "batch": "20261111-005947-ht6lpo",
+      "files": 1710,
       "typeLint": true,
       "commitlint": true,
       "warnings": 0,

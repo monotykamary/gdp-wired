@@ -1,0 +1,4 @@
+test(research): audit rejected profile archives independently
+
+Verify bounded archive hashes and expose signed deltas without normalizing
+or accepting the rejected original-model timestamps. Add negative controls.

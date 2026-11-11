@@ -1,7 +1,7 @@
 // CPU sample timestamps are startTime plus cumulative timeDeltas (microseconds).
 // A sample-count suffix is not a time window when the sampler pauses.
 export function selectProfileWindow(profile, quietWindowMs) {
-  const invalid = reason => ({stack: [], timing: {valid: false, reason, selection: 'timeDeltas', quietWindowMs}})
+  const invalid = (reason, details = {}) => ({stack: [], timing: {valid: false, reason, selection: 'timeDeltas', quietWindowMs, ...details}})
   if (!Number.isFinite(quietWindowMs) || quietWindowMs < 0) return invalid('invalid quiet window')
   if (!profile || !Number.isFinite(profile.startTime) || !Number.isFinite(profile.endTime) || profile.endTime < profile.startTime) return invalid('invalid profile interval')
   const samples = profile.samples, deltas = profile.timeDeltas
@@ -10,7 +10,7 @@ export function selectProfileWindow(profile, quietWindowMs) {
   let time = profile.startTime
   for (let index = 0; index < samples.length; index++) {
     const delta = deltas[index]
-    if (!Number.isFinite(delta) || delta < 0) return invalid('invalid sample delta')
+    if (!Number.isFinite(delta) || delta < 0) return invalid('invalid sample delta', {invalidSampleIndex: index, invalidSampleDeltaUs: Number.isFinite(delta) ? delta : String(delta), previousSampleUs: time, profileStartUs: profile.startTime, profileEndUs: profile.endTime, totalSamples: samples.length})
     time += delta
     if (!Number.isFinite(time) || time > profile.endTime) return invalid('sample outside profile interval')
     if (time >= lowerBoundUs) recent.push({id: samples[index], time})

@@ -205,7 +205,24 @@ with no recent samples stays explicitly unattributed. The original-model timed
 run is pending, using the recorded same-source off baseline; it is not an
 overhead comparison or a complete F3 claim. Its source-pinned on-only driver
 passes type/lint and commitlint in `20261110-222705-ud08x7` (1,704 files,
-zero warnings/errors); the runtime result remains pending.
+zero warnings/errors). The original timed result is now collected in
+`runs/lane-i/resume-timed-f3`: raw vectors, verdict and exclusive-phase vectors
+match, with source unchanged, but strict audit **fails on an invalid sample
+delta**. It is not a qualified timed result. A single bounded diagnostic retry
+in `runs/lane-i/resume-timed-diagnostic` retains the invalid sample's index and
+delta plus at most two hash-bound raw profiles. Negative/non-finite deltas remain
+rejected; no audit relaxation or timestamp normalization is used. Its unit and
+blocking controls and parallel tooling check are in flight. The first diagnostic
+dispatch (`20261111-005922-mew7r5`) ran no solver: the default data destination
+nested inputs under `data/`, while the commands expected top-level aliases.
+Its three missing-file failures remain in `resume-timed-diagnostic`; the same
+immutable inputs are resubmitted with explicit per-directory destinations as
+`resume-timed-diagnostic-routed`. Independent archive tooling includes one
+positive fixture and six rejection controls; no invalid timestamp is repaired.
+The diagnostic observer's type/lint and commitlint pass in
+`20261111-005947-ht6lpo` (1,710 files, zero warnings/errors). The explicitly
+routed diagnostic is batch `20261111-010216-e0ogvi`; its timestamp unit controls
+have passed, while the original-model result remains in flight.
 
 Original MLDR Node pilot `20261110-202238-v6auwd` retained **identical raw vectors
 and verdicts** with observation off/on. Both were `unknown`, reason

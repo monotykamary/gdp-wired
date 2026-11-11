@@ -45,6 +45,18 @@ test('invalid timing values fail closed', () => {
   for (const p of [profile([2], [-1]), profile([2], [Infinity]), profile([2], [1000001]), {...profile([], []), startTime: NaN}]) assert.equal(selectProfileWindow(p, 250).timing.valid, false)
   assert.equal(selectProfileWindow(profile([], []), -1).timing.valid, false)
 })
+test('invalid delta diagnostics preserve the exact sample and fail closed', () => {
+  for (const delta of [-7, NaN, Infinity]) {
+    const result = selectProfileWindow(profile([2, 3], [750000, delta]), 250)
+    assert.equal(result.timing.valid, false)
+    assert.equal(result.timing.reason, 'invalid sample delta')
+    assert.equal(result.timing.invalidSampleIndex, 1)
+    assert.equal(result.timing.invalidSampleDeltaUs, Number.isFinite(delta) ? delta : String(delta))
+    assert.equal(result.timing.previousSampleUs, 750000)
+    assert.equal(result.timing.profileEndUs, 1000000)
+    assert.deepEqual(result.stack, [])
+  }
+})
 test('unknown nodes and cyclic stacks fail closed', () => {
   assert.equal(selectProfileWindow(profile([99], [1000000]), 250).timing.valid, false)
   const p = profile([2], [1000000])

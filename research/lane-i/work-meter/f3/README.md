@@ -85,4 +85,19 @@ runtime, raw vector, verdict and exclusive-phase vectors. The job also requires
 `--strict-window --require-timed-window`. This avoids a redundant off rerun but
 is not a paired overhead measurement. Its tooling passes
 `20261110-222705-ud08x7` (1,704 files, zero warnings/errors); the original-model
-runtime result remains pending.
+runtime result is now collected: `runs/lane-i/resume-timed-f3` retains exact
+raw/verdict/phase equality, but strict timestamp audit **failed** on an invalid
+sample delta. No timed qualification follows. A bounded diagnostic retry now
+records the exact invalid sample and at most two hash-bound gzip/base64 profiles
+(up to 8 MiB uncompressed each); `inspect-profile.ts` diagnoses those archives
+without normalizing them or accepting invalid timestamps. The strict audit is
+unchanged. The original failed receipt is retained. The first diagnostic
+dispatch (`20261111-005922-mew7r5`) failed before any solver execution because
+the default data alias nested every input beneath `data/`. Its missing-file
+receipts remain in `runs/lane-i/resume-timed-diagnostic`; the explicit-alias
+retry uses the same frozen inputs in `resume-timed-diagnostic-routed`.
+For a multi-directory frozen input tree, pass each child explicitly as
+`--data "$dir:$(basename "$dir")"`; `--data .../data` deliberately ships it
+under `data/`, not at the runner root. These are distinct destinations.
+The diagnostic observer's type/lint and commitlint pass in
+`20261111-005947-ht6lpo` (1,710 files, zero warnings/errors).
