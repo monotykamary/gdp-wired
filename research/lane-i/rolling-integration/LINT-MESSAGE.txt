@@ -1,0 +1,1 @@
+test: mark omitted diagnostic raw payload explicitly
