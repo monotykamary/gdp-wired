@@ -9,6 +9,10 @@ export class BudgetExpired extends Error {
 }
 export type WorkEndpointKind = 'root' | 'scope' | 'work-cap' | 'deadline'
 export type WorkEndpoint = Readonly<{id: number, kind: WorkEndpointKind, end: ExactRaw}>
+export type WorkCapacityRefusal = Readonly<{
+  reason: 'quantum' | 'check' | 'scope-entry', limiting: readonly WorkEndpoint[],
+  actual: ExactRaw, reserved: ExactRaw, requested?: ExactRaw,
+}>
 export type WorkCounterVector = Readonly<Record<WorkKey, string>>
 export type WorkAdmissionSnapshot = Readonly<{
   version: 'strict-work-v1', rootEpoch: number, scopeEpoch: number, counterEpoch: number,
@@ -56,6 +60,7 @@ export class WorkLedger {
   private endpointSequence = 0
   private eventSequence = 0
   private notifying = false
+  private readonly capacityErrors = new WeakMap<object, WorkCapacityRefusal>()
   constructor(weights: Readonly<Record<WorkKey, number>>) {
     if (Object.keys(weights).length !== workKeys.length || workKeys.some(key => !Object.hasOwn(weights, key) || !Number.isFinite(weights[key]) || weights[key] < 0)) throw new RangeError('work ledger requires the exact frozen coefficient vector')
     this.weights = Object.freeze(Object.fromEntries(workKeys.map(key => [key, workFromNumber(weights[key])]))) as Readonly<Record<WorkKey, WorkAmount>>
@@ -71,9 +76,27 @@ export class WorkLedger {
     this.checkEntry()
     if (amount.den <= 0n || amount.num < 0n) throw new RangeError('invalid work admission amount')
     const left = this.available()
-    if (left !== null && compareWork(amount, left) > 0) { this.emit('refuse', {site: phase}); throw new BudgetExpired(phase) }
+    if (left !== null && compareWork(amount, left) > 0) { this.emit('refuse', {site: phase}); throw this.capacityError(phase, 'check', amount) }
   }
   counter(key: WorkKey): bigint { return this.counters[key] }
+  currentScope(): WorkEndpoint | undefined {
+    const scope = this.scopes[this.scopes.length - 1]
+    return scope && Object.freeze({id: scope.id, kind: scope.kind, end: exactRaw(scope.end)})
+  }
+  // Only this ledger can authenticate its own capacity failures. Error text,
+  // stale leases and exceptions from native/observer code confer no provenance.
+  capacityRefusal(error: unknown): WorkCapacityRefusal | undefined {
+    return typeof error === 'object' && error !== null ? this.capacityErrors.get(error) : undefined
+  }
+  private capacityError(phase: string, reason: WorkCapacityRefusal['reason'], requested?: WorkAmount): BudgetExpired {
+    const error = new BudgetExpired(phase), end = this.endpoint()
+    const limiting = this.scopes.filter(scope => end !== null && compareWork(scope.end, end) === 0)
+      .map(scope => Object.freeze({id: scope.id, kind: scope.kind, end: exactRaw(scope.end)}))
+    this.capacityErrors.set(error, Object.freeze({reason, limiting: Object.freeze(limiting),
+      actual: exactRaw(this.actual()), reserved: exactRaw(this.reserved()),
+      ...(requested ? {requested: exactRaw(requested)} : {})}))
+    return error
+  }
   endpoint(): WorkAmount | null {
     let end: WorkAmount | null = null
     for (const scope of this.scopes) end = end === null ? scope.end : minWork(end, scope.end)
@@ -124,7 +147,7 @@ export class WorkLedger {
     const nextRoot = kind === 'root' ? nextEpoch(this.rootEpoch) : this.rootEpoch
     const nextScope = nextEpoch(this.scopeEpoch), nextEndpoint = nextEpoch(this.endpointSequence)
     this.invalidate()
-    if (compareWork(this.actual(), end) > 0) { this.emit('refuse', {site: 'scope entry'}); throw new BudgetExpired('scope entry') }
+    if (compareWork(this.actual(), end) > 0) { this.emit('refuse', {site: 'scope entry'}); throw this.capacityError('scope entry', 'scope-entry') }
     const priorBaseline = this.baseline
     if (kind === 'root') {
       if (this.scopes.some(scope => scope.kind === 'root')) throw new Error('cannot replace an active work root')
@@ -164,7 +187,7 @@ export class WorkLedger {
       const fits = left <= 0n ? 0n : left / (weight * end.den)
       if (grant > fits) grant = fits
     }
-    if (count > 0n && grant === 0n) { this.emit('refuse', {sink, site, requested: String(count), granted: '0'}); throw new BudgetExpired(site ?? sink) }
+    if (count > 0n && grant === 0n) { this.emit('refuse', {sink, site, requested: String(count), granted: '0'}); throw this.capacityError(site ?? sink, 'quantum', workAmount(count * weight, this.denominator)) }
     this.leaseSequence = nextEpoch(this.leaseSequence)
     const state: LeaseState = {id: this.leaseSequence, sink, site, remaining: grant, granted: Number(grant), epoch: this.counterEpoch, live: true}
     this.leases.add(state); this.held += grant * weight
@@ -192,6 +215,15 @@ export class WorkLedger {
       } finally { this.leases.delete(state) }
     }
   }
+  // An indivisible unit has to fit in full. A partial reservation is retired
+  // without starting work, but its refusal still names the real boundary.
+  start(sink: WorkKey, count = 1, site?: string): void {
+    this.withChunk(sink, count, lease => {
+      if (lease.granted !== count) throw this.capacityError(site ?? sink, 'quantum',
+        workAmount(natural(count) * this.units[sink], this.denominator))
+      lease.start(count)
+    }, site)
+  }
   // Compatibility seeds are allowed only outside a bounded root/scope. During
   // counted work, a direct counter assignment is an unadmitted mutation.
   setUnscopedCounter(key: WorkKey, value: number): void {
@@ -217,10 +249,7 @@ export const emptyWork = zeroWork
 // before any body starts; loops which can stop early consume a lease itemwise.
 export function startWork(sink: WorkKey, count = 1, site?: string): void {
   if (!completeWorkProfile.enabled) return
-  withAdmittedChunk(sink, count, lease => {
-    if (lease.granted !== count) throw new BudgetExpired(site ?? sink)
-    lease.start(count)
-  }, site)
+  workLedger.start(sink, count, site)
 }
 export function workCounterView<T extends Record<string, number>>(initial: T, mapping: Partial<Record<keyof T, WorkKey>>): T {
   if (!completeWorkProfile.enabled) return initial
