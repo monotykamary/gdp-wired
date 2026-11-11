@@ -1,0 +1,1 @@
+[{"name":"preflight-phase-audit","cmd":"bun calibration-input/audit-preflight.ts phase-result prior15 prior50","cpu":2,"memory":4096,"timeout":120,"vm_type":"large"}]

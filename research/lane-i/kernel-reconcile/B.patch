@@ -1,0 +1,69 @@
+diff --git a/kernel/cdcl-root.test.ts b/kernel/cdcl-root.test.ts
+new file mode 100644
+index 00000000..89f4ceba
+--- /dev/null
++++ b/kernel/cdcl-root.test.ts
+@@ -0,0 +1,22 @@
++import {expect,test} from 'bun:test'
++import {type Goal,type Path,canon,check,framePath} from './kernel.ts'
++import {clock} from './prove.ts'
++import {growCdcl} from './cdcl.ts'
++
++for(const holds of [true,false])test(`duplicate root aliases retain ${holds?'positive':'negative'} orientation`,()=>{
++ const lin={rootX:1,'1':-1},root:Path=new Map([[canon(lin),{lin,holds}],['@0',{lin,holds}]])
++ const goal:Goal={name:'duplicate root',hyps:[holds?{op:'<=',a:{op:'const',value:2},b:{op:'var',name:'rootX'}}:{op:'<=',a:{op:'var',name:'rootX'},b:{op:'const',value:1}}]}
++ const before=JSON.stringify([...root]),q=growCdcl(goal,root,{nodes:0,until:clock()+100})
++ expect(JSON.stringify([...root])).toBe(before)
++ expect('tree'in q).toBe(true)
++ if('tree'in q)expect(check(goal,q.tree,root)).toBe(true)
++})
++
++test('duplicate frame-cut rows remain checked at their original root',()=>{
++ const frame={post:'post',pre:'pre',when:[]},root=framePath([frame,frame],[],new Map())
++ expect([...root.keys()].some(k=>k.startsWith('@'))).toBe(true)
++ const goal:Goal={name:'duplicate frame',hyps:[{op:'<',a:{op:'var',name:'pre'},b:{op:'var',name:'post'}}]}
++ const q=growCdcl(goal,root,{nodes:0,until:clock()+100})
++ expect('tree'in q).toBe(true)
++ if('tree'in q)expect(check(goal,q.tree,root)).toBe(true)
++})
+diff --git a/kernel/cdcl.ts b/kernel/cdcl.ts
+index 45980b9c..0477e174 100644
+--- a/kernel/cdcl.ts
++++ b/kernel/cdcl.ts
+@@ -216,8 +216,10 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+   // The root's own decisions are level 0, with no reason: they stay in every clause (the tree starts below them).
+   const rootNames = new Set<string>(), stamps: number[] = []
+   let stampN = 0
+-  for (const [key, a] of root) {
+-    const name = ensure(a.lin), x = vars.get(name)!, val = name === key ? a.holds : !a.holds
++  // Path keys may be @-aliases for duplicate cut rows; only the row itself
++  // determines orientation. An alias is not evidence that the atom was flipped.
++  for (const a of root.values()) {
++    const name = ensure(a.lin), x = vars.get(name)!, val = name === canon(a.lin) ? a.holds : !a.holds
+     x.val = val; x.level = 0; x.at = trail.length; stamps[x.at] = ++stampN; trail.push(name); tv.push(x); rootNames.add(name)
+     if (x.col) colsOn++
+   }
+diff --git a/lean-kernel/README.md b/lean-kernel/README.md
+index f70173e8..9b9ee1a7 100644
+--- a/lean-kernel/README.md
++++ b/lean-kernel/README.md
+@@ -4,6 +4,19 @@ The optional Lean path for the kernel, as `Cert.lean` is for `core/check.ts`: a
+ (its tree check, all four of its induction rules, step flags, progress laws, step laws and k-step laws), proven sound, and an exporter that
+ sends the kernel's real trees to it. `Sets.lean` adds kernel.ts's sets, and `History.lean`, on top of it, the history rule.
+ 
++## Conditional count frames (Section 15.7; Lean and TypeScript)
++
++`Count.lean`'s `FrameCuts` section and `CountMachine.lean`'s `checkCountedWF` / `checkMCF`: a frame cut names a post count
++and its pre count by their variables and linear conditions `when`; it is accepted (`frameOk`) when the two counts share
++their key and, with every `if` whose condition reads no count key and is decided under `when` resolved (`simpE`, through
++`truth`), their bounds and bodies are the same terms. At a leaf whose original path decides `when`, the rows `post − pre ≤ 0`
++and `pre − post ≤ 0` are available (`framePath`, in front of `lemmaPath`). No tree is checked for a frame (`sumBelow_congr`);
++`simpE_eval` is why a condition reading the key is never decided. With no frames every checker is the lemma-cut checker
++(`checkGoalFrames_nil`, `checkCountedF_nil`, `checkCountedWF_nil`, `checkMCF_nil`). Soundness: `frame_sound`,
++`goalFrames_sound`, `countedF_sound`, `countedWF_sound`, `mcF_sound`. Executable examples: `research/track-fable/FrameCuts.lean`;
++the TypeScript checker and exporter are wired in `kernel/kernel.ts` and `lean-kernel/emit.ts`.
++The original research implementation and plan remain in `research/track-fable/{frame-cut.ts, FRAME-CUTS.md}`.
++
+ ## Conditional counted lemma cuts
+ 
+ The counted certificate optionally carries `lemmas: {when, cut, tree, slice?}[]`. The containing table and witness namespace are shared. Each lemma is checked independently, without access to any lemma, against the exact selected hypotheses under its conditions and the negation of its cut. Only leaves whose original split path decides all conditions may use the cut. An absent/empty list follows the original checker; no prover cache is trusted.

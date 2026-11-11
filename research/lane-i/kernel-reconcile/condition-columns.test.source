@@ -1,0 +1,15 @@
+import {expect,test} from 'bun:test'
+import type {E} from '../core/machine.ts'
+import {linear} from '../kernel/kernel.ts'
+import {encode} from './emit.ts'
+const variable=(name:string):E=>({op:'var',name})
+for(const [name,term]of [
+ ['cell',{op:'get',map:'GuardOnly',key:variable('q')}],
+ ['term',{op:'sub',a:variable('q'),b:{op:'const',value:1}}],
+ ['monomial',{op:'prod',a:variable('q'),b:variable('r')}]
+] as const)test('frame-only '+name+' column is emitted even when no leaf uses it',()=>{
+ const row=linear(term,new Map());if(!row)throw Error('missing fixture row')
+ const out=encode({name:'unused guard '+name,goal:{hyps:[],name:'unused guard'},tree:{leaf:[]}},false,true,undefined,undefined,false,false,{frames:[{post:'post',pre:'pre',when:[row]}]})
+ for(const key of Object.keys(row).filter(key=>key!=='1'))expect(out.cols).toContain(key)
+ expect(()=>out.row(row)).not.toThrow()
+})

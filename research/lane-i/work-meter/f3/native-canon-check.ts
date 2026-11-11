@@ -17,7 +17,8 @@ try{
  copyFileSync('native-input/native-spans.ts',join(target,'native-spans.ts'))
  const probe=join(target,'native-canon-probe.ts');copyFileSync('native-input/native-canon-probe.source',probe)
  const run=(mode:string)=>{const text:string=command('bun',[probe,root,mode],root,120000);const line=text.split('\n').find(line=>line.startsWith('NATIVE_CANON_PROBE '));assert(line);return JSON.parse(line.slice('NATIVE_CANON_PROBE '.length))}
- const before=run('off'),instrumentation=instrumentNativeCanon(root),off=run('off'),on=run('on')
+ const before=run('off'),instrumentation=instrumentNativeCanon(root,process.argv.includes('--extended')),off=run('off'),on=run('on')
+ if(process.argv.includes('--extended'))command('bun',['run','check'],root,240000)
  for(const result of [off,on]){assert.deepEqual(result.results,before.results);assert.deepEqual(result.calls,before.calls);assert.deepEqual(result.raw,before.raw)}
  assert.equal(off.span.count,0);assert(on.span.count>0);assert(on.span.valid);assert.equal(on.span.id,0);assert.equal(on.span.depth,0)
  const record={passed:true,scope:'canonicalization call-boundary identity controls only; not a timed solver capture or full F3',cases:before.results.length,raw:before.raw,spans:on.span.count,instrumentation}

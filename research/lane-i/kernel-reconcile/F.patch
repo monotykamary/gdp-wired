@@ -1,0 +1,80 @@
+diff --git a/kernel/frame-cut.test.ts b/kernel/frame-cut.test.ts
+index 0db9ae72..d0fae72d 100644
+--- a/kernel/frame-cut.test.ts
++++ b/kernel/frame-cut.test.ts
+@@ -44,6 +44,9 @@ test('simpE resolves only conditions decided under the path and free of the key'
+ 
+ test('frameOk accepts the op = 4 frame and refuses the variants Lean refuses', () => {
+   expect(frameOk(counts, frame)).toBe(true)
++  expect(frameActive(frame, at([opLe, true], [opGe, true]))).toBe(true)
++  expect(frameActive(frame, at([opLe, true]))).toBe(false)
++  expect(frameActive(frame, at([opLe, true], [opGe, false]))).toBe(false)
+   expect(frameRows(frame)).toEqual([{v1: 1, v0: -1}, {v0: 1, v1: -1}])
+   expect(frameOk(counts, {...frame, when: [opLe]})).toBe(false)
+   expect(frameOk(counts, {...frame, when: []})).toBe(false)
+@@ -69,8 +72,6 @@ test('the frame row closes the op = 4 leaf and nowhere else', () => {
+ 
+ test('framePath keeps every original atom and prepends the active frames\' rows', () => {
+   const path = at([opLe, true], [opGe, true]), out = framePath([frame], [], path)
+-  expect(frameActive(frame, path)).toBe(true)
+-  expect(frameActive(frame, at([opLe, true]))).toBe(false)
+   expect(out.size).toBe(4)
+   expect([...out.values()].slice(0, 2).map(a => a.lin)).toEqual(frameRows(frame))
+   expect(framePath([frame], [], at([opLe, true]))).toEqual(framePath([], [], at([opLe, true])))
+diff --git a/lean-kernel/README.md b/lean-kernel/README.md
+index be72de70..9b9ee1a7 100644
+--- a/lean-kernel/README.md
++++ b/lean-kernel/README.md
+@@ -4,7 +4,7 @@ The optional Lean path for the kernel, as `Cert.lean` is for `core/check.ts`: a
+ (its tree check, all four of its induction rules, step flags, progress laws, step laws and k-step laws), proven sound, and an exporter that
+ sends the kernel's real trees to it. `Sets.lean` adds kernel.ts's sets, and `History.lean`, on top of it, the history rule.
+ 
+-## Conditional count frames (Section 15.7; Lean-first, not yet wired in TypeScript)
++## Conditional count frames (Section 15.7; Lean and TypeScript)
+ 
+ `Count.lean`'s `FrameCuts` section and `CountMachine.lean`'s `checkCountedWF` / `checkMCF`: a frame cut names a post count
+ and its pre count by their variables and linear conditions `when`; it is accepted (`frameOk`) when the two counts share
+@@ -14,8 +14,8 @@ and `pre − post ≤ 0` are available (`framePath`, in front of `lemmaPath`). N
+ `simpE_eval` is why a condition reading the key is never decided. With no frames every checker is the lemma-cut checker
+ (`checkGoalFrames_nil`, `checkCountedF_nil`, `checkCountedWF_nil`, `checkMCF_nil`). Soundness: `frame_sound`,
+ `goalFrames_sound`, `countedF_sound`, `countedWF_sound`, `mcF_sound`. Executable examples: `research/track-fable/FrameCuts.lean`;
+-the TypeScript twin as research code and its wiring plan: `research/track-fable/{frame-cut.ts, FRAME-CUTS.md}`. `kernel/kernel.ts`
+-is unchanged until MLDR-DESIGN.md Section 15.7's trigger.
++the TypeScript checker and exporter are wired in `kernel/kernel.ts` and `lean-kernel/emit.ts`.
++The original research implementation and plan remain in `research/track-fable/{frame-cut.ts, FRAME-CUTS.md}`.
+ 
+ ## Conditional counted lemma cuts
+ 
+diff --git a/lean-kernel/emit.ts b/lean-kernel/emit.ts
+index ce82cc06..4ff31619 100644
+--- a/lean-kernel/emit.ts
++++ b/lean-kernel/emit.ts
+@@ -8,7 +8,6 @@ import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solv
+ import {type CountCert, type CountDecl, type CountedGoal, type CountInst, type FrameCut, type MonoCut, type LinCut, type LemmaCut, framePath, lemmaPath, checkMC, checkCounted, checkCountedLaws, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, cellParts, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+ import {chooseLevels, clock, grow, minimal, proveBuilt, proveLaws, proveSetFast, proveStepLaws, withDeadline} from '../kernel/prove.ts'
+ import {refinement, refinementSides} from '../core/compose.ts'
+-import {countsForReads} from '../core/count-facts.ts'
+ import {exactNat, leanConnective, leanSurface, leanTerms} from './lean-terms.ts'
+ import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.ts'
+ import {allowNode, certMs, closingInsts, reqTS, withWitness, foldNodes, certMode, quietly, uncoveredWhy, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, routeOf, searchedStepNodes, skMachine, stepLawNodes, tBack, tSub} from '../core/cyclic.ts'
+@@ -16,6 +15,7 @@ import type {Fact} from '../kernel/cyclic.ts'
+ import {leanLibrary} from './library.ts'
+ import {proveKInduction} from '../core/kind.ts'
+ import {quantifiedRenames} from './qalpha.ts'
++import {countsForReads} from '../core/count-facts.ts'
+ export {leanLibrary}
+ 
+ export type Exported = {name: string, goal: Goal, tree: Tree}
+@@ -162,6 +162,12 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
+       if (e.op === 'get') for (const key of Object.keys(linear(e, path) ?? {})) if (isCell(key)) addCell(key)
+     }
+   }
++  // Conditions can name columns a certificate never uses at a leaf; they still need encoding.
++  for (const f of context.frames ?? []) for (const r of f.when) for (const key of Object.keys(r)) {
++    if (isMonomial(key)) addMono(key)
++    else if (isCell(key)) addCell(key)
++    else if (key.startsWith('⟦')) terms.add(key)
++  }
+   const depth = (name: string) => name.split('[').length
+   // Term columns (open choices, each standing for its term's value) before the cells, whose keys may read them; a
+   // monomial with a cell among its factors after the cells.

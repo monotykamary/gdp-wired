@@ -1,6 +1,8 @@
 import {strict as assert} from 'node:assert'
 import {readFileSync} from 'node:fs'
 import {createHash} from 'node:crypto'
+import {gunzipSync} from 'node:zlib'
+import {selectProfileWindow} from './profile-window.mjs'
 const [log,baseline]=process.argv.slice(2);assert(log&&baseline)
 const text=readFileSync(log,'utf8'),base=readFileSync(baseline,'utf8')
 const rows=(text,tag)=>text.split('\n').filter(line=>line.startsWith(tag+' ')).map(line=>JSON.parse(line.slice(tag.length+1)))
@@ -15,6 +17,17 @@ const stable=rows(text,'F3_NATIVE_RAW_SILENCE'),changed=rows(text,'F3_NATIVE_WIN
 assert(windows.length<=16);assert.equal(new Set(windows.map(row=>row.reports)).size,windows.length)
 for(const row of stable){assert(row.stable&&row.whileRunning);assert.equal(row.heartbeatBefore,row.heartbeatAfter)}
 for(const row of changed)assert(!row.stable&&(!row.whileRunning||row.heartbeatBefore!==row.heartbeatAfter))
+const archiveRows=rows(text,'F3_NATIVE_PROFILE'),archives=new Map()
+for(const archive of archiveRows){
+ const gzip=Buffer.from(archive.data,'base64'),bytes=gunzipSync(gzip,{maxOutputLength:8*1024*1024}),hash=b=>createHash('sha256').update(b).digest('hex')
+ assert.equal(gzip.length,archive.gzipBytes);assert.equal(bytes.length,archive.bytes);assert.equal(hash(gzip),archive.gzipSha256);assert.equal(hash(bytes),archive.sha256)
+ assert(!archives.has(archive.sha256));archives.set(archive.sha256,JSON.parse(bytes.toString()))
+}
+if(archives.size)for(const row of stable){
+ const profile=archives.get(row.profileSha256);assert(profile,'complete profile for every stable capture')
+ const selected=selectProfileWindow(profile,row.rawSilentMs);assert.deepEqual(selected.timing,row.profileWindow);assert.deepEqual(selected.stack,row.stack)
+ if(row.native.profileWindow){const native=selectProfileWindow(profile,row.native.quietMs);assert.deepEqual(native.timing,row.native.profileWindow);assert.deepEqual(native.stack,row.native.stack)}
+}
 const attributed=windows.filter(row=>row.native.attributed)
 for(const row of attributed){
  assert(row.stable&&row.profileWindow.valid&&row.native.profileWindow.valid);assert(row.native.quietMs>250&&row.native.profileWindow.samplesInWindow>0)
@@ -24,4 +37,4 @@ for(const row of attributed){
 }
 assert.equal(comparison.stableWindows,stable.length);assert.equal(comparison.attributedWindows,attributed.length)
 assert.equal(comparison.spanOverflow,result.spanOverflow);assert.equal(comparison.spanCount,result.spanCount)
-console.log('F3_NATIVE_AUDIT '+JSON.stringify({passed:true,source:source.config.pin,sameRawAndVerdict:true,stableWindows:stable.length,timestampValidStableWindows:stable.filter(row=>row.profileWindow.valid).length,changedWindows:changed.length,attributedWindows:attributed.length,spanCount:result.spanCount,spanOverflow:result.spanOverflow,operations:attributed.map(row=>source.instrumentation.mapping.find(item=>item.id===row.native.before.id)),scope:'audit of bounded invocation attribution; not exact native instructions, full F3 or W'}))
+console.log('F3_NATIVE_AUDIT '+JSON.stringify({passed:true,source:source.config.pin,sameRawAndVerdict:true,stableWindows:stable.length,timestampValidStableWindows:stable.filter(row=>row.profileWindow.valid).length,changedWindows:changed.length,attributedWindows:attributed.length,retainedProfiles:archives.size,spanCount:result.spanCount,spanOverflow:result.spanOverflow,operations:attributed.map(row=>source.instrumentation.mapping.find(item=>item.id===row.native.before.id)),scope:'audit of bounded invocation attribution; not exact native instructions, full F3 or W'}))

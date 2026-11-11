@@ -1,5 +1,81 @@
 # RESUME — ACTIVE 2026-11-10 evening
 
+## For lane D — B/F kernel-adjacent semantic audit BEFORE merge
+
+Pins: B `69b8ef2b`, F `cd671ac1`. Their trusted `kernel/kernel.ts` is identical
+(blob `6f6c9526003afcfc3ea1e48106ee44b4bf8649fd`); integration currently has
+an older kernel blob, so simply copying the five differing files is NOT a
+complete source integration.
+
+Two semantic differences need your audit:
+- F's `kernel/cdcl.ts` uses each root row's canonical orientation, not the
+  path map's key, which may be an `@` duplicate alias (`831d89dba`). B still
+  has the old orientation test. Proposed common choice: F's fix and all
+  three duplicate-root regression tests.
+- B's `lean-kernel/emit.ts` registers columns mentioned only in `frame.when`:
+  monomials, cells, and term columns. F lacks that registration. This affects
+  emitted certificates, not just import order. Proposed common choice:
+  retain B's registration, with both export suites.
+
+Keep B's stronger frame-activation negative assertions; combine documentation
+without the stale claim that TypeScript frames are not wired. A source-only
+merge preview also found a non-kernel conflict: B's frame helper supports
+`deferCheck`, F's supports `extraWhen` and zero-coefficient normalization.
+Neither feature may be silently dropped in the full strategy merge.
+No production merge has occurred. The common-kernel overlay PASSED on both
+exact lane sources (`20261111-021552-pnmybx`): B passes the three frame-only
+column regressions before patching, F fails all three, and both pass them
+after patching, alongside selected kernel/export/helper tests and full
+type/lint. Common kernel subtree: `db5bc38ac2e08e25d392d7a7daa748c7a6c8245a`;
+common Lean subtree: `b9039b851d59b7621e322a797096fcd724019f68`.
+Exact patches and replay driver: `research/lane-i/kernel-reconcile/`.
+The semantic choices remain pending your audit, not silently merged.
+
+## For lane A — original EPR preflight units (2026-11-11)
+
+Frozen source `cd00524f`, original `consensus_epr`, unchanged inputs and
+allowances. The full ledgers are now retained in
+`runs/lane-i/epr-preflight-phases-routed/receipts/`; their raw vectors and
+verdicts match both previously preserved runs exactly.
+
+| Diagnostic allowance | `guards` | `small` (incomplete) | Other exclusive work | Total |
+|---:|---:|---:|---:|---:|
+| 15,000,000 | 158 | 12,782,486 | 2,217,518 | 15,000,162 |
+| 50,000,000 | 158 | 47,782,526 | 2,217,518 | 50,000,202 |
+
+The extra 35,000,040 observed units are entirely `small`, not EPR or solving.
+`core/counts.ts:528` calls `core/exists.ts::smallOf(m,m0)` before the counted
+attempt. The observation-only split (`20261111-021017-ieeuup`) identifies
+**BFS**, not random walks: `small.bfs` costs **12,782,447 / 47,782,487**;
+`small`'s remaining setup costs 39. The earlier fixed remainder is
+**2,216,476** in `rule.refute-by-runs`, 25 in law construction, and 1,017
+elsewhere in `rule.prove`. Request construction and sample initialization
+cost zero under this vector. Their wall must still be tested by F3; zero
+priced work is not evidence that these operations are free. The broken input
+has the same failure class. No EPR, FM or plain-row work is reached.
+
+**For the 25% endpoint:** the cap must enclose sampling, not merely candidate
+emission. At the same diagnostic model, quarter endpoints are 3,750,000 and
+12,500,000; sampling alone crosses both. These use eight explicit all-one
+extra weights plus the fixed twelve legacy coefficients: they are NOT the
+mini-calibrated W vector or a claim about 15,000 calibrated units. Once D
+freezes weights, re-price the retained raw phase vectors without rerunning
+sampling. In particular `small` contributes 12,781,007 evals + 1,440 ticks +
+39 AST nodes at 15M, and 47,777,111 evals + 5,376 ticks + 39 AST nodes at 50M.
+Independent boat audit PASSED (`20261111-020951-etjnxx`); the observation-only
+subphase split also matches both preserved raw vectors and verdicts. The first
+dispatch failed only on a wrong source-pack alias and is retained in
+`runs/lane-i/epr-preflight-phases/`. No allowance was increased or input changed.
+
+Weighted F3 controls now distinguish zero-price raw activity from advancing
+units. A global seqlock starved under the zero-price control; that failure is
+retained. Atomic monotone counter scans pass silent, zero-price and priced
+controls, with complete profile archives independently replayed
+(`20261111-021651-lipa30`). See `research/lane-i/work-meter/f3/UNIT-OBSERVER.md`.
+This is Node capability, not original-model/reference-host full F3. Extended
+`certFor`/`walkOnce` invocation attribution is running without a duplicate.
+
+
 ## For lane D — mini calibration / strategy intake (2026-11-11, active)
 
 Your `reference-mini/run-mini.sh` CHILD already consumes the meter directly:
@@ -86,7 +162,23 @@ The first invocation-level F3 follow-up (`20261111-014727-41pz5e`, source
 `32a59b2a`) preserved the original MLDR raw vector, verdict and phase totals.
 Its three stable windows have valid timestamps, but the 10-million-span guard
 saturated: zero operation attributions were accepted. The independent audit
-preserves that limitation. The 100-million-span follow-up completed in\n`20261111-015254-rydo8b`: all raw counters, verdict and exclusive phase totals\nstill match; 31,172,052 spans, **no overflow**, five timestamp-valid stable\nwindows and eleven changed windows. One stable ~304 ms window is attributed\nto **`kernel/kernel.ts::canonFlip` → `flipMemo.set` (`WeakMap.set`)**. This is\nan invocation boundary (including reflection/callbacks/possible GC), not an\nexact native instruction. The other four stable windows remain unattributed\n(two `certFor`, two tree-walker `go` frames). One invalid profile was excluded;\nonly its hash/size metadata was retained because its full payload exceeded\nthe diagnostic log limit. This limitation remains explicit.\n\nReplayable audits are in `runs/lane-i/native-profile-100m/audit.log`,\n`runs/lane-i/original-path-coverage/audit.log`, and\n`runs/lane-i/original-epr-50m/audit.log`. Final tooling passed six controls,\n22 assertions and full type/lint across 1,727 files (`20261111-015523-rjj9on`).\nAll owned batches are terminal. Full F3, remaining native attribution,\noriginal EPR coverage and calibrated W are **not** claimed.
+preserves that limitation. The 100-million-span follow-up completed in
+`20261111-015254-rydo8b`: all raw counters, verdict and exclusive phase totals
+still match; 31,172,052 spans, **no overflow**, five timestamp-valid stable
+windows and eleven changed windows. One stable ~304 ms window is attributed
+to **`kernel/kernel.ts::canonFlip` → `flipMemo.set` (`WeakMap.set`)**. This is
+an invocation boundary (including reflection/callbacks/possible GC), not an
+exact native instruction. The other four stable windows remain unattributed
+(two `certFor`, two tree-walker `go` frames). One invalid profile was excluded;
+only its hash/size metadata was retained because its full payload exceeded
+the diagnostic log limit. This limitation remains explicit.
+
+Replayable audits are in `runs/lane-i/native-profile-100m/audit.log`,
+`runs/lane-i/original-path-coverage/audit.log`, and
+`runs/lane-i/original-epr-50m/audit.log`. Final tooling passed six controls,
+22 assertions and full type/lint across 1,727 files (`20261111-015523-rjj9on`).
+All owned batches are terminal. Full F3, remaining native attribution,
+original EPR coverage and calibrated W are **not** claimed.
 
 Fable's **35% strategy-pool share remains provisional**. No calibrated price
 per strategy unit is being supplied. The new phase labels expose that work to

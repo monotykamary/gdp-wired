@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto'
 // Diagnostic-only, exact-source replacements. The helper preserves receiver,
 // method lookup, argument evaluation, result/exception identity, and nesting.
 // A call span includes callbacks and GC; it never claims a native instruction.
-export function instrumentNativeCanon(root:string){
+export function instrumentNativeCanon(root:string,extended=false){
  const hash=(text:string)=>createHash('sha256').update(text).digest('hex')
  const mapping=[
   {id:1,file:'kernel/kernel.ts',name:'canon.lookup',kind:'WeakMap.get'},
@@ -24,8 +24,14 @@ export function instrumentNativeCanon(root:string){
   {id:14,file:'core/solver.ts',name:'solver.canon.map',kind:'Array.map'},
   {id:15,file:'core/solver.ts',name:'solver.canon.stringify',kind:'JSON.stringify'}
  ]
+ if(extended)mapping.push(
+  {id:16,file:'core/counts.ts',name:'counts.json',kind:'JSON.stringify'},
+  {id:17,file:'core/counts.ts',name:'certFor.sort',kind:'Array.sort'},
+  {id:18,file:'core/machine.ts',name:'walkOnce.lookup',kind:'Set.has'},
+  {id:19,file:'core/machine.ts',name:'walkOnce.remember',kind:'Set.add'},
+  {id:20,file:'core/machine.ts',name:'walkOnce.values',kind:'Object.values'})
  const results=[]
- for(const path of ['kernel/kernel.ts','core/solver.ts']){
+ for(const path of ['kernel/kernel.ts','core/solver.ts',...(extended?['core/counts.ts','core/machine.ts']:[])]){
   const full=join(root,path),before=readFileSync(full,'utf8');let after=before
   const replace=(old:string,next:string)=>{assert.equal(after.split(old).length,2,'exact unique anchor: '+old);after=after.replace(old,next)}
   if(path==='kernel/kernel.ts'){
@@ -37,7 +43,15 @@ export function instrumentNativeCanon(root:string){
    replace("flipMemo.set(lin, (out = parts.join(',')))", "nativeMethod(11, flipMemo, 'set', () => [lin, (out = nativeMethod<string>(10, parts, 'join', () => [',']))])")
    replace('  return out\n}\n// canon(1', '  return out!\n}\n// canon(1')
    replace('  return out\n}\nexport const atomOf', '  return out!\n}\nexport const atomOf')
-  }else replace('export const canon = (l: Lin) => JSON.stringify(Object.keys(l).sort().map(x => [x, l[x]]))',"export const canon = (l: Lin) => nativeMethod<string>(15, JSON, 'stringify', () => [nativeMethod<unknown[]>(14, nativeMethod<string[]>(13, nativeMethod<string[]>(12, Object, 'keys', () => [l]), 'sort', () => []), 'map', () => [(x: string) => [x, l[x]]])])")
+  }else if(path==='core/solver.ts') replace('export const canon = (l: Lin) => JSON.stringify(Object.keys(l).sort().map(x => [x, l[x]]))',"export const canon = (l: Lin) => nativeMethod<string>(15, JSON, 'stringify', () => [nativeMethod<unknown[]>(14, nativeMethod<string[]>(13, nativeMethod<string[]>(12, Object, 'keys', () => [l]), 'sort', () => []), 'map', () => [(x: string) => [x, l[x]]])])")
+  else if(path==='core/counts.ts'){
+   replace('const json = (t: unknown) => JSON.stringify(t)', "const json = (t: unknown) => nativeMethod<string>(16, JSON, 'stringify', () => [t])")
+   replace('const rs = all0.sort((x, y) => rank(x) - rank(y))', "const rs = nativeMethod<typeof all0>(17, all0, 'sort', () => [(x: [string,E], y: [string,E]) => rank(x) - rank(y)])")
+  }else{
+   replace("if (!x || typeof x !== 'object' || seen.has(x)) return", "if (!x || typeof x !== 'object' || nativeMethod<boolean>(18, seen, 'has', () => [x])) return")
+   replace('seen.add(x); f(x)', "nativeMethod(19, seen, 'add', () => [x]); f(x)")
+   replace('for (const y of Object.values(x)) go(y)', "for (const y of nativeMethod<unknown[]>(20, Object, 'values', () => [x])) go(y)")
+  }
   after="import {nativeMethod} from '../research/lane-i/f3/native-spans.ts'\n"+after
   writeFileSync(full,after);results.push({path,before:hash(before),after:hash(after)})
  }

@@ -20,5 +20,12 @@ const before=rawWork(),results=[]
 for(const lin of inputs)for(const fn of [canon,canonFlip,solverCanon])for(let repetition=0;repetition<2;repetition++){
  try{results.push({ok:true,value:fn(lin)})}catch(error){results.push({ok:false,error:String(error)})}
 }
+const {walkOnce}=await import(resolve(root,'core/machine.ts'))
+const {certFor}=await import(resolve(root,'core/counts.ts'))
+const leaf={tag:'leaf'},graph:any={tag:'root',children:[leaf,leaf]};graph.self=graph
+const visited:string[]=[];walkOnce(graph,(o:any)=>visited.push(Array.isArray(o)?'array':o.tag));results.push({walk:visited})
+const decls=[{map:'Rows',below:{op:'const',value:3},j:'j',key:'key',body:{op:'var',name:'key'}}]
+const goal={hyps:[{op:'<=',a:{op:'get',map:'Rows',key:{op:'var',name:'x'}},b:{op:'const',value:2}}]}
+for(const wide of [false,true])for(const most of [0,5,24])results.push({wide,most,certificate:certFor(goal,decls,wide,most,()=>true)})
 const after=rawWork(),raw=Object.fromEntries(workKeys.map((key:string)=>[key,after[key]-before[key]]))
 console.log('NATIVE_CANON_PROBE '+JSON.stringify({on,results,calls,raw,span:readNativeSpan(shared)}))

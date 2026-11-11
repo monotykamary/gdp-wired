@@ -14,7 +14,15 @@ sort, map, join, and JSON serialization. It is now wired into the Node sampler. 
 original MLDR raw vector, verdict and exclusive phase totals, and had three
 timestamp-valid stable windows, but the 10-million-span guard saturated before
 attribution (zero accepted operation windows). The guard therefore failed
-closed. The 100-million-span follow-up (`20261111-015254-rydo8b`) completed\nwithout overflow: 31,172,052 spans, five timestamp-valid stable windows and\neleven changed windows, with unchanged raw counters/verdict/exclusive phase\ntotals. One ~304 ms stable window identifies the `canonFlip` cache insertion\n`flipMemo.set` (`WeakMap.set`). Four others remain unattributed: two `certFor`,\ntwo tree-walker `go` frames. The audit is `runs/lane-i/native-profile-100m/audit.log`.\nOne invalid profile was excluded, with only hash/size metadata retained\nbecause its complete payload exceeded the diagnostic log limit. No full F3\nor exact-native-instruction claim is made. A future accepted window must retain the timestamp test,
+closed. The 100-million-span follow-up (`20261111-015254-rydo8b`) completed
+without overflow: 31,172,052 spans, five timestamp-valid stable windows and
+eleven changed windows, with unchanged raw counters/verdict/exclusive phase
+totals. One ~304 ms stable window identifies the `canonFlip` cache insertion
+`flipMemo.set` (`WeakMap.set`). Four others remain unattributed: two `certFor`,
+two tree-walker `go` frames. The audit is `runs/lane-i/native-profile-100m/audit.log`.
+One invalid profile was excluded, with only hash/size metadata retained
+because its complete payload exceeded the diagnostic log limit. No full F3
+or exact-native-instruction claim is made. A future accepted window must retain the timestamp test,
 raw-heartbeat fence, stable operation sequence and source hash together. A
 span can contain callbacks, reflection overhead or GC; it identifies the
 invocation boundary, not an exact native instruction. This does not close F3.
