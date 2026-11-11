@@ -1,0 +1,23 @@
+
+--- stderr ---
+ 7 | const input=resolve('port-input'),target=process.argv[2],roots:Record<string,string>={}
+ 8 | if(!['star','row'].includes(target!))throw Error('unknown B9 target')
+ 9 | function run(command:string,args:string[],cwd:string,env=process.env){const r=spawnSync(command,args,{cwd,env,encoding:'utf8',timeout:600000,maxBuffer:32*1024*1024});if(r.status!==0||r.error)throw Error(`${command}: ${r.status} ${r.error} ${r.stderr}\n${r.stdout}`);return r.stdout}
+10 | try{
+11 |  const manifest=JSON.parse(readFileSync(join(input,'manifest.json'),'utf8'))
+12 |  for(const packet of manifest.packets){const bytes=gunzipSync(readFileSync(join(input,packet.file)));a.equal(createHash('sha256').update(bytes).digest('hex'),packet.sha256);a.equal(bytes.length,packet.bytes);writeFileSync(join(input,packet.file.replace(/\.gz$/,'')),bytes)}
+                                                                                                                                                                                    ^
+AssertionError: Expected values to be strictly equal:
+
+677050 !== 676798
+
+ generatedMessage: true,
+     actual: 677050,
+   expected: 676798,
+   operator: "strictEqual",
+       diff: "simple",
+       code: "ERR_ASSERTION"
+
+      at /work/gdp-wired/port-input/replay-pair.ts:12:176
+
+Bun v1.4.3 (Linux x64)

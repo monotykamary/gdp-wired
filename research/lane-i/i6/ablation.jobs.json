@@ -1,0 +1,82 @@
+[
+  {
+    "name": "client_server_ae-on-15000000",
+    "cmd": "bun port-input/run-ablation.ts client_server_ae 15000000 on",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 700,
+    "vm_type": "large"
+  },
+  {
+    "name": "client_server_ae-off-15000000",
+    "cmd": "bun port-input/run-ablation.ts client_server_ae 15000000 off",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 700,
+    "vm_type": "large"
+  },
+  {
+    "name": "client_server_ae-on-1000000000000",
+    "cmd": "bun port-input/run-ablation.ts client_server_ae 1000000000000 on",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 700,
+    "vm_type": "large"
+  },
+  {
+    "name": "client_server_ae-off-1000000000000",
+    "cmd": "bun port-input/run-ablation.ts client_server_ae 1000000000000 off",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 700,
+    "vm_type": "large"
+  },
+  {
+    "name": "client_server_ae-shadow-1000000000000",
+    "cmd": "bun port-input/run-ablation.ts client_server_ae 1000000000000 shadow",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 700,
+    "vm_type": "large"
+  },
+  {
+    "name": "simple_election-on-15000000",
+    "cmd": "bun port-input/run-ablation.ts simple_election 15000000 on",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 700,
+    "vm_type": "large"
+  },
+  {
+    "name": "simple_election-off-15000000",
+    "cmd": "bun port-input/run-ablation.ts simple_election 15000000 off",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 700,
+    "vm_type": "large"
+  },
+  {
+    "name": "simple_election-on-1000000000000",
+    "cmd": "bun port-input/run-ablation.ts simple_election 1000000000000 on",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 700,
+    "vm_type": "large"
+  },
+  {
+    "name": "simple_election-off-1000000000000",
+    "cmd": "bun port-input/run-ablation.ts simple_election 1000000000000 off",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 700,
+    "vm_type": "large"
+  },
+  {
+    "name": "simple_election-shadow-1000000000000",
+    "cmd": "bun port-input/run-ablation.ts simple_election 1000000000000 shadow",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 700,
+    "vm_type": "large"
+  }
+]

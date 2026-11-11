@@ -1,0 +1,20 @@
+{
+ "admission-native-finite": {
+  "vm": "bx_ugy2dffp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "admission-native-compiled": {
+  "vm": "bx_8cgfdm3x",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}

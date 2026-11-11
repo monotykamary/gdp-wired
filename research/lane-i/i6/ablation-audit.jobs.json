@@ -1,0 +1,10 @@
+[
+  {
+    "name": "i6-ablation-audit",
+    "cmd": "bun audit-code/ablation-audit.ts ablation-data census-data 1066f26766d6bfd628c8ef9de92bc626357b01c1",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 120,
+    "vm_type": "large"
+  }
+]

@@ -1,0 +1,20 @@
+{
+ "i6-census-audit": {
+  "vm": "bx_ugy2dffp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 2,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 3
+ },
+ "i6-census-diagnostic": {
+  "vm": "bx_gyhvpms6",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 2,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 3
+ }
+}

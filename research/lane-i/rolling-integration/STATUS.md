@@ -6,7 +6,7 @@ Imported `core/count-tier-budget.ts` and its test **byte-for-byte from `620a3596
 
 This is the **helper dependency layer**, not a claim that the whole A generation pipeline is integrated: the current common `counts.ts` does not yet call it. The generation/strategy dispatcher dependency closure is requested from A. No A prover or kernel subtree is restored.
 
-Own integration tests/type/roster gate pending. New I6/performance tests are explicitly scheduled alongside the helper test in the quick roster.
+Own native gate: 144 tests / 1,900 assertions passed at `320092ba` (batch `20261111-043133-w0ds1q`), and type/lint passed across 1,796 files. The roster guard then exposed five inherited omitted tests; `f7edaefb` registers those without changing their contents. Roster plus type/lint rerun passes at `f7edaefb`, batch `20261111-043335-0tudck`; AST erasure and the other 132 identities/prover body remain exact. Receipts are under `results/`. This is a local helper-layer integration gate, not D approval of the full composition.
 
 ## B/F
 

@@ -1,0 +1,92 @@
+{
+ "client_server_ae-on-15000000": {
+  "vm": "bx_b4jstcxp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "client_server_ae-off-15000000": {
+  "vm": "bx_q6g5us7q",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "client_server_ae-on-1000000000000": {
+  "vm": "bx_xt6k487x",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "client_server_ae-off-1000000000000": {
+  "vm": "bx_d5bzbnge",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "client_server_ae-shadow-1000000000000": {
+  "vm": "bx_ugy2dffp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "simple_election-on-15000000": {
+  "vm": "bx_qukfeps3",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "simple_election-off-15000000": {
+  "vm": "bx_scwdy9hk",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "simple_election-on-1000000000000": {
+  "vm": "bx_48zyya99",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "simple_election-off-1000000000000": {
+  "vm": "bx_mvd859x6",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "simple_election-shadow-1000000000000": {
+  "vm": "bx_c2gf43ew",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ }
+}

@@ -1,0 +1,18 @@
+[
+  {
+    "name": "i6-census-audit",
+    "cmd": "bun audit-code/census-audit.ts census-new census-before census-before 1066f26766d6bfd628c8ef9de92bc626357b01c1",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "i6-census-diagnostic",
+    "cmd": "bun audit-code/census-diagnostic.ts census-new census-before census-before 1066f26766d6bfd628c8ef9de92bc626357b01c1",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 180,
+    "vm_type": "large"
+  }
+]

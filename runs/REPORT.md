@@ -1,21 +1,30 @@
-# LATEST — admission optimization measured; I6 coverage patch in gate
+# LATEST — native admission speedup measured; I6 observation-gated
 
-Active source `3281eb7f` descends from `00b58ee5`. The admission-only patch keeps
-per-node checks and exact weighted sums; same-VM ABBA micro wall falls from
-1,618.14 to 23.36 ms for identical 1.8M evaluations / 36,000 units. Native paired
-workloads are still running; this is not yet a whole-proof speedup claim.
+Admission-only source `3d0256f0` against `00b58ee5`: same-VM native ABBA
+finite wall 238,301.09 -> 14,491.01 ms (16.44x) at identical 5,246,726.06 units;
+compiled wall 374,287.09 -> 14,999.52 ms (24.95x) at identical 6,372,169.16 units.
+Raw vectors and native results match exactly. No batching or price change;
+these are measured workloads, not a final-source calibration. See
+`research/lane-i/admission-perf/RESULT.md` and `results/native/`.
 
-I6 wires the three dead columns at actual work sites: `tableCells`, `checkSteps`,
-`cubeTests`. Raw observers have no budget callback or proof decision. Two
-admitted identities change (`core/check.ts`, `kernel/kernel.ts`), explicitly
-PENDING-D with an AST-erasure gate. No old bound or calibration is asserted for
-this newly counted work before revalidation. B9 source/approved dependency
-closure is needed for integrated Inv*/K3 tail measurements; A/B/F integration
-requests are active. Details: `research/lane-i/admission-perf/STATUS.md` and
-`research/lane-i/i6/STATUS.md`.
+I6 source `1066f267` adds actual `tableCells`, `checkSteps`, `cubeTests` writers.
+121 tests / 1,356 assertions and 1,791-file static pass; AST-erased checker
+algorithms, other 132 identities and prover body exact. Census: 10 checked
+proofs / 18 unknown; all 28 flags-off receipts exact and zero forbidden reads.
+`simple_election` and `client_server_ae` change budgeted verdicts. Ten same-source
+controls identify accounting-driven local/outer stops, not persistent proof
+failure: both prove with writers on at a lifted cap; shadow/off old vectors and
+normalized results match. See `i6/CAUSAL.md`.
+`sharded_kv` reaches 15,120,328.2561, violating the previous 1,024 slack.
+**Observation-gated, not accepted; no calibrated W or no-loss claim.**
+B's exact B9 capture `cace38bc` is now available for native Inv*/K3 check replays.
 
-D independently GREENed the **scoped base** `00b58ee5` in `f95b8061`; final
-coverage/calibration remains blocked by I6 and the final integrated pin.
+Scoped A helper integration: `320092ba` imports the exact `620a3596` helper
+and tests (D gate `12cfdab4`), not its missing generation-dispatch closure.
+144 tests / 1,900 assertions pass; `f7edaefb` fixes inherited roster omissions
+and passes roster/static (1,796 files). B/F RED payloads are not promoted.
+See `research/lane-i/rolling-integration/STATUS.md` for scope and gate receipts.
+Final D composition approval and calibration remain outstanding.
 
 # Previous — combined counter/hard-cap candidate ready for D review
 

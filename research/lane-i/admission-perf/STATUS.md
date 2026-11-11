@@ -13,6 +13,6 @@ Pilot batch `20261111-041441-kni4ly`, logs `runs/lane-i/admission-pilot`:
 - Mean 69.26x speedup: microbenchmark only, not whole-proof speedup.
 - The pilot static failure was harness-only (untyped/nullable sample array); corrected by `1066f267`. Full type/lint now passes over 1,791 files with I6 present. Both failed logs are retained.
 
-Native finite/compiled ABBA pairs on the unchanged hash-bound MLDR fixture are running: batch `20261111-041759-v2imrf`, task `c699fa43-45eb-4498-b09c-540e6fbb8358`, output `runs/lane-i/admission-native`. Raw vectors, results, profile and units compared exactly. No native speedup claim yet.
+Native finite/compiled ABBA pairs are complete: batch `20261111-041759-v2imrf`, source `3d0256f0`. Finite mean 238,301.09 -> 14,491.01 ms (16.44x) at identical 5,246,726.06 units; compiled mean 374,287.09 -> 14,999.52 ms (24.95x) at identical 6,372,169.16 units. Raw vectors, results, profile and units match exactly. See `RESULT.md` and `results/native/` for samples and same-VM Ryzen 7 9700X receipts.
 
 D base gate `f95b8061` does not automatically admit this patch or I6. Rolling A/B/F overlay waits for approved prerequisite closures. No main merge/push.

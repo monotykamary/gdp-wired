@@ -1,11 +1,15 @@
 import {strict as a} from 'node:assert'
-import {readFileSync,mkdtempSync,rmSync} from 'node:fs'
+import {readFileSync,writeFileSync,mkdtempSync,rmSync} from 'node:fs'
+import {gunzipSync} from 'node:zlib'
+import {createHash} from 'node:crypto'
 import {join,resolve} from 'node:path'
 import {spawnSync} from 'node:child_process'
 const input=resolve('port-input'),target=process.argv[2],roots:Record<string,string>={}
 if(!['star','row'].includes(target!))throw Error('unknown B9 target')
 function run(command:string,args:string[],cwd:string,env=process.env){const r=spawnSync(command,args,{cwd,env,encoding:'utf8',timeout:600000,maxBuffer:32*1024*1024});if(r.status!==0||r.error)throw Error(`${command}: ${r.status} ${r.error} ${r.stderr}\n${r.stdout}`);return r.stdout}
 try{
+ const manifest=JSON.parse(readFileSync(join(input,'manifest.json'),'utf8'))
+ for(const packet of manifest.packets){const bytes=gunzipSync(readFileSync(join(input,packet.file)));a.equal(createHash('sha256').update(bytes).digest('hex'),packet.sha256);a.equal(bytes.toString('utf8').length,packet.bytes);console.log('I6_CAPTURE_BIND '+JSON.stringify({file:packet.file,sha256:packet.sha256,utf8Bytes:bytes.length,producerCodeUnits:packet.bytes}));writeFileSync(join(input,packet.file.replace(/\.gz$/,'')),bytes)}
  for(const tag of ['baseline','candidate']){const root=roots[tag]=mkdtempSync('/tmp/i6-replay-'+tag+'-');run('tar',['-xf',join(input,tag==='baseline'?'baseline.tar':'source.tar'),'-C',root],root);for(const vendor of ['gdp-ts','handwired'])run('tar',['-xf',join(input,vendor+'.tar'),'-C',root],root);run('bun',['install','--frozen-lockfile'],root)}
  type Row={tag:string,target:string,phase:string,inputSha:string,checked:boolean,wallMs:number,units:number,raw:Record<string,number>}
  const rows:Row[]=[],hosts:{bootId:string,models:string[]}[]=[]

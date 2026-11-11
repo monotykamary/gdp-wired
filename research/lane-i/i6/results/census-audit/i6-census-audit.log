@@ -1,0 +1,20 @@
+
+--- stderr ---
+21 |  const units=keys.reduce((n,k,i)=>n+r.raw[k]*(i<12?legacy[i]!:r.weights[k]),0);near(units,r.units)
+22 |  for(const k of native){coverage[k]+=r.raw[k];a.equal(off.raw[k],0);a.equal(off.searchRaw[k],0);for(const p of off.phases){a.equal(p.raw[k],0);a.equal(p.exclusiveRaw[k],0)}}
+23 |  a.deepEqual(normalize(off),normalize(oldOff),'flags-off drift '+id)
+24 |  a(!r.result.error,JSON.stringify(r.result));a.notEqual(r.result.verdict,'refuted');if(before.result.proven){a(r.result.proven&&r.result.checked,id);a.deepEqual(r.result,before.result,id)}
+25 |  if(r.result.proven){a(r.result.checked);proved++}else{a.equal(r.result.verdict,'unknown');unknown++}
+26 |  a(r.searchUnits<=15001024,JSON.stringify({id,units:r.searchUnits}));maxUnits=Math.max(maxUnits,r.searchUnits)
+      ^
+AssertionError: {"id":"sharded_kv","units":15120328.2561}
+ generatedMessage: false,
+     actual: false,
+   expected: true,
+   operator: "==",
+       diff: "simple",
+       code: "ERR_ASSERTION"
+
+      at /work/gdp-wired/audit-code/census-audit.ts:26:2
+
+Bun v1.4.3 (Linux x64)

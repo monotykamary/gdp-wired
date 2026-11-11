@@ -1,0 +1,10 @@
+[
+  {
+    "name": "a-helper-roster-static",
+    "cmd": "bun port-input/verify.ts check",
+    "cpu": 8,
+    "memory": 16384,
+    "timeout": 1200,
+    "vm_type": "xlarge"
+  }
+]

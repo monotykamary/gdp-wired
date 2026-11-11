@@ -1,0 +1,20 @@
+{
+ "i6-replay-star": {
+  "vm": "bx_q6g5us7q",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 6,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "i6-replay-row": {
+  "vm": "bx_qukfeps3",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 6,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}

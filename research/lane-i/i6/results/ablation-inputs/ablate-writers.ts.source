@@ -1,0 +1,38 @@
+// Disposable diagnostic only: same archived source; never a calibration receipt.
+import {createHash} from 'node:crypto'
+import {readFileSync,writeFileSync} from 'node:fs'
+import {join} from 'node:path'
+import {gzipSync} from 'node:zlib'
+const [root,id,wText,mode,file,source]=process.argv.slice(2),allowance=Number(wText)
+if(!root||!id||!file||!['on','off','shadow'].includes(mode!))throw Error('invalid ablation')
+const keys3=['tableCells','checkSteps','cubeTests'],shadow:Record<string,number>={tableCells:0,checkSteps:0,cubeTests:0}
+const {coreMeter}=await import(join(root,'core/meter.ts'))
+let policy:(()=>any)|undefined,busy=false
+const crossings:any[]=[],seen=new Set<string>()
+const note=()=>{if(!policy||busy)return;busy=true;try{const p=policy();if(p.clock>p.deadline&&Number.isFinite(p.deadline)&&!seen.has(String(p.deadline))&&crossings.length<64){seen.add(String(p.deadline));crossings.push(p)}}finally{busy=false}}
+for(const key of keys3){let value=coreMeter[key];Object.defineProperty(coreMeter,key,{configurable:true,enumerable:true,get:()=>mode==='on'?value:0,set:(next:number)=>{if(mode==='on')value=next;else if(mode==='shadow')shadow[key]+=next;note()}})}
+const {proveRule}=await import(join(root,'core/dsl.ts'))
+const {protocols}=await import(join(root,'research/protocols/ic3syn/models.ts'))
+const {countsDump}=await import(join(root,'core/counts.ts'))
+const {rawWork,fullWork,weightedWork,completeWorkWeights}=await import(join(root,'core/work-meter.ts'))
+const {withWorkLedger,workPhase}=await import(join(root,'core/work-ledger.ts'))
+const {queryHook,clock,budgetEnd,withinDeadline,remainingWork}=await import(join(root,'kernel/prove.ts'))
+const actual=()=>({...rawWork(),...(mode==='shadow'?shadow:{})})
+const old=(r:any)=>({...r,tableCells:0,checkSteps:0,cubeTests:0})
+const subtract=(a:any,b:any)=>Object.fromEntries(Object.keys(a).map(k=>[k,a[k]-b[k]]))
+const initial=actual(),chargedStart=fullWork(),events:any[]=[],queries:any[]=[],phases:any[]=[]
+policy=()=>({clock:clock(),deadline:withinDeadline(Infinity),budgetEnd:budgetEnd(),remaining:remainingWork(),chargedUnits:fullWork()-chargedStart,oldUnits:weightedWork(old(subtract(actual(),initial))),raw:subtract(actual(),initial),lastEvent:events.at(-1)?.phase,lastQuery:queries.at(-1)?.goal})
+const compact=(event:any)=>Object.fromEntries(Object.entries(event).filter(([key,value])=>!['machine','laws','rawGoal','decls','certificateRequest','goal','witness','path','hyps'].includes(key)&&(value===null||['string','number','boolean'].includes(typeof value))))
+countsDump.on=(event:any)=>events.push({...compact(event),...policy!()})
+queryHook.on=(q:any)=>queries.push({kind:q.kind,goal:q.goal?.name,depth:q.depth,status:'tree'in q.out?'proposed':q.out.stuck,why:q.out.why,nodes:q.out.nodes,...policy!()})
+const p=protocols.find((p:any)=>p.id===id);if(!p)throw Error('unknown model')
+const gate=(globalThis as any).commonCensusClock;if(gate)gate.active=true
+let result:any,error:any,searchBefore:any,searchAfter:any,chargedBefore=0,chargedAfter=0
+withWorkLedger('ablation:'+id,(phase:any)=>phases.push(phase),()=>{try{const rule=workPhase('protocol.construct',()=>p.make()),laws=workPhase('protocol.laws',()=>p.laws(rule));searchBefore=actual();chargedBefore=fullWork();try{result=workPhase('rule.prove',()=>proveRule(rule,laws,{search:{work:allowance}}))}finally{searchAfter=actual();chargedAfter=fullWork()}}catch(e){error={name:(e as Error).name,message:(e as Error).message,stack:(e as Error).stack}}})
+if(gate)gate.active=false
+const raw=subtract(searchAfter??actual(),searchBefore??initial),oldUnits=weightedWork(old(raw)),actualUnits=weightedWork(raw)
+const normalize=(v:any):any=>Array.isArray(v)?v.map(normalize):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).filter(([k])=>!['ms','wallMs','elapsedMs','stats','units'].includes(k)).map(([k,x])=>[k,normalize(x)])):v
+const brief={verdict:error?'error':result?.proven&&result?.checked?'proven':result?.run?'refuted':'unknown',proven:!!result?.proven,checked:!!result?.checked,why:result?.why,stuck:result?.stuck,found:result?.found?.laws?.map((l:any)=>l.source??l.text),error}
+const receipt={schema:'i6-writer-ablation-v1',diagnosticOnly:true,source,id,mode,allowance,weights:completeWorkWeights(),writerPolicy:mode==='shadow'?'writers counted separately; clock sees old projection':mode,clockReads:gate?.reads,result:brief,semanticHash:createHash('sha256').update(JSON.stringify(normalize(result??error))).digest('hex'),raw,chargedUnits:chargedAfter-chargedBefore,actualUnits,oldUnits,addedUnits:actualUnits-oldUnits,crossings,events,queries,phases,sourceDigest:createHash('sha256').update(readFileSync(join(root,'kernel/kernel.ts'))).digest('hex')}
+writeFileSync(file,gzipSync(JSON.stringify(receipt)))
+console.log('I6_ABLATION '+JSON.stringify({...receipt,phases:undefined,events:undefined,queries:undefined,crossings:crossings.map(({raw,...p})=>p)}))
