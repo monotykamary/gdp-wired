@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "sourceTree": "8e367451ea30ed075d2f95e92660fb02e45ba459",
+  "exactNormalizedPairs": 28,
+  "checked": 27,
+  "unknown": 1,
+  "protectedFiles": 181,
+  "verifiedFiles": 121,
+  "scope": "All original non-MLDR protocols; extra29th MLDR legacy control still running separately",
+  "snapshotSHA256": "5bb481c31978c30e747fb81d6b3372a56a394b16a155272471c13d2d2ee27a41",
+  "noProofRerun": true
+}

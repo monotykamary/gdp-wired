@@ -1,0 +1,10 @@
+[
+  {
+    "name": "strict-originals-commitlint",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 180,
+    "vm_type": "large",
+    "cmd": "set -euo pipefail; temp=$(mktemp -d); trap 'rm -rf \"$temp\"' EXIT; printf '{\"private\":true}\\n' > \"$temp/package.json\"; (cd \"$temp\" && bun add --dev @commitlint/cli @commitlint/config-conventional >/dev/null); printf \"module.exports={extends:['@commitlint/config-conventional']};\\n\" > \"$temp/commitlint.config.cjs\"; sha256sum message-input/COMMIT.txt; \"$temp/node_modules/.bin/commitlint\" --cwd \"$temp\" < message-input/COMMIT.txt; \"$temp/node_modules/.bin/commitlint\" --config research/egraph/historical/commitlint.config.cjs < message-input/COMMIT.txt; echo BOTH_COMMITLINT_PASS"
+  }
+]

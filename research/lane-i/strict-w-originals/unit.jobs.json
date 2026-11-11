@@ -1,0 +1,10 @@
+[
+  {
+    "name": "strict-originals-unit",
+    "cmd": "bun port-input/gate-unit.ts",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

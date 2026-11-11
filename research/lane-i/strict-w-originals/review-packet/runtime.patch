@@ -1,0 +1,159 @@
+diff --git a/core/evaluation-admission.ts b/core/evaluation-admission.ts
+new file mode 100644
+index 00000000..86eb267f
+--- /dev/null
++++ b/core/evaluation-admission.ts
+@@ -0,0 +1,46 @@
++// Untrusted evaluator admission. Permission is not a raw charge and does not
++// enlarge a root. Keep this separate from the dependency-free interpreter hook.
++import {coreMeter} from './meter.ts'
++import {costs} from './solver.ts'
++import {eprMeter} from '../kernel/epr.ts'
++import {budgetEnd,inBudget} from './wall.ts'
++import {rawWork,type RawWork} from './work-meter.ts'
++import {completeWorkProfile} from './work-profile.ts'
++import {runtimeWall} from './runtime-wall.ts'
++import {evaluationAdmissionHook} from './work-observe.ts'
++function sameOtherWork(w: RawWork): boolean {
++  return w.fm === costs.fm && w.fcells === costs.fcells && w.plainRows === costs.plainRows
++    && w.values === costs.values && w.copies === costs.copies && w.edges === costs.edges
++    && w.scan === costs.scan && w.pivotRows === costs.pivotRows && w.unitRows === costs.unitRows
++    && w.unfoldRows === costs.unfoldRows && w.goalNodes === costs.goalNodes && w.translateRows === costs.translateRows
++    && w.tableCells === coreMeter.tableCells && w.checkSteps === coreMeter.checkSteps && w.astNodes === coreMeter.astNodes
++    && w.cubeTests === coreMeter.cubeTests && w.ticks === coreMeter.ticks && w.cdclNodes === costs.cdclNodes
++    && w.epr === eprMeter.n && w.tinyNodes === coreMeter.tinyNodes && w.tinyTerms === coreMeter.tinyTerms
++    && w.reachStates === coreMeter.reachStates && w.reachEdges === coreMeter.reachEdges
++    && w.reachEvals === coreMeter.reachEvals && w.reachCompiledEvals === coreMeter.reachCompiledEvals
++}
++export function withEvaluationAdmission<T>(run: () => T): T {
++  if (!completeWorkProfile.enabled || !inBudget()) return run()
++  const previous = {...evaluationAdmissionHook}, priorAdmit = runtimeWall.admit
++  previous.invalidate?.()
++  let credit = 0, end = budgetEnd(), other = rawWork(), expected = coreMeter.evals
++  const invalidate = () => { credit = 0 }
++  runtimeWall.admit = (units, phase) => { invalidate(); priorAdmit?.(units, phase) }
++  evaluationAdmissionHook.invalidate = invalidate
++  evaluationAdmissionHook.admit = count => {
++    if (count !== 1 && (!Number.isSafeInteger(count) || count < 0)) throw new RangeError('invalid evaluation count')
++    if (end !== budgetEnd() || expected !== coreMeter.evals || !sameOtherWork(other)) credit = 0
++    if (credit < count) {
++      const weight = completeWorkProfile.weights.evals
++      const maximum = Math.max(count, Math.max(1, Math.min(256, Math.floor(256 / weight))))
++      const block = (runtimeWall.remaining?.() ?? Infinity) >= maximum * weight ? maximum : count
++      runtimeWall.admit?.(block * weight, 'model evaluations')
++      credit = block; other = rawWork(); end = budgetEnd()
++    }
++    credit -= count; expected = coreMeter.evals + count
++  }
++  try { return run() } finally {
++    credit = 0; evaluationAdmissionHook.admit = previous.admit; evaluationAdmissionHook.invalidate = previous.invalidate
++    runtimeWall.admit = priorAdmit; previous.invalidate?.()
++  }
++}
+diff --git a/core/infer.ts b/core/infer.ts
+index df7164dc..8b549e2f 100644
+--- a/core/infer.ts
++++ b/core/infer.ts
+@@ -34,6 +34,7 @@ import {searchNow as countedSearchNow, checkWorkEndpoint} from './wall.ts'
+ //     is the answer, after each chosen candidate the proof doesn't need is taken out again
+ import {quietly} from './cyclic.ts'
+ import {observeCubeTest} from './meter.ts'
++import {withEvaluationAdmission} from './evaluation-admission.ts'
+ import {bitIntersection, bitIntersects} from './bitsets.ts'
+ import {samplePredicates, sampleStateText} from './sample-cache.ts'
+ import {sampleStep} from './sample-step.ts'
+@@ -679,6 +680,9 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
+   return withTrees(() => quietly(() => withDeadline(clock() + (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - countedSearchNow())), () => inferLawsSearch(target, laws, stepLaws, opts))))
+ }
+ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
++  return withEvaluationAdmission(() => inferLawsSearchIn(target, laws, stepLaws, opts))
++}
++function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[], opts: InferOptions): Inferred {
+   checkWorkEndpoint('inference entry')
+   // (GDP_INFER_TRACE=2: each phase's progress too, to stderr)
+   if (env.GDP_INFER_TRACE === '2' && !opts.progress) opts = {...opts, progress: (phase, info) => (globalThis as unknown as {process: {stderr: {write: (s: string) => void}}}).process.stderr.write(`[infer ${phase}] ${JSON.stringify(info)}\n`)}
+diff --git a/core/prover-row-budget.ts b/core/prover-row-budget.ts
+index 408442bf..b9836bf3 100644
+--- a/core/prover-row-budget.ts
++++ b/core/prover-row-budget.ts
+@@ -4,6 +4,7 @@ import {type C} from './machine.ts'
+ import {type Constraint,type Lin,k,scale,sub,v} from './solver.ts'
+ import {observeConstraintRows,observeTableCells} from './meter.ts'
+ import {checkWorkEndpoint} from './wall.ts'
++import {withTableAdmission} from './table-admission.ts'
+ import {type Goal,type Path,type Seen,atomOf,canon,canonFlip,cellParts,facts,isCell,reusing,termRows,truth} from '../kernel/kernel.ts'
+ const seenFacts=new WeakMap<Goal,Map<C,Seen<Lin[]>>>()
+ function proposedFacts(c:C,path:Path,positive=true):Lin[]{
+@@ -34,6 +35,9 @@ function sameKey(p:ReturnType<typeof cellParts>,q:ReturnType<typeof cellParts>,p
+  return!!p.keys&&!!q.keys&&p.keys.length===q.keys.length&&p.keys.every((a,i)=>zero(a,q.keys![i]!))
+ }
+ export function budgetedLeafRows(goal:Goal,path:Path):Constraint[]{
++ return withTableAdmission(()=>budgetedLeafRowsIn(goal,path))
++}
++function budgetedLeafRowsIn(goal:Goal,path:Path):Constraint[]{
+  let byHyp=seenFacts.get(goal);if(!byHyp)seenFacts.set(goal,(byHyp=new Map()))
+  const rows:Constraint[]=[]
+  // Charge each completed row now: cancellation must not discard a batch's
+diff --git a/core/watch.ts b/core/watch.ts
+index 129a8824..0c03f536 100644
+--- a/core/watch.ts
++++ b/core/watch.ts
+@@ -11,6 +11,7 @@ import {type C, type E, type Law, type Machine, type Request, type State, carrie
+ import type {StepLaw} from '../kernel/kernel.ts'
+ import {someHolds} from './exists.ts'
+ import {checkWall, inBudget, checkWorkEndpoint} from './wall.ts'
++import {withEvaluationAdmission} from './evaluation-admission.ts'
+ 
+ export type Watched = Law | StepLaw
+ export const isStepLaw = (w: Watched): w is StepLaw => 'then' in w
+@@ -116,7 +117,7 @@ export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound:
+       for (const key of more.length ? [...keys[i]!, ...more] : keys[i]!) { env[names[i]!] = key; if (!go(i + 1)) return false }
+       return true
+     }
+-    return go(0)
++    return withEvaluationAdmission(() => go(0))
+   }
+   if (!isStepLaw(w)) {
+     // A law with "there exists" (core/exists.ts): broken only where no value can be a witness, as far as that is decided
+diff --git a/core/work-observe.ts b/core/work-observe.ts
+index fafb5da6..dfa7bb80 100644
+--- a/core/work-observe.ts
++++ b/core/work-observe.ts
+@@ -8,9 +8,9 @@ import {runtimeWall} from './runtime-wall.ts'
+ type NativeKey = Extract<CompleteWorkKey, 'tinyNodes' | 'tinyTerms' | 'reachStates' | 'reachEdges' | 'reachEvals' | 'reachCompiledEvals'>
+ let reachDepth = 0
+ let evaluationDepth = 0, evaluationCredit = 0
+-// Only scoped model interpretation uses this path; ordinary eval observations
+-// elsewhere and all legacy counters keep their exact behavior. A block carries
+-// at most 256 raw units of credit. Near the endpoint admit only the next visit.
++// Keep the interpreter's import leaf dependency-free. Rich search scopes install
++// the guarded amortizer; isolated model interpretation retains its small block.
++export const evaluationAdmissionHook: {admit?: (count: number) => void, invalidate?: () => void} = {}
+ function admitEvaluation(count: number): void {
+   if (count !== 1 && (!Number.isSafeInteger(count) || count < 0)) throw new RangeError('invalid evaluation count')
+   if (evaluationCredit < count) {
+@@ -27,8 +27,10 @@ function admitEvaluation(count: number): void {
+ }
+ export function withEvaluationAdmission<T>(run: () => T): T {
+   if (!completeWorkProfile.enabled) return run()
++  const priorAdmit = runtimeWall.admit
++  runtimeWall.admit = (units, phase) => { evaluationCredit = 0; priorAdmit?.(units, phase) }
+   evaluationDepth++; evaluationCredit = 0
+-  try { return run() } finally { evaluationDepth--; evaluationCredit = 0 }
++  try { return run() } finally { evaluationDepth--; evaluationCredit = 0; runtimeWall.admit = priorAdmit }
+ }
+ 
+ function charge(key: NativeKey, count: number): void {
+@@ -61,7 +63,11 @@ export function reachEdge(): void { charge('reachEdges', 1) }
+ // contract is one syntactic step-body node per invocation, not executed nodes.
+ export function observeEval(count = 1, compiled = false): void {
+   if (!completeWorkProfile.enabled || !reachDepth) {
+-    if (completeWorkProfile.enabled && evaluationDepth) admitEvaluation(count)
++    if (completeWorkProfile.enabled) {
++      if (evaluationAdmissionHook.admit) evaluationAdmissionHook.admit(count)
++      else if (evaluationDepth) admitEvaluation(count)
++      else runtimeWall.admit?.(count * completeWorkProfile.weights.evals, 'model evaluations')
++    }
+     coreMeter.evals += count; return
+   }
+   // The overwhelmingly common path is one actual expression-node visit.

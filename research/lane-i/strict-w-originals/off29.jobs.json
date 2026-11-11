@@ -1,0 +1,10 @@
+[
+  {
+    "name": "strict-originals-off29",
+    "cmd": "bun port-input/off29.ts",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "sourceCommit": "d00ad74f526337c0c2f46e6548b83bc1b6688ced",
+  "sourceTree": "8e367451ea30ed075d2f95e92660fb02e45ba459",
+  "exactNormalizedPairs": 29,
+  "strict28Exact": 28,
+  "checked": 27,
+  "unknown": 2,
+  "protectedFiles": 181,
+  "verifiedFiles": 125,
+  "scope": "Flags-off compatibility only; not a strict-W or full-mode MLDR claim. Legacy MLDR remains unchanged UNKNOWN."
+}

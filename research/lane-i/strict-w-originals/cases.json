@@ -1,0 +1,66 @@
+[
+  {
+    "id": "lock_server",
+    "actual": 15000120.686
+  },
+  {
+    "id": "lockserv_automaton",
+    "actual": 15000012.0997
+  },
+  {
+    "id": "sharded_kv",
+    "actual": 15000018.2817
+  },
+  {
+    "id": "sharded_kv_no_lost_keys",
+    "actual": 15000076.4294
+  },
+  {
+    "id": "lockserv",
+    "actual": 15000178.2075
+  },
+  {
+    "id": "simple_decentralized_lock",
+    "actual": 15000075.554
+  },
+  {
+    "id": "twophase",
+    "actual": 15000059.8476
+  },
+  {
+    "id": "two_phase_commit",
+    "actual": 15000200.9145
+  },
+  {
+    "id": "consensus_forall",
+    "actual": 15000047.48
+  },
+  {
+    "id": "client_server_ae",
+    "actual": 15000015.179999998
+  },
+  {
+    "id": "client_server_db_ae",
+    "actual": 15000194.8333
+  },
+  {
+    "id": "firewall",
+    "actual": 15000222.984000001
+  },
+  {
+    "id": "learning_switch",
+    "actual": 15000129.5555
+  },
+  {
+    "id": "learning_switch_i4",
+    "actual": 15000058.014
+  },
+  {
+    "id": "consensus_epr",
+    "actual": 15000062.379999999
+  },
+  {
+    "id": "paxos_epr",
+    "actual": 15001010
+  }
+]

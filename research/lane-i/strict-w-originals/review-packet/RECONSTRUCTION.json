@@ -1,0 +1,7 @@
+{
+  "base": "f81c2c50810052de0a33e50f18900ab12a6a1cc2",
+  "expected": "8e367451ea30ed075d2f95e92660fb02e45ba459",
+  "actual": "8e367451ea30ed075d2f95e92660fb02e45ba459",
+  "method": "git apply --cached to a disposable index; write-tree exact equality",
+  "workingTreeAndRealIndexTouched": false
+}

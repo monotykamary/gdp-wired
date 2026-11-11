@@ -1,0 +1,95 @@
+{
+  "base": "f81c2c50810052de0a33e50f18900ab12a6a1cc2",
+  "branch": "claude/strict-w-originals",
+  "worktree": "../gdp-wired-integ-strict-originals",
+  "source": "8e367451ea30ed075d2f95e92660fb02e45ba459",
+  "input": "/tmp/lane-i-strict-originals-v2.HEnCFw",
+  "tasks": [
+    {
+      "mode": "unit",
+      "details": {
+        "running": false,
+        "taskId": "e4a44f90-4d02-426d-8e6e-a7b0523e1a5f",
+        "elapsedMs": 133,
+        "logPath": "/tmp/pi-fabric-shell-c8tbKv/output.log",
+        "fullOutputPath": "/tmp/pi-fabric-shell-c8tbKv/output.log",
+        "pid": 2981632,
+        "exitCode": 0
+      }
+    },
+    {
+      "mode": "cap28",
+      "details": {
+        "running": false,
+        "taskId": "2bf5209e-98e3-45bd-9d23-b0cf3d7cf828",
+        "elapsedMs": 130,
+        "logPath": "/tmp/pi-fabric-shell-KNrTDq/output.log",
+        "fullOutputPath": "/tmp/pi-fabric-shell-KNrTDq/output.log",
+        "pid": 2981646,
+        "exitCode": 0
+      }
+    },
+    {
+      "mode": "off29",
+      "details": {
+        "running": false,
+        "taskId": "0e39630b-0f4c-41fe-a23e-4ebfe3381990",
+        "elapsedMs": 141,
+        "logPath": "/tmp/pi-fabric-shell-WIxJHf/output.log",
+        "fullOutputPath": "/tmp/pi-fabric-shell-WIxJHf/output.log",
+        "pid": 2981664,
+        "exitCode": 0
+      }
+    }
+  ],
+  "v1": {
+    "source": "fb8f2f3e0c8899233813d9694ed90496ca82b99b",
+    "task": "800ffead-479f-4b18-817e-e0f9d3a5c9af",
+    "status": "FAILED import cycle core/cyclic le before initialization; logs retained",
+    "output": "runs/lane-i/strict-originals-v1-unit"
+  },
+  "scope": "Strict-W follow-up only; frozen1Gsource unchanged",
+  "status": "ALL_GATES_PASS; runtime committed; evidence checkpoint ready",
+  "completed": {
+    "cap28": {
+      "task": "2bf5209e-98e3-45bd-9d23-b0cf3d7cf828",
+      "status": "PASS;121hashes;16closed;all28withinW;12unchanged"
+    },
+    "unit": {
+      "task": "e4a44f90-4d02-426d-8e6e-a7b0523e1a5f",
+      "status": "PASS;34executions371assertions;static;181protected;8loghashes"
+    },
+    "commitlint": {
+      "task": "a70d59d0-b10a-4eca-a832-139021d7ee10",
+      "status": "both PASS"
+    },
+    "strict28": {
+      "status": "PASS via same-file snapshot, no proof rerun",
+      "exactPairs": 28,
+      "checked": 27,
+      "unknown": 1,
+      "protectedFiles": 181,
+      "snapshotSHA256": "5bb481c31978c30e747fb81d6b3372a56a394b16a155272471c13d2d2ee27a41",
+      "verifiedFiles": 121
+    },
+    "off29": {
+      "task": "0e39630b-0f4c-41fe-a23e-4ebfe3381990",
+      "status": "PASS;125 file hashes",
+      "exactPairs": 29
+    },
+    "docsCommitlint": {
+      "task": "52d92352-cc98-4ecb-ad8d-facd3ce290b7",
+      "status": "both PASS"
+    }
+  },
+  "pending": [],
+  "commit": "d00ad74f526337c0c2f46e6548b83bc1b6688ced",
+  "extraLegacyControl": {
+    "task": "0e39630b-0f4c-41fe-a23e-4ebfe3381990",
+    "vm": "bx_8u36pteq",
+    "status": "terminal PASS:29exact pairs,27checked2unknown; no full-mode MLDR claim",
+    "deadline": "480s per measurement;1800s job;1920s wrapper",
+    "notRequiredForNonMLDRScope": true,
+    "exitCode": 0
+  }
+}

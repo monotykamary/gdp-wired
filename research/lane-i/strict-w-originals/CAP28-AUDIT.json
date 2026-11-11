@@ -1,0 +1,16 @@
+{
+  "source": "8e367451ea30ed075d2f95e92660fb02e45ba459",
+  "status": "PASS",
+  "fetchedHashes": 121,
+  "protectedFiles": 181,
+  "activeModels": 28,
+  "closedPriorNegatives": 16,
+  "unchangedInCapControls": 12,
+  "checked": 11,
+  "unknown": 17,
+  "budgetOvershoots": 0,
+  "maximumSearchUnits": 15000000,
+  "rawBucketsNeverIncreased": true,
+  "pricesUnchanged": true,
+  "scope": "active19 strict15M non-MLDR originals only; unit/off29/commitlint still pending"
+}

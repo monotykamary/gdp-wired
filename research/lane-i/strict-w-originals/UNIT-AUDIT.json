@@ -1,0 +1,14 @@
+{
+  "source": "8e367451ea30ed075d2f95e92660fb02e45ba459",
+  "status": "PASS",
+  "fullTests": 25,
+  "fullAssertions": 311,
+  "offTests": 9,
+  "offAssertions": 60,
+  "offSkipped": 16,
+  "typecheck": "PASS",
+  "typeAwareLint": "PASS;0warnings;0errors",
+  "fetchedLogHashes": 8,
+  "protectedFiles": 181,
+  "commitlint": "both PASS;messageSHA256aae91ca8d63caa2951d17ff883b4dbdbad7719e1b5700df9563752f8d1d52b88"
+}

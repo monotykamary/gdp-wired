@@ -1,0 +1,222 @@
+{
+  "status": "CLOSED_REQUIRED_NON_MLDR_GATES_ON_d00ad74f",
+  "baseline": "6115f86a8eade60c58aadf86df525548c04be6b9",
+  "integrated": "d10599e1504f812cc16fd095dfe5dd4cc694b0f5",
+  "profileSHA256": "253c51b018d77d5c1d441f82b15756ca3cd473b0912f072d436f6f41ec40162b",
+  "budget": 15000000,
+  "slackIsNotStrictCompliance": true,
+  "firstCrossingNotYetCaptured": false,
+  "cases": [
+    {
+      "id": "lock_server",
+      "requested": 15000000,
+      "actual": 15000120.686,
+      "overshoot": 120.68600000068545,
+      "endpointReason": "work budget (preflight law bindings)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at go (/tmp/original-crossings-6fT3UO/core/watch.ts:113:43)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "evals": 315
+      }
+    },
+    {
+      "id": "lockserv_automaton",
+      "requested": 15000000,
+      "actual": 15000012.0997,
+      "overshoot": 12.09970000013709,
+      "endpointReason": "work budget (preflight law bindings)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at go (/tmp/original-crossings-6fT3UO/core/watch.ts:113:43)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "evals": 196
+      }
+    },
+    {
+      "id": "sharded_kv",
+      "requested": 15000000,
+      "actual": 15000018.2817,
+      "overshoot": 18.281700000166893,
+      "endpointReason": "work budget (row cell pair)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at budgetedLeafRows (/tmp/original-crossings-6fT3UO/core/prover-row-budget.ts:50:3)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "tableCells": 42
+      }
+    },
+    {
+      "id": "sharded_kv_no_lost_keys",
+      "requested": 15000000,
+      "actual": 15000076.4294,
+      "overshoot": 76.42940000072122,
+      "endpointReason": "work budget (refutation poll)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at late (/tmp/original-crossings-6fT3UO/core/dsl.ts:2855:26)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "evals": 140
+      }
+    },
+    {
+      "id": "lockserv",
+      "requested": 15000000,
+      "actual": 15000178.2075,
+      "overshoot": 178.20749999955297,
+      "endpointReason": "work budget (preflight law bindings)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at go (/tmp/original-crossings-6fT3UO/core/watch.ts:113:43)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "evals": 210
+      }
+    },
+    {
+      "id": "simple_decentralized_lock",
+      "requested": 15000000,
+      "actual": 15000075.554,
+      "overshoot": 75.55399999953806,
+      "endpointReason": "work budget (preflight law bindings)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at go (/tmp/original-crossings-6fT3UO/core/watch.ts:113:43)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "evals": 210
+      }
+    },
+    {
+      "id": "twophase",
+      "requested": 15000000,
+      "actual": 15000059.8476,
+      "overshoot": 59.84759999997914,
+      "endpointReason": "work budget (refutation poll)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at late (/tmp/original-crossings-6fT3UO/core/dsl.ts:2855:26)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "evals": 73
+      }
+    },
+    {
+      "id": "two_phase_commit",
+      "requested": 15000000,
+      "actual": 15000200.9145,
+      "overshoot": 200.9144999999553,
+      "endpointReason": "work budget (preflight law bindings)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at go (/tmp/original-crossings-6fT3UO/core/watch.ts:113:43)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "evals": 243
+      }
+    },
+    {
+      "id": "consensus_forall",
+      "requested": 15000000,
+      "actual": 15000047.48,
+      "overshoot": 47.480000000447035,
+      "endpointReason": "work budget (inference failure)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at go (/tmp/original-crossings-6fT3UO/core/infer.ts:1530:11)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "evals": 74
+      }
+    },
+    {
+      "id": "client_server_ae",
+      "requested": 15000000,
+      "actual": 15000015.179999998,
+      "overshoot": 15.179999997839332,
+      "endpointReason": "work budget (preflight law bindings)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at go (/tmp/original-crossings-6fT3UO/core/watch.ts:113:43)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "evals": 112
+      }
+    },
+    {
+      "id": "client_server_db_ae",
+      "requested": 15000000,
+      "actual": 15000194.8333,
+      "overshoot": 194.83330000005662,
+      "endpointReason": "work budget (preflight law bindings)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at go (/tmp/original-crossings-6fT3UO/core/watch.ts:113:43)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "evals": 238
+      }
+    },
+    {
+      "id": "firewall",
+      "requested": 15000000,
+      "actual": 15000222.984000001,
+      "overshoot": 222.9840000011027,
+      "endpointReason": "work budget (preflight law bindings)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at go (/tmp/original-crossings-6fT3UO/core/watch.ts:113:43)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "evals": 238
+      }
+    },
+    {
+      "id": "learning_switch",
+      "requested": 15000000,
+      "actual": 15000129.5555,
+      "overshoot": 129.55550000071526,
+      "endpointReason": "work budget (preflight law bindings)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at go (/tmp/original-crossings-6fT3UO/core/watch.ts:113:43)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "evals": 411
+      }
+    },
+    {
+      "id": "learning_switch_i4",
+      "requested": 15000000,
+      "actual": 15000058.014,
+      "overshoot": 58.014000000432134,
+      "endpointReason": "work budget (preflight law bindings)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at go (/tmp/original-crossings-6fT3UO/core/watch.ts:113:43)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "evals": 90
+      }
+    },
+    {
+      "id": "consensus_epr",
+      "requested": 15000000,
+      "actual": 15000062.379999999,
+      "overshoot": 62.37999999895692,
+      "endpointReason": "work budget (inference failure)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at go (/tmp/original-crossings-6fT3UO/core/infer.ts:1530:11)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "evals": 74
+      }
+    },
+    {
+      "id": "paxos_epr",
+      "requested": 15000000,
+      "actual": 15001010,
+      "overshoot": 1010,
+      "endpointReason": "work budget (inference sample)",
+      "outcome": "unknown",
+      "firstCrossingSite": "    at inferLawsSearch (/tmp/original-crossings-6fT3UO/core/infer.ts:813:7)",
+      "firstCrossingKind": "first observed budget-check crossing, not exact eval node",
+      "chargedDelta": {
+        "evals": 1054
+      }
+    }
+  ],
+  "exactChargeNodeNotYetCaptured": true,
+  "fixCommit": "d00ad74f526337c0c2f46e6548b83bc1b6688ced",
+  "fixTree": "8e367451ea30ed075d2f95e92660fb02e45ba459"
+}
