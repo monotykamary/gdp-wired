@@ -48,6 +48,13 @@ export function strategyPhase<T>(budget:CountTierBudget|undefined,attemptEnd:num
  }
 }
 
+// A local full-work deadline throws the same exception as the public budget.
+// Only the former is an unknown attempt: preserve the enclosing phase's end,
+// captured before per-law/subset scopes, and never swallow outer cancellation.
+export function isLocalCountExpiration(error:unknown,enclosingEnd:number):boolean{
+ return error instanceof BudgetExpired&&clock()<Math.min(enclosingEnd,budgetEnd())
+}
+
 export function ordinaryTierShare(budget:CountTierBudget,now:number,pending:ReadonlySet<string>):number{
  return attemptShare(budget.until-now,pending)
 }

@@ -17,8 +17,9 @@ import {searchNow as countedSearchNow, traceNow as countedTraceNow} from './wall
 //      support survives. Avoid proving the same helpers in several preliminary cone contexts; checkCountedLaws
 //      checks the final set. The ∃ search still uses `cone`: relative induction from already-kept candidates.
 import {type C, type E, type Law, type Machine} from './machine.ts'
+import {type CountTierBudget,isLocalCountExpiration} from './count-tier-budget.ts'
 import {type CountCert, type CountDecl, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, checkMC, countedObligations, mcGoal, scope, substC, substE} from '../kernel/kernel.ts'
-import {brokenOf, clock, counted, fullRate, grow, modelInstances, wallAt, widen, withDeadline, withWall} from '../kernel/prove.ts'
+import {brokenOf, clock, counted, fullRate, grow, modelInstances, wallAt, widen, withDeadline, withinDeadline, withWall} from '../kernel/prove.ts'
 import {REFUTED, cdclStats} from '../kernel/cdcl.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
 import {inferLaws} from './infer.ts'
@@ -661,7 +662,9 @@ type Proof = {instances: Instances, certs: Record<string, CountCert>}
 // The production attempt also serves the fixed-family research replay. Candidate
 // generation and scheduling stay outside; inference, selection, reservation and
 // all budget checks have exactly one implementation.
-export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, until: number, structured = true) {
+export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, until: number, structured = true, allowFocused = true, tiers?: CountTierBudget) {
+  // Capture the enclosing phase before entering any per-law or subset share.
+  const enclosingEnd = withinDeadline(until)
   // (the law's own names and the request's values that key a map: an action's value keys none)
   const keys0 = [...[...reads([m.step, m.assume ?? null], () => true).values()].map(([, key]) => key), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [] : [w.key]))]
   const keyed = m.inputs.filter(i => keys0.some(key => mentions(key, i))).map(v)
@@ -681,7 +684,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
   // Cone tiers and Houdini may ask the same law again with more instances. Keep a
   // bounded set of sessions; each independently resets unless its hypotheses are
   // still present verbatim. This reuses work, never a verdict from a weaker goal.
-  const decisions = new Map<string, ReturnType<typeof modelSequence>>(), focusEnabled=focusedCountRecoveryEnabled(m)
+  const decisions = new Map<string, ReturnType<typeof modelSequence>>(), focusEnabled=allowFocused&&focusedCountRecoveryEnabled(m)
   // Scheduling history only, never a cached verdict. A different family must
   // earn its own ordinary attempts before using the finite recovery search.
   const plainFailures = new WeakMap<Law, WeakSet<Law[]>>()
@@ -1058,9 +1061,9 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       }
       r = attempt(law, ls, pass, Math.max(0, end - clock()))
     } catch (error) {
-      // A local wall expires this attempt, not the whole enclosing search.
+      // A local tier deadline expires this attempt, not the whole enclosing search.
       // Invalid or captured proposals are likewise never assumptions.
-      if (!(error instanceof UnsupportedCountProposal) && !(error instanceof WallExpired)) throw error
+      if (!(error instanceof UnsupportedCountProposal) && !(error instanceof WallExpired) && !(tiers?.active&&isLocalCountExpiration(error,enclosingEnd))) throw error
       countsDump.on?.({law: law.name, pass, phase: 'rejected proposal', error: String(error)})
       r = {stuck: 'unknown'}
     }

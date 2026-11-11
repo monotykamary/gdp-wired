@@ -1,4 +1,5 @@
 // Disposable diagnostics: record counted reads; never change admission or charge.
+export {}
 type Point={at:number,stack:string,raw:any}
 let last:Point|undefined,rootEnd:number|undefined,rootStart:number|undefined,polls=0,nextSample=0,firstAbove:any
 const top:any[]=[],sites=new Map<string,number>()
