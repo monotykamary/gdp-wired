@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from './wall.ts'
 // Untrusted proof compression. Turn repeated forced splits into independently checked conditional cuts.
 // No search, protocol vocabulary, new facts or proof-budget changes: failed transport/check returns no proposal.
 import {type C, type E, n, plus, times, x} from './machine.ts'
@@ -67,7 +68,7 @@ const proofPath = (when: Lin[], cut: Lin): Path => {
 
 // Unlike widen, transport never calls a solver when a row is missing.
 function transport(from: Goal, to: Goal, tree: Tree, before: Path, after: Path, until: number, missing?: (row: Lin) => void): Tree | undefined {
-  if (performance.now() >= until) return undefined
+  if (countedSearchNow() >= until) return undefined
   if ('split' in tree) {
     const known = decide(tree.split, after)
     if (known !== undefined) return transport(from, to, known ? tree.yes : tree.no, put(before, tree.split, known), after, until, missing)
@@ -106,7 +107,7 @@ class ObservedPath extends Map<string, {lin: Lin, holds: boolean}> {
   override has(key: string) { this.observed.add(key); return super.has(key) }
 }
 function dependencies(g: Goal, t: Tree, path: Path, facts: Set<number>, atoms: Set<string>, until: number): boolean {
-  if (performance.now() >= until) return false
+  if (countedSearchNow() >= until) return false
   if ('split' in t) return dependencies(g, t.yes, put(path, t.split, true), facts, atoms, until)
     && dependencies(g, t.no, put(path, t.split, false), facts, atoms, until)
   const observed = new ObservedPath(path, atoms), cached = savedProofRows(t, g, path)
@@ -141,7 +142,7 @@ function scopeCondition(lin: Lin): C | undefined {
 export type SharedCuts = {goal: Goal, tree: Tree, lemmas: LemmaCut[], stats: {before: number, after: number, cuts: number, sourceHyps: number, lemmaHyps: number, mainNodes: number, checkMs: number, buildMs: number}}
 // Candidate construction only. Call shareLemmaCuts or the containing machine checker before admission.
 export function proposeLemmaCuts(goal: Goal, tree: Tree, options: {path?: Path, until?: number, minNodes?: number, minimizeConditions?: boolean, trace?: (event: Record<string, string | number | boolean>) => void} = {}): SharedCuts | undefined {
-  const started = performance.now(), root = options.path ?? new Map(), until = options.until ?? Infinity
+  const started = countedSearchNow(), root = options.path ?? new Map(), until = options.until ?? Infinity
   const sizes = new WeakMap<Tree, number>(), repeats = new Map<string, number>()
   const measure = (t: Tree): number => {
     if ('leaf' in t) { sizes.set(t, 1); return 1 }
@@ -210,7 +211,7 @@ export function proposeLemmaCuts(goal: Goal, tree: Tree, options: {path?: Path, 
     return {when, cut: t.split, tree: proof, slice}
   }
   const visit = (t: Tree, original: Path, real: Path): Tree | undefined => {
-    if (performance.now() >= until) return undefined
+    if (countedSearchNow() >= until) return undefined
     if ('leaf' in t) { const copy = {...t}; origins.set(copy, {tree: t, path: original}); return copy }
     const id = canon(t.split)
     // Prefer compact repeated derivations. Larger enclosing candidates are left as ordinary tree nodes;
@@ -223,8 +224,8 @@ export function proposeLemmaCuts(goal: Goal, tree: Tree, options: {path?: Path, 
         if (usable >= 0) found = usable
       }
       if (found === undefined) {
-        const begun = performance.now(), lemma = makeLemma(t, original, real)
-        options.trace?.({stage: 'lemma', produced: !!lemma, nodes: sizes.get(t.no) ?? 0, ms: performance.now() - begun, when: lemma?.when.length ?? -1, hyps: lemma?.slice?.length ?? -1})
+        const begun = countedSearchNow(), lemma = makeLemma(t, original, real)
+        options.trace?.({stage: 'lemma', produced: !!lemma, nodes: sizes.get(t.no) ?? 0, ms: countedSearchNow() - begun, when: lemma?.when.length ?? -1, hyps: lemma?.slice?.length ?? -1})
         if (lemma) {
           const key = keyOf(lemma.when, lemma.cut)
           found = shared.get(key)
@@ -265,15 +266,15 @@ export function proposeLemmaCuts(goal: Goal, tree: Tree, options: {path?: Path, 
   const count = (t: Tree): number => 'leaf' in t ? 1 : 1 + count(t.yes) + count(t.no)
   const after = count(out) + lemmas.reduce((n, l) => n + count(l.tree), 0)
   const workBefore = before * Math.max(1, goal.hyps.length), workAfter = count(out) * Math.max(1, scoped.hyps.length) + lemmas.reduce((n, l) => n + count(l.tree) * Math.max(1, l.slice?.length ?? scoped.hyps.length), 0)
-  if (workAfter >= workBefore || performance.now() >= until) { options.trace?.({stage: 'not-cheaper-or-expired', before, after, workBefore, workAfter}); return undefined }
-  return {goal: scoped, tree: out, lemmas, stats: {before, after, cuts: lemmas.length, sourceHyps: goal.hyps.length, lemmaHyps: lemmas.reduce((n, l) => n + (l.slice?.length ?? scoped.hyps.length), 0), mainNodes: count(out), checkMs: 0, buildMs: performance.now() - started}}
+  if (workAfter >= workBefore || countedSearchNow() >= until) { options.trace?.({stage: 'not-cheaper-or-expired', before, after, workBefore, workAfter}); return undefined }
+  return {goal: scoped, tree: out, lemmas, stats: {before, after, cuts: lemmas.length, sourceHyps: goal.hyps.length, lemmaHyps: lemmas.reduce((n, l) => n + (l.slice?.length ?? scoped.hyps.length), 0), mainNodes: count(out), checkMs: 0, buildMs: countedSearchNow() - started}}
 }
 
 export function shareLemmaCuts(goal: Goal, tree: Tree, options: Parameters<typeof proposeLemmaCuts>[2] = {}): SharedCuts | undefined {
   const proposed = proposeLemmaCuts(goal, tree, options)
   if (!proposed) return undefined
-  const start = performance.now(), checked = checkGoalLemmas(proposed.goal, proposed.tree, proposed.lemmas)
+  const start = countedSearchNow(), checked = checkGoalLemmas(proposed.goal, proposed.tree, proposed.lemmas)
   if (!checked) { options?.trace?.({stage: 'kernel-rejected'}); return undefined }
-  proposed.stats.checkMs = performance.now() - start
+  proposed.stats.checkMs = countedSearchNow() - start
   return proposed
 }

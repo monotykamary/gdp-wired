@@ -1,3 +1,4 @@
+import {traceNow as countedTraceNow} from './wall.ts'
 // A finite relative-CTI filter, never a proof. Unsupported evaluations are
 // unknown; only an actual enabled step from a state satisfying the WHOLE
 // current family may remove a non-caller. The checked prover sees survivors.
@@ -100,7 +101,7 @@ export type FiniteDrop = {round: number, law: Law, params: Env, pre: State, requ
 export const finiteDump: {onStart?: (value: {machine: Machine, caller: Law[], candidates: Law[]}) => void, onDrop?: (drop: FiniteDrop) => void} = {}
 export type FiniteOptions = {randomStates?: number, requests?: number, seed?: number, targeted?: boolean, wallMs?: number, onFinish?: (row: {timedOut: boolean, ms: number, dropped: number}) => void, onDrop?: (drop: FiniteDrop) => void, onRound?: (row: {round: number, alive: number, dropped: number, randomStates: number, steps: number}) => void}
 export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions = {}): Law[] {
-  const start = performance.now(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
+  const start = countedTraceNow(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
   let survivors = candidates.slice(), timedOut = false
   try {
     return withWall(end, () => finiteHoudiniWithin(source, m, caller, candidates, samples, {...options, onDrop: drop => {
@@ -114,7 +115,7 @@ export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candid
     checkWall('finite sampling completion')
     timedOut = true
     return survivors
-  } finally { options.onFinish?.({timedOut, ms: performance.now() - start, dropped: candidates.length - survivors.length}) }
+  } finally { options.onFinish?.({timedOut, ms: countedTraceNow() - start, dropped: candidates.length - survivors.length}) }
 }
 // What a law reads: its scalars and maps, a count map read as the scalars and maps of its body and bound. A law
 // reading nothing a step changed keeps its truth across that step (the pre-state satisfied it), so it is not evaluated
@@ -137,7 +138,7 @@ function lawReads(m: Machine, law: Law): {scalars: Set<string>, maps: Set<string
 // independent whole-family/source-interpreter boundary as sampled Houdini.
 // It is not wired into production generation until its bounded pilot passes.
 export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], candidates: Law[], params: Env[], options: FiniteOptions & TinyFiniteOptions & {rounds?: number, onTiny?: (round: number, stats: TinyFiniteStatistics) => void, onSeed?: (round: number, stats: TinySeedStatistics) => void} = {}): Law[] {
-  const start = performance.now(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
+  const start = countedTraceNow(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
   let survivors = candidates.slice(), timedOut = false
   try {
     return withWall(end, () => {
@@ -195,7 +196,7 @@ export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], ca
     checkWall('tiny Houdini outer completion')
     timedOut = true
     return survivors
-  } finally { options.onFinish?.({timedOut, ms: performance.now() - start, dropped: candidates.length - survivors.length}) }
+  } finally { options.onFinish?.({timedOut, ms: countedTraceNow() - start, dropped: candidates.length - survivors.length}) }
 }
 
 function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions): Law[] {

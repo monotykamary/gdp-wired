@@ -1,3 +1,4 @@
+import {traceNow as countedTraceNow} from './wall.ts'
 // Cyclic proofs found. Untrusted: an instance states the nodes and their uses, kernel/prove.ts grows a tree for every
 // goal, and kernel/cyclic.ts checks the whole. The instances are today's induction rules said as one rule, each a
 // graph of sequents whose back-edges lower a rank:
@@ -88,12 +89,12 @@ export const cyclicProf: Record<string, {ms: number, n: number, hyps: number, so
 const profOn = () => env.GDP_CYCLIC_PROF === '1'
 export function timedKind<T>(kind: string, hyps: number, f: () => T): T {
   if (!profOn()) return f()
-  const was = profile.on, s0 = profile.solveMs, r0 = profile.rowsMs, t0 = performance.now()
+  const was = profile.on, s0 = profile.solveMs, r0 = profile.rowsMs, t0 = countedTraceNow()
   profile.on = true
   try { return f() } finally {
     profile.on = was
     const p = (cyclicProf[kind] ??= {ms: 0, n: 0, hyps: 0, solveMs: 0, rowsMs: 0})
-    p.ms += performance.now() - t0; p.n++; p.hyps += hyps; p.solveMs += profile.solveMs - s0; p.rowsMs += profile.rowsMs - r0
+    p.ms += countedTraceNow() - t0; p.n++; p.hyps += hyps; p.solveMs += profile.solveMs - s0; p.rowsMs += profile.rowsMs - r0
   }
 }
 // Each goal grown first on what it reads: its node's hypotheses and its own last ones (a use's guard, the conclusion
@@ -195,8 +196,8 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
       const sliced = sliceOn() ? slice(g, own) : undefined, part = sliced && hide(sliced)
       if (part) {
         // (within two seconds: a weaker goal no easier than the whole is left to the whole)
-        const t0 = performance.now(), p = timedKind(`${kind} sliced`, part.hyps.length, () => grow(part, new Map(), {nodes: 0, until: clock() + Math.min(2_000, later ?? 2_000)}))
-        if (env.GDP_CYCLIC_DEBUG) console.error(`[cyc] ${g.name}: ${part.hyps.length} hyps${part !== sliced ? ' (opaque)' : ''}, ${'tree' in p ? `${p.nodes} nodes` : p.stuck}, ${Math.round(performance.now() - t0)} ms`)
+        const t0 = countedTraceNow(), p = timedKind(`${kind} sliced`, part.hyps.length, () => grow(part, new Map(), {nodes: 0, until: clock() + Math.min(2_000, later ?? 2_000)}))
+        if (env.GDP_CYCLIC_DEBUG) console.error(`[cyc] ${g.name}: ${part.hyps.length} hyps${part !== sliced ? ' (opaque)' : ''}, ${'tree' in p ? `${p.nodes} nodes` : p.stuck}, ${Math.round(countedTraceNow() - t0)} ms`)
         if ('tree' in p) return {tree: p.tree, from: part, used: () => new Set([...usedHyps(part, p.tree)].flatMap(i => part.from[i]!))}
         if (part !== sliced) {
           const q = timedKind(`${kind} sliced`, sliced.hyps.length, () => grow(sliced, new Map(), {nodes: 0, until: clock() + Math.min(2_000, later ?? 2_000)}))
@@ -1241,13 +1242,13 @@ export function crossCyclic(kind: string, name: string, usual: boolean, run0: ((
   for (const key of Object.keys(cyclicProf)) delete cyclicProf[key]
   // (a search within GDP_CERT_MS: one cut by it, or none to make where the translation fails, leaves the proof uncovered,
   // not differing)
-  const route = routeOf(), st = tstats(), t0 = performance.now(), until = clock() + certMs()
+  const route = routeOf(), st = tstats(), t0 = countedTraceNow(), until = clock() + certMs()
   const {out, how, why} = cyclicOf(route !== 'search' && usual ? translated : undefined, run, st, until, usualMs)
-  const ms = Math.round(performance.now() - t0), cyclic = out.proven && out.checked
+  const ms = Math.round(countedTraceNow() - t0), cyclic = out.proven && out.checked
   if (usual && !cyclic && (!run0 || clock() > until)) { uncovered(kind, name, `no cyclic proof found${run0 ? ` within ${certMs()} ms` : ''}${why ? ` (not translated: ${why})` : ''}`); return }
   const prof = profLine()
   let search: {searchMs: number, searchCyclic: boolean} | undefined
-  if (route === 'both' && run0) { const s0 = performance.now(), o = run0(); search = {searchMs: Math.round(performance.now() - s0), searchCyclic: o.proven && o.checked} }
+  if (route === 'both' && run0) { const s0 = countedTraceNow(), o = run0(); search = {searchMs: Math.round(countedTraceNow() - s0), searchCyclic: o.proven && o.checked} }
   cycLog({kind, name, usual, cyclic, ms, ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {}), ...search, ...prof, ...(out.proven ? {nodes: out.proof.nodes.length, ...(out.why ? {why: out.why} : {})} : {goal: out.goal, stuck: out.stuck})})
   const lax = env.GDP_CYCLIC_LAX === '1'
   if (cyclic !== usual && !lax) throw new Error(`cyclic route: ${kind} ${name} is ${cyclic ? 'proven' : 'not proven'} as a cyclic proof, ${usual ? 'proven' : 'not proven'} the usual way${out.proven ? (out.why ? ` (${out.why})` : '') : ` (${out.goal}: ${out.stuck})`}`)
@@ -1269,10 +1270,10 @@ export const certMs = () => Number(env.GDP_CERT_MS ?? 10_000)
 export const uncovered = (kind: string, name: string, why: string): void => cycLog({kind, name, uncovered: true, why})
 export function certCyclic(kind: string, name: string, translated: Translated | undefined, run0: (() => CyclicVerdict) | undefined, usualMs?: number, floor?: number): {checked: boolean, proof?: Cyclic, why: string} {
   for (const key of Object.keys(cyclicProf)) delete cyclicProf[key]
-  const st = tstats(), t0 = performance.now(), until = withinDeadline(clock() + certMs())
+  const st = tstats(), t0 = countedTraceNow(), until = withinDeadline(clock() + certMs())
   const {out, how, why} = cyclicOf(translated, (translated && !certSearch() ? undefined : run0) ?? none, st, until, usualMs, floor)
   const checked = out.proven && out.checked
-  cycLog({kind, name, cert: true, usual: true, cyclic: checked, ms: Math.round(performance.now() - t0), ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {}), ...profLine()})
+  cycLog({kind, name, cert: true, usual: true, cyclic: checked, ms: Math.round(countedTraceNow() - t0), ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {}), ...profLine()})
   const expired = late(until) ? ' within the caller or certificate budget' : ''
   return {checked, ...(out.proven ? {proof: out.proof} : {}), why: checked ? '' : `no cyclic proof found${expired}${why ? ` (not translated: ${why})` : ''}`}
 }

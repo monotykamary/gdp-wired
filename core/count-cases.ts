@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from './wall.ts'
 // Untrusted finite-input case search for a fixed counted certificate. A small
 // model/core query chooses ordinary instances; every combined tree is checked
 // against the unspecialized counted obligation before it is returned, unless
@@ -201,7 +202,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
     if(!rebuild())return undefined
     options.trace?.({stage:'count-cases-certificate',before:cert.insts.length,after:activeCert.insts.length})
     const trees=records.map((r,i)=>{
-      let tree=r&&(hasConditionalProof(r.tree)?transportConditionalProof(r.goal,goal,r.tree,r.from??new Map(),r.path,Math.min(wallAt(),performance.now()+Math.max(0,until-clock())*10)):widen(r.goal,goal,r.tree,{},r.from??new Map(),r.path))
+      let tree=r&&(hasConditionalProof(r.tree)?transportConditionalProof(r.goal,goal,r.tree,r.from??new Map(),r.path,Math.min(wallAt(),countedSearchNow()+Math.max(0,until-clock())*10)):widen(r.goal,goal,r.tree,{},r.from??new Map(),r.path))
       if(!tree)return undefined
       const {root,tails}=branches[i]!
       for(let j=tails.length-1;j>=0;j--){
@@ -215,7 +216,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
     })
     let tree=trees.at(-1)
     for(let i=cuts.length-1;i>=0;i--)tree=tree&&trees[i]?{split:splitAt(cuts[i]!),yes:trees[i]!,no:tree}:undefined
-    const combined=tree&&(hasConditionalProof(tree)?collectConditionalCertificate(goal,tree,Math.min(wallAt(),performance.now()+Math.max(0,until-clock())*10)):{tree,lemmas:undefined})
+    const combined=tree&&(hasConditionalProof(tree)?collectConditionalCertificate(goal,tree,Math.min(wallAt(),countedSearchNow()+Math.max(0,until-clock())*10)):{tree,lemmas:undefined})
     const result=combined&&{...activeCert,...combined}
     return result&&(options.deferCheck||checkMC(packet.goal.hyps,packet.decls,result))?{instances:at,cert:result}:undefined
   } finally {atPoint.on=previous}

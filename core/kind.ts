@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from './wall.ts'
 // k-induction's search: a law the kernel's induction (one step) doesn't prove, proven over k steps in a row. Nothing
 // here is trusted: the certificate is kernel.ts's (checkKInduction, whose Lean twin is KInd.lean's kind_sound), its
 // goals built by kernel.ts from the law alone; this file only looks for the trees.
@@ -35,7 +36,7 @@ export function proveKInduction(m: Machine, laws: Law[], law: Law, opts: KindOpt
   const depths: KindResult['depths'] = []
   if (!kindFits(m, laws, law)) return {proven: false, checked: false, depths, why: 'a law or fact about every key, a flag at every key, or a carried map'}
   return counted(opts.rate ?? 200, () => {
-    const until = clock() + opts.ms, over = () => clock() > until || (opts.wall !== undefined && performance.now() > opts.wall)
+    const until = clock() + opts.ms, over = () => clock() > until || (opts.wall !== undefined && countedSearchNow() > opts.wall)
     // A goal's tree: CDCL's, unfolded (prove.ts's grow keeps CDCL off a goal over k steps, for the size of the tree its
     // cuts would make smaller; but here the plain search's cases multiply with every step), else the plain search's.
     const treeOf = (g: Goal): Outcome => {

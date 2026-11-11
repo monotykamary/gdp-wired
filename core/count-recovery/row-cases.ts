@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from '../wall.ts'
 // Untrusted row-equality case proposals. Every ordering branch is covered and
 // every reused recipe is widened and checked at its destination path.
 import {type C,type E,type Machine,n,same,walkOnce,x} from '../machine.ts'
@@ -146,7 +147,7 @@ function proveRowCasesImpl(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(
    if(accepted&&t){trace?.({stage:'row-mirror',from:opposite,to:key,ms:Math.round(clock()-begun),checked:!options.deferToCaller,proposed:true,deferred:!!options.deferToCaller});cache.set(key,{path:new Map(path),tree:t});return t}
   }
   if(old){
-   const end=Math.min(until,clock()+50),t=hasConditionalProof(old.tree)?transportConditionalProof(g,g,old.tree,old.path,path,Math.min(wallAt(),performance.now()+Math.max(0,end-clock())*10)):withDeadline(end,()=>widen(g,g,old.tree,{},old.path,path))
+   const end=Math.min(until,clock()+50),t=hasConditionalProof(old.tree)?transportConditionalProof(g,g,old.tree,old.path,path,Math.min(wallAt(),countedSearchNow()+Math.max(0,end-clock())*10)):withDeadline(end,()=>widen(g,g,old.tree,{},old.path,path))
    const accepted=!!t&&(options.deferToCaller||check(g,t,path))
    if(accepted&&t){trace?.({stage:'row-case',key,cached:true,ms:Math.round(clock()-begun),checked:!options.deferToCaller,proposed:true,deferred:!!options.deferToCaller});return t}
   }

@@ -1,3 +1,4 @@
+import {traceNow as countedTraceNow} from './wall.ts'
 // Recursive datatypes as values, proven by cyclic proofs. Untrusted: this file states facts and nodes, kernel/prove.ts
 // grows a tree for every goal, and kernel/cyclic.ts checks the whole, as for every cyclic proof (nothing here is new to
 // the kernel). Lean's twin of a proof (lean-kernel/Data.lean and the export's own definitions) is about the datatype as
@@ -1317,7 +1318,7 @@ function termination(ring: Fn[], why: string): Termination[] {
   return counted(dataRate, () => {
     const names = ring.map(f => f.name)
     if (dataTrace) console.error(`[data] termination of ${names.join(', ')}`)
-    const t0 = performance.now()
+    const t0 = countedTraceNow()
     if (!ring.some(f => f.params.some(p => measurable(p.sort)))) throw new Error(`${why}, and ${ring.length === 1 ? 'it has' : 'its ring has'} no parameter a measure reads (a natural or a datatype value)`)
     const sites = ringSites(ring)
     // (a call of the ring in another's argument or condition: nested recursion, with invariants to try)
@@ -1326,12 +1327,12 @@ function termination(ring: Fn[], why: string): Termination[] {
     const edges = runEdges(ring), until = clock() + terminationMs.ms * ring.length, tried: string[] = [], seen = new Set<string>()
     guardedLeft.ms = guardedMs.ms * ring.length
     const invs = nested ? invariantsOf(ring) : [ring.map(() => undefined)]
-    if (dataTrace) console.error(`[data]   its runs: ${edges.length} calls at ${Math.round(performance.now() - t0)} ms`)
+    if (dataTrace) console.error(`[data]   its runs: ${edges.length} calls at ${Math.round(countedTraceNow() - t0)} ms`)
     try {
       // (a nested call's arguments read the ring itself, whose values the candidates' samples compute: within the bounds)
       for (const ms of nested ? bounded(() => candidates(ring, edges, sites, until)) : candidates(ring, edges, sites, until)) {
         const text = ringText(ring, ms)
-        if (dataTrace) console.error(`[data]   ${text} at ${Math.round(performance.now() - t0)} ms`)
+        if (dataTrace) console.error(`[data]   ${text} at ${Math.round(countedTraceNow() - t0)} ms`)
         if (clock() > until) { tried.push('out of time'); break }
         const bad = edges.find(e => !lowers(ms, e))
         if (seen.has(text)) continue
@@ -1340,7 +1341,7 @@ function termination(ring: Fn[], why: string): Termination[] {
         for (const inv of invs) {
           if (clock() > until) break
           const r = proveMeasures(ring, sites, ms, until, inv)
-          if ('obligations' in r) return ring.map((f, i) => ({measure: ms[i]!, text: showMeasure(f, ms[i]!), ...(inv[i] ? {invariant: inv[i]} : {}), obligations: r.obligations[i]!, ms: Math.round(performance.now() - t0)}))
+          if ('obligations' in r) return ring.map((f, i) => ({measure: ms[i]!, text: showMeasure(f, ms[i]!), ...(inv[i] ? {invariant: inv[i]} : {}), obligations: r.obligations[i]!, ms: Math.round(countedTraceNow() - t0)}))
           tried.push(r.failed)
         }
       }
@@ -2123,7 +2124,7 @@ type Want = {roots: unknown[], others: unknown[], once?: unknown[], decided?: un
 function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   // Past the attempt's time, what is found so far (the attempt then fails or proves with it).
   const late = () => w.until !== undefined && clock() > w.until
-  const tt = performance.now(), lap = (what: string) => { if (dataTrace) console.error(`[data]   instances: ${what} at ${Math.round(performance.now() - tt)} ms`) }
+  const tt = countedTraceNow(), lap = (what: string) => { if (dataTrace) console.error(`[data]   instances: ${what} at ${Math.round(countedTraceNow() - tt)} ms`) }
   const insts: NodeSpec['insts'] = [], seen = new Set<string>()
   const inst = (fact: string, at: E[]) => { const i = fs.at.get(fact); if (i === undefined) return undefined; const id = sid([i, at]); if (seen.has(id)) return undefined; seen.add(id); const q = {fact: i, at}; insts.push(q); return q }
   const holdsAt = (fact: string, at: E[]) => { const f = fs.facts[fs.at.get(fact)!]!; return substShared(f.holds, Object.fromEntries(f.keys.map((key, q) => [key, at[q]!]))) }
@@ -2789,7 +2790,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
   }
   const name = title
   // Each attempt within its own time (a goal past it is left unknown, and the attempt fails).
-  if (dataTrace) console.error(`[data] @${Math.round(performance.now())} ${l.name} (${scheme?.name}) depth ${depth}, ${lemmas.length} lemmas: built in ${Math.round(clock() - t0)} ms (counted), ${specs.length} nodes, ${specs.reduce((n, x) => n + x.insts.length, 0)} instances`)
+  if (dataTrace) console.error(`[data] @${Math.round(countedTraceNow())} ${l.name} (${scheme?.name}) depth ${depth}, ${lemmas.length} lemmas: built in ${Math.round(clock() - t0)} ms (counted), ${specs.length} nodes, ${specs.reduce((n, x) => n + x.insts.length, 0)} instances`)
   if (clock() > t0 + attemptMs.ms) return {verdict: {proven: false, checked: false, node: name, goal: name, stuck: 'unknown'}, specs, main: base}
   const was = pairedKeys.skip
   pairedKeys.skip = true
@@ -3675,7 +3676,7 @@ export function proveData(l: DataLaw, opts: Options = {}): DataVerdict {
   return counted(dataRate, () => bounded(() => { const until = clock() + (opts.ms ?? 120_000), v = proveDataCounted(l, opts, until); return {...v, stopped: clock() > until} }))
 }
 function proveDataCounted(l: DataLaw, opts: Options, until: number): DataVerdict {
-  const t0 = performance.now()
+  const t0 = countedTraceNow()
   // Where the law calls a non-recursive function, or reaches a recursive one that agrees with a built-in (core/transfer.ts):
   // the law alone at one unfolding first, then the law said through them, then the rest of the search on the law.
   const plan = opts.transfer === false || opts.induction === false || Array.isArray(opts.lemmas) ? undefined : transferPlan(l)
@@ -3685,9 +3686,9 @@ function proveDataCounted(l: DataLaw, opts: Options, until: number): DataVerdict
   // (a law said through its definitions past what the encoding's terms take is left as stated)
   let through: ReturnType<typeof proveThrough>
   try { through = proveThrough(l, plan, opts, until) } catch (e) { if (!(e instanceof RangeError)) throw e }
-  if (through?.proven) return {...through, ms: Math.round(performance.now() - t0)}
+  if (through?.proven) return {...through, ms: Math.round(countedTraceNow() - t0)}
   const rest = searchIn(l, opts, until, undefined, 'rest').verdict
-  return {...rest, tried: rest.tried + quick.tried + (through?.tried ?? 0), ms: Math.round(performance.now() - t0), ...(rest.goal || rest.proven ? {} : {goal: quick.goal, stuck: quick.stuck})}
+  return {...rest, tried: rest.tried + quick.tried + (through?.tried ?? 0), ms: Math.round(countedTraceNow() - t0), ...(rest.goal || rest.proven ? {} : {goal: quick.goal, stuck: quick.stuck})}
 }
 // The search on a law: in its own program, or (`ctx`) in one given, above lemmas proven before in it (`base`, its nodes at
 // levels up to `level`), where `out` is the proof's nodes, for a proof that reads it (core/transfer.ts). `phase`: 'first'
@@ -3695,14 +3696,14 @@ function proveDataCounted(l: DataLaw, opts: Options, until: number): DataVerdict
 // `merge`: the merged schemes are tried (the law's own search, and the law said through the built-ins; not a bridge's).
 export type SearchCtx = {p: Program, fs: Facts, base: Proven[], level: number, merge?: boolean}
 export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchCtx, phase: 'all' | 'first' | 'rest' = 'all'): {verdict: DataVerdict, out?: Proven, facts?: Facts} {
-  const t0 = performance.now(), w0 = work.n
+  const t0 = countedTraceNow(), w0 = work.n
   let p = ctx?.p ?? programOf([l, ...(Array.isArray(opts.lemmas) ? opts.lemmas : [])], [], false), fs = ctx?.fs ?? factsOf(p)
   const base = ctx?.base ?? [], lv = ctx?.level ?? 0
   let out: Proven | undefined, proofFacts: Facts | undefined
   const contexts = new Map<Program, Facts>([[p, fs]])
   const done = (v: Omit<DataVerdict, 'ms' | 'law'>): {verdict: DataVerdict, out?: Proven, facts?: Facts} => {
-    if (dataTrace) console.error(`[data] ${l.name}: ${work.n - w0} units of work in ${Math.round(performance.now() - t0)} ms`)
-    return {verdict: {law: l.name, ...v, ms: Math.round(performance.now() - t0)}, out, facts: proofFacts}
+    if (dataTrace) console.error(`[data] ${l.name}: ${work.n - w0} units of work in ${Math.round(countedTraceNow() - t0)} ms`)
+    return {verdict: {law: l.name, ...v, ms: Math.round(countedTraceNow() - t0)}, out, facts: proofFacts}
   }
   if (phase !== 'rest') {
     const cex = refute(l, opts.samples ?? 400)
@@ -3744,8 +3745,8 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   // The steps the law's inductions leave (lemma calculation), then the conjectures from the values.
   // (a conjecture that is the law at some of its values, or the law said as an equation with a constant, p(x) = true,
   // is proven only by proving the law: none is tried)
-  const tc = performance.now(), calc = Array.isArray(opts.lemmas) ? [] : calculated(p, l, 2, 6).filter(c => !lawAgain(l, c))
-  if (dataTrace) console.error(`[data] ${l.name}: ${calc.length} calculated in ${Math.round(performance.now() - tc)} ms`)
+  const tc = countedTraceNow(), calc = Array.isArray(opts.lemmas) ? [] : calculated(p, l, 2, 6).filter(c => !lawAgain(l, c))
+  if (dataTrace) console.error(`[data] ${l.name}: ${calc.length} calculated in ${Math.round(countedTraceNow() - tc)} ms`)
   const invented = Array.isArray(opts.lemmas) ? [] : synthesizedLemmas(p).filter(c => !lawAgain(l, c))
   for (const c of invented) distributed.add(c)
   const cands = Array.isArray(opts.lemmas) ? opts.lemmas : [...calc, ...invented, ...conjectures(p, l).filter(c => !lawAgain(l, c))]

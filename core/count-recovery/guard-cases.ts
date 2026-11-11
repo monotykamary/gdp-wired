@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from '../wall.ts'
 // Untrusted activation case splitting. Every leaf is transported back to
 // the original goal/path, and the complete split tree is checked once more.
 import {type C,type Machine,plus,n} from '../machine.ts'
@@ -55,7 +56,7 @@ function guardCasesImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,un
   }
   // The complete guard tree below checks active proofs after source transport.
   // Avoid checking the same large active tree before and after that transport.
-  const lifted=proof&&(sourceOnly?proof:hasConditionalProof(proof)?transportConditionalProof(goal,g,proof,path,path,Math.min(wallAt(),performance.now()+Math.max(0,end-clock())*10)):widen(goal,g,proof,{},path,path)),accepted=!!lifted&&(active||deferNested||check(g,lifted,path))
+  const lifted=proof&&(sourceOnly?proof:hasConditionalProof(proof)?transportConditionalProof(goal,g,proof,path,path,Math.min(wallAt(),countedSearchNow()+Math.max(0,end-clock())*10)):widen(goal,g,proof,{},path,path)),accepted=!!lifted&&(active||deferNested||check(g,lifted,path))
   if(accepted&&lifted&&!hasConditionalProof(lifted))options.memo?.put(g,path,lifted)
   if(!active&&accepted&&lifted&&!inactiveLeaf)inactiveLeaf={tree:lifted,path:new Map(path)}
   trace.push({stage:'guard-leaf',active,sourceOnly,hyps:hyps.length,ms:Math.round(clock()-start),checked:!active&&!deferNested&&accepted,proposed:!!proof,transported:!!lifted,deferred:active||deferNested})

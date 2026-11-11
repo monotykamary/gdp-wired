@@ -8,6 +8,10 @@
 import {boundOf, crossFree, eachParts, historyMachine, tuple, keyTerm, mapArities, plainKey, scope, sumRuntime, tupleParts} from '../kernel/kernel.ts'
 import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
 import {runtimeWall} from './runtime-wall.ts'
+import {traceNow} from './trace-clock.ts'
+import {coreMeter} from './meter.ts'
+import {observeAst} from './meter.ts'
+
 
 // The one generator of the repo's random draws: x' = (1103515245 x + 12345) mod 2^31, exact (Math.imul). In doubles
 // the product passes 2^53 and rounds, which folds every seed into one of six short cycles (61 to 10,466 steps; 98.8% of
@@ -191,16 +195,16 @@ export type SomeProof = {vars: string[], body: C, sub?: Record<string, E>, ghost
 export {unreachable, tuple, tupleParts, part} from '../kernel/kernel.ts'
 
 // Builders.
-export const x = (name: string): E => ({op: 'var', name})
-export const n = (value: number): E => ({op: 'const', value})
-export const plus = (a: E, b: E): E => ({op: 'add', a, b})
-export const minus = (a: E, b: E): E => ({op: 'sub', a, b})
-export const times = (factor: number, a: E): E => ({op: 'mul', k: factor, a})
-export const min = (a: E, b: E): E => ({op: 'min', a, b})
-export const max = (a: E, b: E): E => ({op: 'max', a, b})
-export const prod = (a: E, b: E): E => ({op: 'prod', a, b})
-export const ite = (c: C, then: E, otherwise: E): E => ({op: 'if', c, then, else: otherwise})
-export const get = (map: string, key: E): E => ({op: 'get', map, key})
+export const x = (name: string): E => (observeAst({op: 'var', name}))
+export const n = (value: number): E => (observeAst({op: 'const', value}))
+export const plus = (a: E, b: E): E => (observeAst({op: 'add', a, b}))
+export const minus = (a: E, b: E): E => (observeAst({op: 'sub', a, b}))
+export const times = (factor: number, a: E): E => (observeAst({op: 'mul', k: factor, a}))
+export const min = (a: E, b: E): E => (observeAst({op: 'min', a, b}))
+export const max = (a: E, b: E): E => (observeAst({op: 'max', a, b}))
+export const prod = (a: E, b: E): E => (observeAst({op: 'prod', a, b}))
+export const ite = (c: C, then: E, otherwise: E): E => (observeAst({op: 'if', c, then, else: otherwise}))
+export const get = (map: string, key: E): E => (observeAst({op: 'get', map, key}))
 // The pairing and its inverse as the runtimes compute them, exactly (Lean's cpair and cun): tri(a + b) + b, and back.
 export const cpair = (a: number, b: number): number => { const s = a + b; return exactPair(s % 2 === 0 ? (s / 2) * (s + 1) + b : s * ((s + 1) / 2) + b) }
 const exactPair = (v: number): number => { if (!Number.isSafeInteger(v)) throw new RangeError('a tuple key passed 2^53 - 1, past which the proofs over the naturals no longer describe the run'); return v }
@@ -212,12 +216,12 @@ export const cunpair = (z: number): [number, number] => {
   return [s - b, b]
 }
 const tri = (s: number): number => (s % 2 === 0 ? (s / 2) * (s + 1) : s * ((s + 1) / 2))
-export const less = (a: E, b: E): C => ({op: '<', a, b})
-export const atMost = (a: E, b: E): C => ({op: '<=', a, b})
-export const same = (a: E, b: E): C => ({op: '=', a, b})
-export const all = (...xs: C[]): C => ({op: 'and', xs})
-export const any = (...xs: C[]): C => ({op: 'or', xs})
-export const not = (c: C): C => ({op: 'not', x: c})
+export const less = (a: E, b: E): C => (observeAst({op: '<', a, b}))
+export const atMost = (a: E, b: E): C => (observeAst({op: '<=', a, b}))
+export const same = (a: E, b: E): C => (observeAst({op: '=', a, b}))
+export const all = (...xs: C[]): C => (observeAst({op: 'and', xs}))
+export const any = (...xs: C[]): C => (observeAst({op: 'or', xs}))
+export const not = (c: C): C => (observeAst({op: 'not', x: c}))
 export const bit = (name: string): C => any(same(x(name), n(0)), same(x(name), n(1)))
 
 // --- division and remainder by a constant ------------------------------------------------------------------------
@@ -378,6 +382,7 @@ const exact = (v: number): number => {
 // (a value is a number: a name like constructor or toString, read through an object's prototype, is no value of it)
 const num = (x: unknown): number | undefined => (typeof x === 'number' ? x : undefined)
 export function evalE(e: E, env: Env, st: State, m: Machine): number {
+  coreMeter.evals += 1
   switch (e.op) {
     case 'var': { const v = num(env[e.name]) ?? num(st.scalars[e.name]); if (v === undefined) throw new Error(`no value for ${e.name}`); return v }
     case 'const': return e.value
@@ -410,6 +415,7 @@ const directCall = (d: DirectFn): ((...args: number[]) => number) => {
   // Arithmetic inside an equation is evaluated just as in generated code; no paired key is needed for calls.
   const memo = new Map<string, [number, number]>()
   const value = (e: E, env: Env): number => {
+    coreMeter.evals += 1
     switch (e.op) {
       case 'const': return e.value
       case 'var': return env[e.name]!
@@ -428,6 +434,7 @@ const directCall = (d: DirectFn): ((...args: number[]) => number) => {
     }
   }
   const condition = (c: C, env: Env): boolean => {
+    coreMeter.evals += 1
     switch (c.op) {
       case '<': return value(c.a, env) < value(c.b, env)
       case '<=': return value(c.a, env) <= value(c.b, env)
@@ -509,6 +516,7 @@ export function pairedArgs(key: E, n: number): E[] | undefined {
 }
 const alike = (a: E, b: E): boolean => a === b || JSON.stringify(a) === JSON.stringify(b)
 export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
+  coreMeter.evals += 1
   switch (c.op) {
     case '<': return evalE(c.a, env, st, m) < evalE(c.b, env, st, m)
     case '<=': return evalE(c.a, env, st, m) <= evalE(c.b, env, st, m)
@@ -528,6 +536,11 @@ export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
 // (a read reads the machine's functions as they are when it runs, which a table swap changes; a quantified condition and
 // a function of several arguments go through evalC and evalE). For a term read at many rows (the engine's views).
 export function compileE(e: E, m: Machine): (env: Env, st: State) => number {
+  const run = compileENode(e, m)
+  // A get either charges its own node or delegates it to evalE, never both.
+  return e.op === 'get' ? run : (env, st) => { coreMeter.evals += 1; return run(env, st) }
+}
+function compileENode(e: E, m: Machine): (env: Env, st: State) => number {
   switch (e.op) {
     case 'var': { const name = e.name; return (env, st) => { const v = num(env[name]) ?? num(st.scalars[name]); if (v === undefined) throw new Error(`no value for ${name}`); return v } }
     case 'const': { const v = e.value; return () => v }
@@ -545,6 +558,7 @@ export function compileE(e: E, m: Machine): (env: Env, st: State) => number {
       return (env, st) => {
         const fn = m.fns?.[map]
         if (fn?.call && pairedArgs(e.key, fn.arity!)) return evalE(e, env, st, m)
+        coreMeter.evals += 1
         const k = key(env, st)
         return fn ? naturalIn(fnOf(fn)(k), `${map}(${k})`) : st.maps[map]!.get(k) ?? st.defaults?.[map] ?? m.maps![map]!
       }
@@ -552,6 +566,11 @@ export function compileE(e: E, m: Machine): (env: Env, st: State) => number {
   }
 }
 export function compileC(c: C, m: Machine): (env: Env, st: State) => boolean {
+  const run = compileCNode(c, m)
+  // Quantified conditions delegate the whole evaluation to the interpreter.
+  return c.op === 'all' ? run : (env, st) => { coreMeter.evals += 1; return run(env, st) }
+}
+function compileCNode(c: C, m: Machine): (env: Env, st: State) => boolean {
   switch (c.op) {
     case '<': { const a = compileE(c.a, m), b = compileE(c.b, m); return (env, st) => a(env, st) < b(env, st) }
     case '<=': { const a = compileE(c.a, m), b = compileE(c.b, m); return (env, st) => a(env, st) <= b(env, st) }
@@ -599,7 +618,7 @@ function tupleOf(w: {each: string, value: E}, parts: number): TupleWrite {
   if (!byParts) tupleWrites.set(w, (byParts = new Map()))
   let t = byParts.get(parts)
   if (!t) {
-    const e = eachParts(w, parts), body: C = {op: '=', a: e.value, b: {op: 'const', value: 0}}, free = crossFree(body, e.names)
+    const e = eachParts(w, parts), body: C = observeAst({op: '=', a: e.value, b: observeAst({op: 'const', value: 0})}), free = crossFree(body, e.names)
     t = {...e, bs: e.names.map(name => breaksOf(free, name)), crossed: JSON.stringify(free) !== JSON.stringify(body), reads: new WeakMap()}
     byParts.set(parts, t)
   }
@@ -658,12 +677,12 @@ function unchanged(t: TupleWrite, map: string, env: Env, st: State, m: Machine):
     if (c.op === 'and' || c.op === 'or') {
       const xs: C[] = []
       for (const y of c.xs) { const v = cond(y); if (v === (c.op === 'or')) return v; if (typeof v !== 'boolean') xs.push(v) }
-      return xs.length === 0 ? c.op === 'and' : xs.length === 1 ? xs[0]! : {op: c.op, xs}
+      return xs.length === 0 ? c.op === 'and' : xs.length === 1 ? xs[0]! : observeAst({op: c.op, xs})
     }
     return c
   }
-  const term = (e: E): E => { if (e.op !== 'if') return e; const c = cond(e.c); return c === true ? term(e.then) : c === false ? term(e.else) : {...e, c: c as C} }
-  const v = term(t.value), own = (e: E) => e.op === 'get' && e.map === map && JSON.stringify(e.key) === JSON.stringify(tuple(t.names.map((name): E => ({op: 'var', name}))))
+  const term = (e: E): E => { if (e.op !== 'if') return e; const c = cond(e.c); return c === true ? term(e.then) : c === false ? term(e.else) : observeAst({...e, c: c as C}) }
+  const v = term(t.value), own = (e: E) => e.op === 'get' && e.map === map && JSON.stringify(e.key) === JSON.stringify(tuple(t.names.map((name): E => (observeAst({op: 'var', name})))))
   if (own(v)) return true
   const zeroOne = () => [...(st.maps[map]?.values() ?? [])].every(x => x === 0 || x === 1) && (st.defaults?.[map] ?? m.maps![map]!) <= 1
   return v.op === 'if' && v.then.op === 'const' && v.then.value === 1 && v.else.op === 'const' && v.else.value === 0 && v.c.op === '<=' && v.c.a.op === 'const' && v.c.a.value === 1 && own(v.c.b) && zeroOne()
@@ -682,7 +701,7 @@ function runnable(m: Machine) {
 export function leastsIn(m: Machine, env: Env, st: State): Env {
   const out: Env = {}
   for (const [name, l] of Object.entries(m.leasts ?? {})) {
-    const keys = keysAt(st, mapsIn({op: 'and', xs: [l.where, ...l.by.flatMap(b => [b.e, ...(b.neg ? [b.neg] : [])].map(e => ({op: '=', a: e, b: e}) as C))]}).filter(mp => !m.fns?.[mp])), past = keys.pop()!
+    const keys = keysAt(st, mapsIn(observeAst({op: 'and', xs: [l.where, ...l.by.flatMap(b => [b.e, ...(b.neg ? [b.neg] : [])].map(e => (observeAst({op: '=', a: e, b: e})) as C))]})).filter(mp => !m.fns?.[mp])), past = keys.pop()!
     const at = (key: number): Env => ({...env, ...out, [l.key]: key})
     if (evalC(l.where, at(past), st, m)) throw new RangeError(`${m.name}: ${name} has no least (its condition holds at every key past the cells)`)
     let best: {key: number, by: number[]} | undefined
@@ -977,7 +996,7 @@ function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): 
     bound = {...bound, [l.key]: 'lk'}
     const where = cx(l.where), by = l.by.map(b => (b.neg ? `(${ex(b.e)} - ${ex(b.neg)})` : ex(b.e)))
     bound = outer
-    const ms = mapsIn({op: 'and', xs: [l.where, ...l.by.flatMap(b => [b.e, ...(b.neg ? [b.neg] : [])].map(e => ({op: '=', a: e, b: e}) as C))]}).filter(mp => !fns.includes(mp))
+    const ms = mapsIn(observeAst({op: 'and', xs: [l.where, ...l.by.flatMap(b => [b.e, ...(b.neg ? [b.neg] : [])].map(e => (observeAst({op: '=', a: e, b: e})) as C))]})).filter(mp => !fns.includes(mp))
     const better = l.by.map((b, i) => `by[${i}] !== bb[${i}] ? by[${i}] ${b.desc ? '>' : '<'} bb[${i}] : `).join('') + 'false'
     lines.push(`{ const ks = $keys(maps, ${JSON.stringify(ms)}), past = ks.pop(); let lk = past; if (${where}) throw new RangeError(${id(`${m.name}: ${name} has no least (its condition holds at every key past the cells)`)}); let bk, bb; for (lk of ks.sort((a, b) => a - b)) { if (!(${where})) continue; const by = [${by.join(', ')}]; if (bk === undefined || (${better})) { bk = lk; bb = by; } } env[${id(name)}] = bk ?? 0; env[${id(l.some)}] = bk === undefined ? 0 : 1; }`)
   }
@@ -1057,8 +1076,12 @@ export function fastStep(m: Machine): ((params: Env, st: State, input: Request) 
   // (the counts compiled with the step, unless the machine has least keys, whose names the step alone computes)
   const compiledCells = cs.length && !Object.keys(m.leasts ?? {}).length
   try { if (m.history) return undefined; js = loadJsMode({...m, counts: undefined, inputMaps: [...m.inputMaps ?? [], ...cs]}, true, compiledCells ? {decls, inputMaps: m.inputMaps ?? []} : undefined) } catch { return undefined }
-  const only = cs.length ? {...m, counts: decls} : m, tick = () => runtimeWall.check?.('derived count')
+  let stepEvals = 0
+  walk([m.step, m.assume ?? null, m.leasts ?? null], o => { if (typeof o.op === 'string') stepEvals++ })
+  const only = cs.length ? {...m, counts: decls} : m, tick = () => { coreMeter.ticks += 1; runtimeWall.check?.('derived count') }
   return (params, st, input) => {
+    // Section 18's static expression-node charge per compiled step invocation.
+    coreMeter.evals += stepEvals
     if (!cs.length) return js.step(params, st, input)
     const view = compiledCells ? js.cells!(params, st, input, tick) : carriedView(only, st, input, undefined, params).maps, carried: Request = {...input}
     for (const c of cs) carried[c] = view[c]!
@@ -1147,7 +1170,7 @@ function symC(c: C, s: Sym, truth: boolean): Cases<null> {
 
 // PROVE_DEBUG=1 logs the case counts to stderr; read through globalThis so the module also loads where there is no process.
 const proveDebug = !!env.PROVE_DEBUG
-const debug = (label: string, n: number) => { if (proveDebug) console.error(`[prove] ${label}: ${n} (${Math.round(performance.now())} ms)`) }
+const debug = (label: string, n: number) => { if (proveDebug) console.error(`[prove] ${label}: ${n} (${Math.round(traceNow())} ms)`) }
 // Drops the cases whose path is already impossible, so impossible branches don't multiply.
 function feasible<T>(cases: Cases<T>): Cases<T> {
   return cases.filter(c => {
@@ -1235,8 +1258,8 @@ export function prove(m: Machine, goal: Law, invariants: Law[] = [goal]): Proof 
   // Keys first: how each key the step reads or writes compares with each focus key of the same map, decided once.
   const stepReads = [
     ...Object.values(m.step.flags ?? {}).flatMap(readsOf),
-    ...Object.values(m.step.state ?? {}).flatMap(e => readsOf({op: '=', a: e, b: e})),
-    ...Object.entries(m.step.maps ?? {}).flatMap(([map, w]) => [...('each' in w ? [] : [{map, key: w.key}]), ...readsOf({op: '=', a: w.value, b: w.value})]),
+    ...Object.values(m.step.state ?? {}).flatMap(e => readsOf(observeAst({op: '=', a: e, b: e}))),
+    ...Object.entries(m.step.maps ?? {}).flatMap(([map, w]) => [...('each' in w ? [] : [{map, key: w.key}]), ...readsOf(observeAst({op: '=', a: w.value, b: w.value}))]),
   ]
   const pairs = new Map<string, {key: Lin, fkey: Lin}>()
   for (const r of stepReads) {

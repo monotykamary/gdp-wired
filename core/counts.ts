@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow, traceNow as countedTraceNow} from './wall.ts'
 // The candidate pipeline (untrusted): the counted search, for a machine with counts (the kernel's countedObligations
 // and checkCountedLaws, Lean's CountMachine.lean), and the ∃ search's cone (core/dsl.ts's someCone) are one pipeline:
 //   1. the small instances (core/exists.ts's smallOf: each param 2 and 3, inputs and carried sets below 3), the one
@@ -50,7 +51,7 @@ import {countedCertificateHyps,transportCountCertificate} from './count-cert-tra
 export const cprof: Record<string, number> = {}
 export const countsDump: {on?: (goal: object) => void} = {}
 const tally = (k: string, n = 1) => { cprof[k] = (cprof[k] ?? 0) + n }
-const ptime = <T>(k: string, f: () => T): T => { const t = performance.now(); try { checkWall(k); const out = f(); checkWall(k); return out } finally { cprof[k] = (cprof[k] ?? 0) + performance.now() - t } }
+const ptime = <T>(k: string, f: () => T): T => { const t = countedTraceNow(); try { checkWall(k); const out = f(); checkWall(k); return out } finally { cprof[k] = (cprof[k] ?? 0) + countedTraceNow() - t } }
 let dumped = 0
 // (GDP_COUNTS_LAZY=0: every instance and pick certFor proposes in the goal at once, as before; `wide`: the narrow
 // instances at once, the widened goal's further instances and picks lazily)
@@ -492,8 +493,8 @@ export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted 
   })
   if (!env.GDP_COUNTS_PROF) return run()
   cdclStats.on = true
-  const t = performance.now(), out = run()
-  console.error(`counts: prof total ${Math.round(performance.now() - t)} ms; ${Object.entries(cprof).map(([k2, x]) => `${k2} ${Math.round(x)}`).join(', ')}; cdcl runs ${cdclStats.runs} conflicts ${cdclStats.conflicts} decisions ${cdclStats.decisions} solveMs ${Math.round(cdclStats.solveMs)} rowsMs ${Math.round(cdclStats.rowsMs)} coreMs ${Math.round(cdclStats.coreMs)} unfoldMs ${Math.round(cdclStats.unfoldMs)} lpMs ${Math.round(cdclStats.lpMs)} boundMs ${Math.round(cdclStats.boundMs)} orderMs ${Math.round(cdclStats.orderMs)} fmCalls ${cdclStats.fmCalls} lpMisses ${cdclStats.lpMisses} lpUnknown ${cdclStats.lpUnknown} missMs ${Math.round(cdclStats.missMs)} fastMs ${Math.round(cdclStats.fastMs)} fmOpenMs ${Math.round(cdclStats.fmOpenMs)} fmLeafMs ${Math.round(cdclStats.fmLeafMs)} nodes ${cdclStats.nodes}`)
+  const t = countedSearchNow(), out = run()
+  console.error(`counts: prof total ${Math.round(countedSearchNow() - t)} ms; ${Object.entries(cprof).map(([k2, x]) => `${k2} ${Math.round(x)}`).join(', ')}; cdcl runs ${cdclStats.runs} conflicts ${cdclStats.conflicts} decisions ${cdclStats.decisions} solveMs ${Math.round(cdclStats.solveMs)} rowsMs ${Math.round(cdclStats.rowsMs)} coreMs ${Math.round(cdclStats.coreMs)} unfoldMs ${Math.round(cdclStats.unfoldMs)} lpMs ${Math.round(cdclStats.lpMs)} boundMs ${Math.round(cdclStats.boundMs)} orderMs ${Math.round(cdclStats.orderMs)} fmCalls ${cdclStats.fmCalls} lpMisses ${cdclStats.lpMisses} lpUnknown ${cdclStats.lpUnknown} missMs ${Math.round(cdclStats.missMs)} fastMs ${Math.round(cdclStats.fastMs)} fmOpenMs ${Math.round(cdclStats.fmOpenMs)} fmLeafMs ${Math.round(cdclStats.fmLeafMs)} nodes ${cdclStats.nodes}`)
   return out
 }
 function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine, caller: Law[], ms: number): Counted {
@@ -537,9 +538,9 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
     if (env.GDP_COUNT_LEMMA_CUTS === '1') {
       // This pass performs no search work. Reuse the enclosing wall deadline; outside one,
       // conservatively cap its wall time by the remaining counted allowance. Neither budget is extended.
-      const wall = wallAt(), end = Number.isFinite(wall) ? wall : performance.now() + Math.max(0, until - clock())
+      const wall = wallAt(), end = Number.isFinite(wall) ? wall : countedSearchNow() + Math.max(0, until - clock())
       for (const {goal, decls} of countedObligations(m, ls, proof.instances)) {
-        if (performance.now() >= end) break
+        if (countedSearchNow() >= end) break
         const cert = proof.certs[goal.name]
         if (!cert || cert.lemmas?.length) continue
         const expanded = mcGoal(goal.hyps, decls, cert)
@@ -575,7 +576,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         const structural = support.has(law) && !caller.includes(law)
         const boundedSupport = activeSupport(set, support)
         const allotted = supportBudget(until - clock(), share, boundedSupport && caller.includes(law), structural)
-        const supportUntil = Math.min(until, clock() + (boundedSupport ? Math.min(allotted, 5_000) : allotted)), supportWall = performance.now() + 4_800
+        const supportUntil = Math.min(until, clock() + (boundedSupport ? Math.min(allotted, 5_000) : allotted)), supportWall = countedSearchNow() + 4_800
         const ask = (pass: 0 | 1): Tried<Proof> => {
           const ms = Math.min(allotted, Math.max(0, (boundedSupport ? supportUntil : until) - clock()))
           return boundedSupport ? withWall(supportWall, () => withDeadline(supportUntil, () => traced(law, set, pass, ms))) : traced(law, set, pass, ms)
@@ -635,7 +636,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         }
         return finish(kept,{instances,certs})
       }
-      const remaining=until-clock(),share=remaining/Math.max(1,set.length-known.size),allotted=supportBudget(remaining,share,caller.includes(law),support.has(law)&&!caller.includes(law)),stop=Math.min(until,clock()+Math.min(allotted,5000)),wall=performance.now()+4800
+      const remaining=until-clock(),share=remaining/Math.max(1,set.length-known.size),allotted=supportBudget(remaining,share,caller.includes(law),support.has(law)&&!caller.includes(law)),stop=Math.min(until,clock()+Math.min(allotted,5000)),wall=countedSearchNow()+4800
       const countFirst=env.GDP_COUNTS_COUNT_FIRST!=='0'&&(reads(law.holds,isCount).size>0||!!law.keys?.length)
       const ask=(context:Law[]):Tried<Proof>=>withWall(wall,()=>withDeadline(stop,()=>{
         const pass:0|1=countFirst?1:0
@@ -771,7 +772,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     }
     const rawBuild = () => obligations(at).map(({goal, decls}) => {
       if (pass && supported && lazyMode === 'wide') {
-        if (generation.state.deadline || performance.now() >= wallAt()) throw new UnsupportedCountProposal('reservation deadline')
+        if (generation.state.deadline || countedSearchNow() >= wallAt()) throw new UnsupportedCountProposal('reservation deadline')
         let selection = selections.get(goal.name)
         const reservation = selection && reservationReadClosure(goal, decls, selection.previous, selection.decls, selection.chosen, [...m.params, ...m.inputs, ...Object.keys(m.state)])
         // Primitive PRE instances cannot introduce another count read. Reuse
@@ -1018,7 +1019,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     return result
   }
   const traced = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Tried<Proof> => {
-    const t0 = clock(), w0 = performance.now(), p0 = {...cprof}
+    const t0 = clock(), w0 = countedSearchNow(), p0 = {...cprof}
     let r: Tried<Proof>
     try {
       const end = Math.min(until, clock() + ms)
@@ -1063,7 +1064,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       countsDump.on?.({law: law.name, pass, phase: 'rejected proposal', error: String(error)})
       r = {stuck: 'unknown'}
     }
-    if (env.GDP_COUNTS_TRACE?.includes('3')) console.error(`counts: try ${law.name.slice(0, 50)} | ls ${ls.length} pass ${pass} ms ${Math.round(ms)} took ${Math.round(clock() - t0)} wall ${Math.round(performance.now() - w0)} [${Object.entries(cprof).filter(([k2, x]) => x - (p0[k2] ?? 0) >= 1).map(([k2, x]) => `${k2} ${Math.round(x - (p0[k2] ?? 0))}`).join(' ')}] -> ${'proof' in r ? 'kept' : r.stuck}`)
+    if (env.GDP_COUNTS_TRACE?.includes('3')) console.error(`counts: try ${law.name.slice(0, 50)} | ls ${ls.length} pass ${pass} ms ${Math.round(ms)} took ${Math.round(clock() - t0)} wall ${Math.round(countedSearchNow() - w0)} [${Object.entries(cprof).filter(([k2, x]) => x - (p0[k2] ?? 0) >= 1).map(([k2, x]) => `${k2} ${Math.round(x - (p0[k2] ?? 0))}`).join(' ')}] -> ${'proof' in r ? 'kept' : r.stuck}`)
     return r
   }
   return {traced, get counted() { return counted }, set houdini(value: boolean) { houdini = value }}

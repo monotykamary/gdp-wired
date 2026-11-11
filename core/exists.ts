@@ -1,3 +1,4 @@
+import {traceNow as countedTraceNow} from './wall.ts'
 // There exists: a law ∃ x. P(x) (core/machine.ts's Law with `some`: x a natural, or an integer as two, x and x$neg),
 // proven through a witness. Nothing here is trusted: the kernel proves a plain law of a plain machine, and the Lean
 // export states the existential again, proven by ⟨witness, proof⟩ (lean-kernel/Ghost.lean's some_updAll).
@@ -905,11 +906,11 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
       firstPicks.set(key([m.step, m.assume ?? null, m.maps ?? null, p.law.holds]), pk.mode === 'map' ? {mode: 'map', at: pk.at} : {mode: 'term', at: [...(pk as {at: number[]}).at]})
     }
     for (let round = 0; ; round++) {
-      const now = current(), t0 = performance.now(), r: ReturnType<typeof proveLaw> = round === 0 && first ? {proven: false, ...first}
+      const now = current(), t0 = countedTraceNow(), r: ReturnType<typeof proveLaw> = round === 0 && first ? {proven: false, ...first}
         // (a ghost map's goals within 2 s: a search asks them with every candidate set, and one without its supports can take
         // minutes; `mapMs` where the supports are the search's, found over the same map)
         : p.pick.mode === 'map' ? withDeadline(clock() + (opts.mapMs ?? 2_000), () => proveLaw(now.machine, now.laws, i)) : proveLaw(now.machine, now.laws, i)
-      if (log) console.error(`exists: pass ${pass} round ${round} "${p.law.name}" ${p.pick.mode} ${describe(p, cases).slice(0, 160)}: ${r.proven ? 'proven' : `${r.goal} ${r.stuck}`} (${Math.round(performance.now() - t0)} ms)`)
+      if (log) console.error(`exists: pass ${pass} round ${round} "${p.law.name}" ${p.pick.mode} ${describe(p, cases).slice(0, 160)}: ${r.proven ? 'proven' : `${r.goal} ${r.stuck}`} (${Math.round(countedTraceNow() - t0)} ms)`)
       if (r.proven) return undefined
       const fail = (stuck: string): SomeReport => ({proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: r.goal, stuck, ...(r.witness ? {witness: r.witness} : {})}})
       // A witness given: the kernel proves the law with it, or refuses it here, with its counterexample.
@@ -962,9 +963,9 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
   // (a witness term is a hypothesis of every law), that law's again from the whole set's counterexample, and so on.
   for (const [i, p] of plans) { const f = choose(i, p, 0); if (f) return f }
   for (let pass = 1; ; pass++) {
-    const {machine, laws: plain, ghosts} = current(), t0 = performance.now()
+    const {machine, laws: plain, ghosts} = current(), t0 = countedTraceNow()
     const out = (opts.whole ?? proveLaws)(machine, plain), done = {...out, laws: out.laws ?? plain, machine, ghosts, witnesses: Object.fromEntries([...plans.values()].map(p => [p.law.name, describe(p, cases)]))}
-    if (log) console.error(`exists: pass ${pass} the whole set: ${out.proven ? 'proven' : `${out.failed?.goal} ${out.failed?.stuck}`} (${Math.round(performance.now() - t0)} ms)`)
+    if (log) console.error(`exists: pass ${pass} the whole set: ${out.proven ? 'proven' : `${out.failed?.goal} ${out.failed?.stuck}`} (${Math.round(countedTraceNow() - t0)} ms)`)
     const j = out.proven || !out.failed || pass > 8 ? undefined : [...plans.keys()].find(k => out.failed!.goal.startsWith(`${laws[k]!.name} @`))
     if (j === undefined) return done
     const f = choose(j, plans.get(j)!, pass, out.failed!.stuck === 'sat' ? out.failed! : undefined)

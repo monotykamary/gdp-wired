@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from './wall.ts'
 // Invariants nobody wrote: a law that holds but isn't inductive, proven with laws the search finds. Nothing here is
 // trusted; what it finds is proven by the kernel with the rule's own laws, as laws of the same rule.
 //   - runs: random runs from the start (params and requests by their kinds, the assumption met) give reachable states,
@@ -72,7 +73,7 @@ export type InferOptions = {
   join?: number // the join's share of what is left of the search after the candidates (0.6)
   cubes?: number // the engine's minimal ∀ cubes of at most this many literals alone, as found laws, nothing proven (core/counts.ts's)
   rows?: {params: Record<string, number>, st: State}[] // more reachable states the engine's cubes are read off, beside its small instance's (core/counts.ts's)
-  wall?: number // the wall stop at this performance.now() in place of `ms` past the start: a caller's own end, so a slow machine reads the same counted budget, later (core/counts.ts's)
+  wall?: number // the wall stop at this countedSearchNow() in place of `ms` past the start: a caller's own end, so a slow machine reads the same counted budget, later (core/counts.ts's)
 }
 // What was found: each law as a Law (pass it with the rule's laws), how it reads, and for a rule, the builder call
 // that states it (`r.law(...)`), to paste.
@@ -674,18 +675,18 @@ function comparisons(m: Machine, laws: Law[], atoms: Atom[], coords: number[], m
 export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
   // Repeated rounds and minimization can ask the same root goal again. Keep only
   // completed trees for this search, keyed by exact hypotheses and prover modes.
-  return withTrees(() => quietly(() => withDeadline(clock() + (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - performance.now())), () => inferLawsSearch(target, laws, stepLaws, opts))))
+  return withTrees(() => quietly(() => withDeadline(clock() + (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - countedSearchNow())), () => inferLawsSearch(target, laws, stepLaws, opts))))
 }
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
   // (GDP_INFER_TRACE=2: each phase's progress too, to stderr)
   if (env.GDP_INFER_TRACE === '2' && !opts.progress) opts = {...opts, progress: (phase, info) => (globalThis as unknown as {process: {stderr: {write: (s: string) => void}}}).process.stderr.write(`[infer ${phase}] ${JSON.stringify(info)}\n`)}
-  const t0 = performance.now(), ms = opts.ms ?? 20000, wallUntil = opts.wall ?? t0 + ms, rule = isRule(target) ? target.withSumsOf(laws, stepLaws) : undefined
+  const t0 = countedSearchNow(), ms = opts.ms ?? 20000, wallUntil = opts.wall ?? t0 + ms, rule = isRule(target) ? target.withSumsOf(laws, stepLaws) : undefined
   // The clock the budgets read (counted milliseconds since the start, or wall time where `timed`), and the stop.
   const timed = !!opts.timed, w0 = work.n, used = {tries: 0, rows: 0, evals: 0, watched: 0, erows: 0, etries: 0}
-  const now = (): number => (timed ? performance.now() - t0
+  const now = (): number => (timed ? countedSearchNow() - t0
     : used.tries / inferRates.tries + used.rows / inferRates.rows + used.evals / inferRates.evals + used.watched / inferRates.watched + (work.n - w0) / inferRates.work)
   let stopped = false
-  const stop = () => stopped || (stopped = performance.now() > wallUntil)
+  const stop = () => stopped || (stopped = countedSearchNow() > wallUntil)
   // The engine's clock (the stage below, from the small instance on): counted as `now` is, with the EPR path's work
   // (kernel/epr.ts's eprMeter) and the views' rows beside it, so that every choice it makes by its budget (a BFS cut, the
   // filter, a goal's cap, a round's growth) is the same on any machine; the wall (`stop`, `until` past `ms`) only ends it.
@@ -695,12 +696,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // slower than Modal's usual; past `eUntil` it stops as it would past the wall, at the same place on any machine.
   let eS = {now: 0, epr: eprMeter.n, erows: 0, etries: 0, full: fullWork()}, eUntil = ms
   const vnow = (): number => (timed ? now() : (used.etries - eS.etries) / inferRates.etries + (eprMeter.n - eS.epr) / inferRates.epr + (used.erows - eS.erows) / inferRates.erows + (fullWork() - eS.full) / inferRates.efull)
-  const meters = () => ({real: Math.round(performance.now() - t0), v: Math.round(vnow()), now: Math.round(now()), full: Math.round(fullWork()), epr: eprMeter.n - eS.epr, erows: used.erows, etries: used.etries, tries: used.tries, rows: used.rows, evals: used.evals, work: work.n - w0})
+  const meters = () => ({real: Math.round(countedSearchNow() - t0), v: Math.round(vnow()), now: Math.round(now()), full: Math.round(fullWork()), epr: eprMeter.n - eS.epr, erows: used.erows, etries: used.etries, tries: used.tries, rows: used.rows, evals: used.evals, work: work.n - w0})
   const until = ms
-  let tp = performance.now(), cp = 0, wp = w0
+  let tp = countedSearchNow(), cp = 0, wp = w0
   const trace = (what: string, o: Record<string, number | string | boolean> = {}) => {
     if (!inferTrace) return
-    const t = performance.now(), c = now()
+    const t = countedSearchNow(), c = now()
     ;(globalThis as unknown as {process: {stderr: {write: (s: string) => void}}}).process.stderr.write(`[infer] ${what} ${JSON.stringify({ms: Math.round(t - tp), counted: Math.round(c - cp), work: work.n - wp, ...used, ...o})}\n`)
     tp = t; cp = c; wp = work.n
   }
@@ -725,7 +726,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const out = stepLaws.length ? proveStepLaws(mm, ls, stepLaws) : (fast ? proveSetFast : proveLaws)(mm, ls)
     return verdictOf(out)
   }
-  const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(performance.now() - t0), stopped: stop()})
+  const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(countedSearchNow() - t0), stopped: stop()})
   const first = opts.first ?? (opts.cubes ? {proven: false, checked: false} as Verdict : prove(laws))
   if ((first.proven && first.checked) || first.run) return {...first, found: [], stats: stats(0, 0, 0)}
 
@@ -767,8 +768,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // (a rule of relations: its steps by domainStep, its params small: a relation's tuples grow as a power of them; its
   // runs the least, the engine's small instance its samples)
   const relStep = domainStep(m)
-  const runsTimed = timed || opts.runsMs !== undefined, runsUntil = Math.min(wallUntil, performance.now() + (opts.runsMs ?? 500)), least = opts.runs ?? (relStep ? 2000 : Math.min(inferRuns, Math.max(2000, 4 * ms)))
-  const moreRuns = (trial: number) => !supplied && (runsTimed ? performance.now() < runsUntil : trial < (relStep ? 400 : Math.max(cap, least)) && (used.tries < least || offered < cap) && !stop())
+  const runsTimed = timed || opts.runsMs !== undefined, runsUntil = Math.min(wallUntil, countedSearchNow() + (opts.runsMs ?? 500)), least = opts.runs ?? (relStep ? 2000 : Math.min(inferRuns, Math.max(2000, 4 * ms)))
+  const moreRuns = (trial: number) => !supplied && (runsTimed ? countedSearchNow() < runsUntil : trial < (relStep ? 400 : Math.max(cap, least)) && (used.tries < least || offered < cap) && !stop())
   let trials = 0
   // (an assumption with "there exists", a value the request brings, may admit no request at a small bound, a multiple
   // of 5 but 0, say: a trial whose steps moved nothing doubles the bound at once)
@@ -1429,7 +1430,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   if (joinOn && NS) try {
     // (a rule of relations: no round of the join, whose hulls and bounds state no law of a relation's tuples; the engine's)
     const noJoin = opts.join === 0 || !!Object.keys(m.relations ?? {}).length
-    const jT0 = performance.now(), jUntil = Math.min(until, now() + (until - now()) * (noJoin ? 0 : opts.join ?? joinShare))
+    const jT0 = countedSearchNow(), jUntil = Math.min(until, now() + (until - now()) * (noJoin ? 0 : opts.join ?? joinShare))
     // The control state: the choice (loc) and, where they are few, the yes/nos (a program counter in bits), each of its
     // values reached a part of its own.
     const jChoice = modes.find(mo => mo.choice && !atoms[mo.atom]!.cell), bits = modes.filter(mo => mo.bool && !atoms[mo.atom]!.cell && !atoms[mo.atom]!.param)
@@ -1806,7 +1807,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const flagless = !Object.keys(m.step.flags ?? {}).length && !!m.assume
     // A kernel search's budget: wall time where the search is timed, else counted in the kernel's work (inferRates.work
     // a millisecond), so that what it finds doesn't depend on the machine.
-    const budgeted = <T>(ms2: number, f: (until2: number) => T): T => (timed ? f(performance.now() + Math.max(200, Math.min(ms2, wallUntil - performance.now())))
+    const budgeted = <T>(ms2: number, f: (until2: number) => T): T => (timed ? f(countedSearchNow() + Math.max(200, Math.min(ms2, wallUntil - countedSearchNow())))
       : counted(inferRates.work, () => f(clock() + ms2)))
     const requestAt = (params: Env, st: State): Request | undefined => {
       const vars: Record<string, E> = {}
@@ -2647,7 +2648,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           // (no instance after one that kills nothing; GDP_POOL_STOP=0 runs them all)
           if (env.GDP_POOL_STOP !== '0' && k > 0 && !killed.size) break
         }
-        opts.progress?.('join pool', {made: pool.length, left: live.length, states, ms: Math.round(vnow() - t5), real: Math.round(performance.now() - t0)})
+        opts.progress?.('join pool', {made: pool.length, left: live.length, states, ms: Math.round(vnow() - t5), real: Math.round(countedSearchNow() - t0)})
         return live
       }
     }
@@ -3288,8 +3289,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           if (pf) { const out = stepWith(todo, todoForm, pf); if ('used' in out) { stood.set(todo, out.used!); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, proven: todo.slice(0, 60), reads: out.used!.length, ctx: pf.length, attempt}); settled = true; break } }
           ctx = whole
         }
-        const tq = performance.now(), out = stepWith(todo, todoForm, ctx)
-        qms += Math.round(performance.now() - tq)
+        const tq = countedSearchNow(), out = stepWith(todo, todoForm, ctx)
+        qms += Math.round(countedSearchNow() - tq)
         if ('used' in out) {
           stood.set(todo, out.used!)
           opts.progress?.('join', {round: rounds, set: set.length, ms: qms, proven: todo.slice(0, 60), reads: out.used!.length, ctx: ctx.length, attempt})
@@ -3384,7 +3385,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     }
     // (a rule whose scalars the runs held at a few values each: no counter, the engine's shape)
     if (engineFollows() && why !== 'inductive') engine()
-    opts.progress?.('join end', {rounds, set: set.length, why, cone: cone.length, ms: Math.round(performance.now() - jT0), ...meters()})
+    opts.progress?.('join end', {rounds, set: set.length, why, cone: cone.length, ms: Math.round(countedSearchNow() - jT0), ...meters()})
     // (unproven, the search below begins as it would have: the candidates and the counterexamples as they were)
     if (why === 'inductive') chosen = cone
     else { pool = pool0; ctis.length = ctis0 }
@@ -3416,11 +3417,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const mirrorText = (f: Form): string | undefined => (!f.cells || f.mod || f.cong || f.never || f.nevers || f.cube || f.unreachable || f.also || !f.coef.length ? undefined : textOf({...f, coef: f.coef.map(([i, c]) => [i, -c]), d: -f.d}))
   if (enumProof) last = enumProof
   for (let iter = 0; iter < 300 && !enumProof && now() < until && !stop(); iter++) {
-    const began = now(), wall = performance.now()
+    const began = now(), wall = countedSearchNow()
     // (each law proven alone, then the set as a whole: the same goals, grown once)
     last = withTrees(() => search([...given, ...chosen.map(lawFor)]))
     const took = now() - began
-    opts.progress?.('proof', {chosen: chosen.length, goal: last.goal ?? '', stuck: last.stuck ?? '', ms: Math.round(performance.now() - wall), counted: Math.round(took)})
+    opts.progress?.('proof', {chosen: chosen.length, goal: last.goal ?? '', stuck: last.stuck ?? '', ms: Math.round(countedSearchNow() - wall), counted: Math.round(took)})
     if (last.proven && last.checked) break
     if (!last.goal) break
     const name = goalName(last.goal), stuckOn = chosen.find(f => lawFor(f).name === name)
@@ -3439,7 +3440,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (p) ctis.push(p)
     let next = p ? best(p) : undefined
     if (!next && p) next = best(p, true)
-    if (!next && p) { const t = performance.now(), made = fromCti(p); pool.push(...made); next = best(p); opts.progress?.('cti', {forms: made.length, ms: Math.round(performance.now() - t)}) }
+    if (!next && p) { const t = countedSearchNow(), made = fromCti(p); pool.push(...made); next = best(p); opts.progress?.('cti', {forms: made.length, ms: Math.round(countedSearchNow() - t)}) }
     // (a cell form chosen with its mirror where that is alive: the equality both halves state at every key, neither
     // inductive without the other, as the real-world corpus's Timelock and blnk need; on CHC's scalar forms, measured,
     // it cost s_split tasks, so cell forms only)

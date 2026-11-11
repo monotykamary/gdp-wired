@@ -1,0 +1,6 @@
+feat: port counted clock and budget onto the common prover
+
+Keep D's common checking rules and the original prover implementation.
+Port A's work-clock header and raw counter surface, route search clocks,
+and include the admitted exporter fixtures with their frame helper.
+Stage all changed admitted files as a minimal clock-only diff for lane D.

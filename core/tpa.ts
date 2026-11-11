@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from './wall.ts'
 // Transition power abstraction (Blicha, Fedyukovich, Hyvärinen and Sharygina's TPA, as Golem runs it): relations
 // R_n ⊇ T^{≤2ⁿ} over a state and a later one, each R_{n+1} a conjunction of interpolants (core/interp.ts) learned
 // where two R_n in a row can't take one state to another. Nothing here is trusted: a run it finds is taken by the
@@ -33,7 +34,7 @@ const tops = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(tops) : [c])
 
 export function tpa(m: Machine, law: Law, opts: TpaOptions): TpaResult {
   if (Object.keys(m.maps ?? {}).length || Object.keys(m.step.flags ?? {}).length || m.params.length || m.history || m.inputMaps?.length) return {why: 'not a plain machine', level: 0}
-  const names = Object.keys(m.state), over = () => clock() > opts.until || (opts.wall !== undefined && performance.now() > opts.wall)
+  const names = Object.keys(m.state), over = () => clock() > opts.until || (opts.wall !== undefined && countedSearchNow() > opts.wall)
   const budget = {until: opts.until, ...(opts.wall !== undefined ? {wall: opts.wall} : {})}
   const at = (j: number) => (n: string) => `${n}~${j}`
   // A condition over the state at copy j; a relation (n before, n' after) between copies i and j.

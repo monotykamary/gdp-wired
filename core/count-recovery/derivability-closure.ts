@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from '../wall.ts'
 // Untrusted model-driven recovery. Scalar facts are prepared once; numeric
 // countermodels select batches of pointwise facts at bounded row leaves. Every
 // cut and the final tree are independently checked, without new axioms.
@@ -47,7 +48,7 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
  let base=new Map(root)
  let leafEnd:number|undefined
  const alive=()=>clock()<until&&!pastWall(),building=()=>clock()<(leafEnd??buildEnd)&&!pastWall()
- const wallEnd=()=>Math.min(wallAt(),performance.now()+Math.min(10000,Math.max(0,(leafEnd??until)-clock())*10))
+ const wallEnd=()=>Math.min(wallAt(),countedSearchNow()+Math.min(10000,Math.max(0,(leafEnd??until)-clock())*10))
  const transport=(from:Goal,to:Goal,t:Tree,a:Path,b:Path)=>alive()?withDeadline(Math.min(until,leafEnd??until),()=>widen(from,to,t,{},a,b)):undefined
  const sourceCache=new WeakMap<Path,{rows:{c:C,owner?:string}[],views:Map<string|undefined,C[]>}>()
  const source=(path:Path,witness?:string):C[]=>{

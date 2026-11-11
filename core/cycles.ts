@@ -1,3 +1,4 @@
+import {traceNow as countedTraceNow} from './wall.ts'
 // Cycles found: cyclic proofs (kernel/cyclic.ts) whose shape nobody wrote. core/cyclic.ts's builders fix each node's
 // rank (x, t, n) and its back-edges (x − 1, t − 1, the children); here they are searched for, untrusted, and the kernel
 // checks the proof as it checks any. From claims (sequents over the facts: hypotheses and a conclusion, no rank, no
@@ -479,9 +480,9 @@ const holdsExactly = (rows: Lin[], w: Record<string, number>): boolean => rows.e
 function exactSolve(rows: Lin[], until: number): Record<string, number> | undefined {
   // (the rows scaled to their largest entry first, then as they are: either way the tolerance may hide what a row of a
   // vertex at 2^31 says, a coefficient 2^−31 read as 0 or 0 as 2^−31; infeasible where both say so)
-  const t0 = performance.now(), first = floatSolve(rows, until), second = first && first !== 'infeasible' ? first : floatSolve(rows, until, false)
+  const t0 = countedTraceNow(), first = floatSolve(rows, until), second = first && first !== 'infeasible' ? first : floatSolve(rows, until, false)
   const fast = second && second !== 'infeasible' ? second : first === 'infeasible' && second === 'infeasible' ? 'infeasible' : undefined
-  if (lpTrace) console.error(`[lp] ${rows.length} rows ${new Set(rows.flatMap(l => Object.keys(l))).size} unknowns: ${fast === undefined ? 'undefined' : fast === 'infeasible' ? 'infeasible' : 'found'} ${Math.round(performance.now() - t0)} ms`)
+  if (lpTrace) console.error(`[lp] ${rows.length} rows ${new Set(rows.flatMap(l => Object.keys(l))).size} unknowns: ${fast === undefined ? 'undefined' : fast === 'infeasible' ? 'infeasible' : 'found'} ${Math.round(countedTraceNow() - t0)} ms`)
   if (fast === 'infeasible') return undefined
   if (fast) return fast
   // (no point read back, or the two disagree: a refutation over the rationals, Farkas' rows picked by the floats and
@@ -1300,8 +1301,8 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
   let relWhy = 'rank' in rel ? `the kernel refused ${rel.text}` : rel.why
   if (trace) console.error(`[cycles] ${l.name}: the relation's rank ${'rank' in rel ? rel.text : rel.why} (from ${Math.round(relT0 - t0)} ms to ${Math.round(clock() - t0)} ms)`)
   if ('rank' in rel) {
-    const k0 = performance.now(), verdict = withDeadline(until, () => goalsProven(loopObligations(l, laws, rel.rank)))
-    if (trace) console.error(`[cycles] ${l.name}: the kernel on the relation's rank, ${Math.round(performance.now() - k0)} ms: ${'trees' in verdict ? 'proven' : `${verdict.goal} ${verdict.stuck}`}`)
+    const k0 = countedTraceNow(), verdict = withDeadline(until, () => goalsProven(loopObligations(l, laws, rel.rank)))
+    if (trace) console.error(`[cycles] ${l.name}: the kernel on the relation's rank, ${Math.round(countedTraceNow() - k0)} ms: ${'trees' in verdict ? 'proven' : `${verdict.goal} ${verdict.stuck}`}`)
     if ('trees' in verdict) return done(rel.rank, verdict.trees)
     relWhy = `the kernel refused ${rel.text.slice(0, 300)} at ${verdict.goal}`
   }

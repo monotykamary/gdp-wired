@@ -1,3 +1,5 @@
+import {traceNow as countedTraceNow} from '../core/trace-clock.ts'
+import {searchNow as countedSearchNow} from '../core/wall.ts'
 // Untrusted, like prove.ts: a second search for a goal's tree, CDCL over the goal's atoms with the kernel's reading as
 // the theory. Its refutation is a resolution DAG of refuted cases, unfolded into a kernel tree at the end, so the
 // certificate is the kernel's as it is (kernel.ts's check); nothing here is trusted.
@@ -100,13 +102,13 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   // brings it down to its own; each assumption's index by name)
   // (and on each assumption's variable, `aq`, its index this run: the undo's lookup by variable, not by name)
   let aq = 0, aqOf = new Map<string, number>(), aqVars: Var[] = []
-  const st = cdclStats, timing = st.on, setupStarted = timing ? performance.now() : 0
+  const st = cdclStats, timing = st.on, setupStarted = timing ? countedTraceNow() : 0
   let runStarted = 0, sawDecision = false
   const noteDecision = () => {
     st.decisions++
-    if (timing && !sawDecision) { sawDecision = true; st.firstDecisions++; st.firstDecisionMs += performance.now() - runStarted }
+    if (timing && !sawDecision) { sawDecision = true; st.firstDecisions++; st.firstDecisionMs += countedTraceNow() - runStarted }
   }
-  const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = performance.now(); try { return f() } finally { add(performance.now() - t0) } }
+  const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = countedTraceNow(); try { return f() } finally { add(countedTraceNow() - t0) } }
   st.runs++
   // (`tv`: the trail's variables, beside their names)
   const vars = new Map<string, Var>(), trail: string[] = [], tv: Var[] = [], levels: number[] = []
@@ -553,7 +555,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   const stuck = (kind: 'sat' | 'unknown', why: string, extra: {witness?: Record<string, number>} = {}): Outcome => ({stuck: kind, path: clausal ? new Map() : pathOf(), why, ...extra})
   const run = (b: {nodes: number, until?: number}, w?: number, assume?: Lin | Lin[]): Outcome => {
     budget = b; until = b.until ?? Infinity; wall = w; last = goal.hyps.length - 1
-    if (timing) { runStarted = performance.now(); sawDecision = false }
+    if (timing) { runStarted = countedTraceNow(); sawDecision = false }
     restartAt = 32; nRestart = 0; sinceRestart = 0
     listed = Array.isArray(assume)
     assumed = (assume === undefined ? [] : Array.isArray(assume) ? assume : [assume]).map(lin => { const name = ensure(lin); return [name, name === canon(lin)] as [string, boolean] })
@@ -608,7 +610,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   }
   const search = (): Outcome => {
     for (;;) {
-      if (++budget.nodes > 200_000 || late(until) || (wall !== undefined && performance.now() > wall)) return stuck('unknown', budget.nodes > 200_000 ? 'nodes' : 'time')
+      if (++budget.nodes > 200_000 || late(until) || (wall !== undefined && countedSearchNow() > wall)) return stuck('unknown', budget.nodes > 200_000 ? 'nodes' : 'time')
       let conflict: Clause | undefined
       const ci = t(propagate, ms => { st.propagationMs += ms })
       let open = -1, wrong = -1
@@ -673,7 +675,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
         }, ms => { st.orderMs += ms })
         const open = cands.length > 0
         // Bound propagation: an open atom its variables' bounds (the single-variable rows) decide.
-        const tb = timing ? performance.now() : 0
+        const tb = timing ? countedTraceNow() : 0
         if (open) {
           let forced = 0
           for (const x of cands) {
@@ -718,7 +720,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
             }
             x.bsig = hit ? undefined : sig; x.bver = hit ? undefined : bx.changes
           }
-          if (timing) st.boundMs += performance.now() - tb
+          if (timing) st.boundMs += countedTraceNow() - tb
           if (forced) { st.boundRounds++; continue }
         }
         let steps: Step[] | undefined, lpSat = false, judged = false
@@ -727,7 +729,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
           // The simplex first (warm from the node before): a conflict's rows, refuted exactly, are the leaf. With a case
           // still open, a node it finds feasible is split; with none, the exact elimination below decides it (integers).
           if (sx) {
-            const t0 = timing ? performance.now() : 0
+            const t0 = timing ? countedTraceNow() : 0
             // (a tableau that has gathered many more forms than a node reads is begun again: every pivot updates them all)
             const over = sx.size > (clausal ? lpGrow : 4) * full.length + (clausal ? lpBase : 500) || sx.nnz > lpFill * full.length
             if (over) { sx = new Simplex(); if (clausal) sx.greedy = lpGreedy; st.lpRebuilds++ }
@@ -740,10 +742,10 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
             if (lp.kind === 'sat') lp = sx.check()
             if (lp.kind === 'conflict') lp = {kind: 'conflict', rows: lp.rows.map(id => reader.slotOf(id))}
             costs.pivots += sx.pivots - p0
-            if (timing) { st.lpMs += performance.now() - t0; st.pivots += sx.pivots - p0; st.lpRows = sx.size; st.lpNnz = sx.nnz; st.lpVars = sx.vars; st.lpLoad = full.length; if (lp.kind === 'unknown') st.lpUnknown++ }
+            if (timing) { st.lpMs += countedTraceNow() - t0; st.pivots += sx.pivots - p0; st.lpRows = sx.size; st.lpNnz = sx.nnz; st.lpVars = sx.vars; st.lpLoad = full.length; if (lp.kind === 'unknown') st.lpUnknown++ }
             if (lp.kind === 'conflict') {
-              const tm = timing ? performance.now() : 0, support = lp.rows.sort((x, y) => x - y), out = solve(support.map(i => full[i]!))
-              if (timing) st.missMs += performance.now() - tm
+              const tm = timing ? countedTraceNow() : 0, support = lp.rows.sort((x, y) => x - y), out = solve(support.map(i => full[i]!))
+              if (timing) st.missMs += countedTraceNow() - tm
               if (out.kind === 'refuted') steps = out.steps.map(s => (s.kind === 'input' ? {...s, index: support[s.index]!} : s))
               else st.lpMisses++
             }
@@ -765,15 +767,15 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
             }
           }
           st.fmCalls++
-          const rows = plain(), tf = timing ? performance.now() : 0
+          const rows = plain(), tf = timing ? countedTraceNow() : 0
           if (open && rows.length > 60) { const fast = refuteFast(rows); if (fast?.kind === 'refuted') steps = fast.steps.map(s => (s.kind === 'input' ? {...s, index: at(s.index)} : s)) }
-          const tf2 = timing ? performance.now() : 0
+          const tf2 = timing ? countedTraceNow() : 0
           if (timing) st.fastMs += tf2 - tf
           if (!steps) {
             verdict = open && rows.length > 60 ? solve(rows, 2 * rows.length) : solve(rows)
             if (verdict.kind === 'refuted') steps = verdict.steps.map(s => (s.kind === 'input' ? {...s, index: at(s.index)} : s))
           }
-          if (timing) { if (open) st.fmOpenMs += performance.now() - tf2; else st.fmLeafMs += performance.now() - tf2 }
+          if (timing) { if (open) st.fmOpenMs += countedTraceNow() - tf2; else st.fmLeafMs += countedTraceNow() - tf2 }
           if (!steps && open && !columns && full.length > rows.length) { const k = korder(), fast = refuteFast(k.map(i => full[i]!)); if (fast?.kind === 'refuted') steps = fast.steps.map(s => (s.kind === 'input' ? {...s, index: k[s.index]!} : s)) }
         }, ms => { st.solveMs += ms })
         if (judged && verdict?.kind === 'sat') return stuck('sat', 'a model', {witness: verdict.witness})
@@ -855,7 +857,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   // the clauses learned from it stay consequences of the goal with its gates' definitions, which any model of the rest
   // extends to (a gate its formula's value).
   const retire = (hyp: number) => { for (const ci of byHyp[hyp] ?? []) retired[ci] = true }
-  if (timing) st.setupMs += performance.now() - setupStarted
+  if (timing) st.setupMs += countedTraceNow() - setupStarted
   return {run, retire}
 }
 

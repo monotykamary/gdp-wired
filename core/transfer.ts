@@ -1,3 +1,4 @@
+import {traceNow as countedTraceNow} from './wall.ts'
 // A datatype law said another way, proven that way, and the law read back from it (core/data.ts's proveData calls this
 // where the law alone at one unfolding isn't proven). Untrusted, as the search is: each step is a node of the one
 // cyclic proof kernel/cyclic.ts checks, and Lean's twin reads it as any other.
@@ -243,7 +244,7 @@ const verify = (fs: ReturnType<typeof factsOf>, specs: NodeSpec[], until: number
 // The law through its plan: the bridges proven (those not proven left out, and the rest built again), the copies' laws,
 // the law said through them, and the node from that to the law. Undefined where any of it isn't proven.
 export function proveThrough(l: DataLaw, plan: Plan, opts: Options, until: number): (DataVerdict & {tried: number}) | undefined {
-  const t0 = performance.now()
+  const t0 = countedTraceNow()
   let bridged = new Map(plan.bridges), tried = 0
   for (;;) {
     if (clock() > until) return undefined
@@ -302,7 +303,7 @@ export function proveThrough(l: DataLaw, plan: Plan, opts: Options, until: numbe
     const v = verify(fs, specs, Math.max(until, clock() + 3000))
     if (!v.proven || !v.checked) return undefined
     const through = [...b.bridges.map(x => `${x.fn.name} is ${x.op.name}`), ...b.equivs.map(x => x.law.name), ...(b.unfolded ? [`unfolded: ${programOf([l], [], false).fns.filter(f => !taken(f)).map(f => f.name).join(', ')}`] : [])]
-    return {law: l.name, proven: true, checked: true, proof: v, lemmas: [...b.bridges.map(x => x.law.name), ...b.equivs.map(x => x.law.name), ...r.verdict.lemmas], scheme: `${r.verdict.scheme ?? 'no induction'}, through the law ${b.lstar.name}`, tried, program: b.p, node: specs.length - 1, ms: Math.round(performance.now() - t0), through}
+    return {law: l.name, proven: true, checked: true, proof: v, lemmas: [...b.bridges.map(x => x.law.name), ...b.equivs.map(x => x.law.name), ...r.verdict.lemmas], scheme: `${r.verdict.scheme ?? 'no induction'}, through the law ${b.lstar.name}`, tried, program: b.p, node: specs.length - 1, ms: Math.round(countedTraceNow() - t0), through}
   }
 }
 

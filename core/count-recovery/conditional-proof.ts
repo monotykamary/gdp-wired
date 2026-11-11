@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from '../wall.ts'
 // Untrusted metadata and exact transport for conditional count proofs. The kernel
 // never reads this WeakMap: only ordinary trees and independent LemmaCuts escape.
 import {type Goal, type LemmaCut, type Path, type Tree, canon, canonFlip, check, checkGoalLemmas, facts, leafConstraintsReusing as rowsAt, lemmaPath} from '../../kernel/kernel.ts'
@@ -7,7 +8,7 @@ export {conditionalProofStats} from './conditional-check-cache.ts'
 
 type Context = {goal: Goal, lemmas: LemmaCut[]}
 const marked = new WeakMap<Tree, Context>()
-const alive = (until: number): boolean => performance.now() < until
+const alive = (until: number): boolean => countedSearchNow() < until
 const flip = (lin: Lin): Lin => add(k(1), scale(lin, -1))
 const put = (path: Path, lin: Lin, holds: boolean): Path => new Map(path).set(canon(lin), {lin, holds})
 const sameGoal = (a: Goal, b: Goal): boolean => a === b || JSON.stringify(a.hyps) === JSON.stringify(b.hyps)

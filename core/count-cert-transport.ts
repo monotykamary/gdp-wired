@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from './wall.ts'
 // Untrusted integration helpers for complete counted certificates. The kernel
 // still checks the emitted ordinary tree and independent conditional cuts.
 import {type CountCert,type Goal,type Path,canon,lemmaPath} from '../kernel/kernel.ts'
@@ -5,8 +6,8 @@ import {usedHyps,widen} from '../kernel/prove.ts'
 import {collectConditionalCertificate,markConditionalProof,transportConditionalProof} from './count-recovery/conditional-proof.ts'
 
 export function transportCountCertificate(from:Goal,to:Goal,cert:CountCert,until:number):CountCert|undefined{
- if(performance.now()>=until)return undefined
- if(!cert.lemmas?.length){const tree=widen(from,to,cert.tree);return tree&&performance.now()<until?{...cert,tree}:undefined}
+ if(countedSearchNow()>=until)return undefined
+ if(!cert.lemmas?.length){const tree=widen(from,to,cert.tree);return tree&&countedSearchNow()<until?{...cert,tree}:undefined}
  const marked=markConditionalProof(from,cert.tree,cert.lemmas),tree=transportConditionalProof(from,to,marked,new Map(),new Map(),until)
  const combined=tree&&collectConditionalCertificate(to,tree,until)
  return combined?{...cert,...combined}:undefined

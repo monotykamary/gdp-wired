@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from '../wall.ts'
 // Untrusted pre-check accelerators over immutable proof objects. No cached
 // answer replaces checkMC/checkCountedLaws on the final emitted certificate.
 import {type Goal, type LemmaCut, type Path, type Tree, canon, check, leafConstraintsReusing as rowsAt} from '../../kernel/kernel.ts'
@@ -83,12 +84,12 @@ export function rememberRetarget(lemma: LemmaCut, key: string, result: LemmaCut)
 }
 const indices = new WeakMap<Goal, Map<string, number>>()
 export function targetIndex(goal: Goal, until: number): Map<string, number> | undefined {
-  if (!(performance.now() < until)) return undefined
+  if (!(countedSearchNow() < until)) return undefined
   let at = indices.get(goal)
   if (!at) {
     at = new Map()
     for (const [i, h] of goal.hyps.entries()) {
-      if (!(performance.now() < until)) return undefined
+      if (!(countedSearchNow() < until)) return undefined
       const key = JSON.stringify(h)
       if (!at.has(key)) at.set(key, i)
     }

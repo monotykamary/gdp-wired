@@ -1,3 +1,4 @@
+import {traceNow as countedTraceNow, searchNow as countedSearchNow} from './wall.ts'
 // Runs that never end, found: the search behind `proveNeverEnds`. Untrusted, like prove.ts: what it finds is a closed
 // recurrent set with its successor given (kernel.ts's Recur), checked by kernel.ts's checkRecur and, exported, by
 // NonTerm.lean's never_ends_of.
@@ -229,10 +230,10 @@ export function findNeverEnds(l: Loop, opts: NeverEndsOptions = {}): NeverEndsVe
   return opts.counted ? counted(opts.counted, () => search(l, opts)) : search(l, opts)
 }
 function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
-  const wall0 = performance.now(), now = clock, t0 = now(), until = t0 + (opts.ms ?? 10_000), maxTurns = opts.maxTurns ?? 400
+  const wall0 = countedTraceNow(), now = clock, t0 = now(), until = t0 + (opts.ms ?? 10_000), maxTurns = opts.maxTurns ?? 400
   const rand = seeded(opts.seed ?? 7)
   const stats = {runs: 0, turns: 0, policies: 0, rounds: 0, ms: 0, lassoTried: 0, goalSize: 0, accel: 0, accelClosed: 0}
-  const done = (v: Omit<NeverEndsVerdict, 'stats'>): NeverEndsVerdict => ({...v, stats: {...stats, ms: Math.round(performance.now() - wall0)}})
+  const done = (v: Omit<NeverEndsVerdict, 'stats'>): NeverEndsVerdict => ({...v, stats: {...stats, ms: Math.round(countedTraceNow() - wall0)}})
   const stateNames = Object.keys(l.state), kept = [...l.params, ...stateNames]
   const allObs = observables(kept), inObs = observables(l.inputs)
   // The modes: state variables compared with a constant by `=` in the loop's conditions (a translated task's pc).
@@ -376,7 +377,7 @@ function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
         if (!stems.length && now() < until) for (const t of stemsTo(l, a.targets, {start, turn}, {now, until: Math.min(until, now() + 1000), deepen: true})) { const c = cut(t); if (c) { stems.push(c); break } }
         if (!stems.length && now() < until) {
           const left = Math.min(until - now(), 2000)
-          const run = findBoundedRun(m, [{name: 'outside the set', holds: {op: 'not', x: a.set}}], {ms: left, depth: 24, ...(opts.counted ? {} : {wall: performance.now() + left})})
+          const run = findBoundedRun(m, [{name: 'outside the set', holds: {op: 'not', x: a.set}}], {ms: left, depth: 24, ...(opts.counted ? {} : {wall: countedSearchNow() + left})})
           const c = run && cut({params: run.params as Env, stem: run.trace.map(r => Object.fromEntries(l.inputs.map(n => [n, Number(r[n] ?? 0)])))})
           if (c) stems.push(c)
         }

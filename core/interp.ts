@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from './wall.ts'
 // Interpolants from the kernel's refutations. Nothing here is trusted: an interpolant is a candidate (a law to prove,
 // or a power relation's conjunct for core/tpa.ts), and whatever is answered from one is checked elsewhere.
 //
@@ -188,7 +189,7 @@ export function fromDag(goal: Goal, dag: Dag, isA: (hyp: number) => boolean, max
           const [p, q] = n.res, need = [p, q].filter(j => j >= 0 && !memo.has(j))
           if (need.length) { todo.push(...need); continue }
         }
-        if (wall !== undefined && !(made & 255) && performance.now() > wall) return undefined
+        if (wall !== undefined && !(made & 255) && countedSearchNow() > wall) return undefined
       }
       todo.pop()
       memo.set(i, one(i))
@@ -239,7 +240,7 @@ export function fromDag(goal: Goal, dag: Dag, isA: (hyp: number) => boolean, max
 export function fromTree(goal: Goal, tree: Tree, isA: (hyp: number) => boolean, wall?: number): C | undefined {
   const {nameSide, linSide} = sidesOf(goal, isA)
   const walk = (t: Tree, path: Path, kept: C[]): C | undefined => {
-    if ('leaf' in t) { if (wall !== undefined && performance.now() > wall) return undefined; const p = leaf(t.leaf, path); return p && kept.reduceRight((acc, c) => and(c, acc), p) }
+    if ('leaf' in t) { if (wall !== undefined && countedSearchNow() > wall) return undefined; const p = leaf(t.leaf, path); return p && kept.reduceRight((acc, c) => and(c, acc), p) }
     const side = linSide(t.split)
     if (side === undefined) return undefined
     const key = canon(t.split)
@@ -500,7 +501,7 @@ export function imcSession(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' 
   let within: ReturnType<typeof cdclSession> | undefined, wgoal: Goal = {name: 'within', hyps: []}, nq = 0
   const fresh = () => { rs = [start]; parts = 1; if (front) drop(front); front = frontierOf(start); wgoal = {name: 'within', hyps: [{op: 'not', x: start}]}; within = cdclSession(wgoal, new Map(), {model: true, clausal: true, quiet: n => n.startsWith('q@')}) }
   const run = (until: number, wall?: number): ImcResult | 'paused' => {
-    const over = () => clock() > until || (wall !== undefined && performance.now() > wall), budget = {until, ...(wall !== undefined ? {wall} : {})}
+    const over = () => clock() > until || (wall !== undefined && countedSearchNow() > wall), budget = {until, ...(wall !== undefined ? {wall} : {})}
     if (!front) fresh()
     for (; k <= Math.min(64, opts.to ?? 64); k++, fresh()) {
       if (opts.induction && kAsked < k) {
@@ -583,7 +584,7 @@ export function compress(m: Machine, law: Law, R: C, kinds: C[], budget: {until:
   target(law.holds)
   // (each clause behind a selector of its own, k@j, so the clauses a step starts from are those assumed: `on`)
   const on: boolean[] = [], cores: Lin[][] = [], from = (skip = -1): Lin[] => clauses.flatMap((_, j) => (on[j] && j !== skip ? [{[`k@${j}`]: 1}] : []))
-  const late = () => clock() > budget.until || (budget.wall !== undefined && performance.now() > budget.wall)
+  const late = () => clock() > budget.until || (budget.wall !== undefined && countedSearchNow() > budget.wall)
   // PDR's inductive generalization: an atom of a cube dropped where the clause without it holds at the start and after
   // every step from where it and the clauses on hold (so of every state reached, whatever R says).
   const mic = (core: Lin[], skip = -1): Lin[] => {
@@ -610,7 +611,7 @@ export function compress(m: Machine, law: Law, R: C, kinds: C[], budget: {until:
   }
   // (a target that held holds with a clause more assumed: after a clause is added the targets before it aren't asked again)
   for (let i = 0; i < targets.length;) {
-    if (clock() > budget.until || (budget.wall !== undefined && performance.now() > budget.wall)) return undefined
+    if (clock() > budget.until || (budget.wall !== undefined && countedSearchNow() > budget.wall)) return undefined
     if (i > 0 && !on[i - 1]) { i++; continue }
     const out = holdsAfter(i)
     if (!('tree' in out) && out.why === REFUTED) { i++; continue }

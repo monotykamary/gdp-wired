@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from './wall.ts'
 // Private untrusted count-candidate scheduling. Every emitted tuple instantiates a whole
 // original PRE law; every CountInst is reified by mcGoal and the final closed family is
 // checked by checkCountedLaws. No coordinate projection is an equality premise.
@@ -112,7 +113,7 @@ export function candidateWork() {
   const state = {work: 0, limit: 65_536, exhausted: false, deadline: false, phases:[] as {phase:string,work:number}[], omittedPhases:0}
   const tick = () => {
     if (state.exhausted || state.deadline) return false
-    if (performance.now() >= wallAt()) { state.deadline = true; return false }
+    if (countedSearchNow() >= wallAt()) { state.deadline = true; return false }
     if (state.work >= state.limit) { state.exhausted = true; return false }
     state.work++; return true
   }
@@ -335,7 +336,7 @@ export const instId=(i:CountCert['insts'][number],rs:CountCert['reads'])=>{const
 export const ids=(c:Pick<CountCert,'reads'|'insts'|'picks'>)=>{const rd=new Map(c.reads.map(r=>[r[0],[r[1],keyId(r[2])]]));return [...(c.picks??[]).map(p=>'p'+json([rd.get(p[0]),p[1].map(keyId)])),...c.insts.map(i=>'i'+instId(i,c.reads))]}
 
 function requireValue<T>(x:T|undefined,message:string):T{if(x===undefined)throw new UnsupportedCountProposal('unresolved reservation: '+message);return x}
-const reservationOpen=()=>{if(performance.now()>=wallAt())throw new UnsupportedCountProposal('reservation deadline')}
+const reservationOpen=()=>{if(countedSearchNow()>=wallAt())throw new UnsupportedCountProposal('reservation deadline')}
 // A lexical free-variable walk, not sourceNames: local quantified binders and a
 // declaration's formal parameters do not grant scope to a retained read key.
 function reservationFree(value:unknown,bound:ReadonlySet<string>=new Set(),out=new Set<string>()):Set<string>{

@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from './wall.ts'
 // Rules over the rationals: params, inputs and state whose values are exact rationals (fees in fractions, tokens that
 // refill by a fraction, ledgers in decimals), laws over them proven by linear arithmetic over ℚ, a decidable theory
 // whose refutations are Farkas certificates. Nothing is scaled or encoded: 0.1 is 1/10, a third is 1/3, and the
@@ -229,7 +230,7 @@ function unrolled(m: QMachine, d: number): {hyps: QC[], at: Record<string, QE>} 
 }
 // A run from the start that breaks a law, within `depth` requests: each unrolled goal decided over ℚ (exactly, so a
 // model is a run), the run replayed by the interpreter, which must break the law too.
-export function refuteQ(m: QMachine, laws: QLaw[], depth = 3, until = performance.now() + 2_000): QVerdict | undefined {
+export function refuteQ(m: QMachine, laws: QLaw[], depth = 3, until = countedSearchNow() + 2_000): QVerdict | undefined {
   const run = interpretQ(m)
   for (let d = 0; d <= depth; d++) {
     const {hyps, at} = unrolled(m, d)
@@ -249,7 +250,7 @@ export function refuteQ(m: QMachine, laws: QLaw[], depth = 3, until = performanc
 }
 // Each law by induction: its start and step goals grown by the search, the trees checked by the kernel.
 export function proveQMachine(m: QMachine, laws: QLaw[], opts: {ms?: number} = {}): QVerdict {
-  const until = performance.now() + (opts.ms ?? 20_000), trees: QProof['trees'] = {}
+  const until = countedSearchNow() + (opts.ms ?? 20_000), trees: QProof['trees'] = {}
   for (const law of laws) {
     const goals = qObligations(m, laws, law), got: Partial<{start: Tree, step: Tree}> = {}
     for (const which of ['start', 'step'] as const) {

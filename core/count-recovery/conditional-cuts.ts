@@ -1,9 +1,10 @@
+import {searchNow as countedSearchNow} from '../wall.ts'
 // Untrusted conditional proof transport. No search and no lemma references enter
 // the result: each prerequisite is checked independently, then inlined as a split.
 import {type Goal, type LemmaCut, type Path, type Tree, canon, canonFlip, check, leafConstraintsReusing as rowsAt, lemmaPath} from '../../kernel/kernel.ts'
 import {type Lin, type Step, add, k, scale} from '../solver.ts'
 
-const alive = (until: number): boolean => performance.now() < until
+const alive = (until: number): boolean => countedSearchNow() < until
 const flip = (lin: Lin): Lin => add(k(1), scale(lin, -1))
 const put = (path: Path, lin: Lin, holds: boolean): Path => new Map(path).set(canon(lin), {lin, holds})
 const plain = (lin: Lin): boolean => Object.keys(lin).every(name => !name.includes('⟦')) && Object.values(lin).every(Number.isSafeInteger)
@@ -164,7 +165,7 @@ function inline(goal: Goal, source: Goal, tree: Tree, from: Path, scope: Path, b
 
 /** Transport a refutation to negcut + scope, inline required prior cuts, then
  * minimize its guards and containing-goal hypothesis slice. `until` is an
- * absolute performance.now() deadline, independent of the prover's clock. */
+ * absolute countedSearchNow() deadline, independent of the prover's clock. */
 function admitCut(goal: Goal, source: Goal, tree: Tree, from: Path, scope: Path, cut: Lin, available: LemmaCut[], until: number): LemmaCut | undefined {
   if (!alive(until) || !plain(cut)) return undefined
   let when: Lin[] = []
@@ -238,8 +239,8 @@ export function admitConditionalCut(goal: Goal, source: Goal, tree: Tree, from: 
 /** Emit an ordinary tree at scope, inlining only active cuts whose exact rows
  * the source proof needs. The returned tree is kernel-checked without lemmas. */
 export function inlineConditionalCuts(goal: Goal, source: Goal, tree: Tree, from: Path, scope: Path, lemmas: LemmaCut[], until: number, diagnose?: (event: object) => void): Tree | undefined {
-  const begun = performance.now(), proof = inline(goal, source, tree, from, scope, scope, lemmas, until, diagnose)
+  const begun = countedSearchNow(), proof = inline(goal, source, tree, from, scope, scope, lemmas, until, diagnose)
   const accepted = !!proof && checked(goal, proof, scope, until)
-  diagnose?.({reason: accepted ? 'complete' : alive(until) ? proof ? 'check-failed' : 'transport-failed' : 'deadline', proposed: !!proof, checked: accepted, wallMs: performance.now() - begun})
+  diagnose?.({reason: accepted ? 'complete' : alive(until) ? proof ? 'check-failed' : 'transport-failed' : 'deadline', proposed: !!proof, checked: accepted, wallMs: countedSearchNow() - begun})
   return accepted ? proof : undefined
 }

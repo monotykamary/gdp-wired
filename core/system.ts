@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from './wall.ts'
 // Systems (research/distributed/DESIGN.md): handlers, their stores and message pools, and the environment, as one rule,
 // so every prover takes a distributed system as it takes one process. Each combinator returns a plain Machine (or, from
 // `system`, a Rule over it), and nothing here is trusted: a proof is about the rule built, and what it assumes of the
@@ -566,7 +567,7 @@ export function shrinkRun<T extends {params: Record<string, number>, trace: Reco
 // a depth, for each of a few requests drawn. A run found breaks the law on the interpreter, as the search's do. (The
 // search's own runs draw each request apart: three calls on one lock are rare among them.)
 export function contend(e: InEnv, w: Law | StepLaw, opts: {bases?: number, depth?: number, bound?: number, seed?: number, ms?: number, calls?: number} = {}) {
-  const m = e.rule.machine, rt = interpret(m), bound = opts.bound ?? 2, until = performance.now() + (opts.ms ?? 3000), calls = opts.calls ?? 3
+  const m = e.rule.machine, rt = interpret(m), bound = opts.bound ?? 2, until = countedSearchNow() + (opts.ms ?? 3000), calls = opts.calls ?? 3
   let seed = opts.seed ?? 7
   const rand = (k: number) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % k }
   const free = new Set([e.act, ...(e.id ? [e.id] : []), ...(e.method ? [e.method] : []), 'key$'])
@@ -577,7 +578,7 @@ export function contend(e: InEnv, w: Law | StepLaw, opts: {bases?: number, depth
     for (let p = 1; p <= (e.id ? calls : 1); p++) for (let mt = 0; mt < (e.method ? e.methods ?? 1 : 1); mt++) choices.push({[e.act]: 0, ...(e.id ? {[e.id]: p} : {}), ...(e.method ? {[e.method]: mt} : {})})
   }
   const key = (st: {scalars: Record<string, number>, maps: Record<string, Map<number, number>>}) => JSON.stringify([st.scalars, Object.entries(st.maps).map(([k, v]) => [k, [...v].filter(([, x]) => x !== 0).sort((a, b) => a[0] - b[0])])])
-  for (let b = 0, tried = 0; b < (opts.bases ?? 12) && tried < 400 && performance.now() < until; tried++) {
+  for (let b = 0, tried = 0; b < (opts.bases ?? 12) && tried < 400 && countedSearchNow() < until; tried++) {
     const params: Record<string, number> = Object.fromEntries(m.params.map(p => [p, rand(bound + 1)]))
     // (the request's values from 0 and 1: two arguments a flow keeps equal, two strings of one length, agree often)
     const base: Record<string, number> = Object.fromEntries(m.inputs.filter(i => !free.has(i)).map(i => [i, rand(2)]))
@@ -588,7 +589,7 @@ export function contend(e: InEnv, w: Law | StepLaw, opts: {bases?: number, depth
     b++
     const seen = new Set([key(st0)])
     let frontier = [{st: st0, trace: [] as Record<string, unknown>[]}]
-    for (let d = 0; d < (opts.depth ?? 7) && frontier.length && performance.now() < until; d++) {
+    for (let d = 0; d < (opts.depth ?? 7) && frontier.length && countedSearchNow() < until; d++) {
       const next: typeof frontier = []
       for (const {st, trace} of frontier) for (const c of choices) {
         const q = req(c)

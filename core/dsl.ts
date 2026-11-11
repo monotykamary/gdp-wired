@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from './wall.ts'
 // Typed builders for machines, decisions and loops: names are declared once and come back as typed values, so a
 // misspelled name, a law that reads a request, or a step that sets an undeclared variable is a TypeScript error, and
 // the input kinds the kernel would otherwise see as hand encodings (a flag, an optional fact, a choice among values)
@@ -22,7 +23,8 @@ import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
-import {WallExpired, checkWall, searchWall} from './wall.ts'
+import {WallExpired, checkWall, searchWall, withBudget, BudgetExpired} from './wall.ts'
+import {completeWorkProfile} from './work-profile.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws, inferRates} from './infer.ts'
@@ -1439,13 +1441,13 @@ export const recur = <const A extends string = never, U extends Record<string, F
       .step((env: Record<string, Term>) => ({x: env.x!.plus(1), fx: def.next(env.x!, env.fx!, envAt(args.map(a => env[a]!)))}) as never)
     const laws: Law[] = Object.entries(lemmas).map(([n, f]) => r.law(n, (env: Record<string, Term>) => f(env.x!, env.fx!, envAt(args.map(a => env[a]!)))))
     // (Its machine's proof timed alone: the recurrence is compared below as its own instance.)
-    const t0 = performance.now()
+    const t0 = countedSearchNow()
     usualProof.last = undefined
     verdict = quietly(() => proveRule(r as never, laws, {search: false}))
     lemmaProof = usualProof.last
-    if (cyclicOn()) crossCyclic('recurrence', name, verdict.proven && verdict.checked, () => { const {facts, specs} = recurNodes(recurCase([])); return proveCyclic(facts, specs) }, performance.now() - t0, translatedRecur({lemmas: lemmaProof}))
+    if (cyclicOn()) crossCyclic('recurrence', name, verdict.proven && verdict.checked, () => { const {facts, specs} = recurNodes(recurCase([])); return proveCyclic(facts, specs) }, countedSearchNow() - t0, translatedRecur({lemmas: lemmaProof}))
     // (the usual trees checked already, inside quietly: where no cyclic proof is made they are the certificate)
-    if (certOn() && verdict.proven && verdict.checked) { const c = certCyclic('recurrence', name, translatedRecur({lemmas: lemmaProof}), () => { const {facts, specs} = recurNodes(recurCase([])); return proveCyclic(facts, specs) }, performance.now() - t0); if (!c.checked) uncovered('recurrence', name, c.why) }
+    if (certOn() && verdict.proven && verdict.checked) { const c = certCyclic('recurrence', name, translatedRecur({lemmas: lemmaProof}), () => { const {facts, specs} = recurNodes(recurCase([])); return proveCyclic(facts, specs) }, countedSearchNow() - t0); if (!c.checked) uncovered('recurrence', name, c.why) }
     failed('lemmas', verdict)
     proofs.lemmas = {machine: (r as Rule).machine, laws}
   }
@@ -1482,7 +1484,7 @@ export const recur = <const A extends string = never, U extends Record<string, F
     const laws = [...Object.entries(lemmas).map(([n, l]) => r.law(`${n} at y`, (env: Record<string, Term>) => l(env.y!, env.fy!, envAt(at(env))))),
       ...Object.entries(between).map(([n, l]) => r.law(n, (env: Record<string, Term>) => l(env.x!, env.fx!, env.y!, env.fy!, envAt(at(env)))))]
     usualProof.last = undefined
-    const t0 = performance.now(), v = quietly(() => proveRule(r as never, laws, {search: false})), usualMs = performance.now() - t0, betweenProof = usualProof.last
+    const t0 = countedSearchNow(), v = quietly(() => proveRule(r as never, laws, {search: false})), usualMs = countedSearchNow() - t0, betweenProof = usualProof.last
     if (cyclicOn()) crossCyclic('recurrence, between', name, v.proven && v.checked, () => { const {facts, specs} = recurNodes(recurCase(pairs)); return proveCyclic(facts, specs) }, usualMs, betweenProof && translatedRecur({lemmas: lemmaProof, between: betweenProof}))
     if (certOn() && v.proven && v.checked) { const c = certCyclic('recurrence, between', name, betweenProof && translatedRecur({lemmas: lemmaProof, between: betweenProof}), () => { const {facts, specs} = recurNodes(recurCase(pairs)); return proveCyclic(facts, specs) }, usualMs); if (!c.checked) uncovered('recurrence, between', name, c.why) }
     failed('laws between two points', v)
@@ -2764,7 +2766,7 @@ export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?
 // (`stuck: 'sat'`, `witness`), reachable or not.
 // `fast`: the laws proven as a set by kernel/prove.ts's proveSetFast (a search's set proof, asked again after a drop: what
 // was settled before kept where it stands), not proveLaws; no cyclic certificate.
-export type ProveOptions = {search?: boolean | {ms?: number, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean}
+export type ProveOptions = {search?: boolean | {ms?: number, work?: number, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean}
 // A verdict that isn't a checked proof, as the error a lemma, a guard or a gate is refused with (the verdict on `.verdict`).
 export class Unproven extends Error {
   constructor(what: string, readonly verdict: Verdict) {
@@ -2808,7 +2810,7 @@ const deeperBudget = {trials: 600, depth: 24, bound: 8, seed: 29}
 // one it bounds below moved from it by a small step (t <= x: a clock that only goes on); and near `near`, a
 // counterexample's values (the kernel's, at a step from a state no run reached), each param and input taken from it
 // half the time. `states: false`: the runs alone.
-// (`until`: a wall, performance.now()'s, past which no more trials or steps are taken: the work cap counts a law's tuples,
+// (`until`: a wall, countedSearchNow()'s, past which no more trials or steps are taken: the work cap counts a law's tuples,
 // not a request's assumption, which a rule carrying many maps decides at every try)
 // (`pool`: the counterexample's other values (a map's cell: the time a request was received), each input taken from
 // them a quarter of the time: a value the state holds is one an earlier request gave)
@@ -2842,7 +2844,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     && facts.filter(readsParams).every(f => holds(f, params))
   const cap = watchWork.n + perTrial * budget.trials
   try {
-    const late = () => pastWall() || budget.until !== undefined && performance.now() > budget.until
+    const late = () => pastWall() || budget.until !== undefined && countedSearchNow() > budget.until
     for (let trial = 0; trial < budget.trials && watchWork.n <= cap && !late(); trial++) {
       // (`mixed`: the trials in turn at bounds 1 to 4, every fourth near)
       const bound = budget.mixed ? 1 + trial % 4 : budget.bound, guided = guides, near = budget.mixed && trial % 4 ? undefined : budget.near
@@ -2898,7 +2900,31 @@ const refutedVerdict = (out: NonNullable<ReturnType<typeof refuteByRuns>>): Verd
 // The divisors some laws read (modBy, divBy), noted on the rule so its machine declares them: a law may come from
 // another instance of the same rule (a factory called twice).
 const noting = <R extends Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>>(r: R, ...xs: object[]): R => { const ks = divisorsIn(xs as never); if (ks.size) r.dividesBy(...ks); return r }
+function workPlan(opts: ProveOptions): {work: number | undefined, opts: ProveOptions} {
+  const explicit = typeof opts.search === 'object' ? opts.search.work : undefined
+  const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
+  if (explicit !== undefined && ms !== undefined) throw new RangeError('choose a work budget or a legacy ms budget, not both')
+  const work = explicit ?? (completeWorkProfile.enabled ? ms === undefined ? completeWorkProfile.defaultUnits : ms * fullRate : undefined)
+  if (work === undefined || opts.search === false) return {work, opts}
+  const search = typeof opts.search === 'object' ? {...opts.search} : {}
+  delete search.work
+  search.ms = work / fullRate
+  return {work, opts: {...opts, search}}
+}
+function workVerdict(opts: ProveOptions, supported: boolean, run: (opts: ProveOptions) => Verdict): Verdict {
+  const plan = workPlan(opts)
+  if (plan.work === undefined) return run(plan.opts)
+  if (!completeWorkProfile.enabled && !supported) return {proven: false, checked: false, stuck: 'unknown', why: 'work mode: plain-path migration pending'}
+  try { return withBudget(plan.work, () => run(plan.opts)) }
+  catch (error) {
+    if (!(error instanceof BudgetExpired)) throw error
+    return {proven: false, checked: false, stuck: 'unknown', why: error.message}
+  }
+}
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
+  return workVerdict(opts, !!Object.keys(r.machine.counts ?? {}).length, plan => proveRuleWall(r, laws, plan))
+}
+function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions): Verdict {
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
   const run = (): Verdict => {
     try {
@@ -2938,12 +2964,15 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   // Quantified witness preflight needs a counted allocation: a slow attempt must
   // not seed different memoized decisions. Other laws keep their existing budget;
   // inference's query rate is not calibrated for their whole-set preflight.
-  const out = ms === undefined ? given() : withWall(performance.now() + ms / share, () =>
+  const out = ms === undefined ? given() : withWall(countedSearchNow() + ms / share, () =>
     share === 1 ? given() : counted(inferRates.work, () => withDeadline(clock() + ms / share, given)))
   const v: Verdict = {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   return searched(r, laws, [], v, opts)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
+  return workVerdict(opts, false, plan => proveStepsWall(r, laws, stepLaws, plan))
+}
+function proveStepsWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions): Verdict {
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
   // From any state, the caller's budget includes preflight runs and all initial
   // goals, not a fresh budget per goal. Keep reachable-state search unchanged.
@@ -2955,7 +2984,7 @@ export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws
     }
   }
   return opts.from !== 'any' || ms === undefined ? run()
-    : withWall(performance.now() + ms, run)
+    : withWall(countedSearchNow() + ms, run)
 }
 function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions): Verdict {
   r = r.withSumsOf(laws, stepLaws)
@@ -2995,7 +3024,7 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   // The deeper runs; then runs over small values (keys that meet, small params), whose requests meet their
   // assumption's equalities and clocks, or near the counterexample the verdict ends at.
   // (the three within the search's budget again, on the wall: past it they stop, and the search starts as it would)
-  const ms = typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000, runsUntil = performance.now() + ms
+  const ms = typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000, runsUntil = countedSearchNow() + ms
   for (const b of [deeperBudget, {...deeperBudget, bound: 1, seed: 31, states: false}, {...deeperBudget, trials: 1200, seed: 41, states: false, mixed: true, ...(v.witness ? {near: v.witness} : {})}]) {
     const deeper = refuteByRuns(r, laws, stepLaws, {...b, until: runsUntil})
     if (deeper?.run) return refutedVerdict(deeper)
@@ -3007,7 +3036,7 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   if (pool.length) { const deeper = refuteByRuns(r, laws, stepLaws, {...deeperBudget, trials: 300, seed: 43, states: false, mixed: true, near: v.witness, pool, until: runsUntil}); if (deeper?.run) return refutedVerdict(deeper) }
   const until = clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
   // (the search's end on the wall too: kernel/prove.ts's withWall, past which every goal is unknown)
-  return withWall(performance.now() + Math.max(0, until - clock()), () => searchedUntil(r, laws, stepLaws, v, opts, until))
+  return withWall(countedSearchNow() + Math.max(0, until - clock()), () => searchedUntil(r, laws, stepLaws, v, opts, until))
 }
 // Two machines alike up to the names of the keys their quantified flags and writes at every key bind (the rule builds
 // fresh ones each time it is read): each bound name by its place of first binding.
@@ -3031,7 +3060,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   const ghosted = stepGhosts(r.machine, stepLaws)
   // (with the step laws' ghosts, a wall stop too, at the budget: their goals cost the cost model more than its clock
   // counts, a wide rule's past twice its wall time; and the last runs always, the search's tail on the wall too)
-  const bounded = (ms: number, from: number, wall = !!ghosted) => counted(fullRate, () => findBoundedRun(ghosted?.machine ?? r.machine, [...laws, ...(ghosted?.laws ?? [])], {ms, from, steps: true, ...(wall ? {wall: performance.now() + ms} : {}), progress: k => { reached = k }}), true)
+  const bounded = (ms: number, from: number, wall = !!ghosted) => counted(fullRate, () => findBoundedRun(ghosted?.machine ?? r.machine, [...laws, ...(ghosted?.laws ?? [])], {ms, from, steps: true, ...(wall ? {wall: countedSearchNow() + ms} : {}), progress: k => { reached = k }}), true)
   const refutedBy = (b: NonNullable<ReturnType<typeof bounded>>): Verdict => refutedVerdict({goal: `${b.law} @step (a run of ${b.depth} steps from the start)`, witness: b.witness, run: {params: b.params, trace: b.trace.map(shownRequest)}})
   const shallow = bounded(Math.min(250, total / 40), 1)
   if (shallow) return refutedBy(shallow)
@@ -3074,12 +3103,12 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // (a law with "there exists" about no key: its ghost chosen with the engine's cubes kept, within half of it)
   if (!stepLaws.length && laws.some(l => l.some?.length) && laws.every(l => !l.some?.length || !l.forall)) {
     let c: Verdict | undefined
-    try { c = withWall(performance.now() + ms / 2, () => withDeadline(clock() + ms / 2, () => someCone(rule, laws, ms / 2))) } catch (e) { if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: cone failed: ${String((e as Error).stack ?? e).slice(0, 600)}`) }
+    try { c = withWall(countedSearchNow() + ms / 2, () => withDeadline(clock() + ms / 2, () => someCone(rule, laws, ms / 2))) } catch (e) { if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: cone failed: ${String((e as Error).stack ?? e).slice(0, 600)}`) }
     if (c) return {...c, found: {...c.found, ...(lemmas ? {lemmas} : {})}}
     if ((ms = until - clock() - tail) < 500) return v
   }
   // (the search's own wall ends where the tail begins: the last bounded runs keep it)
-  const tailAt = () => performance.now() + Math.max(0, until - tail - clock())
+  const tailAt = () => countedSearchNow() + Math.max(0, until - tail - clock())
   // (a law about every key with "there exists": the search over its plain form, the value at its ghost map's cell, the
   // ghosts' own laws beside it, on the rule with the ghosts (exists.ts's skolemOf), its verdict `back`'s; no join, whose
   // convex forms can't state a cell read at a key a ghost holds: the engine alone (the join's first whole-set query on
@@ -3283,13 +3312,13 @@ export function crossCheckDecision(d: Decision, opts: {trials?: number, bound?: 
 // usual trees, which are then its input and not checked again); where none is made, the usual trees, checked.
 export const proveLoop = (l: LoopRule<Obj, Obj, Obj>, laws: Law[], opts: {ms?: number} = {}): Verdict => {
   if (l.hasRank) {
-    const t0 = performance.now(), goals = loopObligations(l.loop, laws, l.rankTerms), v = goalsVerdict(goals, !certOn())
+    const t0 = countedSearchNow(), goals = loopObligations(l.loop, laws, l.rankTerms), v = goalsVerdict(goals, !certOn())
     if (!v.proven) return v
-    const c = certLoop(l.loop, laws, l.rankTerms, v.trees!, performance.now() - t0)
+    const c = certLoop(l.loop, laws, l.rankTerms, v.trees!, countedSearchNow() - t0)
     return c && !c.checked && certOn() ? {...v, checked: goals.every(g => check(g, v.trees![g.name]!))} : v
   }
-  const t0 = performance.now(), out = findRank(l.loop, laws, opts)
-  if (out.proven && out.checked && out.rank && out.trees) certLoop(l.loop, [...laws, ...(out.laws ?? [])], out.rank, out.trees, performance.now() - t0)
+  const t0 = countedSearchNow(), out = findRank(l.loop, laws, opts)
+  if (out.proven && out.checked && out.rank && out.trees) certLoop(l.loop, [...laws, ...(out.laws ?? [])], out.rank, out.trees, countedSearchNow() - t0)
   return {proven: out.proven, checked: out.checked, ...(out.trees ? {trees: out.trees} : {}), ...(out.goal ? {goal: out.goal, stuck: out.stuck} : {}), ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {}),
     ...(out.found ? {found: {rank: out.found.rank, ...(out.laws?.length ? {laws: out.laws.map((law, i) => ({law, text: out.found!.laws[i] ?? law.name}))} : {})}} : {})}
 }
@@ -3417,7 +3446,7 @@ export const fold = (name: string): FoldRule => new FoldRule({name, params: [], 
 export const proveFold = (f: {fold: Fold, lemmas?: Law[]}, laws: Law[]): Verdict => {
   // (by default the certificate a cyclic proof, core/cyclic.ts's certCyclic, the usual trees its input; where none is
   // made, the usual trees checked)
-  const all = [...(f.lemmas ?? []), ...laws], t0 = performance.now(), v = goalsVerdict(foldObligations(f.fold, all), !certOn()), usualMs = performance.now() - t0
+  const all = [...(f.lemmas ?? []), ...laws], t0 = countedSearchNow(), v = goalsVerdict(foldObligations(f.fold, all), !certOn()), usualMs = countedSearchNow() - t0
   if (cyclicOn()) crossCyclic('fold', f.fold.name, v.proven && v.checked, () => { const {facts, specs} = foldNodes(f.fold, all); return proveCyclic(facts, specs) }, usualMs,
     v.trees && (st => translatedProof(() => JSON.stringify(['fold', f.fold, all]), () => foldNodes(f.fold, all, v.trees, st), st)))
   if (certOn() && v.proven) {

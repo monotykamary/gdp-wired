@@ -1,3 +1,4 @@
+import {traceNow as countedTraceNow} from './wall.ts'
 // UNTRUSTED relative-CTI proposals, not a proof, finite cover, or drop decision.
 // The consumer MUST independently check m.pre, ALL m.facts, the WHOLE current
 // family, the source interpreter's enabled step, and each reported post-law. This module owns no
@@ -488,7 +489,7 @@ export type TinySeedStatistics = {
 // compiled. The supplied checker must establish every removal independently.
 export function tinySeedCandidates(source: Machine, m: Machine, params: Env,
   onCandidate: (pre: State, request: Request) => boolean, options: TinyFiniteOptions = {}): TinySeedStatistics {
-  const values = unique([...(options.valueDomain ?? [0, 1])]).sort((a, b) => a - b), start = performance.now()
+  const values = unique([...(options.valueDomain ?? [0, 1])]).sort((a, b) => a - b), start = countedTraceNow()
   const stats: TinySeedStatistics = {phase: 'seed-only', scope: tinyScope(params, values, options), completed: false, timedOut: false,
     unsupported: [], models: 0, accepted: 0, coupledModels: 0, coupledAccepted: 0, ms: 0}
   try {
@@ -503,7 +504,7 @@ export function tinySeedCandidates(source: Machine, m: Machine, params: Env,
     if (e instanceof WallExpired) stats.timedOut = true
     else if (e instanceof Unsupported) stats.unsupported.push(e.message)
     else throw e
-  } finally { stats.ms = performance.now() - start }
+  } finally { stats.ms = countedTraceNow() - start }
   return stats
 }
 
@@ -520,7 +521,7 @@ export function tinySeedCandidates(source: Machine, m: Machine, params: Env,
 export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[], params: Env,
   onCandidate: (pre: State, request: Request, violated: Law[]) => boolean | void, options: TinyFiniteOptions = {}): TinyFiniteStatistics {
   const stateValues = unique([...(options.valueDomain ?? [0, 1])]).sort((a, b) => a - b)
-  const start = performance.now(), scope = tinyScope(params, stateValues, options)
+  const start = countedTraceNow(), scope = tinyScope(params, stateValues, options)
   const stats: TinyFiniteStatistics = {scope, completed: false, exhausted: false, timedOut: false, unsupported: [], nodes: 0, states: 0, steps: 0, scenarios: 0, candidates: 0, postStatePrunes: 0, postRequestPrunes: 0, postIntervalFallbacks: 0, seedModels: 0, seedCandidates: 0, seedCoupledModels: 0, seedCoupledCandidates: 0, ms: 0}
   const unknown = (e: unknown) => { const reason = e instanceof Error ? e.message : String(e); if (!stats.unsupported.includes(reason)) stats.unsupported.push(reason) }
   try {
@@ -727,7 +728,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     stats.completed = stats.unsupported.length === 0
     stats.exhausted = stats.completed && stats.candidates === 0
   } catch (e) { if (e instanceof WallExpired) stats.timedOut = true; else if (e instanceof Unsupported) unknown(e); else throw e }
-  finally { stats.ms = performance.now() - start }
+  finally { stats.ms = countedTraceNow() - start }
   return stats
 }
 const uniqueNames = (xs: (string | undefined)[]): string[] => [...new Set(xs.filter((x): x is string => x !== undefined))]

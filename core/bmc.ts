@@ -1,3 +1,4 @@
+import {searchNow as countedSearchNow} from './wall.ts'
 // Bounded runs: a law broken by a run of k steps from the start, found by the prover's model search. Nothing here is
 // trusted. The goal of depth k is the kernel's own k-step goal (kernel.ts's stepLawObligations, `steps: k`): its first
 // `when` is the start (each state variable its start value over the params), its `then` the laws after the last step
@@ -33,7 +34,7 @@ import {env, linOfE, plus, vars} from './solver.ts'
 export type BoundedRun = {law: string, depth: number, witness: Record<string, number>, params: Record<string, number>, trace: Request[]}
 export type BmcOptions = {
   ms: number // the budget, counted (on the cost model's clock or work.n's: `full`)
-  wall?: number // a stop, in wall time (performance.now())
+  wall?: number // a stop, in wall time (countedSearchNow())
   from?: number // the first depth (1)
   depth?: number // the last depth (64, the kernel's bound)
   progress?: (depth: number, outcome: 'refuted' | 'sat' | 'unknown', ms: number) => void
@@ -314,7 +315,7 @@ function forcedRunner(m: Machine, laws: Law[], opts: {steps: number, guesses?: n
   return (wall: number) => {
     if (over) return 'over'
     for (; n < opts.steps; n++) {
-      if (!(n % 256) && performance.now() >= wall) return 'paused'
+      if (!(n % 256) && countedSearchNow() >= wall) return 'paused'
       let next: State | undefined, request: Request | undefined, forced = true
       for (const [j, input] of requests.entries()) {
         if (at[j]!.some(([x, v]) => st.scalars[x] !== v)) continue
@@ -404,7 +405,7 @@ function unrolled(m: Machine, laws: Law[]) {
 export function findBoundedRun(m: Machine, laws: Law[], opts: BmcOptions): BoundedRun | undefined {
   // A forced run first, within forcedShare of the budget (as wall time: it is the compiled rule's, not the kernel's;
   // with `steps` and no wall stop, in its steps instead).
-  const now = performance.now(), end = Math.min(opts.wall ?? Infinity, now + opts.ms), steps = opts.steps && opts.wall === undefined
+  const now = countedSearchNow(), end = Math.min(opts.wall ?? Infinity, now + opts.ms), steps = opts.steps && opts.wall === undefined
   const out = boundedSearch(m, laws, {...opts, full: opts.full ?? false, forcedMs: steps ? Infinity : forcedShare * (end - now), ...(steps ? {forcedSteps: Math.min(forcedSteps, Math.round(forcedShare * forcedRate * opts.ms))} : {})})?.run(opts.ms, opts.wall)
   return typeof out === 'object' ? out : undefined
 }
@@ -424,16 +425,16 @@ export function boundedSearch(m: Machine, laws: Law[], opts: Omit<BmcOptions, 'm
   const run = (ms: number, wall?: number): BoundedRun | 'over' | 'paused' => {
     if (over) return 'over'
     if (forced && forcedLeft > 0) {
-      const t0 = performance.now(), out = forced(Math.min(wall ?? Infinity, t0 + forcedLeft))
-      forcedLeft -= performance.now() - t0
+      const t0 = countedSearchNow(), out = forced(Math.min(wall ?? Infinity, t0 + forcedLeft))
+      forcedLeft -= countedSearchNow() - t0
       if (typeof out === 'object') { over = true; return out }
       if (out === 'over') forcedLeft = 0
-      else if (wall !== undefined && performance.now() >= wall) return 'paused'
+      else if (wall !== undefined && countedSearchNow() >= wall) return 'paused'
     }
     const full = opts.full ?? true
     return counted(full ? bmcRate : workRate, () => {
       const until = clock() + ms
-      const late = () => clock() >= until || (wall !== undefined && performance.now() >= wall)
+      const late = () => clock() >= until || (wall !== undefined && countedSearchNow() >= wall)
       if (!made) { made = true; inc = useInc && !(opts.from && opts.from > 1) && !Object.keys(m.fns ?? {}).length && !Object.keys(m.step.flags ?? {}).length ? unrolled(m, laws) : undefined }
       const done = (out: BoundedRun | 'over') => { over = true; return out }
       for (; k <= last; k++) {

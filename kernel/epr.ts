@@ -1,3 +1,4 @@
+import {traceNow as countedTraceNow} from '../core/trace-clock.ts'
 // Untrusted: a fast decision of EPR-shaped goals (research/protocols/epr/DESIGN.md). The hypotheses read as a
 // propositional abstraction: a composed key (a·N² + b·N + c) the tuple of its parts, compared by the parts' order and
 // equality, never by arithmetic; a few-valued cell a finite variable; an ordered value (an epoch) a term of a total order;
@@ -97,8 +98,8 @@ const projectedMemo = new WeakMap<Goal, Goal>()
 const projectedOf = (g: Goal): Goal => { let o = projectedMemo.get(g); if (!o) projectedMemo.set(g, (o = {...g, hyps: g.hyps.map(projectedC)})); return o }
 export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
   if (!decideHook.on) return decide1(goal, patterns, opts)
-  const t0 = performance.now(), d = decide1(goal, patterns, opts)
-  decideHook.on(goal, d, performance.now() - t0, lastShaped)
+  const t0 = countedTraceNow(), d = decide1(goal, patterns, opts)
+  decideHook.on(goal, d, countedTraceNow() - t0, lastShaped)
   return d
 }
 function decide1(goal0: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
