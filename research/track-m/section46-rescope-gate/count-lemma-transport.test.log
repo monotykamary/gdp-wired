@@ -1,0 +1,17 @@
+bun test v1.4.3 (c6da4a4d3)
+
+core/count-lemma-transport.test.ts:
+(pass) reorders a sliced premise, rebases its proof, and leaves the input untouched [6.72ms]
+(pass) discharges only the fixed operation assumption into exact scope rows [1.54ms]
+LEMMA_TRANSPORT_DECLINE {"stage":"tree-reindex","original":[0],"slice":[],"when":2}
+(pass) does not discharge the operation assumption under a wrong scope [0.58ms]
+LEMMA_TRANSPORT_DECLINE {"stage":"hyp-map","index":0,"matches":0,"hyp":"{\"op\":\"<=\",\"a\":{\"op\":\"var\",\"name\":\"q\"},\"b\":{\"op\":\"const\",\"value\":3}}","assumed":"{\"op\":\"=\",\"a\":{\"op\":\"var\",\"name\":\"op\"},\"b\":{\"op\":\"const\",\"value\":5}}"}
+(pass) rejects a missing non-operation premise [0.29ms]
+LEMMA_TRANSPORT_DECLINE {"stage":"hyp-map","index":0,"matches":2,"hyp":"{\"op\":\"<=\",\"a\":{\"op\":\"var\",\"name\":\"q\"},\"b\":{\"op\":\"const\",\"value\":3}}","assumed":"{\"op\":\"=\",\"a\":{\"op\":\"var\",\"name\":\"op\"},\"b\":{\"op\":\"const\",\"value\":5}}"}
+(pass) rejects an ambiguous destination and merged source occurrences [1.48ms]
+(pass) does not extend an expired deadline [0.25ms]
+
+ 6 pass
+ 0 fail
+ 10 expect() calls
+Ran 6 tests across 1 file. [43.00ms]

@@ -113,7 +113,7 @@ test('proof-guided admission checks and shrinks offers before expansion, then cl
   const {out,events}=run(m,[left],25000000)
   expect(out.proven).toBe(true);expect(checkCountedLaws(out.m,out.laws,out.proof!)).toBe(true)
   expect(out.laws).not.toContain(noise)
-  expect(events.some(e=>e.phase==='count-component-rescope'&&e.stage==='original'&&e.checked===true)).toBe(true)
+  expect(events.some(e=>e.phase==='count-component-rescope'&&e.stage==='original'&&e.checked===true)).toBe(false)
   expect(events.some(e=>e.phase==='count-component-rescope'&&e.stage==='canonical'&&e.checked===true)).toBe(true)
   expect(events.filter(e=>e.phase==='count-component-result'&&e.held===true).every(e=>!(e.premises as string[]).includes(noise.name))).toBe(true)
   expect(events.some(e=>e.phase==='count-closing-reserve'&&Number(e.checkedPackets)>0&&Number(e.closingFloor)<37500)).toBe(true)

@@ -1,52 +1,47 @@
-// A proposal's declared scope is an offer, not evidence of a dependency.
-// Remove it only by transporting the same certificate and checking the new
-// INIT/STEP goals. No search and no weakening of replay's normal scope guard.
+// Read cited rows, then replay/check exactly owner + cited premises once. The
+// original context is a fallback only after refusal and explicit permission
+// to use an existing funded scope. A hard stop is never caught here.
 import {type Law,type Machine} from './machine.ts'
-import {type CountLawProof,type ScopedCountProof,scopeCountProof,replayScopedCountProof} from './count-proof-scope.ts'
+import {type CountLawProof,type ScopedCountProof,scopeCountProof,replayScopedCountProof,isCheckedReducedScope} from './count-proof-scope.ts'
 import {checkMC,countedObligations} from '../kernel/kernel.ts'
 import {clock,withDeadline} from '../kernel/prove.ts'
 import {checkWall} from './wall.ts'
-export type CountRescopeEvent=Readonly<{stage:'original'|'canonical'|'drop',premise?:string,checked:boolean,units:number}>
-export function rescopeCountProof(m:Machine,owner:Law,family:Law[],proof:CountLawProof,held:ReadonlySet<string>,until:number,observe?:(event:CountRescopeEvent)=>void):ScopedCountProof|undefined{
+import {startWork} from './work-admission.ts'
+import {workFilter,workMap} from './work-collections.ts'
+export type CountRescopeEvent=Readonly<{stage:'original'|'canonical'|'drop',premise?:string,checked:boolean,units:number,reason?:string}>
+export type CountRescopeOptions=Readonly<{allowFullFallback?:()=>boolean}>
+export function rescopeCountProof(m:Machine,owner:Law,family:Law[],proof:CountLawProof,_held:ReadonlySet<string>,until:number,observe?:(event:CountRescopeEvent)=>void,options:CountRescopeOptions={}):ScopedCountProof|undefined{
  return withDeadline(until,()=>{
-  checkWall('counted checked rescope')
-  const offered=scopeCountProof(m,owner,family,proof,until)
-  if(!offered)return undefined
-  const start=clock()
-  for(const {goal,decls}of countedObligations(m,family,{[owner.name]:proof.instances},family.indexOf(owner))){
-   if(clock()>=until||!proof.certs[goal.name]||!checkMC(goal.hyps,decls,proof.certs[goal.name]!)){
-    observe?.({stage:'original',checked:false,units:clock()-start});return undefined
+  checkWall('counted checked rescope');startWork('ticks',1,'counted checked rescope')
+  const start=clock(),offered=scopeCountProof(m,owner,family,proof,until)
+  // Validate declared metadata, but do not retain a declared unused superset.
+  const inferred=offered&&scopeCountProof(m,owner,family,{instances:proof.instances,certs:proof.certs},until)
+  if(inferred&&clock()<until){
+   const keep=new Set([owner.name]);for(const premise of inferred.premises){startWork('ticks',1,'reduced context premise');keep.add(premise.name)}
+   const context=workFilter(family,l=>keep.has(l.name),'reduced context family')
+   const checked=replayScopedCountProof(m,context,inferred,until)
+   const scoped=checked&&scopeCountProof(m,owner,context,checked,until)
+   if(scoped&&isCheckedReducedScope(scoped,m,context)){
+    const units=Math.max(0,clock()-start);observe?.({stage:'canonical',checked:true,units})
+    return {...scoped,checkWork:units}
    }
   }
-  let checkWork=Math.max(0,clock()-start)
-  observe?.({stage:'original',checked:true,units:checkWork})
-  // The native check above is compulsory even for a deferred STEP proposal.
-  // Inferred references may be smaller than the explicit offered superset.
-  let current=scopeCountProof(m,owner,family,{instances:proof.instances,certs:proof.certs},until)
-  if(!current||clock()>=until)return undefined
-  let context=family
-  const attempt=(next:Law[],candidate:ScopedCountProof,stage:'canonical'|'drop',premise?:string):boolean=>{
-   const before=clock(),checked=replayScopedCountProof(m,next,candidate,until)
-   const units=Math.max(0,clock()-before)
-   observe?.({stage,premise,checked:!!checked,units})
-   if(!checked)return false
-   const scoped=scopeCountProof(m,owner,next,checked,until)
-   if(!scoped)return false
-   current=scoped;context=next;checkWork=Math.max(checkWork,units)
-   return true
+  observe?.({stage:'canonical',checked:false,units:Math.max(0,clock()-start),...(!offered?{reason:'scope-refused'}:{})})
+  checkWall('counted checked rescope fallback')
+  if(clock()>=until||!options.allowFullFallback?.())return undefined
+  const before=clock()
+  // This is at most one pass over the original INIT/STEP goals; no drop loop,
+  // fresh lease, reduced-context retry or fallback on an exception exists.
+  for(const {goal,decls}of countedObligations(m,family,{[owner.name]:proof.instances},family.indexOf(owner))){
+   startWork('ticks',1,'full fallback obligation');const cert=proof.certs[goal.name]
+   if(clock()>=until||!cert||!checkMC(goal.hyps,decls,cert)){
+    observe?.({stage:'original',checked:false,units:Math.max(0,clock()-before)});return undefined
+   }
   }
-  const keep=new Set([owner.name,...current.premises.map(p=>p.name),...held])
-  const compact=family.filter(l=>keep.has(l.name))
-  if(compact.length<family.length)attempt(compact,current,'canonical')
-  // A failed transport is not a claim of logical necessity. Retain that
-  // premise in this checked certificate; the family checker remains final.
-  for(const premise of [...current.premises]){
-   if(premise.name===owner.name||held.has(premise.name))continue
-   if(clock()>=until)return undefined
-   const candidate={...current,premises:current.premises.filter(p=>p.name!==premise.name),unused:[...current.unused,premise.name]}
-   attempt(context.filter(l=>l.name!==premise.name),candidate,'drop',premise.name)
-  }
-  checkWall('counted checked rescope')
-  return clock()<until?{...current,checkWork}:undefined
+  observe?.({stage:'original',checked:true,units:Math.max(0,clock()-before)})
+  // A full-only acceptance has no reduced receipt and cannot erase recipe
+  // requirements. The caller must conservatively union those requirements.
+  const fallback=scopeCountProof(m,owner,family,{...proof,status:'unchecked',premises:offered?proof.premises:workMap(family,l=>l.name,'full fallback context')},until)
+  return fallback&&clock()<until?{...fallback,checkWork:Math.max(0,clock()-start)}:undefined
  })
 }

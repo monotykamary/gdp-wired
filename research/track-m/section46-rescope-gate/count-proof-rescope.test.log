@@ -1,0 +1,18 @@
+bun test v1.4.3 (c6da4a4d3)
+
+core/count-proof-rescope.test.ts:
+(pass) 46.10 negative1: omitted premise refuses reduction; funded full fallback stays unchecked [19.18ms]
+(pass) 46.10 negative2: unused declared/held laws disappear; one native INIT/STEP pass [11.38ms]
+(pass) 46.10 negative3: unchecked proposals require both checks and reject corrupt STEP [13.91ms]
+(pass) 46.10 negative4: full-only acceptance cannot suppress recorded/recipe-known requirements [6.41ms]
+(pass) opaque receipts bind certificate, machine, owner, context and sources [7.93ms]
+(pass) scope capture and forged flags are not native receipts [1.88ms]
+(pass) default/explicit denial starts no fallback; hard errors propagate [2.75ms]
+(pass) false full fallback is refused, not converted to unchecked success [2.69ms]
+(pass) native false INIT, false STEP and changed context are never accepted [16.97ms]
+(pass) zero complete-work lease publishes no scope and starts no fallback [43.07ms]
+
+ 10 pass
+ 0 fail
+ 51 expect() calls
+Ran 10 tests across 1 file. [166.00ms]

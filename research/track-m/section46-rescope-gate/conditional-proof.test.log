@@ -1,0 +1,28 @@
+bun test v1.4.3 (c6da4a4d3)
+
+core/count-recovery/conditional-proof.test.ts:
+(pass) metadata is untrusted, root-local, and checked under ordinary entry paths [7.19ms]
+(pass) mixed ordinary and conditional siblings globalize at an empty root [1.13ms]
+(pass) rootless conditional cuts keep their guards as well as the subtree entry scope [2.17ms]
+(pass) cross-goal added and reordered hypotheses preserve independent slices [1.36ms]
+(pass) unsliced source cuts become explicit slices and do not assume added hypotheses [0.94ms]
+(pass) inactive cuts cannot be used or activated by another cut [1.37ms]
+(pass) missing target rows and missing source-slice hypotheses refuse exact transport [0.68ms]
+(pass) removed guard hypotheses are discharged by explicit entry conditions, not assumed [1.97ms]
+(pass) malformed independent cuts are refused by checking, transport and collection [0.36ms]
+(pass) constant-positive target row short-circuits obsolete source rows [0.83ms]
+(pass) duplicate path atoms keep rows and negcut-first lookup semantics [0.56ms]
+(pass) ordinary siblings reindex when global cuts change their leaf rows [0.85ms]
+(pass) transport can prune a known split without losing a descendant mark [0.68ms]
+(pass) ordinary square and product references follow the relocated base rows [0.87ms]
+(pass) ordinary checking retains the kernel constant and repeated split refusals [0.13ms]
+(pass) retarget cache hits across unrelated scopes and equivalent target objects [1.53ms]
+(pass) retarget cache distinguishes slice vectors and never covers missing hypotheses [0.49ms]
+(pass) retarget cache does not alias equal slice vectors with different source content [0.49ms]
+(pass) warm pre-check caches do not replace final kernel verification [0.40ms]
+(pass) expired absolute wall deadlines never produce certificates [0.10ms]
+
+ 20 pass
+ 0 fail
+ 222 expect() calls
+Ran 20 tests across 1 file. [60.00ms]

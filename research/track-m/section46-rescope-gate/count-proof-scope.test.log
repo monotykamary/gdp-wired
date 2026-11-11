@@ -1,0 +1,22 @@
+bun test v1.4.3 (c6da4a4d3)
+
+core/count-proof-scope.test.ts:
+(pass) checked re-scope removes declared but unused premises without searching [27.40ms]
+(pass) checked re-scope refuses a damaged unchecked packet and expired scope [4.25ms]
+(pass) record referenced laws, not every available scalar or instantiated law [5.26ms]
+(pass) premise matching ignores AST property insertion order [3.09ms]
+(pass) independent cut source slices remain premises even if the main tree does not cite the cut [5.09ms]
+(pass) reordering and adding unused laws reindexes but never searches [4.66ms]
+(pass) removing an actual premise or changing its body invalidates retention [18.80ms]
+(pass) declared strategy scopes cannot omit used premises or invent names [7.26ms]
+(pass) mutated original laws do not mutate recorded premise identities [3.39ms]
+(pass) changed machine or damaged certificate still requires the current kernel check [5.20ms]
+(pass) a mutual induction cycle survives unrelated drops with checks only in round one [53.75ms]
+(pass) a helper that falls cannot authorize the caller in the following round [15.90ms]
+(pass) flags off retain legacy carry without premise metadata or replay phases [18.22ms]
+(pass) scope capture and replay consume complete work with both control clocks forbidden [201.52ms]
+
+ 14 pass
+ 0 fail
+ 57 expect() calls
+Ran 14 tests across 1 file. [468.00ms]

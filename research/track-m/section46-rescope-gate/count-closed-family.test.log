@@ -1,0 +1,19 @@
+bun test v1.4.3 (c6da4a4d3)
+
+core/count-closed-family.test.ts:
+(pass) 46.4 negative1: closes the native bottom layer once and leaves target unproven [15.91ms]
+(pass) 46.4 negative2: understated dependencies do not bypass the native family check [5.16ms]
+(pass) 46.4 negative3: a closed mutual cycle stays in the greatest fixed point [0.13ms]
+(pass) 46.4 negative4: a cycle with an unheld dependency is removed and blocker paths terminate [0.09ms]
+(pass) 46.4 negative5: a closed target invokes only the byte-identical legacy payload [1.66ms]
+(pass) empty/unfunded closure starts no check and preserves the held payload [0.16ms]
+(pass) false INIT and STEP mutations are refused by the real native subset checker [2.23ms]
+(pass) explicit checked basis and diamond blockers are stable and deduplicated [0.18ms]
+(pass) a thrown native callback is not retried or promoted to success [0.17ms]
+(pass) greatest fixed point contains every closed subset of three members [7.63ms]
+(pass) a zero work lease starts no closure body [37.94ms]
+
+ 11 pass
+ 0 fail
+ 1830 expect() calls
+Ran 11 tests across 1 file. [113.00ms]

@@ -1,0 +1,4 @@
+feat(counts): check reduced premise context before full fallback
+
+Bind reduced-context acceptance to an opaque native replay receipt.
+Require explicit existing-scope permission for a full-only fallback.

@@ -1,0 +1,56 @@
+bun test v1.4.3 (c6da4a4d3)
+
+core/count-proof-rescope.test.ts:
+(pass) 46.10 negative1: omitted premise refuses reduction; funded full fallback stays unchecked [9.50ms]
+(pass) 46.10 negative2: unused declared/held laws disappear; one native INIT/STEP pass [4.09ms]
+23 |  const f=fixture(),proof={...prove(f,until),premises:f.family.map(l=>l.name)},events:CountRescopeEvent[]=[],native=spyOn(kernel,'checkMC');let fallback=0
+24 |  try{const r=rescopeCountProof(f.m,f.a,f.family,proof,new Set(f.family.map(l=>l.name)),until,e=>events.push(e),{allowFullFallback:()=>{fallback++;return true}})!;expect(r).toBeDefined();expect(r.premises.map(p=>p.name)).toEqual([f.b.name]);expect(isCheckedReducedScope(r,f.m,f.family)).toBe(true);expect(events.map(e=>[e.stage,e.checked])).toEqual([['canonical',true]]);expect(native).toHaveBeenCalledTimes(2);expect(fallback).toBe(0)}finally{native.mockRestore()}
+25 | }))
+26 | test('46.10 negative3: unchecked proposals require both checks and reject corrupt STEP',()=>bounded(until=>{
+27 |  const f=fixture(),proof={...prove(f,until),status:'unchecked' as const},native=spyOn(kernel,'checkMC')
+28 |  try{const good=rescopeCountProof(f.m,f.a,f.family,proof,new Set(),until)!;expect(good.proof.status).toBeUndefined();expect(isCheckedReducedScope(good,f.m)).toBe(true);expect(native).toHaveBeenCalledTimes(2);native.mockClear();const name=f.a.name+' @step',bad={...proof,certs:{...proof.certs,[name]:{...proof.certs[name]!,tree:{leaf:[]}}}};expect(rescopeCountProof(f.m,f.a,f.family,bad,new Set(),until)).toBeUndefined();expect(native).toHaveBeenCalledTimes(2)}finally{native.mockRestore()}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                        ^
+error: expect(received).toHaveBeenCalledTimes(expected)
+
+Expected number of calls: 2
+Received number of calls: 1
+
+      at <anonymous> (/work/gdp-wired/core/count-proof-rescope.test.ts:28:436)
+      at withDeadline (/work/gdp-wired/kernel/prove.ts:369:16)
+      at withWall (/work/gdp-wired/kernel/prove.ts:350:16)
+(fail) 46.10 negative3: unchecked proposals require both checks and reject corrupt STEP [2.64ms]
+(pass) 46.10 negative4: full-only acceptance cannot suppress recorded/recipe-known requirements [1.58ms]
+(pass) opaque receipts bind certificate, machine, owner, context and sources [3.14ms]
+(pass) scope capture and forged flags are not native receipts [0.64ms]
+(pass) default/explicit denial starts no fallback; hard errors propagate [1.04ms]
+(pass) false full fallback is refused, not converted to unchecked success [2.29ms]
+39 |  const f=fixture(),proof={...prove(f,until),premises:[]},native=spyOn(kernel,'checkMC');let permits=0
+40 |  try{expect(rescopeCountProof(f.m,f.a,f.family,proof,new Set(),until)).toBeUndefined();expect(rescopeCountProof(f.m,f.a,f.family,proof,new Set(),until,undefined,{allowFullFallback:()=>{permits++;return false}})).toBeUndefined();expect(permits).toBe(1);expect(native).not.toHaveBeenCalled();const stop=new BudgetExpired('cancelled fallback');expect(()=>rescopeCountProof(f.m,f.a,f.family,proof,new Set(),until,()=>{throw stop},{allowFullFallback:()=>{permits++;return true}})).toThrow(stop);expect(permits).toBe(1);expect(native).not.toHaveBeenCalled()}finally{native.mockRestore()}
+41 | }))
+42 | test('false full fallback is refused, not converted to unchecked success',()=>bounded(until=>{const f=fixture(),proof={...prove(f,until),premises:[]},name=f.a.name+' @step';proof.certs[name]={...proof.certs[name]!,tree:{leaf:[]}};const events:CountRescopeEvent[]=[];expect(rescopeCountProof(f.m,f.a,f.family,proof,new Set(),until,e=>events.push(e),{allowFullFallback:()=>true})).toBeUndefined();expect(events.map(e=>[e.stage,e.checked])).toEqual([['canonical',false],['original',false]])}))
+43 | test('zero complete-work lease publishes no scope and starts no fallback',()=>bounded(until=>{
+44 |  const f=fixture(),proof=prove(f,until),env=Object.fromEntries(Object.entries(process.env).filter(([k])=>!k.startsWith('GDP_'))),child=spawnSync(process.execPath,['--eval',`import {strict as a} from 'node:assert';import {rescopeCountProof} from './core/count-proof-rescope.ts';import {withBudget,fullWork,BudgetExpired} from './kernel/prove.ts';const {m,owner,family,proof}=JSON.parse(process.env.S46_INPUT);const before=fullWork();let permits=0,stopped=false,result;try{result=withBudget(0,()=>rescopeCountProof(m,owner,family,proof,new Set(),Infinity,undefined,{allowFullFallback:()=>{permits++;return true}}))}catch(e){a(e instanceof BudgetExpired);stopped=true}a(stopped);a.equal(result,undefined);a.equal(fullWork(),before);a.equal(permits,0)`],{cwd:new URL('../',import.meta.url).pathname,env:{...env,GDP_WORK_FULL:'1',S46_INPUT:JSON.stringify({m:f.m,owner:f.a,family:f.family,proof})},encoding:'utf8',timeout:10000});if(child.status!==0)throw Error(child.stderr);expect(child.status).toBe(0)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ^
+error: 1 | import {strict as a} from 'node:assert';import {rescopeCountProof} from './core/count-proof-rescope.ts';import {withBudget,fullWork,BudgetExpired} from './kernel/prove.ts';const {m,owner,family,proof}=JSON.parse(process.env.S46_INPUT);const before=fullWork();let permits=0,stopped=false,result;try{result=withBudget(0,()=>rescopeCountProof(m,owner,family,proof,new Set(),Infinity,undefined,{allowFullFallback:()=>{permits++;return true}}))}catch(e){a(e instanceof BudgetExpired);stopped=true}a(stopped);a.equal(result,undefined);a.equal(fullWork(),before);a.equal(permits,0)
+
+AssertionError: false == true
+ generatedMessage: true,
+     actual: false,
+   expected: true,
+   operator: "==",
+       diff: "simple",
+       code: "ERR_ASSERTION"
+
+      at /work/gdp-wired/[eval]:1:493
+
+Bun v1.4.3 (Linux x64)
+
+      at <anonymous> (/work/gdp-wired/core/count-proof-rescope.test.ts:44:969)
+      at withDeadline (/work/gdp-wired/kernel/prove.ts:369:16)
+      at withWall (/work/gdp-wired/kernel/prove.ts:350:16)
+(fail) zero complete-work lease publishes no scope and starts no fallback [32.31ms]
+
+ 7 pass
+ 2 fail
+ 44 expect() calls
+Ran 9 tests across 1 file. [85.00ms]

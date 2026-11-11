@@ -1,0 +1,124 @@
+bun test v1.4.3 (c6da4a4d3)
+
+core/count-prerequisite-public.test.ts:
+43 |  let coreCalls=0;decline=target=>target===core&&++coreCalls===1
+44 |  try{
+45 |   const {out,events}=run(m,[core],25000000)
+46 |   expect(out.proven).toBe(true);expect(checkCountedLaws(out.m,out.laws,out.proof!)).toBe(true)
+47 |   const tries=events.filter(event=>event.phase==='count-component-attempt'&&event.law===ordinary.name)
+48 |   expect(tries).toHaveLength(1);expect(tries[0]?.purpose).toBe('discovery')
+                     ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 0
+
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:48:17)
+(fail) held and parked ordinary state survives structured fallback, unproved=false [21.13ms]
+43 |  let coreCalls=0;decline=target=>target===core&&++coreCalls===1
+44 |  try{
+45 |   const {out,events}=run(m,[core],25000000)
+46 |   expect(out.proven).toBe(true);expect(checkCountedLaws(out.m,out.laws,out.proof!)).toBe(true)
+47 |   const tries=events.filter(event=>event.phase==='count-component-attempt'&&event.law===ordinary.name)
+48 |   expect(tries).toHaveLength(1);expect(tries[0]?.purpose).toBe('discovery')
+                     ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 0
+
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:48:17)
+(fail) held and parked ordinary state survives structured fallback, unproved=true [9.00ms]
+63 |    if(event.phase==='count-component-attempt')purpose=String(event.purpose)
+64 |    if(event.phase==='query'&&event.law===helper.name&&purpose==='required')withBudget(0,()=>{costs.fm++;checkBudget('unresolved helper child')})
+65 |   }
+66 |   const {out,events}=run(m,[core],25000000)
+67 |   expect(out.proven).toBe(false)
+68 |   expect(events.some(event=>event.phase==='count-component-result'&&event.law===core.name&&event.held===true&&(event.premises as string[]).includes(helper.name))).toBe(true)
+                                                                                                                                                                        ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:68:164)
+(fail) a conditional core remains uncommitted while its helper is unknown across fallback [17.27ms]
+1551 |       r = attempt(law, ls, pass, Math.max(0, end - clock()), strategyAllowed)
+1552 |       }
+1553 |     } catch (error) {
+1554 |       // A local tier deadline expires this attempt, not the whole enclosing search.
+1555 |       // Invalid or captured proposals are likewise never assumptions.
+1556 |       if (!(error instanceof UnsupportedCountProposal) && !(error instanceof WallExpired) && !(tiers?.active&&isLocalCountExpiration(error,enclosingEnd))) throw error
+                                                                                                                                                                        ^
+error: unadmitted work counter mutation: fm
+      at traced (/work/gdp-wired/core/counts.ts:1556:162)
+      at run (/work/gdp-wired/core/counts.ts:905:24)
+      at join (/work/gdp-wired/core/counts.ts:917:52)
+      at admitCountedFamilyOnce (/work/gdp-wired/core/counts.ts:628:12)
+      at structuredFallback (/work/gdp-wired/core/counts.ts:529:20)
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:35:101)
+      at withEndpoint (/work/gdp-wired/core/work-admission.ts:137:74)
+      at <anonymous> (/work/gdp-wired/kernel/prove.ts:294:44)
+      at withEndpoint (/work/gdp-wired/core/work-admission.ts:137:74)
+      at withTraceWorkScope (/work/gdp-wired/core/trace-clock.ts:8:16)
+      at withTraceWorkScope (/work/gdp-wired/core/trace-clock.ts:8:16)
+      at run (/work/gdp-wired/core/count-prerequisite-public.test.ts:36:13)
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:86:22)
+(fail) a native-expired ordinary member joins the later core and is checked together [0.97ms]
+ 95 |  const left:Law={name:'mutual left',holds:same(x('left'),n(0))},right:Law={name:'mutual right',holds:same(x('right'),n(0))}
+ 96 |  const m:Machine={name:'mutual',params:[],inputs:[],state:{left:n(0),right:n(0)},step:{state:{left:x('right'),right:x('left')}}}
+ 97 |  alternatives=new Set([left.name]);priority=new Map();selected=undefined
+ 98 |  family=[left,right];requirements=new Map([[left.name,[right.name]],[right.name,[left.name]]]);chooseSource=undefined
+ 99 |  const {out,events}=run(m,[left])
+100 |  expect(events.some(e=>e.phase==='count-component-result'&&e.mode==='dissolve'&&e.held===false&&(e.failed as string[]).length===0)).toBe(true)
+                                                                                                                                          ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:100:133)
+(fail) a declared alternative may fail without declining the checked joint component [11.92ms]
+112 |  try{
+113 |   const {out,events}=run(m,[left],25000000)
+114 |   expect(out.proven).toBe(true);expect(checkCountedLaws(out.m,out.laws,out.proof!)).toBe(true)
+115 |   expect(out.laws).not.toContain(noise)
+116 |   expect(events.some(e=>e.phase==='count-component-rescope'&&e.stage==='original'&&e.checked===true)).toBe(false)
+117 |   expect(events.some(e=>e.phase==='count-component-rescope'&&e.stage==='canonical'&&e.checked===true)).toBe(true)
+                                                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:117:104)
+(fail) proof-guided admission checks and shrinks offers before expansion, then closes natively [15.88ms]
+131 |  let calls=0;decline=target=>target===core&&++calls===1
+132 |  const previous=process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING;process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING='1'
+133 |  try{
+134 |   const {out,events}=run(m,[core],25000000)
+135 |   expect(out.proven).toBe(true);expect(checkCountedLaws(out.m,out.laws,out.proof!)).toBe(true)
+136 |   expect(events.some(e=>e.phase==='count-reachability'&&e.law===bad.name&&e.outcome==='rejected')).toBe(true)
+                                                                                                         ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:136:100)
+(fail) reachable screening precedes a required ordinary allowance and survives fallback [6.73ms]
+149 |  family=[bad,left,good];requirements=new Map([[good.name,[left.name]],[left.name,[bad.name]],[bad.name,[good.name]]])
+150 |  // Put the false source first in the original goal, rather than transporting
+151 |  // through a subset with potentially duplicate normalized constraints.
+152 |  chooseSource=undefined
+153 |  const {out,events}=run(m,[good,left])
+154 |  if(!events.some(e=>e.phase==='count-component-result'&&(e.invalidated as string[]).includes(left.name)))throw Error(JSON.stringify({why:out.why,events:events.filter(e=>String(e.phase).startsWith('count-component'))}))
+                                                                                                                                                                                                                               ^
+error: {"events":[]}
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:154:218)
+(fail) a failed outsider invalidates the actual citing proposal and the survivor is rebuilt without it [17.93ms]
+
+ 0 pass
+ 8 fail
+ 17 expect() calls
+Ran 8 tests across 1 file. [144.00ms]

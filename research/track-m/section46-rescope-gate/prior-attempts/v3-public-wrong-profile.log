@@ -1,0 +1,116 @@
+bun test v1.4.3 (c6da4a4d3)
+
+core/count-prerequisite-public.test.ts:
+295 |     }), true)
+296 |   }
+297 |   if (typeof units !== 'number') throw new Error('exact work budgets require the full-work profile')
+298 |   if (!Number.isFinite(units) || units < 0) throw new RangeError('work budget must be finite and nonnegative')
+299 |   // Never silently interpret units using a legacy work.n/count-rate island.
+300 |   if (rate && meter !== fullWork) throw new Error('work budget requires the outer full-work clock')
+                                                                                                        ^
+error: work budget requires the outer full-work clock
+      at withBudget (/work/gdp-wired/kernel/prove.ts:300:99)
+      at <anonymous> (/work/gdp-wired/kernel/prove.ts:239:18)
+      at withTraceWorkScope (/work/gdp-wired/core/trace-clock.ts:8:16)
+      at run (/work/gdp-wired/core/count-prerequisite-public.test.ts:36:13)
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:45:22)
+(fail) held and parked ordinary state survives structured fallback, unproved=false [1.32ms]
+295 |     }), true)
+296 |   }
+297 |   if (typeof units !== 'number') throw new Error('exact work budgets require the full-work profile')
+298 |   if (!Number.isFinite(units) || units < 0) throw new RangeError('work budget must be finite and nonnegative')
+299 |   // Never silently interpret units using a legacy work.n/count-rate island.
+300 |   if (rate && meter !== fullWork) throw new Error('work budget requires the outer full-work clock')
+                                                                                                        ^
+error: work budget requires the outer full-work clock
+      at withBudget (/work/gdp-wired/kernel/prove.ts:300:99)
+      at <anonymous> (/work/gdp-wired/kernel/prove.ts:239:18)
+      at withTraceWorkScope (/work/gdp-wired/core/trace-clock.ts:8:16)
+      at run (/work/gdp-wired/core/count-prerequisite-public.test.ts:36:13)
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:45:22)
+(fail) held and parked ordinary state survives structured fallback, unproved=true [0.29ms]
+295 |     }), true)
+296 |   }
+297 |   if (typeof units !== 'number') throw new Error('exact work budgets require the full-work profile')
+298 |   if (!Number.isFinite(units) || units < 0) throw new RangeError('work budget must be finite and nonnegative')
+299 |   // Never silently interpret units using a legacy work.n/count-rate island.
+300 |   if (rate && meter !== fullWork) throw new Error('work budget requires the outer full-work clock')
+                                                                                                        ^
+error: work budget requires the outer full-work clock
+      at withBudget (/work/gdp-wired/kernel/prove.ts:300:99)
+      at <anonymous> (/work/gdp-wired/kernel/prove.ts:239:18)
+      at withTraceWorkScope (/work/gdp-wired/core/trace-clock.ts:8:16)
+      at run (/work/gdp-wired/core/count-prerequisite-public.test.ts:36:13)
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:66:22)
+(fail) a conditional core remains uncommitted while its helper is unknown across fallback [0.39ms]
+295 |     }), true)
+296 |   }
+297 |   if (typeof units !== 'number') throw new Error('exact work budgets require the full-work profile')
+298 |   if (!Number.isFinite(units) || units < 0) throw new RangeError('work budget must be finite and nonnegative')
+299 |   // Never silently interpret units using a legacy work.n/count-rate island.
+300 |   if (rate && meter !== fullWork) throw new Error('work budget requires the outer full-work clock')
+                                                                                                        ^
+error: work budget requires the outer full-work clock
+      at withBudget (/work/gdp-wired/kernel/prove.ts:300:99)
+      at <anonymous> (/work/gdp-wired/kernel/prove.ts:239:18)
+      at withTraceWorkScope (/work/gdp-wired/core/trace-clock.ts:8:16)
+      at run (/work/gdp-wired/core/count-prerequisite-public.test.ts:36:13)
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:86:22)
+(fail) a native-expired ordinary member joins the later core and is checked together [0.31ms]
+ 95 |  const left:Law={name:'mutual left',holds:same(x('left'),n(0))},right:Law={name:'mutual right',holds:same(x('right'),n(0))}
+ 96 |  const m:Machine={name:'mutual',params:[],inputs:[],state:{left:n(0),right:n(0)},step:{state:{left:x('right'),right:x('left')}}}
+ 97 |  alternatives=new Set([left.name]);priority=new Map();selected=undefined
+ 98 |  family=[left,right];requirements=new Map([[left.name,[right.name]],[right.name,[left.name]]]);chooseSource=undefined
+ 99 |  const {out,events}=run(m,[left])
+100 |  expect(events.some(e=>e.phase==='count-component-result'&&e.mode==='dissolve'&&e.held===false&&(e.failed as string[]).length===0)).toBe(true)
+                                                                                                                                          ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:100:133)
+(fail) a declared alternative may fail without declining the checked joint component [30.25ms]
+295 |     }), true)
+296 |   }
+297 |   if (typeof units !== 'number') throw new Error('exact work budgets require the full-work profile')
+298 |   if (!Number.isFinite(units) || units < 0) throw new RangeError('work budget must be finite and nonnegative')
+299 |   // Never silently interpret units using a legacy work.n/count-rate island.
+300 |   if (rate && meter !== fullWork) throw new Error('work budget requires the outer full-work clock')
+                                                                                                        ^
+error: work budget requires the outer full-work clock
+      at withBudget (/work/gdp-wired/kernel/prove.ts:300:99)
+      at <anonymous> (/work/gdp-wired/kernel/prove.ts:239:18)
+      at withTraceWorkScope (/work/gdp-wired/core/trace-clock.ts:8:16)
+      at run (/work/gdp-wired/core/count-prerequisite-public.test.ts:36:13)
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:113:22)
+(fail) proof-guided admission checks and shrinks offers before expansion, then closes natively [0.72ms]
+295 |     }), true)
+296 |   }
+297 |   if (typeof units !== 'number') throw new Error('exact work budgets require the full-work profile')
+298 |   if (!Number.isFinite(units) || units < 0) throw new RangeError('work budget must be finite and nonnegative')
+299 |   // Never silently interpret units using a legacy work.n/count-rate island.
+300 |   if (rate && meter !== fullWork) throw new Error('work budget requires the outer full-work clock')
+                                                                                                        ^
+error: work budget requires the outer full-work clock
+      at withBudget (/work/gdp-wired/kernel/prove.ts:300:99)
+      at <anonymous> (/work/gdp-wired/kernel/prove.ts:239:18)
+      at withTraceWorkScope (/work/gdp-wired/core/trace-clock.ts:8:16)
+      at run (/work/gdp-wired/core/count-prerequisite-public.test.ts:36:13)
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:134:22)
+(fail) reachable screening precedes a required ordinary allowance and survives fallback [0.31ms]
+149 |  family=[bad,left,good];requirements=new Map([[good.name,[left.name]],[left.name,[bad.name]],[bad.name,[good.name]]])
+150 |  // Put the false source first in the original goal, rather than transporting
+151 |  // through a subset with potentially duplicate normalized constraints.
+152 |  chooseSource=undefined
+153 |  const {out,events}=run(m,[good,left])
+154 |  if(!events.some(e=>e.phase==='count-component-result'&&(e.invalidated as string[]).includes(left.name)))throw Error(JSON.stringify({why:out.why,events:events.filter(e=>String(e.phase).startsWith('count-component'))}))
+                                                                                                                                                                                                                               ^
+error: {"events":[]}
+      at <anonymous> (/work/gdp-wired/core/count-prerequisite-public.test.ts:154:218)
+(fail) a failed outsider invalidates the actual citing proposal and the survivor is rebuilt without it [14.76ms]
+
+ 0 pass
+ 8 fail
+ 1 expect() calls
+Ran 8 tests across 1 file. [134.00ms]

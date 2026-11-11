@@ -1,0 +1,10 @@
+bun test v1.4.3 (c6da4a4d3)
+
+core/count-prerequisite-public.test.ts:
+(pass) proof-guided admission checks and shrinks offers before expansion, then closes natively [338.37ms]
+
+ 1 pass
+ 7 filtered out
+ 0 fail
+ 8 expect() calls
+Ran 1 test across 1 file. [433.00ms]

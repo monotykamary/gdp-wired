@@ -1,0 +1,6 @@
+core/count-proof-rescope.test.ts(43,97): error TS1127: Invalid character.
+core/count-proof-rescope.test.ts(43,98): error TS1434: Unexpected keyword or identifier.
+core/count-proof-rescope.test.ts(43,138): error TS1127: Invalid character.
+core/count-proof-rescope.test.ts(43,141): error TS1005: ',' expected.
+core/count-proof-rescope.test.ts(43,549): error TS1127: Invalid character.
+core/count-proof-rescope.test.ts(43,554): error TS1127: Invalid character.

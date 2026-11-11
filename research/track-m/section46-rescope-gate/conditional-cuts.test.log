@@ -1,0 +1,18 @@
+bun test v1.4.3 (c6da4a4d3)
+
+core/count-recovery/conditional-cuts.test.ts:
+(pass) a cut activates only in its conditional scope and drops unrelated guards and source hypotheses [7.23ms]
+(pass) a required prior cut is inlined into an independently checked lemma [4.50ms]
+(pass) an unavailable or independently invalid prerequisite fails admission [4.32ms]
+(pass) unneeded cuts are not inlined or checked and cannot make prerequisites active [1.35ms]
+(pass) inline emits an ordinary kernel-checked tree at scope with only needed active cuts [2.21ms]
+(pass) a selected active cut reuses a target negated bound that folds to false [2.29ms]
+(pass) opaque columns, including nested opaque column names, cannot be cuts [0.10ms]
+(pass) duplicate path atoms preserve rows and negcut wins deciding lookups [0.43ms]
+(pass) inline may discharge an already false cut without emitting a repeated split [0.66ms]
+(pass) expired wall deadlines and unchecked source refutations return no result [0.64ms]
+
+ 10 pass
+ 0 fail
+ 100 expect() calls
+Ran 10 tests across 1 file. [60.00ms]

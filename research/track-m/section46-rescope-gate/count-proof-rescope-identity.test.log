@@ -1,0 +1,9 @@
+bun test v1.4.3 (c6da4a4d3)
+
+core/count-proof-rescope-identity.test.ts:
+(pass) accepted reduced family bytes and native verdict equal frozen f585 [45.94ms]
+
+ 1 pass
+ 0 fail
+ 11 expect() calls
+Ran 1 test across 1 file. [146.00ms]

@@ -1,0 +1,13 @@
+bun test v1.4.3 (c6da4a4d3)
+
+core/count-recovery/conditional-check-cache.test.ts:
+(pass) sliced leaves retain exact proof semantics and memoize the same immutable leaf [3.33ms]
+(pass) sliced leaves retain square/product offsets and unused product dependencies [1.33ms]
+(pass) malformed leaves refuse and unused product handling matches the unchanged kernel [0.56ms]
+(pass) ordered paths, duplicates and changed truth values never share a leaf result [0.40ms]
+(pass) slicing falls back rather than rejecting a needed implicit naturality row [0.41ms]
+
+ 5 pass
+ 0 fail
+ 23 expect() calls
+Ran 5 tests across 1 file. [45.00ms]

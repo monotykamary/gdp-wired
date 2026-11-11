@@ -1,0 +1,13 @@
+[
+  {
+    "name": "section46-rescope",
+    "cpu": 2,
+    "memory": 12288,
+    "timeout": 300,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cmd": "set -euo pipefail; out=${SUPERCOMPUTER_OUTPUT_DIR:?}; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile > \"$out/install.log\" 2>&1; sha256sum kernel/kernel.ts research/track-m/section46-baseline-scope.txt research/track-m/section46-baseline-rescope.txt core/counts.ts core/count-proof-scope.ts core/count-proof-rescope.ts core/count-proof-rescope.test.ts core/count-proof-rescope-identity.test.ts core/count-prerequisite-public.test.ts > \"$out/source-before.sha256\"; bunx tsc -p . --noEmit > \"$out/typecheck.log\" 2>&1; bunx oxlint --type-aware --deny-warnings --disable-nested-config core/count-proof-scope.ts core/count-proof-rescope.ts core/count-proof-rescope.test.ts core/count-proof-rescope-identity.test.ts core/count-prerequisite-public.test.ts > \"$out/lint.log\" 2>&1; for file in core/count-proof-rescope-identity.test.ts core/count-proof-rescope.test.ts core/count-proof-scope.test.ts core/count-prerequisite-public.test.ts core/count-closed-family.test.ts core/count-cert-transport.test.ts core/count-lemma-transport.test.ts core/count-recovery/conditional-proof.test.ts core/count-recovery/conditional-cuts.test.ts core/count-recovery/conditional-check-cache.test.ts; do name=$(basename \"$file\" .ts); if [ \"$file\" = core/count-prerequisite-public.test.ts ]; then GDP_WORK_FULL=1 GDP_COUNT_STRATEGIES=1 GDP_COUNT_TIERS=1 GDP_COUNT_PREREQUISITES=1 GDP_COUNT_CLOSING_RESERVE=1 GDP_COUNT_FINAL_DEFER_CHECKS=1 bun test \"$file\" -t \"proof-guided admission checks\" > \"$out/$name.log\" 2>&1; else bun test \"$file\" > \"$out/$name.log\" 2>&1; fi; done; git init -q; bunx --bun commitlint --default-config --edit research/track-m/section46-rescope-message.txt > \"$out/commitlint.log\" 2>&1; bunx --bun commitlint --config research/egraph/historical/commitlint.config.cjs --edit research/track-m/section46-rescope-message.txt > \"$out/historical-commitlint.log\" 2>&1; sha256sum kernel/kernel.ts research/track-m/section46-baseline-scope.txt research/track-m/section46-baseline-rescope.txt core/counts.ts core/count-proof-scope.ts core/count-proof-rescope.ts core/count-proof-rescope.test.ts core/count-proof-rescope-identity.test.ts core/count-prerequisite-public.test.ts > \"$out/source-after.sha256\"; cmp \"$out/source-before.sha256\" \"$out/source-after.sha256\"; echo SECTION46_RESCOPE_PASS"
+  }
+]

@@ -1,0 +1,12 @@
+bun test v1.4.3 (c6da4a4d3)
+
+core/count-cert-transport.test.ts:
+(pass) counted support includes independent lemma source slices [4.65ms]
+(pass) complete counted certificates retain cuts across reordered and enlarged contexts [3.75ms]
+(pass) strict replay keeps cut slices but cannot search around a missing premise [1.61ms]
+(pass) counted certificate transport does not extend expired deadlines [0.51ms]
+
+ 4 pass
+ 0 fail
+ 11 expect() calls
+Ran 4 tests across 1 file. [43.00ms]
