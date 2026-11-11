@@ -19,15 +19,17 @@ function rowAliases(path: Path): (name: string) => string {
   }
   return root
 }
-export function countGuardTree(until: number) {
+export function countGuardTree(until: number, options: {yesFirst?: boolean} = {}) {
   const rows = (conditions: Lin[], path: Path, yes: Branch, no: Branch): Tree | undefined => {
     if (clock() >= until || pastWall()) return
     if (!conditions.length) return yes(path)
     const [row, ...rest] = conditions, id = canon(row!), known = Object.keys(row!).every(k => k === '1') ? (row!['1'] ?? 0) <= 0 : path.get(id)?.holds
     if (known !== undefined) return known ? rows(rest, path, yes, no) : no(path)
-    const rejected = no(new Map(path).set(id, {lin: row!, holds: false}))
-    if (!rejected) return
-    const accepted = rows(rest, new Map(path).set(id, {lin: row!, holds: true}), yes, no)
+    const accept = () => rows(rest, new Map(path).set(id, {lin: row!, holds: true}), yes, no)
+    const reject = () => no(new Map(path).set(id, {lin: row!, holds: false}))
+    if (options.yesFirst) {const accepted = accept(); if (!accepted) return; const rejected = reject(); return rejected ? {split: row!, yes: accepted, no: rejected} : undefined}
+    const rejected = reject(); if (!rejected) return
+    const accepted = accept()
     return accepted ? {split: row!, yes: accepted, no: rejected} : undefined
   }
   const condition = (c: C, path: Path, yes: Branch, no: Branch): Tree | undefined => {

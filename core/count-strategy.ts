@@ -7,7 +7,7 @@ import {countStageTrace, type CountStageObserver} from './count-stage-trace.ts'
 import {type CountCert, type CountDecl, type Goal, type Instances, checkMC, countedObligations, mcGoal} from '../kernel/kernel.ts'
 import {clock, grow, pastWall} from '../kernel/prove.ts'
 // Composition-only proposals intentionally omit INIT and must pass the enclosing final checker.
-export type CountStrategyOptions = {deferToComposition?: boolean, deferRowChecks?: boolean, minimize?: boolean, minimalView?: boolean, leafUnits?: number, trace?: (event: Record<string, unknown>) => void, tailTrace?: CountStageObserver}
+export type CountStrategyOptions = {deferToComposition?: boolean, deferIntermediateChecks?: boolean, deferRowChecks?: boolean, minimize?: boolean, minimalView?: boolean, leafUnits?: number, trace?: (event: Record<string, unknown>) => void, tailTrace?: CountStageObserver}
 // Calibration-independent: W is the original enclosing work allowance, not
 // a case's remaining share. INIT and final checking do not use this cap.
 export function strategyLeafUnits(workAllowance: number): number {
@@ -16,12 +16,13 @@ export function strategyLeafUnits(workAllowance: number): number {
 }
 export const strategyLeafUntil = (until: number, options: CountStrategyOptions): number => Math.min(until, clock() + Math.max(0, options.leafUnits ?? Infinity))
 // UNCHECKED is construction metadata, never a receipt or public acceptance.
-export type CountStrategyProof = {instances: Instances, certs: Record<string, CountCert>, status?: 'unchecked'}
+export const deferIntermediateCountChecks = (options: CountStrategyOptions): boolean => options.deferToComposition === true && options.deferIntermediateChecks === true
+export type CountStrategyProof = {instances: Instances, certs: Record<string, CountCert>, status?: 'unchecked', premises?: readonly string[]}
 export type CountRequestBuilder = (goal: Goal, declarations: CountDecl[]) => Pick<CountCert, 'reads' | 'insts' | 'picks'>
 export function finishCountStrategy(m: Machine, family: Law[], law: Law, instances: Instances, zeroMap: string, stepCert: CountCert, until: number, requestFor: CountRequestBuilder, observe?: (stage: string, checked: boolean) => void, options: CountStrategyOptions = {}): CountStrategyProof | undefined {
   const index = family.indexOf(law)
   if (index < 0 || clock() >= until || pastWall()) return
-  if (options.deferToComposition) return {instances, certs: {[law.name + ' @step']: stepCert}}
+  if (options.deferToComposition) return {instances, certs: {[law.name + ' @step']: stepCert}, ...(deferIntermediateCountChecks(options) ? {status: 'unchecked' as const} : {})}
   const trace = countStageTrace(options.tailTrace, 'strategy-finish-total')
   try {
   trace.mark('final-obligation-build', 'untrusted-assembly')

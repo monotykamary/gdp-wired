@@ -1,0 +1,290 @@
+[
+  {
+    "name": "f-unchanged-legacy-clock",
+    "cmd": "bun port-input/run.ts clock",
+    "env": {
+      "GDP_WORK_FULL": "0",
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_LIFTED": "1"
+    },
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "f-full-family-native",
+    "cmd": "bun port-input/run.ts family",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "f-full-family-freshness",
+    "cmd": "bun port-input/run.ts test research/lane-i/rolling-20261111/family-freshness.test.ts",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "f-original-admission",
+    "cmd": "bun port-input/run.ts source",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large",
+    "env": {
+      "GDP_COUNT_STRATEGIES": "1",
+      "GDP_COUNT_LIFTED": "1",
+      "GDP_COUNT_LIFTED_PREREQUISITES": "1",
+      "GDP_COUNT_LIFTED_REPLACEMENT": "1"
+    }
+  },
+  {
+    "name": "f-final-types",
+    "cmd": "bun port-input/run.ts types",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "f-complete-reader-clock",
+    "cmd": "bun port-input/run.ts reader-cap",
+    "env": {
+      "GDP_WORK_FULL": "1",
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_LIFTED": "1"
+    },
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-consensus",
+    "cmd": "bun port-input/default-model.ts baseline consensus 15000000 && bun port-input/default-model.ts candidate consensus 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-tcommit",
+    "cmd": "bun port-input/default-model.ts baseline tcommit 15000000 && bun port-input/default-model.ts candidate tcommit 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-lock_server",
+    "cmd": "bun port-input/default-model.ts baseline lock_server 15000000 && bun port-input/default-model.ts candidate lock_server 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-quorum_leader_election",
+    "cmd": "bun port-input/default-model.ts baseline quorum_leader_election 15000000 && bun port-input/default-model.ts candidate quorum_leader_election 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-toy_consensus_forall",
+    "cmd": "bun port-input/default-model.ts baseline toy_consensus_forall 15000000 && bun port-input/default-model.ts candidate toy_consensus_forall 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-simple_regular",
+    "cmd": "bun port-input/default-model.ts baseline simple_regular 15000000 && bun port-input/default-model.ts candidate simple_regular 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-simple",
+    "cmd": "bun port-input/default-model.ts baseline simple 15000000 && bun port-input/default-model.ts candidate simple 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-lockserv_automaton",
+    "cmd": "bun port-input/default-model.ts baseline lockserv_automaton 15000000 && bun port-input/default-model.ts candidate lockserv_automaton 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-sharded_kv_no_lost_keys",
+    "cmd": "bun port-input/default-model.ts baseline sharded_kv_no_lost_keys 15000000 && bun port-input/default-model.ts candidate sharded_kv_no_lost_keys 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-sharded_kv",
+    "cmd": "bun port-input/default-model.ts baseline sharded_kv 15000000 && bun port-input/default-model.ts candidate sharded_kv 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-lockserv",
+    "cmd": "bun port-input/default-model.ts baseline lockserv 15000000 && bun port-input/default-model.ts candidate lockserv 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-twophase",
+    "cmd": "bun port-input/default-model.ts baseline twophase 15000000 && bun port-input/default-model.ts candidate twophase 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-simple_decentralized_lock",
+    "cmd": "bun port-input/default-model.ts baseline simple_decentralized_lock 15000000 && bun port-input/default-model.ts candidate simple_decentralized_lock 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-two_phase_commit",
+    "cmd": "bun port-input/default-model.ts baseline two_phase_commit 15000000 && bun port-input/default-model.ts candidate two_phase_commit 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-consensus_forall",
+    "cmd": "bun port-input/default-model.ts baseline consensus_forall 15000000 && bun port-input/default-model.ts candidate consensus_forall 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-consensus_wo_decide",
+    "cmd": "bun port-input/default-model.ts baseline consensus_wo_decide 15000000 && bun port-input/default-model.ts candidate consensus_wo_decide 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-naive_consensus",
+    "cmd": "bun port-input/default-model.ts baseline naive_consensus 15000000 && bun port-input/default-model.ts candidate naive_consensus 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-client_server_db_ae",
+    "cmd": "bun port-input/default-model.ts baseline client_server_db_ae 15000000 && bun port-input/default-model.ts candidate client_server_db_ae 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-client_server_ae",
+    "cmd": "bun port-input/default-model.ts baseline client_server_ae 15000000 && bun port-input/default-model.ts candidate client_server_ae 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-simple_election",
+    "cmd": "bun port-input/default-model.ts baseline simple_election 15000000 && bun port-input/default-model.ts candidate simple_election 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-toy_consensus_epr",
+    "cmd": "bun port-input/default-model.ts baseline toy_consensus_epr 15000000 && bun port-input/default-model.ts candidate toy_consensus_epr 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-toy_consensus",
+    "cmd": "bun port-input/default-model.ts baseline toy_consensus 15000000 && bun port-input/default-model.ts candidate toy_consensus 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-firewall",
+    "cmd": "bun port-input/default-model.ts baseline firewall 15000000 && bun port-input/default-model.ts candidate firewall 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-majorityset_leader_election",
+    "cmd": "bun port-input/default-model.ts baseline majorityset_leader_election 15000000 && bun port-input/default-model.ts candidate majorityset_leader_election 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-consensus_epr",
+    "cmd": "bun port-input/default-model.ts baseline consensus_epr 15000000 && bun port-input/default-model.ts candidate consensus_epr 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-learning_switch",
+    "cmd": "bun port-input/default-model.ts baseline learning_switch 15000000 && bun port-input/default-model.ts candidate learning_switch 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-learning_switch_i4",
+    "cmd": "bun port-input/default-model.ts baseline learning_switch_i4 15000000 && bun port-input/default-model.ts candidate learning_switch_i4 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "default-pair-paxos_epr",
+    "cmd": "bun port-input/default-model.ts baseline paxos_epr 15000000 && bun port-input/default-model.ts candidate paxos_epr 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  }
+]

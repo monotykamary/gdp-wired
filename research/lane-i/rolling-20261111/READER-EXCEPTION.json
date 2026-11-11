@@ -1,0 +1,7 @@
+{
+  "path": "kernel/reader.ts",
+  "originalBlob": "9a6f5546f979a0085989dcffc57fc5ab9419a06f",
+  "patchedBlob": "b41b0643484bf37b315f0fb9d9920c58f49aabf1",
+  "hooks": 7,
+  "authority": "t1 conditional exception; runtime checker import closure excludes reader"
+}

@@ -629,7 +629,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       const pending = new Set(set.filter(l => !selected.has(l) && !kept.has(l.name) && !carried.has(l.name)).map(l => l.name))
       // Count readers first, then explicit supports and callers; unrelated
       // scalar helpers cannot consume the whole allowance before count admission.
-      const order = supportOrder(set, caller, support, false, m)
+      const order = supportOrder(set, caller, support, false, env.GDP_COUNT_STRATEGIES === '1' ? m : undefined)
       for (const law of [...order.filter(l => selected.has(l)), ...order.filter(l => !selected.has(l))]) {
         checkWall('Houdini round')
         if (clock() > until) return {proven: false, laws: set, m, why: 'time'}
@@ -703,7 +703,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       if(!activeSupport(set,support))return join()
       const required=new Set(caller.map(l=>l.name)),available=new Set(set.map(l=>l.name))
       for(const name of required){const saved=known.get(name);if(saved)for(const dep of saved.deps)if(available.has(dep))required.add(dep)}
-      const law=supportOrder(set,caller,support,false,m).find(l=>required.has(l.name)&&!known.has(l.name))
+      const law=supportOrder(set,caller,support,false,env.GDP_COUNT_STRATEGIES==='1'?m:undefined).find(l=>required.has(l.name)&&!known.has(l.name))
       if(!law){
         const kept=set.filter(l=>required.has(l.name)),instances:Record<string,Instances>={},certs:Record<string,CountCert>={}
         for(const l of kept){
@@ -745,7 +745,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       if(!activeSupport(set,support))return join()
       const required=new Set(caller.map(l=>l.name)),available=new Set(set.map(l=>l.name))
       for(const name of required){const saved=known.get(name);if(saved)for(const dep of saved.premises)if(available.has(dep.name))required.add(dep.name)}
-      const law=supportOrder(set,caller,support,false,m).find(l=>required.has(l.name)&&!known.has(l.name))
+      const law=supportOrder(set,caller,support,false,env.GDP_COUNT_STRATEGIES==='1'?m:undefined).find(l=>required.has(l.name)&&!known.has(l.name))
       if(!law){
         const kept=set.filter(l=>required.has(l.name)),instances:Record<string,Instances>={},certs:Record<string,CountCert>={},premises:Record<string,readonly string[]>={}
         for(const l of kept){

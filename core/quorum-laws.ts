@@ -2,7 +2,21 @@
 // an action's quantified guard. No protocol vocabulary or facts live here.
 import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, times, walk, x} from './machine.ts'
 import {substC, substE} from '../kernel/kernel.ts'
+import {env} from './solver.ts'
 
+// Candidate-only provenance. Weak identity preserves the serialised law and all
+// existing certificate bytes; a changed formula invalidates its original tag.
+export type QuorumLawProvenance = {
+  kind: 'stored-row-guard', formula: string, guard: string, guardFormula: string,
+  membershipMap: string, rowInput: string, rowCount: string, requestSet: string,
+  width: number, halves: string[], disabled: boolean,
+  twins: {request: string, row: string, key: string}[], definitions: Record<string, string>
+}
+const origins = new WeakMap<Law, QuorumLawProvenance>()
+export function quorumLawProvenance(law: Law): Readonly<QuorumLawProvenance> | undefined {
+  const origin = origins.get(law)
+  return origin?.formula === JSON.stringify(law.holds) ? origin : undefined
+}
 const text = (t: unknown) => JSON.stringify(t)
 const eq = (a: unknown, b: unknown) => text(a) === text(b)
 const conjs = (c: C): C[] => c.op === 'and' ? c.xs.flatMap(conjs) : [c]
@@ -36,7 +50,7 @@ function rowOf(m: Machine, name: string): Row | undefined {
   return {name, map: cell.map, input: k.a.a.name, base: k.a.k, below: d.below, key: d.key, body}
 }
 
-export function quorumLaws(m: Machine): {counts: NonNullable<Machine['counts']>, laws: Law[]} {
+export function quorumLaws(m: Machine, provenance = env.GDP_COUNT_LIFTED === '1'): {counts: NonNullable<Machine['counts']>, laws: Law[]} {
   const counts: NonNullable<Machine['counts']> = {}, laws: Law[] = []
   if (!m.assume || !m.counts || !m.inputMaps?.length) return {counts, laws}
   const names = new Set([...vars(m), ...Object.keys(m.counts), ...Object.keys(m.maps ?? {}), ...m.inputs, ...m.params, ...Object.keys(m.state)])
@@ -167,7 +181,21 @@ export function quorumLaws(m: Machine): {counts: NonNullable<Machine['counts']>,
           let leaks = false; walk([lifted, constraints], o => { if (o.op === 'get' && (m.inputMaps!.includes(o.map as string) || (o.map as string) in m.counts!)) leaks = true })
           if (leaks) continue
           const base: C[] = [not(all(domain(a), domain(b), ...constraints)), lifted]
-          const add = (suffix: string, extra: C[]) => { if (laws.length < 32) laws.push({name: `${row.name}: stored guard ${action}/${set}${suffix}`, forall: a, keys: [b, ...free.map((_, i) => i ? w : u)], holds: any(...base, ...extra)}) }
+          const add = (suffix: string, extra: C[]) => {
+            if (laws.length >= 32) return
+            const law: Law = {name: `${row.name}: stored guard ${action}/${set}${suffix}`, forall: a, keys: [b, ...free.map((_, i) => i ? w : u)], holds: any(...base, ...extra)}
+            // Metadata builds charged AST nodes too; it must be a no-op while the route is off.
+            if (provenance) {
+            const rowRead = rowSize(a), twins = [...mapped].flatMap(([request, value]) => {
+              if (!contains(comparison, {op: 'get', map: request, key: n(0)})) return []
+              const read = value(a, b)
+              return read.op === 'get' ? [{request, row: read.map, key: text(read.key)}] : []
+            })
+            const used = new Set<string>(); walk(law.holds, node => {if (node.op === 'get') used.add(node.map as string)})
+            if (rowRead.op === 'get') origins.set(law, {kind: 'stored-row-guard', formula: text(law.holds), guard: action, guardFormula: text(guard), membershipMap: row.map, rowInput: row.input, rowCount: rowRead.map, requestSet: carried, width: row.base, halves: free.map((_, i) => i ? w : u), disabled: extra.length > 0, twins, definitions: Object.fromEntries([...used].flatMap(name => {const d = counts[name] ?? m.counts![name]; return d ? [[name, text(d)]] : []}))})
+            }
+            laws.push(law)
+          }
           add('', [])
           for (const [i, atom] of noQuorums.entries()) add(` or disabled/${i}`, [atom(a), atom(b)])
         }

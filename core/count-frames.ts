@@ -36,14 +36,15 @@ export function ownCountLawInstance(law:Law,at:Instances):Instances{
 export function countFrameConditions(choice:FixedCountFrameCase):Lin[]{
  const {name,value,values}=choice
  const rows:Lin[]=[{[name]:1,'1':-value},{[name]:-1,'1':value},...values.filter(v=>v!==value).map(v=>v<value?{[name]:-1,'1':v+1}:{[name]:1,'1':1-v})]
- return [...new Map(rows.map(r=>[canon(r),r])).values()]
+ const normalized=rows.map(row=>Object.fromEntries(Object.entries(row).filter(([,coefficient])=>coefficient!==0)))
+ return [...new Map(normalized.map(row=>[canon(row),row])).values()]
 }
 export type CountCutTrace={kind:'frame'|'mono',post:string,pre:string,checked:boolean,why?:string}
-export function proveCountFrameGoal(raw:Goal,decls:CountDecl[],request:Pick<CountCert,'reads'|'insts'|'picks'|'lemmas'>,choice:FixedCountFrameCase,targets:ReadonlySet<string>,until:number,trace?:(cut:CountCutTrace)=>void,options:{deferCheck?:boolean,minimalView?:boolean,leafUnits?:number,trace?:(event:Record<string,unknown>)=>void}={}):CountCert|undefined{
+export function proveCountFrameGoal(raw:Goal,decls:CountDecl[],request:Pick<CountCert,'reads'|'insts'|'picks'|'lemmas'>,choice:FixedCountFrameCase,targets:ReadonlySet<string>,until:number,trace?:(cut:CountCutTrace)=>void,options:{deferCheck?:boolean,minimalView?:boolean,leafUnits?:number,trace?:(event:Record<string,unknown>)=>void,extraWhen?:Lin[]}={}):CountCert|undefined{
  if(clock()>=until||pastWall())return
  const goal=mcGoal(raw.hyps,decls,request),counts=countsForReads(decls,request.reads)
  if(!goal||!counts)return
- const when=countFrameConditions(choice),frames:FrameCut[]=[],monos:MonoCut[]=[]
+ const when=[...countFrameConditions(choice),...(options.extraWhen??[])],frames:FrameCut[]=[],monos:MonoCut[]=[]
  const conditions:C[]=[same(x(choice.name),n(choice.value))]
  for(const [post,map,key]of request.reads){
   if(!map.endsWith('#')||!targets.has(map.slice(0,-1)))continue

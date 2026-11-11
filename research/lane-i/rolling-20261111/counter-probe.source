@@ -1,0 +1,54 @@
+import {expect,spyOn,test} from 'bun:test'
+import {type C,type E,type Machine,all,any,atMost,evalC,evalE,get,ite,less,minus,n,not,plus,same,times,walkOnce,x} from './machine.ts'
+import {quorumLaws,quorumLawProvenance} from './quorum-laws.ts'
+import {discoverLiftedCountGuard,discoverLiftedCountOperations,discoverLiftedCountOperation} from './count-lifted-shape.ts'
+import {proveLiftedCountComposition,proveLiftedCountFrame,proveLiftedCountInitial} from './count-lifted-strategy.ts'
+import {composeCountOperationProofs,type FixedOperationProof} from './count-case-compose.ts'
+import {discoverLiftedCountPrerequisites,liftedCountBodySize} from './count-lifted-prerequisite.ts'
+import {certFor} from './counts.ts'
+import {check,checkMC,countedObligations,mcGoal} from '../kernel/kernel.ts'
+import {clock,counted,fullRate,grow,inBudget,withBudget} from '../kernel/prove.ts'
+const bit = (c: C) => ite(c, n(1), n(0))
+const fixture = (base = 8): Machine => {
+  const cell = (r: E, k: E) => same(get('Rows', plus(times(base, r), k)), n(1)), member = (k: E) => atMost(n(1), get('Proposal', k))
+  const cnt = (body: (k: E) => C) => ({j: 'j', key: 'k', below: x('size'), body: bit(body(x('k')))})
+  const read = (name: string) => get(name, n(0))
+  return {name: 'row-election fixture', params: ['size'], inputs: ['row', 'left', 'right'], state: {}, maps: {Rows: 0, Epoch: 0, Written: 0, Version: 0}, inputMaps: ['Proposal'],
+    counts: {rowCount: cnt(k => cell(x('row'), k)), members: cnt(member), diff: cnt(k => all(cell(x('row'), k), not(member(k)))), reverse: cnt(k => all(member(k), not(cell(x('row'), k)))), meet: cnt(k => all(cell(x('row'), k), member(k)))},
+    assume: all(less(x('row'), x('size')), less(read('rowCount'), times(2, read('members'))), atMost(times(2, x('left')), read('rowCount')), less(read('rowCount'), plus(times(2, x('left')), n(2))), atMost(times(2, x('right')), read('members')), less(read('members'), plus(times(2, x('right')), n(2)))),
+    step: {flags: {
+      eligible: {op: 'all', key: 'voter', c: any(not(member(x('voter'))), all(less(get('Epoch', x('voter')), plus(get('Epoch', x('row')), n(1))), atMost(get('Version', x('voter')), get('Version', x('row')))))},
+      elect: {op: 'flag', name: 'eligible'},
+      change: less(read('meet'), plus(minus(plus(x('left'), n(1)), read('diff')), minus(plus(x('right'), n(1)), read('reverse')))),
+    }, maps: {
+      Written: {each: 'z', value: ite(all({op: 'flag', name: 'elect'}, same(x('z'), x('row'))), plus(get('Epoch', x('row')), n(1)), get('Written', x('z')))},
+      Rows: {each: 'z', value: ite(all({op: 'flag', name: 'change'}, atMost(times(base, x('row')), x('z')), less(x('z'), plus(times(base, x('row')), n(base)))), bit(member(minus(x('z'), times(base, x('row'))))), get('Rows', x('z')))},
+    }},
+  }
+}
+const generated=()=>{
+ const original=fixture(),g=quorumLaws(original),m={...original,counts:{...original.counts,...g.counts}}
+ const law=g.laws.find(l=>quorumLawProvenance(l)?.disabled)!
+ return {original,m,g,law}
+}
+
+import {costs,work} from './solver.ts'
+import {fullWork} from '../kernel/prove.ts'
+import {eprMeter} from '../kernel/epr.ts'
+import {createHash} from 'node:crypto'
+Object.defineProperty(performance,'now',{configurable:true,value:()=>{throw Error('raw clock in counter probe')}})
+const observed=process.argv[2]==='true'
+let record:unknown
+counted(fullRate,()=>withBudget(2000*fullRate,()=>{
+ const {m,g,law}=generated();m.inputs.push('operation')
+ m.pre=all(atMost(n(1),x('size')),atMost(x('size'),n(8)))
+ m.assume=all(m.assume!,atMost(n(11),x('operation')),less(x('operation'),n(14)),any(...[11,12,13].map(value=>same(x('operation'),n(value)))))
+ m.step={...m.step,maps:{}}
+ const events:Record<string,unknown>[]=[]
+ const proof=proveLiftedCountComposition(m,g.laws,law,clock()+2000,(goal,decls)=>certFor(goal,decls,false,0,()=>true),observed?event=>events.push(event):undefined)
+ if(!proof)throw Error('no proof')
+ if(observed&&(!events.length||events.some(event=>'wallMs'in event&&event.wallMs!==0)))throw Error('bad telemetry')
+ for(const packet of countedObligations(m,g.laws,{[law.name]:proof.instances},g.laws.indexOf(law)))if(!checkMC(packet.goal.hyps,packet.decls,proof.certs[packet.goal.name]!))throw Error('native check failed')
+ record={proofSha256:createHash('sha256').update(JSON.stringify(proof)).digest('hex'),raw:{...costs,work:work.n,full:fullWork(),epr:eprMeter.n}}
+}),true)
+console.log('COUNTER_PROBE '+JSON.stringify(record))

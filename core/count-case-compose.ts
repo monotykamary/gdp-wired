@@ -1,6 +1,8 @@
 // Compose fixed-operation proposals onto one unrestricted counted STEP goal.
 // Every leaf is reindexed; the complete certificate is checked at the end.
 import {type Law, all, n, same, x} from './machine.ts'
+import {traceNow} from './trace-clock.ts'
+import {recordCountStrategyPremises} from './count-strategy-premises.ts'
 import {type GuardCountContext} from './count-guard-context.ts'
 import {type CountRequestBuilder, type CountStrategyProof, finishCountStrategy} from './count-strategy.ts'
 import {finiteCountChoice} from './count-cases.ts'
@@ -9,7 +11,7 @@ import {countStageTrace, type CountStageObserver} from './count-stage-trace.ts'
 import {dedupeCountInstances, minimizeCountCertificate} from './count-certificate-minimize.ts'
 import {countRowReindexer, operationRefutation} from './count-row-reindex.ts'
 import {type CountCert, type Goal, type Instances, type Path, type Tree, boundOf, canon, canonFlip, checkMC, countedObligations, framePath, mcGoal} from '../kernel/kernel.ts'
-import {late, rowsAt, withDeadline} from '../kernel/prove.ts'
+import {fullRate, fullWork, late, rowsAt, withDeadline} from '../kernel/prove.ts'
 import {type Lin, type Step, add, k} from './solver.ts'
 export type FixedOperationProof = {value: number, proof: CountStrategyProof}
 export function composeCountOperationProofs(context: GuardCountContext, family: Law[], law: Law, cases: FixedOperationProof[], until: number, requestFor: CountRequestBuilder, observe?: (stage: string, value?: number) => void, options: {reindexMode?: 'offset' | 'exact', initial?: CountCert, trace?: CountStageObserver, minimize?: boolean} = {}): CountStrategyProof | undefined {
@@ -17,6 +19,12 @@ export function composeCountOperationProofs(context: GuardCountContext, family: 
     const trace = countStageTrace(options.trace, 'composition-total')
     try {
       trace.mark('composition-setup', 'untrusted-assembly')
+      const timed = <T>(stage: string, run: () => T): T => {
+        if (!options.trace) return run()
+        const work = fullWork(), wall = traceNow(), value = run()
+        options.trace({stage, wallMs: traceNow() - wall, units: (fullWork() - work) / fullRate, ...(typeof value === 'boolean' ? {checked: value} : {})})
+        return value
+      }
       const m = context.machine, choice = finiteCountChoice(m), target = family.indexOf(law)
       if (!choice || target < 0 || late(until)) return
       const [operation, values] = choice, ordered = [...values].sort((a, b) => a - b)
@@ -96,7 +104,11 @@ export function composeCountOperationProofs(context: GuardCountContext, family: 
         }
         const old = rowsAt(sourceGoal, framePath(source.frames ?? [], [], before, source.monos ?? [], source.lins ?? [])), current = rowsAt(goal, framePath(common.frames!, [], after, common.monos!, common.lins!)), index = reindex(sourceGoal, old, current)
         const leaf: Step[] = []
-        for (const step of tree.leaf) {if (step.kind !== 'input') leaf.push(step); else {const i = index(step.index); if (i === undefined) {observe?.('missing-row:' + (old[step.index] ? canon(old[step.index]!.lin) : step.index), transferring); return}; leaf.push({...step, index: i})}}
+        for (const step of tree.leaf) {if (step.kind !== 'input') leaf.push(step); else {const i = index(step.index); if (i === undefined) {
+          const impossible = fallback(after)
+          if (impossible) {observe?.('impossible-path', transferring); return impossible}
+          observe?.('missing-row:' + (old[step.index] ? canon(old[step.index]!.lin) : step.index), transferring); return
+        }; leaf.push({...step, index: i})}}
         const products: [number, number][] = []
         for (const [a, b] of tree.products ?? []) {const i = index(a), j = index(b); if (i === undefined || j === undefined) return; products.push([i, j])}
         return {leaf, ...(tree.products ? {products} : {}), ...(tree.squares ? {squares: tree.squares} : {})}
@@ -114,7 +126,7 @@ export function composeCountOperationProofs(context: GuardCountContext, family: 
         const yes = transport(from, source.cert, source.cert.tree, new Map(), exact), tooLow = yes && fallback(new Map(yesUpper).set(canon(lower), {lin: lower, holds: false})), no = tooLow && branch(i + 1, new Map(path).set(canon(upper), {lin: upper, holds: false}))
         return yes && tooLow && no ? {split: upper, yes: {split: lower, yes, no: tooLow}, no} : undefined
       }
-      const tree = branch(0, new Map())
+      const tree = timed('compose-reindex', () => branch(0, new Map()))
       if (!tree) {
         if (!offsets || late(until)) return
         trace.pause()
@@ -148,9 +160,9 @@ export function composeCountOperationProofs(context: GuardCountContext, family: 
         if (packets.length !== 2 || late(until)) return
         const initial = packets[0]!, step = packets[1]!, cert = certificate
         trace.mark('native-step-check', 'trusted-check')
-        if (!checkMC(step.goal.hyps, step.decls, cert)) return
+        if (!timed('compose-native-step', () => checkMC(step.goal.hyps, step.decls, cert))) return
         trace.mark('native-init-check', 'trusted-check')
-        if (!checkMC(initial.goal.hyps, initial.decls, options.initial!)) return
+        if (!timed('compose-native-initial', () => checkMC(initial.goal.hyps, initial.decls, options.initial!))) return
         trace.mark('certificate-return', 'untrusted-assembly')
         return late(until) ? undefined : {instances, certs: {[step.goal.name]: cert, [initial.goal.name]: options.initial!}}
       })() : finishCountStrategy(m, family, law, instances, context.shape.voteMap, certificate, until, requestFor, (stage, checked) => observe?.(stage + ':' + checked), {tailTrace: options.trace})
@@ -164,7 +176,7 @@ export function composeCountOperationProofs(context: GuardCountContext, family: 
         observe?.('offset-retry-exact')
         return composeCountOperationProofs(context, family, law, cases, until, requestFor, observe, {...options, reindexMode: 'exact'})
       }
-      return result
+      return result && recordCountStrategyPremises(family, result)
     } catch (error) {observe?.('compose-error:' + (error instanceof Error ? error.message : String(error))); return}
     finally {trace.finish()}
   })

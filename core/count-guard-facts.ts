@@ -5,10 +5,13 @@ import {type C,type E,atMost,get,n,not,same,walkOnce} from './machine.ts'
 import {countsForReads} from './count-facts.ts'
 import {type CountCert,type CountDecl,type Goal,type LinCut,type MapRead,type Tree,check,checkMC,linOk,mcGoal} from '../kernel/kernel.ts'
 import {brokenOf,clock,grow,pastWall} from '../kernel/prove.ts'
+import {growCdcl} from '../kernel/cdcl.ts'
+import {minimalViewFirst} from './count-minimal-view.ts'
+import {projectCountFree} from './count-project-free.ts'
 export type GuardCountProposal={name:string,kind:string,when:C[],terms:[number,string][]}
 export type CheckedGuardCountFact={proposal:GuardCountProposal,claim:C,goal:Goal,cert:CountCert}
-export type CheckedGuardLinearFact={proposal:GuardCountProposal,goal:Goal,cut:LinCut}
-export type GuardCountTrace={outcome:string,encoded?:Goal,witness?:Record<string,number>,broken?:unknown,searchEnd?:number}
+export type CheckedGuardLinearFact={proposal:GuardCountProposal,goal:Goal,cut:LinCut,status?:'unchecked'}
+export type GuardCountTrace={outcome:string,encoded?:Goal,witness?:Record<string,number>,broken?:unknown,searchEnd?:number,minimal?:{kind:string,fallback:boolean,units:number,fallbackUnits:number}}
 export type GuardBodyProposal={name:string,kind:'excluded-body-frame',when:C[],pre:E,post:E}
 export type CheckedGuardBodyFact={proposal:GuardBodyProposal,goal:Goal,tree:Tree}
 const mentions=(t:E|C,key:string)=>{let found=false;walkOnce(t,(v:any)=>{if(v.op==='var'&&v.name===key)found=true});return found}
@@ -38,7 +41,7 @@ export function guardCountFact(premises:C[],decls:CountDecl[],reads:MapRead[],pr
  observe?.({outcome:checked?'proof':'rejected-proof',encoded})
  return checked?{proposal,claim,goal,cert}:undefined
 }
-export function guardLinearFact(decls:CountDecl[],reads:MapRead[],proposal:GuardCountProposal,until:number,observe?:(trace:GuardCountTrace)=>void):CheckedGuardLinearFact|undefined{
+export function guardLinearFact(decls:CountDecl[],reads:MapRead[],proposal:GuardCountProposal,until:number,observe?:(trace:GuardCountTrace)=>void,search:'grow'|'cdcl'='grow',options:{deferCheck?:boolean}={}):CheckedGuardLinearFact|undefined{
  if(pastWall()||clock()>=until||!proposal.terms.length)return
  const counts=countsForReads(decls,reads);if(!counts)return
  const pos:[number,string][]=[],neg:[number,string][]=[]
@@ -50,16 +53,18 @@ export function guardLinearFact(decls:CountDecl[],reads:MapRead[],proposal:Guard
  if(counts.filter(c=>proposal.terms.some(t=>t[1]===c.v)).some(c=>c.key!==first.key||JSON.stringify(c.below)!==JSON.stringify(first.below)))return
  const term=(side:[number,string][]):E=>side.reduceRight<E>((rest,[k,name])=>({op:'add',a:{op:'mul',k,a:counts.find(c=>c.v===name)!.body},b:rest}),n(0))
  const goal:Goal={name:proposal.name,hyps:[...proposal.when,{op:'<',a:{op:'var',name:first.key},b:first.below},{op:'<',a:term(neg),b:term(pos)}]}
- const result=grow(goal,new Map(),{nodes:0,until}),searchEnd=clock()
+ const policy=minimalViewFirst(goal,{...goal,hyps:projectCountFree(goal.hyps,new Map(),new Set())},new Map(),until,search==='cdcl'?growCdcl:grow,new Map(),options)
+ const result=policy?(policy.tree?{tree:policy.tree,nodes:0}:{stuck:policy.kind==='sat'?'sat' as const:'unknown' as const,path:new Map(),witness:policy.witness,why:policy.kind}):search==='cdcl'?growCdcl(goal,new Map(),{nodes:0,until}):grow(goal,new Map(),{nodes:0,until})
+ const searchEnd=clock()
  if(searchEnd>=until){observe?.({outcome:'deadline',encoded:goal,searchEnd});return}
  if(!('tree'in result)){
   const witness='witness'in result?result.witness:undefined,broken=witness?brokenOf(goal)(witness):undefined
   if(witness&&broken?.length)throw Error('invalid linear auxiliary witness')
-  observe?.({outcome:result.stuck,encoded:goal,witness,broken,searchEnd});return
+  observe?.({outcome:result.stuck,encoded:goal,witness,broken,searchEnd,...(policy?{minimal:{kind:policy.minimalKind,fallback:policy.fallback,units:policy.minimalUnits,fallbackUnits:policy.fallbackUnits}}:{})});return
  }
- const cut:LinCut={when:proposal.when,pos,neg,tree:result.tree},checked=linOk(counts,cut)
- observe?.({outcome:checked?'proof':'rejected-proof',encoded:goal,searchEnd})
- return checked?{proposal,goal,cut}:undefined
+ const cut:LinCut={when:proposal.when,pos,neg,tree:result.tree},checked=options.deferCheck||linOk(counts,cut)
+ observe?.({outcome:checked?(options.deferCheck?'proposal':'proof'):'rejected-proof',encoded:goal,searchEnd,...(policy?{minimal:{kind:policy.minimalKind,fallback:policy.fallback,units:policy.minimalUnits,fallbackUnits:policy.fallbackUnits}}:{})})
+ return checked?{proposal,goal,cut,...(options.deferCheck?{status:'unchecked' as const}:{})}:undefined
 }
 
 export function guardBodyFact(proposal:GuardBodyProposal,until:number):CheckedGuardBodyFact|undefined{

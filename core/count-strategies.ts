@@ -3,6 +3,9 @@
 import {type Law, type Machine} from './machine.ts'
 import {type CountRequestBuilder, type CountStrategyProof, strategyLeafUnits} from './count-strategy.ts'
 import {discoverRowAgreement} from './row-agreement-shape.ts'
+import {discoverLiftedCountGuard} from './count-lifted-shape.ts'
+import {discoverLiftedCountPrerequisites} from './count-lifted-prerequisite.ts'
+import {proveLiftedCountComposition} from './count-lifted-strategy.ts'
 import {prepareGuardCountContext} from './count-guard-context.ts'
 import {proveCountRowComposition} from './count-row-composition.ts'
 import {proveCountGuardComposition} from './count-guard-composition.ts'
@@ -23,9 +26,11 @@ export function prepareCountStrategyMachine(m: Machine, family: Law[], until: nu
     return machine
   })
 }
+const liftedSelected=(m:Machine,family:Law[],law:Law)=>env.GDP_COUNT_LIFTED === '1' && family.includes(law) && discoverLiftedCountGuard(m, law, family)&&(env.GDP_COUNT_LIFTED_PREREQUISITES!=='1'||discoverLiftedCountPrerequisites(m,law,family).length>0)
 // Shape discovery is scheduling only; it does not authorize a proof or a premise.
-export function countStrategyKind(m: Machine, family: Law[], law: Law): 'row' | 'guard' | undefined {
+export function countStrategyKind(m: Machine, family: Law[], law: Law): 'row' | 'guard' | 'lifted' | undefined {
   if (discoverRowAgreement(m, law)) return 'row'
+  if (liftedSelected(m, family, law)) return 'lifted'
   if (prepareGuardCountContext(m, law, family)) return 'guard'
   return undefined
 }
@@ -41,6 +46,10 @@ export function proveCountStrategyPool(m: Machine, family: Law[], until: number,
     if (late(until)) return {proofs, declined}
     const selected = family.map(law => ({law, kind: countStrategyKind(m, family, law)})).filter(row => row.kind)
     selected.sort((a, b) => Number(a.kind === 'row') - Number(b.kind === 'row'))
+    if(env.GDP_COUNT_LIFTED_PREREQUISITES==='1'){
+      const ranked=selected.filter(row=>row.kind==='lifted').map(row=>({...row,size:discoverLiftedCountPrerequisites(m,row.law,family)[0]?.bodyNodes??0})).sort((a,b)=>b.size-a.size)
+      let next=0;for(let i=0;i<selected.length;i++)if(selected[i]!.kind==='lifted')selected[i]=ranked[next++]!
+    }
     for (const {law} of selected) {
       if (late(until)) break
       const start = fullWork()
@@ -59,6 +68,10 @@ export function proveCountStrategies(m: Machine, family: Law[], law: Law, until:
     if (discoverRowAgreement(m, law)) {
       observe?.({strategy: 'row', stage: 'search-budget', workAllowance, leafUnits})
       return proveCountRowComposition(m, family, law, until, request, e => observe?.({strategy: 'row', ...e}), {framePremisesOnly: true, leafUnits, deferRowChecks: env.GDP_COUNT_ROW_DEFER_CHECKS === '1'})
+    }
+    if (liftedSelected(m, family, law)) {
+      observe?.({strategy:'lifted',stage:'selected'})
+      return proveLiftedCountComposition(m,family,law,until,request,event=>observe?.({strategy:'lifted',...event}))
     }
     const context = prepareGuardCountContext(m, law, family)
     if (!context) return
