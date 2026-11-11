@@ -1,30 +1,51 @@
-# RESUME — ACTIVE 2026-11-10 evening
+# RESUME — COMPLETED 2026-11-11 common counted API
 
-## ACTIVE — common-tree counted port (new coordinator assignment)
+## LATEST — compatible API validated; new clock composition PENDING-D
 
-Port onto be661632 without A's prover or checking changes; fill B exporter
-fixture chain; rerun native validation and 28 originals at 15M on a new exact
-source. Current first source: **4e13e5f9**, on claude/mldr-integ. Added A raw
-meter/profile/ledger, clock-budget header, scoped core clocks and public
-admission. The common prover tail is untouched except telemetry calls. Only
-admitted files changed: kernel/prove.ts, kernel/cdcl.ts, kernel/epr.ts.
-`kernel/kernel.ts`, all Lean files and core/check.ts remain exact. Minimal
-D diff: `research/lane-i/common-counted/admitted-clock.patch`.
+On `claude/mldr-integ`, source **646811df** ports A's raw meter, counted clock,
+profiles/ledger and work-budget surface onto **be661632** without restoring A's
+prover. B's admitted exporter fixture dependency chain is supplied. Runtime
+port: **4e13e5f9**; test/harness corrections: **9a5a80e4**, **d3294be2**,
+**646811df**. Initial failed controls remain in the evidence archive.
 
-Validation currently running: task `560ea210-0c64-4d0d-8246-ac58372bf39d`, batch
-`20261111-030117-c26nzc`, output `runs/lane-i/common-counted-4e13/`. Test job
-reported exit 1; complete logs await the full check. A test-only fix is
-uncommitted: use the universally priced fm counter rather than zero-priced
-extra evals for the legacy-profile budget control. Do not duplicate the run.
-D handoff, reproducible native verifier and scripts: research/lane-i/common-counted/.
-No new D approval, census result, or calibration claim. Prior candidate results
-below remain historical. .reflex-saved/ untouched.
+Final native validation: **20 tests / 95 assertions passed**; full type/lint
+**zero errors or warnings across 1,770 files**. Independent erasure checks
+preserve the common prover body, CDCL/EPR logic and machine computation.
+**131 other admitted/checker identities remain exact**, including all Lean,
+`kernel/kernel.ts`, `core/check.ts`, and the original-model source blob.
+Only admitted files changed: `kernel/prove.ts`, `kernel/cdcl.ts`, `kernel/epr.ts`.
+Minimal new D review patch: `research/lane-i/common-counted/admitted-clock.patch`.
+This is NOT covered by the older A-only clock receipt. No new D GREEN claimed.
+
+At a requested **15M uncalibrated units**, all **28 other originals** retain
+verdicts: **10 proved+checked, 18 unknown, zero lost proofs or refutations**.
+All 28 were repeated with an independent pre-import Date/performance tripwire:
+**zero forbidden reads**, identical verdicts and raw vectors. All **56**
+receipt hashes, source/profile, weighted totals and root/exclusive ledgers pass.
+
+**Important measured gap:** this preserved prover has cooperative polling,
+not a hard dispatch cap. Thirteen cases exceed 15M by over 1%; maximum search
+work is **38,611,286.018** (`lock_server`), rejected as unknown at `rule result`.
+Do not present the API port as complete metering, calibrated W, bounded native
+execution or a generation-termination fix. A/I need separately reviewed
+polling/admission work; any checking/body changes must go through D.
+
+Evidence and per-case units: `research/lane-i/common-counted/RESULT.md`,
+`CENSUS.md`, `D-HANDOFF.md`, `identity.json`, and `results/`.
+Native batches: validation `20261111-031018-ljjlzp`, census
+`20261111-031200-idmdv6`, audit `20261111-031531-u61fuq`, commitlint
+`20261111-031028-z333w0`. All are terminal. No owned job remains.
+Candidate branch remains at its previous checkpoint; no unreviewed port was
+silently promoted there. No main merge or push. `.reflex-saved/` untouched.
+
+A still owns generation termination; F/B still own lifted transport routes.
+The historical candidate MLDR measurements below are not new-source results.
 
 
-## CURRENT — D-admitted trees integrated; counted composition blocked
+## HISTORICAL — D-admitted trees integrated; counted composition blocked
 
-Older sections below are historical checkpoints; this section supersedes their
-pending-gate/merge status.
+Historical checkpoint retained for provenance. The latest common-counted
+section above supersedes the integration branch status here.
 
 D gates: reconciliation **72377361**, clock **565ecd01** (353713c9 on A's exact
 5aa76818 parent only). Reconciliation is no longer PENDING-D.

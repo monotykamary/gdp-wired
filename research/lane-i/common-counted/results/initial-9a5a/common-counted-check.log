@@ -1,0 +1,56 @@
+COMMON_IDENTITY {"preserved":131,"proverBody":"byte-identical after erasing clock calls","otherChanges":"clock calls and imports only"}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [674.00ms]
+MACHINE_OBSERVATIONS_ERASE_TO_BASE
+
+  x eslint(no-unused-vars): Identifier 'resolve' is imported but never used.
+   ,-[research/lane-i/candidate/audit.ts:4:14]
+ 3 | import {readdirSync,readFileSync,writeFileSync,mkdirSync} from 'node:fs'
+ 4 | import {join,resolve} from 'node:path'
+   :              ^^^|^^^
+   :                 `-- 'resolve' is imported here
+ 5 | import {gunzipSync} from 'node:zlib'
+   `----
+  help: Consider removing this import.
+
+  x typescript(unbound-method): Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+    ,-[core/common-counted.test.ts:48:10]
+ 47 | test('legacy counted clock and telemetry do not read the wall',()=>{
+ 48 |  const p=performance.now,d=Date.now
+    :          ^^^^^^^^^^^^^^^|
+    :                 |       `-- This reference may be unbound and lose `this` context
+ 49 |  Object.defineProperty(performance,'now',{configurable:true,value:()=>{throw Error('wall read')}});Date.now=()=>{throw Error('date read')}
+    `----
+  help: If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead.
+
+Found 0 warnings and 2 errors.
+Finished in 26.2s on 1768 files with 100 rules using 8 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+error: script "check" exited with code 1
+2 | import {mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs'
+3 | import {createHash} from 'node:crypto'
+4 | import {join,resolve} from 'node:path'
+5 | import {spawnSync} from 'node:child_process'
+6 | const input=resolve('port-input'),root=mkdtempSync('/tmp/common-counted-'),mode=process.argv[2]
+7 | function run(cmd:string,args:string[]){const r=spawnSync(cmd,args,{cwd:root,encoding:'utf8',timeout:1100000,maxBuffer:32*1024*1024});process.stdout.write(r.stdout??'');process.stderr.write(r.stderr??'');if(r.error||r.status!==0)throw Error(`${cmd}: ${r.status} ${r.error??''}`)}
+                                                                                                                                                                                                                                              ^
+error: bun: 1 
+      at run (/work/gdp-wired/port-input/verify.ts:7:235)
+      at /work/gdp-wired/port-input/verify.ts:13:341
+
+Bun v1.4.3 (Linux x64)

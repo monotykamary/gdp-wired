@@ -1,0 +1,6 @@
+docs: record common counted API validation and census
+
+Preserve the common prover and checking identities while staging the three
+clock-only admitted-file changes for D. Record exact-source work-budget,
+exporter and census receipts, including failures and coverage limits.
+No new D gate, calibrated W, main merge or push is claimed.

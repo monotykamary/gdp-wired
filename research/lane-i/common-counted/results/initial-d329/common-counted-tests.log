@@ -1,0 +1,57 @@
+COMMON_IDENTITY {"preserved":131,"proverBody":"byte-identical after erasing clock calls","otherChanges":"clock calls and imports only"}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [528.00ms]
+MACHINE_OBSERVATIONS_ERASE_TO_BASE
+bun test v1.4.3 (c6da4a4d3)
+COMMON_IDENTITY {"preserved":131,"proverBody":"byte-identical after erasing clock calls","otherChanges":"clock calls and imports only"}
+COMMON_PORT_PASS {"mode":"tests","source":"d3294be25bc6153e802966c6f170b398f30d478d"}
+
+--- stderr ---
+
+core/common-counted.test.ts:
+(pass) nested work scopes cannot extend parent and restore after an exception [1.50ms]
+(pass) full profile proves and refuses unchanged rules without any clock read [137.10ms]
+(pass) legacy counted clock and telemetry do not read the wall [0.33ms]
+
+kernel/cdcl-root.test.ts:
+(pass) duplicate root aliases retain positive orientation [6.52ms]
+(pass) duplicate root aliases retain negative orientation [1.17ms]
+(pass) duplicate frame-cut rows remain checked at their original root [1.24ms]
+
+kernel/frame-cut.test.ts:
+(pass) simpE resolves only conditions decided under the path and free of the key [1.84ms]
+(pass) frameOk accepts the op = 4 frame and refuses the variants Lean refuses [0.40ms]
+(pass) the frame row closes the op = 4 leaf and nowhere else [1.00ms]
+(pass) framePath keeps every original atom and prepends the active frames' rows [0.11ms]
+(pass) the write tree under the condition collapses to the pre body once the path refutes the writing operation [0.52ms]
+(pass) a guard reading the key through the stride is decided at every key from the row bound, and not otherwise [0.31ms]
+(pass) a per-key cut: the auxiliary goal proved by the CDCL gives post ≤ pre at the leaf, with the refusals Lean lists [7.07ms]
+(pass) a linear cut: Σ pos ≤ Σ neg proved per key by the CDCL gives its row at the leaf, with the refusals Lean lists [2.12ms]
+
+lean-kernel/frame-export.test.ts:
+(pass) framed leaves encode against the same rows the native checker sees [1.85ms]
+(pass) empty frames preserve the legacy encoder byte for byte [0.43ms]
+(pass) goal-local monotone export includes its independent auxiliary table and proof [12.67ms]
+(pass) goal-local export uses mcF_sound and refuses an invalid frame [0.23ms]
+
+lean-kernel/linear-export.test.ts:
+(pass) a checked linear count cut exports its auxiliary proof and refuses mutation [4.50ms]
+(pass) empty linear-cut context preserves the legacy encoding [0.13ms]
+
+ 20 pass
+ 0 fail
+ 95 expect() calls
+Ran 20 tests across 5 files. [270.00ms]

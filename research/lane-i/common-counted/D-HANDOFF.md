@@ -28,8 +28,20 @@ The two exact D-tested exporter fixtures are supplied with their minimal
 untrusted count-frame helper from the admitted B source, not a strategy merge.
 A and F/B continue to own generation termination and lifted route registration.
 
-Frozen validation/census source: 9a5a80e4c32def7393f5df7b5d2c24eea5e05816.
+Frozen validation/census source: 646811dfbe7ec97729a239012d14593fe92a8503.
+Source 9a5a80e4 passed all runtime and erasure controls; its full check found
+only an unused historical-audit import and a test clock-binding lint error.
+Both are fixed without altering the runtime port.
 Minimal admitted-clock.patch SHA-256:
 `e6cc5f9028a8d77bb3206b565555017dbc0b9282d26c7155423fa0f526474bb5`.
-Native tests and machine erasure now pass; full type/lint and the gated census
-are still running. No new D GREEN, main merge, push or W claim.
+Native tests: 20 passed / 95 assertions. Type/lint: zero errors/warnings over
+1,770 files. All 28 originals retain their previous verdict: 10 proved and
+checked, 18 unknown. Normal/strict-tripwire raw vectors match exactly and all
+strict runs report zero forbidden clock reads. See RESULT.md and CENSUS.md.
+
+Important: the requested 15M budget is cooperative on this preserved prover.
+Thirteen cases exceed it by more than 1%; maximum measured search work is
+38,611,286.018, rejected as unknown at `rule result`. This port does NOT claim
+hard dispatch bounds or complete meter coverage. Strengthening poll/admission
+points needs a separate scoped review; no checking/body edits were smuggled in.
+No new D GREEN, main merge, push or W claim.

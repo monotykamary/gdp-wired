@@ -1,0 +1,10 @@
+bf9c9cf0c2163a11287e04f280d79a47461ef09f0171e69228d6e36ecdfc6f5a  message-input/4e13e5f9.txt
+07af9b74ac11840f974a0140c5deb467ec7fdf5bec236d7b6d1e5d0ec60487d8  message-input/646811df.txt
+e03f6d12a3abe0542b5b5f0c04389c57a6289a39fddb0bbe089abc47a16cc5d9  message-input/9a5a80e4.txt
+9aeda382075446177867b8b9ab691072ef798af4dedeee51e8979e410f37d926  message-input/d3294be2.txt
+5ea21a225dfb46fe20948b3de3e90232d2042eed1356d23ead3e8091f142e64c  message-input/final.txt
+
+--- stderr ---
+Resolving dependencies
+Resolved, downloaded and extracted [276]
+Saved lockfile
