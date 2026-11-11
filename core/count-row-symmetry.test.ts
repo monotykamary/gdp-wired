@@ -23,6 +23,14 @@ test('a mirrored linear proof remaps input rows and is checked in its target pat
   expect(mirrored).toBeDefined(); expect(check(goal, mirrored!, after)).toBe(true)
   cache.put(before, {leaf: []}); expect(cache.get(after)).toBeUndefined()
 }))
+test('deferred symmetry transport returns only an unchecked candidate, not a verdict', () => run(() => {
+  const goal: Goal = {name: 'symmetric', hyps: ['a', 'b'].map(name => ({op: '<=', a: x(name), b: n(2)}))}, before = path('a'), after = path('b')
+  const cache = rowSymmetryCache(goal, {reads: [], insts: []}, 'a', 'b', clock() + 1000, undefined, true)!
+  cache.put(before, {leaf: []})
+  const candidate = cache.get(after)
+  expect(candidate).toBeDefined(); expect(check(goal, candidate!, after)).toBe(false)
+}))
+
 test('an asymmetric goal or expired allowance cannot reuse a verdict', () => run(() => {
   const goal: Goal = {name: 'asymmetric', hyps: [{op: '<=', a: x('a'), b: n(2)}, {op: '<=', a: x('b'), b: n(10)}]}, before = path('a')
   const cache = rowSymmetryCache(goal, {reads: [], insts: []}, 'a', 'b', clock() + 1000)!

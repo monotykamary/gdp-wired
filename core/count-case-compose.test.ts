@@ -30,12 +30,19 @@ test('all fixed cases compose onto one original operation-domain goal', () => {
       expect(proof).toBeDefined(); if (!proof) return
       cases.push({value, proof})
     }
-    const events: string[] = [], result = composeCountOperationProofs(context, family, law, cases, until, request, stage => events.push(stage))
+    const tail: Record<string, unknown>[] = []
+    const events: string[] = [], result = composeCountOperationProofs(context, family, law, cases, until, request, stage => events.push(stage), {trace: e => tail.push(e)})
     if (!result) console.log('COMPOSITION_DIAGNOSTIC', events)
     expect(result).toBeDefined()
     if (result) for (const p of countedObligations(context.machine, family, {[law.name]: result.instances}, 0)) expect(checkMC(p.goal.hyps, p.decls, result.certs[p.goal.name]!)).toBe(true)
+    expect(tail.some(e => e.part === 'merge-case' && e.role === 'untrusted-assembly')).toBe(true)
+    expect(tail.some(e => e.part === 'native-step-check' && e.role === 'trusted-check')).toBe(true)
+    expect(tail.some(e => e.part === 'native-init-check' && e.role === 'trusted-check')).toBe(true)
+    expect(tail.some(e => e.part === 'composition-total' && e.aggregate === true)).toBe(true)
+    const disabled = composeCountOperationProofs(context, family, law, cases, until, request, undefined, {minimize: false})
+    expect(JSON.stringify(disabled)).toBe(JSON.stringify(result))
     const initial = cases[0]!.proof.certs[law.name + ' @start']!
-    const reused = composeCountOperationProofs(context, family, law, cases, until, request, undefined, {initial})
+    const reused = composeCountOperationProofs(context, family, law, cases, until, request, undefined, {initial, minimize: true})
     expect(reused).toBeDefined()
     if (reused) for (const p of countedObligations(context.machine, family, {[law.name]: reused.instances}, 0)) expect(checkMC(p.goal.hyps, p.decls, reused.certs[p.goal.name]!)).toBe(true)
     expect(composeCountOperationProofs(context, family, law, cases, until, request, undefined, {initial: {...initial, tree: {leaf: []}}})).toBeUndefined()
@@ -56,7 +63,8 @@ test('operation zero preserves source path identities through transport', () => 
       expect(proof).toBeDefined(); if (!proof) return
       cases.push({value, proof})
     }
-    const events: string[] = [], result = composeCountOperationProofs(context, family, law, cases, until, request, stage => events.push(stage))
+    const tail: Record<string, unknown>[] = []
+    const events: string[] = [], result = composeCountOperationProofs(context, family, law, cases, until, request, stage => events.push(stage), {trace: e => tail.push(e)})
     if (!result) console.log('COMPOSITION_DIAGNOSTIC', events)
     expect(result).toBeDefined()
     if (result) for (const p of countedObligations(context.machine, family, {[law.name]: result.instances}, 0)) expect(checkMC(p.goal.hyps, p.decls, result.certs[p.goal.name]!)).toBe(true)

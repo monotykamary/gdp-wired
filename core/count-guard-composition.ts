@@ -41,6 +41,6 @@ export function proveFixedCountOperations(context: GuardCountContext, family: La
 export function proveCountGuardComposition(context: GuardCountContext, family: Law[], law: Law, until: number, requestFor: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, options: CountStrategyOptions & {checkEachCase?: boolean, caseOrder?: 'original' | 'cost', reindexMode?: 'offset' | 'exact'} = {}): CountStrategyProof | undefined {
   return withDeadline(until, () => {
     const cases = proveFixedCountOperations(context, family, law, until, requestFor, observe, {...options, deferToComposition: !options.checkEachCase})
-    return cases && composeCountOperationProofs(context, family, law, cases, until, requestFor, (stage, value) => observe?.({stage, value}), {reindexMode: options.reindexMode})
+    return cases && composeCountOperationProofs(context, family, law, cases, until, requestFor, (stage, value) => observe?.({stage, value}), {reindexMode: options.reindexMode, trace: observe, minimize: options.minimize})
   })
 }

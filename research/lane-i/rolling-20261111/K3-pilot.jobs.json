@@ -1,0 +1,26 @@
+[
+  {
+    "name": "k3-deferred-row-native",
+    "cmd": "bun port-input/run.ts test core/count-row-agreement.test.ts core/count-row-composition.test.ts core/count-row-symmetry.test.ts",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "k3-tail-and-composition",
+    "cmd": "bun port-input/run.ts test core/count-case-compose.test.ts core/count-certificate-minimize.test.ts core/count-stage-trace.test.ts core/count-strategy.test.ts core/count-strategy-clock.test.ts",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "k3-types",
+    "cmd": "bun port-input/run.ts types",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

@@ -32,6 +32,26 @@ test('a broken row write declines at its first attempted case', () => {
     expect(operations[0]?.proposed).toBe(false)
   }))
 })
+test('deferred row leaves remain explicit proposals and final native checks remain mandatory', () => {
+  const {m, law, family} = fixture(), results: unknown[] = []
+  counted(fullRate, () => withWall(performance.now() + 12000, () => {
+    for (const deferRowChecks of [false, true]) {
+      const events: Record<string, unknown>[] = []
+      const proof = proveCountRowComposition(m, family, law, clock() + 4000, request, e => events.push(e), {framePremisesOnly: true, deferRowChecks})
+      expect(proof).toBeDefined(); expect(proof?.status).toBeUndefined()
+      expect(events.some(e => e.part === 'native-step-check')).toBe(true)
+      expect(events.some(e => e.part === 'native-init-check')).toBe(true)
+      const leafChecks = events.filter(e => ['row-leaf-check', 'row-scoped-check', 'row-symmetry-check'].includes(String(e.part)))
+      expect(leafChecks.length > 0).toBe(!deferRowChecks)
+      const operations = events.filter(e => e.stage === 'operation')
+      expect(operations.every(e => e.checked === false && (deferRowChecks ? e.status === 'unchecked' : !('status' in e)))).toBe(true)
+      if (proof) for (const p of countedObligations(m, family, {[law.name]: proof.instances}, 0)) expect(checkMC(p.goal.hyps, p.decls, proof.certs[p.goal.name]!)).toBe(true)
+      results.push(proof)
+    }
+  }))
+  expect(results[1]).toEqual(results[0])
+}, 16000)
+
 test('unsupported and expired row portfolios leave ordinary search available', () => {
   const {m, law, family} = fixture(), events: unknown[] = []
   expect(proveCountRowComposition(m, family, law, clock() - 1, request, e => events.push(e))).toBeUndefined()

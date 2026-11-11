@@ -1,0 +1,56 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [3.08s]
+bun test v1.4.3 (c6da4a4d3)
+ROLLING_GATE {"sourceTree":"d66e5d1ff1987748113c858011bd30a65af3af1e","mode":"test","files":["core/count-row-agreement.test.ts","core/count-row-composition.test.ts","core/count-row-symmetry.test.ts"],"protected":181}
+
+--- stderr ---
+
+core/count-row-agreement.test.ts:
+(pass) deferRowChecks alone never defers standalone row verification [49.71ms]
+(pass) written-row discovery sees inlined operation guards and excludes inactive writes [3.88ms]
+(pass) written-row discovery expands raw flags before consulting the kernel [0.59ms]
+(pass) written-row discovery includes active point writes, not unrelated operations [0.36ms]
+(pass) written-row discovery retains a row equality outside its operation guard [0.21ms]
+(pass) the row proposer checks plain frame INIT and STEP [28.81ms]
+(pass) deferred row cases omit INIT and a separate original INIT proposal checks [17.94ms]
+(pass) a fixed frame can propose only its own demanded tuple [25.72ms]
+(pass) sparse own-law proposals keep requested source rows but not destination rows [33.82ms]
+(pass) optional linear closure is checked and never authorizes a broken row [16.45ms]
+(pass) mirrored no-op written-row cases reuse only checked trees [223.36ms]
+(pass) written-row diagonal aliases are only ordinary checked splits [227.65ms]
+(pass) explicit fixed-operation paths retain checked excluded branches [146.34ms]
+(pass) an anchored own-law pool keeps only the demanded pair for a plain frame [15.42ms]
+(pass) an optional premise pool keeps target rows and explicit seeds, not incidental reads [55.30ms]
+(pass) explicit premise mode does not silently seed unrelated family laws [21.81ms]
+(pass) explicit PRE instances are recorded without mutating the seed [9.32ms]
+(pass) an unchecked shape cannot make a broken row write inductive [10.56ms]
+
+core/count-row-symmetry.test.ts:
+(pass) symmetry derives a bijection of variables, count reads and witnesses [0.36ms]
+(pass) a mirrored linear proof remaps input rows and is checked in its target path [0.39ms]
+(pass) deferred symmetry transport returns only an unchecked candidate, not a verdict [0.20ms]
+(pass) an asymmetric goal or expired allowance cannot reuse a verdict [0.21ms]
+
+core/count-row-composition.test.ts:
+(pass) a renamed row portfolio accepts only one assembled original-goal proof [85.09ms]
+(pass) a broken row write declines at its first attempted case [19.97ms]
+(pass) deferred row leaves remain explicit proposals and final native checks remain mandatory [105.11ms]
+(pass) unsupported and expired row portfolios leave ordinary search available [0.37ms]
+
+ 26 pass
+ 0 fail
+ 128 expect() calls
+Ran 26 tests across 3 files. [1181.00ms]

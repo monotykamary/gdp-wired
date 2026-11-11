@@ -1,0 +1,29 @@
+{
+ "k3-deferred-row-native": {
+  "vm": "bx_f96rfjuy",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "k3-tail-and-composition": {
+  "vm": "bx_v8kfd2bb",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "k3-types": {
+  "vm": "bx_4zdy5q97",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ }
+}

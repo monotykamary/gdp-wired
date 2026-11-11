@@ -13,6 +13,17 @@ function fixture() {
   const shape: RowAgreementShape = {map: 'cells', width: 8, left: 'a', right: 'b', column: 'c', fields: ['version', 'epoch'], markers: [{map: 'marker', value: 1}], guard}
   return {m, law, shape}
 }
+test('deferRowChecks alone never defers standalone row verification', () => {
+  const {m, law, shape} = fixture()
+  counted(fullRate, () => withWall(performance.now() + 5000, () => {
+    const events: Record<string, unknown>[] = []
+    const proof = proveRowAgreementCase(m, [law], law, shape, clock() + 2000, (g, ds) => certFor(g, ds, false, 0), {deferRowChecks: true, tailTrace: e => events.push(e)})
+    expect(proof).toBeDefined(); expect(proof?.status).toBeUndefined()
+    expect(events.some(e => e.part === 'row-leaf-check' && e.role === 'trusted-check')).toBe(true)
+    if (proof) for (const p of countedObligations(m, [law], {[law.name]: proof.instances}, 0)) expect(checkMC(p.goal.hyps, p.decls, proof.certs[p.goal.name]!)).toBe(true)
+  }))
+})
+
 test('written-row discovery sees inlined operation guards and excludes inactive writes', () => {
   const {m, shape} = fixture(); m.inputs = ['op', 'i', 'j']; m.assume = same(x('op'), n(1))
   const self = get('version', x('row'))

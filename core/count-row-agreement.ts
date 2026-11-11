@@ -15,6 +15,8 @@ import {rowSymmetryCache} from './count-row-symmetry.ts'
 import {operationRefutation} from './count-row-reindex.ts'
 import {countPremiseView} from './count-premise-view.ts'
 import {rebasePath} from './count-recovery/rebase-path.ts'
+import {countStageTrace} from './count-stage-trace.ts'
+import {traceNow} from './trace-clock.ts'
 
 // Operation tests are often already inlined, and a row equality can be an
 // ancestor of the operation guard. Prune only branches decided by the fixed
@@ -60,7 +62,7 @@ export function rowAgreementWrittenKeys(m: Machine, shape: RowAgreementShape): s
   }
   return [...rows]
 }
-export type RowAgreementTrace = {stage: 'leaf', outcome: string, goal: Goal, path: Path, hyps?: number, units?: number, witness?: Record<string, number>, method?: 'linear' | 'cdcl' | 'symmetry', symmetryEnabled?: boolean}
+export type RowAgreementTrace = {stage: 'leaf', outcome: string, goal: Goal, path: Path, hyps?: number, units?: number, wallMs?: number, witness?: Record<string, number>, method?: 'linear' | 'cdcl' | 'symmetry', symmetryEnabled?: boolean}
 export type RowAgreementOptions = CountStrategyOptions & {premiseScoped?: boolean, observe?: (trace: RowAgreementTrace) => void, seedInstances?: Instances, onlySeededPremises?: boolean, witnessFlags?: boolean, fastClosure?: boolean, symmetryReuse?: boolean, diagonalFirst?: boolean, sparseOwn?: boolean, operationPath?: boolean, diagonalAlias?: boolean, framePremisesOnly?: boolean, ownRows?: E[], premiseRows?: E[]}
 // An unchecked INIT proposal for a single-check composition. No STEP or supplied premise.
 export function proposeRowAgreementInitial(m: Machine, family: Law[], law: Law, until: number, requestFor: CountRequestBuilder): CountCert | undefined {
@@ -76,8 +78,13 @@ export function proposeRowAgreementInitial(m: Machine, family: Law[], law: Law, 
 }
 export function proveRowAgreementCase(m: Machine, family: Law[], law: Law, shape: RowAgreementShape, until: number, requestFor: CountRequestBuilder, options: RowAgreementOptions = {}): CountStrategyProof | undefined {
   return withDeadline(until, () => {
+    const stages = countStageTrace(options.tailTrace, 'row-case-total')
+    try {
+    stages.mark('row-case-setup', 'untrusted-assembly')
     const index = family.indexOf(law)
     if (index < 0 || clock() >= until || pastWall() || !law.forall || law.keys?.length !== 2) return
+    // Only operation proposals may defer. Standalone INIT/STEP behavior stays checked.
+    const deferChecks = options.deferToComposition === true && options.deferRowChecks === true
     const frameOnly = options.framePremisesOnly && fixedCountFrameCase(m) && !rowAgreementWrittenKeys(m, shape).length
     const a = x(law.forall + '#'), b = x(law.keys[0]!), column = x(law.keys[1]!), keyed = new Set<string>()
     walkOnce(m.step.maps, (node: any) => {if (node.op === 'get' && !m.counts?.[node.map] && node.key.op === 'var' && m.inputs.includes(node.key.name)) keyed.add(node.key.name)})
@@ -91,6 +98,7 @@ export function proveRowAgreementCase(m: Machine, family: Law[], law: Law, shape
       const unique = [...new Map(tuples.map(tuple => [JSON.stringify(tuple), tuple])).values()]
       instances[l.name] = unique.flat()
     }
+    stages.mark('row-premise-instantiation', 'untrusted-assembly')
     for (const l of family) {
       if ((frameOnly || options.onlySeededPremises) && l !== law) continue
       const keys = [...(l.forall ? [l.forall] : []), ...(l.keys ?? [])]
@@ -111,49 +119,70 @@ export function proveRowAgreementCase(m: Machine, family: Law[], law: Law, shape
     }
     if (!frameOnly) for (const [name, flag] of Object.entries(m.step.flags ?? {})) if (flag.op === 'all' && !flag.keys?.length) instances['?' + name] = [...rows, column]
     if (Object.values(instances).reduce((n, terms) => n + terms.length, 0) > 2048) return
+    stages.mark('row-obligation-build', 'untrusted-assembly')
     let packets = countedObligations(m, family, {[law.name]: instances}, index), step = packets.at(-1)
     if (!step) return
+    stages.mark('row-request-build', 'untrusted-assembly')
     let request = requestFor(step.goal, step.decls)
     if (options.witnessFlags) for (let round = 0; round < 2; round++) {
+      stages.mark('row-witness-seed', 'untrusted-assembly', round)
       const seeded = seedCountWitnessFlags(m, instances, [{decls: step.decls, cert: request}], true)
       if (seeded === instances) break
       Object.assign(instances, seeded)
       if (clock() >= until || pastWall() || Object.values(instances).reduce((n, terms) => n + terms.length, 0) > 2048) return
+      stages.mark('row-witness-obligation-build', 'untrusted-assembly', round)
       packets = countedObligations(m, family, {[law.name]: instances}, index); step = packets.at(-1)
       if (!step) return
+      stages.mark('row-witness-request-build', 'untrusted-assembly', round)
       request = requestFor(step.goal, step.decls)
     }
+    stages.mark('row-mc-goal-build', 'untrusted-assembly')
     const goal = mcGoal(step.goal.hyps, step.decls, request)
     if (!goal) return
-    const mirror = options.symmetryReuse ? rowSymmetryCache(goal, request, law.forall + '#', law.keys[0]!, until) : undefined
+    stages.mark('row-symmetry-setup', 'untrusted-assembly')
+    options.trace?.({query: 'row-context', goal, request, decls: step.decls})
+    const mirror = options.symmetryReuse ? rowSymmetryCache(goal, request, law.forall + '#', law.keys[0]!, until, options.tailTrace, deferChecks) : undefined
     const close = (path: Path): Tree | undefined => {
       if (clock() >= until || pastWall()) return
-      const start = fullWork(), leafEnd = strategyLeafUntil(until, options)
+      const start = fullWork(), wall = options.tailTrace || options.observe ? traceNow() : 0, leafEnd = strategyLeafUntil(until, options)
+      const leafStages = countStageTrace(options.tailTrace, 'row-leaf-total')
+      try {
+      leafStages.mark('row-symmetry-get', 'untrusted-assembly')
       const reused = mirror?.get(path)
+      leafStages.mark('row-fast-linear', 'untrusted-search')
       const fast = !reused && options.fastClosure ? refuteFast(leafConstraints(goal, path)) : undefined
       let scopedTree: Tree | undefined
       if (!reused && fast?.kind !== 'refuted' && options.premiseScoped) {
         const scopedEnd = Math.min(leafEnd, clock() + Math.max(0, leafEnd - clock()) * 3 / 4), seen = new Set<string>()
         for (const guardReads of [false, true]) {
           const scopeStart = fullWork()
+          leafStages.mark('row-premise-view', 'untrusted-assembly', Number(guardReads))
           const scoped = countPremiseView(goal, m, law, step.goal.hyps.at(-1)!, step.goal.hyps.slice(0, 2), scopedEnd, guardReads)
           if (!scoped || seen.has(scoped.selected.join(','))) continue
           seen.add(scoped.selected.join(','))
           const attemptEnd = scopedEnd
+          leafStages.mark('row-scoped-search', 'untrusted-search', Number(guardReads))
           const result = growCdcl(scoped.goal, path, {nodes: 0, until: attemptEnd})
+          leafStages.mark('row-scoped-transport', 'untrusted-assembly', Number(guardReads))
           const candidate = 'tree' in result ? rebasePath(scoped.goal, result.tree, path, path, until, goal) : undefined
-          scopedTree = candidate && check(goal, candidate, path) ? candidate : undefined
-          options.trace?.({query: 'premise-scope', goal: scoped.goal, path: new Map(path), guardReads, outcome: scopedTree ? 'proved' : 'tree' in result ? 'transport-rejected' : result.stuck, hyps: scoped.goal.hyps.length, fullHyps: goal.hyps.length, selected: scoped.selected, omitted: scoped.omitted, allowed: scoped.allowed, scopeUnits: (fullWork() - scopeStart) / fullRate, units: (fullWork() - start) / fullRate})
+          leafStages.mark(deferChecks ? 'row-scoped-proposal' : 'row-scoped-check', deferChecks ? 'untrusted-assembly' : 'trusted-check', Number(guardReads))
+          scopedTree = candidate && (deferChecks || check(goal, candidate, path)) ? candidate : undefined
+          options.trace?.({query: 'premise-scope', goal: scoped.goal, path: new Map(path), guardReads, outcome: scopedTree ? deferChecks ? 'unchecked-proposal' : 'proved' : 'tree' in result ? 'transport-rejected' : result.stuck, hyps: scoped.goal.hyps.length, fullHyps: goal.hyps.length, selected: scoped.selected, omitted: scoped.omitted, allowed: scoped.allowed, scopeUnits: (fullWork() - scopeStart) / fullRate, units: (fullWork() - start) / fullRate})
           if (scopedTree) break
         }
       }
+      leafStages.mark('row-full-search', 'untrusted-search')
       const result = reused ? {tree: reused} : fast?.kind === 'refuted' ? {tree: {leaf: fast.steps}} : scopedTree ? {tree: scopedTree} : growCdcl(goal, path, {nodes: 0, until: leafEnd})
       const capped = leafEnd < until && clock() >= leafEnd
-      const tree = 'tree' in result && check(goal, result.tree, path) && clock() < until ? result.tree : undefined
+      leafStages.mark(deferChecks ? 'row-leaf-proposal' : 'row-leaf-check', deferChecks ? 'untrusted-assembly' : 'trusted-check')
+      const tree = 'tree' in result && (deferChecks || check(goal, result.tree, path)) && clock() < until ? result.tree : undefined
+      leafStages.mark('row-symmetry-put', 'untrusted-assembly')
       if (tree) mirror?.put(path, tree)
-      options.observe?.({stage: 'leaf', ...(options.symmetryReuse ? {symmetryEnabled: mirror !== undefined} : {}), method: reused ? 'symmetry' : fast?.kind === 'refuted' ? 'linear' : 'cdcl', outcome: tree ? 'proved' : capped ? 'leaf-cap' : clock() >= until ? 'pool-exhausted' : 'stuck' in result ? result.stuck : 'rejected-proof', goal, path: new Map(path), hyps: goal.hyps.length, units: (fullWork() - start) / fullRate, ...('witness' in result ? {witness: result.witness} : {})})
+      options.observe?.({stage: 'leaf', ...(options.symmetryReuse ? {symmetryEnabled: mirror !== undefined} : {}), method: reused ? 'symmetry' : fast?.kind === 'refuted' ? 'linear' : 'cdcl', outcome: tree ? deferChecks ? 'unchecked-proposal' : 'proved' : capped ? 'leaf-cap' : clock() >= until ? 'pool-exhausted' : 'stuck' in result ? result.stuck : 'rejected-proof', goal, path: new Map(path), hyps: goal.hyps.length, units: (fullWork() - start) / fullRate, ...(wall ? {wallMs: traceNow() - wall} : {}), ...('witness' in result ? {witness: result.witness} : {})})
       return tree
+      } finally {leafStages.finish()}
     }
+    stages.mark('row-case-tree', 'untrusted-search')
     const split = countGuardTree(until)
     const writtenRows = rowAgreementWrittenKeys(m, shape).slice(0, 4).map(x)
     const finish = (path: Path): Tree | undefined => options.diagonalAlias && writtenRows.some(row => truth(same(a, row), path) === true && truth(same(b, row), path) === true)
@@ -171,8 +200,9 @@ export function proveRowAgreementCase(m: Machine, family: Law[], law: Law, shape
     const fixed = options.operationPath ? fixedCountFrameCase(m) : undefined
     const tree = fixed ? split.rows(countFrameConditions(fixed), new Map(), run, path => operationRefutation(leafConstraints(goal, path), fixed.name)) : run(new Map())
     if (!tree) return
+    stages.mark('row-case-return', 'untrusted-assembly')
     const stepCert: CountCert = {...request, tree}
-    if (options.deferToComposition) return {instances, certs: {[step.goal.name]: stepCert}}
+    if (options.deferToComposition) return {instances, certs: {[step.goal.name]: stepCert}, ...(deferChecks ? {status: 'unchecked' as const} : {})}
     if (!checkMC(step.goal.hyps, step.decls, stepCert)) return
     const certs: Record<string, CountCert> = {[step.goal.name]: stepCert}
     for (const initial of packets.slice(0, -1)) {
@@ -185,5 +215,6 @@ export function proveRowAgreementCase(m: Machine, family: Law[], law: Law, shape
       certs[initial.goal.name] = cert
     }
     return clock() < until && !pastWall() ? {instances, certs} : undefined
+    } finally {stages.finish()}
   })
 }

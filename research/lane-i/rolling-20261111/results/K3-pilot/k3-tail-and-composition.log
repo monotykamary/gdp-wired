@@ -1,0 +1,50 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [615.00ms]
+bun test v1.4.3 (c6da4a4d3)
+ROLLING_GATE {"sourceTree":"d66e5d1ff1987748113c858011bd30a65af3af1e","mode":"test","files":["core/count-case-compose.test.ts","core/count-certificate-minimize.test.ts","core/count-stage-trace.test.ts","core/count-strategy.test.ts","core/count-strategy-clock.test.ts"],"protected":181}
+
+--- stderr ---
+
+core/count-case-compose.test.ts:
+(pass) all fixed cases compose onto one original operation-domain goal [208.22ms]
+(pass) operation zero preserves source path identities through transport [82.16ms]
+(pass) unchecked case proposals need the final assembled checker [23.76ms]
+(pass) case composition respects an expired shared allowance [0.20ms]
+
+core/count-stage-trace.test.ts:
+(pass) stage observations distinguish assembly from native checks without accepting a proof [0.19ms]
+(pass) a measured stage returns or throws exactly its underlying computation [0.17ms]
+
+core/count-strategy.test.ts:
+(pass) a search leaf is one one-hundred-twentieth of the original work allowance [0.17ms]
+(pass) standalone INIT uses the pool even when search leaves have no allowance [4.44ms]
+
+core/count-strategy-clock.test.ts:
+(pass) row and guard composers use the shared trace boundary with both control clocks forbidden [267.24ms]
+
+core/count-certificate-minimize.test.ts:
+(pass) independent leaf lifts at its parent; missing split rows do not [0.64ms]
+(pass) frame intersection must still pass frameOk and exact rows are remapped [0.97ms]
+(pass) conditional frames merge only at their valid common guard [1.18ms]
+(pass) duplicate formulas are removed without dropping unknown flag instances [0.13ms]
+(pass) shared acyclic proof objects count each occurrence [0.02ms]
+(pass) lifting remaps appended products and squares [0.39ms]
+(pass) an expired minimisation preserves the original certificate [0.03ms]
+
+ 16 pass
+ 0 fail
+ 99 expect() calls
+Ran 16 tests across 5 files. [644.00ms]

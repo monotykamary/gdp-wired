@@ -7,6 +7,7 @@ import {prepareGuardCountContext} from './count-guard-context.ts'
 import {proveCountRowComposition} from './count-row-composition.ts'
 import {proveCountGuardComposition} from './count-guard-composition.ts'
 import {clock, fullRate, fullWork, late, withDeadline} from '../kernel/prove.ts'
+import {env} from './solver.ts'
 // Install only conservative count definitions, once before the family's attempts.
 // Candidate generation is already finished: no extra law or trusted fact is added.
 export function prepareCountStrategyMachine(m: Machine, family: Law[], until: number, observe?: (event: Record<string, unknown>) => void): Machine {
@@ -57,7 +58,7 @@ export function proveCountStrategies(m: Machine, family: Law[], law: Law, until:
     const leafUnits = strategyLeafUnits(workAllowance)
     if (discoverRowAgreement(m, law)) {
       observe?.({strategy: 'row', stage: 'search-budget', workAllowance, leafUnits})
-      return proveCountRowComposition(m, family, law, until, request, e => observe?.({strategy: 'row', ...e}), {framePremisesOnly: true, leafUnits})
+      return proveCountRowComposition(m, family, law, until, request, e => observe?.({strategy: 'row', ...e}), {framePremisesOnly: true, leafUnits, deferRowChecks: env.GDP_COUNT_ROW_DEFER_CHECKS === '1'})
     }
     const context = prepareGuardCountContext(m, law, family)
     if (!context) return

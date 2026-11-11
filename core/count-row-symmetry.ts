@@ -4,6 +4,7 @@ import {type CountCert, type CountInst, type Goal, type Path, type Tree, canon, 
 import {late} from '../kernel/prove.ts'
 import {countCertificateRenamer} from './count-cert-rename.ts'
 import {countRowReindexer} from './count-row-reindex.ts'
+import {traceCountStage, type CountStageObserver} from './count-stage-trace.ts'
 
 export function rowSymmetryNames(request: Pick<CountCert, 'reads' | 'insts'>, a: string, b: string, until: number): Map<string, string> | undefined {
   if (a === b || late(until)) return
@@ -30,7 +31,7 @@ export function rowSymmetryNames(request: Pick<CountCert, 'reads' | 'insts'>, a:
   return names
 }
 
-export function rowSymmetryCache(goal: Goal, request: Pick<CountCert, 'reads' | 'insts'>, a: string, b: string, until: number) {
+export function rowSymmetryCache(goal: Goal, request: Pick<CountCert, 'reads' | 'insts'>, a: string, b: string, until: number, observe?: CountStageObserver, deferCheck = false) {
   const names = rowSymmetryNames(request, a, b, until)
   if (!names) return
   const rename = countCertificateRenamer(names, until), reindex = countRowReindexer(goal)
@@ -59,15 +60,16 @@ export function rowSymmetryCache(goal: Goal, request: Pick<CountCert, 'reads' | 
     return {leaf, ...(source.products ? {products} : {}), ...(source.squares ? {squares: source.squares.map(rename.row)} : {})}
   }
   return {
-    // Even a forged source cannot authorize a target: get always rechecks.
+    // Default get rechecks. Deferred trees are UNCHECKED construction inputs;
+    // only the enclosing original-goal check and family gate can accept them.
     put(path: Path, tree: Tree) {if (saved.size >= 32) saved.delete(saved.keys().next().value!); saved.set(key(path), {path: new Map(path), tree})},
     get(path: Path): Tree | undefined {
       if (late(until)) return
       try {
         const swapped: Path = new Map([...path.values()].map(({lin, holds}) => {const row = rename.row(lin); return [canon(row), {lin: row, holds}]})), source = saved.get(key(swapped))
         if (!source) return
-        const tree = transport(source.tree, source.path, path)
-        return tree && check(goal, tree, path) ? tree : undefined
+        const tree = traceCountStage(observe, 'row-symmetry-transport', 'untrusted-assembly', () => transport(source.tree, source.path, path))
+        return tree && (deferCheck || traceCountStage(observe, 'row-symmetry-check', 'trusted-check', () => check(goal, tree, path))) ? tree : undefined
       } catch {return undefined}
     }
   }
