@@ -55,6 +55,7 @@ import {prepareCountStrategyMachine, proveCountStrategies, proposeCountStrategie
 import {type CountTierBudget,countTierBudget,remainingCountTierBudget,ordinaryTierShare} from './count-tier-budget.ts'
 import {countRejectionBudget,remainingRejectionAllowance} from './count-rejection-budget.ts'
 import {countGenerationPhase} from './count-generation-phase.ts'
+import {countReachabilityScreen,type CountReachabilityFunding} from './count-reachability.ts'
 import {rejectionStage} from './rejection-discovery.ts'
 import {type RejectionStage,rejectionFamily} from './rejection-stage.ts'
 import {reserveCountClosing,reserveCheckedCountClosing,countOrdinaryUntil,type CountClosingBudget} from './count-closing-budget.ts'
@@ -558,7 +559,7 @@ export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted 
 }
 function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine, caller: Law[], ms: number,tiers?:CountTierBudget): Counted {
   if(tiers)return searchCountedWithRejection(m0,g,m,caller,ms,tiers)
-  const tierRun: CountTierRun = {start: clock()}, until = tierRun.start + ms
+  const tierRun: CountTierRun = {start: clock(),source:m0}, until = tierRun.start + ms
   if (!caller.every(l => clock() < until && trueSmall(m, [l]))) return {proven: false, laws: caller, m, why: clock() < until ? 'a law fails on the small instances' : 'time'}
   const t1 = clock()
   // (GDP_COUNTS_GIVEN=1, research's: the callers alone, no candidate: whether a set written whole goes through)
@@ -579,7 +580,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
 function searchCountedWithRejection(m0:Machine,g:ReturnType<typeof guardLaws>,m:Machine,caller:Law[],ms:number,tiers:CountTierBudget):Counted{
  const plan=countRejectionBudget(tiers,true)
  if(!plan)return searchCounted0(m0,g,m,caller,ms)
- const until=tiers.until,tierRun:CountTierRun={start:until-tiers.workAllowance,budget:tiers},support=new Set<Law>(),originalCounts={...m.counts}
+ const until=tiers.until,tierRun:CountTierRun={start:until-tiers.workAllowance,budget:tiers,source:m0},support=new Set<Law>(),originalCounts={...m.counts}
  let partial=[...caller]
  const generated=countGenerationPhase(plan.captureUntil,()=>{
   for(const law of g.laws){try{scope(m,[law]);partial.push(law)}catch(error){if(error instanceof BudgetExpired)throw error}}
@@ -607,11 +608,11 @@ function searchCountedWithRejection(m0:Machine,g:ReturnType<typeof guardLaws>,m:
 }
 
 // One reservation survives context and structured fallbacks.
-type CountTierRun = {start: number, budget?: CountTierBudget, prerequisites?:CountPrerequisiteMemory<ScopedCountProof>}
+type CountTierRun = {start: number, source?:Machine, budget?: CountTierBudget, prerequisites?:CountPrerequisiteMemory<ScopedCountProof>, reachability?:{key:string,screen:ReturnType<typeof countReachabilityScreen>},reachFunding?:CountReachabilityFunding}
 // Candidate scheduling only. Every returned family still goes through finish.
 export function admitCountedFamily(m:Machine,caller:Law[],initial:Law[],support:Set<Law>,until:number,tiers?:CountTierBudget):Counted {
   if (tiers && tiers.until !== until) throw new RangeError('mismatched tier deadline')
-  const tierRun: CountTierRun = {start: tiers ? until - tiers.workAllowance : clock(), budget: tiers?.active ? tiers : undefined}
+  const tierRun: CountTierRun = {start: tiers ? until - tiers.workAllowance : clock(), budget: tiers?.active ? tiers : undefined,source:m}
   return structuredFallback(until, structured => admitCountedFamilyOnce(m,caller,initial,support,until,structured,tierRun))
 }
 function admitCountedFamilyOnce(m:Machine,caller:Law[],initial:Law[],support:Set<Law>,until:number,structured:boolean,tierRun:CountTierRun,rejections?:RejectionStage):Counted {
@@ -639,6 +640,14 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
     catch(error) { if(!isLocalCountExpiration(error,closingBudget!.until))throw error; return undefined }
   }
   let set=rejections?rejectionFamily(rejections,initial):initial.slice()
+  let reach:ReturnType<typeof countReachabilityScreen>|undefined
+  if(proofGuided){
+    const setup=clock(),key=JSON.stringify(m)
+    if(tierRun.reachability?.key!==key)tierRun.reachability={key,screen:countReachabilityScreen(tierRun.source??m,m,caller,workAllowance,undefined,tierRun.reachFunding??=new Map())}
+    reach=tierRun.reachability.screen
+    const rejected=new Set(reach.rejected());set=set.filter(l=>!rejected.has(l))
+    countsDump.on?.({phase:'count-reachability-setup',units:(clock()-setup)*fullRate})
+  }
   const scopeEnabled = env.GDP_COUNT_STRATEGIES === '1'
   const attempts = countedAttempts(m, caller, support, proofGuided ? closingBudget!.until : until, structured, selected, workAllowance, budget, prerequisiteFirst ? initial : undefined), traced = attempts.traced
   const isCount = (mp: string) => !!m.counts?.[mp]
@@ -696,6 +705,20 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
     const scopes=remembered.scopes,ends=new Map<string,number>(),attempted=new Set<string>()
     const queue=countPrerequisiteComponents(order.map(l=>l.name),planned.requirements,[...selected].map(l=>l.name),[...remembered.committed],{...planned,discoveryFirst:true,proofGuided,discoveryContexts:remembered.discoveryContexts,targets:caller.map(l=>l.name),held:new Map([...scopes].map(([name,scope])=>[name,scope.premises.map(p=>p.name)])),discovered:[...remembered.discovered],failed:[...remembered.failed]})
     const ordinaryCount=Math.max(1,set.filter(l=>!selected.has(l)).length)
+    const reachSummary=()=>{if(reach)countsDump.on?.({phase:'count-reachability-summary',rows:reach.receipts(initial),replayEvidence:reach.evidence})}
+    const probe=(law:Law,ordinary:number,citing:number,end:number)=>{
+      if(!reach)return undefined
+      const before=clock(),row=beforeClosing(()=>reach.screen(law,ordinary,citing,end,attempts.countermodel(law)))
+      if(row)countsDump.on?.({phase:'count-reachability',...row,invocationUnits:(clock()-before)*fullRate})
+      return row
+    }
+    const rejectReachable=(names:readonly string[])=>{
+      const invalidated=queue.reject(names)
+      for(const name of [...names,...invalidated]){scopes.delete(name);remembered.committed.delete(name)}
+      remembered.failed=new Set(queue.failed());remembered.discoveryContexts=queue.discoveryContexts()
+      set=set.filter(l=>!names.includes(l.name))
+      countsDump.on?.({phase:'count-reachability-invalidated',rejected:names,invalidated})
+    }
     const updateReserve=()=>{
       if(!proofGuided)return
       const costs=[...scopes.values()].flatMap(scope=>scope.checkWork===undefined?[]:[scope.checkWork])
@@ -716,6 +739,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         if(!proof)return {proven:false,laws:set,m,why:'component replay declined'}
         instances[member.name]=proof.instances;Object.assign(certs,proof.certs);premises[member.name]=proof.premises??[]
       }
+      reachSummary()
       return finish(family,{instances,certs,premises})
     }
     const alreadyClosed=closeReady()
@@ -724,8 +748,16 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       const decision=queue.next()
       if(!decision)break
       if(decision.kind==='ready'){
+        let blocked=false
+        if(reach)for(const name of decision.members){
+          const member=set.find(l=>l.name===name)!,row=probe(member,0,scopes.get(name)?.checkWork??0,until)
+          if(reach.safety()==='broken')return {proven:false,laws:set,m,why:'reachable caller counterexample'}
+          if(row?.outcome==='rejected'){rejectReachable([name]);blocked=true;break}
+          if(!row){blocked=true;break}
+        }
+        if(blocked)continue
         queue.commit(decision.members)
-        for(const name of decision.members)remembered.committed.add(name)
+        for(const name of decision.members){remembered.committed.add(name);if(reach)countsDump.on?.({phase:'count-required-promotion',kind:'member',law:name,reducedScopeSize:scopes.get(name)?.premises.length??0,committed:true,proposed:true,checked:false})}
         countsDump.on?.({phase:'count-component-closed',members:decision.members,proposed:true,checked:false})
         for(const name of decision.members)countsDump.on?.({phase:'count-prerequisite-complete',law:name,premises:scopes.get(name)?.premises.map(p=>p.name)??[],proposed:true,component:decision.members})
         const closed=closeReady()
@@ -745,6 +777,12 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       const unattempted=discoveryOnly?1:Math.max(1,decision.component.filter(name=>!scopes.has(name)&&(proofGuided||!attempted.has(JSON.stringify([key,name])))).length)
       const allowStrategy=!discoveryOnly&&decision.recipe.kind==='strategy',start=clock()
       const {end,allotted,reserved}=countComponentAttemptBudget(clock(),componentEnd,unattempted,1,proofGuided&&!allowStrategy)
+      if(reach&&!discoveryOnly&&!allowStrategy){
+        const row=probe(law,allotted,0,end)
+        if(reach.safety()==='broken')return {proven:false,laws:set,m,why:'reachable caller counterexample'}
+        if(row?.outcome==='rejected'){rejectReachable([law.name]);updateReserve();continue}
+        if(!row)break
+      }
       attempted.add(JSON.stringify([key,law.name]))
       if(discoveryOnly)remembered.discovered.add(law.name)
       countsDump.on?.({phase:'count-component-attempt',law:law.name,component:decision.component,mode:decision.phase,recipe:decision.recipe.id,context:decision.context,end,componentEnd,allotted,reserved,discovery:decision.discovery,purpose:decision.purpose,required:queue.required(),...(proofGuided?{pass:decision.pass??0}: {})})
@@ -769,17 +807,36 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         if(!isLocalCountExpiration(error,withinDeadline(closingBudget!.until)))throw error
         expired=true
       }
-      let status:ComponentOutcome=scope?{kind:'proof',citations:scope.premises.map(p=>p.name)}:expired?{kind:'unknown',reason:'budget-expired'}:'proof'in result?(proofGuided?{kind:'unknown',reason:'checked rescope declined'}:{kind:'refused',reason:'returned proof has no valid scope'}):result.refuted?{kind:'refuted'}:{kind:'unknown',reason:result.reason??result.stuck}
-      if(discoveryOnly&&status.kind==='refuted')status={kind:'unknown',reason:'narrow-sat'}
+      const reachFailed:string[]=[]
+      if(scope&&reach){
+        const citedBy=law.name,reducedScopeSize=scope.premises.length,citingWork=clock()-start
+        for(const premise of scope.premises){
+          const dependency=set.find(l=>l.name===premise.name)
+          if(!dependency)continue
+          const row=probe(dependency,0,citingWork,until)
+          countsDump.on?.({phase:'count-required-promotion-screen',law:premise.name,citedBy,reducedScopeSize,screened:!!row,outcome:row?.outcome})
+          if(reach.safety()==='broken')return {proven:false,laws:set,m,why:'reachable caller counterexample'}
+          if(row?.outcome==='rejected')reachFailed.push(premise.name)
+          if(!row){expired=true;scope=undefined;break}
+        }
+        if(reachFailed.length)scope=undefined
+      }
+      let status:ComponentOutcome=reachFailed.length?{kind:'unknown',reason:'reachable-refuted premise'}:scope?{kind:'proof',citations:scope.premises.map(p=>p.name)}:expired?{kind:'unknown',reason:'budget-expired'}:'proof'in result?(proofGuided?{kind:'unknown',reason:'checked rescope declined'}:{kind:'refused',reason:'returned proof has no valid scope'}):result.refuted?{kind:'refuted'}:{kind:'unknown',reason:result.reason??result.stuck}
+      if((discoveryOnly||proofGuided)&&status.kind==='refuted')status={kind:'unknown',reason:'narrow-sat'}
       const outcome=queue.finish(law.name,status)
+      if(reachFailed.length)rejectReachable(reachFailed)
       remembered.failed=new Set(queue.failed())
       if(proofGuided)remembered.discoveryContexts=queue.discoveryContexts()
       for(const invalidated of outcome.invalidated){scopes.delete(invalidated);remembered.committed.delete(invalidated)}
-      if(outcome.held&&scope)scopes.set(law.name,scope)
+      if(outcome.held&&scope){
+        scopes.set(law.name,scope)
+        if(reach)for(const premise of scope.premises)countsDump.on?.({phase:'count-required-promotion',kind:'dependency',law:premise.name,citedBy:law.name,reducedScopeSize:scope.premises.length,committed:false,proposed:true,checked:false})
+      }
       else if(decision.phase!=='dissolve')scopes.delete(law.name)
       updateReserve()
       countsDump.on?.({phase:'count-component-result',law:law.name,mode:decision.phase,purpose:decision.purpose,component:decision.component,at:clock(),outcome:outcome.held?'proof':status.kind,reason:'reason'in status?status.reason:undefined,units:(clock()-start)*fullRate,held:outcome.held,failed:queue.failed(),unknown:queue.unknown(),invalidated:outcome.invalidated,retries:queue.retryCount(),premises:scope?.premises.map(p=>p.name)??[]})
     }
+    reachSummary()
     countsDump.on?.({phase:'count-prerequisite-incomplete',unknown:queue.unknown(),failed:queue.failed()})
     return {proven:false,laws:set,m,why:'component proposals did not close caller'}
   }
@@ -1486,5 +1543,5 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     if (env.GDP_COUNTS_TRACE?.includes('3')) console.error(`counts: try ${law.name.slice(0, 50)} | ls ${ls.length} pass ${pass} ms ${Math.round(ms)} took ${Math.round(clock() - t0)} wall ${Math.round(countedSearchNow() - w0)} [${Object.entries(cprof).filter(([k2, x]) => x - (p0[k2] ?? 0) >= 1).map(([k2, x]) => `${k2} ${Math.round(x - (p0[k2] ?? 0))}`).join(' ')}] -> ${'proof' in r ? 'kept' : r.stuck}`)
     return r
   }
-  return {traced, get counted() { return counted }, set houdini(value: boolean) { houdini = value }}
+  return {traced, countermodel:(law:Law)=>models.get(`1 ${law.name}`)?.w??models.get(`0 ${law.name}`)?.w, get counted() { return counted }, set houdini(value: boolean) { houdini = value }}
 }

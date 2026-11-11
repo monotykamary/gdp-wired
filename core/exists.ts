@@ -139,6 +139,18 @@ const atomsOf2 = (c: C): C[] => (c.op === 'and' || c.op === 'or' ? c.xs.flatMap(
 // alike among those a few requests make: an action the BFS's levels never reach, a leader past a majority's votes, is
 // taken as often as any other. Each state's step from the state it was first reached from is kept: `pathTo`.)
 const pathTo = new WeakMap<State, [State, Request]>()
+// Search hints only. A caller must replay this path on its original machine;
+// an unrelated state with no cached parent must never be trusted as an init.
+export function retainedSamplePath(state:State,visit:()=>void):Request[]|undefined{
+ const requests:Request[]=[],seen=new Set<State>()
+ for(let at=state;;){
+  visit();if(seen.has(at))return undefined;seen.add(at)
+  const from=pathTo.get(at);if(!from)return requests.reverse()
+  requests.push(from[1]);at=from[0]
+ }
+}
+export function retainedSamples(m:Machine):readonly {p:Env,sts:readonly State[]}[]{return smalls.get(m)??[]}
+
 export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000, walks = 0): State[] {
   return withReachabilityWork(() => smallWithin(m, p, b, cap, work, walks))
 }

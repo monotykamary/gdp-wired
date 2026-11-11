@@ -124,6 +124,22 @@ test('proof-guided admission checks and shrinks offers before expansion, then cl
  }
 })
 
+test('reachable screening precedes a required ordinary allowance and survives fallback',()=>{
+ const bad:Law={name:'reachable ordinary',holds:same(x('noise'),n(0))},core:Law={name:'independent core',holds:same(x('core'),n(0))}
+ const m:Machine={name:'generic required screen',params:[],inputs:[],state:{noise:n(0),core:n(0)},step:{state:{noise:n(1),core:x('core')}}}
+ family=[bad,core];selected=[core];requirements=new Map([[core.name,[bad.name]]]);alternatives=new Set();priority=new Map([[bad.name,0],[core.name,1]])
+ let calls=0;decline=target=>target===core&&++calls===1
+ const previous=process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING;process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING='1'
+ try{
+  const {out,events}=run(m,[core],25000000)
+  expect(out.proven).toBe(true);expect(checkCountedLaws(out.m,out.laws,out.proof!)).toBe(true)
+  expect(events.some(e=>e.phase==='count-reachability'&&e.law===bad.name&&e.outcome==='rejected')).toBe(true)
+  expect(events.some(e=>e.phase==='count-reachability-invalidated'&&(e.rejected as string[]).includes(bad.name))).toBe(true)
+  expect(events.some(e=>e.phase==='count-component-attempt'&&e.law===bad.name&&e.purpose==='required')).toBe(false)
+  expect(out.laws).not.toContain(bad)
+ }finally{decline=undefined;if(previous===undefined)delete process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING;else process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING=previous}
+})
+
 test('a failed outsider invalidates the actual citing proposal and the survivor is rebuilt without it',()=>{
  const good:Law={name:'good bound',holds:{op:'<=',a:x('right'),b:n(0)}}
  const left:Law={name:'surviving left',holds:same(x('left'),n(0))}
