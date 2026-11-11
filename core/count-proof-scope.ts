@@ -6,8 +6,9 @@ import {clock,wallAt,withDeadline} from '../kernel/prove.ts'
 import {countedCertificateHyps,replayCountCertificate} from './count-cert-transport.ts'
 import {strategyLawKey} from './strategy-premises.ts'
 import {checkWall} from './wall.ts'
+import {finalCountStepDeferralEnabled} from './count-final-step.ts'
 
-export type CountLawProof = {instances:Instances,certs:Record<string,CountCert>,premises?:readonly string[]}
+export type CountLawProof = {status?: 'unchecked', instances:Instances,certs:Record<string,CountCert>,premises?:readonly string[]}
 export type CountFamilyProof = {instances:Record<string,Instances>,certs:Record<string,CountCert>,premises?:Record<string,readonly string[]>}
 type Premise = Readonly<{name:string,key:string}>
 export type ScopedCountProof = Readonly<{
@@ -52,7 +53,7 @@ export function scopeCountProof(m:Machine,owner:Law,family:Law[],proof:CountLawP
 // A changed premise is missing even if its label survives. Unused instantiated
 // laws do not pin the proof: remove those tuples before reconstructing the
 // target goals. Flag/fact instances outside the candidate family are retained.
-export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCountProof,until:number):CountLawProof|undefined{
+export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCountProof,until:number,options:{deferToClosing?:boolean}={}):CountLawProof|undefined{
  return withDeadline(until,()=>{
   if(!live(until)||new Set(family.map(l=>l.name)).size!==family.length)return undefined
   const byName=new Map(family.map(l=>[l.name,l]))
@@ -61,6 +62,7 @@ export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCount
    if(!law||identity(law).key!==premise.key)return undefined
   }
   const owner=byName.get(scoped.owner.name)!,names=new Set(scoped.premises.map(p=>p.name))
+  const deferred=options.deferToClosing===true&&finalCountStepDeferralEnabled()&&scoped.proof.status==='unchecked'
   // The original family names are the source of pruning, not the new family:
   // dropped unused instances must disappear too, while unrelated facts stay.
   const instances={...scoped.proof.instances}
@@ -72,9 +74,9 @@ export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCount
    const {goal,decls}=goals[i]!,cert=scoped.proof.certs[goal.name]
    const to=cert&&mcGoal(goal.hyps,decls,cert),from=scoped.sources[i]!
    const next=to&&replayCountCertificate(from,to,cert!,wallAt())
-   if(!next||!checkMC(goal.hyps,decls,next)||!live(until))return undefined
+   if(!next||(!deferred&&!checkMC(goal.hyps,decls,next))||!live(until))return undefined
    certs[goal.name]=next
   }
-  return {instances,certs,premises:[...names]}
+  return {instances,certs,premises:[...names],...(deferred?{status:'unchecked' as const}:{})}
  })
 }

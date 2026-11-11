@@ -7,6 +7,30 @@ import {runtimeWall} from './runtime-wall.ts'
 
 type NativeKey = Extract<CompleteWorkKey, 'tinyNodes' | 'tinyTerms' | 'reachStates' | 'reachEdges' | 'reachEvals' | 'reachCompiledEvals'>
 let reachDepth = 0
+let evaluationDepth = 0, evaluationCredit = 0
+// Only scoped model interpretation uses this path; ordinary eval observations
+// elsewhere and all legacy counters keep their exact behavior. A block carries
+// at most 256 raw units of credit. Near the endpoint admit only the next visit.
+function admitEvaluation(count: number): void {
+  if (count !== 1 && (!Number.isSafeInteger(count) || count < 0)) throw new RangeError('invalid evaluation count')
+  if (evaluationCredit < count) {
+    const weight = completeWorkProfile.weights.evals
+    const block = Math.max(count, Math.max(1, Math.min(256, Math.floor(256 / weight))))
+    const units = block * weight
+    if (Number.isFinite(units) && (runtimeWall.remaining?.() ?? Infinity) >= units) {
+      runtimeWall.admit?.(units, 'model evaluations'); evaluationCredit = block
+    } else {
+      runtimeWall.admit?.(count * weight, 'model evaluations'); evaluationCredit = count
+    }
+  }
+  evaluationCredit -= count
+}
+export function withEvaluationAdmission<T>(run: () => T): T {
+  if (!completeWorkProfile.enabled) return run()
+  evaluationDepth++; evaluationCredit = 0
+  try { return run() } finally { evaluationDepth--; evaluationCredit = 0 }
+}
+
 function charge(key: NativeKey, count: number): void {
   if (!completeWorkProfile.enabled) return
   if (!Number.isSafeInteger(count) || count < 0) throw new RangeError('native work count must be a nonnegative safe integer')
@@ -36,7 +60,10 @@ export function reachEdge(): void { charge('reachEdges', 1) }
 // Static compiled-step charges remain a separate bucket: their documented
 // contract is one syntactic step-body node per invocation, not executed nodes.
 export function observeEval(count = 1, compiled = false): void {
-  if (!completeWorkProfile.enabled || !reachDepth) { coreMeter.evals += count; return }
+  if (!completeWorkProfile.enabled || !reachDepth) {
+    if (completeWorkProfile.enabled && evaluationDepth) admitEvaluation(count)
+    coreMeter.evals += count; return
+  }
   // The overwhelmingly common path is one actual expression-node visit.
   // Its count and coefficient are already validated; still admit every node.
   if (count === 1 && !compiled) {

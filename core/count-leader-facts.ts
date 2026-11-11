@@ -3,6 +3,7 @@
 import {type Law, n, same, x} from './machine.ts'
 import {type GuardCountContext} from './count-guard-context.ts'
 import {type CountRequestBuilder} from './count-strategy.ts'
+import {countPrimitiveUnits} from './count-primitive-budget.ts'
 import {countFrameConditions, fixedCountFrameCase, ownCountLawInstance} from './count-frames.ts'
 import {guardRegionProposals} from './count-guard-proposals.ts'
 import {type CheckedGuardLinearFact, type GuardCountProposal, guardLinearFact} from './count-guard-facts.ts'
@@ -17,7 +18,7 @@ export function leaderCountProposals(proposals: readonly GuardCountProposal[]): 
   return proposals.filter(p => p.kind === 'guard-complement-upper' ||
     p.kind === 'row-frame' && p.terms.length === 2 && p.terms[0]![0] === -1).slice(0, 24)
 }
-export function proveLeaderCountFacts(context: GuardCountContext, family: Law[], law: Law, until: number, requestFor: CountRequestBuilder): {reads: MapRead[], facts: CheckedGuardLinearFact[]} | undefined {
+export function proveLeaderCountFacts(context: GuardCountContext, family: Law[], law: Law, until: number, requestFor: CountRequestBuilder, leafUnits?: number): {reads: MapRead[], facts: CheckedGuardLinearFact[]} | undefined {
   const m = context.machine, choice = fixedCountFrameCase(m), index = family.indexOf(law)
   if (!choice || index < 0 || clock() >= until || pastWall()) return
   const step = countedObligations(m, family, {[law.name]: ownCountLawInstance(law, {})}, index).at(-1)!
@@ -34,7 +35,7 @@ export function proveLeaderCountFacts(context: GuardCountContext, family: Law[],
   const proposals = guardRegionProposals(counts, reads, step.decls, m.inputMaps ?? [], same(x(choice.name), n(choice.value)), path), facts: CheckedGuardLinearFact[] = []
   for (const proposal of leaderCountProposals(proposals.counts)) {
     if (clock() >= until || pastWall()) return
-    const fact = guardLinearFact(step.decls, reads, proposal, Math.min(until, clock() + 150))
+    const fact = guardLinearFact(step.decls, reads, proposal, Math.min(until, clock() + countPrimitiveUnits(150, leafUnits)))
     if (fact) facts.push(fact)
   }
   return {reads, facts}

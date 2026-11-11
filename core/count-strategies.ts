@@ -1,6 +1,7 @@
 // Opt-in proposers only. Every successful composer checks the caller's machine;
 // definition-extended guard contexts must already be admitted by the caller.
 import {type Law, type Machine} from './machine.ts'
+import {familyStepProposal, finalCountStepDeferralEnabled, type FamilyStepProposal} from './count-final-step.ts'
 import {type CountRequestBuilder, type CountStrategyProof, strategyLeafUnits} from './count-strategy.ts'
 import {discoverRowAgreement} from './row-agreement-shape.ts'
 import {discoverLiftedCountGuard} from './count-lifted-shape.ts'
@@ -62,12 +63,19 @@ export function proveCountStrategyPool(m: Machine, family: Law[], until: number,
   })
 }
 export function proveCountStrategies(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, workAllowance = Math.max(0, until - clock())): CountStrategyProof | undefined {
+  return countStrategies(m, family, law, until, request, observe, workAllowance)
+}
+// Internal construction path: an explicit proposal, never a checked verdict.
+export function proposeCountStrategiesForClosing(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, workAllowance = Math.max(0, until - clock())): CountStrategyProof | undefined {
+  return countStrategies(m, family, law, until, request, observe, workAllowance, finalCountStepDeferralEnabled() ? familyStepProposal : undefined)
+}
+function countStrategies(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe: ((event: Record<string, unknown>) => void) | undefined, workAllowance: number, familyProposal?: FamilyStepProposal): CountStrategyProof | undefined {
   return withDeadline(until, () => {
     if (late(until)) return
     const leafUnits = strategyLeafUnits(workAllowance)
     if (discoverRowAgreement(m, law)) {
       observe?.({strategy: 'row', stage: 'search-budget', workAllowance, leafUnits})
-      return proveCountRowComposition(m, family, law, until, request, e => observe?.({strategy: 'row', ...e}), {framePremisesOnly: true, leafUnits, deferRowChecks: env.GDP_COUNT_ROW_DEFER_CHECKS === '1'})
+      return proveCountRowComposition(m, family, law, until, request, e => observe?.({strategy: 'row', ...e}), {framePremisesOnly: true, leafUnits, deferRowChecks: env.GDP_COUNT_ROW_DEFER_CHECKS === '1', familyProposal})
     }
     if (liftedSelected(m, family, law)) {
       observe?.({strategy:'lifted',stage:'selected'})
@@ -81,6 +89,6 @@ export function proveCountStrategies(m: Machine, family: Law[], law: Law, until:
       return
     }
     observe?.({strategy: 'guard', stage: 'search-budget', workAllowance, leafUnits})
-    return proveCountGuardComposition({...context, machine: m}, family, law, until, request, e => observe?.({strategy: 'guard', ...e}), {caseOrder: 'cost', minimalView: true, leafUnits})
+    return proveCountGuardComposition({...context, machine: m}, family, law, until, request, e => observe?.({strategy: 'guard', ...e}), {caseOrder: 'cost', minimalView: true, leafUnits, familyProposal})
   })
 }

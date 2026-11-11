@@ -3,11 +3,12 @@
 // can accept that proposal as a proof.
 import {type Law, type Machine} from './machine.ts'
 import {countsForReads} from './count-facts.ts'
+import {deferFinalCountStep, type FamilyStepProposal} from './count-final-step.ts'
 import {countStageTrace, type CountStageObserver} from './count-stage-trace.ts'
 import {type CountCert, type CountDecl, type Goal, type Instances, checkMC, countedObligations, mcGoal} from '../kernel/kernel.ts'
 import {clock, grow, pastWall} from '../kernel/prove.ts'
 // Composition-only proposals intentionally omit INIT and must pass the enclosing final checker.
-export type CountStrategyOptions = {deferToComposition?: boolean, deferIntermediateChecks?: boolean, deferRowChecks?: boolean, minimize?: boolean, minimalView?: boolean, leafUnits?: number, trace?: (event: Record<string, unknown>) => void, tailTrace?: CountStageObserver}
+export type CountStrategyOptions = {familyProposal?: FamilyStepProposal, deferToComposition?: boolean, deferIntermediateChecks?: boolean, deferRowChecks?: boolean, minimize?: boolean, minimalView?: boolean, leafUnits?: number, trace?: (event: Record<string, unknown>) => void, tailTrace?: CountStageObserver}
 // Calibration-independent: W is the original enclosing work allowance, not
 // a case's remaining share. INIT and final checking do not use this cap.
 export function strategyLeafUnits(workAllowance: number): number {
@@ -28,10 +29,14 @@ export function finishCountStrategy(m: Machine, family: Law[], law: Law, instanc
   trace.mark('final-obligation-build', 'untrusted-assembly')
   const packets = countedObligations(m, family, {[law.name]: instances}, index), step = packets.at(-1)
   if (!step) return
-  trace.mark('native-step-check', 'trusted-check')
-  const stepChecked = checkMC(step.goal.hyps, step.decls, stepCert)
-  observe?.('step-check', stepChecked)
-  if (!stepChecked) return
+  const deferred = deferFinalCountStep(options.familyProposal)
+  if (deferred) observe?.('step-proposal', false)
+  else {
+    trace.mark('native-step-check', 'trusted-check')
+    const stepChecked = checkMC(step.goal.hyps, step.decls, stepCert)
+    observe?.('step-check', stepChecked)
+    if (!stepChecked) return
+  }
   const certs: Record<string, CountCert> = {[step.goal.name]: stepCert}
   for (const initial of packets.slice(0, -1)) {
     trace.mark('initial-request-build', 'untrusted-assembly')
@@ -56,6 +61,6 @@ export function finishCountStrategy(m: Machine, family: Law[], law: Law, instanc
     certs[initial.goal.name] = cert
   }
   trace.mark('certificate-return', 'untrusted-assembly')
-  return clock() < until && !pastWall() ? {instances, certs} : undefined
+  return clock() < until && !pastWall() ? {instances, certs, ...(deferred ? {status: 'unchecked' as const} : {})} : undefined
   } finally {trace.finish()}
 }

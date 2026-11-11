@@ -6,6 +6,7 @@ import {discoverCountThresholdWrite} from './count-write-shape.ts'
 import {countFrameConditions, fixedCountFrameCase, ownCountLawInstance} from './count-frames.ts'
 import {countGuardTree} from './count-guard-tree.ts'
 import {countsForReads} from './count-facts.ts'
+import {countPrimitiveUnits} from './count-primitive-budget.ts'
 import {type CountRequestBuilder, type CountStrategyProof, type CountStrategyOptions, finishCountStrategy, strategyLeafUntil} from './count-strategy.ts'
 import {add, k, scale, sub, solve} from './solver.ts'
 import {type CountCert, type CountInst, type FrameCut, type Instances, type MapRead, type Path, type Tree, check, countedObligations, frameOk, framePath, linear, mcGoal, substC} from '../kernel/kernel.ts'
@@ -60,7 +61,7 @@ export function proveCountReplacement(context: GuardCountContext, family: Law[],
       if (options.minimalView && selected !== undefined) {
         const minimal = countSearchView(step.goal, step.decls, cert, insts[selected])
         if (minimal) {
-          const tree = proveCountQuery(goal, p, until, {query: stage + ':' + selected, minimal, direct: true, minimalUnits: 900, fullUnits: 900, leafUnits: options.leafUnits, trace: options.trace})
+          const tree = proveCountQuery(goal, p, until, {query: stage + ':' + selected, minimal, direct: true, minimalUnits: countPrimitiveUnits(900, options.leafUnits), fullUnits: countPrimitiveUnits(900, options.leafUnits), leafUnits: options.leafUnits, trace: options.trace})
           observe?.(stage, !!tree); return tree
         }
       }
@@ -69,7 +70,7 @@ export function proveCountReplacement(context: GuardCountContext, family: Law[],
       const hyps = selected === undefined ? step.goal.hyps : step.goal.hyps.filter(h => {let unrelated = false; walkOnce(h, (node: any) => {if (node.op === 'if' || node.op === 'var' && node.name.startsWith(prefix + 'w') && node.name !== insts[selected]!.wit) unrelated = true}); return !unrelated})
       const view = selected === undefined ? goal : mcGoal(hyps, step.decls, {reads, insts: [insts[selected]!], picks: []})
       if (!view) return
-      const result = growCdcl(view, p, {nodes: 0, until: Math.min(strategyLeafUntil(until, options), clock() + 900)}), tree = 'tree' in result ? rebasePath(view, result.tree, p, p, Math.min(strategyLeafUntil(until, options), clock() + 600), goal) ?? replayLinearSkeleton(goal, result.tree, p, Math.min(strategyLeafUntil(until, options), clock() + 600)) : undefined
+      const result = growCdcl(view, p, {nodes: 0, until: Math.min(strategyLeafUntil(until, options), clock() + countPrimitiveUnits(900, options.leafUnits))}), tree = 'tree' in result ? rebasePath(view, result.tree, p, p, Math.min(strategyLeafUntil(until, options), clock() + countPrimitiveUnits(600, options.leafUnits)), goal) ?? replayLinearSkeleton(goal, result.tree, p, Math.min(strategyLeafUntil(until, options), clock() + countPrimitiveUnits(600, options.leafUnits))) : undefined
       const checked = !!tree && check(goal, tree, p); observe?.(stage, checked)
       return checked ? tree : undefined
     }

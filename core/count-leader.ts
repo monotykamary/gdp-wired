@@ -6,6 +6,7 @@ import {discoverCountThresholdWrite} from './count-write-shape.ts'
 import {countFrameConditions, fixedCountFrameCase, ownCountLawInstance} from './count-frames.ts'
 import {type CountRequestBuilder, type CountStrategyProof, type CountStrategyOptions, finishCountStrategy, strategyLeafUntil} from './count-strategy.ts'
 import {proveLeaderCountFacts} from './count-leader-facts.ts'
+import {countPrimitiveUnits} from './count-primitive-budget.ts'
 import {guardLinearFact} from './count-guard-facts.ts'
 import {boundedQuotient} from './count-bounded-quotient.ts'
 import {countGuardTree} from './count-guard-tree.ts'
@@ -26,7 +27,7 @@ export function proveCountLeader(context: GuardCountContext, family: Law[], law:
     if (!choice || index < 0 || clock() >= until || pastWall()) return
     const write = discoverCountThresholdWrite(context.original, shape, choice)
     if (!write || write.increment !== 1) return
-    const saved = proveLeaderCountFacts(context, family, law, until, requestFor)
+    const saved = proveLeaderCountFacts(context, family, law, until, requestFor, options.leafUnits)
     if (!saved) return
     const upperFact = saved.facts.find(f => f.proposal.kind === 'guard-complement-upper')
     if (!upperFact || upperFact.proposal.when.length < 4) return
@@ -91,7 +92,7 @@ export function proveCountLeader(context: GuardCountContext, family: Law[], law:
     const partition = (terms: [number, string][], name: string): boolean => {
       const started = fullWork(), leafEnd = strategyLeafUntil(until, options)
       let searchEnd: number | undefined
-      const fact = guardLinearFact(step.decls, reads, {name, kind: 'partition', when: [], terms}, Math.min(leafEnd, clock() + 600), event => {searchEnd = event.searchEnd})
+      const fact = guardLinearFact(step.decls, reads, {name, kind: 'partition', when: [], terms}, Math.min(leafEnd, clock() + countPrimitiveUnits(600, options.leafUnits)), event => {searchEnd = event.searchEnd})
       const capped = leafEnd < until && (searchEnd ?? clock()) >= leafEnd
       if (fact && !capped) cert.lins!.push(fact.cut)
       options.trace?.({query: 'partition', name, outcome: capped ? 'leaf-cap' : fact ? 'proposed' : 'declined', units: (fullWork() - started) / fullRate})
@@ -112,7 +113,7 @@ export function proveCountLeader(context: GuardCountContext, family: Law[], law:
         const selected = insts.find(inst => {const row = add(...inst.terms.map(([c, v]) => ({[v]: c})), scale(linear(inst.below, p)!, inst.unit)); return p.get(canon(row))?.holds === false})
         const minimal = selected && countSearchView(step.goal, step.decls, cert, selected)
         if (minimal) {
-          const tree = proveCountQuery(goal, p, until, {query: stage, minimal, direct: true, minimalUnits: 600, fullUnits: 250, leafUnits: Math.max(0, queryEnd - clock()), trace: options.trace})
+          const tree = proveCountQuery(goal, p, until, {query: stage, minimal, direct: true, minimalUnits: countPrimitiveUnits(600, options.leafUnits), fullUnits: countPrimitiveUnits(250, options.leafUnits), leafUnits: Math.max(0, queryEnd - clock()), trace: options.trace})
           observe?.(stage, !!tree); return tree
         }
       }
@@ -154,7 +155,7 @@ export function proveCountLeader(context: GuardCountContext, family: Law[], law:
         if (selected) {
           const hyps = step.goal.hyps.filter(h => {let choice = false; walkOnce(h, (node: any) => {if (node.op === 'if') choice = true}); return !choice})
           const view = mcGoal(hyps, step.decls, {reads, insts: [selected], picks: []})!
-          const result = growCdcl(view, p, {nodes: 0, until: Math.min(queryEnd, clock() + 600)}), tree = 'tree' in result && clock() < queryEnd ? rebasePath(view, result.tree, p, p, until, goal) ?? replayLinearSkeleton(goal, result.tree, p, until) : undefined
+          const result = growCdcl(view, p, {nodes: 0, until: Math.min(queryEnd, clock() + countPrimitiveUnits(600, options.leafUnits))}), tree = 'tree' in result && clock() < queryEnd ? rebasePath(view, result.tree, p, p, until, goal) ?? replayLinearSkeleton(goal, result.tree, p, until) : undefined
           if (tree && check(goal, tree, p)) return tree
         }
       }
@@ -165,7 +166,7 @@ export function proveCountLeader(context: GuardCountContext, family: Law[], law:
           const row = sub(linear(fact.a, p)!, linear(fact.b, p)!)
           if (p.get(canon(row))?.holds !== false) continue
           const auxiliary = {name: 'ordinary bounded floor', hyps: [{op: '<=' as const, a: value, b: n(upper)}, {op: 'not' as const, x: fact}]}
-          const result = grow(auxiliary, new Map(), {nodes: 0, until: Math.min(queryEnd, clock() + 600)}), tree = 'tree' in result && clock() < queryEnd && check(auxiliary, result.tree) ? rebasePath(auxiliary, result.tree, new Map(), p, until, goal) ?? replayLinearSkeleton(goal, result.tree, p, until) : undefined
+          const result = grow(auxiliary, new Map(), {nodes: 0, until: Math.min(queryEnd, clock() + countPrimitiveUnits(600, options.leafUnits))}), tree = 'tree' in result && clock() < queryEnd && check(auxiliary, result.tree) ? rebasePath(auxiliary, result.tree, new Map(), p, until, goal) ?? replayLinearSkeleton(goal, result.tree, p, until) : undefined
           if (tree && check(goal, tree, p)) return tree
         }
       }
@@ -181,7 +182,7 @@ export function proveCountLeader(context: GuardCountContext, family: Law[], law:
       if (clock() >= queryEnd) {options.trace?.({query: stage, outcome: 'leaf-cap', units: 0}); return}
       if (direct.kind === 'refuted') {const tree: Tree = {leaf: direct.steps}; if (check(goal, tree, p)) return tree}
       const queryStart = fullWork()
-      const result = growCdcl(goal, p, {nodes: 0, until: Math.min(queryEnd, clock() + 250)}), capped = queryEnd < until && clock() >= queryEnd, checked = !capped && 'tree' in result && check(goal, result.tree, p)
+      const result = growCdcl(goal, p, {nodes: 0, until: Math.min(queryEnd, clock() + countPrimitiveUnits(250, options.leafUnits))}), capped = queryEnd < until && clock() >= queryEnd, checked = !capped && 'tree' in result && check(goal, result.tree, p)
       observe?.(stage, checked)
       options.trace?.({query: stage, outcome: capped ? 'leaf-cap' : checked ? 'proposed' : 'stuck' in result ? result.stuck : 'rejected', units: (fullWork() - queryStart) / fullRate, ...(!checked ? {goal, path: [...p.values()], ...('witness' in result ? {witness: result.witness} : {}), ...('why' in result ? {why: result.why} : {})} : {})})
       return checked && 'tree' in result ? result.tree : undefined

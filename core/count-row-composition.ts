@@ -41,6 +41,6 @@ export function proveCountRowComposition(m: Machine, family: Law[], law: Law, un
     if (late(until)) return
     const initial = traceCountStage(observe, 'initial-proposal', 'untrusted-search', () => proposeRowAgreementInitial(m, family, law, until, requestFor))
     if (!initial) return
-    return composeCountOperationProofs({original: m, machine: m, shape: shapes[0]!, restrictions: [], inputCounts: {}}, family, law, cases, until, requestFor, (stage, value) => observe?.({stage, value}), {initial, trace: observe, minimize: options.minimize})
+    return composeCountOperationProofs({original: m, machine: m, shape: shapes[0]!, restrictions: [], inputCounts: {}}, family, law, cases, until, requestFor, (stage, value) => observe?.({stage, value}), {initial, trace: observe, minimize: options.minimize, familyProposal: options.familyProposal})
   })
 }

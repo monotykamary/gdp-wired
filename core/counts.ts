@@ -18,6 +18,8 @@ import {searchNow as countedSearchNow, traceNow as countedTraceNow} from './wall
 //      checks the final set. The ∃ search still uses `cone`: relative induction from already-kept candidates.
 import {type C, type E, type Law, type Machine} from './machine.ts'
 import {isLocalCountExpiration} from './count-tier-budget.ts'
+import {withEvaluationAdmission} from './work-observe.ts'
+import {finalCountStepDeferralEnabled, closingCountCheck} from './count-final-step.ts'
 import {type CountCert, type CountDecl, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, checkMC, countedObligations, mcGoal, scope, substC, substE} from '../kernel/kernel.ts'
 import {brokenOf, clock, counted, fullRate, grow, modelInstances, wallAt, widen, withDeadline, withinDeadline, withWall} from '../kernel/prove.ts'
 import {REFUTED, cdclStats} from '../kernel/cdcl.ts'
@@ -49,7 +51,7 @@ import {env} from './solver.ts'
 import {proofOrigins, proposeLemmaCuts} from './lemma-cuts.ts'
 import {countedCertificateHyps,transportCountCertificate} from './count-cert-transport.ts'
 import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, scopeCountProof, replayScopedCountProof} from './count-proof-scope.ts'
-import {prepareCountStrategyMachine, proveCountStrategies, selectedCountStrategies} from './count-strategies.ts'
+import {prepareCountStrategyMachine, proveCountStrategies, proposeCountStrategiesForClosing, selectedCountStrategies} from './count-strategies.ts'
 import {type CountTierBudget, countTierBudget, ordinaryTierShare} from './count-tier-budget.ts'
 import {discoverRowAgreement} from './row-agreement-shape.ts'
 import {countPremiseContext} from './count-premise-view.ts'
@@ -597,7 +599,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         if (shared) proposed = {...proposed, certs: {...proposed.certs, [goal.name]: {...cert, tree: shared.tree, lemmas: shared.lemmas}}}
       }
     }
-    if (proposed !== proof && ptime('kernel', () => checkCountedLaws(m, ls, proposed))) {
+    if (proposed !== proof && ptime('kernel', () => closingCountCheck(() => checkCountedLaws(m, ls, proposed)))) {
       // Sharing may retain a wider independent-cut source slice. Never attach
       // pre-sharing premise metadata to a different final certificate.
       if (!scopeEnabled) proof = proposed
@@ -610,7 +612,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       }
       proof = {...proposed, premises}
       }
-    } else if (!ptime('kernel', () => checkCountedLaws(m, ls, proof))) return {proven: false, laws: ls, m, why: 'the kernel refused the set'}
+    } else if (!ptime('kernel', () => closingCountCheck(() => checkCountedLaws(m, ls, proof)))) return {proven: false, laws: ls, m, why: 'the kernel refused the set'}
     // Output-only observation, after the unchanged checker accepts every obligation.
     countsDump.on?.({phase: 'closed-family', machine: m, laws: ls, proof, checked: true})
     return {proven: true, laws: ls, m, proof}
@@ -675,7 +677,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         carried = new Map([...proofs].filter(([, pr]) => dropped.every(d => d.forall && !pr.instances[d.name]?.length)))
       } else for (const name of proofs.keys()) {
         const scoped = scopes.get(name)
-        const replayed = scoped && ptime('premise-replay', () => replayScopedCountProof(m, next, scoped, until))
+        const replayed = scoped && ptime('premise-replay', () => replayScopedCountProof(m, next, scoped, until, {deferToClosing: finalCountStepDeferralEnabled()}))
         countsDump.on?.({phase: 'premise-replay', law: name, round, retained: !!replayed, premises: scoped?.premises.map(p => p.name)})
         if (replayed) carried.set(name, replayed)
         else scopes.delete(name)
@@ -749,7 +751,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       if(!law){
         const kept=set.filter(l=>required.has(l.name)),instances:Record<string,Instances>={},certs:Record<string,CountCert>={},premises:Record<string,readonly string[]>={}
         for(const l of kept){
-          const replayed=ptime('premise-replay',()=>replayScopedCountProof(m,kept,known.get(l.name)!,until))
+          const replayed=ptime('premise-replay',()=>replayScopedCountProof(m,kept,known.get(l.name)!,until,{deferToClosing:finalCountStepDeferralEnabled()}))
           if(!replayed)return join()
           instances[l.name]=replayed.instances
           premises[l.name]=replayed.premises??[]
@@ -1025,7 +1027,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       if (!b?.pool) return false
       // (broken where no completion of the model meets it: the cells it leaves out at their start, at 1, or one map's
       // flipped from either, and an instance's witness at each value below 16)
-      const {fg, keys, wits} = b.pool, active = b.pool.chosen ?? chosen, base = fg.hyps.length - keys.length, ids = keys.flatMap((q, j) => (active.has(q) ? [] : [base + j])), judge = brokenOf(fg)
+      const {fg, keys, wits} = b.pool, active = b.pool.chosen ?? chosen, base = fg.hyps.length - keys.length, ids = keys.flatMap((q, j) => (active.has(q) ? [] : [base + j])), rawJudge = brokenOf(fg), judge = (...args: Parameters<typeof rawJudge>) => withEvaluationAdmission(() => rawJudge(...args))
       let bad = ids.length ? judge(w, ids) : []
       const mps = [...new Set(bad.flatMap(i => [...reads(fg.hyps[i], () => true).values()].map(([mp]) => mp)))], one1 = Object.fromEntries(mps.map(mp => [mp, 1]))
       for (const d of strict ? [undefined] : [undefined, one1, ...mps.map(mp => ({[mp]: 1})), ...mps.map(mp => ({...one1, [mp]: 0}))]) for (let x = 0; x < 16 && bad.length; x++) {
@@ -1183,10 +1185,10 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     const result = withDeadline(end, (): Tried<Proof> => {
       let remaining = ms
       if (!pass && env.GDP_COUNT_STRATEGIES === '1' && (!strategyOnly.size || strategyOnly.has(law))) {
-        const proof = ptime('strategies', () => proveCountStrategies(m, ls, law, end,
+        const proof = ptime('strategies', () => (tiers?.active && finalCountStepDeferralEnabled() ? proposeCountStrategiesForClosing : proveCountStrategies)(m, ls, law, end,
           (goal, decls) => certFor(goal, decls, false, 0, () => clock() < end, structured),
           event => countsDump.on?.({phase: 'count-strategy', law: law.name, pass, end, ...event}), workAllowance))
-        countsDump.on?.({phase: 'count-strategy-result', law: law.name, pass, end, checked: !!proof})
+        countsDump.on?.({phase: 'count-strategy-result', law: law.name, pass, end, checked: !!proof && proof.status !== 'unchecked', ...(proof?.status === 'unchecked' ? {proposed: true, status: 'unchecked'} : {})})
         if (proof) return {proof}
         if (strategyOnly.has(law)) return {stuck: 'strategy declined'}
         remaining = Math.max(0, end - clock())
@@ -1226,10 +1228,10 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
               if (!cert || clock() >= localEnd) return
               const from = mcGoal(part.goal.hyps, part.decls, cert), to = mcGoal(whole.goal.hyps, whole.decls, cert)
               const lifted = from && to && transportCountCertificate(from, to, cert, wallAt())
-              if (!lifted || !checkMC(whole.goal.hyps, whole.decls, lifted)) return
+              if (!lifted || (!(finalCountStepDeferralEnabled() && proposed.proof.status === 'unchecked') && !checkMC(whole.goal.hyps, whole.decls, lifted))) return
               certs[whole.goal.name] = lifted
             }
-            return {proof: {instances: proposed.proof.instances, certs}}
+            return {proof: {instances: proposed.proof.instances, certs, ...(proposed.proof.status === 'unchecked' ? {status: 'unchecked' as const} : {})}}
           },
           event => countsDump.on?.({...event, law: law.name, pass}),
           error => error instanceof UnsupportedCountProposal)

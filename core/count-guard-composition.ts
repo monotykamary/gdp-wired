@@ -4,6 +4,7 @@ import {type Law, all, n, same, x} from './machine.ts'
 import {type GuardCountContext} from './count-guard-context.ts'
 import {type CountRequestBuilder, type CountStrategyProof, type CountStrategyOptions} from './count-strategy.ts'
 import {finiteCountChoice} from './count-cases.ts'
+import {countPrimitiveUnits} from './count-primitive-budget.ts'
 import {traceNow} from './trace-clock.ts'
 import {orderCountOperations, type CountOperationKind} from './count-operation-order.ts'
 import {discoverCountRowCopy} from './count-copy-shape.ts'
@@ -30,7 +31,7 @@ export function proveFixedCountOperations(context: GuardCountContext, family: La
       if (late(until)) return
       const machine = {...context.machine, assume: all(...(context.machine.assume ? [context.machine.assume] : []), same(x(name), n(value)))}, selected = {...context, machine}, wallStart = traceNow()
       const start = fullWork(), caseOptions = {...options, trace: (event: Record<string, unknown>) => observe?.({stage: 'query', value, kind, ...event})}
-      const proof = kind === 'copy' ? proveCountRowCopyLinear(machine, family, law, {}, Math.min(until, clock() + 1000), requestFor, undefined, caseOptions) ?? proveCountRowCopy(machine, family, law, {}, until, requestFor, caseOptions) : kind === 'leader' ? proveCountLeader(selected, family, law, {}, until, requestFor, undefined, caseOptions) : kind === 'replacement' ? proveCountReplacement(selected, family, law, {}, until, requestFor, undefined, caseOptions) : proveFixedCountFrame(machine, family, law, {}, until, requestFor, caseOptions) ?? proveFixedCountPhase(machine, family, law, {}, until, requestFor, undefined, caseOptions)
+      const proof = kind === 'copy' ? proveCountRowCopyLinear(machine, family, law, {}, Math.min(until, clock() + countPrimitiveUnits(1000, Infinity)), requestFor, undefined, caseOptions) ?? proveCountRowCopy(machine, family, law, {}, until, requestFor, caseOptions) : kind === 'leader' ? proveCountLeader(selected, family, law, {}, until, requestFor, undefined, caseOptions) : kind === 'replacement' ? proveCountReplacement(selected, family, law, {}, until, requestFor, undefined, caseOptions) : proveFixedCountFrame(machine, family, law, {}, until, requestFor, caseOptions) ?? proveFixedCountPhase(machine, family, law, {}, until, requestFor, undefined, caseOptions)
       observe?.({stage: 'operation', value, kind, proposed: !!proof, checked: !!proof && !options.deferToComposition, units: (fullWork() - start) / fullRate, wallMs: traceNow() - wallStart, remaining: until - clock(), ...(proof ? {premises: Object.keys(proof.instances).filter(name => family.some(law => law.name === name))} : {})})
       if (!proof) return
       cases.push({value, proof})
@@ -41,6 +42,6 @@ export function proveFixedCountOperations(context: GuardCountContext, family: La
 export function proveCountGuardComposition(context: GuardCountContext, family: Law[], law: Law, until: number, requestFor: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, options: CountStrategyOptions & {checkEachCase?: boolean, caseOrder?: 'original' | 'cost', reindexMode?: 'offset' | 'exact'} = {}): CountStrategyProof | undefined {
   return withDeadline(until, () => {
     const cases = proveFixedCountOperations(context, family, law, until, requestFor, observe, {...options, deferToComposition: !options.checkEachCase})
-    return cases && composeCountOperationProofs(context, family, law, cases, until, requestFor, (stage, value) => observe?.({stage, value}), {reindexMode: options.reindexMode, trace: observe, minimize: options.minimize})
+    return cases && composeCountOperationProofs(context, family, law, cases, until, requestFor, (stage, value) => observe?.({stage, value}), {reindexMode: options.reindexMode, trace: observe, minimize: options.minimize, familyProposal: options.familyProposal})
   })
 }

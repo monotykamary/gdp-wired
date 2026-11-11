@@ -1,6 +1,7 @@
 // Compose fixed-operation proposals onto one unrestricted counted STEP goal.
 // Every leaf is reindexed; the complete certificate is checked at the end.
 import {type Law, all, n, same, x} from './machine.ts'
+import {deferFinalCountStep, type FamilyStepProposal} from './count-final-step.ts'
 import {traceNow} from './trace-clock.ts'
 import {recordCountStrategyPremises} from './count-strategy-premises.ts'
 import {type GuardCountContext} from './count-guard-context.ts'
@@ -14,7 +15,7 @@ import {type CountCert, type Goal, type Instances, type Path, type Tree, boundOf
 import {fullRate, fullWork, late, rowsAt, withDeadline} from '../kernel/prove.ts'
 import {type Lin, type Step, add, k} from './solver.ts'
 export type FixedOperationProof = {value: number, proof: CountStrategyProof}
-export function composeCountOperationProofs(context: GuardCountContext, family: Law[], law: Law, cases: FixedOperationProof[], until: number, requestFor: CountRequestBuilder, observe?: (stage: string, value?: number) => void, options: {reindexMode?: 'offset' | 'exact', initial?: CountCert, trace?: CountStageObserver, minimize?: boolean} = {}): CountStrategyProof | undefined {
+export function composeCountOperationProofs(context: GuardCountContext, family: Law[], law: Law, cases: FixedOperationProof[], until: number, requestFor: CountRequestBuilder, observe?: (stage: string, value?: number) => void, options: {familyProposal?: FamilyStepProposal, reindexMode?: 'offset' | 'exact', initial?: CountCert, trace?: CountStageObserver, minimize?: boolean} = {}): CountStrategyProof | undefined {
   return withDeadline(until, () => {
     const trace = countStageTrace(options.trace, 'composition-total')
     try {
@@ -159,13 +160,17 @@ export function composeCountOperationProofs(context: GuardCountContext, family: 
         const packets = countedObligations(m, family, {[law.name]: instances}, target)
         if (packets.length !== 2 || late(until)) return
         const initial = packets[0]!, step = packets[1]!, cert = certificate
-        trace.mark('native-step-check', 'trusted-check')
-        if (!timed('compose-native-step', () => checkMC(step.goal.hyps, step.decls, cert))) return
+        const deferred = deferFinalCountStep(options.familyProposal)
+        if (deferred) observe?.('step-proposal')
+        else {
+          trace.mark('native-step-check', 'trusted-check')
+          if (!timed('compose-native-step', () => checkMC(step.goal.hyps, step.decls, cert))) return
+        }
         trace.mark('native-init-check', 'trusted-check')
         if (!timed('compose-native-initial', () => checkMC(initial.goal.hyps, initial.decls, options.initial!))) return
         trace.mark('certificate-return', 'untrusted-assembly')
-        return late(until) ? undefined : {instances, certs: {[step.goal.name]: cert, [initial.goal.name]: options.initial!}}
-      })() : finishCountStrategy(m, family, law, instances, context.shape.voteMap, certificate, until, requestFor, (stage, checked) => observe?.(stage + ':' + checked), {tailTrace: options.trace})
+        return late(until) ? undefined : {instances, certs: {[step.goal.name]: cert, [initial.goal.name]: options.initial!}, ...(deferred ? {status: 'unchecked' as const} : {})}
+      })() : finishCountStrategy(m, family, law, instances, context.shape.voteMap, certificate, until, requestFor, (stage, checked) => observe?.(stage + ':' + checked), {tailTrace: options.trace, familyProposal: options.familyProposal})
       let result = finish(certificate)
       if (!result && certificate !== original && !late(until)) {
         options.trace?.({stage: 'minimize-fallback'})

@@ -2,6 +2,7 @@
 // every leaf is transported back and checked on the complete count goal.
 import {type C, type E, type Law, type Machine, x, n, same, atMost, walkOnce} from './machine.ts'
 import {countsForReads} from './count-facts.ts'
+import {countPrimitiveUnits} from './count-primitive-budget.ts'
 import {countFrameConditions, fixedCountFrameCase, ownCountLawInstance} from './count-frames.ts'
 import {discoverCountGuardShape} from './count-guard-shape.ts'
 import {discoverCountRowCopy} from './count-copy-shape.ts'
@@ -59,8 +60,8 @@ export function proveCountRowCopy(m: Machine, family: Law[], law: Law, seed: Ins
       // Intermediate trees are proposals. finishCountStrategy checks the whole
       // original-goal certificate once; do not repeat that work at every leaf.
       if (direct.kind === 'refuted') return {leaf: direct.steps}
-      const result = growCdcl(view, p, {nodes: 0, until: Math.min(strategyLeafUntil(until, options), clock() + 1000)})
-      const lifted = 'tree' in result ? rebasePath(view, result.tree, p, p, Math.min(strategyLeafUntil(until, options), clock() + 500), goal) : undefined
+      const result = growCdcl(view, p, {nodes: 0, until: Math.min(strategyLeafUntil(until, options), clock() + countPrimitiveUnits(1000, options.leafUnits))})
+      const lifted = 'tree' in result ? rebasePath(view, result.tree, p, p, Math.min(strategyLeafUntil(until, options), clock() + countPrimitiveUnits(500, options.leafUnits)), goal) : undefined
       return lifted
     }
     const split = countGuardTree(until)

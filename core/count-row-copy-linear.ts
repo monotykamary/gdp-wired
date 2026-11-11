@@ -5,12 +5,13 @@ import {countFrameConditions, fixedCountFrameCase, ownCountLawInstance} from './
 import {discoverCountGuardShape} from './count-guard-shape.ts'
 import {discoverCountRowCopy} from './count-copy-shape.ts'
 import {countsForReads} from './count-facts.ts'
+import {countPrimitiveUnits} from './count-primitive-budget.ts'
 import {guardLinearFact, type GuardCountProposal} from './count-guard-facts.ts'
 import {countGuardTree} from './count-guard-tree.ts'
 import {type CountRequestBuilder, type CountStrategyProof, type CountStrategyOptions, finishCountStrategy} from './count-strategy.ts'
 import {add, k, scale, solve} from './solver.ts'
 import {type FrameCut, type Instances, type LinCut, type Path, type Tree, countedObligations, frameOk, framePath, mcGoal, truth} from '../kernel/kernel.ts'
-import {late, rowsAt, withDeadline} from '../kernel/prove.ts'
+import {clock, late, rowsAt, withDeadline} from '../kernel/prove.ts'
 export function proveCountRowCopyLinear(m: Machine, family: Law[], law: Law, seed: Instances, until: number, requestFor: CountRequestBuilder, observe?: (stage: string, checked: boolean) => void, options: CountStrategyOptions = {}): CountStrategyProof | undefined {
   return withDeadline(until, () => {
     if (late(until) || !family.includes(law)) return
@@ -36,7 +37,7 @@ export function proveCountRowCopyLinear(m: Machine, family: Law[], law: Law, see
     const when = [...(m.pre ? [m.pre] : []), operation, domain, active], proposals: GuardCountProposal[] = votes.map((pre, i) => ({name: 'copy voter inclusion ' + i, kind: 'pointwise-copy', when: [...when, ...regions[i]!], terms: [[1, postVote], [-1, pre!]]}))
     rows.forEach((pre, i) => proposals.push({name: 'copy row lower bound ' + i, kind: 'pointwise-copy', when: [...when, i ? same(a, to) : not(same(a, to))], terms: [[1, pre!], [-1, postRow]]}))
     const lins: LinCut[] = []
-    for (const proposal of proposals) {if (late(until)) return; const fact = guardLinearFact(step.decls, reads, proposal, until); observe?.(proposal.name, !!fact); if (!fact) return; lins.push(fact.cut)}
+    for (const proposal of proposals) {if (late(until)) return; const fact = guardLinearFact(step.decls, reads, proposal, Math.min(until, clock() + countPrimitiveUnits(Infinity, options.leafUnits))); observe?.(proposal.name, !!fact); if (!fact) return; lins.push(fact.cut)}
     const request = {reads, insts: [], picks: [], lins}, goal = mcGoal(step.goal.hyps, step.decls, request)
     if (!goal) return
     const frames: FrameCut[] = [], ask = (path: Path, frame = false, stage = 'active-region'): Tree | undefined => {
