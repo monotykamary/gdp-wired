@@ -1,0 +1,4 @@
+fix: narrow validated output path in census audit
+
+Keep the runtime port unchanged; the audit checks its output argument before
+using it in the receipt-reader closure. Refutations cannot pass no-loss.
