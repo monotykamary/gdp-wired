@@ -1,5 +1,26 @@
 # F3 blocking-loop capability probe — not a complete sampler
 
+## Native-operation follow-up (2026-11-11, in progress)
+
+`native-spans.ts` supplies a research-only seqlock around a method invocation.
+The receiver, method lookup and arguments are evaluated in their original order
+before entering the span. Nested calls restore their parent; exceptions retain
+identity. Idle, torn, crossed and saturated observations cannot be attributed.
+Six control tests / 22 assertions passed on boat in `20261111-013845-3xkrpa`.
+
+`native-instrument.ts` prepares exact-source replacements for the previously
+observed canonicalization functions: WeakMap lookup/set, key enumeration,
+sort, map, join, and JSON serialization. It is now wired into the Node sampler. The first completed run preserved the
+original MLDR raw vector, verdict and exclusive phase totals, and had three
+timestamp-valid stable windows, but the 10-million-span guard saturated before
+attribution (zero accepted operation windows). The guard therefore failed
+closed. A 100-million-span follow-up is in progress; no attribution result is
+claimed from it yet. A future accepted window must retain the timestamp test,
+raw-heartbeat fence, stable operation sequence and source hash together. A
+span can contain callbacks, reflection overhead or GC; it identifies the
+invocation boundary, not an exact native instruction. This does not close F3.
+
+
 A timer on a blocked synchronous main thread is insufficient. This probe uses
 a worker-thread inspector session, shared progress memory and native CPU
 samples. It succeeds only if the profile contains the **named main-thread

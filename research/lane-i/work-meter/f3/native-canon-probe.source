@@ -1,0 +1,24 @@
+import {resolve} from 'node:path'
+const root=resolve(process.argv[2]!),on=process.argv[3]==='on'
+const {canon,canonFlip}=await import(resolve(root,'kernel/kernel.ts'))
+const {canon:solverCanon}=await import(resolve(root,'core/solver.ts'))
+const {rawWork,workKeys}=await import(resolve(root,'core/work-meter.ts'))
+const {setNativeSpanBuffer,readNativeSpan}=await import(resolve(root,'research/lane-i/f3/native-spans.ts'))
+const shared=new Int32Array(new SharedArrayBuffer(36));if(on)setNativeSpanBuffer(shared)
+const inputs:Record<string,number>[]=[]
+for(const size of [0,1,2,16,256]){
+ const lin:Record<string,number>=Object.create(null)
+ for(let i=0;i<size;i++)lin[i%3===0?String(i):'key-'+i]=(i%7)-3
+ inputs.push(lin)
+}
+for(const value of [0,-0,1,-1,0.5,NaN,Infinity,-Infinity])inputs.push({1:value,x:2})
+const special:Record<string,number>=Object.create(null);special.__proto__=3;special.constructor=4;special.toString=-2;inputs.push(special)
+const calls:string[]=[]
+const getter:Record<string,number>={};Object.defineProperty(getter,'g',{enumerable:true,get:()=>{calls.push('get');return 2}});inputs.push(getter)
+const broken:Record<string,number>={};Object.defineProperty(broken,'throw',{enumerable:true,get:()=>{calls.push('throw');throw Error('same failure')}});inputs.push(broken)
+const before=rawWork(),results=[]
+for(const lin of inputs)for(const fn of [canon,canonFlip,solverCanon])for(let repetition=0;repetition<2;repetition++){
+ try{results.push({ok:true,value:fn(lin)})}catch(error){results.push({ok:false,error:String(error)})}
+}
+const after=rawWork(),raw=Object.fromEntries(workKeys.map((key:string)=>[key,after[key]-before[key]]))
+console.log('NATIVE_CANON_PROBE '+JSON.stringify({on,results,calls,raw,span:readNativeSpan(shared)}))

@@ -1,0 +1,21 @@
+import {Worker} from 'node:worker_threads'
+import {writeSync} from 'node:fs'
+import {counters,run,setNativeSpanBuffer} from './facade.mjs'
+const shared=new Int32Array(new SharedArrayBuffer(36)),saved=[]
+const emit=(tag,value)=>writeSync(1,tag+' '+JSON.stringify(value)+'\n')
+let worker,exited
+try{
+ setNativeSpanBuffer(shared)
+ for(const object of counters)for(const key of Object.keys(object)){
+  const descriptor=Object.getOwnPropertyDescriptor(object,key)
+  if(!descriptor||typeof descriptor.value!=='number'||!descriptor.configurable)continue
+  let value=descriptor.value;saved.push(()=>Object.defineProperty(object,key,{...descriptor,value}))
+  Object.defineProperty(object,key,{configurable:descriptor.configurable,enumerable:descriptor.enumerable,get:()=>value,set:next=>{if(next>value)Atomics.add(shared,1,1);value=next}})
+ }
+ worker=new Worker(new URL('./native-observer-worker.mjs',import.meta.url),{workerData:shared.buffer})
+ exited=new Promise((resolve,reject)=>{worker.once('exit',code=>code?reject(Error('observer exit '+code)):resolve());worker.once('error',reject)})
+ await new Promise((resolve,reject)=>{worker.once('message',message=>message.ready?resolve():reject(Error(message.error)));worker.once('error',reject)})
+ Atomics.store(shared,0,1);const result=run('mldr',15000000);Atomics.store(shared,0,2)
+ worker.postMessage('stop');await exited
+ emit('F3_NATIVE_SOLVER_RESULT',{runtime:process.version,spanCount:Atomics.load(shared,6),spanOverflow:Atomics.load(shared,8)!==0,...result})
+}finally{Atomics.store(shared,0,2);if(worker)await worker.terminate();setNativeSpanBuffer();for(const restore of saved)restore()}

@@ -1,0 +1,1 @@
+[{"name":"native-operation-profile","cmd":"bun native-profile-input/native-profile.mjs","cpu":4,"memory":14336,"timeout":900,"vm_type":"large"}]

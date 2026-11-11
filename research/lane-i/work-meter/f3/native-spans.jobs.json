@@ -1,0 +1,1 @@
+[{"name":"native-span-controls","cmd":"bun test span-input/native-spans.test.ts","cpu":2,"memory":4096,"timeout":120,"vm_type":"large"}]

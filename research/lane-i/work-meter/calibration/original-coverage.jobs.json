@@ -1,0 +1,6 @@
+[
+ {"name":"ordinary-original-1","cmd":"bun calibration-input/original-coverage.ts consensus 1","cpu":4,"memory":14336,"timeout":750,"vm_type":"large"},
+ {"name":"ordinary-original-2","cmd":"bun calibration-input/original-coverage.ts consensus 2","cpu":4,"memory":14336,"timeout":750,"vm_type":"large"},
+ {"name":"epr-original-1","cmd":"bun calibration-input/original-coverage.ts consensus_epr 1","cpu":4,"memory":14336,"timeout":750,"vm_type":"large"},
+ {"name":"epr-original-2","cmd":"bun calibration-input/original-coverage.ts consensus_epr 2","cpu":4,"memory":14336,"timeout":750,"vm_type":"large"}
+]

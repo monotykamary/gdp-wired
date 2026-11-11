@@ -72,6 +72,23 @@ source API directly; changing its pin/opt-in remains your explicit decision.
 The shared composer is covered, but lane F's later prototype is not claimed
 as part of this source. No active production source was changed.
 
+Additional original-path evidence on `cd00524f` (`20261111-014806-1pinis`):
+original **consensus proved and checked** in two repetitions, with identical
+raw/results/phase summaries (212 FM units, 863 plain rows). The broken variant
+remained non-proven. The `consensus_epr` runs instead exhausted the explicit
+15M diagnostic allowance in preflight (14,845,783 evaluations, zero EPR work);
+those failures are retained, not counted as EPR coverage. The separately labeled
+50M follow-up also stopped in preflight (49,841,887 evaluations, zero EPR work),
+with matching raw/results in both repetitions. No further allowance bump is
+being used to manufacture coverage. None selects calibrated coefficients.
+
+The first invocation-level F3 follow-up (`20261111-014727-41pz5e`, source
+`32a59b2a`) preserved the original MLDR raw vector, verdict and phase totals.
+Its three stable windows have valid timestamps, but the 10-million-span guard
+saturated: zero operation attributions were accepted. The independent audit
+preserves that limitation. A 100-million-span follow-up is running with the
+same source, original input and saved baseline; no result is claimed yet.
+
 Fable's **35% strategy-pool share remains provisional**. No calibrated price
 per strategy unit is being supplied. The new phase labels expose that work to
 D's fit, but source/opt-in coverage, full F3 and the frozen mini vector are
