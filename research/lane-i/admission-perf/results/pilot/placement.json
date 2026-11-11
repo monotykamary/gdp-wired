@@ -1,0 +1,29 @@
+{
+ "admission-tests": {
+  "vm": "bx_5tgfk4fr",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "admission-check": {
+  "vm": "bx_hep79j25",
+  "type": "xlarge",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 16,
+  "exclusive": false,
+  "co_tenants": 4
+ },
+ "admission-micro-pair": {
+  "vm": "bx_b4jstcxp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}

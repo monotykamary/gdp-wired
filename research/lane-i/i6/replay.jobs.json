@@ -1,0 +1,20 @@
+[
+  {
+    "name": "i6-replay-star",
+    "cmd": "bun port-input/replay-pair.ts star",
+    "cpu": 4,
+    "memory": 12288,
+    "timeout": 900,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "i6-replay-row",
+    "cmd": "bun port-input/replay-pair.ts row",
+    "cpu": 4,
+    "memory": 12288,
+    "timeout": 900,
+    "vm_type": "large",
+    "timing": true
+  }
+]

@@ -1,4 +1,23 @@
-# LATEST — combined counter/hard-cap candidate ready for D review
+# LATEST — admission optimization measured; I6 coverage patch in gate
+
+Active source `3281eb7f` descends from `00b58ee5`. The admission-only patch keeps
+per-node checks and exact weighted sums; same-VM ABBA micro wall falls from
+1,618.14 to 23.36 ms for identical 1.8M evaluations / 36,000 units. Native paired
+workloads are still running; this is not yet a whole-proof speedup claim.
+
+I6 wires the three dead columns at actual work sites: `tableCells`, `checkSteps`,
+`cubeTests`. Raw observers have no budget callback or proof decision. Two
+admitted identities change (`core/check.ts`, `kernel/kernel.ts`), explicitly
+PENDING-D with an AST-erasure gate. No old bound or calibration is asserted for
+this newly counted work before revalidation. B9 source/approved dependency
+closure is needed for integrated Inv*/K3 tail measurements; A/B/F integration
+requests are active. Details: `research/lane-i/admission-perf/STATUS.md` and
+`research/lane-i/i6/STATUS.md`.
+
+D independently GREENed the **scoped base** `00b58ee5` in `f95b8061`; final
+coverage/calibration remains blocked by I6 and the final integrated pin.
+
+# Previous — combined counter/hard-cap candidate ready for D review
 
 **Exact source00b58ee54b4e5b8c4967fdbde35d1ff0f38d91e7** on
 claude/mldr-integ; D pin is **PLUMBING ONLY**, not calibrated/accepted.

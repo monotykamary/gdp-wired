@@ -1,0 +1,20 @@
+{
+ "i6-tests": {
+  "vm": "bx_mf3n8vdx",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "i6-check": {
+  "vm": "bx_85uyrmrj",
+  "type": "xlarge",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 16,
+  "exclusive": false,
+  "co_tenants": 4
+ }
+}
