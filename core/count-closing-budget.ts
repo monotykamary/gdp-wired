@@ -28,6 +28,21 @@ export function reserveCountClosing(budget:CountTierBudget,enabled=false,rootUnt
  const strategyUntil=Math.min(budget.strategyUntil??budget.until,searchUntil-ordinaryFloor)
  return Object.freeze({...budget,ordinaryFloor,strategyUntil,closingMode:'family-check-once' as const,closingFloor,searchUntil,initialUntil:searchUntil})
 }
+// An observed-cost estimate, NOT a worst-case kernel bound. Two times the
+// checked held packets' measured replay/check cost leaves an explicit margin.
+// If there is no measurement retain the old reserve. Insufficient estimates
+// can only produce UNKNOWN at the unchanged root/native acceptance boundary.
+export function reserveCheckedCountClosing(budget:CountClosingBudget,costs:readonly number[],now:number):CountClosingBudget{
+ if(!Number.isFinite(now))throw new RangeError('invalid reserve clock')
+ if(costs.some(cost=>!Number.isFinite(cost)||cost<0))throw new RangeError('invalid checked packet cost')
+ if(!costs.length)return budget
+ const total=costs.reduce((sum,cost)=>sum+cost,0)
+ const closingFloor=Math.min(budget.workAllowance,Math.max(0,budget.until-now),Math.max(1,total*2))
+ const searchUntil=budget.until-closingFloor
+ const ordinaryFloor=Math.min(budget.ordinaryFloor,Math.max(0,searchUntil-now))
+ const strategyUntil=searchUntil-ordinaryFloor
+ return Object.freeze({...budget,ordinaryFloor,closingFloor,searchUntil,initialUntil:searchUntil,strategyUntil})
+}
 export function countOrdinaryUntil(budget:CountTierBudget):number{
  return 'closingMode'in budget?(budget as CountClosingBudget).searchUntil:budget.until
 }

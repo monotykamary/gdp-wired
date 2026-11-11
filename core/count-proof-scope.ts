@@ -17,6 +17,8 @@ export type ScopedCountProof = Readonly<{
  proof:CountLawProof,
  sources:readonly Goal[],
  unused:readonly string[],
+ // Observed checking/replay cost in clock units; scheduling only, never authority.
+ checkWork?:number,
 }>
 const live=(until:number):boolean=>{checkWall('counted premise replay');return clock()<until}
 const identity=(law:Law):Premise=>({name:law.name,key:JSON.stringify([law.forall,law.keys,strategyLawKey(law)])})

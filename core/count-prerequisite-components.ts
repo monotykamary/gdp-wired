@@ -1,9 +1,9 @@
 // Untrusted mutual-induction scheduling. Holding a proposal is not admission;
 // the caller still replays the closed family and invokes the native checker.
 export type CountComponentRecipe=Readonly<{id:string,kind:'ordinary'|'strategy',required?:readonly string[],optional?:readonly string[]}>
-export type CountComponentOptions=Readonly<{recipes?:ReadonlyMap<string,readonly CountComponentRecipe[]>,costs?:ReadonlyMap<string,number>,discoveryFirst?:boolean,targets?:readonly string[],held?:ReadonlyMap<string,readonly string[]>,discovered?:readonly string[],failed?:readonly string[]}>
+export type CountComponentOptions=Readonly<{recipes?:ReadonlyMap<string,readonly CountComponentRecipe[]>,costs?:ReadonlyMap<string,number>,discoveryFirst?:boolean,proofGuided?:boolean,discoveryContexts?:ReadonlyMap<string,string>,targets?:readonly string[],held?:ReadonlyMap<string,readonly string[]>,discovered?:readonly string[],failed?:readonly string[]}>
 export type ComponentOutcome=Readonly<{kind:'proof',citations:readonly string[]}>|Readonly<{kind:'unknown',reason:string}>|Readonly<{kind:'refuted'|'refused',reason?:string}>
-export type ComponentAttempt=Readonly<{kind:'attempt',name:string,component:readonly string[],context:readonly string[],phase:'dissolve'|'joint',discovery:boolean,purpose:'discovery'|'required',recipe:CountComponentRecipe}>
+export type ComponentAttempt=Readonly<{kind:'attempt',name:string,component:readonly string[],context:readonly string[],phase:'dissolve'|'joint',discovery:boolean,purpose:'discovery'|'required',recipe:CountComponentRecipe,pass?:0|1}>
 export type ComponentDecision=ComponentAttempt|Readonly<{kind:'ready',members:readonly string[]}>
 export function countPrerequisiteComponents(input:readonly string[],requirements:ReadonlyMap<string,readonly string[]>,strategies:readonly string[]=[],available:readonly string[]=[],options:CountComponentOptions={}){
  const order=[...input],members=new Set(order),strategic=new Set(strategies),admitted=new Set(available),failed=new Set(options.failed??[]),dissolved=new Set<string>(),discovered=new Set(options.discovered??[])
@@ -18,7 +18,7 @@ export function countPrerequisiteComponents(input:readonly string[],requirements
   actual.set(name,[...premises])
  }
  const costs=new Map(order.map((name,index)=>[name,options.costs?.get(name)??index]))
- const retries=new Map<string,number>(),unknown=new Map<string,{reason:string,component:readonly string[],stamp:string}>()
+ const retries=new Map<string,number>(),requiredRuns=new Set<string>(),discoveryContexts=new Map(options.discoveryContexts),unknown=new Map<string,{reason:string,component:readonly string[],stamp:string,pass?:0|1}>()
  let active:ComponentAttempt|undefined
  if(members.size!==order.length||available.some(name=>!members.has(name))||strategies.some(name=>!members.has(name))||[...costs.values()].some(value=>!Number.isFinite(value)))throw Error('ambiguous component family')
  const primary=(name:string)=>recipes.get(name)?.[0]
@@ -26,6 +26,8 @@ export function countPrerequisiteComponents(input:readonly string[],requirements
  const uncertain=(name:string)=>primary(name)?.required===undefined
  const deps=(name:string)=>actual.get(name)??required.get(name)??[]
  const live=()=>order.filter(name=>!admitted.has(name)&&!failed.has(name))
+ const availableStamp=()=>JSON.stringify(order.filter(name=>admitted.has(name)))
+ for(const name of discovered)if(!discoveryContexts.has(name))discoveryContexts.set(name,availableStamp())
  const stamp=(group:readonly string[],context:readonly string[],purpose='required')=>JSON.stringify([group,context,order.filter(name=>admitted.has(name)),purpose])
  function needed():Set<string>{
   const out=new Set(options.targets??strategies),todo=[...out]
@@ -33,7 +35,9 @@ export function countPrerequisiteComponents(input:readonly string[],requirements
   return out
  }
  for(const name of discovered)if(members.has(name)&&!actual.has(name)&&!failed.has(name))unknown.set(name,{reason:'parked discovery',component:[name],stamp:''})
- const ranked=(group:readonly string[])=>[...group].sort((a,b)=>costs.get(a)!-costs.get(b)!||order.indexOf(a)-order.indexOf(b))
+ const knownStrategy=(name:string)=>primary(name)?.kind==='strategy'&&primary(name)?.required!==undefined
+ const ranked=(group:readonly string[],guided=options.proofGuided)=>[...group].sort((a,b)=>
+  (guided?Number(requiredRuns.has(a))-Number(requiredRuns.has(b))||Number(knownStrategy(b))-Number(knownStrategy(a)):0)||costs.get(a)!-costs.get(b)!||order.indexOf(a)-order.indexOf(b))
  function components():string[][]{
   const pending=new Set(live()),index=new Map<string,number>(),low=new Map<string,number>(),stack:string[]=[],onStack=new Set<string>(),out:string[][]=[]
   // Unknown ordinary requirements are possibly incoming, not known absent.
@@ -70,10 +74,15 @@ export function countPrerequisiteComponents(input:readonly string[],requirements
    if(group.every(name=>actual.has(name)&&actual.get(name)!.every(p=>admitted.has(p)||own.has(p))))return {kind:'ready',members:group}
   }
   if(options.discoveryFirst){
-   const name=ranked(live()).find(name=>!strategic.has(name)&&!actual.has(name)&&!discovered.has(name))
+   const name=ranked(live(),false).find(name=>!strategic.has(name)&&!actual.has(name)&&(!discovered.has(name)||options.proofGuided&&discoveryContexts.get(name)!==availableStamp()))
    if(name!==undefined){active={kind:'attempt',name,component:groups.find(group=>group.includes(name))!,context:order.filter(member=>admitted.has(member)||member===name),phase:'joint',discovery:true,purpose:'discovery',recipe:primary(name)!};return active}
   }
-  const wanted=needed(),scheduled=options.discoveryFirst?[...groups].sort((a,b)=>Number(b.some(name=>strategic.has(name)))-Number(a.some(name=>strategic.has(name)))):groups
+  const wanted=needed()
+  const fresh=(group:readonly string[])=>group.some(name=>!actual.has(name)&&!requiredRuns.has(name)&&(strategic.has(name)||wanted.has(name)))
+  const strategy=(group:readonly string[])=>group.some(name=>!actual.has(name)&&knownStrategy(name))
+  const scheduled=options.discoveryFirst?[...groups].sort((a,b)=>options.proofGuided
+   ?Number(fresh(b))-Number(fresh(a))||Number(strategy(b))-Number(strategy(a))
+   :Number(b.some(name=>strategic.has(name)))-Number(a.some(name=>strategic.has(name)))):groups
   for(const group of scheduled){
    const own=new Set(group)
    if(!options.discoveryFirst&&!group.every(name=>deps(name).every(p=>!pending.has(p)||own.has(p))))continue
@@ -91,9 +100,11 @@ export function countPrerequisiteComponents(input:readonly string[],requirements
     for(const member of pending)if(!potential.has(member)&&(deps(member).some(p=>potential.has(p))||options.discoveryFirst&&[...potential].some(owner=>deps(owner).includes(member)))){potential.add(member);changed=true}
    }
    const context=order.filter(member=>admitted.has(member)||potential.has(member)||uncertain(member)&&pending.has(member)||discovery&&pending.has(member))
-   const name=sorted.find(member=>!actual.has(member)&&(!options.discoveryFirst||strategic.has(member)||wanted.has(member))&&unknown.get(member)?.stamp!==stamp(group,context))
+   const currentStamp=stamp(group,context)
+   const retry=(name:string)=>options.proofGuided&&primary(name)!.kind==='ordinary'&&unknown.get(name)?.stamp===currentStamp&&unknown.get(name)?.pass===0
+   const name=sorted.find(member=>!actual.has(member)&&(!options.discoveryFirst||strategic.has(member)||wanted.has(member))&&(unknown.get(member)?.stamp!==currentStamp||retry(member)))
    if(name===undefined)continue
-   active={kind:'attempt',name,component:group,context,phase:'joint',discovery,purpose:'required',recipe:primary(name)!}
+   active={kind:'attempt',name,component:group,context,phase:'joint',discovery,purpose:'required',recipe:primary(name)!,...(options.proofGuided?{pass:retry(name)?1 as const:0 as const}:{})}
    return active
   }
   return undefined
@@ -103,10 +114,11 @@ export function countPrerequisiteComponents(input:readonly string[],requirements
   const attempt=active;active=undefined
   const received:ComponentOutcome=result===undefined?{kind:'refused'}:'kind'in result?result:{kind:'proof',citations:result}
   const outcome:ComponentOutcome=attempt.purpose==='discovery'&&received.kind==='refuted'?{kind:'unknown',reason:'narrow-sat'}:received
-  if(attempt.purpose==='discovery')discovered.add(name)
+  if(attempt.purpose==='discovery'){discovered.add(name);discoveryContexts.set(name,availableStamp())}
+  else requiredRuns.add(name)
   if(attempt.phase==='dissolve')dissolved.add(JSON.stringify([name,attempt.recipe.id]))
   if(outcome.kind==='unknown'){
-   if(attempt.phase!=='dissolve')unknown.set(name,{reason:outcome.reason,component:[...attempt.component],stamp:stamp(attempt.component,attempt.context,attempt.purpose)})
+   if(attempt.phase!=='dissolve')unknown.set(name,{reason:outcome.reason,component:[...attempt.component],stamp:stamp(attempt.component,attempt.context,attempt.purpose),...(attempt.pass===undefined?{}:{pass:attempt.pass})})
    return {held:false,invalidated:[]}
   }
   const scope=outcome.kind==='proof'?[...new Set(outcome.citations)].filter(p=>p!==name):undefined
@@ -131,5 +143,5 @@ export function countPrerequisiteComponents(input:readonly string[],requirements
   if(decision?.kind!=='ready'||names.length!==decision.members.length||names.some((name,i)=>name!==decision.members[i]))throw Error('component not closed')
   for(const name of names)admitted.add(name)
  }
- return {next,finish,commit,available:()=>order.filter(name=>admitted.has(name)),failed:()=>order.filter(name=>failed.has(name)),held:()=>order.filter(name=>actual.has(name)&&!admitted.has(name)),unknown:()=>order.filter(name=>unknown.has(name)&&!admitted.has(name)&&!failed.has(name)).map(name=>({name,reason:unknown.get(name)!.reason,component:unknown.get(name)!.component,citedBy:order.filter(owner=>actual.get(owner)?.includes(name))})),retryCount:()=>Object.fromEntries(retries),discovered:()=>order.filter(name=>discovered.has(name)),required:()=>order.filter(name=>needed().has(name)),components}
+ return {next,finish,commit,available:()=>order.filter(name=>admitted.has(name)),failed:()=>order.filter(name=>failed.has(name)),held:()=>order.filter(name=>actual.has(name)&&!admitted.has(name)),unknown:()=>order.filter(name=>unknown.has(name)&&!admitted.has(name)&&!failed.has(name)).map(name=>({name,reason:unknown.get(name)!.reason,component:unknown.get(name)!.component,citedBy:order.filter(owner=>actual.get(owner)?.includes(name))})),retryCount:()=>Object.fromEntries(retries),discovered:()=>order.filter(name=>discovered.has(name)),discoveryContexts:()=>new Map(discoveryContexts),required:()=>order.filter(name=>needed().has(name)),components}
 }

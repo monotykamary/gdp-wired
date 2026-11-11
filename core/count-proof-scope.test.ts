@@ -7,6 +7,7 @@ import {clock,grow,withDeadline,withWall} from '../kernel/prove.ts'
 import {type CountLawProof,scopeCountProof,replayScopedCountProof} from './count-proof-scope.ts'
 import {admitCountedFamily,countsDump} from './counts.ts'
 import {cdclStats} from '../kernel/cdcl.ts'
+import {rescopeCountProof} from './count-proof-rescope.ts'
 
 function fixture(){
  const m:Machine={name:'mutual cell preservation',params:[],inputs:[],state:{left:n(0),right:n(0),noise:n(0)},maps:{extra:0},step:{state:{left:x('right'),right:x('left')}}}
@@ -30,6 +31,26 @@ function prove(m:Machine,owner:Law,family:Law[],until:number,instances:Instances
  }
  return {instances,certs}
 }
+
+test('checked re-scope removes declared but unused premises without searching',()=>bounded(until=>{
+ const f=fixture(),proof=prove(f.m,f.left,f.family,until,{[f.indexed.name]:[n(0)]})
+ const offered={...proof,status:'unchecked' as const,premises:f.family.map(l=>l.name)}
+ const before=cdclStats.runs,scoped=rescopeCountProof(f.m,f.left,f.family,offered,new Set(),until)!
+ expect(scoped).toBeDefined();expect(scoped.proof.status).toBeUndefined()
+ expect(scoped.premises.map(p=>p.name)).toEqual([f.right.name])
+ expect(scoped.checkWork).toBeGreaterThanOrEqual(0)
+ expect(scoped.proof.instances[f.indexed.name]).toBeUndefined()
+ expect(cdclStats.runs).toBe(before)
+ expect(replayScopedCountProof(f.m,[f.left,f.right],scoped,until)).toBeDefined()
+ expect(replayScopedCountProof(f.m,[f.left],scoped,until)).toBeUndefined()
+}))
+test('checked re-scope refuses a damaged unchecked packet and expired scope',()=>bounded(until=>{
+ const f=fixture(),proof=prove(f.m,f.left,f.family,until)
+ const bad={...proof,status:'unchecked' as const,certs:{...proof.certs,[f.left.name+' @step']:{...proof.certs[f.left.name+' @step']!,tree:{leaf:[]}}}}
+ expect(rescopeCountProof(f.m,f.left,f.family,bad,new Set(),until)).toBeUndefined()
+ expect(rescopeCountProof(f.m,f.left,f.family,proof,new Set(),clock()-1)).toBeUndefined()
+ expect(rescopeCountProof({...f.m,step:{state:{left:n(1),right:x('left')}}},f.left,f.family,proof,new Set(),until)).toBeUndefined()
+}))
 
 test('record referenced laws, not every available scalar or instantiated law',()=>bounded(until=>{
  const f=fixture(),proof=prove(f.m,f.left,f.family,until,{[f.indexed.name]:[n(0)]})
@@ -161,6 +182,7 @@ test.skipIf(!('withBudget' in await import('../kernel/prove.ts')))('scope captur
  const child=spawnSync(process.execPath,['--eval',`
   import {strict as assert} from 'node:assert';
   import {scopeCountProof,replayScopedCountProof} from './core/count-proof-scope.ts';
+  import {rescopeCountProof} from './core/count-proof-rescope.ts';
   import {countedAttempts} from './core/counts.ts';
   import {withBudget,clock,fullWork,BudgetExpired} from './kernel/prove.ts';
   let reads=0;const forbidden=()=>{reads++;throw Error('raw scope clock')};
@@ -173,6 +195,7 @@ test.skipIf(!('withBudget' in await import('../kernel/prove.ts')))('scope captur
    const until=clock()+2000,result=countedAttempts(m,[law],new Set(),until).traced(law,[law],0,2000);
    assert('proof' in result);scoped=scopeCountProof(m,law,[law],result.proof,until);assert(scoped);
    assert(replayScopedCountProof(m,[law],scoped,until));
+   assert(rescopeCountProof(m,law,[law],result.proof,new Set(),until));
   });
   assert(fullWork()>start);assert.equal(reads,0);
   const atStop=fullWork();let stopped;

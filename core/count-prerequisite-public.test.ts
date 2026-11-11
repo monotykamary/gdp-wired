@@ -10,6 +10,7 @@ import {checkCountedLaws} from '../kernel/kernel.ts'
 import {BudgetExpired,checkBudget,clock,counted,fullRate,withinDeadline,withBudget,withWall} from '../kernel/prove.ts'
 import {costs} from './solver.ts'
 import {scopeCountProof,replayScopedCountProof} from './count-proof-scope.ts'
+let offeredScope=false
 let alternatives=new Set<string>(),priority=new Map<string,number>(),selected:Law[]|undefined,interrupt:((event:Record<string,unknown>)=>void)|undefined
 let decline:((target:Law)=>boolean)|undefined
 let family:Law[]=[],requirements=new Map<string,readonly string[]>(),chooseSource:((target:Law,context:Law[])=>Law[])|undefined
@@ -20,7 +21,7 @@ void mock.module('./count-strategies.ts',()=>({...original,prepareCountStrategyM
   const source=chooseSource?.(target,context)??context
   const result=countedAttempts(m,[target],new Set(),end).traced(target,source,0,Math.max(0,end-clock()),false)
   if(!('proof'in result))return undefined
-  if(source===context)return result.proof
+  if(source===context)return offeredScope?{...result.proof,status:'unchecked' as const,premises:context.map(law=>law.name)}:result.proof
   const scoped=scopeCountProof(m,target,source,result.proof,end)
   return scoped?replayScopedCountProof(m,context,scoped,end):undefined
  }}))
@@ -102,6 +103,27 @@ test('a declared alternative may fail without declining the checked joint compon
  expect(out.proof!.premises?.[left.name]).toContain(right.name)
  expect(out.proof!.premises?.[right.name]).toContain(left.name)
 })
+test('proof-guided admission checks and shrinks offers before expansion, then closes natively',()=>{
+ const left:Law={name:'scoped left',holds:same(x('left'),n(0))},right:Law={name:'scoped right',holds:same(x('right'),n(0))},noise:Law={name:'unused false offer',holds:same(x('noise'),n(7))}
+ const m:Machine={name:'generic checked offers',params:[],inputs:[],state:{left:n(0),right:n(0),noise:n(0)},step:{state:{left:x('right'),right:x('left')}}}
+ family=[noise,left,right];selected=[left,right];requirements=new Map([[left.name,[right.name]],[right.name,[left.name]]]);alternatives=new Set();priority=new Map([[noise.name,0],[left.name,10],[right.name,11]]);chooseSource=undefined
+ const previous=process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING
+ process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING='1';offeredScope=true
+ try{
+  const {out,events}=run(m,[left],25000000)
+  expect(out.proven).toBe(true);expect(checkCountedLaws(out.m,out.laws,out.proof!)).toBe(true)
+  expect(out.laws).not.toContain(noise)
+  expect(events.some(e=>e.phase==='count-component-rescope'&&e.stage==='original'&&e.checked===true)).toBe(true)
+  expect(events.some(e=>e.phase==='count-component-rescope'&&e.stage==='canonical'&&e.checked===true)).toBe(true)
+  expect(events.filter(e=>e.phase==='count-component-result'&&e.held===true).every(e=>!(e.premises as string[]).includes(noise.name))).toBe(true)
+  expect(events.some(e=>e.phase==='count-closing-reserve'&&Number(e.checkedPackets)>0&&Number(e.closingFloor)<37500)).toBe(true)
+  expect(events.some(e=>e.phase==='count-family-closing'&&e.stage==='end'&&e.checked===true)).toBe(true)
+ }finally{
+  offeredScope=false
+  if(previous===undefined)delete process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING;else process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING=previous
+ }
+})
+
 test('a failed outsider invalidates the actual citing proposal and the survivor is rebuilt without it',()=>{
  const good:Law={name:'good bound',holds:{op:'<=',a:x('right'),b:n(0)}}
  const left:Law={name:'surviving left',holds:same(x('left'),n(0))}

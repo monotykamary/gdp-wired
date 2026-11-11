@@ -57,7 +57,8 @@ import {countRejectionBudget,remainingRejectionAllowance} from './count-rejectio
 import {countGenerationPhase} from './count-generation-phase.ts'
 import {rejectionStage} from './rejection-discovery.ts'
 import {type RejectionStage,rejectionFamily} from './rejection-stage.ts'
-import {reserveCountClosing,countOrdinaryUntil,type CountClosingBudget} from './count-closing-budget.ts'
+import {reserveCountClosing,reserveCheckedCountClosing,countOrdinaryUntil,type CountClosingBudget} from './count-closing-budget.ts'
+import {rescopeCountProof} from './count-proof-rescope.ts'
 import {countClosingNeeds} from './count-closing-needs.ts'
 import {countPrerequisiteComponents,type ComponentOutcome} from './count-prerequisite-components.ts'
 import {countPrerequisiteSchedule} from './count-prerequisite-plan.ts'
@@ -628,9 +629,10 @@ function admitCountedFamilyOnce(m:Machine,caller:Law[],initial:Law[],support:Set
 }
 function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<Law>,until:number,structured:boolean,budget:CountTierBudget|undefined,selected:Set<Law>,workAllowance:number,tierRun:CountTierRun,rejections?:RejectionStage):Counted {
   if(!caller.every(l=>initial.includes(l)))return {proven:false,laws:initial,m,why:'missing caller'}
-  const closingBudget = budget && 'closingMode' in budget ? budget as CountClosingBudget : undefined
+  let closingBudget = budget && 'closingMode' in budget ? budget as CountClosingBudget : undefined
   if (closingBudget) until = countOrdinaryUntil(closingBudget)
   const prerequisiteFirst = !!closingBudget && env.GDP_COUNT_PREREQUISITES === '1'
+  const proofGuided = prerequisiteFirst && env.GDP_COUNT_PROOF_GUIDED_SCHEDULING === '1'
   const beforeClosing = <T>(body:()=>T):T|undefined => {
     if (!prerequisiteFirst) return body()
     try { return withBudget(Math.max(0,until-clock())*fullRate,body) }
@@ -638,7 +640,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
   }
   let set=rejections?rejectionFamily(rejections,initial):initial.slice()
   const scopeEnabled = env.GDP_COUNT_STRATEGIES === '1'
-  const attempts = countedAttempts(m, caller, support, until, structured, selected, workAllowance, budget, prerequisiteFirst ? initial : undefined), traced = attempts.traced
+  const attempts = countedAttempts(m, caller, support, proofGuided ? closingBudget!.until : until, structured, selected, workAllowance, budget, prerequisiteFirst ? initial : undefined), traced = attempts.traced
   const isCount = (mp: string) => !!m.counts?.[mp]
   // Prove the proposed set together. A preliminary cone reproved many helpers in
   // several smaller contexts before asking these same induction goals. Houdini
@@ -692,8 +694,16 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
     const order=ranked.sort((a,b)=>planned.costs.get(a.name)!-planned.costs.get(b.name)!)
     const restored=prepareCountPrerequisiteMemory(tierRun.prerequisites,m,set),remembered=tierRun.prerequisites=restored.state
     const scopes=remembered.scopes,ends=new Map<string,number>(),attempted=new Set<string>()
-    const queue=countPrerequisiteComponents(order.map(l=>l.name),planned.requirements,[...selected].map(l=>l.name),[...remembered.committed],{...planned,discoveryFirst:true,targets:caller.map(l=>l.name),held:new Map([...scopes].map(([name,scope])=>[name,scope.premises.map(p=>p.name)])),discovered:[...remembered.discovered],failed:[...remembered.failed]})
+    const queue=countPrerequisiteComponents(order.map(l=>l.name),planned.requirements,[...selected].map(l=>l.name),[...remembered.committed],{...planned,discoveryFirst:true,proofGuided,discoveryContexts:remembered.discoveryContexts,targets:caller.map(l=>l.name),held:new Map([...scopes].map(([name,scope])=>[name,scope.premises.map(p=>p.name)])),discovered:[...remembered.discovered],failed:[...remembered.failed]})
     const ordinaryCount=Math.max(1,set.filter(l=>!selected.has(l)).length)
+    const updateReserve=()=>{
+      if(!proofGuided)return
+      const costs=[...scopes.values()].flatMap(scope=>scope.checkWork===undefined?[]:[scope.checkWork])
+      closingBudget=reserveCheckedCountClosing(closingBudget!,costs,clock())
+      budget=tierRun.budget=closingBudget;until=closingBudget.searchUntil
+      countsDump.on?.({phase:'count-closing-reserve',at:clock(),checkedPackets:costs.length,checkedWork:costs.reduce((a,b)=>a+b,0),...closingBudget})
+    }
+    updateReserve()
     attempts.houdini=true
     countsDump.on?.({phase:'count-prerequisite-plan',premises:Object.fromEntries(planned.requirements),recipes:Object.fromEntries(planned.recipes),until,rootUntil:closingBudget!.until})
     countsDump.on?.({phase:'count-prerequisite-memory',held:[...scopes.keys()],members:[...remembered.committed],invalidated:restored.invalidated})
@@ -727,43 +737,47 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       const ordinaryMembers=decision.component.filter(name=>!selected.has(set.find(l=>l.name===name)!)).length
       const horizon=Math.min(until,discoveryOnly?until:budget!.strategyUntil!+budget!.ordinaryFloor*ordinaryMembers/ordinaryCount)
       const key=JSON.stringify([decision.purpose,decision.component,...discoveryOnly?[law.name]:[]]),available=new Set(queue.available()),failed=new Set(queue.failed())
-      if(!ends.has(key)){
+      if(!ends.has(key)||proofGuided&&!discoveryOnly){
         const eligible=set.filter(l=>!available.has(l.name)&&!failed.has(l.name)).length
         ends.set(key,discoveryOnly?clock()+Math.max(0,horizon-clock())/Math.max(1,eligible):horizon)
       }
       const componentEnd=Math.min(horizon,ends.get(key)!)
-      const unattempted=discoveryOnly?1:Math.max(1,decision.component.filter(name=>!scopes.has(name)&&!attempted.has(JSON.stringify([key,name]))).length)
-      const {end,allotted,reserved}=countComponentAttemptBudget(clock(),componentEnd,unattempted)
+      const unattempted=discoveryOnly?1:Math.max(1,decision.component.filter(name=>!scopes.has(name)&&(proofGuided||!attempted.has(JSON.stringify([key,name])))).length)
       const allowStrategy=!discoveryOnly&&decision.recipe.kind==='strategy',start=clock()
+      const {end,allotted,reserved}=countComponentAttemptBudget(clock(),componentEnd,unattempted,1,proofGuided&&!allowStrategy)
       attempted.add(JSON.stringify([key,law.name]))
       if(discoveryOnly)remembered.discovered.add(law.name)
-      countsDump.on?.({phase:'count-component-attempt',law:law.name,component:decision.component,mode:decision.phase,recipe:decision.recipe.id,context:decision.context,end,componentEnd,allotted,reserved,discovery:decision.discovery,purpose:decision.purpose,required:queue.required()})
+      countsDump.on?.({phase:'count-component-attempt',law:law.name,component:decision.component,mode:decision.phase,recipe:decision.recipe.id,context:decision.context,end,componentEnd,allotted,reserved,discovery:decision.discovery,purpose:decision.purpose,required:queue.required(),...(proofGuided?{pass:decision.pass??0}: {})})
       countsDump.on?.({phase:'count-tier-attempt',law:law.name,tier:selected.has(law)&&allowStrategy?'strategy':'ordinary',end,allotted})
       let result:Tried<Proof>={stuck:'unknown'},expired=allotted<=0
       try{
         if(allotted>0)result=withBudget(Math.max(0,end-clock())*fullRate,()=>{
           const invoke=(pass:0|1)=>traced(law,context,pass,Math.max(0,end-clock()),allowStrategy)
-          const first=invoke(0)
-          return !discoveryOnly&&!('proof'in first)&&!first.refuted&&(!selected.has(law)||!allowStrategy)&&attempts.counted&&clock()<end?invoke(1):first
+          const first=invoke(proofGuided?decision.pass??0:0)
+          return !proofGuided&&!discoveryOnly&&!('proof'in first)&&!first.refuted&&(!selected.has(law)||!allowStrategy)&&attempts.counted&&clock()<end?invoke(1):first
         })
       }catch(error){if(!isLocalCountExpiration(error,closingBudget!.until))throw error;expired=true}
       if(!('proof'in result)&&result.expired)expired=true
       let scope:ScopedCountProof|undefined
       if('proof'in result)try{
-        scope=withBudget(Math.max(0,end-clock())*fullRate,()=>beforeClosing(()=>ptime('premise-scope',()=>scopeCountProof(m,law,context,result.proof,end))))
+        scope=withBudget(Math.max(0,end-clock())*fullRate,()=>beforeClosing(()=>proofGuided
+          ?ptime('premise-rescope',()=>rescopeCountProof(m,law,context,result.proof,new Set(scopes.keys()),end,event=>countsDump.on?.({phase:'count-component-rescope',law:law.name,...event})))
+          :ptime('premise-scope',()=>scopeCountProof(m,law,context,result.proof,end))))
       }catch(error){if(!isLocalCountExpiration(error,withinDeadline(closingBudget!.until)))throw error;expired=true}
       if('proof'in result&&!scope&&!expired&&clock()>=end){
         const error=new BudgetExpired('component premise scope')
         if(!isLocalCountExpiration(error,withinDeadline(closingBudget!.until)))throw error
         expired=true
       }
-      let status:ComponentOutcome=scope?{kind:'proof',citations:scope.premises.map(p=>p.name)}:expired?{kind:'unknown',reason:'budget-expired'}:'proof'in result?{kind:'refused',reason:'returned proof has no valid scope'}:result.refuted?{kind:'refuted'}:{kind:'unknown',reason:result.reason??result.stuck}
+      let status:ComponentOutcome=scope?{kind:'proof',citations:scope.premises.map(p=>p.name)}:expired?{kind:'unknown',reason:'budget-expired'}:'proof'in result?(proofGuided?{kind:'unknown',reason:'checked rescope declined'}:{kind:'refused',reason:'returned proof has no valid scope'}):result.refuted?{kind:'refuted'}:{kind:'unknown',reason:result.reason??result.stuck}
       if(discoveryOnly&&status.kind==='refuted')status={kind:'unknown',reason:'narrow-sat'}
       const outcome=queue.finish(law.name,status)
       remembered.failed=new Set(queue.failed())
+      if(proofGuided)remembered.discoveryContexts=queue.discoveryContexts()
       for(const invalidated of outcome.invalidated){scopes.delete(invalidated);remembered.committed.delete(invalidated)}
       if(outcome.held&&scope)scopes.set(law.name,scope)
       else if(decision.phase!=='dissolve')scopes.delete(law.name)
+      updateReserve()
       countsDump.on?.({phase:'count-component-result',law:law.name,mode:decision.phase,purpose:decision.purpose,component:decision.component,at:clock(),outcome:outcome.held?'proof':status.kind,reason:'reason'in status?status.reason:undefined,units:(clock()-start)*fullRate,held:outcome.held,failed:queue.failed(),unknown:queue.unknown(),invalidated:outcome.invalidated,retries:queue.retryCount(),premises:scope?.premises.map(p=>p.name)??[]})
     }
     countsDump.on?.({phase:'count-prerequisite-incomplete',unknown:queue.unknown(),failed:queue.failed()})
