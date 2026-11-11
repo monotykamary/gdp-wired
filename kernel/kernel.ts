@@ -18,6 +18,7 @@
 // meet it), so it holds at the start and at every step; `assume`, about each request, holds only at a step, since no
 // request has come at the start.
 import {checkRefutation} from '../core/check.ts'
+import {observeCheckStep, observeTableCells, observeLinearRows, observeConstraintRows} from '../core/meter.ts'
 import type {C, Counted, E, Law, Machine, MapUpdate} from '../core/machine.ts'
 import {type Constraint, type Lin, type Step, add, k, scale, sub, v} from '../core/solver.ts'
 
@@ -40,18 +41,20 @@ export type Path = Map<string, {lin: Lin, holds: boolean}>
 // (Remembered per linear form: a form is never changed once built, and the same forms are looked up at every node.)
 const canonMemo = new WeakMap<Lin, string>(), flipMemo = new WeakMap<Lin, string>()
 export const canon = (lin: Lin): string => {
+  observeTableCells()
   let out = canonMemo.get(lin)
-  if (out === undefined) canonMemo.set(lin, (out = Object.keys(lin).sort().map(key => `${key}:${lin[key]}`).join(',')))
+  if (out === undefined) canonMemo.set(lin, (out = Object.keys(lin).sort().map(key => (observeTableCells(key.length + 1), `${key}:${lin[key]}`)).join(',')))
   return out
 }
 // canon(1 − lin), the atom that decides lin <= 0 the other way, without building it.
 export const canonFlip = (lin: Lin): string => {
+  observeTableCells()
   let out = flipMemo.get(lin)
   if (out !== undefined) return out
   const keys = Object.keys(lin)
   if (!('1' in lin)) keys.push('1')
   const parts: string[] = []
-  for (const key of keys.sort()) { const c = key === '1' ? 1 - (lin['1'] ?? 0) : -lin[key]!; if (c !== 0) parts.push(`${key}:${c}`) }
+  for (const key of keys.sort()) { observeTableCells(key.length + 1); const c = key === '1' ? 1 - (lin['1'] ?? 0) : -lin[key]!; if (c !== 0) parts.push(`${key}:${c}`) }
   flipMemo.set(lin, (out = parts.join(',')))
   return out
 }
@@ -62,8 +65,9 @@ export const atomOf = (lin: Lin, holds: boolean): Constraint => ({lin: holds ? l
 // A form with a coefficient past a safe integer decides nothing: it may be a rounded difference, and its flip is
 // rounded again (1 - (2^53 + 1) reads as the safe 1 - 2^53), so an atom about another form would decide it.
 function decide(lin: Lin, path: Path): boolean | undefined {
+  observeTableCells()
   let constant = true
-  for (const key in lin) { if (!Number.isSafeInteger(lin[key])) return undefined; if (key !== '1') constant = false }
+  for (const key in lin) { observeTableCells(key.length + 1); if (!Number.isSafeInteger(lin[key])) return undefined; if (key !== '1') constant = false }
   if (constant) return (lin['1'] ?? 0) <= 0
   const direct = look(path, canon(lin))
   if (direct !== undefined) return direct
@@ -116,7 +120,7 @@ function linearOf(e: E, path: Path): Lin | undefined {
   const out = linearOp(e, path)
   return out && safe(out) ? out : undefined
 }
-const safe = (lin: Lin) => Object.values(lin).every(c => Number.isSafeInteger(c))
+const safe = (lin: Lin) => Object.values(lin).every(c => (observeTableCells(), Number.isSafeInteger(c)))
 function linearOp(e: E, path: Path): Lin | undefined {
   switch (e.op) {
     case 'var': return e.name === '1' || /[*[\],:⟦⟨⟩|]/.test(e.name) ? undefined : v(e.name) // those characters build cells, monomials, term columns and tuple keys
@@ -206,6 +210,7 @@ export function termRows(name: string, path: Path): Lin[] {
     if (a && b && constant(a) && constant(b)) out.push(sub(col, add(a, b)))
   }
   if (decided(e, path)) { const r = linear(e, path); if (r) out.push(sub(col, r), sub(r, col)) }
+  observeLinearRows(out)
   return out
 }
 
@@ -219,6 +224,7 @@ export function termRows(name: string, path: Path): Lin[] {
 function times(a: Lin, b: Lin): Lin | undefined {
   const out: Lin = Object.create(null)
   for (const [p, cp] of Object.entries(a)) for (const [q, cq] of Object.entries(b)) {
+    observeTableCells()
     if (p.includes('⟦') || q.includes('⟦')) return undefined
     const fs = [...(p === '1' ? [] : factorsOf(p)), ...(q === '1' ? [] : factorsOf(q))].sort(), key = fs.length ? fs.join('*') : '1', c = (out[key] ?? 0) + cp * cq
     if (!(Number.isSafeInteger(cp) && Number.isSafeInteger(cq) && Number.isSafeInteger(cp * cq) && Number.isSafeInteger(c))) return undefined
@@ -429,6 +435,7 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
   // Two reads of one map whose keys the path proves equal are equal.
   const cells = [...names].filter(isCell).map(name => ({name, ...cellParts(name)}))
   for (const [i, p] of cells.entries()) for (const q of cells.slice(i + 1)) {
+    observeTableCells()
     if (p.map !== q.map) continue
     if (!sameKey(p, q, path)) continue
     rows.push({lin: sub(v(p.name), v(q.name)), label: '', src: {pair: [p.name, q.name]}}, {lin: sub(v(q.name), v(p.name)), label: '', src: {pair: [p.name, q.name]}})
@@ -445,6 +452,7 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
     }
   }
   for (const name of names) rows.push({lin: {[name]: -1}, label: '', src: {nat: name}})
+  observeConstraintRows(rows)
   return rows
 }
 // A cell's map and key: M[k] a key, M[⟨k1|k2|…⟩] a tuple's parts (each a canonical text). Split at the outer level only:
@@ -452,6 +460,7 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
 // (kept per name: every leaf reads its cells' keys again; a form is never changed once built)
 const cellMemo = new Map<string, {map: string, key?: Lin, keys?: Lin[]}>()
 export function cellParts(cell: string): {map: string, key?: Lin, keys?: Lin[]} {
+  observeTableCells()
   let out = cellMemo.get(cell)
   if (!out) { if (cellMemo.size > 200_000) cellMemo.clear(); cellMemo.set(cell, (out = cellParts0(cell))) }
   return out
@@ -465,6 +474,7 @@ const splitOuter = (text: string, sep: string): string[] => {
   const parts: string[] = []
   let depth = 0, start = 0
   for (let i = 0; i <= text.length; i++) {
+    observeTableCells()
     const ch = text[i]
     if (ch === '[' || ch === '⟨') depth++
     else if (ch === ']' || ch === '⟩') depth--
@@ -475,7 +485,7 @@ const splitOuter = (text: string, sep: string): string[] => {
 // A canonical text read back: `name:coef` joined by ',' at the outer level.
 const linOf = (text: string): Lin => {
   const out: Lin = Object.create(null)
-  for (const part of splitOuter(text, ',')) if (part) { const at = part.lastIndexOf(':'); out[part.slice(0, at)] = Number(part.slice(at + 1)) }
+  for (const part of splitOuter(text, ',')) if ((observeTableCells(part.length + 1), part)) { const at = part.lastIndexOf(':'); out[part.slice(0, at)] = Number(part.slice(at + 1)) }
   return out
 }
 // Two keys the path proves equal: two plain keys whose difference it decides 0 both ways, or two tuples of as many parts,
@@ -497,10 +507,12 @@ export function withProducts(rows: Constraint[], pairs: [number, number][], squa
     const p = out[i], q = out[j], pq = p && q ? times(p.lin, q.lin) : undefined
     out.push(pq ? {lin: scale(pq, -1), label: ''} : {lin: {}, label: ''})
   }
+  observeConstraintRows(out, rows.length)
   return out
 }
 
 export function check(goal: Goal, tree: Tree, path: Path = new Map()): boolean {
+  observeCheckStep()
   if ('leaf' in tree) return checkRefutation(withProducts(leafConstraints(goal, path), tree.products ?? [], tree.squares), tree.leaf)
   const id = canon(tree.split)
   if (path.has(id) || Object.keys(tree.split).every(key => key === '1')) return false
@@ -550,12 +562,14 @@ export function checkGoalLemmas(goal: Goal, tree: Tree, lemmas: LemmaCut[] = [],
       && Array.from(l.when).every(lemmaLin) && lemmaLin(l.cut) && !!l.tree && typeof l.tree === 'object'
       && (l.slice === undefined || Array.isArray(l.slice) && Array.from(l.slice).every(i => Number.isSafeInteger(i) && i >= 0 && i < goal.hyps.length)))) return false
     for (const l of lemmas) {
+      observeCheckStep()
       const hyps = l.slice === undefined ? goal.hyps : l.slice.map(i => goal.hyps[i]!)
       const path = prependAtoms([{lin: l.cut, holds: false}, ...l.when.map(lin => ({lin, holds: true}))], new Map())
       if (!check({...goal, hyps}, l.tree, path)) return false
     }
     const visit = (t: Tree, path: Path): boolean => {
       if ('leaf' in t) return check(goal, t, framePath(frames, lemmas, path, monos, lins))
+      observeCheckStep()
       const id = canon(t.split)
       if (path.has(id) || Object.keys(t.split).every(key => key === '1')) return false
       return visit(t.yes, new Map(path).set(id, {lin: t.split, holds: true}))
@@ -1950,10 +1964,11 @@ export function qfacts(c: QC, path: Path, pos = true): [QRow, boolean][] {
 export function qLeafRows(goal: QGoal, path: Path): Constraint[] {
   const rows: [QRow, boolean][] = [...[...path.values()].map(a => (a.holds ? [linRow(a.lin)!, false] : [rscale(-1n, linRow(a.lin)!), true]) as [QRow, boolean]),
     ...goal.hyps.flatMap(h => qfacts(h, path))]
-  return rows.flatMap(([r, strict]) => { const lin = qLin(r); return lin ? [{lin, label: '', strict}] : [] })
+  return rows.flatMap(([r, strict]) => { const lin = qLin(r); observeTableCells(lin ? Object.keys(lin).length : 0); return lin ? [{lin, label: '', strict}] : [] })
 }
 // A split on a row the path decides already (or a constant one) is refused, as Lean's checkT refuses it.
 export function checkQTree(goal: QGoal, tree: Tree, path: Path = new Map()): boolean {
+  observeCheckStep()
   if ('leaf' in tree) return !tree.products?.length && !tree.squares?.length && checkRefutation(qLeafRows(goal, path), tree.leaf, false)
   const row = linRow(tree.split), lin = row && qLin(row)
   if (!row || !lin || qdec(path, row) !== undefined) return false
@@ -2086,6 +2101,7 @@ export function countedOk(hyps: C[], cs: Count[], is: CountInst[]): boolean {
 // (Lean's are Int).
 const typed = (is: CountInst[]): boolean => is.every(i => typeof i.wit === 'string' && Number.isSafeInteger(i.unit) && i.terms.every(([z]) => Number.isSafeInteger(z)))
 export function checkCounted(g: CountedGoal, cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[], frames?: FrameCut[], monos?: MonoCut[], lins?: LinCut[]}): boolean {
+  observeCheckStep()
   if (!(countedOk(g.hyps, g.counts, cert.insts) && typed(cert.insts))) return false
   const goal = countedGoal(g, cert.insts)
   return goal !== undefined && checkGoalLemmas(goal, cert.tree, cert.lemmas, cert.frames, g.counts, cert.monos, cert.lins)
@@ -2219,6 +2235,7 @@ const witFreshW = (cs: Count[], is: CountInst[], w: string): boolean =>
   cs.every(c => c.v !== w && !readsVar(c.below, w) && !readsVar(c.body, w)) && is.every(j => !readsVar(j.below, w))
 const countedOkW = (cs: Count[], is: CountInst[]): boolean => { const ws = is.map(i => i.wit); return new Set(ws).size === ws.length && is.every(i => witFreshW(cs, is, i.wit)) }
 function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[], frames?: FrameCut[], monos?: MonoCut[], lins?: LinCut[]}): boolean {
+  observeCheckStep()
   if (!(countedOkW(cs, cert.insts) && typed(cert.insts))) return false
   const hs = countHyps(cs, cert.insts)
   return hs !== undefined && checkGoalLemmas({name: 'counted', hyps: [...hyps, ...hs]}, cert.tree, cert.lemmas, cert.frames, cs, cert.monos, cert.lins)
@@ -2227,6 +2244,7 @@ function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree: 
 // its key term, and checkCountedW accepts the counted goal they make (the goal's hypotheses, each read variable equal to
 // its cell; Lean's names the hypotheses it uses, each the goal's).
 export function checkMC(hyps: C[], ds: CountDecl[], k: CountCert): boolean {
+  observeCheckStep()
   if (!(ds.every(d => d.j !== d.key && loOf(d) !== d.key) && picksTyped(k.picks) && readsTyped(k.reads) && Array.isArray(k.insts) && k.insts.every(i => !!i && safeTerm(i.below)) && readsOk(hyps, ds, k.reads))) return false
   if (!k.reads.every(r => k.insts.every(i => i.wit !== r[0] && !readsVar(r[2], i.wit)))) return false
   const cs = toCounts(ds, k.reads)

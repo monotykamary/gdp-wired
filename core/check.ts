@@ -13,13 +13,15 @@
 // A witness satisfies its constraints when every one of them evaluates to at most 0 at it, every value, product and
 // partial sum a safe integer (else it is not taken: a rounded sum may read a positive row as 0).
 import type {Constraint, Lin, Step} from './solver.ts'
+import {observeCheckStep, observeTableCells} from './meter.ts'
 
-const vars = (lin: Lin) => Object.keys(lin).filter(key => key !== '1')
-const exact = (lin: Lin) => Object.values(lin).every(c => Number.isSafeInteger(c))
+const vars = (lin: Lin) => Object.keys(lin).filter(key => (observeTableCells(), key !== '1'))
+const exact = (lin: Lin) => Object.values(lin).every(c => (observeTableCells(), Number.isSafeInteger(c)))
 
 export function checkRefutation(constraints: Constraint[], steps: Step[], integral = true): boolean {
   const rows: Lin[] = [], strict: boolean[] = []
   for (const [i, s] of steps.entries()) {
+    observeCheckStep()
     if (s.kind === 'input') {
       if (!(Number.isInteger(s.index) && s.index >= 0 && s.index < constraints.length)) return false
       const c = constraints[s.index]!
@@ -31,7 +33,7 @@ export function checkRefutation(constraints: Constraint[], steps: Step[], integr
       // (on no prototype: a row's variable named __proto__ is summed like any other, never dropped)
       const out: Lin = Object.create(null)
       // Each product safe too: a rounded one is past 2^53, but the other row's could bring the sum back under it.
-      for (const [lin, m] of [[rows[s.a]!, s.ma], [rows[s.b]!, s.mb]] as const) for (const [key, c] of Object.entries(lin)) { if (!Number.isSafeInteger(m * c)) return false; out[key] = (out[key] ?? 0) + m * c }
+      for (const [lin, m] of [[rows[s.a]!, s.ma], [rows[s.b]!, s.mb]] as const) for (const [key, c] of Object.entries(lin)) { observeTableCells(); if (!Number.isSafeInteger(m * c)) return false; out[key] = (out[key] ?? 0) + m * c }
       if (!exact(out)) return false
       rows.push(out); strict.push(strict[s.a]! || strict[s.b]!)
     } else {
@@ -48,8 +50,10 @@ export function checkRefutation(constraints: Constraint[], steps: Step[], integr
 
 export function checkWitness(constraints: Constraint[], witness: Record<string, number>): boolean {
   return constraints.every(c => {
+    observeCheckStep()
     let sum = 0
     for (const [key, a] of Object.entries(c.lin)) {
+      observeTableCells()
       const value = key === '1' ? 1 : Object.hasOwn(witness, key) ? witness[key] : undefined, term = a * value!
       if (!(Number.isSafeInteger(a) && Number.isSafeInteger(value) && Number.isSafeInteger(term) && Number.isSafeInteger(sum + term))) return false
       sum += term

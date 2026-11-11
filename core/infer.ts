@@ -33,6 +33,7 @@ import {searchNow as countedSearchNow, checkWorkEndpoint} from './wall.ts'
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
+import {observeCubeTest} from './meter.ts'
 import {bitIntersection, bitIntersects} from './bitsets.ts'
 import {samplePredicates, sampleStateText} from './sample-cache.ts'
 import {sampleStep} from './sample-step.ts'
@@ -936,7 +937,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const sizeOf = (coef: [number, number][]) => coef.length * 100 + coef.reduce((s, [, c]) => s + Math.abs(c), 0)
   const forms: Form[] = []
   const NS = rowsS.length, NK = rowsK.length
-  const at = (coef: [number, number][], vals: Float64Array[], j: number) => { let s = 0; for (const [i, c] of coef) s += c * vals[i]![j]!; return s }
+  const at = (coef: [number, number][], vals: Float64Array[], j: number) => { observeCubeTest(); let s = 0; for (const [i, c] of coef) s += c * vals[i]![j]!; return s }
   const keyNots = plain.filter(i => !atoms[i]!.param && !atoms[i]!.int && !atoms[i]!.term)
   // The guards: the choices first, then yes/nos, then small naturals, at most eight; each shape's largest value per
   // guard in one pass over (at most 3,000 of) the rows: with each state kept once a stride skips states, not copies, and a
@@ -1198,6 +1199,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     return vs
   }
   const holdsRow = (f: Form, env: Env): boolean => {
+    observeCubeTest()
     used.evals++
     const vs = valuesOf(env)
     if (f.never) return f.never.some(g => off(g, vs[g.atom]!))
@@ -1619,7 +1621,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const fine = bounds, coarse = [...new Set([0, ...consts.flatMap(k => [k, -k])])].sort((p2, q2) => p2 - q2)
     type Group = {eqs: bigint[][], hi: number[], raised: number[]}
     const normal = (e: bigint[]) => { let g2 = 0n; for (const x2 of e) g2 = bgcd(g2, x2); if (g2 > 1n) for (let k = 0; k < e.length; k++) e[k]! /= g2; const lead = e.find(x2 => x2 !== 0n); if (lead !== undefined && lead < 0n) for (let k = 0; k < e.length; k++) e[k] = -e[k]!; return e }
-    const dirValue = (t: [number, number][], vs: Float64Array | number[]) => { let v = 0; for (const [i, c] of t) v += c * vs[i]!; return v }
+    const dirValue = (t: [number, number][], vs: Float64Array | number[]) => { observeCubeTest(); let v = 0; for (const [i, c] of t) v += c * vs[i]!; return v }
     let joins = 0, neversBroken = 0
     // A space of the join: the states (one row each, the scalars), or, for a rule with maps, the cells at a key (a row per
     // key a state's maps hold and a fresh one: the scalars and that key's cells), its control state, its coordinates
@@ -1635,7 +1637,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const coords = own.filter(i => !exactAtoms.has(i)), CN = coords.length, dirs = directions(coords)
       const groups = new Map<string, Group>()
       let keyAtoms = ctl.map(c => c.atom)
-      const residual = (e: bigint[], vs: Float64Array | number[]) => { let r = e[CN]!; for (let k = 0; k < CN; k++) if (e[k]) r += e[k]! * BigInt(vs[coords[k]!]!); return r }
+      const residual = (e: bigint[], vs: Float64Array | number[]) => { observeCubeTest(); let r = e[CN]!; for (let k = 0; k < CN; k++) if (e[k]) r += e[k]! * BigInt(vs[coords[k]!]!); return r }
       const join = (g: string, vs: Float64Array | number[], widen: boolean, into = groups) => {
         let grp = into.get(g)
         if (!grp) {
