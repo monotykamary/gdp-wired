@@ -1,0 +1,942 @@
+diff --git a/core/exists.ts b/core/exists.ts
+index ba650d3a..7d1f1d45 100644
+--- a/core/exists.ts
++++ b/core/exists.ts
+@@ -1,4 +1,5 @@
+-import {traceNow as countedTraceNow} from './wall.ts'
++import {traceNow as countedTraceNow, BudgetExpired} from './wall.ts'
++import {withReachabilityWork, reachState, reachEdge} from './work-observe.ts'
+ // There exists: a law ∃ x. P(x) (core/machine.ts's Law with `some`: x a natural, or an integer as two, x and x$neg),
+ // proven through a witness. Nothing here is trusted: the kernel proves a plain law of a plain machine, and the Lean
+ // export states the existential again, proven by ⟨witness, proof⟩ (lean-kernel/Ghost.lean's some_updAll).
+@@ -138,12 +139,16 @@ const atomsOf2 = (c: C): C[] => (c.op === 'and' || c.op === 'or' ? c.xs.flatMap(
+ // taken as often as any other. Each state's step from the state it was first reached from is kept: `pathTo`.)
+ const pathTo = new WeakMap<State, [State, Request]>()
+ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000, walks = 0): State[] {
++  return withReachabilityWork(() => smallWithin(m, p, b, cap, work, walks))
++}
++function smallWithin(m: Machine, p: Env, b: number, cap: number, work: number, walks: number): State[] {
++  reachState()
+   // (past a thousand steps, through the generated JavaScript, fastStep: the interpreter's states, as compile.test.ts holds
+   // them; a small machine's few steps cost less than its compiling)
+   checkWall('sample setup')
+   const run = interpret(m), start = run.init(p)
+   let steps = 0, fast = run.step
+-  const step = (p2: Env, st: State, r: Request): State => { if (++steps === 1000) fast = fastStep(m) ?? run.step; return fast(p2, st, r) }
++  const step = (p2: Env, st: State, r: Request): State => { reachEdge(); if (++steps === 1000) fast = fastStep(m) ?? run.step; return fast(p2, st, r) }
+   const subsets = Array.from({length: 1 << b}, (_, s) => new Map(Array.from({length: b}, (_, i) => i).filter(i => (s >> i) & 1).map(i => [i, 1] as [number, number])))
+   // (an input the assumption keeps below a few values, an action's, over all of them; the rest below b)
+   const below = (i: string) => Math.max(b, ...(m.assume ? atomsOf2(m.assume) : []).flatMap(c => (c.op === '<' && c.a.op === 'var' && c.a.name === i && c.b.op === 'const' && c.b.value <= 8 ? [c.b.value] : [])))
+@@ -173,7 +178,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
+   const reached = (next: State, from: State, r: Request): State => {
+     const h = hashOf(next), bucket = seen.get(h)
+     if (bucket) { for (const had of bucket) if (equal(had, next)) return had; bucket.push(next) } else seen.set(h, [next])
+-    all.push(next); pathTo.set(next, [from, r]); return next
++    reachState(); all.push(next); pathTo.set(next, [from, r]); return next
+   }
+   while (queue.length && all.length < cap && work > 0) {
+     const st = queue.shift()!
+@@ -181,7 +186,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
+       checkWall('sample BFS')
+       if (--work < 0) break
+       let next: State
+-      try { next = step(p, st, r) } catch { continue }
++      try { next = step(p, st, r) } catch (error) { if (error instanceof BudgetExpired) throw error; continue }
+       const n0 = all.length
+       if (reached(next, st, r) && all.length > n0) queue.push(next)
+     }
+@@ -200,7 +205,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
+         checkWall('sample walks')
+         const r = reqs[rnd(reqs.length)]!
+         let next: State
+-        try { next = step(p, st, r) } catch { continue }
++        try { next = step(p, st, r) } catch (error) { if (error instanceof BudgetExpired) throw error; continue }
+         const kd = kindOf(st, next)
+         if (kd) by.set(kd, [...by.get(kd) ?? [], [next, r]])
+       }
+@@ -277,6 +282,9 @@ export function trueSmall(m: Machine, laws: Law[], ghosted?: Machine): boolean {
+ const views = new WeakMap<Machine, WeakMap<State, State>>()
+ const sampleTests = new WeakMap<Machine, WeakMap<C, ReturnType<typeof compileC>>>()
+ export function holdsAt(m: Machine, law: Law, p: Env, st: State, b: number): boolean {
++  return withReachabilityWork(() => holdsAtWithin(m, law, p, st, b))
++}
++function holdsAtWithin(m: Machine, law: Law, p: Env, st: State, b: number): boolean {
+   let machineViews = views.get(m)
+   if (!machineViews) views.set(m, (machineViews = new WeakMap()))
+   let view = machineViews.get(st)
+diff --git a/core/finite-houdini.ts b/core/finite-houdini.ts
+index ef131dd5..f61e1bea 100644
+--- a/core/finite-houdini.ts
++++ b/core/finite-houdini.ts
+@@ -3,8 +3,9 @@ import {traceNow as countedTraceNow} from './wall.ts'
+ // unknown; only an actual enabled step from a state satisfying the WHOLE
+ // current family may remove a non-caller. The checked prover sees survivors.
+ import {type C, type E, type Law, type Machine, type Request, type State, carriedView, compileC, compileE, fastStep, interpret, seeded, walk} from './machine.ts'
+-import {checkWall, searchWall, WallExpired} from './wall.ts'
++import {checkWall, searchWall, WallExpired, BudgetExpired} from './wall.ts'
+ import {boundaryState, lawFrontiers} from './finite-frontiers.ts'
++import {withReachabilityWork, reachState, reachEdge} from './work-observe.ts'
+ import {wallAt, withWall} from '../kernel/prove.ts'
+ import {type TinyFiniteOptions, type TinyFiniteStatistics, type TinySeedStatistics, tinyFiniteCandidates, tinySeedCandidates} from './finite-tiny.ts'
+ type Env = Record<string, number>
+@@ -59,7 +60,7 @@ export function finiteEvaluator(m: Machine, stop: () => boolean = () => false):
+     let nested = false; walk(law.holds, o => { if (o.op === 'all') nested = true })
+     return {keys, cover, guards: gs, test: compileC(law.holds, m), supported: !nested && !law.some?.length && !keys.some(k => k in m.state || m.params.includes(k)) && ![...variables(law.holds)].some(k => m.inputs.includes(k) && !keys.includes(k))}
+   }
+-  return (law, p, st) => {
++  return (law, p, st) => withReachabilityWork(() => {
+     checkWall('finite law')
+     if (stop()) return undefined
+     let entry = cache.get(st)
+@@ -92,10 +93,10 @@ export function finiteEvaluator(m: Machine, stop: () => boolean = () => false):
+       return undefined
+     }
+     let truth: Truth
+-    try { truth = go(shape.cover) } catch (e) { if (e instanceof WallExpired) throw e; truth = undefined }
++    try { truth = go(shape.cover) } catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; truth = undefined }
+     entry.values.set(law, truth)
+     return truth
+-  }
++  })
+ }
+ export type FiniteDrop = {round: number, law: Law, params: Env, pre: State, request: Request, post: State}
+ export const finiteDump: {onStart?: (value: {machine: Machine, caller: Law[], candidates: Law[]}) => void, onDrop?: (drop: FiniteDrop) => void} = {}
+@@ -104,10 +105,10 @@ export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candid
+   const start = countedTraceNow(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
+   let survivors = candidates.slice(), timedOut = false
+   try {
+-    return withWall(end, () => finiteHoudiniWithin(source, m, caller, candidates, samples, {...options, onDrop: drop => {
++    return withWall(end, () => withReachabilityWork(() => finiteHoudiniWithin(source, m, caller, candidates, samples, {...options, onDrop: drop => {
+       survivors = survivors.filter(law => law !== drop.law)
+       options.onDrop?.(drop)
+-    }}))
++    }})))
+   } catch (error) {
+     if (!(error instanceof WallExpired)) throw error
+     // An enclosing deadline must still cancel the caller. Only expiration of
+@@ -141,7 +142,7 @@ export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], ca
+   const start = countedTraceNow(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
+   let survivors = candidates.slice(), timedOut = false
+   try {
+-    return withWall(end, () => {
++    return withWall(end, () => withReachabilityWork(() => {
+       if (source.history || m.history || Object.keys(source.leasts ?? {}).length || Object.keys(m.leasts ?? {}).length || Object.keys(source.sums ?? {}).length || Object.keys(m.sums ?? {}).length) return survivors
+       finiteDump.onStart?.({machine: m, caller, candidates})
+       const evaluate = finiteEvaluator(m), run = interpret(source), protectedLaws = new Set(caller)
+@@ -153,11 +154,11 @@ export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], ca
+         for (const p of params) {
+           checkWall('tiny Houdini instance')
+           const certify = (pre: State, request: Request): boolean => {
+-            checkWall('tiny Houdini certification')
++            checkWall('tiny Houdini certification'); reachState()
+             // The screen's constraints and reported post-laws are not trusted.
+             if (!family.every(law => evaluate(law, p, pre) === true)) return false
+             let post: State
+-            try { post = run.step(p, pre, request) } catch (e) { if (e instanceof WallExpired) throw e; return false }
++            try { reachEdge(); post = run.step(p, pre, request) } catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; return false }
+             let accepted = false
+             for (const law of survivors) {
+               if (protectedLaws.has(law) || removed.has(law) || evaluate(law, p, post) !== false) continue
+@@ -190,7 +191,7 @@ export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], ca
+         if (!removed.size) return survivors
+       }
+       return survivors
+-    })
++    }))
+   } catch (e) {
+     if (!(e instanceof WallExpired)) throw e
+     checkWall('tiny Houdini outer completion')
+@@ -238,6 +239,7 @@ function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candida
+     let accepted = 0, steps = 0
+     const rejecting = (p: Env, st: State): Law | undefined => { for (const law of family) if (evaluate(law, p, st) !== true) { failures.set(law, (failures.get(law) ?? 0) + 1); return law } return undefined }
+     const visit = (p: Env, pre: State): boolean => {
++      reachState()
+       const by = rejecting(p, pre)
+       if (by) { rejected.push({p, st: pre, by}); return false }
+       const bound = Math.max(3, ...Object.values(p))
+@@ -246,7 +248,7 @@ function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candida
+         const request: Request = Object.fromEntries(numericInputs.map(({name, bound: b}) => [name, rng(b)]))
+         for (const mp of source.inputMaps ?? []) request[mp] = new Map(Array.from({length: bound}, (_, i) => [i, 1] as [number, number]).filter(() => rng(2)))
+         let post: State
+-        try { post = step(p, pre, request) } catch (e) { if (e instanceof WallExpired) throw e; continue }
++        try { reachEdge(); post = step(p, pre, request) } catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; continue }
+         steps++
+         // Laws are state-only. An enabled semantic no-op preserves the already
+         // checked family, even if the interpreter allocated fresh map objects.
+diff --git a/core/finite-tiny.ts b/core/finite-tiny.ts
+index d3cd3b37..61763347 100644
+--- a/core/finite-tiny.ts
++++ b/core/finite-tiny.ts
+@@ -3,8 +3,24 @@ import {traceNow as countedTraceNow} from './wall.ts'
+ // The consumer MUST independently check m.pre, ALL m.facts, the WHOLE current
+ // family, the source interpreter's enabled step, and each reported post-law. This module owns no
+ // solver/kernel policy and never extends the enclosing cooperative wall.
+-import {type C, type E, type Law, type Machine, type Request, type State, cpair, cunpair, walk} from './machine.ts'
++import {type C, type E, type Law, type Machine, type Request, type State, cpair, cunpair, walk, compileFunction} from './machine.ts'
+ import {checkWall, WallExpired} from './wall.ts'
++import {tinyNode, tinyTerm, tinyBlock} from './work-observe.ts'
++import {completeWorkProfile} from './work-profile.ts'
++// Only closed generated operators enter this helper. Its lexical tick counts
++// an executed predicate node, interval binding or transition binding; native
++// short-circuit branches that were not executed are not charged.
++const tinyPrefix = completeWorkProfile.enabled ? '__tinyWork();' : ''
++const tinyExpression = (code: string): string => completeWorkProfile.enabled ? `(__tinyWork(),${code})` : code
++const originalSize = (code: string): number => code.length - (code.split('(__tinyWork(),').length - 1) * ('(__tinyWork(),'.length + 1)
++const tinyCheck = (phase: string): void => { tinyTerm(); checkWall(phase) }
++function tinyNative<T>(body: string): T {
++  if (!completeWorkProfile.enabled) return compileFunction<T>(['v', 'd'], body)
++  const code = tinyPrefix + body
++  const maximum = code.split('__tinyWork()').length - 1
++  const execute = compileFunction<(v: number[], d: number | undefined, tick: () => void) => unknown>(['v', 'd', '__tinyWork'], code)
++  return ((v: number[], d?: number) => tinyBlock(maximum, () => execute(v, d, tinyTerm))) as T
++}
+ type Env = Record<string, number>
+ type NumericOp = Extract<E['op'], 'add' | 'sub' | 'prod' | 'min' | 'max' | 'tup'>
+ type Term = {id: number, code: string, args: Term[], deps: number[], lo: number, hi: number, arithmetic?: NumericOp, values?: number[], choice?: {c: Pred, a: Term, b: Term}}
+@@ -31,7 +47,7 @@ const negate = (x: Pred): Pred => typeof x === 'boolean' ? !x : x.op === 'not' ?
+ const dependencyCache = new WeakMap<object, number[]>()
+ const depsOf = (p: Pred): number[] => {
+   if (typeof p === 'boolean') return []
+-  checkWall('tiny dependencies')
++  tinyCheck('tiny dependencies')
+   const hit = dependencyCache.get(p)
+   if (hit) return hit
+   const out = p.op === 'atom' ? unique([...p.a.deps, ...p.b.deps]) : p.op === 'not' ? depsOf(p.x) : unique(p.xs.flatMap(depsOf))
+@@ -60,7 +76,7 @@ class Compiler {
+   ref(t: Term): string { return `t${t.id}` }
+   slot(i: number): Term { const vs = this.slots[i]!.values; return this.term(`v[${i}]`, [], Math.min(...vs), Math.max(...vs), [i]) }
+   binary(op: NumericOp, a: Term, b: Term): Term {
+-    checkWall('tiny arithmetic compile')
++    tinyCheck('tiny arithmetic compile')
+     const finish = (t: Term): Term => {
+       t.arithmetic = op
+       if (a.values && b.values && a.values.length * b.values.length <= 256) t.values = unique(a.values.flatMap(x => b.values!.map(y => op === 'add' ? x + y : op === 'sub' ? Math.max(0, x - y) : op === 'prod' ? x * y : op === 'min' ? Math.min(x, y) : op === 'max' ? Math.max(x, y) : cpair(x, y)))).sort((x, y) => x - y)
+@@ -83,7 +99,7 @@ class Compiler {
+     throw new Unsupported('nonconstant tuple')
+   }
+   compare(cmp: '<' | '<=' | '=', a: Term, b: Term): Pred {
+-    checkWall('tiny comparison compile')
++    tinyCheck('tiny comparison compile')
+     if (cmp === '=') { if (a.id === b.id) return true; if (a.hi < b.lo || b.hi < a.lo) return false; if (a.lo === a.hi && b.lo === b.hi) return a.lo === b.lo }
+     if (cmp === '<') { if (a.hi < b.lo) return true; if (a.lo >= b.hi) return false }
+     if (cmp === '<=') { if (a.hi <= b.lo) return true; if (a.lo > b.hi) return false }
+@@ -108,7 +124,7 @@ class Compiler {
+     return out
+   }
+   expression(e: E, env: Env, post = false, stack: string[] = []): Term {
+-    checkWall('tiny compile expression')
++    tinyCheck('tiny compile expression')
+     if (stack.length > 48) throw new Unsupported('recursive count/flag')
+     switch (e.op) {
+       case 'const': return this.constant(e.value)
+@@ -134,7 +150,7 @@ class Compiler {
+           if (key.values && key.values.length > 256) throw new Unsupported('many dynamic map keys')
+           const keys = key.values ?? Array.from({length: key.hi - key.lo + 1}, (_, i) => key.lo + i)
+           let out = this.read(e.map, keys.at(-1)!, env, post, stack)
+-          for (const k of keys.slice(0, -1).reverse()) { checkWall('tiny dynamic reads'); out = this.conditional(this.compare('=', key, this.constant(k)), this.read(e.map, k, env, post, stack), out) }
++          for (const k of keys.slice(0, -1).reverse()) { tinyCheck('tiny dynamic reads'); out = this.conditional(this.compare('=', key, this.constant(k)), this.read(e.map, k, env, post, stack), out) }
+           return out
+         }
+         return this.read(e.map, key.lo, env, post, stack)
+@@ -142,7 +158,7 @@ class Compiler {
+     }
+   }
+   read(map: string, key: number, env: Env, post: boolean, stack: string[]): Term {
+-    checkWall('tiny compile read')
++    tinyCheck('tiny compile read')
+     const id = JSON.stringify([map, key, post, this.environmentKey(env)])
+     const hit = this.reads.get(id)
+     if (hit) return hit
+@@ -158,7 +174,7 @@ class Compiler {
+       const bound = this.expression(d.below, at, post, stack)
+       if (bound.lo !== bound.hi || bound.hi > 16) throw new Unsupported('nonconstant/large count bound')
+       let out = this.constant(0)
+-      for (let k = 0; k < bound.hi; k++) { checkWall('tiny count expansion'); out = this.binary('add', out, this.expression(d.body, {...at, [d.key]: k}, post, [...stack, `count:${map}`])) }
++      for (let k = 0; k < bound.hi; k++) { tinyCheck('tiny count expansion'); out = this.binary('add', out, this.expression(d.body, {...at, [d.key]: k}, post, [...stack, `count:${map}`])) }
+       return out
+     }
+     if (this.m.fns?.[map]) throw new Unsupported('external function')
+@@ -174,7 +190,7 @@ class Compiler {
+     throw new Unsupported(`unknown map ${map}`)
+   }
+   condition(c: C, env: Env, post = false, stack: string[] = []): Pred {
+-    checkWall('tiny compile predicate')
++    tinyCheck('tiny compile predicate')
+     if (stack.length > 48) throw new Unsupported('recursive count/flag')
+     switch (c.op) {
+       case '<': case '<=': case '=': return this.compare(c.op, this.expression(c.a, env, post, stack), this.expression(c.b, env, post, stack))
+@@ -197,14 +213,14 @@ class Compiler {
+     }
+   }
+   predicateCode(p: Pred, rank: number[] | undefined, used: Term[], polarity = true): string {
+-    checkWall('tiny predicate code')
+-    if (typeof p === 'boolean') return String(p === polarity)
+-    if (p.op === 'not') return this.predicateCode(p.x, rank, used, !polarity)
+-    if (p.op === 'and' || p.op === 'or') return '(' + p.xs.map(x => this.predicateCode(x, rank, used, polarity)).join((p.op === 'and') === polarity ? '&&' : '||') + ')'
++    tinyCheck('tiny predicate code')
++    if (typeof p === 'boolean') return tinyExpression(String(p === polarity))
++    if (p.op === 'not') return tinyExpression(this.predicateCode(p.x, rank, used, !polarity))
++    if (p.op === 'and' || p.op === 'or') return tinyExpression('(' + p.xs.map(x => this.predicateCode(x, rank, used, polarity)).join((p.op === 'and') === polarity ? '&&' : '||') + ')')
+     used.push(p.a, p.b)
+     const ds = unique([...p.a.deps, ...p.b.deps]), ready = rank ? Math.max(-1, ...ds.map(i => rank[i]!)) + 1 : 0
+     const test = `(${this.ref(p.a)}${p.cmp === '=' ? '===' : p.cmp}${this.ref(p.b)})`
+-    return `(${rank && ready > 0 ? `d<${ready}||` : ''}${polarity ? test : '!' + test})`
++    return tinyExpression(`(${rank && ready > 0 ? `d<${ready}||` : ''}${polarity ? test : '!' + test})`)
+   }
+   // Three-valued interval truth: -1=false, 0=unknown, 1=true. Only a
+   // definitely true target rules out its negation; intersecting bounds stay
+@@ -213,13 +229,13 @@ class Compiler {
+     const lines: string[] = [], ranges = new Map<number, {lo: string, hi: string}>(), truths = new WeakMap<object, string>()
+     let chars = 0, next = 0
+     const emit = (line: string): void => {
+-      checkWall('tiny interval code')
+-      chars += line.length
++      tinyCheck('tiny interval code')
++      chars += originalSize(line)
+       if (chars > 65_536) throw new Unsupported('large interval screen')
+-      lines.push(line)
++      lines.push(tinyPrefix + line)
+     }
+     const range = (t: Term): {lo: string, hi: string} => {
+-      checkWall('tiny interval term')
++      tinyCheck('tiny interval term')
+       if (t.lo < 0 || t.hi < t.lo) throw new Unsupported('non-natural interval')
+       const hit = ranges.get(t.id)
+       if (hit) return hit
+@@ -244,7 +260,7 @@ class Compiler {
+       return out
+     }
+     const truth = (q: Pred): string => {
+-      checkWall('tiny interval predicate')
++      tinyCheck('tiny interval predicate')
+       if (typeof q === 'boolean') return q ? '1' : '-1'
+       const hit = truths.get(q)
+       if (hit) return hit
+@@ -264,34 +280,34 @@ class Compiler {
+     const result = truth(p)
+     emit(`return ${result}!==1;`)
+     // oxlint-disable-next-line typescript/no-implied-eval
+-    return new Function('v', 'd', lines.join('')) as (v: number[], depth: number) => boolean
++    return tinyNative<(v: number[], depth: number) => boolean>(lines.join(''))
+   }
+   compileValues(values: Term[], order?: number[]): (v: number[], depth?: number) => number[] {
+-    checkWall('tiny transition code')
++    tinyCheck('tiny transition code')
+     const rank = order ? this.slots.map((_, i) => order.indexOf(i)) : undefined
+     const seen = new Set<number>(), lines: string[] = []
+     let chars = 0
+     const emit = (t: Term): void => {
+-      checkWall('tiny transition terms')
++      tinyCheck('tiny transition terms')
+       if (seen.has(t.id)) return
+       seen.add(t.id); t.args.forEach(emit)
+       const ready = rank ? Math.max(-1, ...t.deps.map(i => rank[i]!)) + 1 : 0
+       const line = `const t${t.id}=${ready > 0 ? `d>=${ready}?${t.code}:0` : t.code};`
+-      chars += line.length
++      chars += originalSize(line)
+       if (chars > 65_536) throw new Unsupported('large transition screen')
+-      lines.push(line)
++      lines.push(tinyPrefix + line)
+     }
+     values.forEach(emit)
+     // Only closed AST operators, validated numerical literals and slot indices;
+     // callback replay, never this generated transition, authorizes a CTI.
+     // oxlint-disable-next-line typescript/no-implied-eval
+-    return new Function('v', 'd', `${lines.join('')}return [${values.map(t => this.ref(t)).join(',')}];`) as (v: number[], depth?: number) => number[]
++    return tinyNative<(v: number[], depth?: number) => number[]>(`${lines.join('')}return [${values.map(t => this.ref(t)).join(',')}];`)
+   }
+   // Upper truth bound, not a two-valued evaluation of an incomplete state.
+   // true includes UNKNOWN; false rules out this polarity for every completion.
+   // In particular, polarity=false cannot prune on an unassigned atom.
+   compile(p: Pred, order?: number[], polarity = true, readyAt?: number[]): (v: number[], depth: number) => boolean {
+-    checkWall('tiny generate screen')
++    tinyCheck('tiny generate screen')
+     // Keep native compilation and hot execution in bounded clauses rather
+     // than one giant predicate. Partial-assignment polarity is unchanged.
+     if (typeof p === 'boolean') return () => p === polarity
+@@ -309,7 +325,7 @@ class Compiler {
+         this.compile({op: p.op, xs: p.xs.slice(middle)}, order, polarity, readyAt)]
+       return (v, depth) => {
+         for (const test of tests) {
+-          checkWall('tiny predicate clause')
++          tinyCheck('tiny predicate clause')
+           if (test(v, depth) !== all) return !all
+         }
+         return all
+@@ -318,7 +334,7 @@ class Compiler {
+     return this.compileNative(p, order, polarity, readyAt)
+   }
+   compileNative(p: Pred, order?: number[], polarity = true, readyAt?: number[]): (v: number[], depth: number) => boolean {
+-    checkWall('tiny native clause')
++    tinyCheck('tiny native clause')
+     const rank = readyAt ? readyAt.map(depth => depth - 1) : order ? this.slots.map((_, i) => order.indexOf(i)) : undefined, used: Term[] = []
+     // An atomic predicate is unknown until ALL of its dependencies are set.
+     // Its old per-term placeholders could not affect that result, so return
+@@ -328,29 +344,29 @@ class Compiler {
+     const ready = rank && atomic ? Math.max(-1, ...depsOf(p).map(i => rank[i]!)) + 1 : 0
+     const guard = ready > 0 ? `if(d<${ready})return true;` : ''
+     const code = this.predicateCode(p, atomic ? undefined : rank, used, polarity), seen = new Set<number>(), lines: string[] = []
+-    let chars = guard.length + code.length
++    let chars = guard.length + originalSize(code)
+     if (chars > 65_536) throw new Unsupported('large generated screen')
+     const emit = (t: Term): void => {
+-      checkWall('tiny term code')
++      tinyCheck('tiny term code')
+       if (seen.has(t.id)) return
+       seen.add(t.id); t.args.forEach(emit)
+       const termReady = rank && !atomic ? Math.max(-1, ...t.deps.map(i => rank[i]!)) + 1 : 0
+       const line = `const t${t.id}=${termReady > 0 ? `d>=${termReady}?${t.code}:0` : t.code};`
+-      chars += line.length
++      chars += originalSize(line)
+       if (chars > 65_536) throw new Unsupported('large generated screen')
+-      lines.push(line)
++      lines.push(tinyPrefix + line)
+     }
+     used.forEach(emit)
+     // Closed AST operators, validated numerical literals and slot indices only;
+     // no identifier or external function source is interpolated. This is an
+     // UNTRUSTED screen: the callback must independently replay every proposal.
+     // oxlint-disable-next-line typescript/no-implied-eval
+-    return new Function('v', 'd', `${guard}${lines.join('')}return ${code};`) as (v: number[], d: number) => boolean
++    return tinyNative<(v: number[], d: number) => boolean>(`${guard}${lines.join('')}return ${code};`)
+   }
+ }
+ const uniqueTerms = (ts: Term[]) => [...new Map(ts.map(t => [t.id, t])).values()]
+ function bindings(names: string[], domain: number[], env: Env): Env[] {
+-  checkWall('tiny bindings')
++  tinyCheck('tiny bindings')
+   if (!names.length) return [env]
+   if (names.length > 5) throw new Unsupported('many binders')
+   return domain.flatMap(k => bindings(names.slice(1), domain, {...env, [names[0]!]: k}))
+@@ -361,7 +377,7 @@ function gridKeys(m: Machine, size: number): Record<string, number[]> {
+   const cells: Record<string, number[]> = {}
+   for (const [name] of Object.entries(m.maps ?? {})) cells[name] = Array.from({length: size}, (_, i) => i)
+   for (const d of Object.values(m.counts ?? {})) walk(d.body, o => {
+-    checkWall('tiny grid inference')
++    tinyCheck('tiny grid inference')
+     if (o.op !== 'get' || !Object.hasOwn(cells, String(o.map))) return
+     const key = o.key as E
+     if (key.op === 'add') {
+@@ -376,7 +392,7 @@ function tinyScope(params: Env, stateValues: number[], options: TinyFiniteOption
+   return {params: {...params}, scalarValues: [...stateValues], cellValues: [...stateValues], cells: {}, inputValues: {}, inputCells: {}, binderValues: [], postTargetPruning: options.postTargetPruning === true, postTargetIntervals: options.postTargetIntervals === true, seedNeighborhood: options.seedTransitions !== undefined, seedUniformMaps: options.seedTransitions !== undefined && options.seedUniformMaps === true}
+ }
+ function tinyLayout(source: Machine, m: Machine, params: Env, stateValues: number[], scope: TinyFiniteStatistics['scope']): {slots: Slot[], stateSlots: number} {
+-  checkWall('tiny start')
++  tinyCheck('tiny start')
+   if (!stateValues.length || stateValues.length > 4 || stateValues.some(n => !Number.isSafeInteger(n) || n < 0)) throw new Unsupported('invalid finite value domain')
+   if (source.history || source.leasts || source.sums) throw new Unsupported('history/least/sums')
+   if (!source.params.every(p => Number.isSafeInteger(params[p]) && params[p]! >= 0)) throw new Unsupported('missing/non-natural params')
+@@ -388,15 +404,15 @@ function tinyLayout(source: Machine, m: Machine, params: Env, stateValues: numbe
+   scope.cells = gridKeys(m, size)
+   scope.binderValues = Array.from({length: size}, (_, i) => i)
+   const slots: Slot[] = Object.keys(source.state).map(name => ({name, values: stateValues}))
+-  for (const name of Object.keys(source.maps ?? {})) for (const key of scope.cells[name] ?? []) { checkWall('tiny state coordinates'); slots.push({name, key, values: stateValues}) }
++  for (const name of Object.keys(source.maps ?? {})) for (const key of scope.cells[name] ?? []) { tinyCheck('tiny state coordinates'); slots.push({name, key, values: stateValues}) }
+   const stateSlots = slots.length
+   for (const name of source.inputs) {
+-    checkWall('tiny request domains')
++    tinyCheck('tiny request domains')
+     // Explicit conjunctive natural bounds are domain hints; other inputs use
+     // 0..size. No domain or quotient is a trusted pruning justification.
+     let hi = 16, bounded = false
+     for (const c of conjuncts(source.assume ?? {op: 'and', xs: []})) {
+-      checkWall('tiny numeric bounds')
++      tinyCheck('tiny numeric bounds')
+       if ((c.op === '<' || c.op === '<=') && c.a.op === 'var' && c.a.name === name) {
+         const b = c.b.op === 'const' ? c.b.value : c.b.op === 'var' ? params[c.b.name] : undefined
+         if (b !== undefined) { hi = Math.min(hi, b - Number(c.op === '<')); bounded = true }
+@@ -408,7 +424,7 @@ function tinyLayout(source: Machine, m: Machine, params: Env, stateValues: numbe
+     scope.inputValues[name] = values; slots.push({name, request: true, values})
+   }
+   for (const name of source.inputMaps ?? []) {
+-    checkWall('tiny carried coordinates')
++    tinyCheck('tiny carried coordinates')
+     scope.inputCells[name] = Array.from({length: size}, (_, i) => i)
+     for (const key of scope.inputCells[name]!) slots.push({name, key, request: true, values: [0, 1]})
+   }
+@@ -419,7 +435,7 @@ function materializeTiny(source: Machine, slots: Slot[], values: readonly number
+   const preState: State = {scalars:{},maps:Object.fromEntries(Object.keys(source.maps??{}).map(name=>[name,new Map<number,number>()]))}
+   const request: Request = Object.fromEntries((source.inputMaps??[]).map(name=>[name,new Map<number,number>()]))
+   for(let i=0;i<slots.length;i++){
+-    checkWall('tiny candidate materialization')
++    tinyCheck('tiny candidate materialization')
+     const s=slots[i]!, value=s.request&&s.key===undefined&&Object.hasOwn(fixed,s.name)?fixed[s.name]!:values[i]!
+     if(s.request){if(s.key===undefined)request[s.name]=value;else(request[s.name] as Map<number,number>).set(s.key,value)}
+     else if(s.key===undefined)preState.scalars[s.name]=value
+@@ -431,7 +447,7 @@ function walkTinySeedVectors(source: Machine, params: Env, slots: Slot[], option
+   const bases: number[][] = [], seen = new Set<string>()
+   let attempts = 0
+   for (const seed of options.seedTransitions?.slice(-8) ?? []) {
+-    checkWall('tiny seed projection')
++    tinyCheck('tiny seed projection')
+     if (!Object.keys(params).every(key => seed.params[key] === params[key])) continue
+     const values: number[] = []
+     for (const slot of slots) {
+@@ -445,7 +461,7 @@ function walkTinySeedVectors(source: Machine, params: Env, slots: Slot[], option
+     if (values.length === slots.length) bases.push(values)
+   }
+   const attempt = (values: number[], coupled = false): boolean => {
+-    checkWall('tiny seed attempt')
++    tinyCheck('tiny seed attempt')
+     if (attempts >= 256) return false
+     const key = values.join(',')
+     if (seen.has(key)) return true
+@@ -457,7 +473,7 @@ function walkTinySeedVectors(source: Machine, params: Env, slots: Slot[], option
+   if (options.seedUniformMaps) {
+     const grouped = new Map<string, number[]>()
+     for (const [i, slot] of slots.entries()) {
+-      checkWall('tiny seed map grouping')
++      tinyCheck('tiny seed map grouping')
+       if (slot.key === undefined) continue
+       const key = `${Number(!!slot.request)}:${slot.name}`, group = grouped.get(key) ?? []
+       group.push(i); grouped.set(key, group)
+@@ -465,7 +481,7 @@ function walkTinySeedVectors(source: Machine, params: Env, slots: Slot[], option
+     const groups = [...grouped.values()].filter(group => group.length > 1)
+       .sort((a, b) => Number(!!slots[b[0]!]!.request) - Number(!!slots[a[0]!]!.request))
+     for (const group of groups) for (const base of bases) for (const value of slots[group[0]!]!.values) {
+-      checkWall('tiny seed uniform map')
++      tinyCheck('tiny seed uniform map')
+       if (!group.every(i => slots[i]!.values.includes(value)) || group.every(i => base[i] === value)) continue
+       const values = base.slice(); for (const i of group) values[i] = value
+       if (!attempt(values, true)) return
+@@ -475,7 +491,7 @@ function walkTinySeedVectors(source: Machine, params: Env, slots: Slot[], option
+   // neighborhood consuming the entire fixed attempt allowance.
+   const axes = [...slots.keys()].sort((a, b) => Number(!!slots[b]!.request) - Number(!!slots[a]!.request) || a - b)
+   for (const i of axes) for (const base of bases) for (const value of slots[i]!.values) {
+-    checkWall('tiny seed neighbor')
++    tinyCheck('tiny seed neighbor')
+     if (value === base[i]) continue
+     const values = base.slice(); values[i] = value
+     if (!attempt(values)) return
+@@ -531,7 +547,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
+     if (source.pre) pres.push(compiler.condition(source.pre, params))
+     const instances = new Map<Law, Env[]>()
+     for (const law of family) {
+-      checkWall('tiny family compile')
++      tinyCheck('tiny family compile')
+       if (law.some?.length) { unknown(new Unsupported('existential law')); continue }
+       if ([law.forall, ...law.keys ?? []].some(k => k !== undefined && (k in source.state || source.params.includes(k) || source.inputs.includes(k)))) { unknown(new Unsupported('shadowing law binder')); continue }
+       try {
+@@ -547,7 +563,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
+     // quotients request coordinates irrelevant to that operation slice.
+     const dispatches = new Map<string, Set<number>>()
+     walk(source.step, o => {
+-      checkWall('tiny dispatch inference')
++      tinyCheck('tiny dispatch inference')
+       if (o.op !== '=') return
+       const a = o.a as E, b = o.b as E
+       const [v, k] = a.op === 'var' ? [a, b] : [b, a]
+@@ -559,7 +575,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
+     const slices = dispatch ? scope.inputValues[dispatch]!.map(value => ({...params, [dispatch]: value})) : [params]
+     const emitted = new Set<Law>(), highs = slots.map(s => Math.max(...s.values))
+     const writeFlags = new Set<string>()
+-    walk([source.step.state, source.step.maps], o => { checkWall('tiny write flags'); if (o.op === 'flag') writeFlags.add(o.name as string) })
++    walk([source.step.state, source.step.maps], o => { tinyCheck('tiny write flags'); if (o.op === 'flag') writeFlags.add(o.name as string) })
+     const slotValue = (c: Compiler, i: number, env: Env, post: boolean): Term => {
+       const s = slots[i]!
+       return s.key === undefined ? c.expression({op:'var',name:s.name},env,post) : c.read(s.name,s.key,env,post,[])
+@@ -575,7 +591,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
+     const flatPreds = (p: Pred): Pred[] => typeof p !== 'boolean' && p.op === 'and' ? p.xs.flatMap(flatPreds) : [p]
+     const operations: {fixed: Env, order: number[], gate: (v:number[],d:number)=>boolean, step:(v:number[])=>number[], outputs: Term[], mayFail?: (v:number[],d:number)=>boolean}[] = []
+     for(const fixed of slices){
+-      checkWall('tiny operation compile')
++      tinyCheck('tiny operation compile')
+       try {
+         const outputs = slots.slice(0,stateSlots).map((_,i)=>slotValue(compiler,i,fixed,true))
+         if(outputs.every((t,i)=>t.id===compiler.slot(i).id)) continue
+@@ -587,7 +603,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
+         const degrees = slots.map((_,i)=>clauses.reduce((sum,ds)=>sum+(ds.includes(i)?1/Math.max(1,ds.length):0),0))
+         const order = slots.map((_,i)=>i).filter(i=>i>=stateSlots&&relevant.has(i)).sort((a,b)=>degrees[b]!-degrees[a]!||a-b)
+         operations.push({fixed,order,gate:compiler.compile(enabled,order),step:compiler.compileValues(outputs),outputs})
+-        outputs.forEach((t,i)=>{checkWall('tiny post ranges'); highs[i]=Math.max(highs[i]!,t.hi)})
++        outputs.forEach((t,i)=>{tinyCheck('tiny post ranges'); highs[i]=Math.max(highs[i]!,t.hi)})
+         stats.scenarios++
+       } catch(e) { if(e instanceof WallExpired) throw e; unknown(e) }
+     }
+@@ -595,7 +611,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
+     const postCompiler = new Compiler(source,m,params,postSlots,scope.cells,scope.binderValues)
+     const targets: Law[] = [], predicates: Pred[] = []
+     for(const [law,ats] of instances){
+-      checkWall('tiny shared post predicates')
++      tinyCheck('tiny shared post predicates')
+       try {
+         const p = conjunction(ats.map(at=>postCompiler.condition(law.holds,at)))
+         if(p===true) continue
+@@ -608,7 +624,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
+     const stateOrder = slots.slice(0,stateSlots).map((_,i)=>i).sort((a,b)=>degrees[b]!-degrees[a]!||a-b)
+     const preTest = compiler.compile(pre,stateOrder), v = slots.map(s=>s.values[0]!)
+     if (options.postTargetPruning) for (const op of operations) {
+-      checkWall('tiny post-target circuit')
++      tinyCheck('tiny post-target circuit')
+       try {
+         const order = [...stateOrder, ...op.order], rank = slots.map((_, i) => order.indexOf(i))
+         // A post coordinate is unknown until every source dependency of its
+@@ -617,7 +633,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
+         const changed = new Set(op.outputs.flatMap((t, i) => t.id === compiler.slot(i).id ? [] : [i]))
+         const needed = new Set<number>(), screens: {law: Law, mayFail: (v: number[], d: number) => boolean}[] = []
+         for (const [i, law] of targets.entries()) {
+-          checkWall('tiny post-target predicate')
++          tinyCheck('tiny post-target predicate')
+           const p = predicates[i]!, deps = depsOf(p)
+           // Unchanged primitive dependencies preserve this full-family law.
+           if (!deps.some(j => changed.has(j))) continue
+@@ -662,21 +678,21 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
+     const propose = (fixed:Env, violated:Law[]):void=>{
+       const {pre: preState, request} = materializeTiny(source, slots, v, fixed)
+       const accepted=onCandidate(preState,request,violated);stats.candidates++
+-      if(accepted!==false)for(const law of violated){checkWall('tiny proposed targets');emitted.add(law)}
++      if(accepted!==false)for(const law of violated){tinyCheck('tiny proposed targets');emitted.add(law)}
+     }
+     const visit = ():void=>{
+-      stats.states++;checkWall('tiny lawful state')
++      stats.states++;tinyCheck('tiny lawful state')
+       for(const op of operations){
+-        checkWall('tiny operation slice')
++        tinyCheck('tiny operation slice')
+         for(let i=stateSlots;i<slots.length;i++)v[i]=slots[i]!.values[0]!
+         for(const name of source.inputs)if(Object.hasOwn(op.fixed,name))v[slots.findIndex(s=>s.request&&s.key===undefined&&s.name===name)]=op.fixed[name]!
+         const requests = (d:number):void=>{
+-          stats.nodes++;checkWall('tiny request assignment')
++          tinyNode();stats.nodes++;tinyCheck('tiny request assignment')
+           if(!op.gate(v,d))return
+           if (op.mayFail && !op.mayFail(v, stateOrder.length + d)) { stats.postRequestPrunes++; return }
+           if(d<op.order.length){
+             const i=op.order[d]!
+-            for(const value of slots[i]!.values){checkWall('tiny request values');v[i]=value;requests(d+1)}
++            for(const value of slots[i]!.values){tinyCheck('tiny request values');v[i]=value;requests(d+1)}
+             return
+           }
+           const values=op.step(v)
+@@ -690,24 +706,24 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
+       }
+     }
+     const states = (d:number):void=>{
+-      stats.nodes++;checkWall('tiny state assignment')
++      tinyNode();stats.nodes++;tinyCheck('tiny state assignment')
+       if(!preTest(v,d))return
+       if (options.postTargetPruning && operations.every(op => !op.mayFail!(v, d))) { stats.postStatePrunes++; return }
+       if(d===stateOrder.length){visit();return}
+       const i=stateOrder[d]!
+       // Ones first reaches enabled guards early; both values remain enumerated.
+-      for(const value of [...slots[i]!.values].reverse()){checkWall('tiny state values');v[i]=value;states(d+1)}
++      for(const value of [...slots[i]!.values].reverse()){tinyCheck('tiny state values');v[i]=value;states(d+1)}
+     }
+     // A seed is only an untrusted coordinate suggestion, never a drop. Project
+     // the last eight into this exact finite grid, try radius-one neighbors,
+     // then retain the ordinary full traversal. Every proposal uses the same
+     // independent callback. Snapshot before callbacks can add later seeds.
+     if (options.seedTransitions) walkTinySeedVectors(source, params, slots, options, (values, coupled) => {
+-      stats.seedModels++; stats.nodes++; if (coupled) stats.seedCoupledModels++
++      tinyNode();stats.seedModels++; stats.nodes++; if (coupled) stats.seedCoupledModels++
+       for (let i = 0; i < values.length; i++) v[i] = values[i]!
+       if (!preTest(v, stateOrder.length)) return
+       for (const op of operations) {
+-        checkWall('tiny seed operation')
++        tinyCheck('tiny seed operation')
+         if (slots.some((s, i) => s.request && s.key === undefined && Object.hasOwn(op.fixed, s.name) && v[i] !== op.fixed[s.name])) continue
+         if (!op.gate(v, op.order.length)) continue
+         const outputs = op.step(v)
+diff --git a/core/machine.ts b/core/machine.ts
+index 95bc1dbe..56a13b11 100644
+--- a/core/machine.ts
++++ b/core/machine.ts
+@@ -10,6 +10,7 @@ import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, s
+ import {runtimeWall} from './runtime-wall.ts'
+ import {traceNow} from './trace-clock.ts'
+ import {coreMeter} from './meter.ts'
++import {observeEval} from './work-observe.ts'
+ import {observeAst} from './meter.ts'
+ 
+ 
+@@ -382,7 +383,7 @@ const exact = (v: number): number => {
+ // (a value is a number: a name like constructor or toString, read through an object's prototype, is no value of it)
+ const num = (x: unknown): number | undefined => (typeof x === 'number' ? x : undefined)
+ export function evalE(e: E, env: Env, st: State, m: Machine): number {
+-  coreMeter.evals += 1
++  observeEval()
+   switch (e.op) {
+     case 'var': { const v = num(env[e.name]) ?? num(st.scalars[e.name]); if (v === undefined) throw new Error(`no value for ${e.name}`); return v }
+     case 'const': return e.value
+@@ -415,7 +416,7 @@ const directCall = (d: DirectFn): ((...args: number[]) => number) => {
+   // Arithmetic inside an equation is evaluated just as in generated code; no paired key is needed for calls.
+   const memo = new Map<string, [number, number]>()
+   const value = (e: E, env: Env): number => {
+-    coreMeter.evals += 1
++    observeEval()
+     switch (e.op) {
+       case 'const': return e.value
+       case 'var': return env[e.name]!
+@@ -434,7 +435,7 @@ const directCall = (d: DirectFn): ((...args: number[]) => number) => {
+     }
+   }
+   const condition = (c: C, env: Env): boolean => {
+-    coreMeter.evals += 1
++    observeEval()
+     switch (c.op) {
+       case '<': return value(c.a, env) < value(c.b, env)
+       case '<=': return value(c.a, env) <= value(c.b, env)
+@@ -516,7 +517,7 @@ export function pairedArgs(key: E, n: number): E[] | undefined {
+ }
+ const alike = (a: E, b: E): boolean => a === b || JSON.stringify(a) === JSON.stringify(b)
+ export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
+-  coreMeter.evals += 1
++  observeEval()
+   switch (c.op) {
+     case '<': return evalE(c.a, env, st, m) < evalE(c.b, env, st, m)
+     case '<=': return evalE(c.a, env, st, m) <= evalE(c.b, env, st, m)
+@@ -538,7 +539,7 @@ export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
+ export function compileE(e: E, m: Machine): (env: Env, st: State) => number {
+   const run = compileENode(e, m)
+   // A get either charges its own node or delegates it to evalE, never both.
+-  return e.op === 'get' ? run : (env, st) => { coreMeter.evals += 1; return run(env, st) }
++  return e.op === 'get' ? run : (env, st) => { observeEval(); return run(env, st) }
+ }
+ function compileENode(e: E, m: Machine): (env: Env, st: State) => number {
+   switch (e.op) {
+@@ -558,7 +559,7 @@ function compileENode(e: E, m: Machine): (env: Env, st: State) => number {
+       return (env, st) => {
+         const fn = m.fns?.[map]
+         if (fn?.call && pairedArgs(e.key, fn.arity!)) return evalE(e, env, st, m)
+-        coreMeter.evals += 1
++        observeEval()
+         const k = key(env, st)
+         return fn ? naturalIn(fnOf(fn)(k), `${map}(${k})`) : st.maps[map]!.get(k) ?? st.defaults?.[map] ?? m.maps![map]!
+       }
+@@ -568,7 +569,7 @@ function compileENode(e: E, m: Machine): (env: Env, st: State) => number {
+ export function compileC(c: C, m: Machine): (env: Env, st: State) => boolean {
+   const run = compileCNode(c, m)
+   // Quantified conditions delegate the whole evaluation to the interpreter.
+-  return c.op === 'all' ? run : (env, st) => { coreMeter.evals += 1; return run(env, st) }
++  return c.op === 'all' ? run : (env, st) => { observeEval(); return run(env, st) }
+ }
+ function compileCNode(c: C, m: Machine): (env: Env, st: State) => boolean {
+   switch (c.op) {
+@@ -1081,7 +1082,7 @@ export function fastStep(m: Machine): ((params: Env, st: State, input: Request)
+   const only = cs.length ? {...m, counts: decls} : m, tick = () => { coreMeter.ticks += 1; runtimeWall.check?.('derived count') }
+   return (params, st, input) => {
+     // Section 18's static expression-node charge per compiled step invocation.
+-    coreMeter.evals += stepEvals
++    observeEval(stepEvals, true)
+     if (!cs.length) return js.step(params, st, input)
+     const view = compiledCells ? js.cells!(params, st, input, tick) : carriedView(only, st, input, undefined, params).maps, carried: Request = {...input}
+     for (const c of cs) carried[c] = view[c]!
+diff --git a/core/meter.ts b/core/meter.ts
+index 4e68c263..9e83d20f 100644
+--- a/core/meter.ts
++++ b/core/meter.ts
+@@ -1,5 +1,5 @@
+ // Raw observations only. No callback, budget, clock, reset or proof decision.
+ // Kept outside the admitted kernel tree; search policy owns aggregation.
+-export const coreMeter = {tableCells: 0, checkSteps: 0, astNodes: 0, evals: 0, cubeTests: 0, ticks: 0}
++export const coreMeter = {tableCells: 0, checkSteps: 0, astNodes: 0, evals: 0, cubeTests: 0, ticks: 0, tinyNodes: 0, tinyTerms: 0, reachStates: 0, reachEdges: 0, reachEvals: 0, reachCompiledEvals: 0}
+ // Evaluate the child before charging the allocation; never charge reused trees.
+ export function observeAst<T>(node: T): T { coreMeter.astNodes += 1; return node }
+diff --git a/core/runtime-wall.ts b/core/runtime-wall.ts
+index 857b37a3..ef741242 100644
+--- a/core/runtime-wall.ts
++++ b/core/runtime-wall.ts
+@@ -1,4 +1,4 @@
+ // Dependency-free bridge for cooperative runtime cancellation. The wall module
+ // installs its checker; the interpreter stays usable without importing the
+ // proof engine (which itself imports the machine constructors).
+-export const runtimeWall: {check?: (phase: string) => void} = {}
++export const runtimeWall: {check?: (phase: string) => void, admit?: (units: number, phase: string) => void, remaining?: () => number} = {}
+diff --git a/core/wall.ts b/core/wall.ts
+index 3c4fe9a2..cbc86994 100644
+--- a/core/wall.ts
++++ b/core/wall.ts
+@@ -1,6 +1,6 @@
+ // Cooperative cancellation of untrusted search. Legacy callers retain their
+ // wall; an explicit work scope never consults it or grants completion headroom.
+-import {pastWall, clock, searchNow, wallAt, inBudget, inWorkScope, checkBudget} from '../kernel/prove.ts'
++import {pastWall, clock, searchNow, wallAt, inBudget, inWorkScope, checkBudget, checkWorkAdmission, remainingWork} from '../kernel/prove.ts'
+ import {runtimeWall} from './runtime-wall.ts'
+ export {withBudget, budgetEnd, inBudget, checkBudget, checkWorkEndpoint, BudgetExpired, searchNow} from '../kernel/prove.ts'
+ export {traceNow} from './trace-clock.ts'
+@@ -24,3 +24,5 @@ export function checkWall(phase: string): void {
+ }
+ // The interpreter must not import the proof engine just to check cancellation.
+ runtimeWall.check = checkWall
++runtimeWall.admit = checkWorkAdmission
++runtimeWall.remaining = remainingWork
+diff --git a/core/work-meter.ts b/core/work-meter.ts
+index b501b520..ee4a9350 100644
+--- a/core/work-meter.ts
++++ b/core/work-meter.ts
+@@ -9,7 +9,7 @@ const initialLegacyWeights = [
+   ['scan', 0.0765], ['pivotRows', 0.599], ['unitRows', 15.6], ['unfoldRows', 0.735], ['goalNodes', 0.492], ['translateRows', 7.93],
+ ] as const
+ export const legacyWeights = Object.freeze(initialLegacyWeights.map(pair => Object.freeze(pair)))
+-export const extraWorkKeys = ['tableCells', 'checkSteps', 'astNodes', 'evals', 'cubeTests', 'ticks', 'cdclNodes', 'epr'] as const
++export const extraWorkKeys = ['tableCells', 'checkSteps', 'astNodes', 'evals', 'cubeTests', 'ticks', 'cdclNodes', 'epr', 'tinyNodes', 'tinyTerms', 'reachStates', 'reachEdges', 'reachEvals', 'reachCompiledEvals'] as const
+ export type ExtraWorkKey = typeof extraWorkKeys[number]
+ export type ExtraWorkWeights = Readonly<Record<ExtraWorkKey, number>>
+ export type WorkKey = typeof legacyWeights[number][0] | ExtraWorkKey
+@@ -23,6 +23,7 @@ export function rawWork(): RawWork {
+     scan: costs.scan, pivotRows: costs.pivotRows, unitRows: costs.unitRows, unfoldRows: costs.unfoldRows, goalNodes: costs.goalNodes, translateRows: costs.translateRows,
+     tableCells: coreMeter.tableCells, checkSteps: coreMeter.checkSteps, astNodes: coreMeter.astNodes, evals: coreMeter.evals,
+     cubeTests: coreMeter.cubeTests, ticks: coreMeter.ticks, cdclNodes: costs.cdclNodes, epr: eprMeter.n,
++    tinyNodes: coreMeter.tinyNodes, tinyTerms: coreMeter.tinyTerms, reachStates: coreMeter.reachStates, reachEdges: coreMeter.reachEdges, reachEvals: coreMeter.reachEvals, reachCompiledEvals: coreMeter.reachCompiledEvals,
+   }
+ }
+ export function weightedWork(raw: RawWork, extra: ExtraWorkWeights | undefined = extraWeights): number {
+@@ -39,6 +40,7 @@ export function fullWork(): number {
+   for (const key of ['tableCells', 'checkSteps', 'astNodes', 'evals', 'cubeTests', 'ticks'] as const) n += extraWeights[key] * coreMeter[key]
+   n += extraWeights.cdclNodes * costs.cdclNodes
+   n += extraWeights.epr * eprMeter.n
++  for (const key of ['tinyNodes', 'tinyTerms', 'reachStates', 'reachEdges', 'reachEvals', 'reachCompiledEvals'] as const) n += extraWeights[key] * coreMeter[key]
+   return n
+ }
+ export const completeWorkWeights = (): ExtraWorkWeights | undefined => extraWeights
+@@ -46,7 +48,7 @@ export const completeWorkWeights = (): ExtraWorkWeights | undefined => extraWeig
+ // permitted, but are never calibration records and never silently become defaults.
+ export function withCompleteWorkWeights<T>(weights: ExtraWorkWeights, run: () => T): T {
+   if (extraWorkKeys.some(key => !Object.hasOwn(weights, key) || !Number.isFinite(weights[key]) || weights[key] < 0)
+-    || Object.keys(weights).some(key => !(extraWorkKeys as readonly string[]).includes(key))) throw new RangeError('complete work requires exactly eight finite nonnegative coefficients')
++    || Object.keys(weights).some(key => !(extraWorkKeys as readonly string[]).includes(key))) throw new RangeError(`complete work requires exactly ${extraWorkKeys.length} finite nonnegative coefficients (raw-work-v1)`)
+   if (completeWorkProfile.enabled && extraWorkKeys.some(key => weights[key] !== completeWorkProfile.weights[key]))
+     throw new Error('complete work profile weights are frozen')
+   const previous = extraWeights
+diff --git a/core/work-observe.ts b/core/work-observe.ts
+new file mode 100644
+index 00000000..20637dfc
+--- /dev/null
++++ b/core/work-observe.ts
+@@ -0,0 +1,47 @@
++// Untrusted search instrumentation; raw meter storage has no policy callback.
++// New buckets are active only in raw-work-v1 full mode. Flags-off keeps every
++// historical eval charge and leaves all six successor buckets zero.
++import {coreMeter} from './meter.ts'
++import {completeWorkProfile, type CompleteWorkKey} from './work-profile.ts'
++import {runtimeWall} from './runtime-wall.ts'
++
++type NativeKey = Extract<CompleteWorkKey, 'tinyNodes' | 'tinyTerms' | 'reachStates' | 'reachEdges' | 'reachEvals' | 'reachCompiledEvals'>
++let reachDepth = 0
++function charge(key: NativeKey, count: number): void {
++  if (!completeWorkProfile.enabled) return
++  if (!Number.isSafeInteger(count) || count < 0) throw new RangeError('native work count must be a nonnegative safe integer')
++  runtimeWall.admit?.(completeWorkProfile.weights[key] * count, key)
++  coreMeter[key] += count
++}
++export function tinyNode(): void { charge('tinyNodes', 1) }
++let tinyCredit = 0
++export function tinyTerm(): void {
++  if (tinyCredit > 0) { tinyCredit--; coreMeter.tinyTerms++; return }
++  charge('tinyTerms', 1)
++}
++// A closed generated tiny block has no loops, callbacks or other raw charges.
++// Every emitted tick site executes at most once. Admit that upper bound once,
++// charge only ticks actually visited, and discard unused credit on exit.
++// Near the endpoint use per-tick admission instead of refusing the whole block.
++export function tinyBlock<T>(maximum: number, run: () => T): T {
++  if (!Number.isSafeInteger(maximum) || maximum < 0) throw new RangeError('tiny block requires a finite node bound')
++  if (!completeWorkProfile.enabled || tinyCredit > 0) return run()
++  if ((runtimeWall.remaining?.() ?? Infinity) < maximum * completeWorkProfile.weights.tinyTerms) return run()
++  tinyCredit = maximum
++  try { return run() } finally { tinyCredit = 0 }
++}
++export function reachState(): void { charge('reachStates', 1) }
++export function reachEdge(): void { charge('reachEdges', 1) }
++// Interpreted/closure operations count the actual visited expression nodes.
++// Static compiled-step charges remain a separate bucket: their documented
++// contract is one syntactic step-body node per invocation, not executed nodes.
++export function observeEval(count = 1, compiled = false): void {
++  if (completeWorkProfile.enabled && reachDepth) charge(compiled ? 'reachCompiledEvals' : 'reachEvals', count)
++  else coreMeter.evals += count
++}
++// Synchronous and nestable, with try/finally restoration; never a fresh budget.
++export function withReachabilityWork<T>(run: () => T): T {
++  if (!completeWorkProfile.enabled) return run()
++  reachDepth++
++  try { return run() } finally { reachDepth-- }
++}
+diff --git a/core/work-profile.ts b/core/work-profile.ts
+index 0343b682..5aac97e8 100644
+--- a/core/work-profile.ts
++++ b/core/work-profile.ts
+@@ -1,22 +1,22 @@
+ // Research implementation switch. Off by default; these positive unit weights
+ // are a wiring fixture for lane I's raw counters, not D2's calibration or W.
+ // Freeze once so changing process.env cannot reprice an active proof.
+-export const completeWorkKeys = ['tableCells', 'checkSteps', 'astNodes', 'evals', 'cubeTests', 'ticks', 'cdclNodes', 'epr'] as const
++export const completeWorkKeys = ['tableCells', 'checkSteps', 'astNodes', 'evals', 'cubeTests', 'ticks', 'cdclNodes', 'epr', 'tinyNodes', 'tinyTerms', 'reachStates', 'reachEdges', 'reachEvals', 'reachCompiledEvals'] as const
+ export type CompleteWorkKey = typeof completeWorkKeys[number]
+ export type CompleteWorkWeights = Readonly<Record<CompleteWorkKey, number>>
+ const environment = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
+ const enabled = environment?.GDP_WORK_FULL === '1'
+ const weights = (() => {
+   const supplied = enabled ? environment?.GDP_WORK_WEIGHTS : undefined
+-  const value: unknown = supplied === undefined ? Object.fromEntries(completeWorkKeys.map(key => [key, 1])) : JSON.parse(supplied)
++  const value: unknown = supplied === undefined ? Object.fromEntries(completeWorkKeys.map(key => [key, key === 'reachEvals' || key === 'reachCompiledEvals' ? 0.02 : 1])) : JSON.parse(supplied)
+   if (!value || typeof value !== 'object' || Array.isArray(value)
+     || Object.keys(value).length !== completeWorkKeys.length
+     || completeWorkKeys.some(key => !Object.hasOwn(value, key) || typeof (value as Record<string, unknown>)[key] !== 'number'
+       || !Number.isFinite((value as Record<string, number>)[key]) || (value as Record<string, number>)[key]! <= 0))
+-    throw new RangeError('GDP_WORK_WEIGHTS requires exactly eight positive finite raw-counter weights')
++    throw new RangeError(`GDP_WORK_WEIGHTS requires exactly ${completeWorkKeys.length} positive finite raw-counter weights (raw-work-v1)`)
+   return Object.freeze({...value}) as CompleteWorkWeights
+ })()
+ const configured = enabled ? environment?.GDP_WORK_W : undefined
+ const defaultUnits = configured === undefined ? 15_000_000 : Number(configured)
+ if (!Number.isFinite(defaultUnits) || defaultUnits < 0) throw new RangeError('GDP_WORK_W must be finite and nonnegative')
+-export const completeWorkProfile = Object.freeze({id: 'raw-work-v0', enabled, provisional: true as const, weights, defaultUnits})
++export const completeWorkProfile = Object.freeze({id: 'raw-work-v1', enabled, provisional: true as const, weights, defaultUnits})
+diff --git a/kernel/prove.ts b/kernel/prove.ts
+index e188da68..2fdce4cc 100644
+--- a/kernel/prove.ts
++++ b/kernel/prove.ts
+@@ -246,6 +246,7 @@ export const fullWork = (): number => stepWork() + rawFullWork()
+ // Explicit synchronous work scopes. The default paths do not enter one yet:
+ // count/plain migrations and legacy deadline-reset semantics are separate steps.
+ let budgetUnitsEnd: number | undefined
++let admissionRefusedAt: number | undefined
+ export const inBudget = (): boolean => budgetUnitsEnd !== undefined
+ export const inWorkScope = (): boolean => inBudget() || rate !== 0 || stepWorkProfile.enabled
+ // An inherited counted scope has no wall-clock control path.
+@@ -256,10 +257,20 @@ export class BudgetExpired extends Error {
+ }
+ // Hard-stop checkpoints must not turn a local search deadline into a whole-run stop.
+ export function checkWorkEndpoint(phase: string): void {
+-  if (budgetUnitsEnd !== undefined && fullWork() > budgetUnitsEnd) throw new BudgetExpired(phase)
++  if (budgetUnitsEnd !== undefined && (admissionRefusedAt === budgetUnitsEnd || fullWork() > budgetUnitsEnd)) throw new BudgetExpired(phase)
+ }
++// Pre-step admission for new native primitive counters. No credit is minted and
++// no local deadline is promoted to whole-search cancellation.
++export function checkWorkAdmission(units: number, phase: string): void {
++  if (!Number.isFinite(units) || units < 0) throw new RangeError('work charge must be finite and nonnegative')
++  if (budgetUnitsEnd !== undefined && (admissionRefusedAt === budgetUnitsEnd || fullWork() + units > budgetUnitsEnd)) {
++    admissionRefusedAt = budgetUnitsEnd
++    throw new BudgetExpired(phase)
++  }
++}
++export function remainingWork(): number { return budgetUnitsEnd === undefined ? Infinity : admissionRefusedAt === budgetUnitsEnd ? 0 : Math.max(0, budgetUnitsEnd - fullWork()) }
+ export function checkBudget(phase: string): void {
+-  if (budgetUnitsEnd !== undefined && (fullWork() > budgetUnitsEnd
++  if (budgetUnitsEnd !== undefined && (admissionRefusedAt === budgetUnitsEnd || fullWork() > budgetUnitsEnd
+     || completeWorkProfile.enabled && clock() > withinDeadline(budgetEnd()))) throw new BudgetExpired(phase)
+ }
+ export function withBudget<T>(units: number, f: () => T): T {
+@@ -267,7 +278,8 @@ export function withBudget<T>(units: number, f: () => T): T {
+   // Never silently interpret units using a legacy work.n/count-rate island.
+   if (rate && meter !== fullWork) throw new Error('work budget requires the outer full-work clock')
+   return counted(fullRate, () => {
+-    const previous = budgetUnitsEnd
++    checkWorkEndpoint('inherited admission')
++    const previous = budgetUnitsEnd, previousRefused = admissionRefusedAt
+     budgetUnitsEnd = Math.min(previous ?? Infinity, workCap, fullWork() + units)
+     try {
+       return withWork(budgetUnitsEnd, () => withDeadline(budgetEnd(), () => {
+@@ -277,7 +289,12 @@ export function withBudget<T>(units: number, f: () => T): T {
+         checkBudget('completion')
+         return result
+       }))
+-    } finally { budgetUnitsEnd = previous }
++    } finally {
++      // A refusal at a shared endpoint remains visible after an inner scope;
++      // a genuinely smaller child allowance cannot poison a larger parent.
++      admissionRefusedAt = admissionRefusedAt === budgetUnitsEnd && previous === budgetUnitsEnd ? previous : previousRefused
++      budgetUnitsEnd = previous
++    }
+   }, true)
+ }
+ // A goal's own budget where its caller gives none, outside a counted search: the cost model's work, groundRate units a
