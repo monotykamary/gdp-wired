@@ -1,0 +1,26 @@
+[
+  {
+    "name": "a-helper-tests",
+    "cmd": "bun port-input/verify.ts tests",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "a-helper-check",
+    "cmd": "bun port-input/verify.ts check",
+    "cpu": 8,
+    "memory": 16384,
+    "timeout": 1200,
+    "vm_type": "xlarge"
+  },
+  {
+    "name": "common-counted-commitlint",
+    "cmd": "set -euo pipefail; temp=$(mktemp -d); trap 'rm -rf \"$temp\"' EXIT; printf '{\"private\":true}\\n' > \"$temp/package.json\"; (cd \"$temp\" && bun add --dev @commitlint/cli @commitlint/config-conventional >/dev/null); printf \"module.exports={extends:['@commitlint/config-conventional']};\\n\" > \"$temp/commitlint.config.cjs\"; for file in message-input/*.txt; do sha256sum \"$file\"; \"$temp/node_modules/.bin/commitlint\" --cwd \"$temp\" < \"$file\"; done",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 180,
+    "vm_type": "large"
+  }
+]

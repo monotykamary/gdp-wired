@@ -1,0 +1,417 @@
+diff --git a/core/check.ts b/core/check.ts
+index 12531ca33..05b0dee89 100644
+--- a/core/check.ts
++++ b/core/check.ts
+@@ -13,13 +13,15 @@
+ // A witness satisfies its constraints when every one of them evaluates to at most 0 at it, every value, product and
+ // partial sum a safe integer (else it is not taken: a rounded sum may read a positive row as 0).
+ import type {Constraint, Lin, Step} from './solver.ts'
++import {observeCheckStep, observeTableCells} from './meter.ts'
+ 
+-const vars = (lin: Lin) => Object.keys(lin).filter(key => key !== '1')
+-const exact = (lin: Lin) => Object.values(lin).every(c => Number.isSafeInteger(c))
++const vars = (lin: Lin) => Object.keys(lin).filter(key => (observeTableCells(), key !== '1'))
++const exact = (lin: Lin) => Object.values(lin).every(c => (observeTableCells(), Number.isSafeInteger(c)))
+ 
+ export function checkRefutation(constraints: Constraint[], steps: Step[], integral = true): boolean {
+   const rows: Lin[] = [], strict: boolean[] = []
+   for (const [i, s] of steps.entries()) {
++    observeCheckStep()
+     if (s.kind === 'input') {
+       if (!(Number.isInteger(s.index) && s.index >= 0 && s.index < constraints.length)) return false
+       const c = constraints[s.index]!
+@@ -31,7 +33,7 @@ export function checkRefutation(constraints: Constraint[], steps: Step[], integr
+       // (on no prototype: a row's variable named __proto__ is summed like any other, never dropped)
+       const out: Lin = Object.create(null)
+       // Each product safe too: a rounded one is past 2^53, but the other row's could bring the sum back under it.
+-      for (const [lin, m] of [[rows[s.a]!, s.ma], [rows[s.b]!, s.mb]] as const) for (const [key, c] of Object.entries(lin)) { if (!Number.isSafeInteger(m * c)) return false; out[key] = (out[key] ?? 0) + m * c }
++      for (const [lin, m] of [[rows[s.a]!, s.ma], [rows[s.b]!, s.mb]] as const) for (const [key, c] of Object.entries(lin)) { observeTableCells(); if (!Number.isSafeInteger(m * c)) return false; out[key] = (out[key] ?? 0) + m * c }
+       if (!exact(out)) return false
+       rows.push(out); strict.push(strict[s.a]! || strict[s.b]!)
+     } else {
+@@ -48,8 +50,10 @@ export function checkRefutation(constraints: Constraint[], steps: Step[], integr
+ 
+ export function checkWitness(constraints: Constraint[], witness: Record<string, number>): boolean {
+   return constraints.every(c => {
++    observeCheckStep()
+     let sum = 0
+     for (const [key, a] of Object.entries(c.lin)) {
++      observeTableCells()
+       const value = key === '1' ? 1 : Object.hasOwn(witness, key) ? witness[key] : undefined, term = a * value!
+       if (!(Number.isSafeInteger(a) && Number.isSafeInteger(value) && Number.isSafeInteger(term) && Number.isSafeInteger(sum + term))) return false
+       sum += term
+diff --git a/core/count-tier-budget.ts b/core/count-tier-budget.ts
+new file mode 100644
+index 000000000..4051ead2b
+--- /dev/null
++++ b/core/count-tier-budget.ts
+@@ -0,0 +1,53 @@
++// Counted-unit reservations, not wall-clock timers. A strategy floor is not
++// a per-law or pool cap: the unreserved remainder and unused generation flow
++// to strategies, while an ordinary-work floor remains protected.
++import {attemptShare} from './support-budget.ts'
++import {BudgetExpired,budgetEnd,clock,withDeadline} from '../kernel/prove.ts'
++export type CountTierBudget = Readonly<{
++ active:boolean,
++ generationUntil:number,
++ strategyFloor:number,
++ ordinaryFloor:number,
++ strategyUntil:number|undefined,
++ until:number,
++}>
++export function countTierBudget(start:number,until:number,selectedStrategies:number):CountTierBudget{
++ if(!Number.isSafeInteger(selectedStrategies)||selectedStrategies<0)throw new RangeError('invalid strategy count')
++ // No dispatcher hit: no reservation and precisely the existing split.
++ if(!selectedStrategies)return Object.freeze({active:false,generationUntil:until,strategyFloor:0,ordinaryFloor:0,strategyUntil:undefined,until})
++ if(!Number.isFinite(start)||!Number.isFinite(until))throw new RangeError('tiered work requires finite counted endpoints')
++ const width=Math.max(0,until-start),ordinaryFloor=width*3/10
++ return Object.freeze({active:true,generationUntil:Math.min(until,start+width/4),strategyFloor:width*7/20,ordinaryFloor,strategyUntil:until-ordinaryFloor,until})
++}
++// The public caller has already spent work on normalization and preflight.
++// Never regrant its original duration after that work.
++export function remainingCountTierBudget(start:number,requested:number,selected:number):CountTierBudget{
++ const plan=countTierBudget(start,Math.min(start+requested,budgetEnd()),selected)
++ if(!plan.active)return plan
++ // Include fixed public preflight in the original generation quarter.
++ const originalStart=plan.until-requested
++ return Object.freeze({...plan,generationUntil:Math.min(plan.generationUntil,originalStart+requested/4)})
++}
++// One endpoint shared by every STEP refinement and every retry. Expiration
++// returns to ordinary INIT/STEP completion; it does not cancel that reserve.
++export function strategyPhase<T>(budget:CountTierBudget|undefined,attemptEnd:number,run:(end:number)=>T):T|undefined{
++ if(!budget?.active)return run(attemptEnd)
++ const end=Math.min(attemptEnd,budget.strategyUntil??attemptEnd)
++ if(clock()>=end)return undefined
++ try{
++  const result=withDeadline(end,()=>run(end)),now=clock()
++  // Equality does not throw BudgetExpired. Only a local-cap unknown hands
++  // back the ordinary reserve; proofs and genuine refutations stay results.
++  if(now>=end&&now<=budgetEnd()&&result!==null&&typeof result==='object'&&
++     'stuck'in result&&result.stuck==='unknown'&&!('proof'in result)&&
++     !('refuted'in result&&result.refuted))return undefined
++  return result
++ }catch(error){
++  if(!(error instanceof BudgetExpired)||clock()<end||clock()>budgetEnd())throw error
++  return undefined
++ }
++}
++
++export function ordinaryTierShare(budget:CountTierBudget,now:number,pending:ReadonlySet<string>):number{
++ return attemptShare(budget.until-now,pending)
++}
+diff --git a/core/infer.ts b/core/infer.ts
+index 94c4d5938..f91b4bfd6 100644
+--- a/core/infer.ts
++++ b/core/infer.ts
+@@ -33,6 +33,7 @@ import {searchNow as countedSearchNow, checkWorkEndpoint} from './wall.ts'
+ //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
+ //     is the answer, after each chosen candidate the proof doesn't need is taken out again
+ import {quietly} from './cyclic.ts'
++import {observeCubeTest} from './meter.ts'
+ import {bitIntersection, bitIntersects} from './bitsets.ts'
+ import {samplePredicates, sampleStateText} from './sample-cache.ts'
+ import {sampleStep} from './sample-step.ts'
+@@ -936,7 +937,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+   const sizeOf = (coef: [number, number][]) => coef.length * 100 + coef.reduce((s, [, c]) => s + Math.abs(c), 0)
+   const forms: Form[] = []
+   const NS = rowsS.length, NK = rowsK.length
+-  const at = (coef: [number, number][], vals: Float64Array[], j: number) => { let s = 0; for (const [i, c] of coef) s += c * vals[i]![j]!; return s }
++  const at = (coef: [number, number][], vals: Float64Array[], j: number) => { observeCubeTest(); let s = 0; for (const [i, c] of coef) s += c * vals[i]![j]!; return s }
+   const keyNots = plain.filter(i => !atoms[i]!.param && !atoms[i]!.int && !atoms[i]!.term)
+   // The guards: the choices first, then yes/nos, then small naturals, at most eight; each shape's largest value per
+   // guard in one pass over (at most 3,000 of) the rows: with each state kept once a stride skips states, not copies, and a
+@@ -1198,6 +1199,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+     return vs
+   }
+   const holdsRow = (f: Form, env: Env): boolean => {
++    observeCubeTest()
+     used.evals++
+     const vs = valuesOf(env)
+     if (f.never) return f.never.some(g => off(g, vs[g.atom]!))
+@@ -1619,7 +1621,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+     const fine = bounds, coarse = [...new Set([0, ...consts.flatMap(k => [k, -k])])].sort((p2, q2) => p2 - q2)
+     type Group = {eqs: bigint[][], hi: number[], raised: number[]}
+     const normal = (e: bigint[]) => { let g2 = 0n; for (const x2 of e) g2 = bgcd(g2, x2); if (g2 > 1n) for (let k = 0; k < e.length; k++) e[k]! /= g2; const lead = e.find(x2 => x2 !== 0n); if (lead !== undefined && lead < 0n) for (let k = 0; k < e.length; k++) e[k] = -e[k]!; return e }
+-    const dirValue = (t: [number, number][], vs: Float64Array | number[]) => { let v = 0; for (const [i, c] of t) v += c * vs[i]!; return v }
++    const dirValue = (t: [number, number][], vs: Float64Array | number[]) => { observeCubeTest(); let v = 0; for (const [i, c] of t) v += c * vs[i]!; return v }
+     let joins = 0, neversBroken = 0
+     // A space of the join: the states (one row each, the scalars), or, for a rule with maps, the cells at a key (a row per
+     // key a state's maps hold and a fresh one: the scalars and that key's cells), its control state, its coordinates
+@@ -1635,7 +1637,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+       const coords = own.filter(i => !exactAtoms.has(i)), CN = coords.length, dirs = directions(coords)
+       const groups = new Map<string, Group>()
+       let keyAtoms = ctl.map(c => c.atom)
+-      const residual = (e: bigint[], vs: Float64Array | number[]) => { let r = e[CN]!; for (let k = 0; k < CN; k++) if (e[k]) r += e[k]! * BigInt(vs[coords[k]!]!); return r }
++      const residual = (e: bigint[], vs: Float64Array | number[]) => { observeCubeTest(); let r = e[CN]!; for (let k = 0; k < CN; k++) if (e[k]) r += e[k]! * BigInt(vs[coords[k]!]!); return r }
+       const join = (g: string, vs: Float64Array | number[], widen: boolean, into = groups) => {
+         let grp = into.get(g)
+         if (!grp) {
+diff --git a/core/meter.ts b/core/meter.ts
+index 9e83d20fb..a967cc4de 100644
+--- a/core/meter.ts
++++ b/core/meter.ts
+@@ -1,5 +1,19 @@
++import {completeWorkProfile} from './work-profile.ts'
++
+ // Raw observations only. No callback, budget, clock, reset or proof decision.
+ // Kept outside the admitted kernel tree; search policy owns aggregation.
+ export const coreMeter = {tableCells: 0, checkSteps: 0, astNodes: 0, evals: 0, cubeTests: 0, ticks: 0, tinyNodes: 0, tinyTerms: 0, reachStates: 0, reachEdges: 0, reachEvals: 0, reachCompiledEvals: 0}
+ // Evaluate the child before charging the allocation; never charge reused trees.
+ export function observeAst<T>(node: T): T { coreMeter.astNodes += 1; return node }
++
++// The three previously unwired columns are opt-in so default raw vectors stay
++// exact. These are observations, never callbacks into search or budget policy.
++export function observeTableCells(count = 1): void { if (completeWorkProfile.enabled) coreMeter.tableCells += count }
++export function observeCheckStep(): void { if (completeWorkProfile.enabled) coreMeter.checkSteps += 1 }
++export function observeCubeTest(): void { if (completeWorkProfile.enabled) coreMeter.cubeTests += 1 }
++export function observeLinearRows(rows: readonly Record<string, number>[]): void {
++  if (completeWorkProfile.enabled) for (const row of rows) coreMeter.tableCells += Object.keys(row).length
++}
++export function observeConstraintRows(rows: readonly {lin: Record<string, number>}[], start = 0): void {
++  if (completeWorkProfile.enabled) for (let i = start; i < rows.length; i++) coreMeter.tableCells += Object.keys(rows[i]!.lin).length
++}
+diff --git a/core/work-meter.ts b/core/work-meter.ts
+index ee4a9350c..2c59368c8 100644
+--- a/core/work-meter.ts
++++ b/core/work-meter.ts
+@@ -34,13 +34,38 @@ export function weightedWork(raw: RawWork, extra: ExtraWorkWeights | undefined =
+ }
+ export function fullWork(): number {
+   let n = 0
+-  for (const [key, weight] of legacyWeights) n += weight * costs[key]
+-  // Preserve the legacy fast path exactly; no implicit provisional coefficients.
+-  if (!extraWeights) return n
+-  for (const key of ['tableCells', 'checkSteps', 'astNodes', 'evals', 'cubeTests', 'ticks'] as const) n += extraWeights[key] * coreMeter[key]
++  // Keep flags-off on the historical path. In full mode the same ordered
++  // additions are explicit: admission calls this once per expression node.
++  if (!extraWeights) {
++    for (const [key, weight] of legacyWeights) n += weight * costs[key]
++    return n
++  }
++  n += 2.33 * costs.fm
++  n += 0.0123 * costs.fcells
++  n += 7.93 * costs.plainRows
++  n += 0.672 * costs.values
++  n += 0.735 * costs.copies
++  n += 0.0435 * costs.edges
++  n += 0.0765 * costs.scan
++  n += 0.599 * costs.pivotRows
++  n += 15.6 * costs.unitRows
++  n += 0.735 * costs.unfoldRows
++  n += 0.492 * costs.goalNodes
++  n += 7.93 * costs.translateRows
++  n += extraWeights.tableCells * coreMeter.tableCells
++  n += extraWeights.checkSteps * coreMeter.checkSteps
++  n += extraWeights.astNodes * coreMeter.astNodes
++  n += extraWeights.evals * coreMeter.evals
++  n += extraWeights.cubeTests * coreMeter.cubeTests
++  n += extraWeights.ticks * coreMeter.ticks
+   n += extraWeights.cdclNodes * costs.cdclNodes
+   n += extraWeights.epr * eprMeter.n
+-  for (const key of ['tinyNodes', 'tinyTerms', 'reachStates', 'reachEdges', 'reachEvals', 'reachCompiledEvals'] as const) n += extraWeights[key] * coreMeter[key]
++  n += extraWeights.tinyNodes * coreMeter.tinyNodes
++  n += extraWeights.tinyTerms * coreMeter.tinyTerms
++  n += extraWeights.reachStates * coreMeter.reachStates
++  n += extraWeights.reachEdges * coreMeter.reachEdges
++  n += extraWeights.reachEvals * coreMeter.reachEvals
++  n += extraWeights.reachCompiledEvals * coreMeter.reachCompiledEvals
+   return n
+ }
+ export const completeWorkWeights = (): ExtraWorkWeights | undefined => extraWeights
+diff --git a/core/work-observe.ts b/core/work-observe.ts
+index 20637dfcb..3a5acd067 100644
+--- a/core/work-observe.ts
++++ b/core/work-observe.ts
+@@ -36,8 +36,13 @@ export function reachEdge(): void { charge('reachEdges', 1) }
+ // Static compiled-step charges remain a separate bucket: their documented
+ // contract is one syntactic step-body node per invocation, not executed nodes.
+ export function observeEval(count = 1, compiled = false): void {
+-  if (completeWorkProfile.enabled && reachDepth) charge(compiled ? 'reachCompiledEvals' : 'reachEvals', count)
+-  else coreMeter.evals += count
++  if (!completeWorkProfile.enabled || !reachDepth) { coreMeter.evals += count; return }
++  // The overwhelmingly common path is one actual expression-node visit.
++  // Its count and coefficient are already validated; still admit every node.
++  if (count === 1 && !compiled) {
++    runtimeWall.admit?.(completeWorkProfile.weights.reachEvals, 'reachEvals')
++    coreMeter.reachEvals += 1
++  } else charge(compiled ? 'reachCompiledEvals' : 'reachEvals', count)
+ }
+ // Synchronous and nestable, with try/finally restoration; never a fresh budget.
+ export function withReachabilityWork<T>(run: () => T): T {
+diff --git a/kernel/kernel.ts b/kernel/kernel.ts
+index 6f6c95260..cb29b7a4a 100644
+--- a/kernel/kernel.ts
++++ b/kernel/kernel.ts
+@@ -18,6 +18,7 @@
+ // meet it), so it holds at the start and at every step; `assume`, about each request, holds only at a step, since no
+ // request has come at the start.
+ import {checkRefutation} from '../core/check.ts'
++import {observeCheckStep, observeTableCells, observeLinearRows, observeConstraintRows} from '../core/meter.ts'
+ import type {C, Counted, E, Law, Machine, MapUpdate} from '../core/machine.ts'
+ import {type Constraint, type Lin, type Step, add, k, scale, sub, v} from '../core/solver.ts'
+ 
+@@ -40,18 +41,20 @@ export type Path = Map<string, {lin: Lin, holds: boolean}>
+ // (Remembered per linear form: a form is never changed once built, and the same forms are looked up at every node.)
+ const canonMemo = new WeakMap<Lin, string>(), flipMemo = new WeakMap<Lin, string>()
+ export const canon = (lin: Lin): string => {
++  observeTableCells()
+   let out = canonMemo.get(lin)
+-  if (out === undefined) canonMemo.set(lin, (out = Object.keys(lin).sort().map(key => `${key}:${lin[key]}`).join(',')))
++  if (out === undefined) canonMemo.set(lin, (out = Object.keys(lin).sort().map(key => (observeTableCells(key.length + 1), `${key}:${lin[key]}`)).join(',')))
+   return out
+ }
+ // canon(1 − lin), the atom that decides lin <= 0 the other way, without building it.
+ export const canonFlip = (lin: Lin): string => {
++  observeTableCells()
+   let out = flipMemo.get(lin)
+   if (out !== undefined) return out
+   const keys = Object.keys(lin)
+   if (!('1' in lin)) keys.push('1')
+   const parts: string[] = []
+-  for (const key of keys.sort()) { const c = key === '1' ? 1 - (lin['1'] ?? 0) : -lin[key]!; if (c !== 0) parts.push(`${key}:${c}`) }
++  for (const key of keys.sort()) { observeTableCells(key.length + 1); const c = key === '1' ? 1 - (lin['1'] ?? 0) : -lin[key]!; if (c !== 0) parts.push(`${key}:${c}`) }
+   flipMemo.set(lin, (out = parts.join(',')))
+   return out
+ }
+@@ -62,8 +65,9 @@ export const atomOf = (lin: Lin, holds: boolean): Constraint => ({lin: holds ? l
+ // A form with a coefficient past a safe integer decides nothing: it may be a rounded difference, and its flip is
+ // rounded again (1 - (2^53 + 1) reads as the safe 1 - 2^53), so an atom about another form would decide it.
+ function decide(lin: Lin, path: Path): boolean | undefined {
++  observeTableCells()
+   let constant = true
+-  for (const key in lin) { if (!Number.isSafeInteger(lin[key])) return undefined; if (key !== '1') constant = false }
++  for (const key in lin) { observeTableCells(key.length + 1); if (!Number.isSafeInteger(lin[key])) return undefined; if (key !== '1') constant = false }
+   if (constant) return (lin['1'] ?? 0) <= 0
+   const direct = look(path, canon(lin))
+   if (direct !== undefined) return direct
+@@ -116,7 +120,7 @@ function linearOf(e: E, path: Path): Lin | undefined {
+   const out = linearOp(e, path)
+   return out && safe(out) ? out : undefined
+ }
+-const safe = (lin: Lin) => Object.values(lin).every(c => Number.isSafeInteger(c))
++const safe = (lin: Lin) => Object.values(lin).every(c => (observeTableCells(), Number.isSafeInteger(c)))
+ function linearOp(e: E, path: Path): Lin | undefined {
+   switch (e.op) {
+     case 'var': return e.name === '1' || /[*[\],:⟦⟨⟩|]/.test(e.name) ? undefined : v(e.name) // those characters build cells, monomials, term columns and tuple keys
+@@ -206,6 +210,7 @@ export function termRows(name: string, path: Path): Lin[] {
+     if (a && b && constant(a) && constant(b)) out.push(sub(col, add(a, b)))
+   }
+   if (decided(e, path)) { const r = linear(e, path); if (r) out.push(sub(col, r), sub(r, col)) }
++  observeLinearRows(out)
+   return out
+ }
+ 
+@@ -219,6 +224,7 @@ export function termRows(name: string, path: Path): Lin[] {
+ function times(a: Lin, b: Lin): Lin | undefined {
+   const out: Lin = Object.create(null)
+   for (const [p, cp] of Object.entries(a)) for (const [q, cq] of Object.entries(b)) {
++    observeTableCells()
+     if (p.includes('⟦') || q.includes('⟦')) return undefined
+     const fs = [...(p === '1' ? [] : factorsOf(p)), ...(q === '1' ? [] : factorsOf(q))].sort(), key = fs.length ? fs.join('*') : '1', c = (out[key] ?? 0) + cp * cq
+     if (!(Number.isSafeInteger(cp) && Number.isSafeInteger(cq) && Number.isSafeInteger(cp * cq) && Number.isSafeInteger(c))) return undefined
+@@ -429,6 +435,7 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
+   // Two reads of one map whose keys the path proves equal are equal.
+   const cells = [...names].filter(isCell).map(name => ({name, ...cellParts(name)}))
+   for (const [i, p] of cells.entries()) for (const q of cells.slice(i + 1)) {
++    observeTableCells()
+     if (p.map !== q.map) continue
+     if (!sameKey(p, q, path)) continue
+     rows.push({lin: sub(v(p.name), v(q.name)), label: '', src: {pair: [p.name, q.name]}}, {lin: sub(v(q.name), v(p.name)), label: '', src: {pair: [p.name, q.name]}})
+@@ -445,6 +452,7 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
+     }
+   }
+   for (const name of names) rows.push({lin: {[name]: -1}, label: '', src: {nat: name}})
++  observeConstraintRows(rows)
+   return rows
+ }
+ // A cell's map and key: M[k] a key, M[⟨k1|k2|…⟩] a tuple's parts (each a canonical text). Split at the outer level only:
+@@ -452,6 +460,7 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
+ // (kept per name: every leaf reads its cells' keys again; a form is never changed once built)
+ const cellMemo = new Map<string, {map: string, key?: Lin, keys?: Lin[]}>()
+ export function cellParts(cell: string): {map: string, key?: Lin, keys?: Lin[]} {
++  observeTableCells()
+   let out = cellMemo.get(cell)
+   if (!out) { if (cellMemo.size > 200_000) cellMemo.clear(); cellMemo.set(cell, (out = cellParts0(cell))) }
+   return out
+@@ -465,6 +474,7 @@ const splitOuter = (text: string, sep: string): string[] => {
+   const parts: string[] = []
+   let depth = 0, start = 0
+   for (let i = 0; i <= text.length; i++) {
++    observeTableCells()
+     const ch = text[i]
+     if (ch === '[' || ch === '⟨') depth++
+     else if (ch === ']' || ch === '⟩') depth--
+@@ -475,7 +485,7 @@ const splitOuter = (text: string, sep: string): string[] => {
+ // A canonical text read back: `name:coef` joined by ',' at the outer level.
+ const linOf = (text: string): Lin => {
+   const out: Lin = Object.create(null)
+-  for (const part of splitOuter(text, ',')) if (part) { const at = part.lastIndexOf(':'); out[part.slice(0, at)] = Number(part.slice(at + 1)) }
++  for (const part of splitOuter(text, ',')) if ((observeTableCells(part.length + 1), part)) { const at = part.lastIndexOf(':'); out[part.slice(0, at)] = Number(part.slice(at + 1)) }
+   return out
+ }
+ // Two keys the path proves equal: two plain keys whose difference it decides 0 both ways, or two tuples of as many parts,
+@@ -497,10 +507,12 @@ export function withProducts(rows: Constraint[], pairs: [number, number][], squa
+     const p = out[i], q = out[j], pq = p && q ? times(p.lin, q.lin) : undefined
+     out.push(pq ? {lin: scale(pq, -1), label: ''} : {lin: {}, label: ''})
+   }
++  observeConstraintRows(out, rows.length)
+   return out
+ }
+ 
+ export function check(goal: Goal, tree: Tree, path: Path = new Map()): boolean {
++  observeCheckStep()
+   if ('leaf' in tree) return checkRefutation(withProducts(leafConstraints(goal, path), tree.products ?? [], tree.squares), tree.leaf)
+   const id = canon(tree.split)
+   if (path.has(id) || Object.keys(tree.split).every(key => key === '1')) return false
+@@ -550,12 +562,14 @@ export function checkGoalLemmas(goal: Goal, tree: Tree, lemmas: LemmaCut[] = [],
+       && Array.from(l.when).every(lemmaLin) && lemmaLin(l.cut) && !!l.tree && typeof l.tree === 'object'
+       && (l.slice === undefined || Array.isArray(l.slice) && Array.from(l.slice).every(i => Number.isSafeInteger(i) && i >= 0 && i < goal.hyps.length)))) return false
+     for (const l of lemmas) {
++      observeCheckStep()
+       const hyps = l.slice === undefined ? goal.hyps : l.slice.map(i => goal.hyps[i]!)
+       const path = prependAtoms([{lin: l.cut, holds: false}, ...l.when.map(lin => ({lin, holds: true}))], new Map())
+       if (!check({...goal, hyps}, l.tree, path)) return false
+     }
+     const visit = (t: Tree, path: Path): boolean => {
+       if ('leaf' in t) return check(goal, t, framePath(frames, lemmas, path, monos, lins))
++      observeCheckStep()
+       const id = canon(t.split)
+       if (path.has(id) || Object.keys(t.split).every(key => key === '1')) return false
+       return visit(t.yes, new Map(path).set(id, {lin: t.split, holds: true}))
+@@ -1950,10 +1964,11 @@ export function qfacts(c: QC, path: Path, pos = true): [QRow, boolean][] {
+ export function qLeafRows(goal: QGoal, path: Path): Constraint[] {
+   const rows: [QRow, boolean][] = [...[...path.values()].map(a => (a.holds ? [linRow(a.lin)!, false] : [rscale(-1n, linRow(a.lin)!), true]) as [QRow, boolean]),
+     ...goal.hyps.flatMap(h => qfacts(h, path))]
+-  return rows.flatMap(([r, strict]) => { const lin = qLin(r); return lin ? [{lin, label: '', strict}] : [] })
++  return rows.flatMap(([r, strict]) => { const lin = qLin(r); observeTableCells(lin ? Object.keys(lin).length : 0); return lin ? [{lin, label: '', strict}] : [] })
+ }
+ // A split on a row the path decides already (or a constant one) is refused, as Lean's checkT refuses it.
+ export function checkQTree(goal: QGoal, tree: Tree, path: Path = new Map()): boolean {
++  observeCheckStep()
+   if ('leaf' in tree) return !tree.products?.length && !tree.squares?.length && checkRefutation(qLeafRows(goal, path), tree.leaf, false)
+   const row = linRow(tree.split), lin = row && qLin(row)
+   if (!row || !lin || qdec(path, row) !== undefined) return false
+@@ -2086,6 +2101,7 @@ export function countedOk(hyps: C[], cs: Count[], is: CountInst[]): boolean {
+ // (Lean's are Int).
+ const typed = (is: CountInst[]): boolean => is.every(i => typeof i.wit === 'string' && Number.isSafeInteger(i.unit) && i.terms.every(([z]) => Number.isSafeInteger(z)))
+ export function checkCounted(g: CountedGoal, cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[], frames?: FrameCut[], monos?: MonoCut[], lins?: LinCut[]}): boolean {
++  observeCheckStep()
+   if (!(countedOk(g.hyps, g.counts, cert.insts) && typed(cert.insts))) return false
+   const goal = countedGoal(g, cert.insts)
+   return goal !== undefined && checkGoalLemmas(goal, cert.tree, cert.lemmas, cert.frames, g.counts, cert.monos, cert.lins)
+@@ -2219,6 +2235,7 @@ const witFreshW = (cs: Count[], is: CountInst[], w: string): boolean =>
+   cs.every(c => c.v !== w && !readsVar(c.below, w) && !readsVar(c.body, w)) && is.every(j => !readsVar(j.below, w))
+ const countedOkW = (cs: Count[], is: CountInst[]): boolean => { const ws = is.map(i => i.wit); return new Set(ws).size === ws.length && is.every(i => witFreshW(cs, is, i.wit)) }
+ function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[], frames?: FrameCut[], monos?: MonoCut[], lins?: LinCut[]}): boolean {
++  observeCheckStep()
+   if (!(countedOkW(cs, cert.insts) && typed(cert.insts))) return false
+   const hs = countHyps(cs, cert.insts)
+   return hs !== undefined && checkGoalLemmas({name: 'counted', hyps: [...hyps, ...hs]}, cert.tree, cert.lemmas, cert.frames, cs, cert.monos, cert.lins)
+@@ -2227,6 +2244,7 @@ function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree:
+ // its key term, and checkCountedW accepts the counted goal they make (the goal's hypotheses, each read variable equal to
+ // its cell; Lean's names the hypotheses it uses, each the goal's).
+ export function checkMC(hyps: C[], ds: CountDecl[], k: CountCert): boolean {
++  observeCheckStep()
+   if (!(ds.every(d => d.j !== d.key && loOf(d) !== d.key) && picksTyped(k.picks) && readsTyped(k.reads) && Array.isArray(k.insts) && k.insts.every(i => !!i && safeTerm(i.below)) && readsOk(hyps, ds, k.reads))) return false
+   if (!k.reads.every(r => k.insts.every(i => i.wit !== r[0] && !readsVar(r[2], i.wit)))) return false
+   const cs = toCounts(ds, k.reads)

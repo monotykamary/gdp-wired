@@ -1,0 +1,207 @@
+I6_PROTECTED_IDENTITIES {"preserved":132,"changed":["kernel/kernel.ts","core/check.ts"],"proverBody":"unchanged"}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [5.71s]
+I6_ERASURE_IDENTICAL core/check.ts
+I6_ERASURE_IDENTICAL kernel/kernel.ts
+I6_ERASURE_IDENTICAL core/infer.ts
+bun test v1.4.3 (c6da4a4d3)
+fuzz: 60 mutations, 14 accepted, each true on the small instances
+fuzz: 300 goals, 36 accepted, 14 of them only with the instances' hypotheses
+I6_PROTECTED_IDENTITIES {"preserved":132,"changed":["kernel/kernel.ts","core/check.ts"],"proverBody":"unchanged"}
+I6_GATE {"mode":"tests","source":"ab9f33a6599f88f0a17214d2b95682af5cca0c6d"}
+
+--- stderr ---
+
+core/common-counted.test.ts:
+(pass) nested work scopes cannot extend parent and restore after an exception [1.78ms]
+(pass) full profile proves and refuses unchanged rules without any clock read [442.69ms]
+(pass) legacy counted clock and telemetry do not read the wall [0.40ms]
+
+core/count-tier-budget.test.ts:
+(pass) generation has a 25 percent ceiling, strategies a 35 percent floor, ordinary a 30 percent floor [0.21ms]
+(pass) strategies may borrow the unreserved remainder beyond their minimum reservation [0.03ms]
+(pass) unused generation and strategy allowance flows down without moving deadlines [0.08ms]
+(pass) all selected laws share one borrowing endpoint, not one reservation per law [0.07ms]
+(pass) no dispatch is exactly the existing split and does not cap generation [2.51ms]
+(pass) ordinary shares recompute after cheap attempts and never create work [0.07ms]
+(pass) invalid counts and unbounded active tiers are refused; expired work grants nothing [0.18ms]
+(pass) the production tier basis cannot restart W after preflight [255.01ms]
+(pass) one expired strategy endpoint hands off its reserve and cannot refresh on fallback [6.32ms]
+(pass) exact strategy endpoint unknown hands back the ordinary reserve [0.62ms]
+(pass) exact strategy endpoint preserves {"stuck":"sat","refuted":true} [0.35ms]
+(pass) exact strategy endpoint preserves {"stuck":"unknown","refuted":true} [0.07ms]
+(pass) exact strategy endpoint preserves {"proof":{"checked":true}} [0.04ms]
+(pass) exact strategy endpoint preserves {"stuck":"sat"} [0.06ms]
+(pass) unknown before the strategy endpoint keeps its ordinary result [0.27ms]
+(pass) no-dispatch unknown retains legacy behavior at the same clock [0.13ms]
+(pass) strategy handoff does not hide a smaller outer budget [0.31ms]
+
+core/i6-meter.test.ts:
+(pass) I6 records executed certificate/table work, cache misses and real candidate tests only in full mode [2001.41ms]
+
+core/work-observe.test.ts:
+cyclic: {"kind":"machine","name":"native pre-admission","cert":true,"usual":true,"cyclic":true,"ms":24,"usualMs":10,"route":"translated","leaves":7,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) pre-admission policy is checked and the always-spend mutation is rejected [48.17ms]
+(pass) successor raw counters admit before work, meter native pruning, and restore nested scopes [54.09ms]
+(pass) finite result stays exact with flags off and all successor fields zero [77.26ms]
+
+core/work-admission-perf.test.ts:
+(pass) hot aggregation is bit-identical to the ordered reference for every column and mixed vectors [231.76ms]
+
+core/hard-cap.test.ts:
+cyclic: {"kind":"machine","name":"bounded polling","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) bounded polling protocol proves its slack and rejects the always-spend mutant [15.39ms]
+(pass) counted binding loops and public stops preserve a 1024-unit slack [78.72ms]
+
+kernel/countmachine.test.ts:
+(pass) counts in a machine > the toy consensus: accepted, and true on its small instances [53.69ms]
+(pass) counts in a machine > a machine with counts has no plain obligations; a law reads no count of the request [1.00ms]
+(pass) counts in a machine > the declarations: j and key apart and fresh, the post name free, the body reading no flag [1.79ms]
+(pass) counts in a machine > count certificates keep refusing native tuples and projections at the scalar boundary [46.68ms]
+(pass) counts in a machine > each guard on a certificate refuses what only it refuses [113.02ms]
+(pass) counts in a machine > a count read after the step is the count there: a false law the stale read would prove [4.30ms]
+(pass) pointed > a witness is fresh for every instance's bound, not only its own (mutation run, 2026-10-31) [80.83ms]
+(pass) pointed > a plain machine has its plain obligations [1.37ms]
+(pass) pointed > a law reads only a count of the state: its bound and body read no input and no carried map [0.98ms]
+(pass) pointed > a count is over the naturals [0.30ms]
+(pass) pointed > countedObligations refuses what obligations refuses, and builds one law's goals [1.18ms]
+(pass) pointed > the step goal assumes the precondition [164.39ms]
+(pass) pointed > a read: its variable fresh for the hypotheses, the counts' bounds and bodies, their j and key, the other reads [988.42ms]
+(pass) pointed > a read is a name, a map's name and a term [60.98ms]
+(pass) pointed > a term of a certificate: each constructor over the naturals, its edges accepted [982.05ms]
+(pass) pointed > a read is no witness and reads none [132.68ms]
+(pass) pointed > a witness: a name the machine and its laws don't read, the counts' key not either [262.09ms]
+(pass) pointed > checkMC on its own: a declaration's j and key apart [8.31ms]
+(pass) two parameters > the toy by rounds: accepted, and true on its small instances [5406.72ms]
+(pass) two parameters > a key past the base aliases another count: refused, where the read with no guard would prove a false law [134.80ms]
+(pass) two parameters > a key term the base does not compose is no read of the count [42.80ms]
+(pass) two parameters > the declaration: lo and base together, lo apart from j and key and fresh, base positive [120.23ms]
+(pass) two parameters > with nothing written: the search declares the count over two parameters and proves one value a round [6908.04ms]
+(pass) two parameters > quorums off by one, quorums of one, and a bound true only on small instances: none proven [11247.41ms]
+(pass) picks: a count at least its body at distinct keys > two members make the count at least 2: accepted with the pick, no tree without it, refused at one key twice [37.36ms]
+(pass) picks: a count at least its body at distinct keys > a pick is typed: a read's name and terms over the naturals [23.71ms]
+(pass) picks: a count at least its body at distinct keys > adversarial picks: terms equal but written apart, past the bound, of a count before the step [58.17ms]
+(pass) picks: a count at least its body at distinct keys > the count picked at the keys the goal reads: a law over a count read once proven by the search [113.25ms]
+(pass) names that are an object's own properties (terra's review, gen/laneC3) > a map or variable named constructor, toString or __proto__ is read as itself, not as a property of {} [1.62ms]
+(pass) names a goal reads by > a read's key term and an instance's bound are terms over the naturals [105.86ms]
+(pass) names a goal reads by > a fact's key is no witness and no count's j or key [21.55ms]
+(pass) fuzz > every accepted mutation is true on the small instances [2476.89ms]
+
+kernel/count.test.ts:
+cyclic: {"kind":"machine","name":"grants","cert":true,"uncovered":true,"why":"a law reading a map at a key read from a map"}
+(pass) counts > majority: the certificate checks [7.18ms]
+(pass) counts > threshold: the certificate checks [0.79ms]
+(pass) counts > byzantine: the certificate checks [1.17ms]
+(pass) counts > the examples have no model where each count is its sum (small instances), and do without the counts [16.60ms]
+(pass) counts > the tree refutes the goal only with the instances' hypotheses [4.36ms]
+(pass) counts > countHyp builds Count.lean's hypothesis: positive and negative parts, sums from 0, the unit last [1.22ms]
+(pass) counts > a tree for another goal is refused [0.58ms]
+(pass) counts > refused: two instances with one witness [20.12ms]
+(pass) counts > refused: a hypothesis reads a witness [41.20ms]
+(pass) counts > refused: a witness is a count's variable [19.28ms]
+(pass) counts > refused: a count's bound reads a witness [18.65ms]
+(pass) counts > refused: a count's body reads a witness [14.29ms]
+(pass) counts > refused: an instance's bound reads a witness [20.42ms]
+(pass) counts > refused: a unit coefficient not an integer [0.23ms]
+(pass) counts > refused: a count coefficient not an integer [21.67ms]
+(pass) counts > refused: an instance's bound unlike its counts' (by structure) [19.91ms]
+(pass) counts > refused: a witness that is not a name (the number 5, the hypotheses reading the variable "5") [0.75ms]
+(pass) counts > that goal has a model [0.18ms]
+(pass) counts > an instance naming no count is refused [0.10ms]
+(pass) counts > bounds alike by structure, fields in any order [0.93ms]
+(pass) counts > refused: a bound unlike the count's by a constant (cA = N + 2 refuted, unsoundly) [0.29ms]
+(pass) counts > that goal has a model: cA = N + 2 is its count [0.16ms]
+(pass) counts > fuzz: every accepted counted goal has no model where each count is its sum [873.44ms]
+(pass) ghost maps > grants: the ghosted machine's laws check, and the ghosts are apart [6.37ms]
+(pass) ghost maps > grants: on random runs of the original, every grant has some valid ticket (the law read ∀∃) [1.12ms]
+(pass) ghost maps > accepted: ghost variables, beside a flag the original reads [0.21ms]
+(pass) ghost maps > refused: the original keeps a history [0.02ms]
+(pass) ghost maps > refused: the original keeps sums
+(pass) ghost maps > refused: a ghost variable is one of the original's (an input)
+(pass) ghost maps > refused: a ghost variable is a quantified flag's witness [0.07ms]
+(pass) ghost maps > refused: a ghost map is one of the original's (read nowhere)
+(pass) ghost maps > refused: a ghost map is one of the original's (written and read)
+(pass) ghost maps > refused: the original's assumption reads a ghost variable
+(pass) ghost maps > refused: the original's write reads a ghost map [0.02ms]
+(pass) ghost maps > refused: the original's assumption reads a ghost through a flag
+cyclic: {"kind":"machine","name":"grants","cert":true,"uncovered":true,"why":"a law reading a map at a key read from a map"}
+(pass) ghost maps > refused, with the laws checking: the original's assumption reads a ghost map [27.40ms]
+cyclic: {"kind":"machine","name":"grants","cert":true,"uncovered":true,"why":"a law reading a map at a key read from a map"}
+(pass) the ∃ reading of witness terms over ghosts > accepted: the grants law, its plain form proven of the ghosted machine [42.39ms]
+cyclic: {"kind":"machine","name":"grants","cert":true,"uncovered":true,"why":"a law reading a map at a key read from a map"}
+(pass) the ∃ reading of witness terms over ghosts > accepted: two bound names (a disjunction of ∃s), each a term over the ghosts [96.88ms]
+(pass) the ∃ reading of witness terms over ghosts > a bound name every object has (constructor, __proto__, ...): accepted with its term, refused without [0.63ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: the ghosts are not the original's (a ghost map is one of its maps) [0.14ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: no bound name [0.02ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: a bound name twice [0.02ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: a bound name with no term [0.02ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: a term for a name not bound [0.04ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: a term under another name (its own missing) [0.02ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: the body reads a quantified condition [0.07ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: the body reads a flag [0.03ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: the plain law has bound names of its own [0.05ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: the plain law is about another key [0.01ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: the plain law has further keys
+(pass) the ∃ reading of witness terms over ghosts > refused: the plain law is not the body with the terms in place (W one past) [0.03ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: the body reads a ghost map [0.02ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: the body reads a ghost variable [0.07ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: a bound name is the law's key [0.03ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: a bound name is a further key of the law [0.02ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: a bound name is a param of the original [0.01ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: a bound name is a ghost map [0.01ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: no bound name, the plain law the body itself
+(pass) the ∃ reading of witness terms over ghosts > refused: one of two bound names with no term (a term for another name)
+(pass) the ∃ reading of witness terms over ghosts > refused: the body reads one of two ghost maps [0.01ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: one of two bound names a param of the original [0.02ms]
+(pass) the ∃ reading of witness terms over ghosts > refused: a witness that changes past the keys a run reaches (W[k] one past the ticket for k ≥ 3) [24.65ms]
+
+kernel/cdcl-root.test.ts:
+(pass) duplicate root aliases retain positive orientation [2.72ms]
+(pass) duplicate root aliases retain negative orientation [16.46ms]
+(pass) duplicate frame-cut rows remain checked at their original root [1.55ms]
+
+kernel/frame-cut.test.ts:
+(pass) simpE resolves only conditions decided under the path and free of the key [0.93ms]
+(pass) frameOk accepts the op = 4 frame and refuses the variants Lean refuses [0.58ms]
+(pass) the frame row closes the op = 4 leaf and nowhere else [1.30ms]
+(pass) framePath keeps every original atom and prepends the active frames' rows [0.10ms]
+(pass) the write tree under the condition collapses to the pre body once the path refutes the writing operation [0.51ms]
+(pass) a guard reading the key through the stride is decided at every key from the row bound, and not otherwise [0.25ms]
+(pass) a per-key cut: the auxiliary goal proved by the CDCL gives post ≤ pre at the leaf, with the refusals Lean lists [2.77ms]
+(pass) a linear cut: Σ pos ≤ Σ neg proved per key by the CDCL gives its row at the leaf, with the refusals Lean lists [1.82ms]
+
+lean-kernel/frame-export.test.ts:
+(pass) framed leaves encode against the same rows the native checker sees [2.35ms]
+(pass) empty frames preserve the legacy encoder byte for byte [0.72ms]
+(pass) goal-local monotone export includes its independent auxiliary table and proof [8.08ms]
+(pass) goal-local export uses mcF_sound and refuses an invalid frame [0.35ms]
+
+lean-kernel/linear-export.test.ts:
+(pass) a checked linear count cut exports its auxiliary proof and refuses mutation [3.80ms]
+(pass) empty linear-cut context preserves the legacy encoding [0.17ms]
+
+scripts/test-roster.test.ts:
+(pass) a newly added core or kernel test must be explicitly scheduled [0.20ms]
+(pass) existing long-suite coverage is explicit and tracked [2.86ms]
+(pass) dynamic shell globs never claim coverage of a new file [0.05ms]
+(pass) echoed test commands do not cover files [0.02ms]
+(pass) missing, duplicate and nonexistent quick entries are refused [0.05ms]
+(pass) filesystem discovery includes nested core tests and ignores non-tests [7.48ms]
+
+ 144 pass
+ 0 fail
+ 1900 expect() calls
+Ran 144 tests across 13 files. [34.69s]

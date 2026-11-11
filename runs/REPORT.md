@@ -24,7 +24,12 @@ and tests (D gate `12cfdab4`), not its missing generation-dispatch closure.
 144 tests / 1,900 assertions pass; `f7edaefb` fixes inherited roster omissions
 and passes roster/static (1,796 files). B/F RED payloads are not promoted.
 See `research/lane-i/rolling-integration/STATUS.md` for scope and gate receipts.
-Final D composition approval and calibration remain outstanding.
+Final local validation: **144 tests / 1,900 assertions**, complete roster;
+**1,801-file type/lint** and all 13 new commit messages pass. Static pin
+`b520b285`; production identical to test/evidence pin `ab9f33a6`. Only two
+research-only type/lint fixes followed; initial failures are retained.
+Final D composition approval, the cap repair and calibration remain outstanding.
+All owned batches are terminal; no local scheduler, main merge or push.
 
 # Previous — combined counter/hard-cap candidate ready for D review
 

@@ -1,0 +1,20 @@
+{
+ "a-helper-check": {
+  "vm": "bx_qz6qcg7f",
+  "type": "xlarge",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 16,
+  "exclusive": false,
+  "co_tenants": 4
+ },
+ "common-counted-commitlint": {
+  "vm": "bx_dpfemzbh",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 2,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 3
+ }
+}
