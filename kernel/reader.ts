@@ -12,6 +12,8 @@
 // Nothing here is trusted: the rows it gives are the kernel's (the search's tree is checked by kernel.ts at the end,
 // and each leaf's derivation is found again among kernel.ts's rows when the search's refutation is unfolded).
 import type {C, E} from '../core/machine.ts'
+import {completeWorkProfile} from '../core/work-profile.ts'
+import {checkWorkEndpoint} from './prove.ts'
 import {shareTerms} from './share.ts'
 import {type Lin, add, costs, env, k, scale, sub, v} from '../core/solver.ts'
 import {type Goal, atomOf, canon, canonFlip, cellParts, plainMap, columnTerm, factorsOf, isCell, termColumn, tupleAnd} from './kernel.ts'
@@ -119,6 +121,7 @@ export class Reader {
     s.set(f.key, f)
   }
   private within<T>(key: object, f: () => T): T {
+    if (completeWorkProfile.enabled) checkWorkEndpoint('reader value')
     const was = this.finding, now = {key}
     costs.values++
     this.found.set(key, now)
@@ -151,6 +154,7 @@ export class Reader {
   private unit(name: string): W { let w = this.units.get(name); if (!w) this.units.set(name, (w = new Set([name]))); return w }
   // Whether lin <= 0 is decided, and by what.
   dec(lin: Lin): R & {t: boolean | undefined} {
+    if (completeWorkProfile.enabled) checkWorkEndpoint('reader decision')
     let constant = true
     for (const key in lin) if (key !== '1') { constant = false; break }
     if (constant) return {w: none, pos: -1, fin: true, t: (lin['1'] ?? 0) <= 0}
@@ -165,6 +169,7 @@ export class Reader {
     return {t: undefined, w: none, pos: -1, fin: false}
   }
   linear(e: E): LV {
+    if (completeWorkProfile.enabled) checkWorkEndpoint('reader expression')
     e = this.share(e)
     this.read(e)
     const had = this.ls.get(e)
@@ -240,6 +245,7 @@ export class Reader {
     return {when: atoms.when, unless: atoms.unless, r}
   }
   truth(c: C): TV {
+    if (completeWorkProfile.enabled) checkWorkEndpoint('reader condition')
     c = this.share(c)
     this.read(c)
     const had = this.ts.get(c)
@@ -285,6 +291,7 @@ export class Reader {
   }
   // kernel.ts's facts, each row with its reason; final when nothing it read is open.
   private factsOf(c: C, positive: boolean, out: Row[]): R {
+    if (completeWorkProfile.enabled) checkWorkEndpoint('reader fact')
     switch (c.op) {
       case 'flag': throw new Error('flags are inlined before the kernel sees them')
       case 'all': return R0
@@ -423,6 +430,7 @@ export class Reader {
   private termSeen: number[] = []
   private gen = 0
   form(lin: Lin): {id: number, names: number[]} {
+    if (completeWorkProfile.enabled) checkWorkEndpoint('reader form')
     let f = this.forms.get(lin)
     if (f) return f
     const text = canon(lin)
@@ -527,6 +535,7 @@ export class Reader {
   cellsChanged = 0
   // (`from`: the trail's first position that may have changed since the last sync, where the caller knows it)
   sync(from = 0): void {
+    if (completeWorkProfile.enabled) checkWorkEndpoint('reader sync')
     this.syncing = true
     this.syncN++
     this.changed = []
