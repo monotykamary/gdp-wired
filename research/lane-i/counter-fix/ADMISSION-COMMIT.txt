@@ -1,0 +1,1 @@
+fix: preserve native admission stops across caught exceptions

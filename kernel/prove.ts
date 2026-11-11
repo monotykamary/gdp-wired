@@ -246,6 +246,7 @@ export const fullWork = (): number => stepWork() + rawFullWork()
 // Explicit synchronous work scopes. The default paths do not enter one yet:
 // count/plain migrations and legacy deadline-reset semantics are separate steps.
 let budgetUnitsEnd: number | undefined
+let admissionRefusedAt: number | undefined
 export const inBudget = (): boolean => budgetUnitsEnd !== undefined
 export const inWorkScope = (): boolean => inBudget() || rate !== 0 || stepWorkProfile.enabled
 // An inherited counted scope has no wall-clock control path.
@@ -256,17 +257,20 @@ export class BudgetExpired extends Error {
 }
 // Hard-stop checkpoints must not turn a local search deadline into a whole-run stop.
 export function checkWorkEndpoint(phase: string): void {
-  if (budgetUnitsEnd !== undefined && fullWork() > budgetUnitsEnd) throw new BudgetExpired(phase)
+  if (budgetUnitsEnd !== undefined && (admissionRefusedAt === budgetUnitsEnd || fullWork() > budgetUnitsEnd)) throw new BudgetExpired(phase)
 }
 // Pre-step admission for new native primitive counters. No credit is minted and
 // no local deadline is promoted to whole-search cancellation.
 export function checkWorkAdmission(units: number, phase: string): void {
   if (!Number.isFinite(units) || units < 0) throw new RangeError('work charge must be finite and nonnegative')
-  if (budgetUnitsEnd !== undefined && fullWork() + units > budgetUnitsEnd) throw new BudgetExpired(phase)
+  if (budgetUnitsEnd !== undefined && (admissionRefusedAt === budgetUnitsEnd || fullWork() + units > budgetUnitsEnd)) {
+    admissionRefusedAt = budgetUnitsEnd
+    throw new BudgetExpired(phase)
+  }
 }
 export function remainingWork(): number { return budgetUnitsEnd === undefined ? Infinity : Math.max(0, budgetUnitsEnd - fullWork()) }
 export function checkBudget(phase: string): void {
-  if (budgetUnitsEnd !== undefined && (fullWork() > budgetUnitsEnd
+  if (budgetUnitsEnd !== undefined && (admissionRefusedAt === budgetUnitsEnd || fullWork() > budgetUnitsEnd
     || completeWorkProfile.enabled && clock() > withinDeadline(budgetEnd()))) throw new BudgetExpired(phase)
 }
 export function withBudget<T>(units: number, f: () => T): T {
@@ -274,7 +278,7 @@ export function withBudget<T>(units: number, f: () => T): T {
   // Never silently interpret units using a legacy work.n/count-rate island.
   if (rate && meter !== fullWork) throw new Error('work budget requires the outer full-work clock')
   return counted(fullRate, () => {
-    const previous = budgetUnitsEnd
+    const previous = budgetUnitsEnd, previousRefused = admissionRefusedAt
     budgetUnitsEnd = Math.min(previous ?? Infinity, workCap, fullWork() + units)
     try {
       return withWork(budgetUnitsEnd, () => withDeadline(budgetEnd(), () => {
@@ -284,7 +288,12 @@ export function withBudget<T>(units: number, f: () => T): T {
         checkBudget('completion')
         return result
       }))
-    } finally { budgetUnitsEnd = previous }
+    } finally {
+      // A refusal at a shared endpoint remains visible after an inner scope;
+      // a genuinely smaller child allowance cannot poison a larger parent.
+      admissionRefusedAt = admissionRefusedAt === budgetUnitsEnd && previous === budgetUnitsEnd ? previous : previousRefused
+      budgetUnitsEnd = previous
+    }
   }, true)
 }
 // A goal's own budget where its caller gives none, outside a counted search: the cost model's work, groundRate units a

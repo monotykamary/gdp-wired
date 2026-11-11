@@ -3,7 +3,7 @@ import {spawnSync} from 'node:child_process'
 
 const program = `
 import {strict as a} from 'node:assert';
-import {withBudget,BudgetExpired,fullWork} from './kernel/prove.ts';
+import {withBudget,BudgetExpired,fullWork,checkWorkEndpoint} from './kernel/prove.ts';
 import {rawWork,workKeys,weightedWork} from './core/work-meter.ts';
 import {completeWorkProfile as profile} from './core/work-profile.ts';
 import {tinyNode,tinyTerm,tinyBlock,reachState,reachEdge,observeEval,withReachabilityWork} from './core/work-observe.ts';
@@ -16,6 +16,9 @@ if(profile.enabled){
  for(const action of [tinyNode,tinyTerm,reachState,reachEdge,()=>withReachabilityWork(()=>observeEval()),()=>withReachabilityWork(()=>observeEval(7,true))]){
   const old=rawWork(),used=fullWork();a.throws(()=>withBudget(0,action),BudgetExpired);a.deepEqual(rawWork(),old);a.equal(fullWork(),used);
  }
+ a.throws(()=>withBudget(1,()=>{try{withReachabilityWork(()=>observeEval(100,true))}catch{}checkWorkEndpoint('refusal cannot be swallowed')}),BudgetExpired);
+ withBudget(100,()=>{a.throws(()=>withBudget(0,tinyTerm),BudgetExpired);tinyTerm()});
+ a.throws(()=>withBudget(0,()=>{try{withBudget(10,tinyTerm)}catch{}checkWorkEndpoint('shared end')}),BudgetExpired);
  const start=rawWork().tinyTerms;
  a.throws(()=>withBudget(2,()=>tinyBlock(100,()=>{tinyTerm();tinyTerm();tinyTerm()})),BudgetExpired);
  a.equal(rawWork().tinyTerms-start,2);
@@ -24,11 +27,11 @@ if(profile.enabled){
  a.throws(()=>withBudget(100,()=>tinyBlock(40,()=>{tinyTerm();throw Error('restore')})),/restore/);
  a.throws(()=>withBudget(0,tinyTerm),BudgetExpired);
 }
-const m={name:'native tiny',params:[],inputs:['op'],state:{x:0},maps:{},step:{state:{x:{op:'var',name:'op'}}}};
+const m={name:'native tiny',params:[],inputs:['op'],state:{x:0},maps:{},counts:{C:{key:'i',below:{op:'const',value:1},body:{op:'const',value:0}}},step:{state:{x:{op:'var',name:'op'}}}};
 const law={name:'zero',holds:{op:'=',a:{op:'var',name:'x'},b:{op:'const',value:0}}};
 const node0=rawWork().tinyNodes,term0=rawWork().tinyTerms,candidates=[];
 const stats=withBudget(10000000,()=>tinyFiniteCandidates(m,m,[law],{},(pre,request,laws)=>{candidates.push([pre.scalars,request,laws.map(l=>l.name)]);return true},{valueDomain:[0,1],postTargetPruning:true,postTargetIntervals:true}));
-a(stats.completed);a(stats.nodes>0);
+a(stats.completed,JSON.stringify(stats));a(stats.nodes>0,JSON.stringify(stats));
 if(profile.enabled){a.equal(rawWork().tinyNodes-node0,stats.nodes);a(rawWork().tinyTerms>term0)}
 const test=compileC(law.holds,m),st={scalars:{x:0},maps:{}};
 withBudget(10000000,()=>withReachabilityWork(()=>{reachState();test({},st);withReachabilityWork(()=>test({},st));const step=fastStep(m);a(step);reachEdge();step({},st,{op:1})}));
