@@ -1,0 +1,108 @@
+--- a/core/trace-clock.ts
++++ b/core/trace-clock.ts
+@@ -1,4 +1,11 @@
+-// Wall time is telemetry only in counted-budget mode. Capture its source once
+-// so tests can forbid direct performance.now reads on the search path.
+-const telemetryNow = performance.now.bind(performance)
+-export const traceNow = (): number => telemetryNow()
++// Wall telemetry is unavailable inside counted search, including legacy counted
++// scopes. Zero means no wall measurement, not elapsed time or counted units.
++// Do not capture/bind a clock: a tripwire must see every possible wall read.
++import {stepWorkProfile} from './step-work.ts'
++let depth = 0
++export function withTraceWorkScope<T>(f: () => T): T {
++  depth++
++  try { return f() } finally { depth-- }
++}
++export const traceNow = (): number => stepWorkProfile.enabled || depth > 0 ? 0 : performance.now()
++
+--- a/core/wall.ts
++++ b/core/wall.ts
+@@ -1,20 +1,18 @@
+ // Cooperative cancellation of untrusted search. Legacy callers retain their
+ // wall; an explicit work scope never consults it or grants completion headroom.
+-import {pastWall, clock, searchNow, wallAt, inBudget, checkBudget} from '../kernel/prove.ts'
++import {pastWall, clock, searchNow, wallAt, inBudget, inWorkScope, checkBudget} from '../kernel/prove.ts'
+ import {runtimeWall} from './runtime-wall.ts'
+-import {stepWorkProfile} from './step-work.ts'
+-import {completeWorkProfile} from './work-profile.ts'
+ export {withBudget, budgetEnd, inBudget, checkBudget, BudgetExpired, searchNow} from '../kernel/prove.ts'
+ export {traceNow} from './trace-clock.ts'
+ // CLI proposal loops historically use epoch milliseconds rather than performance.
+ // Preserve that fallback, but share the work clock in either opt-in work mode.
+-export const searchDateNow = (): number => inBudget() || stepWorkProfile.enabled ? clock() : Date.now()
+-export const searchWall = (ms: number): number => inBudget() || completeWorkProfile.enabled
++export const searchDateNow = (): number => inWorkScope() ? clock() : Date.now()
++export const searchWall = (ms: number): number => inWorkScope()
+   ? Math.min(wallAt(), clock() + Math.max(0, ms))
+   : searchNow() + ms - Math.min(1000, Math.max(0, ms) / 20)
+ // Legacy transport had a scaled wall allowance for uncounted assembly. Work
+ // mode uses the given counted end, without a time multiplier or fresh budget.
+-export const transportEnd = (until: number, cap = Infinity): number => inBudget() || completeWorkProfile.enabled
++export const transportEnd = (until: number, cap = Infinity): number => inWorkScope()
+   ? Math.min(wallAt(), until)
+   : Math.min(wallAt(), searchNow() + Math.min(cap, Math.max(0, until - clock()) * 10))
+ export class WallExpired extends Error {
+--- a/kernel/prove.ts
++++ b/kernel/prove.ts
+@@ -8,7 +8,7 @@
+ //   - a refutation of a split's yes side that never reads the split refutes its parent (lift), and the no side is skipped;
+ //   - a hypothesis' rows and open atoms, and every term inside them, are reused from an earlier path that decided the
+ //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
+-import {traceNow} from '../core/trace-clock.ts'
++import {traceNow, withTraceWorkScope} from '../core/trace-clock.ts'
+ import {stepWork, stepWorkProfile} from '../core/step-work.ts'
+ import {coreMeter} from '../core/meter.ts'
+ import {completeWorkProfile} from '../core/work-profile.ts'
+@@ -227,10 +227,12 @@
+ let rate = 0, meter = (): number => work.n
+ export const clock = (): number => stepWorkProfile.enabled ? fullWork() / fullRate : (rate ? meter() / rate : performance.now())
+ export function counted<T>(perMs: number, f: () => T, full = false): T {
+-  if (rate || completeWorkProfile.enabled) return f()
+-  const outer = deadline
+-  rate = perMs; deadline = Infinity; meter = full ? fullWork : () => work.n
+-  try { return f() } finally { rate = 0; deadline = outer }
++  return withTraceWorkScope(() => {
++    if (rate || completeWorkProfile.enabled) return f()
++    const outer = deadline
++    rate = perMs; deadline = Infinity; meter = full ? fullWork : () => work.n
++    try { return f() } finally { rate = 0; deadline = outer }
++  })
+ }
+ // The cost model: what a query does, by kind (core/solver.ts's costs), each weighed to the milliseconds a Modal 2-vCPU
+ // container takes for it, `fullRate` units a millisecond at the median query: elimination's pairs and the float
+@@ -247,8 +249,9 @@
+ // count/plain migrations and legacy deadline-reset semantics are separate steps.
+ let budgetUnitsEnd: number | undefined
+ export const inBudget = (): boolean => budgetUnitsEnd !== undefined
+-// Control time is counted only in explicit work mode; legacy callers keep their wall.
+-export const searchNow = (): number => inBudget() || stepWorkProfile.enabled ? clock() : performance.now()
++export const inWorkScope = (): boolean => inBudget() || rate !== 0 || stepWorkProfile.enabled
++// An inherited counted scope has no wall-clock control path.
++export const searchNow = (): number => inWorkScope() ? clock() : performance.now()
+ export const budgetEnd = (): number => (budgetUnitsEnd ?? Infinity) / fullRate
+ export class BudgetExpired extends Error {
+   constructor(readonly phase: string) { super(`work budget (${phase})`); this.name = 'BudgetExpired' }
+@@ -287,9 +290,11 @@
+ // (the EPR path's propositional search, a node's propagation, building a large goal's rows) stops there too, and past it
+ // every goal is left unknown, whatever its own budget. Untrusted: it only stops a search.
+ let wallEnd = Infinity
+-export const pastWall = (): boolean => inBudget() || completeWorkProfile.enabled ? clock() > withinDeadline(budgetEnd()) : wallEnd !== Infinity && searchNow() > wallEnd
++export const pastWall = (): boolean => inWorkScope() ? clock() > withinDeadline(budgetEnd()) : wallEnd !== Infinity && searchNow() > wallEnd
+ export function withWall<T>(end: number, f: () => T): T {
+-  if (inBudget() || completeWorkProfile.enabled) return withDeadline(Math.min(budgetEnd(), end), f)
++  // Scoped callers supply searchWall()/clock() endpoints in counted units.
++  // Keep A's inherited deadline semantics without consulting the wall clock.
++  if (inWorkScope()) return withDeadline(Math.min(budgetEnd(), end), f)
+   const outer = wallEnd
+   wallEnd = Math.min(outer, end)
+   try { return f() } finally { wallEnd = outer }
+@@ -297,7 +302,7 @@
+ // Past the wall or the deadline in force: a goal grown now is left unknown at once.
+ const ranOut = (): boolean => pastWall() || withinDeadline(Infinity) <= clock()
+ // (the wall's end in force, Infinity where none: a search inside that stops itself there)
+-export const wallAt = (): number => inBudget() || completeWorkProfile.enabled ? withinDeadline(budgetEnd()) : wallEnd
++export const wallAt = (): number => inWorkScope() ? withinDeadline(budgetEnd()) : wallEnd
+ export const late = (until: number): boolean => clock() > until || (workCap !== Infinity && fullWork() > workCap) || pastWall()
+ // A budget's end, within the deadline (a translation's own bound, core/cyclic.ts's, kept by the export's GDP_CERT_MS).
+ export const withinDeadline = (until: number): number => Math.min(until, deadline - eprTimeSince(deadlineEpr))

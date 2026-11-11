@@ -1,0 +1,1 @@
+[{"name":"clock-scope-legacy","cmd":"bun clock-input/verify.ts legacy","cpu":4,"memory":14336,"timeout":900,"vm_type":"large"},{"name":"clock-scope-full","cmd":"bun clock-input/verify.ts full","cpu":4,"memory":14336,"timeout":1200,"vm_type":"large"}]

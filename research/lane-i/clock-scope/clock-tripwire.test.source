@@ -1,0 +1,83 @@
+import {expect, spyOn, test} from 'bun:test'
+import {tripwireGate} from './clock-tripwire-preload.ts'
+import {admitCountedFamily, candidates, cprof} from './counts.ts'
+import {type Law, type Machine, all, any, atMost, get, n, same, x} from './machine.ts'
+import {checkCountedLaws} from '../kernel/kernel.ts'
+import {clock, counted, fullRate, inWorkScope, late, pastWall, searchNow, wallAt, withBudget, withDeadline, withWall} from '../kernel/prove.ts'
+import {traceNow, withTraceWorkScope} from './trace-clock.ts'
+import {searchDateNow, searchWall, transportEnd} from './wall.ts'
+import {completeWorkProfile} from './work-profile.ts'
+import {countTierBudget} from './count-tier-budget.ts'
+import {generationPhase} from './count-generation-budget.ts'
+
+function tripwire<T>(run: () => T): T {
+  const forbidden = () => { throw new Error('counted-scope wall-clock read') }
+  const date = spyOn(Date, 'now').mockImplementation(forbidden)
+  const performanceClock = spyOn(performance, 'now').mockImplementation(forbidden)
+  tripwireGate.active = true
+  try { return run() } finally { tripwireGate.active = false; date.mockRestore(); performanceClock.mockRestore() }
+}
+function clocks() {
+  expect(inWorkScope()).toBe(true)
+  expect(Number.isFinite(clock())).toBe(true)
+  expect(searchNow()).toBe(clock())
+  expect(searchDateNow()).toBe(clock())
+  expect(traceNow()).toBe(0)
+  expect(Number.isFinite(searchWall(100))).toBe(true)
+  expect(transportEnd(clock() + 100)).toBeLessThanOrEqual(clock() + 100)
+}
+const machine = (broken = false): Machine => ({name: 'clock tripwire family', params: [], inputs: ['action'], inputMaps: ['Input'], state: {value: n(0)},
+  counts: {Rows: {j: 'row', key: 'member', below: n(2), body: n(1)}},
+  assume: all(any(...[0, 1, 2].map(i => same(x('action'), n(i))))), step: {state: {value: broken ? n(3) : get('Rows', n(0))}}})
+const law: Law = {name: 'bounded', holds: atMost(x('value'), n(2))}
+
+test('tripwire itself observes both wall-clock APIs', () => tripwire(() => {
+  expect(() => Date.now()).toThrow('counted-scope wall-clock read')
+  expect(() => performance.now()).toThrow('counted-scope wall-clock read')
+}))
+test('legacy counted and nested work scopes read no wall clock', () => tripwire(() => counted(fullRate, () => {
+  clocks()
+  withBudget(1_000_000, () => withDeadline(clock() + 100, () => {
+    clocks()
+    withWall(clock() + 1, () => {
+      expect(pastWall()).toBe(false)
+      expect(late(clock() + 1)).toBe(false)
+      expect(wallAt()).toBeGreaterThan(clock())
+    })
+  }))
+}, true)))
+test('generation inherits the scope and preserves its counted tier', () => tripwire(() => withBudget(1_000_000, () => {
+  const budget = countTierBudget(clock(), clock() + 100, 1)
+  expect(generationPhase(budget, () => { clocks(); return 7 })).toEqual({complete: true, value: 7})
+})))
+test('checked family and broken family keep the mandatory checker under the tripwire', () => {
+  for (const broken of [false, true]) tripwire(() => withBudget(10_000_000, () => {
+    const m = machine(broken), result = admitCountedFamily(m, [law], [law], new Set([law]), clock() + 3000)
+    expect(result.proven).toBe(!broken)
+    expect(!!result.proof && checkCountedLaws(m, result.laws, result.proof)).toBe(!broken)
+  }))
+})
+test('candidate sampling, generation and ptime run without wall telemetry', () => tripwire(() => withBudget(10_000_000, () => {
+  const m = machine()
+  expect(Array.isArray(candidates(m, m, [law], [], [], 100, clock() + 100))).toBe(true)
+  expect(cprof.small).toBe(0)
+})))
+test('telemetry scope unwinds after success and exceptions', () => {
+  const failure = new Error('scope failure')
+  tripwire(() => {
+    expect(withTraceWorkScope(traceNow)).toBe(0)
+    expect(() => withTraceWorkScope(() => { throw failure })).toThrow(failure)
+    if (completeWorkProfile.enabled) expect(traceNow()).toBe(0)
+    else expect(traceNow).toThrow('counted-scope wall-clock read')
+  })
+})
+test('unscoped full-work search is clock-free; legacy wall cancellation remains', () => tripwire(() => {
+  if (completeWorkProfile.enabled) {
+    clocks()
+    withWall(clock() + 1, () => expect(pastWall()).toBe(false))
+  } else {
+    expect(clock).toThrow('counted-scope wall-clock read')
+    expect(searchDateNow).toThrow('counted-scope wall-clock read')
+    expect(() => withWall(0, pastWall)).toThrow('counted-scope wall-clock read')
+  }
+}))

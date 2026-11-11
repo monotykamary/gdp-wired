@@ -1,5 +1,68 @@
 # RESUME — ACTIVE 2026-11-10 evening
 
+## RESULT — counted-scope clock patch ready on A source (2026-11-11)
+
+Checkpoint first, before implementation. Current integration HEAD is
+`badc0242`, following `55c8ed96`; all previous owned batches are terminal.
+B/F common-kernel overlays are with lane D for semantic audit: DO NOT merge
+until D supplies the GATE receipt. `.reflex-saved/` remains untouched.
+
+Read lane D's `../gdp-wired-verifyP/research/verify-all/f4-f5-cd671ac1/RESULT.md`
+and lane A's `claude/mldr-gen` source at `5aa76818` before editing. D found
+legacy clock reads at `kernel/prove.ts:222`, `:253`, `:263`, and direct timing
+in `core/counts.ts:54`. Route those through A's counted admission scopes,
+borrowed unreserved work and bounded dispatched generation so that
+`GDP_WORK_FULL=1` search never reads Date.now/performance.now. Wall limits
+must exist only outside the work scope. Add a counted-scope tripwire test
+which throws on any such search-path wall read.
+
+Trusted checking logic must stay byte-identical. If the fix needs a change
+to checking rather than the clock, STOP that change and report it to D.
+All tests/builds through supercomputer. Commit incremental verified work.
+Working clock-only patch and tripwire assets are in `research/lane-i/clock-scope/`.
+The active branch's checker differs from A (e557bc6c vs A's 5a5973de), so no
+checker or A-source bulk copy is allowed. A disposable exact `5aa76818` archive
+is the integration target; only core/trace-clock.ts, core/wall.ts and the
+pre-grow() clock helpers in kernel/prove.ts change. A's counts ptime already
+uses traceNow; its bound real clock was a hole, now replaced by unavailable
+telemetry (zero) inside counted work. The tripwire preload also catches
+functions captured before test imports. A's counted deadline semantics stay.
+
+First boat batch `20261111-023011-tsckvj`: unpatched A baseline correctly
+REJECTED (captured wall telemetry 26.91, not zero); both patched jobs stopped
+before tests because a manifest named nonexistent `core/work-budget.test.ts`.
+The explicit exists check caught it. No test success claimed. That path was
+removed, source/patch receipts retained. Retry `20261111-023045-0hmxa6` then exposed a literal-newline serialization
+error in the generated telemetry file, now fixed. Both failure receipts are
+retained. `20261111-023122-3q6z3e` then PASSED all 26 full-work tests / 563 assertions,
+but overall was not green: legacy had 36 pass / 1 fail, revealing telemetry in
+an unscoped step-only search, and full typecheck lacked git-archived submodules.
+Telemetry now suppresses wall reads in the step-only profile too; exact A
+vendor submodules are archived at their gitlink pins. These are not checker
+changes. Final `20261111-023225-a7qmv5` passed **37 legacy tests / 622 assertions**,
+**26 full-work tests / 563 assertions**, and full type/lint on **1,730 files**.
+Its exit 1 was solely commitlint requiring a Git root in the disposable archive;
+that infrastructure prerequisite is corrected. The isolated commitlint retry
+`20261111-023343-69iuf9` PASSED. No solver/type checks were duplicated for it.
+All 131 other kernel/Lean files and the entire grow()-onward prover tail remain
+byte-identical to A's pin. No checker changes, weights or W calibration.
+
+**For lane A / D:** apply-ready source commit **`353713c9`** on
+**`claude/lane-i-counted-clock`**, parent **`5aa76818`**. Only three clock modules
+and two tripwire test files change. `core/counts.ts` already used traceNow in
+A's source, so its sampling/generation ptime path is fixed transitively and
+is directly exercised by the new tripwire. Preload catches captured clocks;
+telemetry is deliberately unavailable (zero) inside work, not measured time.
+The active integration checker (e557bc6c) is untouched; source branch checker
+stays A's `5a5973de`. Do not bulk-merge A's differing checker into this branch.
+B/F common-kernel semantic promotion still awaits D's GATE receipt.
+
+All owned batches terminal; temporary Git worktree removed. Exact replay:
+`research/lane-i/clock-scope/{prepare.sh,clock-only.patch,verify.ts}`. Preserved
+receipts under `runs/lane-i/clock-scope*`. No mainline kernel merge claimed.
+
+
+
 ## For lane D — B/F kernel-adjacent semantic audit BEFORE merge
 
 Pins: B `69b8ef2b`, F `cd671ac1`. Their trusted `kernel/kernel.ts` is identical
