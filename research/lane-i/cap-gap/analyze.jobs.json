@@ -1,0 +1,10 @@
+[
+  {
+    "name": "gap-analysis",
+    "cmd": "bun gap-code/analyze-probe.ts probe-data/gap-sharded-kv.log baseline-data/strict-sharded_kv.log",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 120,
+    "vm_type": "large"
+  }
+]

@@ -4,6 +4,9 @@
 import type {C} from '../core/machine.ts'
 import {type Constraint,env} from '../core/solver.ts'
 import {type Goal,type Path,canon,leafConstraintsReusing} from './kernel.ts'
+import {budgetedLeafRows} from '../core/prover-row-budget.ts'
+import {completeWorkProfile} from '../core/work-profile.ts'
+import {inBudget} from './prove.ts'
 const originals=new WeakMap<object,object>(),ids=new WeakMap<object,number>()
 const nodes=new Map<string,object>()
 let serial=0,keyChars=0
@@ -73,6 +76,6 @@ export function proverRows(goal:Goal,path:Path):Constraint[]{
  let out=rows.get(key)
  if(out){rowReuseStats.rowsHits++;return out}
  rowReuseStats.rowsBuilt++
- out=leafConstraintsReusing(shared,path)
+ out=completeWorkProfile.enabled&&inBudget()?budgetedLeafRows(shared,path):leafConstraintsReusing(shared,path)
  rowReuseStats.rowsEvicted+=rows.set(key,out);return out
 }

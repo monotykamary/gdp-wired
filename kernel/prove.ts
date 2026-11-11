@@ -28,6 +28,7 @@ import {type Goal, type Instances, type Liveness, type Loop, type Path, type See
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 function openE(e: E, path: Path, out: Lin[]): void {
+  checkWorkEndpoint('open expression')
   switch (e.op) {
     case 'var': case 'const': return
     case 'mul': return openE(e.a, path, out)
@@ -46,6 +47,7 @@ function openE(e: E, path: Path, out: Lin[]): void {
   }
 }
 function openC(c: C, path: Path, out: Lin[]): void {
+  checkWorkEndpoint('open condition')
   if (truth(c, path) !== undefined) return
   if (c.op === 'flag' || c.op === 'all') return
   if (c.op === 'not') return openC(c.x, path, out)
@@ -66,6 +68,7 @@ function openC(c: C, path: Path, out: Lin[]): void {
 // conjunction of settled parts / a linear comparison. A disjunction is settled only once one disjunct is left open and
 // that one is settled: facts from its last disjunct are not all its content while a case inside it is still open.
 function openH(c: C, path: Path, out: Lin[], positive = true): void {
+  checkWorkEndpoint('open hypothesis')
   if (c.op === 'not') return openH(c.x, path, out, !positive)
   if ((c.op === 'and' && positive) || (c.op === 'or' && !positive)) return c.xs.forEach(y => openH(y, path, out, positive))
   if (c.op === 'and' || c.op === 'or') {
@@ -135,6 +138,7 @@ function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
   const cs = names.map(cellKey)
   const dec = (lin: Lin) => path.get(canon(lin))?.holds ?? (path.has(canonFlip(lin)) ? !path.get(canonFlip(lin))!.holds : undefined)
   for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
+    checkWorkEndpoint('open cell pair')
     if (cs[i]!.map !== cs[j]!.map) continue
     if (cs[i]!.keys || cs[j]!.keys) { const t = cs[i]!.keys && cs[j]!.keys ? tupleOpen(names[i]!, names[j]!, cs[i]!.keys!, cs[j]!.keys!, dec) : undefined; if (t) out.push(t); continue }
     const pair = cellPair(names[i]!, names[j]!), d = pair.d

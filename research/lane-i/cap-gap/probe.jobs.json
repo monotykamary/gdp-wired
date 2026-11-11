@@ -1,0 +1,10 @@
+[
+  {
+    "name": "gap-sharded-kv",
+    "cmd": "bun port-input/probe-model.ts candidate sharded_kv 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 800,
+    "vm_type": "large"
+  }
+]
