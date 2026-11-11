@@ -4,6 +4,7 @@ import {type C} from './machine.ts'
 import {type Constraint,type Lin,k,scale,sub,v} from './solver.ts'
 import {observeConstraintRows,observeTableCells} from './meter.ts'
 import {checkWorkEndpoint} from './wall.ts'
+import {withTableAdmission} from './table-admission.ts'
 import {type Goal,type Path,type Seen,atomOf,canon,canonFlip,cellParts,facts,isCell,reusing,termRows,truth} from '../kernel/kernel.ts'
 const seenFacts=new WeakMap<Goal,Map<C,Seen<Lin[]>>>()
 function proposedFacts(c:C,path:Path,positive=true):Lin[]{
@@ -34,6 +35,9 @@ function sameKey(p:ReturnType<typeof cellParts>,q:ReturnType<typeof cellParts>,p
  return!!p.keys&&!!q.keys&&p.keys.length===q.keys.length&&p.keys.every((a,i)=>zero(a,q.keys![i]!))
 }
 export function budgetedLeafRows(goal:Goal,path:Path):Constraint[]{
+ return withTableAdmission(()=>budgetedLeafRowsIn(goal,path))
+}
+function budgetedLeafRowsIn(goal:Goal,path:Path):Constraint[]{
  let byHyp=seenFacts.get(goal);if(!byHyp)seenFacts.set(goal,(byHyp=new Map()))
  const rows:Constraint[]=[]
  // Charge each completed row now: cancellation must not discard a batch's

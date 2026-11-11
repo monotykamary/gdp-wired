@@ -11,6 +11,7 @@ import {type C, type E, type Law, type Machine, type Request, type State, carrie
 import type {StepLaw} from '../kernel/kernel.ts'
 import {someHolds} from './exists.ts'
 import {checkWall, inBudget, checkWorkEndpoint} from './wall.ts'
+import {withEvaluationAdmission} from './evaluation-admission.ts'
 
 export type Watched = Law | StepLaw
 export const isStepLaw = (w: Watched): w is StepLaw => 'then' in w
@@ -116,7 +117,7 @@ export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: 
       for (const key of more.length ? [...keys[i]!, ...more] : keys[i]!) { env[names[i]!] = key; if (!go(i + 1)) return false }
       return true
     }
-    return go(0)
+    return withEvaluationAdmission(() => go(0))
   }
   if (!isStepLaw(w)) {
     // A law with "there exists" (core/exists.ts): broken only where no value can be a witness, as far as that is decided

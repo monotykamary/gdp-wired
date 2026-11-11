@@ -8,9 +8,9 @@ import {runtimeWall} from './runtime-wall.ts'
 type NativeKey = Extract<CompleteWorkKey, 'tinyNodes' | 'tinyTerms' | 'reachStates' | 'reachEdges' | 'reachEvals' | 'reachCompiledEvals'>
 let reachDepth = 0
 let evaluationDepth = 0, evaluationCredit = 0
-// Only scoped model interpretation uses this path; ordinary eval observations
-// elsewhere and all legacy counters keep their exact behavior. A block carries
-// at most 256 raw units of credit. Near the endpoint admit only the next visit.
+// Keep the interpreter's import leaf dependency-free. Rich search scopes install
+// the guarded amortizer; isolated model interpretation retains its small block.
+export const evaluationAdmissionHook: {admit?: (count: number) => void, invalidate?: () => void} = {}
 function admitEvaluation(count: number): void {
   if (count !== 1 && (!Number.isSafeInteger(count) || count < 0)) throw new RangeError('invalid evaluation count')
   if (evaluationCredit < count) {
@@ -27,8 +27,10 @@ function admitEvaluation(count: number): void {
 }
 export function withEvaluationAdmission<T>(run: () => T): T {
   if (!completeWorkProfile.enabled) return run()
+  const priorAdmit = runtimeWall.admit
+  runtimeWall.admit = (units, phase) => { evaluationCredit = 0; priorAdmit?.(units, phase) }
   evaluationDepth++; evaluationCredit = 0
-  try { return run() } finally { evaluationDepth--; evaluationCredit = 0 }
+  try { return run() } finally { evaluationDepth--; evaluationCredit = 0; runtimeWall.admit = priorAdmit }
 }
 
 function charge(key: NativeKey, count: number): void {
@@ -61,7 +63,11 @@ export function reachEdge(): void { charge('reachEdges', 1) }
 // contract is one syntactic step-body node per invocation, not executed nodes.
 export function observeEval(count = 1, compiled = false): void {
   if (!completeWorkProfile.enabled || !reachDepth) {
-    if (completeWorkProfile.enabled && evaluationDepth) admitEvaluation(count)
+    if (completeWorkProfile.enabled) {
+      if (evaluationAdmissionHook.admit) evaluationAdmissionHook.admit(count)
+      else if (evaluationDepth) admitEvaluation(count)
+      else runtimeWall.admit?.(count * completeWorkProfile.weights.evals, 'model evaluations')
+    }
     coreMeter.evals += count; return
   }
   // The overwhelmingly common path is one actual expression-node visit.

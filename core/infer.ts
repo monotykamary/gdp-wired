@@ -34,6 +34,7 @@ import {searchNow as countedSearchNow, checkWorkEndpoint} from './wall.ts'
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
 import {observeCubeTest} from './meter.ts'
+import {withEvaluationAdmission} from './evaluation-admission.ts'
 import {bitIntersection, bitIntersects} from './bitsets.ts'
 import {samplePredicates, sampleStateText} from './sample-cache.ts'
 import {sampleStep} from './sample-step.ts'
@@ -679,6 +680,9 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
   return withTrees(() => quietly(() => withDeadline(clock() + (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - countedSearchNow())), () => inferLawsSearch(target, laws, stepLaws, opts))))
 }
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
+  return withEvaluationAdmission(() => inferLawsSearchIn(target, laws, stepLaws, opts))
+}
+function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[], opts: InferOptions): Inferred {
   checkWorkEndpoint('inference entry')
   // (GDP_INFER_TRACE=2: each phase's progress too, to stderr)
   if (env.GDP_INFER_TRACE === '2' && !opts.progress) opts = {...opts, progress: (phase, info) => (globalThis as unknown as {process: {stderr: {write: (s: string) => void}}}).process.stderr.write(`[infer ${phase}] ${JSON.stringify(info)}\n`)}

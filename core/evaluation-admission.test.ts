@@ -1,8 +1,12 @@
 import {expect,test} from 'bun:test'
-import {observeEval,withEvaluationAdmission} from './work-observe.ts'
+import {observeEval} from './work-observe.ts'
+import {withEvaluationAdmission} from './evaluation-admission.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {runtimeWall} from './runtime-wall.ts'
-import {rawWork} from './work-meter.ts'
+import {rawWork,workKeys,legacyWeights} from './work-meter.ts'
+import {coreMeter} from './meter.ts'
+import {costs} from './solver.ts'
+import {eprMeter} from '../kernel/epr.ts'
 import {BudgetExpired,fullWork} from '../kernel/prove.ts'
 import {withBudget} from './wall.ts'
 const full=completeWorkProfile.enabled?test:test.skip
@@ -38,4 +42,45 @@ full('a large compiled charge is admitted as one exact block',()=>{
  const before=rawWork().evals,weight=completeWorkProfile.weights.evals
  expect(()=>withBudget(weight*9,()=>withEvaluationAdmission(()=>observeEval(10)))).toThrow(BudgetExpired)
  expect(rawWork().evals).toBe(before)
+})
+full('unscoped evaluator fallback refuses before charging past the endpoint',()=>{
+ const weight=completeWorkProfile.weights.evals
+ for(const W of [0,weight,2*weight]){
+  const before=rawWork().evals,start=fullWork()
+  expect(()=>withBudget(W,()=>{for(let i=0;i<3;i++)observeEval()})).toThrow(BudgetExpired)
+  expect(rawWork().evals-before).toBe(W/weight)
+  expect(fullWork()-start).toBeLessThanOrEqual(W)
+ }
+})
+full('every other raw bucket invalidates evaluator permission',()=>{
+ const weights=Object.fromEntries([...legacyWeights,...Object.entries(completeWorkProfile.weights)])
+ for(const key of workKeys.filter(key=>key!=='evals')){
+  const scale=Math.ceil(512/weights[key]!),W=completeWorkProfile.weights.evals+weights[key]!*scale+0.25
+  const start=fullWork(),before=rawWork().evals
+  expect(()=>withBudget(W,()=>withEvaluationAdmission(()=>{
+   observeEval()
+   if(key==='epr')eprMeter.n+=scale
+   else if(key in coreMeter)(coreMeter as Record<string,number>)[key]!+=scale
+   else (costs as Record<string,number>)[key]!+=scale
+   observeEval()
+  }))).toThrow(BudgetExpired)
+  expect(rawWork().evals-before,key).toBe(1)
+  expect(fullWork()-start,key).toBeLessThanOrEqual(W)
+ }
+})
+full('direct evaluator writes and smaller nested budgets invalidate permission',()=>{
+ const weight=completeWorkProfile.weights.evals,before=rawWork().evals
+ expect(()=>withBudget(1000*weight,()=>withEvaluationAdmission(()=>{observeEval();coreMeter.evals+=999;observeEval()}))).toThrow(BudgetExpired)
+ expect(rawWork().evals-before).toBe(1000)
+ const nested=rawWork().evals
+ withBudget(1000*weight,()=>withEvaluationAdmission(()=>{observeEval();expect(()=>withBudget(0,()=>observeEval())).toThrow(BudgetExpired);observeEval()}))
+ expect(rawWork().evals-nested).toBe(2)
+})
+full('a caught admission refusal cannot spend cached evaluator permission',()=>{
+ const prior=runtimeWall.admit,before=rawWork().evals
+ expect(()=>withBudget(1000,()=>withEvaluationAdmission(()=>{
+  observeEval();expect(()=>runtimeWall.admit!(1001,'foreign refusal')).toThrow(BudgetExpired);observeEval()
+ }))).toThrow(BudgetExpired)
+ expect(rawWork().evals-before).toBe(1)
+ expect(runtimeWall.admit).toBe(prior)
 })
