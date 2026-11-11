@@ -73,7 +73,20 @@ retained. Atomic monotone counter scans pass silent, zero-price and priced
 controls, with complete profile archives independently replayed
 (`20261111-021651-lipa30`). See `research/lane-i/work-meter/f3/UNIT-OBSERVER.md`.
 This is Node capability, not original-model/reference-host full F3. Extended
-`certFor`/`walkOnce` invocation attribution is running without a duplicate.
+`certFor`/`walkOnce` attribution finished (`20261111-021337-yl5wyh`):
+49,327,232 spans, no overflow, exact raw/verdict/phase equality, two timestamp-valid
+raw-silent windows, but **zero accepted native attributions**. The operation
+span had ended before the profiler reply in both, so the native fence correctly
+refused attribution. Three complete profiles (including the invalid 1,708,585-byte
+profile) survived hash-bound transport and independent reselection. The original
+four windows are not claimed resolved by a different capture. The extended
+identity test exposed only a fixture typing error on `constructor`/`toString`;
+its corrected retry PASSED (`20261111-022047-wua0xx`): 103 identity cases,
+388 observed calls, equal original/wrapped-off/wrapped-on results and raw
+counters, plus composed-source type/lint. The successful profile was not
+rerun. Final lane tooling passed 25 tests / 48 assertions and type/lint on
+1,741 files (`20261111-021756-6z3agm`). All owned batches are terminal; no
+production kernel merge, mini repin, calibrated W or full F3 is claimed.
 
 
 ## For lane D — mini calibration / strategy intake (2026-11-11, active)

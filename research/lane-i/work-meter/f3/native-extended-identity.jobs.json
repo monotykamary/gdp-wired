@@ -1,0 +1,1 @@
+[{"name":"native-extended-identity","cmd":"bun native-input/native-canon-check.ts --extended","cpu":4,"memory":14336,"timeout":600,"vm_type":"large"}]

@@ -12,7 +12,7 @@ for(const size of [0,1,2,16,256]){
  inputs.push(lin)
 }
 for(const value of [0,-0,1,-1,0.5,NaN,Infinity,-Infinity])inputs.push({1:value,x:2})
-const special:Record<string,number>=Object.create(null);special.__proto__=3;special.constructor=4;special.toString=-2;inputs.push(special)
+const special:Record<string,number>=Object.create(null);Reflect.set(special,'__proto__',3);Reflect.set(special,'constructor',4);Reflect.set(special,'toString',-2);inputs.push(special)
 const calls:string[]=[]
 const getter:Record<string,number>={};Object.defineProperty(getter,'g',{enumerable:true,get:()=>{calls.push('get');return 2}});inputs.push(getter)
 const broken:Record<string,number>={};Object.defineProperty(broken,'throw',{enumerable:true,get:()=>{calls.push('throw');throw Error('same failure')}});inputs.push(broken)

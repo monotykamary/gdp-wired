@@ -1,6 +1,17 @@
 # F3 blocking-loop capability probe — not a complete sampler
 
-## Native-operation follow-up (2026-11-11, in progress)
+## Latest bounded follow-up (2026-11-11)
+
+Weighted observer controls now distinguish unit progress from raw activity;
+see `UNIT-OBSERVER.md`. These are Node capability tests, not full F3.
+The extended native run retained all three required raw profiles and matched
+raw/result/phase totals, but its two stable raw windows failed the native
+operation fence because the call returned before the inspector reply.
+No additional operation attribution is accepted. The 103-case / 388-call
+extended identity controls and composed-source type/lint passed in
+`20261111-022047-wua0xx`. The earlier fixture typing failure is preserved.
+
+## Native-operation follow-up (2026-11-11, bounded diagnostics)
 
 `native-spans.ts` supplies a research-only seqlock around a method invocation.
 The receiver, method lookup and arguments are evaluated in their original order
