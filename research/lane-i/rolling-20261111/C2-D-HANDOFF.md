@@ -11,7 +11,7 @@ Native tested tree cd7d6d20cf2b34e41bdcfb05117eca6549c71073; final source/type
 snapshot f82dd62405c37d02886b75cc96a4dceaf8bba2ac. Verify current core files
 against C2-core-files.tsv. Only8 runtime files plus2test files differ from
 G1 source908fad2a. core/counts.ts/reserve/publictest draft excluded; A owns
-joint-SCC scheduling separately. Final source commit is sent separately.
+joint-SCC scheduling separately. Final research source commit: b4da69cf4755fb806f588a9b2639bab494460fe9.
 C2 feature is opt-in GDP_COUNT_C2_LEMMAS=1 / slicedLemmas:true; defaults
 remain original. No new cap: frame500 / operation2000 unchanged.
 

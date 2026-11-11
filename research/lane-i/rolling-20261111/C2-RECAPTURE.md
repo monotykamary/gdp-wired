@@ -1,4 +1,8 @@
-# C2 research-native gates PASS; source checkpoint, HOLD retained
+# C2 research-native gates PASS; source COMMITTED b4da69cf, HOLD retained
+
+Commitb4da69cf4755fb806f588a9b2639bab494460fe9 delivered to F/D/t1.
+GEN9312f3ec committed and deliveredFable; allownedbatches terminal.
+The source-checkpoint preparation notes below are historical, not active tasks.
 
 C2-RESULT.md and C2-D-HANDOFF.md authoritative. Native treecd7d6d20,
 finalsource/type treef82dd624: bothpass. Fresh recapture+targetreconstruction

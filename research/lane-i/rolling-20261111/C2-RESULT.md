@@ -1,5 +1,6 @@
 # C2 source/native result — HOLD, not D admission or Lean clearance
 
+Research source commit: b4da69cf4755fb806f588a9b2639bab494460fe9.
 Exact tested source tree: cd7d6d20cf2b34e41bdcfb05117eca6549c71073.
 Runtime projection: C2-core-files.tsv (eight runtime files and two test files).
 Base G1 commit908fad2a; corrected upstream C2 bundle commit0bf3b118.
