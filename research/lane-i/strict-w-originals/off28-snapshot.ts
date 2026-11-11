@@ -16,7 +16,7 @@ const record=(name:string)=>{const path=join(out,name),r={path,bytes:statSync(pa
 const stable=(v:any):any=>Array.isArray(v)?v.map(stable):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).filter(([k])=>!['wallMs','exclusiveWallMs'].includes(k)).map(([k,x])=>[k,stable(x)])):v
 const normal=(r:any)=>stable(Object.fromEntries(Object.entries(r).filter(([k])=>!['source','target','custody'].includes(k))))
 for(const id of ids){
- const pair=['baseline','candidate'].map(target=>{const r=JSON.parse(gunzipSync(readFileSync(join(out,id+'-'+target+'.json.gz'))).toString());assert.equal(r.id,id);assert.equal(r.target,target);assert.equal(r.source,target==='baseline'?baseline:source);assert(!r.result.error);assert.deepEqual(r.knobs,{GDP_WORK_FULL:'0',GDP_WORK_STEPS:'0'});if(r.result.proven)assert(r.result.checked);record(id+'-'+target+'.json.gz');record(id+'-'+target+'.log');return r})
+ const pair:Record<string,any>[]=['baseline','candidate'].map(target=>{const r=JSON.parse(gunzipSync(readFileSync(join(out,id+'-'+target+'.json.gz'))).toString());assert.equal(r.id,id);assert.equal(r.target,target);assert.equal(r.source,target==='baseline'?baseline:source);assert(!r.result.error);assert.deepEqual(r.knobs,{GDP_WORK_FULL:'0',GDP_WORK_STEPS:'0'});if(r.result.proven)assert(r.result.checked);record(id+'-'+target+'.json.gz');record(id+'-'+target+'.log');return r})
  assert.deepEqual(pair[0].custody,pair[1].custody);assert.deepEqual(normal(pair[0]),normal(pair[1]),id)
  rows.push({id,verdict:pair[1].result.verdict,normalizedSha256:sha(Buffer.from(JSON.stringify(normal(pair[1]))))})
 }

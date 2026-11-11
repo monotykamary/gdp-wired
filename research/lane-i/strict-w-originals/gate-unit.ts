@@ -12,7 +12,7 @@ const hash=(bytes:Buffer)=>createHash('sha256').update(bytes).digest('hex')
 const blob=(bytes:Buffer)=>createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex')
 const files:any[]=[]
 function run(label:string,cmd:string,args:string[],flags:Record<string,string>=profile){const path=join(out,label+'.log'),fd=openSync(path,'w');const r=spawnSync(cmd,args,{cwd:root,env:{...clean,...flags},stdio:['ignore',fd,fd],timeout:300000});closeSync(fd);const row={path,bytes:statSync(path).size,sha256:hash(readFileSync(path)),exit:r.status};files.push(row);console.log('UNIT_FILE '+JSON.stringify(row));assert.equal(r.status,0,label)}
-function identities(){const lines=readFileSync(join(input,'PROTECTED.tree'),'utf8').trim().split('\n');assert.equal(lines.length,181);for(const line of lines){const m=/^\d+ blob ([a-f0-9]+)\t(.+)$/.exec(line);assert(m);assert.equal(blob(readFileSync(join(root,m[2]!))),m[1],m[2])}}
+function identities(){const lines=readFileSync(join(input,'PROTECTED.tree'),'utf8').trim().split('\n');assert.equal(lines.length,181);for(const line of lines){const m=/^\d+ blob ([a-f0-9]+)\t(.+)$/.exec(line);assert(m);assert.equal(blob(readFileSync(join(root,m[2]!))),m[1],m[2]!)}}
 try{
  for(const line of readFileSync(join(input,'SHA256SUMS'),'utf8').trim().split('\n')){const m=/^([a-f0-9]{64})  ([a-z-]+\.tar)$/.exec(line);assert(m);assert.equal(hash(readFileSync(join(input,m[2]!))),m[1])}
  for(const name of ['source','gdp-ts','handwired'])run('extract-'+name,'tar',['-xf',join(input,name+'.tar'),'-C',root])
