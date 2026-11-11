@@ -1,0 +1,1 @@
+docs: checkpoint successor counter validation in flight
