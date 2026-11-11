@@ -3,7 +3,7 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## 0.48.0 (release pending)
+## 0.48.0
 
 - **Breaking — source validation:** source translation is cross-checked against native execution by default;
   unchecked laws exit **2**. Source-free DSL/model proofs are unchanged.
