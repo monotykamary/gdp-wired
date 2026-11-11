@@ -5,10 +5,12 @@ import {type Law, type Machine} from './machine.ts'
 import {countsForReads} from './count-facts.ts'
 import {deferFinalCountStep, type FamilyStepProposal} from './count-final-step.ts'
 import {countStageTrace, type CountStageObserver} from './count-stage-trace.ts'
+import {type WorkAmount} from './work-amount.ts'
+import {type LiftedWorkSliceObserver} from './count-lifted-budget.ts'
 import {type CountCert, type CountDecl, type Goal, type Instances, checkMC, countedObligations, mcGoal} from '../kernel/kernel.ts'
 import {clock, grow, pastWall} from '../kernel/prove.ts'
 // Composition-only proposals intentionally omit INIT and must pass the enclosing final checker.
-export type CountStrategyOptions = {familyProposal?: FamilyStepProposal, deferToComposition?: boolean, deferIntermediateChecks?: boolean, slicedLemmas?: boolean, deferRowChecks?: boolean, minimize?: boolean, reindexFactsOnly?: boolean, emitterFramePool?: boolean, minimalView?: boolean, leafUnits?: number, trace?: (event: Record<string, unknown>) => void, tailTrace?: CountStageObserver}
+export type CountStrategyOptions = {familyProposal?: FamilyStepProposal, deferToComposition?: boolean, deferIntermediateChecks?: boolean, deferOwnedReplacementLemmas?: boolean, batchOwnedReplacementPruning?: boolean, deferOwnedReplacementReplay?: boolean, slicedLemmas?: boolean, deferRowChecks?: boolean, minimize?: boolean, reindexFactsOnly?: boolean, emitterFramePool?: boolean, minimalView?: boolean, leafUnits?: number, leafWork?: WorkAmount, workSliceObserver?: LiftedWorkSliceObserver, caseKey?: string, trace?: (event: Record<string, unknown>) => void, tailTrace?: CountStageObserver}
 // Calibration-independent: W is the original enclosing work allowance, not
 // a case's remaining share. INIT and final checking do not use this cap.
 export function strategyLeafUnits(workAllowance: number): number {
@@ -18,6 +20,8 @@ export function strategyLeafUnits(workAllowance: number): number {
 export const strategyLeafUntil = (until: number, options: CountStrategyOptions): number => Math.min(until, clock() + Math.max(0, options.leafUnits ?? Infinity))
 // UNCHECKED is construction metadata, never a receipt or public acceptance.
 export const deferIntermediateCountChecks = (options: CountStrategyOptions): boolean => options.deferToComposition === true && options.deferIntermediateChecks === true
+// Search-only deferral: every retained lemma remains subject to the final native checker.
+export const deferOwnedReplacementChecks = (options: CountStrategyOptions): boolean => deferIntermediateCountChecks(options) && options.deferOwnedReplacementLemmas === true
 export type CountStrategyProof = {instances: Instances, certs: Record<string, CountCert>, status?: 'unchecked', premises?: readonly string[]}
 export type CountRequestBuilder = (goal: Goal, declarations: CountDecl[]) => Pick<CountCert, 'reads' | 'insts' | 'picks'>
 export function finishCountStrategy(m: Machine, family: Law[], law: Law, instances: Instances, zeroMap: string, stepCert: CountCert, until: number, requestFor: CountRequestBuilder, observe?: (stage: string, checked: boolean) => void, options: CountStrategyOptions = {}): CountStrategyProof | undefined {

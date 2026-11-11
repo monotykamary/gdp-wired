@@ -22,7 +22,7 @@ export function minimalTransportView(hyps:C[],decls:CountDecl[],reads:MapRead[],
 }
 export type MinimalResult={kind:'proof'|'sat'|'unknown'|'rejected',minimalKind:'proof'|'sat'|'unknown'|'rejected',fallback:boolean,minimalUnits:number,fallbackUnits:number,tree?:Tree,witness?:Record<string,number>}
 type Search=(goal:Goal,path:Path,budget:{nodes:number,until:number})=>Outcome
-export function minimalViewFirst(full:Goal,minimal:Goal,path:Path,until:number,fallbackSearch:Search=growCdcl,minimalPath:Path=path,options:{deferCheck?:boolean}={}):MinimalResult{
+export function minimalViewFirst(full:Goal,minimal:Goal,path:Path,until:number,fallbackSearch:Search=growCdcl,minimalPath:Path=path,options:{deferCheck?:boolean,deferReplayCheck?:boolean}={}):MinimalResult{
  const began=fullWork(),units=()=> (fullWork()-began)/fullRate
  const search=(goal:Goal,solver:Search,root:Path):Outcome=>{
   if(clock()>=until)return {stuck:'unknown',path:root,why:'minimal-view deadline'}
@@ -31,7 +31,7 @@ export function minimalViewFirst(full:Goal,minimal:Goal,path:Path,until:number,f
  }
  const small=search(minimal,growCdcl,minimalPath)
  if('tree'in small){
-  const tree=minimal===full&&minimalPath===path?small.tree:(rebasePath(minimal,small.tree,minimalPath,path,until,full)??replayLinearSkeleton(full,small.tree,path,until))
+  const tree=minimal===full&&minimalPath===path?small.tree:(rebasePath(minimal,small.tree,minimalPath,path,until,full)??replayLinearSkeleton(full,small.tree,path,until,{deferCheck:options.deferCheck===true&&options.deferReplayCheck===true}))
   const checked=!!tree&&(options.deferCheck||check(full,tree,path))&&clock()<until
   return {kind:checked?'proof':'rejected',minimalKind:checked?'proof':'rejected',fallback:false,minimalUnits:units(),fallbackUnits:0,...(checked?{tree}:{})}
  }

@@ -7,7 +7,7 @@ import {traceNow} from './trace-clock.ts'
 import {proveBooleanPartitionCut} from './count-boolean-partition.ts'
 import {type C,type E,type Law,type Machine,all,atMost,get,less,n,not,plus,same,times,walkOnce,x} from './machine.ts'
 import {type CountCert,type CountInst,type FrameCut,type Goal,type Instances,type LinCut,type LemmaCut,type Path,type Tree,check,checkMC,countedObligations,frameOk,framePath,lemmaPath,canon,linActive,mcGoal,substC,truth} from '../kernel/kernel.ts'
-import {type CountRequestBuilder,type CountStrategyOptions,type CountStrategyProof,deferIntermediateCountChecks} from './count-strategy.ts'
+import {type CountRequestBuilder,type CountStrategyOptions,type CountStrategyProof,deferIntermediateCountChecks,deferOwnedReplacementChecks} from './count-strategy.ts'
 import {discoverLiftedCountGuard,discoverLiftedCountOperation} from './count-lifted-shape.ts'
 import {discoverLiftedCountPrerequisites} from './count-lifted-prerequisite.ts'
 import {countsForReads} from './count-facts.ts'
@@ -19,6 +19,7 @@ import {clock,fullRate,fullWork,late,pastWall,rowsAt,usedHyps,withDeadline} from
 import {growCdcl} from '../kernel/cdcl.ts'
 import {type Lin,add,k,scale,solve} from './solver.ts'
 import {rebasePath} from './count-rebase-path.ts'
+import {pruneOwnedRoot} from './count-prune-owned-root.ts'
 import {minimalTransportView,minimalViewFirst} from './count-minimal-view.ts'
 import {copyQueryContext} from './count-query-context.ts'
 import {guardLinearFact} from './count-guard-facts.ts'
@@ -39,6 +40,10 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
   let framePool:FrameFactPool|undefined
   try{
    const profileStart=c2?fullWork():0
+   const deferOwned=deferOwnedReplacementChecks(options),batchOwned=deferOwned&&options.batchOwnedReplacementPruning===true
+   const ownedStats={seedRan:0,seedDropped:0,trialRan:0,trialDropped:0,auditRan:0,auditDropped:0,batchAttempts:0}
+   const checkOwned=(g:Goal,t:Tree,p:Path,kind:'seed'|'trial'|'audit'):boolean=>{const key=deferOwned?`${kind}Dropped` as const:`${kind}Ran` as const;ownedStats[key]++;return deferOwned||check(g,t,p)}
+   const auditOwned=(g:Goal,t:Tree,p:Path):boolean|undefined=>deferOwned?(ownedStats.auditDropped++,undefined):checkOwned(g,t,p,'audit')
    if(write.increment!==0||!write.committedInput||!write.committedCount||!agreement||prerequisites.length!==1)return decline('replacement-prerequisites')
    const fields=[shape.countShape.thresholdField,...agreement.shape.fields.filter(field=>field!==shape.countShape.thresholdField)]
    if(fields.length!==2)return decline('version-order')
@@ -150,7 +155,7 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
      if(!('tree'in candidate)){observe?.({stage:'older-query-decline',outcome:candidate.stuck,why:candidate.why,query:view.goal,path:[...view.path],witness:candidate.witness});return {tree:undefined,minimalKind:candidate.stuck,fallback:false,witness:candidate.witness}}
      const tree=rebasePath(view.goal!,candidate.tree,view.path,root,end,goal)
      return {tree:tree&&accepts(goal,tree,root)?tree:undefined,minimalKind:'proof',fallback:false}
-    })():minimalViewFirst(older?preGoal:goal,view.goal,older?preRoot:root,end,growCdcl,view.path,{deferCheck:deferred}),tree=older&&result.tree?rebasePath(preGoal,result.tree,preRoot,root,end,goal):result.tree
+    })():minimalViewFirst(older?preGoal:goal,view.goal,older?preRoot:root,end,growCdcl,view.path,{deferCheck:deferred,deferReplayCheck:options.deferOwnedReplacementReplay===true}),tree=older&&result.tree?rebasePath(preGoal,result.tree,preRoot,root,end,goal):result.tree
     observe?.({stage,index,checked:!deferred&&!!tree,proposed:!!tree,units:(fullWork()-start)/fullRate,wallMs:traceNow()-startWall,minimal:result.minimalKind,fullFallback:result.fallback,leafCap:late(end),activeLins:lins.map(cut=>linActive(cut,root)),...(result.witness?{witness:result.witness}:{})})
     if(!tree||late(end))return
     if(c2&&stage==='older-transport'&&index!==undefined){const plan=plans.find(plan=>plan.older.includes(index));if(!plan)return;
@@ -164,13 +169,18 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
        if(preTree){
         const used=[...usedHyps(preGoal,preTree,preRoot)].sort((a,b)=>a-b),smallSlice=used.map(index=>slice[index]!),smallGoal={...preGoal,hyps:used.map(index=>preGoal.hyps[index]!)},nativeAtoms=preAtoms.map(atom=>({lin:atom.holds?atom.lin:add(scale(atom.lin,-1),k(1)),holds:true}))
         let kept=nativeAtoms,atRoot=rootFor(kept),candidate=rebasePath(preGoal,preTree,preRoot,atRoot,until,smallGoal)
-        if(candidate&&check(smallGoal,candidate,atRoot)){
-         for(let at=0;at<kept.length&&!late(until);){const short=kept.filter((_,i)=>i!==at),nextRoot=rootFor(short),next=rebasePath(smallGoal,candidate,atRoot,nextRoot,until,smallGoal);if(next&&check(smallGoal,next,nextRoot)){kept=short;atRoot=nextRoot;candidate=next}else at++}
+        if(candidate&&checkOwned(smallGoal,candidate,atRoot,'seed')){
+         if(batchOwned){
+          const reduced=pruneOwnedRoot(kept,{tree:candidate,root:atRoot},(short,prior)=>{const nextRoot=rootFor(short),next=rebasePath(smallGoal,prior.tree,prior.root,nextRoot,until,smallGoal);return next&&checkOwned(smallGoal,next,nextRoot,'trial')?{tree:next,root:nextRoot}:undefined},()=>!late(until))
+          kept=reduced.kept;candidate=reduced.proof.tree;atRoot=reduced.proof.root;ownedStats.batchAttempts+=reduced.attempts
+         }else{
+          for(let at=0;at<kept.length&&!late(until);){const short=kept.filter((_,i)=>i!==at),nextRoot=rootFor(short),next=rebasePath(smallGoal,candidate,atRoot,nextRoot,until,smallGoal);if(next&&checkOwned(smallGoal,next,nextRoot,'trial')){kept=short;atRoot=nextRoot;candidate=next}else at++}
+         }
          const lemma={cut,when:kept.map(atom=>atom.lin),slice:smallSlice,tree:candidate};const key=json([lemma.cut,lemma.when,lemma.slice]);selectedLemma=lemmas.find(l=>json([l.cut,l.when,l.slice])===key)??lemma;if(selectedLemma===lemma)lemmas.push(lemma)
          observe?.({stage:'older-inclusion-lemma',left:plan.left,index,before:preAtoms.length,after:kept.length,hyps:smallSlice.length,nativeWhen:true,lemma})
         }else observe?.({stage:'older-inclusion-lemma',left:plan.left,index,nativeWhen:false,before:preAtoms.length})
        }
-       observe?.({stage:'older-inclusion-audit',left:plan.left,index,positionFree:!!positionFree&&check(goal,positionFree,noPosition),preOnly:!!preTree&&check(preGoal,preTree,preRoot),when:preAtoms.map(atom=>atom.holds?atom.lin:add(scale(atom.lin,-1),k(1))),cut,slice,removedPositions:[...root.values()].filter(atom=>isPosition(atom.lin)),removedPost:filtered.filter(atom=>!preAtoms.includes(atom))})
+       observe?.({stage:'older-inclusion-audit',left:plan.left,index,auditDeferred:deferOwned,positionFree:!!positionFree&&auditOwned(goal,positionFree,noPosition),preOnly:!!preTree&&auditOwned(preGoal,preTree,preRoot),when:preAtoms.map(atom=>atom.holds?atom.lin:add(scale(atom.lin,-1),k(1))),cut,slice,removedPositions:[...root.values()].filter(atom=>isPosition(atom.lin)),removedPost:filtered.filter(atom=>!preAtoms.includes(atom))})
       }
     }
     if(c2&&stage==='older-transport'){
@@ -283,6 +293,7 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
    observe?.({stage:'replacement-stabilize',checked:!deferred&&!!stable.tree,proposed:!!stable.tree,rebased:stable.rebased,failed:stable.failed})
    if(!stable.tree||late(until))return decline('stabilization')
    if(framePool)observe?.({stage:'emitter-frame-pool',emitter:'replacement',...framePool.stats()})
+   if(c2)observe?.({stage:'replacement-owned-lemmas',deferOwned,batchOwned,...ownedStats,retainedLemmas:lemmas.length})
     const cert:CountCert={...request,frames,lins,...(c2?{lemmas}:{}),tree:stable.tree}
    return (options.deferToComposition||checkMC(step.goal.hyps,step.decls,cert))&&!late(until)?{instances,certs:{[step.goal.name]:cert},...(deferred?{status:'unchecked' as const}:{})}:undefined
   }catch(error){if(error===stopped)return;throw error}
