@@ -1,3 +1,4 @@
+import {FrameFactPool} from './count-emitter-frame-pool.ts'
 // Generic stored-row replacement proposer. The strict path checks transports;
 // composition-only deferral leaves acceptance to the unchanged final checker.
 // Discovery supplies roles, never axioms.
@@ -34,6 +35,7 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
   if(!shape||!choice||operation?.kind!=='threshold-replace'||!('write'in operation)||!operation.write||!m.pre||late(until))return
   const write=operation.write,agreement=shape.rowAgreements[0],prerequisites=discoverLiftedCountPrerequisites(m,law,family)
   const stopped={},decline=(reason:string):never=>{observe?.({stage:'replacement-decline',reason,remaining:until-clock(),pastWall:pastWall()});throw stopped}
+  let framePool:FrameFactPool|undefined
   try{
    const profileStart=c2?fullWork():0
    if(write.increment!==0||!write.committedInput||!write.committedCount||!agreement||prerequisites.length!==1)return decline('replacement-prerequisites')
@@ -186,7 +188,7 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
     return undefined
    }
    const truncations=(condition:C)=>{const out:C[]=[],seen=new Set<string>();walkOnce(condition,(node:any)=>{if(node.op==='sub'){const guard=atMost(node.b,node.a),key=json(guard);if(!seen.has(key)){seen.add(key);out.push(guard)}}});return out}
-   const frame=(path:Path)=>{for(const [post,map,key]of reads.filter(read=>read[1].endsWith('#'))){const pre=reads.find(read=>read[1]===map.slice(0,-1)&&json(read[2])===json(key));if(!pre)continue;const cut={post,pre:pre[0],when:[...path.values()].map(atom=>atom.holds?atom.lin:add(scale(atom.lin,-1),k(1)))};if(frameOk(counts,cut))frames.push(cut)}return ask(path,'inactive')}
+   const frame=(path:Path)=>{for(const [post,map,key]of reads.filter(read=>read[1].endsWith('#'))){const pre=reads.find(read=>read[1]===map.slice(0,-1)&&json(read[2])===json(key));if(!pre)continue;const cut={post,pre:pre[0],when:[...path.values()].map(atom=>atom.holds?atom.lin:add(scale(atom.lin,-1),k(1)))};if(options.emitterFramePool){(framePool??=new FrameFactPool(counts,frames,until)).offer(cut)}else if(frameOk(counts,cut))frames.push(cut)}return ask(path,'inactive')}
    const split=countGuardTree(until,{yesFirst:true}),chain=(ids:number[],path:Path,stage:string,finish:(path:Path)=>Tree|undefined):Tree|undefined=>{const [index,...rest]=ids;if(index===undefined)return finish(path);const row=add(...insts[index]!.terms.map(([c,id])=>({[id]:c})));return split.rows([row],path,next=>chain(rest,next,stage,finish),branch=>ask(branch,stage,index))}
    const targetTruncations=truncations(step.goal.hyps.at(-1)!),compose=(path:Path,stage:string,guards:C[]=targetTruncations,at=0):Tree|undefined=>at===guards.length?ask(path,stage):split.condition(guards[at]!,path,p=>compose(p,stage,guards,at+1),p=>compose(p,stage,guards,at+1))
    const branch=(path:Path,left:boolean):Tree|undefined=>{
@@ -279,7 +281,8 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
    if(c2)observe?.({stage:'replacement-profile',prepareUnits:(profileTree-profileStart)/fullRate,treeUnits:(profileStable-profileTree)/fullRate,stabilizeUnits:(fullWork()-profileStable)/fullRate,reads})
    observe?.({stage:'replacement-stabilize',checked:!deferred&&!!stable.tree,proposed:!!stable.tree,rebased:stable.rebased,failed:stable.failed})
    if(!stable.tree||late(until))return decline('stabilization')
-   const cert:CountCert={...request,frames,lins,...(c2?{lemmas}:{}),tree:stable.tree}
+   if(framePool)observe?.({stage:'emitter-frame-pool',emitter:'replacement',...framePool.stats()})
+    const cert:CountCert={...request,frames,lins,...(c2?{lemmas}:{}),tree:stable.tree}
    return (options.deferToComposition||checkMC(step.goal.hyps,step.decls,cert))&&!late(until)?{instances,certs:{[step.goal.name]:cert},...(deferred?{status:'unchecked' as const}:{})}:undefined
   }catch(error){if(error===stopped)return;throw error}
  })

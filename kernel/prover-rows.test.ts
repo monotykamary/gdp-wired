@@ -1,12 +1,14 @@
 import {expect,test} from 'bun:test'
 import {type C,atMost,get,ite,less,min,n,not,plus,same,x} from '../core/machine.ts'
 import {type Goal,type Path,canon,leafConstraints} from './kernel.ts'
-import {proverRows} from './prover-rows.ts'
+import {proverRows,proverRowsReusingFacts} from './prover-rows.ts'
 const clone=<T>(a:T):T=>JSON.parse(JSON.stringify(a))
 const row=(hyps:C[],path:Path)=>{
  const goal:Goal={name:'rows',hyps}
- expect(proverRows(goal,path)).toEqual(leafConstraints(goal,path))
- expect(proverRows({name:'another law',hyps:clone(hyps)},new Map(path))).toEqual(leafConstraints(goal,path))
+ for(const build of [proverRows,proverRowsReusingFacts]){
+  expect(build(goal,path)).toEqual(leafConstraints(goal,path))
+  expect(build({name:'another law',hyps:clone(hyps)},new Map(path))).toEqual(leafConstraints(goal,path))
+ }
 }
 test('shared facts retain exact rows at children, siblings and shorter prefixes',()=>{
  const a=x('a'),b=x('b'),c=x('c'),split={a:1,b:-1},key=canon(split)

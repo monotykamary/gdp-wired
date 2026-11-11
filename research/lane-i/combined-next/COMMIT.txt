@@ -1,0 +1,5 @@
+feat(prover): compose gated counted strategy updates
+
+Integrate corrected replay rejection and prerequisite scheduling.
+Retain scoped strict-W admission and default-off B22/R2 proposals.
+Keep R1, Lean, calibrated W and combined freeze outside this scope.

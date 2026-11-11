@@ -1,9 +1,10 @@
-// Isolated test process: mock only the untrusted proposal producer. The real
+// Isolated test process: mock untrusted planning/proposal producers. The real
 // counted pipeline and its final checkCountedLaws must decide acceptance.
 import {expect,test,mock} from 'bun:test'
 import {type Law,type Machine,get,n,same,x} from './machine.ts'
 import {admitCountedFamily,certFor,countsDump} from './counts.ts'
 import * as strategies from './count-strategies.ts'
+import * as planning from './count-prerequisite-plan.ts'
 import {checkCountedLaws,countedObligations,mcGoal} from '../kernel/kernel.ts'
 import {clock,counted,fullRate,grow} from '../kernel/prove.ts'
 import {finishCountStrategy,type CountStrategyProof} from './count-strategy.ts'
@@ -17,9 +18,10 @@ test('the actual counted pipeline never publishes an unchecked invalid family',(
  const valid=finishCountStrategy(m,family,law,instances,'total',{...request,tree:out.tree},until,(g,ds)=>certFor(g,ds,false,0),undefined,{familyProposal:familyStepProposal})!
  expect(valid.status).toBe('unchecked')
  let proposal:CountStrategyProof=structuredClone(valid)
- const original={...strategies},events:Record<string,unknown>[]=[];let calls=0
+ const original={...strategies},planner={...planning},events:Record<string,unknown>[]=[];let calls=0
  // The supplied factory is synchronous; the test process owns these bindings.
  void mock.module('./count-strategies.ts',()=>({...original,selectedCountStrategies:()=>family,prepareCountStrategyMachine:(machine:Machine)=>machine,proposeCountStrategiesForClosing:()=>{calls++;return proposal}}))
+ void mock.module('./count-prerequisite-plan.ts',()=>({...planner,countPrerequisiteSchedule:()=>({requirements:new Map(),recipes:new Map(family.map(member=>[member.name,[{id:'fixture',kind:'strategy' as const,required:[]}]])),costs:new Map(family.map(member=>[member.name,0]))})}))
  const previous=countsDump.on;countsDump.on=e=>events.push(e as Record<string,unknown>)
  try{
   const run=()=>admitCountedFamily(m,family,family,new Set(),clock()+100000)

@@ -1,3 +1,4 @@
+import {FrameFactPool} from './count-emitter-frame-pool.ts'
 // A row-copy STEP proposal from discovered source/target roles and the lifted
 // law's own tuples. All transports are ordinary checked per-key linear facts.
 import {type C,type E,type Law,type Machine,atMost,n,not,same,walkOnce,x} from './machine.ts'
@@ -25,6 +26,7 @@ export function proveLiftedCountCopy(m:Machine,family:Law[],law:Law,until:number
   const shape=discoverLiftedCountGuard(m,law,family),choice=fixedCountFrameCase(m),copy=shape&&choice&&discoverCountRowCopy(m,shape.countShape,choice)
   if(!shape||!choice||!copy||!m.pre||late(until))return
   const stopped={},decline=(reason:string):never=>{observe?.({stage:'copy-decline',reason});throw stopped}
+  let framePool:FrameFactPool|undefined
   try{
    const from=x(copy.from),to=x(copy.to),a=x(law.forall!+'#'),b=x(law.keys![0]!),transportRegions=proposeLiftedTransports(m,family,law,choice.value)
    if(transportRegions?.length!==4)return decline('transport-plan')
@@ -55,7 +57,7 @@ export function proveLiftedCountCopy(m:Machine,family:Law[],law:Law,until:number
    const active=inlineFrozenGuard(m.step.flags??{},copy.guard),domain:C={op:'and',xs:[a,b,from,to].flatMap(row=>[{op:'<' as const,a:row,b:bound},{op:'<' as const,a:row,b:n(shape.origin.width)}])}
    const ask=(path:Path,index:number,frame=false,stage='case'):Tree|undefined=>{
     if(late(until))return
-    if(frame)for(const [post,map,key]of postReads){const cut={post,pre:read(map.slice(0,-1),key),when:[...path.values()].map(atom=>atom.holds?atom.lin:add(scale(atom.lin,-1),k(1)))};if(frameOk(counts,cut))frames.push(cut)}
+    if(frame)for(const [post,map,key]of postReads){const cut={post,pre:read(map.slice(0,-1),key),when:[...path.values()].map(atom=>atom.holds?atom.lin:add(scale(atom.lin,-1),k(1)))};if(options.emitterFramePool){(framePool??=new FrameFactPool(counts,frames,until)).offer(cut)}else if(frameOk(counts,cut))frames.push(cut)}
     const root=framePath(frames,[],path,[],lins),view=mcGoal(stage==='fact'?scalarHyps:caseHyps[index]!,step.decls,request),deadline=Math.min(until,clock()+500),before=fullWork(),remember=(tree:Tree)=>{roots.set(tree,new Map(root));return tree}
     if(!view)return
     const cached=composed.get(index)
@@ -99,7 +101,8 @@ export function proveLiftedCountCopy(m:Machine,family:Law[],law:Law,until:number
    if(!tree)return decline('tree')
    const stable=stabilizeGuardedTree(goal,tree,frames,lins,roots,until,{deferCheck:deferred})
    if(!stable.tree||late(until))return decline('stabilization')
-   const cert:CountCert={...request,frames,lins,tree:stable.tree}
+   if(framePool)observe?.({stage:'emitter-frame-pool',emitter:'copy',...framePool.stats()})
+    const cert:CountCert={...request,frames,lins,tree:stable.tree}
    return (options.deferToComposition||checkMC(step.goal.hyps,step.decls,cert))&&!late(until)?{instances,certs:{[step.goal.name]:cert},...(deferred?{status:'unchecked' as const}:{})}:undefined
   }catch(error){if(error===stopped)return;throw error}
  })

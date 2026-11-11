@@ -20,6 +20,17 @@ import {rebasePath} from './count-recovery/rebase-path.ts'
 import {reframeCountTree} from './count-recovery/reframe-tree.ts'
 import {replayLinearSkeleton} from './count-recovery/replay-linear-skeleton.ts'
 
+// The exact structural citation selected by the leader emitter, also exposed to
+// prerequisite scheduling. Discovery does not prove the cited law.
+export function countLeaderPremise(m:Machine,shape:GuardCountContext['shape'],family:readonly Law[]){
+ const mapReads=(t:C|E)=>{const names:string[]=[];walkOnce(t,(node:any)=>{if(node.op==='get'&&m.counts?.[node.map]&&!names.includes(node.map))names.push(node.map)});return names}
+ const pairMapsFor=(law:Law)=>mapReads(law.holds).filter(name=>!!m.counts![name]!.base)
+ const pairLaws=family.filter(law=>law.forall&&law.keys?.length===3&&pairMapsFor(law).length===2&&pairMapsFor(law).every(name=>{const fields=new Set<string>();walkOnce(m.counts![name]!.body,(node:any)=>{if(node.op==='get')fields.add(node.map)});return fields.size===1&&fields.has(shape.membershipMap)}))
+ const eligibilityFor=(law:Law)=>mapReads(law.holds).find(name=>{const d=m.counts![name]!,fields=new Set<string>();walkOnce(d.body,(node:any)=>{if(node.op==='get')fields.add(node.map)});return !d.base&&name!==shape.rowMap&&fields.has(shape.membershipMap)&&!fields.has(shape.memberField)})
+ const law=pairLaws.find(law=>eligibilityFor(law))??pairLaws[0]
+ return law?{law,maps:pairMapsFor(law),eligibilityMap:eligibilityFor(law)}:undefined
+}
+
 export function proveCountLeader(context: GuardCountContext, family: Law[], law: Law, seed: Instances, until: number, requestFor: CountRequestBuilder, observe?: (stage: string, checked: boolean) => void, options: CountStrategyOptions = {}): CountStrategyProof | undefined {
   return withDeadline(until, () => {
     const leaderStart = fullWork()
@@ -32,18 +43,10 @@ export function proveCountLeader(context: GuardCountContext, family: Law[], law:
     const upperFact = saved.facts.find(f => f.proposal.kind === 'guard-complement-upper')
     if (!upperFact || upperFact.proposal.when.length < 4) return
     const {rowMap, voteMap} = shape, guardMap = write.input, i = x(write.source), a = x(law.forall + '#'), b = x(law.keys![0]!)
-    const mapReads = (t: C | E) => {const names: string[] = []; walkOnce(t, (node: any) => {if (node.op === 'get' && m.counts?.[node.map] && !names.includes(node.map)) names.push(node.map)}); return names}
-    const pairMapsFor = (l: Law) => mapReads(l.holds).filter(name => !!m.counts![name]!.base)
-    const pairLaws = family.filter(l => l.forall && l.keys?.length === 3 && pairMapsFor(l).length === 2 && pairMapsFor(l).every(name => {const fields = new Set<string>(); walkOnce(m.counts![name]!.body, (node: any) => {if (node.op === 'get') fields.add(node.map)}); return fields.size === 1 && fields.has(shape.membershipMap)}))
-    const eligibilityFor = (l: Law) => mapReads(l.holds).find(name => {
-      const d = m.counts![name]!, fields = new Set<string>()
-      walkOnce(d.body, (node: any) => {if (node.op === 'get') fields.add(node.map)})
-      return !d.base && name !== rowMap && fields.has(shape.membershipMap) && !fields.has(shape.memberField)
-    })
-    const pairLaw = pairLaws.find(l => eligibilityFor(l)) ?? pairLaws[0], eligibilityMap = pairLaw && eligibilityFor(pairLaw)
+    const selectedPair = countLeaderPremise(m, shape, family), pairLaw = selectedPair?.law, eligibilityMap = selectedPair?.eligibilityMap
     options.trace?.({query: 'leader-pair-premise', outcome: pairLaw ? 'selected' : 'missing', premises: pairLaw ? [pairLaw.name] : [], eligibilityMap})
-    if (!pairLaw) return
-    const pairMaps = pairMapsFor(pairLaw), onlyMap = pairMaps.find(name => {let neg = false; walkOnce(m.counts![name]!.body, (node: any) => {if (node.op === 'not') neg = true}); return neg}), bothMap = pairMaps.find(name => name !== onlyMap)
+    if (!pairLaw || !selectedPair) return
+    const pairMaps = selectedPair.maps, onlyMap = pairMaps.find(name => {let neg = false; walkOnce(m.counts![name]!.body, (node: any) => {if (node.op === 'not') neg = true}); return neg}), bothMap = pairMaps.find(name => name !== onlyMap)
     if (!onlyMap || !bothMap) return
     const key = (map: string, args: E[]): E => {const d = m.counts![map.replace(/#$/, '')]!; return d.base ? {op: 'add', a: {op: 'mul', k: d.base, a: args[0]!}, b: args[1]!} : args[0]!}
     const read = (map: string, args: E[]) => get(map, key(map, args)), sum = (a: E, b: E): E => ({op: 'add', a, b})

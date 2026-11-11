@@ -87,6 +87,31 @@ test('unchecked case proposals need the final assembled checker', () => {
     expect(composeCountOperationProofs(context, family, law, broken, until, request)).toBeUndefined()
   }))
 })
+test('facts-only reindex preserves certificates and refuses corrupted proposals', () => {
+  const {m, law, family} = fixture(), context = prepareGuardCountContext(m, law, family)!
+  counted(fullRate, () => withWall(performance.now() + 6000, () => {
+    const until = clock() + 6000
+    const cases = proveFixedCountOperations(context, family, law, until, request, undefined, {deferToComposition: true, deferIntermediateChecks: true})!
+    expect(cases).toHaveLength(3)
+    expect(cases.every(c => c.proof.status === 'unchecked')).toBe(true)
+    const before = JSON.stringify(cases), baseline = composeCountOperationProofs(context, family, law, cases, until, request)
+    expect(baseline).toBeDefined()
+    for (const reindexFactsOnly of [false, true]) {
+      const tail: Record<string, unknown>[] = [], proof = composeCountOperationProofs(context, family, law, cases, until, request, undefined, {reindexFactsOnly, trace: e => tail.push(e)})
+      expect(proof).toBeDefined(); expect(JSON.stringify(proof)).toBe(JSON.stringify(baseline))
+      if (proof) for (const packet of countedObligations(context.machine, family, {[law.name]: proof.instances}, 0)) expect(checkMC(packet.goal.hyps, packet.decls, proof.certs[packet.goal.name]!)).toBe(true)
+      expect(tail.some(e => e.part === 'native-step-check' && e.role === 'trusted-check')).toBe(true)
+      expect(tail.some(e => e.part === 'native-init-check' && e.role === 'trusted-check')).toBe(true)
+      const initial = proof!.certs[law.name + ' @start']!
+      expect(composeCountOperationProofs(context, family, law, cases, until, request, undefined, {reindexFactsOnly, initial: {...initial, tree: {leaf: []}}})).toBeUndefined()
+      const broken = structuredClone(cases); broken[0]!.proof.certs[law.name + ' @step']!.tree = {leaf: []}
+      expect(composeCountOperationProofs(context, family, law, broken, until, request, undefined, {reindexFactsOnly})).toBeUndefined()
+      expect(composeCountOperationProofs(context, family, law, cases.slice(1), until, request, undefined, {reindexFactsOnly})).toBeUndefined()
+      expect(composeCountOperationProofs(context, family, law, cases, clock() - 1, request, undefined, {reindexFactsOnly})).toBeUndefined()
+    }
+    expect(JSON.stringify(cases)).toBe(before)
+  }))
+})
 test('case composition respects an expired shared allowance', () => {
   const {m, law, family} = fixture(), context = prepareGuardCountContext(m, law, family)!
   expect(composeCountOperationProofs(context, family, law, [], clock() - 1, request)).toBeUndefined()

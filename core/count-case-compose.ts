@@ -14,9 +14,10 @@ import {dedupeCountInstances, minimizeCountCertificate} from './count-certificat
 import {countRowReindexer, operationRefutation} from './count-row-reindex.ts'
 import {type CountCert, type Goal, type Instances, type Path, type Tree, boundOf, substC, canon, canonFlip, checkMC, countedObligations, framePath, mcGoal} from '../kernel/kernel.ts'
 import {fullRate, fullWork, late, rowsAt, withDeadline} from '../kernel/prove.ts'
+import {proverRowsReusingFacts} from '../kernel/prover-rows.ts'
 import {type Lin, type Step, add, k} from './solver.ts'
 export type FixedOperationProof = {value: number, proof: CountStrategyProof}
-export function composeCountOperationProofs(context: GuardCountContext, family: Law[], law: Law, cases: FixedOperationProof[], until: number, requestFor: CountRequestBuilder, observe?: (stage: string, value?: number) => void, options: {familyProposal?: FamilyStepProposal, reindexMode?: 'offset' | 'exact', initial?: CountCert, trace?: CountStageObserver, minimize?: boolean, slicedLemmas?: boolean} = {}): CountStrategyProof | undefined {
+export function composeCountOperationProofs(context: GuardCountContext, family: Law[], law: Law, cases: FixedOperationProof[], until: number, requestFor: CountRequestBuilder, observe?: (stage: string, value?: number) => void, options: {familyProposal?: FamilyStepProposal, reindexMode?: 'offset' | 'exact', initial?: CountCert, trace?: CountStageObserver, minimize?: boolean, slicedLemmas?: boolean, reindexFactsOnly?: boolean} = {}): CountStrategyProof | undefined {
   return withDeadline(until, () => {
     const trace = countStageTrace(options.trace, 'composition-total')
     try {
@@ -110,8 +111,9 @@ export function composeCountOperationProofs(context: GuardCountContext, family: 
       }
       const stats = {hits: 0, layouts: 0}, offsets = options.reindexMode !== 'exact'
       const reindex = countRowReindexer(goal, {offsets, stats})
+      const materializeRows = options.reindexFactsOnly ? proverRowsReusingFacts : rowsAt
       const fallback = (path: Path): Tree | undefined => late(until) ? undefined :
-        operationRefutation(rowsAt(goal, framePath(common.frames!, common.lemmas??[], path, common.monos!, common.lins!)), operation)
+        operationRefutation(materializeRows(goal, framePath(common.frames!, common.lemmas??[], path, common.monos!, common.lins!)), operation)
       const transport = (sourceGoal: Goal, source: CountCert, tree: Tree, before: Path, after: Path): Tree | undefined => {
         if (late(until)) return
         if ('split' in tree) {
@@ -121,7 +123,7 @@ export function composeCountOperationProofs(context: GuardCountContext, family: 
           const yes = transport(sourceGoal, source, tree.yes, add(before, true), add(after, true)), no = yes && transport(sourceGoal, source, tree.no, add(before, false), add(after, false))
           return yes && no ? {split: tree.split, yes, no} : undefined
         }
-        const old = rowsAt(sourceGoal, framePath(source.frames ?? [], source.lemmas??[], before, source.monos ?? [], source.lins ?? [])), current = rowsAt(goal, framePath(common.frames!, common.lemmas??[], after, common.monos!, common.lins!)), index = reindex(sourceGoal, old, current)
+        const old = materializeRows(sourceGoal, framePath(source.frames ?? [], source.lemmas??[], before, source.monos ?? [], source.lins ?? [])), current = materializeRows(goal, framePath(common.frames!, common.lemmas??[], after, common.monos!, common.lins!)), index = reindex(sourceGoal, old, current)
         const leaf: Step[] = []
         for (const step of tree.leaf) {if (step.kind !== 'input') leaf.push(step); else {const i = index(step.index); if (i === undefined) {
           const impossible = fallback(after)

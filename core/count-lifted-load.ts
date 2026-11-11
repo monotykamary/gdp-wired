@@ -1,3 +1,4 @@
+import {FrameFactPool} from './count-emitter-frame-pool.ts'
 // Generic marked-load STEP proposer. Every premise comes from structural
 // discovery in the caller's family; no saved certificate or named law is used.
 import {type E,type Law,type Machine,all,atMost,get,n,not,same,x} from './machine.ts'
@@ -26,6 +27,7 @@ export function proveLiftedCountLoad(m:Machine,family:Law[],law:Law,until:number
   const shape=discoverLiftedCountGuard(m,law,family),choice=fixedCountFrameCase(m),load=shape&&choice&&discoverCountRowLoad(m,shape,family,choice)
   if(!shape||!choice||!load||!m.pre||late(until))return
   const stopped={},decline=(reason:string):never=>{observe?.({stage:'load-decline',reason});throw stopped}
+  let framePool:FrameFactPool|undefined
   try{
    const a=x(law.forall!+'#'),b=x(law.keys![0]!),written=x(load.written),endpoints=[a,b,written]
    const instances:Instances=ownCountLawInstance(law,{})
@@ -73,7 +75,7 @@ export function proveLiftedCountLoad(m:Machine,family:Law[],law:Law,until:number
     }
     if(frame)for(const [postId,map,key]of post){
      const pre=reads.find(read=>read[1]===map.slice(0,-1)&&json(read[2])===json(key))
-     if(pre){const cut={post:postId,pre:pre[0],when:[...path.values()].map(atom=>atom.holds?atom.lin:add(scale(atom.lin,-1),k(1)))};if(frameOk(counts,cut))frames.push(cut)}
+     if(pre){const cut={post:postId,pre:pre[0],when:[...path.values()].map(atom=>atom.holds?atom.lin:add(scale(atom.lin,-1),k(1)))};if(options.emitterFramePool){(framePool??=new FrameFactPool(counts,frames,until)).offer(cut)}else if(frameOk(counts,cut))frames.push(cut)}
     }
     const root=framePath(frames,[],path,[],lins),before=fullWork(),deadline=Math.min(until,clock()+500),remember=(tree:Tree)=>{roots.set(tree,new Map(root));return tree}
     const direct=solve(rowsAt(goal,root),500)
@@ -103,7 +105,8 @@ export function proveLiftedCountLoad(m:Machine,family:Law[],law:Law,until:number
    const stable=stabilizeGuardedTree(goal,tree,frames,lins,roots,until,{deferCheck:deferred})
    observe?.({stage:'load-stabilize',completed:!!stable.tree,rebased:stable.rebased,failed:stable.failed,phasePremises:load.phaseLaws.length})
    if(!stable.tree||late(until))return
-   const cert:CountCert={...request,frames,lins,tree:stable.tree}
+   if(framePool)observe?.({stage:'emitter-frame-pool',emitter:'load',...framePool.stats()})
+    const cert:CountCert={...request,frames,lins,tree:stable.tree}
    return (options.deferToComposition||checkMC(step.goal.hyps,step.decls,cert))&&!late(until)?{instances,certs:{[step.goal.name]:cert},...(deferred?{status:'unchecked' as const}:{})}:undefined
   }catch(error){if(error===stopped)return;throw error}
  })

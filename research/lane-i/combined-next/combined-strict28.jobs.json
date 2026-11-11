@@ -1,0 +1,10 @@
+[
+  {
+    "name": "combined-strict28",
+    "cmd": "bun port-input/census.ts",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  }
+]

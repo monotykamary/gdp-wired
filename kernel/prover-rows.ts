@@ -7,6 +7,7 @@ import {type Goal,type Path,canon,leafConstraintsReusing} from './kernel.ts'
 import {budgetedLeafRows} from '../core/prover-row-budget.ts'
 import {completeWorkProfile} from '../core/work-profile.ts'
 import {inBudget} from './prove.ts'
+import {withTableAdmission} from '../core/table-admission.ts'
 const originals=new WeakMap<object,object>(),ids=new WeakMap<object,number>()
 const nodes=new Map<string,object>()
 let serial=0,keyChars=0
@@ -68,6 +69,13 @@ export class ProverRowsCache{
 }
 const rows=new ProverRowsCache(env.GDP_ROWS_UNWEIGHTED==='1'?Infinity:250000)
 export const rowReuseStorage=()=>({nodes:nodes.size,keyChars,goals:goalPool.size,rowEntries:rows.size,constraints:rows.weight})
+// One-pass reindex keeps interned hypotheses and per-hypothesis facts without
+// retaining complete tables. Preserve the existing full-work row admission.
+export function proverRowsReusingFacts(goal:Goal,path:Path):Constraint[]{
+ rowReuseStats.rowsBuilt++
+ const build=()=>{const shared=env.GDP_ROWS_SHARED==='0'?goal:sharedGoal(goal);return completeWorkProfile.enabled&&inBudget()?budgetedLeafRows(shared,path):leafConstraintsReusing(shared,path)}
+ return completeWorkProfile.enabled&&inBudget()?withTableAdmission(build):build()
+}
 export function proverRows(goal:Goal,path:Path):Constraint[]{
  const shared=sharedGoal(goal)
  // Path ordering matters for input-row indices. Include the actual atom as

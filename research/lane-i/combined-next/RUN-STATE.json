@@ -1,0 +1,18 @@
+{
+  "branch": "claude/mldr-next-combined",
+  "worktree": "/home/user/VCS/working-remote/open-source/gdp-wired-integ-next-stage",
+  "parent": "4bec30ad095fbb75396947a37ea113f47d875cc5",
+  "sourceTree": "c936375358aee1fe61335f13b163d31df2ad79e1",
+  "input": "/tmp/lane-i-combined-input.8gNQGZ",
+  "archiveSHA256": "bafdc708433c316c13c20296d3e717411d796207919f2ac5291124e67f0f1bbb",
+  "R1Included": false,
+  "frozen": false,
+  "committed": false,
+  "tasks": [
+    {"name":"combined-source", "task":"6a6957a3-d371-421e-9073-1a8ef9fc2880", "pid":2773069},
+    {"name":"combined-strict28", "task":"2a61796e-14b7-45c1-b557-9e9ddd34cb82", "pid":2773074},
+    {"name":"combined-endpoint", "task":"c2164fde-5bbe-43ae-8037-964e4c75a468", "pid":2773079}
+  ],
+  "output": "runs/lane-i/combined-next-v1/",
+  "artifactPolicy": "file-only; submit-one.sh fetches from each worker before completing"
+}

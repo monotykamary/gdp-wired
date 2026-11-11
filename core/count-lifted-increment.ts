@@ -1,3 +1,4 @@
+import {FrameFactPool} from './count-emitter-frame-pool.ts'
 // Conditional threshold-increment STEP proposal. Role discovery and the
 // family's no-quorum premise select witnesses; only the native checker accepts.
 import {type C,type E,type Law,type Machine,all,atMost,get,less,n,plus,times,walkOnce,x} from './machine.ts'
@@ -27,6 +28,7 @@ export function proveLiftedCountIncrement(m:Machine,family:Law[],law:Law,until:n
   const write=operation.write
   if(write.increment!==1){observe?.({stage:'increment-decline',reason:'nonincrement-write'});return}
   const stopped={},decline=(reason:string):never=>{observe?.({stage:'increment-decline',reason});throw stopped}
+  let framePool:FrameFactPool|undefined
   try{
    const lower=discoverLiftedCountPrerequisites(m,law,family).flatMap(prerequisite=>{
     const found=discoverCountGuardShape(m,prerequisite.law,family)
@@ -70,7 +72,7 @@ export function proveLiftedCountIncrement(m:Machine,family:Law[],law:Law,until:n
     if(!tree||late(end))return
     roots.set(tree,new Map(root));return tree
    }
-   const frame=(path:Path,every=false)=>{for(const read of reads.filter(read=>read[1].endsWith('#')&&(every||read[1]!==vote+'#'))){const before=reads.find(old=>old[1]===read[1].slice(0,-1)&&json(old[2])===json(read[2]));if(!before)continue;const cut={post:read[0],pre:before[0],when:[...path.values()].map(atom=>atom.holds?atom.lin:add(scale(atom.lin,-1),k(1)))};if(frameOk(counts,cut))frames.push(cut)}}
+   const frame=(path:Path,every=false)=>{for(const read of reads.filter(read=>read[1].endsWith('#')&&(every||read[1]!==vote+'#'))){const before=reads.find(old=>old[1]===read[1].slice(0,-1)&&json(old[2])===json(read[2]));if(!before)continue;const cut={post:read[0],pre:before[0],when:[...path.values()].map(atom=>atom.holds?atom.lin:add(scale(atom.lin,-1),k(1)))};if(options.emitterFramePool){(framePool??=new FrameFactPool(counts,frames,until)).offer(cut)}else if(frameOk(counts,cut))frames.push(cut)}}
    const split=countGuardTree(until,{yesFirst:true}),factRow=(index:number)=>add(...insts[index]!.terms.map(([coefficient,id])=>({[id]:coefficient})))
    const fact=(index:number,path:Path,next:(path:Path)=>Tree|undefined):Tree|undefined=>split.rows([factRow(index)],path,next,branch=>ask(branch,'count-fact',index))
    const finish=(path:Path)=>split.condition({op:'=',a,b:actor},path,left=>fact(2,left,p=>split.condition({op:'=',a:b,b:actor},p,q=>ask(q,'both-actor'),q=>fact(6,q,r=>ask(r,'left-actor')))),left=>fact(5,left,p=>split.condition({op:'=',a:b,b:actor},p,q=>fact(2,q,r=>ask(r,'right-actor')),q=>fact(6,q,r=>ask(r,'neither-actor')))))
@@ -81,7 +83,8 @@ export function proveLiftedCountIncrement(m:Machine,family:Law[],law:Law,until:n
    if(!tree)return decline('tree')
    const stable=stabilizeGuardedTree(goal,tree,frames,[],roots,until,{deferCheck:deferred})
    if(!stable.tree||late(until))return decline('stabilization')
-   const cert:CountCert={...request,frames,tree:stable.tree}
+   if(framePool)observe?.({stage:'emitter-frame-pool',emitter:'increment',...framePool.stats()})
+    const cert:CountCert={...request,frames,tree:stable.tree}
    return (options.deferToComposition||checkMC(step.goal.hyps,step.decls,cert))&&!late(until)?{instances,certs:{[step.goal.name]:cert},...(deferred?{status:'unchecked' as const}:{})}:undefined
   }catch(error){if(error===stopped)return;throw error}
  })

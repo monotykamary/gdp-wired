@@ -62,20 +62,20 @@ export function proveCountStrategyPool(m: Machine, family: Law[], until: number,
     return {proofs, declined}
   })
 }
-export function proveCountStrategies(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, workAllowance = Math.max(0, until - clock())): CountStrategyProof | undefined {
-  return countStrategies(m, family, law, until, request, observe, workAllowance)
+export function proveCountStrategies(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, workAllowance = Math.max(0, until - clock()), shapeFamily?: readonly Law[]): CountStrategyProof | undefined {
+  return countStrategies(m, family, law, until, request, observe, workAllowance, undefined, shapeFamily)
 }
 // Internal construction path: an explicit proposal, never a checked verdict.
-export function proposeCountStrategiesForClosing(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, workAllowance = Math.max(0, until - clock())): CountStrategyProof | undefined {
-  return countStrategies(m, family, law, until, request, observe, workAllowance, finalCountStepDeferralEnabled() ? familyStepProposal : undefined)
+export function proposeCountStrategiesForClosing(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, workAllowance = Math.max(0, until - clock()), shapeFamily?: readonly Law[]): CountStrategyProof | undefined {
+  return countStrategies(m, family, law, until, request, observe, workAllowance, finalCountStepDeferralEnabled() ? familyStepProposal : undefined, shapeFamily)
 }
-function countStrategies(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe: ((event: Record<string, unknown>) => void) | undefined, workAllowance: number, familyProposal?: FamilyStepProposal): CountStrategyProof | undefined {
+function countStrategies(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe: ((event: Record<string, unknown>) => void) | undefined, workAllowance: number, familyProposal?: FamilyStepProposal, shapeFamily?: readonly Law[]): CountStrategyProof | undefined {
   return withDeadline(until, () => {
     if (late(until)) return
     const leafUnits = strategyLeafUnits(workAllowance)
     if (discoverRowAgreement(m, law)) {
       observe?.({strategy: 'row', stage: 'search-budget', workAllowance, leafUnits})
-      return proveCountRowComposition(m, family, law, until, request, e => observe?.({strategy: 'row', ...e}), {framePremisesOnly: true, leafUnits, deferRowChecks: env.GDP_COUNT_ROW_DEFER_CHECKS === '1', familyProposal})
+      return proveCountRowComposition(m, family, law, until, request, e => observe?.({strategy: 'row', ...e}), {framePremisesOnly: true, leafUnits, deferRowChecks: env.GDP_COUNT_ROW_DEFER_CHECKS === '1', reindexFactsOnly: env.GDP_COUNT_REINDEX_FACTS_ONLY === '1', familyProposal, shapeFamily})
     }
     if (liftedSelected(m, family, law)) {
       observe?.({strategy:'lifted',stage:'selected'})
@@ -89,6 +89,6 @@ function countStrategies(m: Machine, family: Law[], law: Law, until: number, req
       return
     }
     observe?.({strategy: 'guard', stage: 'search-budget', workAllowance, leafUnits})
-    return proveCountGuardComposition({...context, machine: m}, family, law, until, request, e => observe?.({strategy: 'guard', ...e}), {caseOrder: 'cost', minimalView: true, leafUnits, familyProposal})
+    return proveCountGuardComposition({...context, machine: m}, family, law, until, request, e => observe?.({strategy: 'guard', ...e}), {caseOrder: 'cost', minimalView: true, leafUnits, reindexFactsOnly: env.GDP_COUNT_REINDEX_FACTS_ONLY === '1', familyProposal})
   })
 }
