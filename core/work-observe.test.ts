@@ -30,6 +30,7 @@ if(profile.enabled){
  a.throws(()=>withBudget(1,()=>{try{withReachabilityWork(()=>observeEval(100,true))}catch{}checkWorkEndpoint('refusal cannot be swallowed')}),BudgetExpired);
  withBudget(100,()=>{a.throws(()=>withBudget(0,tinyTerm),BudgetExpired);tinyTerm()});
  a.throws(()=>withBudget(0,()=>{try{withBudget(10,tinyTerm)}catch{}checkWorkEndpoint('shared end')}),BudgetExpired);
+ a.throws(()=>withBudget(1,()=>{try{withReachabilityWork(()=>observeEval(100,true))}catch{}a.throws(()=>withBudget(0.1,tinyTerm),BudgetExpired);a.throws(()=>tinyBlock(1,tinyTerm),BudgetExpired)}),BudgetExpired);
  const start=rawWork().tinyTerms;
  a.throws(()=>withBudget(2,()=>tinyBlock(100,()=>{tinyTerm();tinyTerm();tinyTerm()})),BudgetExpired);
  a.equal(rawWork().tinyTerms-start,2);

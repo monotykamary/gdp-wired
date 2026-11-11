@@ -268,7 +268,7 @@ export function checkWorkAdmission(units: number, phase: string): void {
     throw new BudgetExpired(phase)
   }
 }
-export function remainingWork(): number { return budgetUnitsEnd === undefined ? Infinity : Math.max(0, budgetUnitsEnd - fullWork()) }
+export function remainingWork(): number { return budgetUnitsEnd === undefined ? Infinity : admissionRefusedAt === budgetUnitsEnd ? 0 : Math.max(0, budgetUnitsEnd - fullWork()) }
 export function checkBudget(phase: string): void {
   if (budgetUnitsEnd !== undefined && (admissionRefusedAt === budgetUnitsEnd || fullWork() > budgetUnitsEnd
     || completeWorkProfile.enabled && clock() > withinDeadline(budgetEnd()))) throw new BudgetExpired(phase)
@@ -278,6 +278,7 @@ export function withBudget<T>(units: number, f: () => T): T {
   // Never silently interpret units using a legacy work.n/count-rate island.
   if (rate && meter !== fullWork) throw new Error('work budget requires the outer full-work clock')
   return counted(fullRate, () => {
+    checkWorkEndpoint('inherited admission')
     const previous = budgetUnitsEnd, previousRefused = admissionRefusedAt
     budgetUnitsEnd = Math.min(previous ?? Infinity, workCap, fullWork() + units)
     try {

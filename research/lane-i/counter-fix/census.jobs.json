@@ -225,7 +225,7 @@
   },
   {
     "name": "off-candidate-consensus",
-    "cmd": "bun port-input/off-model.ts candidate consensus 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate consensus 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -233,7 +233,7 @@
   },
   {
     "name": "off-candidate-tcommit",
-    "cmd": "bun port-input/off-model.ts candidate tcommit 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate tcommit 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -241,7 +241,7 @@
   },
   {
     "name": "off-candidate-lock_server",
-    "cmd": "bun port-input/off-model.ts candidate lock_server 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate lock_server 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -249,7 +249,7 @@
   },
   {
     "name": "off-candidate-quorum_leader_election",
-    "cmd": "bun port-input/off-model.ts candidate quorum_leader_election 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate quorum_leader_election 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -257,7 +257,7 @@
   },
   {
     "name": "off-candidate-toy_consensus_forall",
-    "cmd": "bun port-input/off-model.ts candidate toy_consensus_forall 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate toy_consensus_forall 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -265,7 +265,7 @@
   },
   {
     "name": "off-candidate-simple_regular",
-    "cmd": "bun port-input/off-model.ts candidate simple_regular 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate simple_regular 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -273,7 +273,7 @@
   },
   {
     "name": "off-candidate-simple",
-    "cmd": "bun port-input/off-model.ts candidate simple 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate simple 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -281,7 +281,7 @@
   },
   {
     "name": "off-candidate-lockserv_automaton",
-    "cmd": "bun port-input/off-model.ts candidate lockserv_automaton 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate lockserv_automaton 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -289,7 +289,7 @@
   },
   {
     "name": "off-candidate-sharded_kv_no_lost_keys",
-    "cmd": "bun port-input/off-model.ts candidate sharded_kv_no_lost_keys 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate sharded_kv_no_lost_keys 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -297,7 +297,7 @@
   },
   {
     "name": "off-candidate-sharded_kv",
-    "cmd": "bun port-input/off-model.ts candidate sharded_kv 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate sharded_kv 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -305,7 +305,7 @@
   },
   {
     "name": "off-candidate-lockserv",
-    "cmd": "bun port-input/off-model.ts candidate lockserv 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate lockserv 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -313,7 +313,7 @@
   },
   {
     "name": "off-candidate-twophase",
-    "cmd": "bun port-input/off-model.ts candidate twophase 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate twophase 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -321,7 +321,7 @@
   },
   {
     "name": "off-candidate-simple_decentralized_lock",
-    "cmd": "bun port-input/off-model.ts candidate simple_decentralized_lock 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate simple_decentralized_lock 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -329,7 +329,7 @@
   },
   {
     "name": "off-candidate-two_phase_commit",
-    "cmd": "bun port-input/off-model.ts candidate two_phase_commit 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate two_phase_commit 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -337,7 +337,7 @@
   },
   {
     "name": "off-candidate-consensus_forall",
-    "cmd": "bun port-input/off-model.ts candidate consensus_forall 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate consensus_forall 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -345,7 +345,7 @@
   },
   {
     "name": "off-candidate-consensus_wo_decide",
-    "cmd": "bun port-input/off-model.ts candidate consensus_wo_decide 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate consensus_wo_decide 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -353,7 +353,7 @@
   },
   {
     "name": "off-candidate-naive_consensus",
-    "cmd": "bun port-input/off-model.ts candidate naive_consensus 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate naive_consensus 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -361,7 +361,7 @@
   },
   {
     "name": "off-candidate-client_server_db_ae",
-    "cmd": "bun port-input/off-model.ts candidate client_server_db_ae 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate client_server_db_ae 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -369,7 +369,7 @@
   },
   {
     "name": "off-candidate-client_server_ae",
-    "cmd": "bun port-input/off-model.ts candidate client_server_ae 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate client_server_ae 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -377,7 +377,7 @@
   },
   {
     "name": "off-candidate-simple_election",
-    "cmd": "bun port-input/off-model.ts candidate simple_election 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate simple_election 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -385,7 +385,7 @@
   },
   {
     "name": "off-candidate-toy_consensus_epr",
-    "cmd": "bun port-input/off-model.ts candidate toy_consensus_epr 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate toy_consensus_epr 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -393,7 +393,7 @@
   },
   {
     "name": "off-candidate-toy_consensus",
-    "cmd": "bun port-input/off-model.ts candidate toy_consensus 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate toy_consensus 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -401,7 +401,7 @@
   },
   {
     "name": "off-candidate-firewall",
-    "cmd": "bun port-input/off-model.ts candidate firewall 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate firewall 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -409,7 +409,7 @@
   },
   {
     "name": "off-candidate-majorityset_leader_election",
-    "cmd": "bun port-input/off-model.ts candidate majorityset_leader_election 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate majorityset_leader_election 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -417,7 +417,7 @@
   },
   {
     "name": "off-candidate-consensus_epr",
-    "cmd": "bun port-input/off-model.ts candidate consensus_epr 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate consensus_epr 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -425,7 +425,7 @@
   },
   {
     "name": "off-candidate-learning_switch",
-    "cmd": "bun port-input/off-model.ts candidate learning_switch 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate learning_switch 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -433,7 +433,7 @@
   },
   {
     "name": "off-candidate-learning_switch_i4",
-    "cmd": "bun port-input/off-model.ts candidate learning_switch_i4 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate learning_switch_i4 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
@@ -441,7 +441,7 @@
   },
   {
     "name": "off-candidate-paxos_epr",
-    "cmd": "bun port-input/off-model.ts candidate paxos_epr 15000000",
+    "cmd": "bun port-input/flags-off-model.ts candidate paxos_epr 15000000",
     "cpu": 2,
     "memory": 8192,
     "timeout": 650,
