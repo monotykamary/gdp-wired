@@ -7,9 +7,8 @@ primitive, final-STEP or evaluator-admission changes are included.
 
 ## Native receipts
 
-Batch `20261111-080738-jp-target` is not used as an invented identifier: the
-actual scheduler batch is recorded by `runs/lane-i/rolling-f-default-v2` and
-its summary. **34/34 jobs passed**:
+Native batch `20261111-080556-34mpgb`, recorded in
+`runs/lane-i/rolling-f-default-v2`: **34/34 jobs passed**:
 
 - All28 literal feature-off original pairs versus5e52d5ee.
 - Native full-family replay:19 laws/38 INIT/STEP packets, no skipped packets.
