@@ -1,0 +1,5 @@
+fix: propagate counted stops out of refutation sampling
+
+Do not swallow BudgetExpired as a failed preflight fact or sampling attempt.
+Preserve all flags-off outcomes and keep kernel and checker files unchanged.
+Stage baseline poll-gap diagnostics for all thirteen large overruns.

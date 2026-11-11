@@ -2835,7 +2835,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     const names = f.forall ? [f.forall, ...(f.keys ?? [])] : [], top = names.length > 1 ? bound : 2 * bound
     const at = (env: Record<string, number>, i: number): boolean => (i === names.length ? evalC(f.holds, env, {scalars: {}, maps: {}}, m)
       : Array.from({length: top + 1}, (_, key) => key).every(key => at({...env, [names[i]!]: key}, i + 1)))
-    try { return at(params, 0) } catch { return false }
+    try { return at(params, 0) } catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; return false }
   }
   // (those that read no param once)
   const readsParams = (f: Law) => m.params.some(p => JSON.stringify(f.holds).includes(`"name":${JSON.stringify(p)}`))
@@ -2891,7 +2891,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       for (const sl of steps1) if (!watch(m, run, sl, params, bound).step(st, input, next)) return {goal: `${sl.name} @step law`, witness: witness()}
       for (const l of lawsHere) if (!watch(m, run, l, params, bound).step(st, input, next)) return {goal: `${l.name} @step`, witness: witness()}
     }
-  } catch (e) { if (e instanceof WallExpired) throw e; return undefined }
+  } catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; return undefined }
   return undefined
 }
 // The kernel's report as a verdict: its first goal left unproven, with its counterexample and why.

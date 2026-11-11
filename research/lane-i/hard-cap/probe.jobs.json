@@ -1,0 +1,106 @@
+[
+  {
+    "name": "probe-lock_server",
+    "cmd": "bun port-input/run-model.ts candidate lock_server 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 800,
+    "vm_type": "large"
+  },
+  {
+    "name": "probe-lockserv_automaton",
+    "cmd": "bun port-input/run-model.ts candidate lockserv_automaton 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 800,
+    "vm_type": "large"
+  },
+  {
+    "name": "probe-sharded_kv_no_lost_keys",
+    "cmd": "bun port-input/run-model.ts candidate sharded_kv_no_lost_keys 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 800,
+    "vm_type": "large"
+  },
+  {
+    "name": "probe-sharded_kv",
+    "cmd": "bun port-input/run-model.ts candidate sharded_kv 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 800,
+    "vm_type": "large"
+  },
+  {
+    "name": "probe-lockserv",
+    "cmd": "bun port-input/run-model.ts candidate lockserv 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 800,
+    "vm_type": "large"
+  },
+  {
+    "name": "probe-twophase",
+    "cmd": "bun port-input/run-model.ts candidate twophase 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 800,
+    "vm_type": "large"
+  },
+  {
+    "name": "probe-simple_decentralized_lock",
+    "cmd": "bun port-input/run-model.ts candidate simple_decentralized_lock 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 800,
+    "vm_type": "large"
+  },
+  {
+    "name": "probe-two_phase_commit",
+    "cmd": "bun port-input/run-model.ts candidate two_phase_commit 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 800,
+    "vm_type": "large"
+  },
+  {
+    "name": "probe-client_server_db_ae",
+    "cmd": "bun port-input/run-model.ts candidate client_server_db_ae 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 800,
+    "vm_type": "large"
+  },
+  {
+    "name": "probe-client_server_ae",
+    "cmd": "bun port-input/run-model.ts candidate client_server_ae 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 800,
+    "vm_type": "large"
+  },
+  {
+    "name": "probe-firewall",
+    "cmd": "bun port-input/run-model.ts candidate firewall 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 800,
+    "vm_type": "large"
+  },
+  {
+    "name": "probe-learning_switch",
+    "cmd": "bun port-input/run-model.ts candidate learning_switch 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 800,
+    "vm_type": "large"
+  },
+  {
+    "name": "probe-learning_switch_i4",
+    "cmd": "bun port-input/run-model.ts candidate learning_switch_i4 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 800,
+    "vm_type": "large"
+  }
+]
