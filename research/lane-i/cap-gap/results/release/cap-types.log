@@ -1,0 +1,23 @@
+CAP_IDENTITIES {"preserved":132,"untrustedChanges":["kernel/prove.ts","kernel/prover-rows.ts"],"checker":"byte-identical"}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [672.00ms]
+Found 0 warnings and 0 errors.
+Finished in 14.4s on 1808 files with 100 rules using 8 threads.
+CAP_IDENTITIES {"preserved":132,"untrustedChanges":["kernel/prove.ts","kernel/prover-rows.ts"],"checker":"byte-identical"}
+CAP_GATE {"source":"17119b508485c0f0d104c71df28b11e5f48656d2","mode":"check"}
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

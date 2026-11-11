@@ -1,5 +1,11 @@
 # I6 — active, not yet admitted
 
+Current local follow-up: `17119b50` repairs the sharded_kv cap gap; all 28
+originals fit within 1,024 units of 15M (maximum excess 276.18), preserving
+this I6 baseline's 10 checked proofs and all flags-off receipts. D admission
+is still pending. See `../cap-gap/RESULT.md` and its exact-source receipts.
+The source-specific history below is unchanged.
+
 Draft source: `3281eb7fdcda5e04aab2c67a4950ee8e36cf1ef0`, on the `00b58ee5` line after admission optimization.
 
 Production delta: `core/meter.ts`, `core/check.ts`, `core/infer.ts`, `kernel/kernel.ts`.

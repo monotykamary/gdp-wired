@@ -1,0 +1,3 @@
+# Raw receipts and unified patches are byte-preserved evidence, not prose.
+*.patch -whitespace
+results/** -whitespace

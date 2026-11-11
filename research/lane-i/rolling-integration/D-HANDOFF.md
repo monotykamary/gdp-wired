@@ -1,5 +1,8 @@
 # Combined lane I handoff — final admission pending
 
+> Current pin and handoff: `17119b50`, `../cap-gap/D-HANDOFF.md`. The sections
+> below describe the prior b520b285 package and remain historical evidence.
+
 Final static source: `b520b2855464c5bf91fea98c4dc0149d4b3deb1c`; native test/evidence source: `ab9f33a6599f88f0a17214d2b95682af5cca0c6d`. Their production subtrees are identical. Both descend from `00b58ee54b4e5b8c4967fdbde35d1ff0f38d91e7`.
 
 ## Narrow production layers

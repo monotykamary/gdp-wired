@@ -1,0 +1,20 @@
+{
+ "cap-unit": {
+  "vm": "bx_ugy2dffp",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "cap-types": {
+  "vm": "bx_hep79j25",
+  "type": "xlarge",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 16,
+  "exclusive": false,
+  "co_tenants": 4
+ }
+}

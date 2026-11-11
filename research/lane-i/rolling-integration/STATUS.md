@@ -1,5 +1,22 @@
 # Rolling integration — scoped entries only
 
+## Latest: cap repair and A local-expiry seam
+
+Exact local validated source **17119b50**, still on the 00b58ee5 line.
+`../cap-gap/RESULT.md` and `../cap-gap/D-HANDOFF.md` supersede the previous
+current pin. Native 58-job gate passes; independent 56-receipt audit preserves
+all 10 I6 proofs, 18 unknown and all flags-off receipts. sharded_kv is now
+15,000,018.2817; corpus maximum 15,000,276.18, within the 1,024-unit slack.
+162 suite tests plus 9 full-mode controls and 1,808-file static pass.
+
+A 9b7485e5's exact local-expiry helper and qualified catch are ported with an
+optional active-plan factory seam. Its full generation/strategy dependency
+closure remains unintegrated. D's later-external-deadline qualification is
+retained; A's scoped GREEN is not a combined-source approval. No B/F RED or
+ungated source is promoted. D composition and final calibration are pending.
+
+The following sections retain the earlier helper-layer and b520b285 history.
+
 ## A: GREEN endpoint helper
 
 Imported `core/count-tier-budget.ts` and its test **byte-for-byte from `620a3596`**, D's gate `12cfdab4`. The helper contains the exact-endpoint unknown handoff and retains proof/refutation results, the no-dispatch path, and the nonrenewable enclosing allowance.

@@ -1,0 +1,44 @@
+CAP_IDENTITIES {"preserved":132,"untrustedChanges":["kernel/prove.ts","kernel/prover-rows.ts"],"checker":"byte-identical"}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [1.57s]
+core/count-attempt-expiration.test.ts(19,25): error TS2339: Property 'phase' does not exist on type 'object'.
+core/count-attempt-expiration.test.ts(25,74): error TS2339: Property 'phase' does not exist on type 'object'.
+core/count-attempt-expiration.test.ts(29,117): error TS2339: Property 'phase' does not exist on type 'object'.
+core/count-attempt-expiration.test.ts(32,99): error TS2339: Property 'phase' does not exist on type 'object'.
+core/count-attempt-expiration.test.ts(36,92): error TS2339: Property 'phase' does not exist on type 'object'.
+core/count-attempt-expiration.test.ts(47,53): error TS2339: Property 'phase' does not exist on type 'object'.
+research/lane-i/cap-gap/verify.ts(8,373): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(actual: unknown, expected: string | undefined, message?: Error | AssertMessageFunction | undefined): asserts actual is string | undefined', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'Error | AssertMessageFunction | undefined'.
+      Type 'string' is not assignable to type 'Error | AssertMessageFunction | undefined'.
+  Overload 2 of 2, '(actual: unknown, expected: string | undefined, message: string, ...args: unknown[]): asserts actual is string | undefined', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+2 | import {readFileSync,mkdtempSync,rmSync} from 'node:fs'
+3 | import {join,resolve} from 'node:path'
+4 | import {spawnSync} from 'node:child_process'
+5 | import {createHash} from 'node:crypto'
+6 | const input=resolve('port-input'),root=mkdtempSync('/tmp/cap-gate-'),mode=process.argv[2]
+7 | function run(cmd:string,args:string[]){const r=spawnSync(cmd,args,{cwd:root,encoding:'utf8',timeout:800000,maxBuffer:32*1024*1024});process.stdout.write(r.stdout??'');process.stderr.write(r.stderr??'');if(r.error||r.status!==0)throw Error(`${cmd}: ${r.status} ${r.error??''}`)}
+                                                                                                                                                                                                                                             ^
+error: bun: 2 
+      at run (/work/gdp-wired/port-input/verify.ts:7:234)
+      at /work/gdp-wired/port-input/verify.ts:9:258
+
+Bun v1.4.3 (Linux x64)

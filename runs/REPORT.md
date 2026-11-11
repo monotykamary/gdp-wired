@@ -1,4 +1,28 @@
-# LATEST — native admission speedup measured; I6 observation-gated
+# LATEST — I6 cap repaired; scoped A follow-up staged for D
+
+Exact validated runtime **17119b508485c0f0d104c71df28b11e5f48656d2**.
+Native Boat gate 20261111-050507-9xdfen passes all 58 jobs: 28 strict originals,
+28 flags-off originals, tests and static. Independent audit
+20261111-050850-qqivwk passes all 56 source/profile/hash/ledger checks.
+
+- sharded_kv: 15,120,328.2561 -> **15,000,018.2817** units; unknown retained.
+- Corpus maximum **15,000,276.18**, within **1,024** units of 15M.
+- **10 proved and checked, 18 unknown**: all I6 baseline proofs preserved;
+  zero forbidden clock reads; all 28 flags-off normalized receipts unchanged.
+- **162 suite tests / 3,145 assertions**, plus **9 full-mode controls / 28
+  assertions**. Two mode-specific controls skipped in legacy mode run in the
+  full-mode group. Type/lint clean across **1,808 files**; roster complete.
+- **132 protected identities** exact, including checker, kernel reference and
+  Lean. New exceptions are two untrusted prover files, not checking rules.
+- A **9b7485e5** local-expiry helper/catch ported; full generation dispatcher
+  remains unintegrated. Its known later-external-deadline limitation is explicit.
+
+Minimal cap/A patches, complete runtime patch, final and failed gate receipts:
+`research/lane-i/cap-gap/{RESULT,D-HANDOFF,LOOPS,A-PORT}.md` and `results/`.
+No old fit transfers: final calibration and D composition approval remain
+pending. No B/F GREEN promotion, main merge or push. All owned batches terminal.
+
+# Previous — native admission speedup measured; I6 observation-gated
 
 Admission-only source `3d0256f0` against `00b58ee5`: same-VM native ABBA
 finite wall 238,301.09 -> 14,491.01 ms (16.44x) at identical 5,246,726.06 units;

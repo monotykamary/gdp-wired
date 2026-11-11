@@ -1,0 +1,10 @@
+[
+  {
+    "name": "cap-census-audit",
+    "cmd": "bun port-input/audit.ts port-input/census port-input/before port-input/off 9c9ea5061c6419b49fb9843d93c6dc71316d14ef",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 180,
+    "vm_type": "large"
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "source": "17119b508485c0f0d104c71df28b11e5f48656d2",
+  "branch": "claude/mldr-integ",
+  "baseline": "1066f26766d6bfd628c8ef9de92bc626357b01c1",
+  "preCap": "48cd625c",
+  "parentLine": "00b58ee54b4e5b8c4967fdbde35d1ff0f38d91e7",
+  "gate": "20261111-050507-9xdfen",
+  "audit": "20261111-050850-qqivwk",
+  "commitlint": "20261111-050843-f74pko",
+  "gateJobs": 58,
+  "gateFailures": 0,
+  "protectedIdentities": 132,
+  "untrustedIdentityChanges": [
+    "kernel/prove.ts",
+    "kernel/prover-rows.ts"
+  ],
+  "rawSchema": "raw-work-v1",
+  "provisionalPrices": true,
+  "allowance": 15000000,
+  "acceptedSlack": 1024,
+  "observedSlack": 276.18,
+  "DComposition": "PENDING",
+  "finalCalibration": "PENDING",
+  "AFullDispatcher": "NOT_INTEGRATED",
+  "BFGreenPromotion": false
+}

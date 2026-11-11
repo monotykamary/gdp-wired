@@ -1,0 +1,61 @@
+CAP_IDENTITIES {"preserved":132,"untrustedChanges":["kernel/prove.ts","kernel/prover-rows.ts"],"checker":"byte-identical"}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [835.00ms]
+bun test v1.4.3 (c6da4a4d3)
+CAP_IDENTITIES {"preserved":132,"untrustedChanges":["kernel/prove.ts","kernel/prover-rows.ts"],"checker":"byte-identical"}
+CAP_GATE {"source":"884cbcd14b0882561c7056915c1152df978355ae","mode":"tests"}
+
+--- stderr ---
+
+core/common-counted.test.ts:
+(pass) nested work scopes cannot extend parent and restore after an exception [1.34ms]
+(pass) full profile proves and refuses unchanged rules without any clock read [206.53ms]
+(pass) legacy counted clock and telemetry do not read the wall [0.31ms]
+
+core/prover-row-budget.test.ts:
+(pass) checkpointed row proposals preserve reference order through all path polarities [3.90ms]
+(pass) checkpointed shared facts retain indices and do not alias reordered hypotheses [0.68ms]
+(pass) wide row construction stops inside 1024 slack; uninterrupted reference exposes the gap [132.70ms]
+
+core/i6-meter.test.ts:
+(pass) I6 records executed certificate/table work, cache misses and real candidate tests only in full mode [1823.47ms]
+
+core/work-admission-perf.test.ts:
+(pass) hot aggregation is bit-identical to the ordered reference for every column and mixed vectors [193.85ms]
+
+core/hard-cap.test.ts:
+cyclic: {"kind":"machine","name":"bounded polling","cert":true,"usual":true,"cyclic":true,"ms":27,"usualMs":7,"route":"translated","leaves":7,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) bounded polling protocol proves its slack and rejects the always-spend mutant [42.80ms]
+(pass) counted binding loops and public stops preserve a 1024-unit slack [77.11ms]
+
+kernel/prover-row-cache.test.ts:
+(pass) row retention counts constraint weight and keeps the most recently used entry [0.18ms]
+(pass) row retention rejects invalid budgets and supports a zero row budget [0.10ms]
+(pass) row retention also bounds zero-weight entries without changing returned arrays [0.05ms]
+
+kernel/prover-rows.test.ts:
+(pass) shared facts retain exact rows at children, siblings and shorter prefixes [1.00ms]
+(pass) new cell equality, term bounds, natural rows and path ordering match the checker [1.37ms]
+(pass) shared hypotheses are not shared fact indices, and irrelevant decisions are safe [0.66ms]
+(pass) identical immutable goals share row arrays but reordered paths never alias [0.76ms]
+(pass) cross-goal fact scopes retain original fact indices and path dependencies [6.87ms]
+(pass) more than sixteen decision contexts retain exact facts when revisited [30.11ms]
+(pass) deterministic mixed conditional and tuple-key corpus matches unshared leaf rows [36.15ms]
+
+ 20 pass
+ 0 fail
+ 793 expect() calls
+Ran 20 tests across 7 files. [2.72s]

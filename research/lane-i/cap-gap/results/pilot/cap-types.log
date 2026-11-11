@@ -1,0 +1,52 @@
+CAP_IDENTITIES {"preserved":132,"untrustedChanges":["kernel/prove.ts","kernel/prover-rows.ts"],"checker":"byte-identical"}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [756.00ms]
+research/lane-i/cap-gap/probe-preload.ts(2,6): error TS2300: Duplicate identifier 'Point'.
+research/lane-i/cap-gap/probe-preload.ts(3,5): error TS2451: Cannot redeclare block-scoped variable 'last'.
+research/lane-i/cap-gap/probe-preload.ts(3,78): error TS2451: Cannot redeclare block-scoped variable 'polls'.
+research/lane-i/cap-gap/probe-preload.ts(3,86): error TS2451: Cannot redeclare block-scoped variable 'nextSample'.
+research/lane-i/cap-gap/probe-preload.ts(3,99): error TS2451: Cannot redeclare block-scoped variable 'firstAbove'.
+research/lane-i/cap-gap/probe-preload.ts(4,7): error TS2451: Cannot redeclare block-scoped variable 'top'.
+research/lane-i/cap-gap/probe-preload.ts(11,97): error TS18047: 'top' is possibly 'null'.
+research/lane-i/cap-gap/probe-preload.ts(11,101): error TS2339: Property 'push' does not exist on type 'Window'.
+research/lane-i/cap-gap/probe-preload.ts(11,111): error TS18047: 'top' is possibly 'null'.
+research/lane-i/cap-gap/probe-preload.ts(11,115): error TS2339: Property 'sort' does not exist on type 'Window'.
+research/lane-i/cap-gap/probe-preload.ts(11,121): error TS7006: Parameter 'a' implicitly has an 'any' type.
+research/lane-i/cap-gap/probe-preload.ts(11,123): error TS7006: Parameter 'b' implicitly has an 'any' type.
+research/lane-i/cap-gap/probe-preload.ts(11,147): error TS18047: 'top' is possibly 'null'.
+research/lane-i/cap-gap/probe-preload.ts(11,161): error TS18047: 'top' is possibly 'null'.
+research/lane-i/cap-gap/probe-preload.ts(11,165): error TS2540: Cannot assign to 'length' because it is a read-only property.
+research/lane-i/hard-cap/probe-preload.ts(1,6): error TS2300: Duplicate identifier 'Point'.
+research/lane-i/hard-cap/probe-preload.ts(2,5): error TS2451: Cannot redeclare block-scoped variable 'polls'.
+research/lane-i/hard-cap/probe-preload.ts(2,21): error TS2451: Cannot redeclare block-scoped variable 'last'.
+research/lane-i/hard-cap/probe-preload.ts(2,59): error TS2451: Cannot redeclare block-scoped variable 'firstAbove'.
+research/lane-i/hard-cap/probe-preload.ts(4,15): error TS2451: Cannot redeclare block-scoped variable 'nextSample'.
+research/lane-i/hard-cap/probe-preload.ts(20,2): error TS2741: Property 'raw' is missing in type '{ at: number; stack: string; }' but required in type 'Point'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+2 | import {readFileSync,mkdtempSync,rmSync} from 'node:fs'
+3 | import {join,resolve} from 'node:path'
+4 | import {spawnSync} from 'node:child_process'
+5 | import {createHash} from 'node:crypto'
+6 | const input=resolve('port-input'),root=mkdtempSync('/tmp/cap-gate-'),mode=process.argv[2]
+7 | function run(cmd:string,args:string[]){const r=spawnSync(cmd,args,{cwd:root,encoding:'utf8',timeout:800000,maxBuffer:32*1024*1024});process.stdout.write(r.stdout??'');process.stderr.write(r.stderr??'');if(r.error||r.status!==0)throw Error(`${cmd}: ${r.status} ${r.error??''}`)}
+                                                                                                                                                                                                                                             ^
+error: bun: 2 
+      at run (/work/gdp-wired/port-input/verify.ts:7:234)
+      at /work/gdp-wired/port-input/verify.ts:9:258
+
+Bun v1.4.3 (Linux x64)

@@ -1,0 +1,38 @@
+{
+ "cap-unit": {
+  "vm": "bx_98fds23p",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "cap-types": {
+  "vm": "bx_5uucxhfu",
+  "type": "xlarge",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 16,
+  "exclusive": false,
+  "co_tenants": 4
+ },
+ "strict-sharded_kv": {
+  "vm": "bx_q6g5us7q",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "off-candidate-sharded_kv": {
+  "vm": "bx_s26xd4k2",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ }
+}

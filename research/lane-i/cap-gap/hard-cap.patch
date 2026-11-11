@@ -1,0 +1,125 @@
+diff --git a/core/prover-row-budget.ts b/core/prover-row-budget.ts
+new file mode 100644
+index 00000000..408442bf
+--- /dev/null
++++ b/core/prover-row-budget.ts
+@@ -0,0 +1,61 @@
++// Untrusted, cancellable row proposal. The checker always rebuilds its own rows
++// with kernel/leafConstraints; these rows are never proof authority.
++import {type C} from './machine.ts'
++import {type Constraint,type Lin,k,scale,sub,v} from './solver.ts'
++import {observeConstraintRows,observeTableCells} from './meter.ts'
++import {checkWorkEndpoint} from './wall.ts'
++import {type Goal,type Path,type Seen,atomOf,canon,canonFlip,cellParts,facts,isCell,reusing,termRows,truth} from '../kernel/kernel.ts'
++const seenFacts=new WeakMap<Goal,Map<C,Seen<Lin[]>>>()
++function proposedFacts(c:C,path:Path,positive=true):Lin[]{
++ checkWorkEndpoint('row hypothesis')
++ if(c.op==='not')return proposedFacts(c.x,path,!positive)
++ if(c.op==='and'||c.op==='or'){
++  if((c.op==='and')===positive)return c.xs.flatMap(y=>proposedFacts(y,path,positive))
++  const open=c.xs.filter(y=>{checkWorkEndpoint('row disjunction');return truth(y,path)!==!positive})
++  return open.length===0?[k(1)]:open.length===1?proposedFacts(open[0]!,path,positive):[]
++ }
++ return facts(c,path,positive)
++}
++// Same integer-path comparison as the reference row builder, outside its
++// private memo state. This only proposes rows; their use is checked later.
++function decided(lin:Lin,path:Path):boolean|undefined{
++ checkWorkEndpoint('row key comparison')
++ observeTableCells();let constant=true
++ for(const key in lin){checkWorkEndpoint('row key coefficient');observeTableCells(key.length+1);if(!Number.isSafeInteger(lin[key]))return undefined;if(key!=='1')constant=false}
++ if(constant)return(lin['1']??0)<=0
++ const direct=path.get(canon(lin))?.holds
++ if(direct!==undefined)return direct
++ const flipped=path.get(canonFlip(lin))?.holds
++ return flipped===undefined?undefined:!flipped
++}
++function sameKey(p:ReturnType<typeof cellParts>,q:ReturnType<typeof cellParts>,path:Path):boolean{
++ const zero=(a:Lin,b:Lin)=>{const d=sub(a,b);return decided(d,path)===true&&decided(scale(d,-1),path)===true}
++ if(p.key&&q.key)return zero(p.key,q.key)
++ return!!p.keys&&!!q.keys&&p.keys.length===q.keys.length&&p.keys.every((a,i)=>zero(a,q.keys![i]!))
++}
++export function budgetedLeafRows(goal:Goal,path:Path):Constraint[]{
++ let byHyp=seenFacts.get(goal);if(!byHyp)seenFacts.set(goal,(byHyp=new Map()))
++ const rows:Constraint[]=[]
++ // Charge each completed row now: cancellation must not discard a batch's
++ // pending observations, and a failed proposal never refunds completed work.
++ const put=(row:Constraint)=>{checkWorkEndpoint('row append');rows.push(row);observeConstraintRows([row]);checkWorkEndpoint('row appended')}
++ let atom=0;for(const a of path.values())put({...atomOf(a.lin,a.holds),src:{atom:atom++}})
++ for(const[i,h]of goal.hyps.entries()){
++  checkWorkEndpoint('row hypothesis entry');let seen=byHyp.get(h);if(!seen)byHyp.set(h,(seen={}))
++  for(const lin of reusing(seen,path,p=>proposedFacts(h,p)))put({lin,label:'',src:{fact:i}})
++ }
++ const names=new Set(rows.flatMap(r=>Object.keys(r.lin).filter(key=>key!=='1')))
++ const cells=[...names].filter(isCell).map(name=>{checkWorkEndpoint('row cell');return{name,...cellParts(name)}})
++ for(const[i,p]of cells.entries())for(const q of cells.slice(i+1)){
++  checkWorkEndpoint('row cell pair');observeTableCells()
++  if(p.map!==q.map||!sameKey(p,q,path))continue
++  put({lin:sub(v(p.name),v(q.name)),label:'',src:{pair:[p.name,q.name]}});put({lin:sub(v(q.name),v(p.name)),label:'',src:{pair:[p.name,q.name]}})
++ }
++ const seen=new Set<string>(),todo=[...names].filter(n=>n.startsWith('⟦'))
++ while(todo.length){
++  checkWorkEndpoint('row term');const name=todo.pop()!;if(seen.has(name))continue;seen.add(name)
++  for(const lin of termRows(name,path)){put({lin,label:'',src:{term:name}});for(const key of Object.keys(lin))if(key!=='1'){names.add(key);if(key.startsWith('⟦')&&!seen.has(key))todo.push(key)}}
++ }
++ for(const name of names)put({lin:{[name]:-1},label:'',src:{nat:name}})
++ checkWorkEndpoint('row completion');return rows
++}
+diff --git a/kernel/prove.ts b/kernel/prove.ts
+index 2fdce4cc..aa43c248 100644
+--- a/kernel/prove.ts
++++ b/kernel/prove.ts
+@@ -28,6 +28,7 @@ import {type Goal, type Instances, type Liveness, type Loop, type Path, type See
+ 
+ // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
+ function openE(e: E, path: Path, out: Lin[]): void {
++  if (completeWorkProfile.enabled) checkWorkEndpoint('open expression')
+   switch (e.op) {
+     case 'var': case 'const': return
+     case 'mul': return openE(e.a, path, out)
+@@ -46,6 +47,7 @@ function openE(e: E, path: Path, out: Lin[]): void {
+   }
+ }
+ function openC(c: C, path: Path, out: Lin[]): void {
++  if (completeWorkProfile.enabled) checkWorkEndpoint('open condition')
+   if (truth(c, path) !== undefined) return
+   if (c.op === 'flag' || c.op === 'all') return
+   if (c.op === 'not') return openC(c.x, path, out)
+@@ -66,6 +68,7 @@ function openC(c: C, path: Path, out: Lin[]): void {
+ // conjunction of settled parts / a linear comparison. A disjunction is settled only once one disjunct is left open and
+ // that one is settled: facts from its last disjunct are not all its content while a case inside it is still open.
+ function openH(c: C, path: Path, out: Lin[], positive = true): void {
++  if (completeWorkProfile.enabled) checkWorkEndpoint('open hypothesis')
+   if (c.op === 'not') return openH(c.x, path, out, !positive)
+   if ((c.op === 'and' && positive) || (c.op === 'or' && !positive)) return c.xs.forEach(y => openH(y, path, out, positive))
+   if (c.op === 'and' || c.op === 'or') {
+@@ -135,6 +138,7 @@ function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
+   const cs = names.map(cellKey)
+   const dec = (lin: Lin) => path.get(canon(lin))?.holds ?? (path.has(canonFlip(lin)) ? !path.get(canonFlip(lin))!.holds : undefined)
+   for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
++    if (completeWorkProfile.enabled) checkWorkEndpoint('open cell pair')
+     if (cs[i]!.map !== cs[j]!.map) continue
+     if (cs[i]!.keys || cs[j]!.keys) { const t = cs[i]!.keys && cs[j]!.keys ? tupleOpen(names[i]!, names[j]!, cs[i]!.keys!, cs[j]!.keys!, dec) : undefined; if (t) out.push(t); continue }
+     const pair = cellPair(names[i]!, names[j]!), d = pair.d
+diff --git a/kernel/prover-rows.ts b/kernel/prover-rows.ts
+index c8a8ed7d..23295932 100644
+--- a/kernel/prover-rows.ts
++++ b/kernel/prover-rows.ts
+@@ -4,6 +4,9 @@
+ import type {C} from '../core/machine.ts'
+ import {type Constraint,env} from '../core/solver.ts'
+ import {type Goal,type Path,canon,leafConstraintsReusing} from './kernel.ts'
++import {budgetedLeafRows} from '../core/prover-row-budget.ts'
++import {completeWorkProfile} from '../core/work-profile.ts'
++import {inBudget} from './prove.ts'
+ const originals=new WeakMap<object,object>(),ids=new WeakMap<object,number>()
+ const nodes=new Map<string,object>()
+ let serial=0,keyChars=0
+@@ -73,6 +76,6 @@ export function proverRows(goal:Goal,path:Path):Constraint[]{
+  let out=rows.get(key)
+  if(out){rowReuseStats.rowsHits++;return out}
+  rowReuseStats.rowsBuilt++
+- out=leafConstraintsReusing(shared,path)
++ out=completeWorkProfile.enabled&&inBudget()?budgetedLeafRows(shared,path):leafConstraintsReusing(shared,path)
+  rowReuseStats.rowsEvicted+=rows.set(key,out);return out
+ }
