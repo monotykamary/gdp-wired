@@ -1,0 +1,458 @@
+[
+  {
+    "name": "baseline-consensus-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline consensus 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-tcommit-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline tcommit 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-tcommit-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate tcommit 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-lock_server-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline lock_server 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-lock_server-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate lock_server 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-quorum_leader_election-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline quorum_leader_election 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-quorum_leader_election-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate quorum_leader_election 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-toy_consensus_forall-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline toy_consensus_forall 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-toy_consensus_forall-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate toy_consensus_forall 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-simple_regular-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline simple_regular 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-simple_regular-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate simple_regular 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-simple-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline simple 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-simple-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate simple 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-lockserv_automaton-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline lockserv_automaton 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-lockserv_automaton-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate lockserv_automaton 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-sharded_kv_no_lost_keys-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline sharded_kv_no_lost_keys 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-sharded_kv_no_lost_keys-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate sharded_kv_no_lost_keys 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-sharded_kv-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline sharded_kv 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-sharded_kv-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate sharded_kv 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-lockserv-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline lockserv 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-lockserv-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate lockserv 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-twophase-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline twophase 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-twophase-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate twophase 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-simple_decentralized_lock-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline simple_decentralized_lock 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-simple_decentralized_lock-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate simple_decentralized_lock 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-two_phase_commit-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline two_phase_commit 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-two_phase_commit-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate two_phase_commit 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-consensus_forall-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline consensus_forall 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-consensus_forall-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate consensus_forall 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-consensus_wo_decide-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline consensus_wo_decide 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-consensus_wo_decide-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate consensus_wo_decide 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-naive_consensus-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline naive_consensus 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-naive_consensus-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate naive_consensus 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-client_server_db_ae-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline client_server_db_ae 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-client_server_db_ae-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate client_server_db_ae 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-client_server_ae-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline client_server_ae 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-client_server_ae-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate client_server_ae 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-simple_election-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline simple_election 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-simple_election-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate simple_election 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-toy_consensus_epr-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline toy_consensus_epr 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-toy_consensus_epr-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate toy_consensus_epr 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-toy_consensus-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline toy_consensus 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-toy_consensus-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate toy_consensus 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-firewall-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline firewall 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-firewall-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate firewall 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-majorityset_leader_election-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline majorityset_leader_election 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-majorityset_leader_election-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate majorityset_leader_election 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-consensus_epr-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline consensus_epr 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-consensus_epr-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate consensus_epr 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-learning_switch-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline learning_switch 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-learning_switch-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate learning_switch 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-learning_switch_i4-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline learning_switch_i4 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-learning_switch_i4-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate learning_switch_i4 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-paxos_epr-15m",
+    "cmd": "bun candidate-input/run-model.ts baseline paxos_epr 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-paxos_epr-15m",
+    "cmd": "bun candidate-input/run-model.ts candidate paxos_epr 15000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-mldr-150000000",
+    "cmd": "bun candidate-input/run-model.ts candidate mldr 150000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-mldr-1500000000",
+    "cmd": "bun candidate-input/run-model.ts candidate mldr 1500000000",
+    "cpu": 2,
+    "memory": 7168,
+    "timeout": 600,
+    "vm_type": "large"
+  }
+]

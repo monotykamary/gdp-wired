@@ -1,0 +1,13 @@
+{
+  "status": "PENDING-D",
+  "a": "5aa7681815e41a939fed137783b656abeeacc1e6",
+  "b": "8ad0072ff747ebdb05ba6cd958d92f215cd591c8",
+  "f": "9a3e37922a782856e9feb95d76a3ea67286d8f7b",
+  "clock": "353713c9c8d75d09ce75b731708c540b49f017cc",
+  "reconciledKernel": "db5bc38ac2e08e25d392d7a7daa748c7a6c8245a",
+  "reconciledLean": "b9039b851d59b7621e322a797096fcd724019f68",
+  "candidateBranch": "claude/mldr-candidate",
+  "worktree": "/home/user/VCS/working-remote/open-source/gdp-wired-candidate",
+  "units": "uncalibrated; not W",
+  "state": "assembling"
+}

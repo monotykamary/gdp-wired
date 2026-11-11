@@ -1,0 +1,5 @@
+docs: checkpoint measured MLDR integration candidate
+
+Preserve db14ee14 validation and the in-flight 28-original census before
+applying lane D's now-admitted exact common trees. Diagnostic units are
+uncalibrated; the earlier candidate has three explicit A kernel exceptions.
