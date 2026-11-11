@@ -52,6 +52,7 @@ import {proofOrigins, proposeLemmaCuts} from './lemma-cuts.ts'
 import {countedCertificateHyps,transportCountCertificate} from './count-cert-transport.ts'
 import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, scopeCountProof, replayScopedCountProof} from './count-proof-scope.ts'
 import {prepareCountStrategyMachine, proveCountStrategies, proposeCountStrategiesForClosing, selectedCountStrategies} from './count-strategies.ts'
+import {type LiftedWorkBudget} from './count-lifted-budget.ts'
 import {type CountTierBudget,countTierBudget,remainingCountTierBudget,ordinaryTierShare} from './count-tier-budget.ts'
 import {countRejectionBudget,remainingRejectionAllowance} from './count-rejection-budget.ts'
 import {countGenerationPhase} from './count-generation-phase.ts'
@@ -1561,5 +1562,13 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     if (env.GDP_COUNTS_TRACE?.includes('3')) console.error(`counts: try ${law.name.slice(0, 50)} | ls ${ls.length} pass ${pass} ms ${Math.round(ms)} took ${Math.round(clock() - t0)} wall ${Math.round(countedSearchNow() - w0)} [${Object.entries(cprof).filter(([k2, x]) => x - (p0[k2] ?? 0) >= 1).map(([k2, x]) => `${k2} ${Math.round(x - (p0[k2] ?? 0))}`).join(' ')}] -> ${'proof' in r ? 'kept' : r.stuck}`)
     return r
   }
-  return {traced, countermodel:(law:Law)=>models.get(`1 ${law.name}`)?.w??models.get(`0 ${law.name}`)?.w, get counted() { return counted }, set houdini(value: boolean) { houdini = value }}
+  // Explicit seam for the persistent section46 controller. The legacy traced
+  // path remains unchanged; no plan is inferred from ms, clock or remaining work.
+  const exactStrategy = (law:Law, ls:Law[], plan:LiftedWorkBudget) => {
+    if (env.GDP_COUNT_STRATEGIES !== '1' || strategyOnly.size && !strategyOnly.has(law)) return undefined
+    return ptime('strategies', () => (tiers?.active && finalCountStepDeferralEnabled() ? proposeCountStrategiesForClosing : proveCountStrategies)(m, ls, law, Infinity,
+      (goal, decls) => certFor(goal, decls, false, 0, () => true, structured),
+      event => countsDump.on?.({phase:'count-strategy',law:law.name,pass:0,...event}), workAllowance, shapeFamily, plan))
+  }
+  return {traced, exactStrategy, countermodel:(law:Law)=>models.get(`1 ${law.name}`)?.w??models.get(`0 ${law.name}`)?.w, get counted() { return counted }, set houdini(value: boolean) { houdini = value }}
 }

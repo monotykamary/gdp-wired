@@ -7,6 +7,9 @@ import {discoverRowAgreement} from './row-agreement-shape.ts'
 import {discoverLiftedCountGuard} from './count-lifted-shape.ts'
 import {discoverLiftedCountPrerequisites} from './count-lifted-prerequisite.ts'
 import {proveLiftedCountComposition} from './count-lifted-strategy.ts'
+import {type LiftedWorkBudget} from './count-lifted-budget.ts'
+import {completeWorkProfile} from './work-profile.ts'
+import {workLedger} from './work-admission.ts'
 import {prepareGuardCountContext} from './count-guard-context.ts'
 import {proveCountRowComposition} from './count-row-composition.ts'
 import {proveCountGuardComposition} from './count-guard-composition.ts'
@@ -62,24 +65,31 @@ export function proveCountStrategyPool(m: Machine, family: Law[], until: number,
     return {proofs, declined}
   })
 }
-export function proveCountStrategies(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, workAllowance = Math.max(0, until - clock()), shapeFamily?: readonly Law[]): CountStrategyProof | undefined {
-  return countStrategies(m, family, law, until, request, observe, workAllowance, undefined, shapeFamily)
+export function proveCountStrategies(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, workAllowance = Math.max(0, until - clock()), shapeFamily?: readonly Law[], liftedBudget?: LiftedWorkBudget): CountStrategyProof | undefined {
+  return countStrategies(m, family, law, until, request, observe, workAllowance, undefined, shapeFamily, liftedBudget)
 }
 // Internal construction path: an explicit proposal, never a checked verdict.
-export function proposeCountStrategiesForClosing(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, workAllowance = Math.max(0, until - clock()), shapeFamily?: readonly Law[]): CountStrategyProof | undefined {
-  return countStrategies(m, family, law, until, request, observe, workAllowance, finalCountStepDeferralEnabled() ? familyStepProposal : undefined, shapeFamily)
+export function proposeCountStrategiesForClosing(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, workAllowance = Math.max(0, until - clock()), shapeFamily?: readonly Law[], liftedBudget?: LiftedWorkBudget): CountStrategyProof | undefined {
+  return countStrategies(m, family, law, until, request, observe, workAllowance, finalCountStepDeferralEnabled() ? familyStepProposal : undefined, shapeFamily, liftedBudget)
 }
-function countStrategies(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe: ((event: Record<string, unknown>) => void) | undefined, workAllowance: number, familyProposal?: FamilyStepProposal, shapeFamily?: readonly Law[]): CountStrategyProof | undefined {
+function countStrategies(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe: ((event: Record<string, unknown>) => void) | undefined, workAllowance: number, familyProposal?: FamilyStepProposal, shapeFamily?: readonly Law[], liftedBudget?: LiftedWorkBudget): CountStrategyProof | undefined {
+  // The exact path is explicit and requires the caller's live inherited bank.
+  // A missing/invalid plan never silently re-enters the numeric legacy path.
+  if (liftedBudget) {
+    if (!liftedBudget.lease || !completeWorkProfile.enabled || !workLedger.inBudget()) throw new Error('exact lifted dispatch requires a live FULL lease plan')
+    if (countStrategyKind(m, family, law) !== 'lifted') return
+    until = Infinity
+  }
   return withDeadline(until, () => {
     if (late(until)) return
-    const leafUnits = strategyLeafUnits(workAllowance)
+    const leafUnits = liftedBudget ? Infinity : strategyLeafUnits(workAllowance)
     if (discoverRowAgreement(m, law)) {
       observe?.({strategy: 'row', stage: 'search-budget', workAllowance, leafUnits})
       return proveCountRowComposition(m, family, law, until, request, e => observe?.({strategy: 'row', ...e}), {framePremisesOnly: true, leafUnits, deferRowChecks: env.GDP_COUNT_ROW_DEFER_CHECKS === '1', reindexFactsOnly: env.GDP_COUNT_REINDEX_FACTS_ONLY === '1', familyProposal, shapeFamily})
     }
     if (liftedSelected(m, family, law)) {
       observe?.({strategy:'lifted',stage:'selected'})
-      return proveLiftedCountComposition(m,family,law,until,request,event=>observe?.({strategy:'lifted',...event}),workAllowance)
+      return proveLiftedCountComposition(m,family,law,until,request,event=>observe?.({strategy:'lifted',...event}),liftedBudget ?? workAllowance)
     }
     const context = prepareGuardCountContext(m, law, family)
     if (!context) return
