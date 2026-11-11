@@ -1,5 +1,6 @@
 import {traceNow as countedTraceNow, BudgetExpired} from './wall.ts'
 import {withReachabilityWork, reachState, reachEdge} from './work-observe.ts'
+import {requestQuotient} from './request-quotient.ts'
 // There exists: a law ∃ x. P(x) (core/machine.ts's Law with `some`: x a natural, or an integer as two, x and x$neg),
 // proven through a witness. Nothing here is trusted: the kernel proves a plain law of a plain machine, and the Lean
 // export states the existential again, proven by ⟨witness, proof⟩ (lean-kernel/Ghost.lean's some_updAll).
@@ -155,6 +156,7 @@ function smallWithin(m: Machine, p: Env, b: number, cap: number, work: number, w
   let reqs: Request[] = [{}]
   for (const i of m.inputs) reqs = reqs.flatMap(r => Array.from({length: below(i)}, (_, x) => ({...r, [i]: x})))
   for (const c of m.inputMaps ?? []) reqs = reqs.flatMap(r => subsets.map(s => ({...r, [c]: s})))
+  const quotient = env.GDP_REQUEST_QUOTIENT === '1' ? requestQuotient(m, reqs) : undefined
   // (a state once: by a hash of its scalars and nonzero cells, then a cell-by-cell comparison within the hash's bucket;
   // the same classes as a sorted text of the state, without a sort or a text per step)
   const scalarNames = Object.keys(start.scalars), mapNames = Object.keys(start.maps)
@@ -181,12 +183,16 @@ function smallWithin(m: Machine, p: Env, b: number, cap: number, work: number, w
     reachState(); all.push(next); pathTo.set(next, [from, r]); return next
   }
   while (queue.length && all.length < cap && work > 0) {
-    const st = queue.shift()!
+    const st = queue.shift()!, covered = quotient ? new Set<number>() : undefined
+    let requestIndex = 0
     for (const r of reqs) {
       checkWall('sample BFS')
       if (--work < 0) break
+      const cls = quotient?.classes[requestIndex++]
+      if (cls !== undefined && covered!.has(cls)) continue
       let next: State
       try { next = step(p, st, r) } catch (error) { if (error instanceof BudgetExpired) throw error; continue }
+      if (cls !== undefined) covered!.add(cls)
       const n0 = all.length
       if (reached(next, st, r) && all.length > n0) queue.push(next)
     }
