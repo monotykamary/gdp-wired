@@ -1,0 +1,100 @@
+[
+  {
+    "name": "g1-legacy-contracts",
+    "cmd": "bun port-input/run.ts test core/count-lifted-shape.test.ts core/count-lifted-increment.test.ts core/count-lifted-transports.test.ts core/count-lifted-emitter-boundary.test.ts core/count-minimal-view.test.ts core/count-deferred-checks.test.ts core/count-quorum-leaf.test.ts core/count-replay-skeleton.test.ts",
+    "env": {
+      "GDP_WORK_FULL": "0",
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_FRAMES": "1",
+      "GDP_COUNT_REJECTIONS": "1",
+      "GDP_COUNT_STRATEGIES": "1",
+      "GDP_COUNT_TIERS": "1",
+      "GDP_REQUEST_QUOTIENT": "1",
+      "GDP_COUNT_ROW_DEFER_CHECKS": "1",
+      "GDP_COUNT_FINAL_DEFER_CHECKS": "1",
+      "GDP_COUNT_LIFTED": "1",
+      "GDP_COUNT_LIFTED_PREREQUISITES": "1",
+      "GDP_COUNT_LIFTED_REPLACEMENT": "1",
+      "GDP_COUNT_DEFER_CHECKS": "1"
+    },
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "g1-full-contracts",
+    "cmd": "bun port-input/run.ts test core/count-lifted-increment.test.ts core/count-deferred-checks.test.ts core/count-replay-skeleton.test.ts",
+    "env": {
+      "GDP_WORK_FULL": "1",
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_FRAMES": "1",
+      "GDP_COUNT_REJECTIONS": "1",
+      "GDP_COUNT_STRATEGIES": "1",
+      "GDP_COUNT_TIERS": "1",
+      "GDP_REQUEST_QUOTIENT": "1",
+      "GDP_COUNT_ROW_DEFER_CHECKS": "1",
+      "GDP_COUNT_FINAL_DEFER_CHECKS": "1",
+      "GDP_COUNT_LIFTED": "1",
+      "GDP_COUNT_LIFTED_PREREQUISITES": "1",
+      "GDP_COUNT_LIFTED_REPLACEMENT": "1",
+      "GDP_COUNT_DEFER_CHECKS": "1"
+    },
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "g1-public-boundary",
+    "cmd": "bun port-input/run.ts test core/public-closing-proposal.test.ts",
+    "env": {
+      "GDP_WORK_FULL": "1",
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_FRAMES": "1",
+      "GDP_COUNT_REJECTIONS": "1",
+      "GDP_COUNT_STRATEGIES": "1",
+      "GDP_COUNT_TIERS": "1",
+      "GDP_REQUEST_QUOTIENT": "1",
+      "GDP_COUNT_ROW_DEFER_CHECKS": "1",
+      "GDP_COUNT_FINAL_DEFER_CHECKS": "1",
+      "GDP_COUNT_LIFTED": "1",
+      "GDP_COUNT_LIFTED_PREREQUISITES": "1",
+      "GDP_COUNT_LIFTED_REPLACEMENT": "1",
+      "GDP_COUNT_DEFER_CHECKS": "1"
+    },
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "g1-native-family",
+    "cmd": "bun port-input/run.ts family",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "g1-clock-identity",
+    "cmd": "bun port-input/run.ts clock",
+    "env": {
+      "GDP_WORK_FULL": "1",
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_LIFTED": "1"
+    },
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "g1-types",
+    "cmd": "bun port-input/run.ts types",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

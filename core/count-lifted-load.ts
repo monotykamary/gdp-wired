@@ -3,7 +3,7 @@
 import {type E,type Law,type Machine,all,atMost,get,n,not,same,x} from './machine.ts'
 import {countsForReads} from './count-facts.ts'
 import {ownCountLawInstance,fixedCountFrameCase} from './count-frames.ts'
-import {type CountRequestBuilder,type CountStrategyProof,type CountStrategyOptions} from './count-strategy.ts'
+import {deferIntermediateCountChecks,type CountRequestBuilder,type CountStrategyProof,type CountStrategyOptions} from './count-strategy.ts'
 import {discoverLiftedCountGuard} from './count-lifted-shape.ts'
 import {discoverCountRowLoad} from './count-load-shape.ts'
 import {proposeLiftedTransports} from './count-lifted-transports.ts'
@@ -22,6 +22,7 @@ const json=(value:unknown)=>JSON.stringify(value)
 export function proveLiftedCountLoad(m:Machine,family:Law[],law:Law,until:number,requestFor:CountRequestBuilder,observe?:(event:Record<string,unknown>)=>void,options:CountStrategyOptions={}):CountStrategyProof|undefined{
  if(!family.includes(law))return
  return withDeadline(until,()=>{
+  const deferred=deferIntermediateCountChecks(options),accepts=(...args:Parameters<typeof check>)=>deferred||check(...args)
   const shape=discoverLiftedCountGuard(m,law,family),choice=fixedCountFrameCase(m),load=shape&&choice&&discoverCountRowLoad(m,shape,family,choice)
   if(!shape||!choice||!load||!m.pre||late(until))return
   const stopped={},decline=(reason:string):never=>{observe?.({stage:'load-decline',reason});throw stopped}
@@ -78,7 +79,7 @@ export function proveLiftedCountLoad(m:Machine,family:Law[],law:Law,until:number
     const direct=solve(rowsAt(goal,root),500)
     if(direct.kind==='refuted')return remember({leaf:direct.steps})
     const cached=reused.get(stage)
-    if(cached){const end=Math.min(deadline,clock()+25),tree=rebasePath(cached.goal,cached.tree,cached.path,root,end,goal)??replayLinearSkeleton(goal,cached.tree,root,end);if(tree&&check(goal,tree,root))return remember(tree)}
+    if(cached){const end=Math.min(deadline,clock()+25),tree=rebasePath(cached.goal,cached.tree,cached.path,root,end,goal)??replayLinearSkeleton(goal,cached.tree,root,end,{deferCheck:deferred});if(tree&&accepts(goal,tree,root))return remember(tree)}
     const selected=stage==='both-written'||stage.endsWith('-loaded')?insts.filter(inst=>inst.terms.length===1):stage.endsWith('-empty')?insts.filter(inst=>inst.terms.length===2&&inst.terms[0]![1]===find(voteName+'#',stage.startsWith('a-written')?b:a)):[]
     let searchRoot=root
     if(stage.endsWith('-loaded')){
@@ -88,10 +89,10 @@ export function proveLiftedCountLoad(m:Machine,family:Law[],law:Law,until:number
     const hyps=copyQueryContext(step.goal.hyps,searchRoot,counts,insts,selected),view=mcGoal(hyps,step.decls,{...request,insts:selected})
     if(!view)return
     const result=growCdcl(view,searchRoot,{nodes:0,until:deadline}),candidate='tree'in result?(rebasePath(view,result.tree,searchRoot,searchRoot,deadline,goal)??replayLinearSkeleton(goal,result.tree,searchRoot,deadline)):undefined
-    const general=candidate&&check(goal,candidate,searchRoot)?candidate:undefined,lift=general&&(searchRoot===root?general:rebasePath(goal,general,searchRoot,root,deadline,goal)??replayLinearSkeleton(goal,general,root,deadline))
+    const general=candidate&&accepts(goal,candidate,searchRoot)?candidate:undefined,lift=general&&(searchRoot===root?general:rebasePath(goal,general,searchRoot,root,deadline,goal)??replayLinearSkeleton(goal,general,root,deadline,{deferCheck:deferred}))
     observe?.({stage,checked:!!lift,units:(fullWork()-before)/fullRate,...(!('tree'in result)?{outcome:result.stuck,witness:result.witness}:{})})
     if(general&&!reused.has(stage))reused.set(stage,{tree:general,path:searchRoot,goal})
-    return lift&&check(goal,lift,root)&&!late(until)?remember(lift):undefined
+    return lift&&accepts(goal,lift,root)&&!late(until)?remember(lift):undefined
    }
    const split=countGuardTree(until,{yesFirst:true}),marked=(row:E,path:Path,stage:string)=>split.condition(atMost(n(load.marker.value),get(load.marker.map,row)),path,p=>ask(p,stage+'-loaded'),p=>ask(p,stage+'-empty',true))
    const regions=(path:Path)=>split.condition(same(a,written),path,p=>split.condition(same(b,written),p,q=>ask(q,'both-written'),q=>marked(b,q,'a-written')),p=>split.condition(same(b,written),p,q=>marked(a,q,'b-written'),q=>ask(q,'neither-written',true)))
@@ -99,11 +100,11 @@ export function proveLiftedCountLoad(m:Machine,family:Law[],law:Law,until:number
    const inactive=(path:Path)=>split.condition(all(...choice.values.filter(value=>value!==choice.value).map(value=>not(same(x(choice.name),n(value))))),path,p=>ask(p,'inactive',true),p=>ask(p,'inactive-operation-contradiction'))
    const tree=split.condition(domain,new Map(),path=>split.condition(active,path,regions,inactive),path=>ask(path,'outside-domain'))
    if(!tree)return decline('tree')
-   const stable=stabilizeGuardedTree(goal,tree,frames,lins,roots,until)
+   const stable=stabilizeGuardedTree(goal,tree,frames,lins,roots,until,{deferCheck:deferred})
    observe?.({stage:'load-stabilize',completed:!!stable.tree,rebased:stable.rebased,failed:stable.failed,phasePremises:load.phaseLaws.length})
    if(!stable.tree||late(until))return
    const cert:CountCert={...request,frames,lins,tree:stable.tree}
-   return (options.deferToComposition||checkMC(step.goal.hyps,step.decls,cert))&&!late(until)?{instances,certs:{[step.goal.name]:cert}}:undefined
+   return (options.deferToComposition||checkMC(step.goal.hyps,step.decls,cert))&&!late(until)?{instances,certs:{[step.goal.name]:cert},...(deferred?{status:'unchecked' as const}:{})}:undefined
   }catch(error){if(error===stopped)return;throw error}
  })
 }

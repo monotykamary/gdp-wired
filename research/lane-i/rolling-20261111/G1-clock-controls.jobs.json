@@ -1,0 +1,42 @@
+[
+  {
+    "name": "g1-clock-legacy",
+    "cmd": "bun port-input/clock-run.ts clock",
+    "env": {
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_LIFTED": "1",
+      "GDP_WORK_FULL": "0"
+    },
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "g1-clock-full-expanded",
+    "cmd": "bun port-input/clock-run.ts clock-full",
+    "env": {
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_LIFTED": "1",
+      "GDP_WORK_FULL": "1"
+    },
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-clock-full-literal",
+    "cmd": "bun port-input/clock-run.ts clock",
+    "env": {
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_LIFTED": "1",
+      "GDP_WORK_FULL": "1",
+      "G1_BASELINE": "1"
+    },
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 300,
+    "vm_type": "large"
+  }
+]

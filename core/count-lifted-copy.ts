@@ -2,7 +2,7 @@
 // law's own tuples. All transports are ordinary checked per-key linear facts.
 import {type C,type E,type Law,type Machine,atMost,n,not,same,walkOnce,x} from './machine.ts'
 import {type CountInst,type CountCert,type FrameCut,type LinCut,type Path,type Tree,check,checkMC,countedObligations,frameOk,framePath,mcGoal,substE} from '../kernel/kernel.ts'
-import {type CountRequestBuilder,type CountStrategyOptions,type CountStrategyProof} from './count-strategy.ts'
+import {deferIntermediateCountChecks,type CountRequestBuilder,type CountStrategyOptions,type CountStrategyProof} from './count-strategy.ts'
 import {discoverLiftedCountGuard} from './count-lifted-shape.ts'
 import {discoverCountRowCopy} from './count-copy-shape.ts'
 import {proposeLiftedTransports} from './count-lifted-transports.ts'
@@ -21,6 +21,7 @@ const json=(value:unknown)=>JSON.stringify(value)
 export function proveLiftedCountCopy(m:Machine,family:Law[],law:Law,until:number,requestFor:CountRequestBuilder,observe?:(event:Record<string,unknown>)=>void,options:CountStrategyOptions={}):CountStrategyProof|undefined{
  if(!family.includes(law))return
  return withDeadline(until,()=>{
+  const deferred=deferIntermediateCountChecks(options),accepts=(...args:Parameters<typeof check>)=>deferred||check(...args)
   const shape=discoverLiftedCountGuard(m,law,family),choice=fixedCountFrameCase(m),copy=shape&&choice&&discoverCountRowCopy(m,shape.countShape,choice)
   if(!shape||!choice||!copy||!m.pre||late(until))return
   const stopped={},decline=(reason:string):never=>{observe?.({stage:'copy-decline',reason});throw stopped}
@@ -59,8 +60,8 @@ export function proveLiftedCountCopy(m:Machine,family:Law[],law:Law,until:number
     if(!view)return
     const cached=composed.get(index)
     if(cached&&stage==='linear-composed'){
-     const end=Math.min(deadline,clock()+25),tree=rebasePath(goal,cached.tree,cached.path,root,end,goal)??replayLinearSkeleton(goal,cached.tree,root,end)
-     if(tree&&check(goal,tree,root)){observe?.({stage,index,reused:true,units:(fullWork()-before)/fullRate});return remember(tree)}
+     const end=Math.min(deadline,clock()+25),tree=rebasePath(goal,cached.tree,cached.path,root,end,goal)??replayLinearSkeleton(goal,cached.tree,root,end,{deferCheck:deferred})
+     if(tree&&accepts(goal,tree,root)){observe?.({stage,index,reused:true,units:(fullWork()-before)/fullRate});return remember(tree)}
     }
     const direct=solve(rowsAt(view,root),1000)
     if(direct.kind==='refuted'){
@@ -70,7 +71,7 @@ export function proveLiftedCountCopy(m:Machine,family:Law[],law:Law,until:number
     const result=growCdcl(view,root,{nodes:0,until:deadline}),tree='tree'in result?rebasePath(view,result.tree,root,root,deadline,goal):undefined
     observe?.({stage,index,checked:!!tree,units:(fullWork()-before)/fullRate,...(!('tree'in result)?{outcome:result.stuck,witness:result.witness}:{})})
     if(!tree||late(until))return
-    if(stage==='linear-composed'&&check(goal,tree,root))composed.set(index,{tree,path:root})
+    if(stage==='linear-composed'&&accepts(goal,tree,root))composed.set(index,{tree,path:root})
     return remember(tree)
    }
    const transport=(path:Path,index:number):Tree|undefined=>{
@@ -96,10 +97,10 @@ export function proveLiftedCountCopy(m:Machine,family:Law[],law:Law,until:number
    const run=(path:Path)=>split.rows(countFrameConditions(choice),path,p=>split.condition(domain,p,q=>split.condition(active,q,copies,q=>ask(q,0,true)),q=>ask(q,0)),p=>ask(p,0))
    const tree=split.condition(m.pre,new Map(),run,path=>ask(path,0,false,'outside-pre'))
    if(!tree)return decline('tree')
-   const stable=stabilizeGuardedTree(goal,tree,frames,lins,roots,until)
+   const stable=stabilizeGuardedTree(goal,tree,frames,lins,roots,until,{deferCheck:deferred})
    if(!stable.tree||late(until))return decline('stabilization')
    const cert:CountCert={...request,frames,lins,tree:stable.tree}
-   return (options.deferToComposition||checkMC(step.goal.hyps,step.decls,cert))&&!late(until)?{instances,certs:{[step.goal.name]:cert}}:undefined
+   return (options.deferToComposition||checkMC(step.goal.hyps,step.decls,cert))&&!late(until)?{instances,certs:{[step.goal.name]:cert},...(deferred?{status:'unchecked' as const}:{})}:undefined
   }catch(error){if(error===stopped)return;throw error}
  })
 }

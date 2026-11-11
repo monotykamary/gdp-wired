@@ -1,0 +1,33 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [840.00ms]
+bun test v1.4.3 (c6da4a4d3)
+COUNTER_PROBE {"proofSha256":"4bb7f1b9aaeb7968653f494df7cdcfd1a1f07130327d620084939298691b442d","raw":{"solves":69,"solveRows":351,"fm":282,"fpivots":0,"fcells":0,"cdclNodes":234,"cdclRows":27635,"scan":6288,"pivots":131,"pivotRows":469,"plainNodes":0,"plainRows":0,"values":8656,"copies":2153,"edges":5199,"unitRows":284,"unfoldRows":7993,"goalNodes":1311,"translateRows":0,"work":28502,"full":19994.7335,"epr":0}}
+COMPLETE_RAW {"fm":282,"fcells":0,"plainRows":0,"values":8656,"copies":2153,"edges":5199,"scan":6288,"pivotRows":469,"unitRows":284,"unfoldRows":7993,"goalNodes":1311,"translateRows":0,"tableCells":0,"checkSteps":0,"astNodes":776,"evals":0,"cubeTests":0,"ticks":0,"cdclNodes":234,"epr":0,"tinyNodes":0,"tinyTerms":0,"reachStates":0,"reachEdges":0,"reachEvals":0,"reachCompiledEvals":0}
+COUNTER_PROBE {"proofSha256":"4bb7f1b9aaeb7968653f494df7cdcfd1a1f07130327d620084939298691b442d","raw":{"solves":69,"solveRows":351,"fm":282,"fpivots":0,"fcells":0,"cdclNodes":234,"cdclRows":27635,"scan":6288,"pivots":131,"pivotRows":469,"plainNodes":0,"plainRows":0,"values":8656,"copies":2153,"edges":5199,"unitRows":284,"unfoldRows":7993,"goalNodes":1311,"translateRows":0,"work":28502,"full":19994.7335,"epr":0}}
+COMPLETE_RAW {"fm":282,"fcells":0,"plainRows":0,"values":8656,"copies":2153,"edges":5199,"scan":6288,"pivotRows":469,"unitRows":284,"unfoldRows":7993,"goalNodes":1311,"translateRows":0,"tableCells":0,"checkSteps":0,"astNodes":776,"evals":0,"cubeTests":0,"ticks":0,"cdclNodes":234,"epr":0,"tinyNodes":0,"tinyTerms":0,"reachStates":0,"reachEdges":0,"reachEvals":0,"reachCompiledEvals":0}
+INTEGRATED_CLOCK_IDENTITY {"oldTestSHA256":"3d8aca2fccdb344e51155501435841e22043eed974b417b627b2530a8b8a2a7e","proofAndCompleteRawEqual":true}
+ROLLING_GATE {"sourceTree":"ed8ada9c1fcd49d88ad70319010e68e31483963a","mode":"clock","files":[],"protected":181}
+
+--- stderr ---
+
+core/f-old-clock-reference.test.ts:
+(pass) lifted discovery, exhaustive composition and native replay inherit a clock-free scope [658.51ms]
+
+ 1 pass
+ 13 filtered out
+ 0 fail
+ 5 expect() calls
+Ran 1 test across 1 file. [789.00ms]

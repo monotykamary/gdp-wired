@@ -1,0 +1,40 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [462.00ms]
+bun test v1.4.3 (c6da4a4d3)
+ROLLING_GATE {"sourceTree":"ed8ada9c1fcd49d88ad70319010e68e31483963a","mode":"test","files":["core/count-lifted-increment.test.ts","core/count-deferred-checks.test.ts","core/count-replay-skeleton.test.ts"],"protected":181}
+
+--- stderr ---
+
+core/count-deferred-checks.test.ts:
+(pass) deferred intermediate checking requires both composition-only options [0.06ms]
+(pass) an unchecked minimal proposal still fails the unchanged checker [6.28ms]
+(pass) deferred stabilization reindexes but does not certify an invalid leaf [0.41ms]
+(pass) deferred stabilization still repairs changed row layouts [0.94ms]
+(pass) standalone finishing does not honor the intermediate-only option [1.62ms]
+
+core/count-replay-skeleton.test.ts:
+(pass) strict and deferred skeleton replay construct the same natively checked proof [0.78ms]
+(pass) deferring duplicate checks cannot make a satisfiable skeleton into a proof [0.22ms]
+(pass) every skeleton replay mode respects an expired deadline without mutation [0.05ms]
+
+core/count-lifted-increment.test.ts:
+(pass) increment never substitutes the weaker vote law when its guarded factor is absent [20.07ms]
+(pass) input-self restrictions do not hide the unique source indicator counter [6.79ms]
+
+ 10 pass
+ 0 fail
+ 40 expect() calls
+Ran 10 tests across 3 files. [76.00ms]

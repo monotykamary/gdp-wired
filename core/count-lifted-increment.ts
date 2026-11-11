@@ -2,7 +2,7 @@
 // family's no-quorum premise select witnesses; only the native checker accepts.
 import {type C,type E,type Law,type Machine,all,atMost,get,less,n,plus,times,walkOnce,x} from './machine.ts'
 import {type CountCert,type CountInst,type FrameCut,type Path,type Tree,checkMC,countedObligations,frameOk,framePath,mcGoal} from '../kernel/kernel.ts'
-import {type CountRequestBuilder,type CountStrategyOptions,type CountStrategyProof} from './count-strategy.ts'
+import {deferIntermediateCountChecks,type CountRequestBuilder,type CountStrategyOptions,type CountStrategyProof} from './count-strategy.ts'
 import {discoverLiftedCountGuard,discoverLiftedCountOperation} from './count-lifted-shape.ts'
 import {discoverCountGuardShape} from './count-guard-shape.ts'
 import {discoverLiftedCountPrerequisites} from './count-lifted-prerequisite.ts'
@@ -21,6 +21,7 @@ const json=(value:unknown)=>JSON.stringify(value)
 export function proveLiftedCountIncrement(m:Machine,family:Law[],law:Law,until:number,requestFor:CountRequestBuilder,observe?:(event:Record<string,unknown>)=>void,options:CountStrategyOptions={}):CountStrategyProof|undefined{
  if(!family.includes(law))return
  return withDeadline(until,()=>{
+  const deferred=deferIntermediateCountChecks(options)
   const shape=discoverLiftedCountGuard(m,law,family),choice=fixedCountFrameCase(m),operation=shape&&choice&&discoverLiftedCountOperation(m,shape,choice.value)
   if(!shape||!choice||operation?.kind!=='threshold-increment'||!('write'in operation)||!m.pre||late(until)){observe?.({stage:'increment-decline',reason:'shape-or-operation'});return}
   const write=operation.write
@@ -59,7 +60,7 @@ export function proveLiftedCountIncrement(m:Machine,family:Law[],law:Law,until:n
     const root=framePath(frames,[],path),started=fullWork(),end=Math.min(until,clock()+500)
     const minimal=index===undefined?{goal:mcGoal(copyQueryContext(step.goal.hyps,root,counts,insts,[]),step.decls,{reads,insts:[],picks:[]}),path:root}:minimalTransportView(step.goal.hyps,step.decls,reads,insts,[insts[index]!],root)
     if(!minimal?.goal)return
-    const result=minimalViewFirst(goal,minimal.goal,root,end,growCdcl,minimal.path),tree=result.tree
+    const result=minimalViewFirst(goal,minimal.goal,root,end,growCdcl,minimal.path,{deferCheck:deferred}),tree=result.tree
     observe?.({stage,index,checked:!!tree,hyps:minimal.goal.hyps.length,leafCap:late(end),units:(fullWork()-started)/fullRate,minimal:result.minimalKind,fullFallback:result.fallback,minimalUnits:result.minimalUnits,fallbackUnits:result.fallbackUnits,...(result.witness?{witness:result.witness}:{})})
     if(!tree||late(end))return
     roots.set(tree,new Map(root));return tree
@@ -73,10 +74,10 @@ export function proveLiftedCountIncrement(m:Machine,family:Law[],law:Law,until:n
    const run=(path:Path)=>split.rows(countFrameConditions(choice),path,p=>split.condition(domain,p,q=>{frame(q);return split.condition(active,q,r=>fact(0,r,s=>fact(1,s,t=>term(a,3,t,u=>term(b,4,u,finish)))),r=>{frame(r,true);return ask(r,'inactive')})},q=>ask(q,'outside-domain')),p=>ask(p,'outside-operation'))
    const tree=split.condition(m.pre,new Map(),run,path=>ask(path,'outside-pre'))
    if(!tree)return decline('tree')
-   const stable=stabilizeGuardedTree(goal,tree,frames,[],roots,until)
+   const stable=stabilizeGuardedTree(goal,tree,frames,[],roots,until,{deferCheck:deferred})
    if(!stable.tree||late(until))return decline('stabilization')
    const cert:CountCert={...request,frames,tree:stable.tree}
-   return (options.deferToComposition||checkMC(step.goal.hyps,step.decls,cert))&&!late(until)?{instances,certs:{[step.goal.name]:cert}}:undefined
+   return (options.deferToComposition||checkMC(step.goal.hyps,step.decls,cert))&&!late(until)?{instances,certs:{[step.goal.name]:cert},...(deferred?{status:'unchecked' as const}:{})}:undefined
   }catch(error){if(error===stopped)return;throw error}
  })
 }

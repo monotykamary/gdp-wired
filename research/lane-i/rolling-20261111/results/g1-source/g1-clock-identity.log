@@ -1,0 +1,66 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [2.52s]
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/f-old-clock-reference.test.ts:
+259 | export class BudgetExpired extends Error {
+260 |   constructor(readonly phase: string) { super(`work budget (${phase})`); this.name = 'BudgetExpired' }
+261 | }
+262 | // Hard-stop checkpoints must not turn a local search deadline into a whole-run stop.
+263 | export function checkWorkEndpoint(phase: string): void {
+264 |   if (budgetUnitsEnd !== undefined && (admissionRefusedAt === budgetUnitsEnd || fullWork() > budgetUnitsEnd)) throw new BudgetExpired(phase)
+                                                                                                                                                 ^
+BudgetExpired: work budget (reader value)
+      at checkWorkEndpoint (/tmp/rolling-integration-poxXVx/kernel/prove.ts:264:140)
+      at within (/tmp/rolling-integration-poxXVx/kernel/reader.ts:124:38)
+      at leafRows (/tmp/rolling-integration-poxXVx/kernel/reader.ts:471:74)
+      at go (/tmp/rolling-integration-poxXVx/kernel/cdcl.ts:888:66)
+      at search (/tmp/rolling-integration-poxXVx/kernel/cdcl.ts:833:24)
+      at ask (/tmp/rolling-integration-poxXVx/core/count-frames.ts:72:13)
+      at search (/tmp/rolling-integration-poxXVx/core/count-frames.ts:84:12)
+      at search (/tmp/rolling-integration-poxXVx/core/count-frames.ts:82:13)
+      at proveCountFrameGoal (/tmp/rolling-integration-poxXVx/core/count-frames.ts:87:13)
+      at <anonymous> (/tmp/rolling-integration-poxXVx/core/count-lifted-strategy.ts:51:16)
+      at withDeadline (/tmp/rolling-integration-poxXVx/kernel/prove.ts:341:16)
+      at <anonymous> (/tmp/rolling-integration-poxXVx/core/count-lifted-strategy.ts:84:50)
+      at withDeadline (/tmp/rolling-integration-poxXVx/kernel/prove.ts:341:16)
+      at <anonymous> (/tmp/rolling-integration-poxXVx/core/f-old-clock-reference.test.ts:81:16)
+      at <anonymous> (/tmp/rolling-integration-poxXVx/kernel/prove.ts:291:24)
+      at withDeadline (/tmp/rolling-integration-poxXVx/kernel/prove.ts:341:16)
+      at withWork (/tmp/rolling-integration-poxXVx/kernel/prove.ts:310:130)
+      at <anonymous> (/tmp/rolling-integration-poxXVx/kernel/prove.ts:289:14)
+      at withTraceWorkScope (/tmp/rolling-integration-poxXVx/core/trace-clock.ts:8:16)
+      at <anonymous> (/tmp/rolling-integration-poxXVx/core/f-old-clock-reference.test.ts:76:3)
+(fail) lifted discovery, exhaustive composition and native replay inherit a clock-free scope [100.96ms]
+
+ 0 pass
+ 13 filtered out
+ 1 fail
+Ran 1 test across 1 file. [256.00ms]
+2 | import {createHash} from 'node:crypto'
+3 | import {readFileSync,writeFileSync,mkdtempSync,rmSync,existsSync} from 'node:fs'
+4 | import {join,resolve} from 'node:path'
+5 | import {spawnSync} from 'node:child_process'
+6 | const input=resolve('port-input'),root=mkdtempSync('/tmp/rolling-integration-'),[mode,...files]=process.argv.slice(2)
+7 | function run(command:string,args:string[]){const p=spawnSync(command,args,{cwd:root,env:process.env,encoding:'utf8',timeout:800000,maxBuffer:64*1024*1024});process.stdout.write(p.stdout??'');process.stderr.write(p.stderr??'');if(p.error||p.status!==0)throw Error(`${command} failed (${p.status}): ${p.error??''}`);return p.stdout??''}
+                                                                                                                                                                                                                                                                     ^
+error: bun failed (1): 
+      at run (/work/gdp-wired/port-input/run.ts:7:258)
+      at /work/gdp-wired/port-input/run.ts:47:3
+
+Bun v1.4.3 (Linux x64)

@@ -1,0 +1,80 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [453.00ms]
+bun test v1.4.3 (c6da4a4d3)
+ROLLING_GATE {"sourceTree":"ed8ada9c1fcd49d88ad70319010e68e31483963a","mode":"test","files":["core/count-lifted-shape.test.ts","core/count-lifted-increment.test.ts","core/count-lifted-transports.test.ts","core/count-lifted-emitter-boundary.test.ts","core/count-minimal-view.test.ts","core/count-deferred-checks.test.ts","core/count-quorum-leaf.test.ts","core/count-replay-skeleton.test.ts"],"protected":181}
+
+--- stderr ---
+
+core/count-minimal-view.test.ts:
+(pass) a projected proof may be replayed, but only against the original goal [3.49ms]
+(pass) a contradictory projection cannot certify a satisfiable original goal [0.40ms]
+(pass) only a SAT minimal result permits full-goal search [2.06ms]
+
+core/count-lifted-shape.test.ts:
+(pass) provenance is opt-in without changing generated formulas or the disabled meter path [4.81ms]
+(pass) lifted discovery follows candidate provenance without serialised changes [1.98ms]
+(pass) untagged, changed and non-disabling candidates decline cleanly [0.66ms]
+(pass) changed count definitions cannot reuse stale lifted provenance [0.59ms]
+(pass) frame-only lifted cases compose and check the original INIT and STEP [403.45ms]
+(pass) lifted discovery, exhaustive composition and native replay inherit a clock-free scope [293.54ms]
+(pass) provenance selects a renamed replacement that does not bump a version field [3.26ms]
+(pass) fixed-case discovery does not reclassify contradictory unrelated operations [1.36ms]
+(pass) a carried-row write outside the provenance action declines with both classifications [1.03ms]
+(pass) marked row agreement is preferred without dropping an unmarked alternative [1.30ms]
+(pass) a stored-guard-shaped clone reports lost provenance instead of silently guessing [0.86ms]
+(pass) F15 discovers a guarded disabling factor without law or map names [5.23ms]
+(pass) F15 guarded factors replay natively but are not unconditional count identities [6.53ms]
+(pass) frame composition records implicit scalar family assumptions [155.96ms]
+(pass) composition refutes an excluded case and does not certify the unrestricted machine [122.31ms]
+
+core/count-quorum-leaf.test.ts:
+(pass) explicit quorum arithmetic > checks with the three membership facts and four deterministic splits [8.29ms]
+(pass) explicit quorum arithmetic > does not invent omitted membership fact 0 [2.42ms]
+(pass) explicit quorum arithmetic > does not invent omitted membership fact 1 [1.87ms]
+(pass) explicit quorum arithmetic > does not invent omitted membership fact 2 [1.67ms]
+
+core/count-lifted-emitter-boundary.test.ts:
+(pass) load rejects an unoffered target before inspecting the machine or requesting a proof [0.31ms]
+(pass) copy rejects an unoffered target before inspecting the machine or requesting a proof [0.15ms]
+(pass) increment rejects an unoffered target before inspecting the machine or requesting a proof [0.15ms]
+(pass) replacement rejects an unoffered target before inspecting the machine or requesting a proof [0.34ms]
+(pass) composition rejects an unoffered target before inspecting the machine or requesting a proof
+
+core/count-deferred-checks.test.ts:
+(pass) deferred intermediate checking requires both composition-only options [0.07ms]
+(pass) an unchecked minimal proposal still fails the unchanged checker [0.67ms]
+(pass) deferred stabilization reindexes but does not certify an invalid leaf [0.32ms]
+(pass) deferred stabilization still repairs changed row layouts [0.42ms]
+(pass) standalone finishing does not honor the intermediate-only option [0.83ms]
+
+core/count-lifted-transports.test.ts:
+(pass) transport partitions match renamed Boolean count definitions, not map labels [0.68ms]
+(pass) count-body matching is alpha-stable across direct and indicator membership reads [0.07ms]
+(pass) copy own-law tuples retain both independent half binders [0.06ms]
+
+core/count-replay-skeleton.test.ts:
+(pass) strict and deferred skeleton replay construct the same natively checked proof [0.21ms]
+(pass) deferring duplicate checks cannot make a satisfiable skeleton into a proof [0.09ms]
+(pass) every skeleton replay mode respects an expired deadline without mutation [0.03ms]
+
+core/count-lifted-increment.test.ts:
+(pass) increment never substitutes the weaker vote law when its guarded factor is absent [3.57ms]
+(pass) input-self restrictions do not hide the unique source indicator counter [2.29ms]
+
+ 40 pass
+ 0 fail
+ 157 expect() calls
+Ran 40 tests across 8 files. [1090.00ms]
