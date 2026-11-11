@@ -6,7 +6,7 @@ import {dirname, relative, resolve} from 'node:path'
 import {execFileSync} from 'node:child_process'
 import ts from 'typescript'
 
-const root = process.cwd()
+const root = process.cwd(), incremental = process.env.METER_INCREMENTAL === '1'
 const list = (dir: string): string[] => readdirSync(dir, {withFileTypes: true}).flatMap(e => e.isDirectory() ? list(dir + '/' + e.name) : e.name.endsWith('.ts') && !e.name.endsWith('.test.ts') && !e.name.endsWith('.d.ts') ? [dir + '/' + e.name] : [])
 const paths = [...list('core'), 'kernel/kernel.ts', 'kernel/prove.ts', 'kernel/model-values.ts']
 const cfg = ts.readConfigFile('tsconfig.json', path => ts.sys.readFile(path))
@@ -61,22 +61,23 @@ for (const path of paths) {
   const positions: {at: number, text: string}[] = []
   let sites = 0
   const visit = (node: ts.Node) => {
-    if (ts.isObjectLiteralExpression(node) && allocated(node)) { positions.push({at: node.getStart(file), text: 'observeAst('}, {at: node.end, text: ')'}); sites++ }
+    if (ts.isObjectLiteralExpression(node) && allocated(node) && !(incremental && ts.isCallExpression(node.parent) && ts.isIdentifier(node.parent.expression) && node.parent.expression.text === 'observeAst')) { positions.push({at: node.getStart(file), text: 'observeAst('}, {at: node.end, text: ')'}); sites++ }
     ts.forEachChild(node, visit)
   }
   visit(file)
   if (!sites) continue
-  assert(!file.text.includes('observeAst'), 'unexpected existing binding: ' + path)
+  const existingObserver = file.text.includes('observeAst')
+  assert(incremental || !existingObserver, 'unexpected existing binding: ' + path)
   const lastImport = file.statements.filter(ts.isImportDeclaration).at(-1)
   const at = lastImport?.end ?? 0
   let module = relative(dirname(path), path.startsWith('kernel/') ? 'kernel/meter.ts' : 'core/meter.ts').replaceAll('\\', '/')
   if (!module.startsWith('.')) module = './' + module
   // Imports can occur after executable declarations. Apply every insertion in
   // the same original coordinate space, including the new import.
-  positions.push({at, text: `\nimport {observeAst} from '${module}'\n`})
+  if (!existingObserver) positions.push({at, text: `\nimport {observeAst} from '${module}'\n`})
   let next = file.text
   for (const p of positions.sort((a, b) => b.at - a.at)) next = next.slice(0, p.at) + p.text + next.slice(p.at)
-  const erased = canonical(next, path, true), original = canonical(file.text, path, false)
+  const erased = canonical(next, path, true), original = canonical(file.text, path, incremental)
   if (erased !== original) {
     const a = erased.split('\n'), b = original.split('\n'), first = a.findIndex((line, i) => line !== b[i])
     console.error('AST_ERASURE_MISMATCH ' + JSON.stringify({path, line: first + 1, actual: a.slice(Math.max(0, first - 2), first + 3), expected: b.slice(Math.max(0, first - 2), first + 3)}))
@@ -86,8 +87,10 @@ for (const path of paths) {
   const blob = (text: string) => execFileSync('git', ['hash-object', '--stdin'], {input: text, encoding: 'utf8'}).trim()
   rows.push({path, sites, before: blob(file.text), after: blob(next)})
 }
-assert(rows.some(r => r.path === 'kernel/kernel.ts'))
-assert(rows.some(r => r.path === 'core/machine.ts'))
+if (!incremental) {
+  assert(rows.some(r => r.path === 'kernel/kernel.ts'))
+  assert(rows.some(r => r.path === 'core/machine.ts'))
+}
 console.log('AST_CONSTRUCTOR_AUDIT ' + JSON.stringify({passed: true, semantics: 'identity wrapper after child evaluation; only newly allocated nodes charged', sites: rows.reduce((n, r) => n + r.sites, 0), files: rows}))
 // This is a generated source artifact, not a benchmark receipt. No local compilation is needed to apply it.
 execFileSync('git', ['add', '--', 'core', 'kernel', 'scripts/test-shards.ts'])

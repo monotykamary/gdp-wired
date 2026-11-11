@@ -1,0 +1,11 @@
+[
+ {"name":"strategy-meter-composition-check","cmd":"bun strategy-input/prepare.ts --check","cpu":4,"memory":14336,"timeout":1500,"vm_type":"large"},
+ {"name":"strategy-source-part-0","cmd":"bun strategy-input/prepare.ts --export-part=0","cpu":2,"memory":8192,"timeout":300,"vm_type":"large"},
+ {"name":"strategy-source-part-1","cmd":"bun strategy-input/prepare.ts --export-part=1","cpu":2,"memory":8192,"timeout":300,"vm_type":"large"},
+ {"name":"strategy-source-part-2","cmd":"bun strategy-input/prepare.ts --export-part=2","cpu":2,"memory":8192,"timeout":300,"vm_type":"large"},
+ {"name":"strategy-source-part-3","cmd":"bun strategy-input/prepare.ts --export-part=3","cpu":2,"memory":8192,"timeout":300,"vm_type":"large"},
+ {"name":"strategy-source-part-4","cmd":"bun strategy-input/prepare.ts --export-part=4","cpu":2,"memory":8192,"timeout":300,"vm_type":"large"},
+ {"name":"strategy-source-part-5","cmd":"bun strategy-input/prepare.ts --export-part=5","cpu":2,"memory":8192,"timeout":300,"vm_type":"large"},
+ {"name":"strategy-source-part-6","cmd":"bun strategy-input/prepare.ts --export-part=6","cpu":2,"memory":8192,"timeout":300,"vm_type":"large"},
+ {"name":"strategy-source-part-7","cmd":"bun strategy-input/prepare.ts --export-part=7","cpu":2,"memory":8192,"timeout":300,"vm_type":"large"}
+]

@@ -1,0 +1,1 @@
+[{"name":"strategy-meter-merge-probe","cmd":"bun strategy-input/prepare.ts","cpu":2,"memory":6144,"timeout":600,"vm_type":"large"}]

@@ -51,6 +51,27 @@ omitted signal/error/case identity; the new driver records those fields and
 partial case receipts. No specific termination cause is asserted from that
 old evidence. The rejected 20-key diagnostic-vector attempt is preserved too.
 
+The metered composition is now frozen separately as **`cd00524f`** on
+`claude/lane-i-strategy-meter`, tree
+`6d1453342ca15df8bf948465c13cbf9a1aedf8a2`. Validation and all eight bounded
+source-part builds passed in `20261111-014057-0li8e1`; transport reconstruction
+reproduced the exact tested tree. Typecheck, five selected test files and
+zero-warning lint passed (1,853 files including fixtures).
+The row-strategy proof is checked, with 83 reconciled phase events,
+166,615 table cells, 529 checker steps and 2,798 AST constructions;
+fresh off/on raw counters and verdicts match. Direct ordinary and real EPR
+sat/unsat fixtures also match off/on, with nine phase events and 38 EPR counter increments.
+These are **direct fixtures, not original-protocol qualification**.
+
+See `research/lane-i/work-meter/strategy/VERIFIED-SOURCE.md`. The complete
+`WorkPhase[]` diagnostic data is in
+`runs/lane-i/strategy-source-materialized/phase-data.json`, at
+`results.find(r => r.on).events` and `paths.find(r => r.on).events`. Do not
+fit from these Linux diagnostic wall times. The mini CHILD can read the same
+source API directly; changing its pin/opt-in remains your explicit decision.
+The shared composer is covered, but lane F's later prototype is not claimed
+as part of this source. No active production source was changed.
+
 Fable's **35% strategy-pool share remains provisional**. No calibrated price
 per strategy unit is being supplied. The new phase labels expose that work to
 D's fit, but source/opt-in coverage, full F3 and the frozen mini vector are

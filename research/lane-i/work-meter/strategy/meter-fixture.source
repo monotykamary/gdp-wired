@@ -1,0 +1,24 @@
+import {strict as assert} from 'node:assert'
+import {rowCompositionFixture} from '../../../core/count-row-composition.fixture.ts'
+import {proveCountStrategies} from '../../../core/count-strategies.ts'
+import {certFor} from '../../../core/counts.ts'
+import {checkMC,countedObligations} from '../../../kernel/kernel.ts'
+import {withBudget} from '../../../core/wall.ts'
+import {withWorkLedger,type WorkPhase} from '../../../core/work-ledger.ts'
+import {rawWork,workKeys} from '../../../core/work-meter.ts'
+const {m,law,family}=rowCompositionFixture(),events:WorkPhase[]=[],on=process.argv[2]==='on'
+const before=rawWork()
+const run=()=>withBudget(2000000,()=>{
+ const proof=proveCountStrategies(m,family,law,Infinity,(goal,decls)=>certFor(goal,decls))
+ assert(proof,'synthetic row strategy must complete')
+ for(const packet of countedObligations(m,family,{[law.name]:proof.instances},family.indexOf(law)))assert(checkMC(packet.goal.hyps,packet.decls,proof.certs[packet.goal.name]!))
+ return {proven:true,checked:true}
+})
+const result=on?withWorkLedger('strategy-fixture',event=>events.push(event),run):run()
+const after=rawWork(),raw=Object.fromEntries(workKeys.map(key=>[key,after[key]-before[key]]))
+if(on){
+ for(const name of ['strategy.attempt','strategy.row','strategy.compose','strategy.check','strategy.goal-build'])assert(events.some(event=>event.name===name),name)
+ for(const key of workKeys)assert.equal(events.reduce((n,event)=>n+event.exclusiveRaw[key],0),raw[key],key)
+ assert(raw.tableCells!>0&&raw.checkSteps!>0&&raw.astNodes!>0,'table/check/goal construction must be counted')
+}
+console.log('STRATEGY_METER_FIXTURE '+JSON.stringify({result,raw,events,on,scope:'synthetic direct strategy contract, not original MLDR or calibrated weights'}))

@@ -1,0 +1,36 @@
+import {strict as assert} from 'node:assert'
+import {n,x,type C} from '../../../core/machine.ts'
+import {grow,eprScope} from '../../../kernel/prove.ts'
+import {decide} from '../../../kernel/epr.ts'
+import {check,type Goal} from '../../../kernel/kernel.ts'
+import {withBudget} from '../../../core/wall.ts'
+import {rawWork,workKeys} from '../../../core/work-meter.ts'
+import {withWorkLedger,workPhase,type WorkPhase} from '../../../core/work-ledger.ts'
+const on=process.argv[2]==='on',events:WorkPhase[]=[],before=rawWork()
+const cases:{path:string,expected:string,result:{verdict:string,checked:boolean},raw:Record<string,number>}[]=[]
+const delta=(a:ReturnType<typeof rawWork>,b:ReturnType<typeof rawWork>)=>Object.fromEntries(workKeys.map(key=>[key,b[key]-a[key]]))
+const run=()=>withBudget(1000000,()=>{
+ for(const path of ['ordinary','epr'])for(const expected of ['sat','unsat']){
+  const before=rawWork()
+  const value:C={op:'=',a:{op:'get',map:'R',key:x('k')},b:n(1)}
+  const goal:Goal=path==='epr'?{name:path+'-'+expected,hyps:expected==='sat'?[value]:[value,{...value,b:n(0)}]}:{name:path+'-'+expected,hyps:expected==='sat'?[{op:'<=',a:x('a'),b:n(1)}]:[{op:'<=',a:x('a'),b:n(0)},{op:'<=',a:n(1),b:x('a')}]}
+  const result=workPhase('coverage.'+path,()=>{
+   if(path==='epr'){
+    const decision=decide(goal,{R:[1]},{exact:true});assert(!('unknown' in decision))
+    assert.equal(decision.sat,expected==='sat');return {verdict:decision.sat?'sat':'unsat',checked:false}
+   }
+   const old=eprScope.patterns;eprScope.patterns=undefined
+   try{const proof=grow(goal)
+    if('tree' in proof){assert(check(goal,proof.tree));assert.equal(expected,'unsat');return {verdict:'unsat',checked:true}}
+    assert.equal(proof.stuck,'sat');assert.equal(expected,'sat');return {verdict:'sat',checked:false}
+   }finally{eprScope.patterns=old}
+  })
+  const raw=delta(before,rawWork());if(path==='epr')assert(raw.epr!>0,'the real EPR solver must execute')
+  cases.push({path,expected,result,raw})
+ }
+})
+if(on)withWorkLedger('path-coverage',event=>events.push(event),run);else run()
+const raw=delta(before,rawWork());assert(raw.epr!>0)
+for(const item of cases.filter(row=>row.path==='ordinary'))assert(workKeys.slice(0,12).some(key=>item.raw[key]!>0),'ordinary work must touch a legacy counter')
+if(on)for(const key of workKeys)assert.equal(events.reduce((n,event)=>n+event.exclusiveRaw[key],0),raw[key])
+console.log('PATH_COVERAGE_FIXTURE '+JSON.stringify({on,cases,raw,events,scope:'direct ordinary and finite-model solver fixtures, not original MLDR qualification'}))

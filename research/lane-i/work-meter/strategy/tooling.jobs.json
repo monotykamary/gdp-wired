@@ -1,0 +1,1 @@
+[{"name":"strategy-tooling-final","cmd":"bun install --frozen-lockfile && bun test research/lane-i/work-meter/f3/native-spans.test.ts && bun run check","cpu":4,"memory":14336,"timeout":1200,"vm_type":"large"}]
