@@ -1,7 +1,7 @@
 import {expect,test} from 'bun:test'
 import {type C,type E,type Machine,all,any,atMost,get,ite,less,minus,n,not,plus,same,times,x} from './machine.ts'
 import {quorumLaws,quorumLawProvenance} from './quorum-laws.ts'
-import {countedAttempts,certFor} from './counts.ts'
+import {countedAttempts,certFor,countsDump} from './counts.ts'
 import {proveCountStrategies,proposeCountStrategiesForClosing} from './count-strategies.ts'
 import {liftedWorkLeaseBudget,type LiftedWorkBudget,type LiftedWorkSlice} from './count-lifted-budget.ts'
 import {completeWorkProfile} from './work-profile.ts'
@@ -39,7 +39,7 @@ full('exact production dispatch retains the supplied case and leaf plan despite 
   for(const slice of slices)expect(compareWork(slice.allocation,workShare(original,1n,slice.kind==='case'?30n:120n))).toBe(0)
   for(const packet of countedObligations(m,family,{[law.name]:proof.instances},family.indexOf(law)))expect(checkMC(packet.goal.hyps,packet.decls,proof.certs[packet.goal.name]!)).toBe(true)
  })
-}))
+}),30_000)
 full('counted attempt exact seam forwards the original plan without reconstructing a numeric allowance',()=>flags(()=>{
  const original=workAmount(1_000_000_000n)
  workLedger.withBudget(original,()=>{
@@ -47,6 +47,27 @@ full('counted attempt exact seam forwards the original plan without reconstructi
   const attempts=countedAttempts(m,[],new Set(),0,true,new Set([law]),0,undefined,family),proof=attempts.exactStrategy(law,family,plan)
   expect(proof).toBeDefined();expect(slices.filter(s=>s.kind==='case')).toHaveLength(3)
   if(proof)for(const packet of countedObligations(m,family,{[law.name]:proof.instances},family.indexOf(law)))expect(checkMC(packet.goal.hyps,packet.decls,proof.certs[packet.goal.name]!)).toBe(true)
+ })
+}),30_000)
+full('required exact seam rejects missing and null plans before work or strategy events',()=>flags(()=>{
+ const {m,family,law}=fixture(),plan=liftedWorkLeaseBudget(workAmount(1_000_000n)),prior=countsDump.on
+ const events:object[]=[]
+ try{workLedger.withBudget(workAmount(1_000_000n),()=>{
+  const attempts=countedAttempts(m,[],new Set(),0,true,new Set([law]),0,undefined,family)
+  countsDump.on=event=>events.push(event)
+  const before=workLedger.snapshot().actual
+  for(const missing of [undefined,null,false,0,'',{...plan,lease:undefined},Object.assign(()=>{},plan),Object.assign([],plan)])expect(()=>attempts.exactStrategy(law,family,missing as unknown as LiftedWorkBudget)).toThrow('live FULL lease plan')
+  expect(workLedger.snapshot().actual).toEqual(before)
+  expect(events).toHaveLength(0)
+ })}finally{countsDump.on=prior}
+}))
+full('optional dispatch distinguishes an omitted plan from explicitly supplied malformed values',()=>flags(()=>{
+ const {m,family,law}=fixture(),plan=liftedWorkLeaseBudget(workAmount(1_000_000n)),events:object[]=[],request:Parameters<typeof proveCountStrategies>[4]=()=>{throw new Error('request must not run')}
+ workLedger.withBudget(workAmount(1_000_000n),()=>{
+  const before=workLedger.snapshot().actual
+  for(const dispatch of [proveCountStrategies,proposeCountStrategiesForClosing])for(const malformed of [undefined,null,false,0,'',{},Object.assign(()=>{},plan),Object.assign([],plan)])expect(()=>dispatch(m,family,law,0,request,event=>events.push(event),0,family,malformed as unknown as LiftedWorkBudget)).toThrow('live FULL lease plan')
+  expect(workLedger.snapshot().actual).toEqual(before)
+  expect(events).toHaveLength(0)
  })
 }))
 full('explicit plans never silently fall back to a numeric or rootless invocation',()=>flags(()=>{

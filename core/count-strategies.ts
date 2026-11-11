@@ -15,6 +15,11 @@ import {proveCountRowComposition} from './count-row-composition.ts'
 import {proveCountGuardComposition} from './count-guard-composition.ts'
 import {clock, fullRate, fullWork, late, withDeadline} from '../kernel/prove.ts'
 import {env} from './solver.ts'
+// Omitting the optional argument keeps legacy callers legal. Supplying an exact
+// argument (including undefined/null at runtime) must never select that path.
+export function assertLiftedWorkLease(plan:LiftedWorkBudget|undefined|null): asserts plan is LiftedWorkBudget {
+  if (!plan || typeof plan !== 'object' || Array.isArray(plan) || !plan.lease || !completeWorkProfile.enabled || !workLedger.inBudget()) throw new Error('exact lifted dispatch requires a live FULL lease plan')
+}
 // Install only conservative count definitions, once before the family's attempts.
 // Candidate generation is already finished: no extra law or trusted fact is added.
 export function prepareCountStrategyMachine(m: Machine, family: Law[], until: number, observe?: (event: Record<string, unknown>) => void): Machine {
@@ -66,17 +71,19 @@ export function proveCountStrategyPool(m: Machine, family: Law[], until: number,
   })
 }
 export function proveCountStrategies(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, workAllowance = Math.max(0, until - clock()), shapeFamily?: readonly Law[], liftedBudget?: LiftedWorkBudget): CountStrategyProof | undefined {
+  if (arguments.length >= 9) assertLiftedWorkLease(liftedBudget)
   return countStrategies(m, family, law, until, request, observe, workAllowance, undefined, shapeFamily, liftedBudget)
 }
 // Internal construction path: an explicit proposal, never a checked verdict.
 export function proposeCountStrategiesForClosing(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, workAllowance = Math.max(0, until - clock()), shapeFamily?: readonly Law[], liftedBudget?: LiftedWorkBudget): CountStrategyProof | undefined {
+  if (arguments.length >= 9) assertLiftedWorkLease(liftedBudget)
   return countStrategies(m, family, law, until, request, observe, workAllowance, finalCountStepDeferralEnabled() ? familyStepProposal : undefined, shapeFamily, liftedBudget)
 }
 function countStrategies(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe: ((event: Record<string, unknown>) => void) | undefined, workAllowance: number, familyProposal?: FamilyStepProposal, shapeFamily?: readonly Law[], liftedBudget?: LiftedWorkBudget): CountStrategyProof | undefined {
   // The exact path is explicit and requires the caller's live inherited bank.
   // A missing/invalid plan never silently re-enters the numeric legacy path.
   if (liftedBudget) {
-    if (!liftedBudget.lease || !completeWorkProfile.enabled || !workLedger.inBudget()) throw new Error('exact lifted dispatch requires a live FULL lease plan')
+    assertLiftedWorkLease(liftedBudget)
     if (countStrategyKind(m, family, law) !== 'lifted') return
     until = Infinity
   }

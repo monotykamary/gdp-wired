@@ -51,7 +51,7 @@ import {env} from './solver.ts'
 import {proofOrigins, proposeLemmaCuts} from './lemma-cuts.ts'
 import {countedCertificateHyps,transportCountCertificate} from './count-cert-transport.ts'
 import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, scopeCountProof, replayScopedCountProof} from './count-proof-scope.ts'
-import {prepareCountStrategyMachine, proveCountStrategies, proposeCountStrategiesForClosing, selectedCountStrategies} from './count-strategies.ts'
+import {assertLiftedWorkLease, prepareCountStrategyMachine, proveCountStrategies, proposeCountStrategiesForClosing, selectedCountStrategies} from './count-strategies.ts'
 import {type LiftedWorkBudget} from './count-lifted-budget.ts'
 import {type CountTierBudget,countTierBudget,remainingCountTierBudget,ordinaryTierShare} from './count-tier-budget.ts'
 import {countRejectionBudget,remainingRejectionAllowance} from './count-rejection-budget.ts'
@@ -1565,6 +1565,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
   // Explicit seam for the persistent section46 controller. The legacy traced
   // path remains unchanged; no plan is inferred from ms, clock or remaining work.
   const exactStrategy = (law:Law, ls:Law[], plan:LiftedWorkBudget) => {
+    assertLiftedWorkLease(plan)
     if (env.GDP_COUNT_STRATEGIES !== '1' || strategyOnly.size && !strategyOnly.has(law)) return undefined
     return ptime('strategies', () => (tiers?.active && finalCountStepDeferralEnabled() ? proposeCountStrategiesForClosing : proveCountStrategies)(m, ls, law, Infinity,
       (goal, decls) => certFor(goal, decls, false, 0, () => true, structured),
