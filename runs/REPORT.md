@@ -1,46 +1,53 @@
 # RESUME — ACTIVE 2026-11-10 evening
 
-## NEXT ACTIVE — combined candidate and measured gap (coordinator, 2026-11-11)
+## CURRENT — D-admitted trees integrated; counted composition blocked
 
-Create NEW `claude/mldr-candidate` from lane A's latest `claude/mldr-gen`.
-Overlay clock fix `353713c9`, latest lane B `claude/track-mldr` and lane F
-`claude/mldr-leaves`. Preserve the reconciled kernel and Lean trees, explicitly
-PENDING-D (not merged to main; D's semantic receipt remains required).
-Freeze all source pins before building. Run original MLDR end-to-end with
-GDP_WORK_FULL=1 on supercomputer, plus the other 28 originals as a no-loss
-census. Report each MLDR obligation/case: proved / unknown, exhausted leaf or
-tier, counted units (UNCALIBRATED). Rank remaining proof blockers by owning
-lane. Commit source/artifacts under research/lane-i/candidate/ and this REPORT.
-No push or main merge. Source pins are frozen in
-`research/lane-i/candidate/pins.json`: A 5aa76818, B 8ad0072f, F 9a3e3792.
-Branch/worktree created: `claude/mldr-candidate`, ../gdp-wired-candidate.
-Clock cherry-pick 93e4e3bf; B merge 915ab320; F merge c317a75a; compatibility
-fix db14ee14. Trusted checking files and full Lean tree come from reconciled
-becd98e3; DECLARED kernel exceptions are A+clock kernel/prove.ts, A's raw
-kernel/meter.ts and kernel/work-budget.test.ts. The entire kernel hash cannot
-remain db5bc38 while also retaining the requested clock/work implementation;
-no checking rule is altered. Candidate remains PENDING-D.
+Older sections below are historical checkpoints; this section supersedes their
+pending-gate/merge status.
 
-Initial candidate validation: tripwire passed, 85/86 focused tests passed;
-the selected-strategy failure was an A/B sixth-parameter API mismatch, now
-fixed without dropping either API. Typecheck's missing F frozenTarget export
-was also restored. All failed receipts retained in runs/lane-i/candidate-verify/.
-Current smoke run uses exact db14ee14, checks the combined source again, and
-runs original MLDR at 15M on A and candidate plus original consensus on candidate.
-Smoke batch `20261111-024207-1m939c` is terminal and passed: 86 focused tests,
-full-work tripwire, type/lint on 2,036 files, and three complete model receipts.
-Original consensus is proven+checked (235,077.9687 search units). MLDR original
-at 15M is UNKNOWN from generation allowance exhaustion: 4,424,579 candidate
-search units versus 4,424,769 on A, zero proof queries on either. No leaf proof
-is claimed from these preflight-only runs. Complete receipts are retained.
+D gates: reconciliation **72377361**, clock **565ecd01** (353713c9 on A's exact
+5aa76818 parent only). Reconciliation is no longer PENDING-D.
 
-Only in-flight task: `8cdbcbd5-e228-4d4f-be01-fe9484b477e6`, census batch
-`20261111-024427-9vtkoe`, output `runs/lane-i/candidate-census/`. It runs the
-other 28 originals on A/candidate, excluding duplicate smoke cases, and two
-wider MLDR allowances (150M, 1.5B). DO NOT duplicate it. All prior owned runs
-are terminal. Audit code and frozen 29-ID roster are in the candidate folder.
-No no-loss claim yet. `.reflex-saved/` remains untouched.
+- `claude/mldr-integ`: runtime checkpoint **be661632**; full common trees.
+- `claude/mldr-candidate`: runtime checkpoint **7eccce26**, status commit
+  **13055c89**; full common trees, no A kernel-file exceptions.
+- `kernel/`: `db5bc38ac2e08e25d392d7a7daa748c7a6c8245a`.
+- `lean-kernel/`: `b9039b851d59b7621e322a797096fcd724019f68`.
+- Trusted checker: `6f6c9526003afcfc3ea1e48106ee44b4bf8649fd`.
 
+**Actual current-tree validation is blocked**, not green: Boat batch
+`20261111-024930-2cn0kn` verified 133 exact files with zero exceptions, then
+candidate tripwire/typecheck failed on missing raw-meter and counted API
+imports. Integration check failed on the B exporter research fixture chain.
+`D-HANDOFF.md` records the boundary. No checking-path edit, restored A prover,
+unreviewed full-strategy merge, push, or main merge was made to hide it.
+
+Historical measured candidate **db14ee14** (three A kernel files retained):
+- Smoke `20261111-024207-1m939c`: 86 focused tests, counted-clock tripwire and
+  type/lint on 2,036 files PASS. Original consensus proved and checked.
+- Paired census `20261111-024427-9vtkoe`: 57/57 native jobs exit 0. Including
+  smoke, all 28 other originals pair up: **10 proven+checked on both A and
+  candidate, 18 unknown on both, no proof regression, error or refutation**.
+- Original MLDR UNKNOWN at 15M / 150M / 1.5B allowances. Search units:
+  **4,424,579 / 38,174,787 / 375,674,773**. Sampling alone:
+  **3,749,042 / 37,499,250 / 374,999,236**. Every run stops in generation before
+  any proof query. A at 15M also unknown, 4,424,769 units. All UNCALIBRATED.
+- These historical results are NOT evidence for the current exact-tree source.
+- Receipt audits `20261111-024727-in1plr`, `20261111-024954-4lpa9o`: six negative
+  controls and 60 hashed raw/exclusive-phase conserving receipts PASS.
+
+Full per-model and per-obligation tables, raw compressed receipts and failed
+native logs are under `research/lane-i/candidate/` (`RESULT.md`, `CENSUS.md`,
+`MLDR.md`, `D-HANDOFF.md`, `results/`). Ranked next work: A/I counted API on the
+common tree (D review); A sampling generation; F/B lifted-route registration;
+B proof obligations; B/I full dependency integration and new-source census;
+D/calibration owners for W. No unattempted leaf is called exhausted/proved.
+
+All owned batches are terminal. Final batch `20261111-025225-grpnep` passed
+the strengthened 60-receipt exact-source/profile audit, six negative controls,
+and all nine commitlint messages. Native receipts and message hashes are
+archived under `results/validation/`. Earlier F3/four native windows remain
+separate unfinished work. `.reflex-saved/` is untouched.
 
 ## RESULT — counted-scope clock patch ready on A source (2026-11-11)
 

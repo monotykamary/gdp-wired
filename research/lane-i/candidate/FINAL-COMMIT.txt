@@ -1,0 +1,6 @@
+docs: report admitted-tree blockers and MLDR generation gap
+
+Cite D gates 72377361 and 565ecd01 without extending their scopes.
+Preserve exact common kernel/Lean trees and record the counted API gap.
+Keep the historical db14ee14 60-receipt census and uncalibrated MLDR phase
+results separate from current-source validation failures. No push or main merge.

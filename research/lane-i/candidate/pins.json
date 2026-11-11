@@ -1,5 +1,5 @@
 {
-  "status": "PENDING-D",
+  "status": "D-KERNEL-ADMITTED",
   "a": "5aa7681815e41a939fed137783b656abeeacc1e6",
   "b": "8ad0072ff747ebdb05ba6cd958d92f215cd591c8",
   "f": "9a3e37922a782856e9feb95d76a3ea67286d8f7b",
@@ -9,5 +9,13 @@
   "candidateBranch": "claude/mldr-candidate",
   "worktree": "/home/user/VCS/working-remote/open-source/gdp-wired-candidate",
   "units": "uncalibrated; not W",
-  "state": "assembling"
+  "state": "D-admitted exact trees; counted API integration blocked (see D-HANDOFF.md)",
+  "candidateSource": "7eccce262ef24718400d7e1e49fafb294a5d5ece",
+  "priorMeasuredSource": "db14ee14414dd800b994865fb64058fa289a2c97",
+  "integrationSource": "be661632458d95aaf638f632282041efbdf1f744",
+  "reconcileGate": "723773616f222d68db21414a5dcbc7cbaa11b05d",
+  "clockGate": "565ecd01b0f6c388650031beabf05259e81a741e",
+  "candidateHead": "13055c89",
+  "originalModelsBlob": "0541fa9436e307a6fb716aa5064637b30b893b79",
+  "historicalKernel": "52ca0f7464ac5fbaad66e46b85cd0a2f217f7925"
 }

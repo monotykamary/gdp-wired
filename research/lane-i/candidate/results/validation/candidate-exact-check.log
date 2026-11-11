@@ -1,0 +1,118 @@
+{"kind":"D_ADMITTED_TRUSTED_IDENTITY","files":133,"exceptions":[],"gate":"72377361"}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [820.00ms]
+core/bmc.ts(26,35): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'searchNow'.
+core/check.ts(16,27): error TS2307: Cannot find module '../kernel/meter.ts' or its corresponding type declarations.
+core/clock-tripwire.test.ts(6,35): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'inWorkScope'.
+core/clock-tripwire.test.ts(6,64): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'searchNow'.
+core/clock-tripwire.test.ts(6,83): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'withBudget'.
+core/count-generation-budget.test.ts(5,9): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'BudgetExpired'.
+core/count-generation-budget.test.ts(5,23): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'checkBudget'.
+core/count-generation-budget.test.ts(5,58): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'withBudget'.
+core/count-generation-budget.ts(2,9): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'BudgetExpired'.
+core/count-generation-budget.ts(2,23): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'checkBudget'.
+core/count-generation-budget.ts(2,50): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'withBudget'.
+core/count-lifted-shape.test.ts(8,32): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'inBudget'.
+core/count-lifted-shape.test.ts(8,41): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'withBudget'.
+core/count-recovery/conditional-cuts.ts(235,76): error TS7006: Parameter '_' implicitly has an 'any' type.
+core/count-recovery/conditional-cuts.ts(235,79): error TS7006: Parameter 'i' implicitly has an 'any' type.
+core/count-recovery/conditional-cuts.ts(235,93): error TS7006: Parameter 'i' implicitly has an 'any' type.
+core/counts.ts(543,52): error TS18046: 'e' is of type 'unknown'.
+core/cyclic.ts(270,69): error TS7006: Parameter '_' implicitly has an 'any' type.
+core/cyclic.ts(270,72): error TS7006: Parameter 'i' implicitly has an 'any' type.
+core/cyclic.ts(270,119): error TS7006: Parameter '_' implicitly has an 'any' type.
+core/cyclic.ts(270,122): error TS7006: Parameter 'j' implicitly has an 'any' type.
+core/cyclic.ts(283,72): error TS7006: Parameter '_' implicitly has an 'any' type.
+core/cyclic.ts(283,75): error TS7006: Parameter 'i' implicitly has an 'any' type.
+core/cyclic.ts(283,122): error TS7006: Parameter '_' implicitly has an 'any' type.
+core/cyclic.ts(283,125): error TS7006: Parameter 'j' implicitly has an 'any' type.
+core/cyclic.ts(292,60): error TS7006: Parameter 'p' implicitly has an 'any' type.
+core/cyclic.ts(292,104): error TS7006: Parameter 'u' implicitly has an 'any' type.
+core/data.ts(687,25): error TS2345: Argument of type 'X | undefined' is not assignable to parameter of type 'X'.
+  Type 'undefined' is not assignable to type 'X'.
+core/data.ts(689,148): error TS2345: Argument of type 'X | undefined' is not assignable to parameter of type 'X'.
+  Type 'undefined' is not assignable to type 'X'.
+core/dsl.ts(2935,69): error TS18046: 'e' is of type 'unknown'.
+core/dsl.ts(2942,69): error TS18046: 'e' is of type 'unknown'.
+core/dsl.ts(2992,69): error TS18046: 'e' is of type 'unknown'.
+core/dsl.ts(2999,69): error TS18046: 'e' is of type 'unknown'.
+core/kind.ts(15,42): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'searchNow'.
+core/meter-complete.test.ts(4,27): error TS2307: Cannot find module '../kernel/meter.ts' or its corresponding type declarations.
+core/meter.ts(2,52): error TS2307: Cannot find module '../kernel/meter.ts' or its corresponding type declarations.
+core/nonterm.ts(28,43): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'searchNow'.
+core/rationals.ts(20,9): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'searchNow'.
+core/tpa.ts(21,16): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'searchNow'.
+core/wall.ts(3,26): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'searchNow'.
+core/wall.ts(3,45): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'inBudget'.
+core/wall.ts(3,55): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'inWorkScope'.
+core/wall.ts(3,68): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'checkBudget'.
+core/wall.ts(5,9): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'withBudget'.
+core/wall.ts(5,21): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'budgetEnd'.
+core/wall.ts(5,32): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'inBudget'.
+core/wall.ts(5,42): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'checkBudget'.
+core/wall.ts(5,55): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'BudgetExpired'.
+core/wall.ts(5,70): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'searchNow'.
+core/work-ledger.test.ts(7,9): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'BudgetExpired'.
+core/work-ledger.test.ts(7,24): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'withBudget'.
+research/protocols/ic3syn/strategy-redundancies.test.ts(6,19): error TS2305: Module '"../../../kernel/prove.ts"' has no exported member 'withBudget'.
+research/protocols/ic3syn/strategy-redundancies.test.ts(16,211): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t20-clock-probe.ts(8,9): error TS2305: Module '"../../kernel/prove.ts"' has no exported member 'BudgetExpired'.
+research/track-gen/t20-clock-probe.ts(8,34): error TS2305: Module '"../../kernel/prove.ts"' has no exported member 'withBudget'.
+research/track-gen/t20-clock-probe.ts(22,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+research/track-gen/t20-clock-probe.ts(24,103): error TS18046: 'error' is of type 'unknown'.
+research/track-gen/t36-family-census.ts(7,9): error TS2305: Module '"../../kernel/prove.ts"' has no exported member 'withBudget'.
+research/track-gen/t37-redundancy.ts(7,9): error TS2305: Module '"../../kernel/prove.ts"' has no exported member 'withBudget'.
+research/track-gen/t37-redundancy.ts(9,64): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t37-redundancy.ts(13,35): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t37-redundancy.ts(13,77): error TS7006: Parameter 'a' implicitly has an 'any' type.
+research/track-gen/t37-redundancy.ts(13,79): error TS7006: Parameter 'b' implicitly has an 'any' type.
+research/track-gen/t37-redundancy.ts(18,107): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t37-redundancy.ts(25,62): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t37-redundancy.ts(26,131): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t37-redundancy.ts(31,67): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t37-redundancy.ts(31,163): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t39-admission-prefix.ts(6,9): error TS2305: Module '"../../kernel/prove.ts"' has no exported member 'withBudget'.
+research/track-gen/t40-count-redundancy.ts(8,9): error TS2305: Module '"../../kernel/prove.ts"' has no exported member 'withBudget'.
+research/track-gen/t40-count-redundancy.ts(10,64): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t40-count-redundancy.ts(17,35): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t40-count-redundancy.ts(18,26): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t40-count-redundancy.ts(18,82): error TS7006: Parameter 'a' implicitly has an 'any' type.
+research/track-gen/t40-count-redundancy.ts(18,84): error TS7006: Parameter 'b' implicitly has an 'any' type.
+research/track-gen/t40-count-redundancy.ts(23,107): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t40-count-redundancy.ts(30,62): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t40-count-redundancy.ts(31,131): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t40-count-redundancy.ts(36,67): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t40-count-redundancy.ts(36,163): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-gen/t58-generic-basis-probe.ts(7,9): error TS2305: Module '"../../kernel/prove.ts"' has no exported member 'withBudget'.
+research/track-gen/t58-generic-basis-probe.ts(7,40): error TS2305: Module '"../../kernel/prove.ts"' has no exported member 'BudgetExpired'.
+research/track-gen/t70-generic-redundancy-probe.ts(6,9): error TS2305: Module '"../../kernel/prove.ts"' has no exported member 'BudgetExpired'.
+research/track-gen/t70-generic-redundancy-probe.ts(6,31): error TS2305: Module '"../../kernel/prove.ts"' has no exported member 'withBudget'.
+research/track-m/probe-lifted-work.ts(14,33): error TS2305: Module '"../../kernel/prove.ts"' has no exported member 'inBudget'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+3 | import {tmpdir} from 'node:os'
+4 | import {join, resolve} from 'node:path'
+5 | import {spawnSync} from 'node:child_process'
+6 | const input=resolve(process.env.CANDIDATE_INPUT??'candidate-input'), mode=process.argv[2]!, root=mkdtempSync(join(tmpdir(),'mldr-candidate-'))
+7 | const env={...process.env,GDP_WORK_FULL:mode==='tripwire'?'1':'0',GDP_WORK_STEPS:'0'}
+8 | function run(command:string,args:string[]){const result=spawnSync(command,args,{cwd:root,env,encoding:'utf8',maxBuffer:64*1024*1024,timeout:1_100_000});process.stdout.write(result.stdout??'');process.stderr.write(result.stderr??'');if(result.error)throw result.error;if(result.status!==0)throw Error(`${command} failed: ${result.status}`)}
+                                                                                                                                                                                                                                                                                                          ^
+error: bun failed: 2
+      at run (/work/gdp-wired/candidate-input/verify.ts:8:295)
+      at /work/gdp-wired/candidate-input/verify.ts:13:20
+
+Bun v1.4.3 (Linux x64)

@@ -1,41 +1,41 @@
-# PENDING-D candidate assembly checkpoint
+# Candidate assembly — D kernel admitted
+
+## Current exact-tree checkpoint
+
+- Integration branch: `be661632` on `claude/mldr-integ`.
+- Candidate branch: `7eccce26` on `claude/mldr-candidate`.
+- D reconciliation receipt: `72377361`.
+- Both complete trees are exactly `kernel=db5bc38ac2e08e25d392d7a7daa748c7a6c8245a`
+  and `lean-kernel=b9039b851d59b7621e322a797096fcd724019f68`.
+- No A-specific prover, meter file or scope-test exception remains in kernel/.
+- Reconciliation no longer has a PENDING-D label. Full counted integration
+  remains separately under test, not admitted by that label change.
+
+See `KERNEL-GATE.md`: clock gate 565ecd01 admits 353713c9 only on A's exact
+parent, not on the different common kernel. Never conflate these approvals.
+
+## Historical measured checkpoint (preserved, not current validation)
 
 Pins: A 5aa76818; B 8ad0072f; F 9a3e3792; clock 353713c9.
-Candidate worktree: ../gdp-wired-candidate, branch claude/mldr-candidate.
-Clock cherry-pick: 93e4e3bf. B merge checkpoint: 915ab320.
-F merge checkpoint c317a75a; compatibility fix db14ee14. Initial validation
-passed the full-work tripwire; 85/86 focused tests passed. The one failure was
-a six-argument API mismatch (A recovery boolean versus B selected-law Set),
-now supporting both. Typecheck also exposed a missing F research helper
-export; F's backwards-compatible frozenTarget extension is restored.
-Validation on db14ee14 now PASSED: 86 focused tests and full type/lint on
-2,036 files; full-work tripwire passed. Original consensus proved and checked.
-Original MLDR at 15M units is unknown: generation allowance exhausted after
-4,424,579 search units (zero queries), versus A baseline 4,424,769. Paired
-28-model census and 150M/1.5B MLDR diagnostics are in flight; no no-loss or
-whole-model proof claim yet.
+Clock cherry-pick 93e4e3bf; B merge 915ab320; F merge c317a75a; compatibility
+fix db14ee14. This historical source had three A-specific kernel exceptions.
+It passed 86 focused tests, the full-work tripwire, and type/lint on 2,036 files.
+Original consensus proved+checked. MLDR at 15M stopped in generation after
+4,424,579 search units; no proof query was reached. Its census and wider
+allowance diagnostics retain that exact hash; they are not reused as evidence
+for 7eccce26.
 
-Resolution policy:
+## Non-kernel conflict decisions
+
 - A: full-work scopes, counters, bounded generation, late recovery, telemetry.
-- B: production strategy selection, shared tier endpoint, ordinary fallback,
-  stronger exact count-definition admission and leaf cap options.
+- B: strategy selection, shared tier endpoint, ordinary fallback, exact
+  count-definition admission, leaf cap options, deferred/minimal frame views.
 - F: lifted load/copy modules, provenance, guard-fact minimal views, branch
-  ordering and carried-write classification. New F modules are retained.
-- count-frames combines B's deferred precheck/minimal views/leaf budgets with
-  F's extraWhen and zero-coefficient normalization. Neither is dropped.
-- Preserve both differing test versions with .lane-b/.lane-f names.
-- Non-runtime research conflicts keep A/B versions; F remains in merge ancestry
-  and all F-only research files survive. No experiment fixture is proof authority.
+  ordering, carried-write classification, extraWhen, zero normalization.
+- Keep both differing test versions with .lane-b/.lane-f names.
+- Non-runtime research conflicts keep A/B versions; all F-only files survive.
+- A's recovery-boolean / B's selected-law Set call forms are both supported.
+- F's frozenTarget backwards-compatible helper export is restored.
+- Experiment fixtures never supply the original model's final proof.
 
-Trusted overlay:
-Use reconciled B tree becd98e30bf4b7df29217fa820b82b7aa259bf28 for kernel/ and
-lean-kernel/. Lean is exactly b9039b851d59b7621e322a797096fcd724019f68.
-Necessary declared kernel exceptions: kernel/prove.ts retains A+clock scope
-helpers; kernel/meter.ts and kernel/work-budget.test.ts retain A's raw-meter
-module and scope tests. Thus the FULL kernel subtree is not literally the
-old db5bc38... hash; the checking sources are pinned to that subtree. This is
-not a new checker implementation and remains PENDING-D. Do not merge to main.
-
-Next: finish F resolution, commit candidate snapshot, run full type/lint and
-focused combined tests on supercomputer; then original MLDR + 28-model census
-with raw counters/phase/case events. Units are diagnostic, not calibrated W.
+No main merge or push. Units are diagnostic, not calibrated W.

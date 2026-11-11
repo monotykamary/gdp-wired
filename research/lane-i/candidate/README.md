@@ -1,13 +1,15 @@
-# MLDR integration candidate — PENDING-D
+# MLDR integration candidate — D kernel admitted
 
-Branch: `claude/mldr-candidate`, source checkpoint `db14ee14`.
-Pins and conflict decisions: `pins.json`, `ASSEMBLY.md`.
-No main merge, push, calibrated W, or soundness-gate claim.
+Branch: `claude/mldr-candidate`, exact-tree checkpoint `7eccce26`.
+Historical measured checkpoint: `db14ee14` (not the current exact-tree source).
+Pins and conflict decisions: `pins.json`, `ASSEMBLY.md`, `KERNEL-GATE.md`.
+Reconciliation gate: `72377361`. No main merge, push, calibrated W, or full
+strategy/MLDR gate claim.
 
-The trusted checking files and complete Lean tree come from the reconciled
-B/F overlay. Necessary declared kernel exceptions retain A's counted prover,
-raw meter, and work-scope tests. The exact full kernel hash therefore differs;
-checking semantics are not silently replaced. Lane D still owns the receipt.
+Both full kernel and Lean trees now match D's admitted B/F overlay exactly,
+without exceptions. A's missing counted API/raw-meter integration is tested
+separately. Historical db14ee14 measurements retained three A kernel files;
+they are never presented as validation of the current exact-tree source.
 
 `measure.ts` calls the actual original protocol constructor and original laws,
 then public proveRule with a full-work allowance. It captures final checked

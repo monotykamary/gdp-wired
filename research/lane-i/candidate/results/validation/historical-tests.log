@@ -1,0 +1,144 @@
+{"kind":"PENDING_D_TRUSTED_IDENTITY","files":132,"exceptions":["kernel/prove.ts","kernel/meter.ts","kernel/work-budget.test.ts"]}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [1306.00ms]
+bun test v1.4.3 (c6da4a4d3)
+{"kind":"PENDING_D_TRUSTED_IDENTITY","files":132,"exceptions":["kernel/prove.ts","kernel/meter.ts","kernel/work-budget.test.ts"]}
+{"kind":"CANDIDATE_VALIDATION_PASS","status":"PENDING-D","mode":"tests","source":"db14ee14414dd800b994865fb64058fa289a2c97"}
+
+--- stderr ---
+
+core/count-guard-shape.test.ts:
+(pass) guard shape discovery is independent of protocol and field names [1.42ms]
+(pass) a different coefficient or missing row predicate is outside this strategy [0.40ms]
+(pass) row-copy discovery follows renamed writes and rejects the wrong operation [0.80ms]
+(pass) threshold-write discovery identifies renamed input and committed sets [1.99ms]
+(pass) guard context is a fresh conservative extension and rejects ambiguous carried counts [0.29ms]
+(pass) guard context does not allocate a count over a declared parameter name [0.09ms]
+(pass) ambiguous zero phases are resolved only by a unique common write guard [0.30ms]
+(pass) discovery does not invent a phase premise [0.06ms]
+
+core/count-case-compose.test.ts:
+(pass) all fixed cases compose onto one original operation-domain goal [220.54ms]
+(pass) operation zero preserves source path identities through transport [109.98ms]
+(pass) unchecked case proposals need the final assembled checker [43.04ms]
+(pass) case composition respects an expired shared allowance [0.38ms]
+
+core/count-guard-shape.lane-f.test.ts:
+(pass) guard shape discovery is independent of protocol and field names [0.47ms]
+(pass) a different coefficient or missing row predicate is outside this strategy [0.24ms]
+(pass) row-copy discovery follows renamed writes and rejects the wrong operation [0.34ms]
+(pass) threshold-write discovery identifies renamed input and committed sets [0.58ms]
+(pass) guard context is a fresh conservative extension and rejects ambiguous carried counts [0.29ms]
+(pass) guard context does not allocate a count over a declared parameter name [0.13ms]
+(pass) ambiguous zero phases are resolved only by a unique common write guard [0.19ms]
+(pass) discovery does not invent a phase premise [0.04ms]
+
+core/count-strategies.test.ts:
+(pass) optional strategies share the attempt end and return an original-machine proof [74.31ms]
+(pass) shape-only ordering puts row helpers after count helpers and before safety [0.59ms]
+(pass) join and demand schedule a selected row before count-first fallback [4.60ms]
+(pass) a guard strategy cannot silently admit fresh count definitions [0.63ms]
+(pass) admission installs exact conservative definitions so a generic guard composition can run [34.82ms]
+(pass) an empty or expired strategy pool cannot allocate or renew an attempt [0.27ms]
+(pass) unsupported laws fall through and a broken row is never accepted [9.91ms]
+
+core/count-frames.test.ts:
+(pass) fixed-operation detection reads only mandatory equalities, not disjuncts [0.16ms]
+(pass) own-key seeding is tuple preserving and idempotent [0.03ms]
+(pass) the opt-in attempt retains frames and still checks a false INIT [8.25ms]
+(pass) a non-equal count uses a checked per-key cut, never an assumed inequality [3.08ms]
+(pass) a returned frame-first tree is checked and fails without its frames [1.36ms]
+
+core/count-lifted-shape.test.ts:
+(pass) lifted discovery follows candidate provenance without serialised changes [3.69ms]
+(pass) untagged, changed and non-disabling candidates decline cleanly [0.82ms]
+(pass) changed count definitions cannot reuse stale lifted provenance [0.67ms]
+(pass) frame-only lifted cases compose and check the original INIT and STEP [314.06ms]
+(pass) lifted discovery, exhaustive composition and native replay inherit a clock-free scope [124.37ms]
+(pass) provenance selects a renamed replacement that does not bump a version field [2.10ms]
+(pass) fixed-case discovery does not reclassify contradictory unrelated operations [1.31ms]
+(pass) a carried-row write outside the provenance action declines with both classifications [1.48ms]
+(pass) marked row agreement is preferred without dropping an unmarked alternative [1.20ms]
+(pass) a stored-guard-shaped clone reports lost provenance instead of silently guessing [0.76ms]
+
+core/count-strategy-clock.test.ts:
+(pass) row and guard composers use the shared trace boundary with both control clocks forbidden [258.69ms]
+
+core/count-generation-budget.test.ts:
+(pass) no dispatch does not introduce a generation allowance [0.29ms]
+(pass) a cheap generator returns its value and leaves unused work for later tiers [0.09ms]
+(pass) an exhausting generator stops cooperatively and its result cannot escape [0.14ms]
+(pass) generation does not start when guard discovery already used its allowance [0.03ms]
+(pass) a smaller outer budget is propagated, not hidden as a local exhaustion [0.06ms]
+(pass) non-budget failures retain their identity [0.04ms]
+(pass) completion past the cap is not a successful generator [0.03ms]
+
+core/count-tier-budget.test.ts:
+(pass) generation has a 25 percent ceiling, strategies a 35 percent floor, ordinary a 30 percent floor [0.03ms]
+(pass) strategies may borrow the unreserved remainder beyond their minimum reservation [0.01ms]
+(pass) unused generation and strategy allowance flows down without moving deadlines [0.04ms]
+(pass) all selected laws share one borrowing endpoint, not one reservation per law [0.04ms]
+(pass) no dispatch is exactly the existing split and does not cap generation [0.56ms]
+(pass) ordinary shares recompute after cheap attempts and never create work [0.04ms]
+(pass) invalid counts and unbounded active tiers are refused; expired work grants nothing [0.07ms]
+
+core/count-lifted-transports.test.ts:
+(pass) transport partitions match renamed Boolean count definitions, not map labels [1.21ms]
+(pass) copy own-law tuples retain both independent half binders [0.07ms]
+
+core/count-frames.lane-f.test.ts:
+(pass) fixed-operation detection reads only mandatory equalities, not disjuncts [0.27ms]
+(pass) own-key seeding is tuple preserving and idempotent [0.04ms]
+(pass) a non-equal count uses a checked per-key cut, never an assumed inequality [4.07ms]
+(pass) a returned frame-first tree is checked and fails without its frames [3.07ms]
+(pass) extra frame conditions are split and discharged, never assumed [3.85ms]
+
+core/count-tier-integration.test.ts:
+(pass) empty structural dispatch reserves no pool and preserves the legacy result [4.71ms]
+(pass) structurally selected laws share the original absolute strategy deadline [110.72ms]
+(pass) a selected strategy decline cannot spend the ordinary-law remainder [0.26ms]
+(pass) structured fallback cannot recreate a strategy reservation [414.48ms]
+(pass) an external tier reservation cannot change the enclosing deadline [0.45ms]
+
+kernel/cdcl-root.test.ts:
+(pass) duplicate root aliases retain positive orientation [0.39ms]
+(pass) duplicate root aliases retain negative orientation [0.18ms]
+(pass) duplicate frame-cut rows remain checked at their original root [0.29ms]
+
+kernel/frame-cut.test.ts:
+(pass) simpE resolves only conditions decided under the path and free of the key [0.19ms]
+(pass) frameOk accepts the op = 4 frame and refuses the variants Lean refuses [0.19ms]
+(pass) the frame row closes the op = 4 leaf and nowhere else [0.31ms]
+(pass) framePath keeps every original atom and prepends the active frames' rows [0.07ms]
+(pass) the write tree under the condition collapses to the pre body once the path refutes the writing operation [0.26ms]
+(pass) a guard reading the key through the stride is decided at every key from the row bound, and not otherwise [0.19ms]
+(pass) a per-key cut: the auxiliary goal proved by the CDCL gives post ≤ pre at the leaf, with the refusals Lean lists [1.70ms]
+(pass) a linear cut: Σ pos ≤ Σ neg proved per key by the CDCL gives its row at the leaf, with the refusals Lean lists [1.16ms]
+
+lean-kernel/frame-export.test.ts:
+(pass) framed leaves encode against the same rows the native checker sees [1.51ms]
+(pass) empty frames preserve the legacy encoder byte for byte [0.46ms]
+(pass) goal-local monotone export includes its independent auxiliary table and proof [4.96ms]
+(pass) goal-local export uses mcF_sound and refuses an invalid frame [0.26ms]
+
+lean-kernel/linear-export.test.ts:
+(pass) a checked linear count cut exports its auxiliary proof and refuses mutation [3.01ms]
+(pass) empty linear-cut context preserves the legacy encoding [0.11ms]
+
+ 86 pass
+ 0 fail
+ 859 expect() calls
+Ran 86 tests across 16 files. [1.89s]
