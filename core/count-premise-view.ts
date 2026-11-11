@@ -2,14 +2,33 @@
 // never facts: every successful tree must be transported to the complete goal.
 import {type C, type E, type Law, type Machine, n, walkOnce} from './machine.ts'
 import {type Goal, substC, substE, truth} from '../kernel/kernel.ts'
-import {fixedCountFrameCase} from './count-frames.ts'
+import {finiteCountChoice} from './count-cases.ts'
+// Same finite-operation recognizer as B's count-frames module, without its
+// unrelated strategy and frame-certificate dependencies.
+function fixedCountFrameCase(m: Machine): {name: string, value: number} | undefined {
+  const choice = finiteCountChoice(m)
+  if (!choice) return
+  const [name, values] = choice, fixed = new Set<number>()
+  const visit = (c: C): void => {
+    if (c.op === 'and') { c.xs.forEach(visit); return }
+    if (c.op !== '=') return
+    const [a, b] = c.a.op === 'var' ? [c.a, c.b] : [c.b, c.a]
+    if (a.op === 'var' && a.name === name && b.op === 'const') fixed.add(b.value)
+  }
+  if (m.assume) visit(m.assume)
+  if (fixed.size !== 1) return
+  const value = [...fixed][0]!
+  return Number.isSafeInteger(value) && value >= 0 && values.has(value) ? {name, value} : undefined
+}
+
 import {late} from '../kernel/prove.ts'
 export type PremiseView = {goal: Goal, selected: number[], omitted: number[], allowed: string[], guardReads: boolean}
 const base = (name: string) => name.replace(/#$/, '')
-export function countPremiseMaps(m: Machine, law: Law, until: number, guardReads = true): Set<string> | undefined {
+export function countPremiseMaps(m: Machine, law: Law, until: number, guardReads = true, fixedOnly = true): Set<string> | undefined {
   const choice = fixedCountFrameCase(m)
-  if (!choice || late(until)) return
-  const vars = {[choice.name]: n(choice.value)}, flags: Record<string, C> = {}, resolving = new Set<string>()
+  if ((!choice && fixedOnly) || late(until)) return
+  // An unspecialized family keeps both branches; it assumes no operation value.
+  const vars = choice ? {[choice.name]: n(choice.value)} : {}, flags: Record<string, C> = {}, resolving = new Set<string>()
   const flag = (name: string): C | undefined => {
     if (flags[name]) return flags[name]
     const source = m.step.flags?.[name]
@@ -111,4 +130,27 @@ export function countPremiseView(goal: Goal, m: Machine, law: Law, conclusion: C
   }
   if (!omitted.length) return
   return {goal: {name: goal.name, hyps: selected.map(i => goal.hyps[i]!)}, selected, omitted, allowed: [...allowed].sort(), guardReads}
+}
+
+export type CountPremiseContext = {laws: Law[], selected: number[], omitted: number[], allowed: string[], guardReads: boolean}
+// Family-level search uses exactly the same all-reads containment test as the
+// operation-local view. Without a fixed operation no substitution is made:
+// both branches contribute vocabulary, never a guessed transition or fact.
+export function countPremiseContext(m: Machine, family: Law[], owner: Law, until: number, guardReads = true): CountPremiseContext | undefined {
+  if (!family.includes(owner) || family.length > 1024 || late(until)) return
+  const allowed = countPremiseMaps(m, owner, until, guardReads, false)
+  if (!allowed) return
+  const selected: number[] = [], omitted: number[] = []
+  for (const [index, law] of family.entries()) {
+    if (late(until)) return
+    let contained = true
+    walkOnce(law.holds, node => {
+      const value = node as C | E
+      if (value.op === 'get' && !allowed.has('map:' + base(value.map))) contained = false
+      if (value.op === 'var' && Object.hasOwn(m.state, value.name) && !allowed.has('state:' + value.name)) contained = false
+    })
+    if (law === owner || contained) selected.push(index)
+    else omitted.push(index)
+  }
+  return omitted.length ? {laws: selected.map(i => family[i]!), selected, omitted, allowed: [...allowed].sort(), guardReads} : undefined
 }

@@ -1,0 +1,78 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [480.00ms]
+bun test v1.4.3 (c6da4a4d3)
+ROLLING_GATE {"sourceTree":"88c25052120348355888613456865d3142cb4529","mode":"test","files":["core/count-proof-scope.test.ts","core/count-query.test.ts","core/count-tier-budget.test.ts","core/count-strategy-clock.test.ts","core/count-strategies.test.ts"],"protected":181}
+
+--- stderr ---
+
+core/count-query.test.ts:
+(pass) minimal count queries reindex ordinary trees to the complete goal [6.03ms]
+(pass) only a satisfiable minimal view falls back to the full query [1.09ms]
+(pass) a reduced proof requiring an unavailable premise is refused [0.32ms]
+(pass) a zero leaf allowance cannot be renewed by minimal/full fallback [0.06ms]
+(pass) a direct linear proof cannot outlive a small positive leaf allowance [0.25ms]
+(pass) expired count query does not search or record a fabricated result [1.34ms]
+(pass) minimal projections retain domain conjuncts under a negated disjunction [0.09ms]
+
+core/count-strategies.test.ts:
+(pass) optional strategies share the attempt end and return an original-machine proof [76.74ms]
+(pass) shape-only ordering puts row helpers after count helpers and before safety [0.36ms]
+(pass) join and demand schedule a selected row before count-first fallback [1.79ms]
+(pass) a guard strategy cannot silently admit fresh count definitions [1.25ms]
+(pass) admission installs exact conservative definitions so a generic guard composition can run [31.42ms]
+(pass) an empty or expired strategy pool cannot allocate or renew an attempt [0.24ms]
+(pass) unsupported laws fall through and a broken row is never accepted [7.39ms]
+
+core/count-proof-scope.test.ts:
+(pass) record referenced laws, not every available scalar or instantiated law [4.34ms]
+(pass) premise matching ignores AST property insertion order [1.18ms]
+(pass) independent cut source slices remain premises even if the main tree does not cite the cut [1.71ms]
+(pass) reordering and adding unused laws reindexes but never searches [4.13ms]
+(pass) removing an actual premise or changing its body invalidates retention [1.58ms]
+(pass) declared strategy scopes cannot omit used premises or invent names [1.10ms]
+(pass) mutated original laws do not mutate recorded premise identities [0.74ms]
+(pass) changed machine or damaged certificate still requires the current kernel check [1.35ms]
+(pass) a mutual induction cycle survives unrelated drops with checks only in round one [7.51ms]
+(pass) a helper that falls cannot authorize the caller in the following round [4.64ms]
+(pass) flags off retain legacy carry without premise metadata or replay phases [7.08ms]
+(pass) scope capture and replay consume complete work with both control clocks forbidden [53.57ms]
+
+core/count-strategy-clock.test.ts:
+(pass) row and guard composers use the shared trace boundary with both control clocks forbidden [250.25ms]
+
+core/count-tier-budget.test.ts:
+(pass) generation has a 25 percent ceiling, strategies a 35 percent floor, ordinary a 30 percent floor [0.10ms]
+(pass) strategies may borrow the unreserved remainder beyond their minimum reservation [0.04ms]
+(pass) unused generation and strategy allowance flows down without moving deadlines [0.03ms]
+(pass) all selected laws share one borrowing endpoint, not one reservation per law [0.03ms]
+(pass) no dispatch is exactly the existing split and does not cap generation [0.57ms]
+(pass) ordinary shares recompute after cheap attempts and never create work [0.03ms]
+(pass) invalid counts and unbounded active tiers are refused; expired work grants nothing [0.09ms]
+(pass) the production tier basis cannot restart W after preflight [0.25ms]
+(pass) one expired strategy endpoint hands off its reserve and cannot refresh on fallback [4.86ms]
+(pass) exact strategy endpoint unknown hands back the ordinary reserve [0.18ms]
+(pass) exact strategy endpoint preserves {"stuck":"sat","refuted":true} [0.05ms]
+(pass) exact strategy endpoint preserves {"stuck":"unknown","refuted":true} [0.02ms]
+(pass) exact strategy endpoint preserves {"proof":{"checked":true}} [0.01ms]
+(pass) exact strategy endpoint preserves {"stuck":"sat"} [0.01ms]
+(pass) unknown before the strategy endpoint keeps its ordinary result [0.03ms]
+(pass) no-dispatch unknown retains legacy behavior at the same clock [0.03ms]
+(pass) strategy handoff does not hide a smaller outer budget [0.11ms]
+
+ 44 pass
+ 0 fail
+ 639 expect() calls
+Ran 44 tests across 5 files. [537.00ms]

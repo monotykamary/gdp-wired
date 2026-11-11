@@ -1,6 +1,6 @@
 import {expect, test} from 'bun:test'
 import {type Law, type Machine, all, any, get, n, not, same, x} from './machine.ts'
-import {countPremiseMaps, countPremiseView} from './count-premise-view.ts'
+import {countPremiseContext, countPremiseMaps, countPremiseView} from './count-premise-view.ts'
 import {clock, counted, fullRate} from '../kernel/prove.ts'
 function fixture(prefix: string) {
   const name = (s: string) => prefix + s, op = x('operation')
@@ -46,4 +46,29 @@ test('expired or structurally unsupported containment does not manufacture a vie
   expect(countPremiseView(goal, m, law, law.holds, [], clock() - 1)).toBeUndefined()
   delete m.assume
   expect(countPremiseMaps(m, law, clock() + 1000)).toBeUndefined()
+}, true))
+
+test('family containment retains original laws and order without assuming an operation', () => counted(fullRate, () => {
+  const {m, law, name} = fixture('family_')
+  delete m.assume
+  const own: Law = {...law, name: 'renamed owner'}
+  const local: Law = {name: 'original local', forall: 'z', holds: same(get(name('payload'), x('z')), n(0))}
+  const bridge: Law = {name: 'bridge is not containment', forall: 'z', holds: same(get(name('payload'), x('z')), get(name('extra'), x('z')))}
+  const family = [bridge, local, own], before = JSON.stringify([m, family])
+  const view = countPremiseContext(m, family, own, clock() + 1000, false)
+  expect(view?.laws).toEqual([local, own]); expect(view?.laws[0]).toBe(local)
+  expect(view?.selected).toEqual([1, 2]); expect(view?.omitted).toEqual([0])
+  expect(JSON.stringify([m, family])).toBe(before)
+  expect(countPremiseMaps(m, own, clock() + 1000)).toBeUndefined()
+}, true))
+test('state scalars and counts with an uncontained read do not leak into family scope', () => counted(fullRate, () => {
+  const {m, law, name} = fixture('state_')
+  m.state = {unrelated: n(0)}
+  m.counts = {mixed: {j: 'r', key: 'k', below: n(4), body: get(name('extra'), x('k'))}}
+  const scalar: Law = {name: 'unrelated scalar', holds: same(x('unrelated'), n(0))}
+  const mixed: Law = {name: 'unrelated count', holds: same(get('mixed', n(0)), n(0))}
+  const view = countPremiseContext(m, [scalar, law, mixed], law, clock() + 1000)
+  expect(view?.laws).toEqual([law])
+  expect(countPremiseContext(m, [law], law, clock() + 1000)).toBeUndefined()
+  expect(countPremiseContext(m, [scalar], law, clock() + 1000)).toBeUndefined()
 }, true))

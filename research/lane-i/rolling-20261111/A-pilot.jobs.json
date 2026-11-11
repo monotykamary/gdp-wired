@@ -1,0 +1,26 @@
+[
+  {
+    "name": "a-local-containment",
+    "cmd": "bun port-input/run.ts test core/count-premise-view.test.ts core/count-premise-search.test.ts core/count-premise-integration.test.ts",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "a-b-api-compatibility",
+    "cmd": "bun port-input/run.ts test core/count-proof-scope.test.ts core/count-query.test.ts core/count-tier-budget.test.ts core/count-strategy-clock.test.ts core/count-strategies.test.ts",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "a-types",
+    "cmd": "bun port-input/run.ts types",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

@@ -52,6 +52,8 @@ import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, scopeC
 import {prepareCountStrategyMachine, proveCountStrategies, selectedCountStrategies} from './count-strategies.ts'
 import {type CountTierBudget, countTierBudget, ordinaryTierShare} from './count-tier-budget.ts'
 import {discoverRowAgreement} from './row-agreement-shape.ts'
+import {countPremiseContext} from './count-premise-view.ts'
+import {countPremiseSearch} from './count-premise-search.ts'
 
 // (GDP_COUNTS_PROF: where a counted search's time goes, by phase, on stderr at the end; `countsDump.on`, set by research's
 // profiles: each step goal left unknown or with a model past GDP_COUNTS_DUMP_MIN (300) hypotheses, the first GDP_COUNTS_DUMP_N (3))
@@ -851,7 +853,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       return completion.genuine ? {stuck: 'sat', refuted: true} : {stuck: pass ? 'unknown' : 'sat'}
     }
     // (not where the attempt may widen: its narrow model is no model of the widened goal)
-    if (cti && !(supported && pass) && !(houdini && caller.some(l => l.name === law.name) && !widened.has(law.name)) && !ls.some(l => !cti.ls.has(l.name) && reads(l.holds, isCount).size)) {
+    if (cti && !(tiers?.active && ls.some(l => !cti.ls.has(l.name))) && !(supported && pass) && !(houdini && caller.some(l => l.name === law.name) && !widened.has(law.name)) && !ls.some(l => !cti.ls.has(l.name) && reads(l.holds, isCount).size)) {
       const at0 = Object.fromEntries(Object.entries(cti.at).filter(([n]) => n.startsWith('?') || ls.some(l => l.name === n)))
       if (!(seed = ptime('mbqi', () => independent(at0,modelInstances(m, modelLaws, at0, cti.gg, cti.w))))) return refuted(cti.gg, cti.w, cti.at)
     }
@@ -1206,6 +1208,32 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     let r: Tried<Proof>
     try {
       const end = Math.min(until, clock() + ms)
+      if (tiers?.active) {
+        r = countPremiseSearch(ls, end,
+          localEnd => [false, true].flatMap(guardReads => {
+            const context = countPremiseContext(m, ls, law, localEnd, guardReads)
+            return context ? [context] : []
+          }),
+          (local, probeEnd) => attempt(law, local, pass, Math.max(0, probeEnd - clock())),
+          (context, proposed, localEnd) => {
+            if (!('proof' in proposed)) return
+            const localGoals = countedObligations(m, context.laws, {[law.name]: proposed.proof.instances}, context.laws.indexOf(law))
+            const wholeGoals = countedObligations(m, ls, {[law.name]: proposed.proof.instances}, ls.indexOf(law))
+            if (localGoals.length !== wholeGoals.length) return
+            const certs: Record<string, CountCert> = {}
+            for (let i = 0; i < wholeGoals.length; i++) {
+              const part = localGoals[i]!, whole = wholeGoals[i]!, cert = proposed.proof.certs[part.goal.name]
+              if (!cert || clock() >= localEnd) return
+              const from = mcGoal(part.goal.hyps, part.decls, cert), to = mcGoal(whole.goal.hyps, whole.decls, cert)
+              const lifted = from && to && transportCountCertificate(from, to, cert, wallAt())
+              if (!lifted || !checkMC(whole.goal.hyps, whole.decls, lifted)) return
+              certs[whole.goal.name] = lifted
+            }
+            return {proof: {instances: proposed.proof.instances, certs}}
+          },
+          event => countsDump.on?.({...event, law: law.name, pass}),
+          error => error instanceof UnsupportedCountProposal)
+      } else {
       // Probe only strict subsets, within the existing attempt's allowance. A
       // subset model is not a verdict: failure always widens to the full set.
       // Kept certificates must be lifted to that full set's exact row layout.
@@ -1240,6 +1268,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         }
       }
       r = attempt(law, ls, pass, Math.max(0, end - clock()))
+      }
     } catch (error) {
       // A local tier deadline expires this attempt, not the whole enclosing search.
       // Invalid or captured proposals are likewise never assumptions.
