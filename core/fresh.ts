@@ -12,7 +12,7 @@ import {type C, type E, type Law, type Machine, type State, evalC, interpret, se
 import {clock, counted, fullRate, proveSetFast, withDeadline} from '../kernel/prove.ts'
 import {allowed, watch} from './watch.ts'
 import type {Draws} from './live.ts'
-import {checkBudget} from './wall.ts'
+import {checkWorkEndpoint} from './wall.ts'
 
 const v = (name: string): E => ({op: 'var', name}), get = (map: string, key: E): E => ({op: 'get', map, key})
 export type FreshLaw = {law: Law, text: string}
@@ -22,7 +22,7 @@ export type FreshLaw = {law: Law, text: string}
 export const freshLaws = (m: Machine, kinds: Law[], draws: Draws, opts: {ms?: number} = {}): FreshLaw[] =>
   counted(fullRate, () => withDeadline(clock() + (opts.ms ?? 5000), () => fresh(m, kinds, draws, opts)), true)
 function fresh(m: Machine, kinds: Law[], draws: Draws, opts: {ms?: number}): FreshLaw[] {
-  checkBudget('fresh entry')
+  checkWorkEndpoint('fresh entry')
   const maps = Object.entries(m.maps ?? {}).filter(([n]) => !(m.inputMaps ?? []).includes(n))
   if (!maps.length || m.history) return []
   const until = clock() + (opts.ms ?? 5000), run = interpret(m), rand = seeded(53), bound = 4
@@ -32,11 +32,11 @@ function fresh(m: Machine, kinds: Law[], draws: Draws, opts: {ms?: number}): Fre
   // a cell written at b): each map no step wrote past it, and each it was seen bounding
   const past = new Set<string>(), bounds = new Set<string>()
   for (let trial = 0; trial < 60 && clock() < until; trial++) {
-    checkBudget('fresh trial')
+    checkWorkEndpoint('fresh trial')
     let ps: Record<string, number>, st: State
     try { ps = draws.params(rand, bound); if (m.pre && !evalC(m.pre, ps, {scalars: {}, maps: {}}, m)) continue; st = run.init(ps) } catch { continue }
     for (let d = 0, tries = 0; d < 20 && tries < 60; tries++) {
-      checkBudget('fresh step')
+      checkWorkEndpoint('fresh step')
       try {
         const input = draws.input(rand, bound, ps)
         if (!allowed(m, run, ps, st, input)) continue
@@ -73,7 +73,7 @@ function fresh(m: Machine, kinds: Law[], draws: Draws, opts: {ms?: number}): Fre
     const init = m.maps![map]!
     cands.push({law: {name: `keys up to ${c}: ${map} unset past it`, holds: {op: 'or', xs: [{op: '<=', a: v(key), b: v(c)}, {op: '=', a: get(map, v(key)), b: {op: 'const', value: init}}]}, forall: key}, text: `∀k. ${c} < k → ${map}[k] = ${init}`})
   }
-  let alive = cands.filter(f => states.every(({ps, st}) => { try { return watch(m, run, f.law, ps, bound).start(st) } catch { return false } }))
+  let alive = cands.filter(f => states.every(({ps, st}) => { checkWorkEndpoint('fresh validation'); try { return watch(m, run, f.law, ps, bound).start(st) } catch { return false } }))
   while (alive.length && clock() < until) {
     let out: ReturnType<typeof proveSetFast>
     try { out = proveSetFast(m, [...kinds, ...alive.map(f => f.law)]) } catch { return [] }

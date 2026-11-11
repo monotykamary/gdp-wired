@@ -21,6 +21,11 @@ try{
  const end='n += extraWeights.epr * eprMeter.n\n  return n'
  if(!meter.includes(end))throw Error('meter probe anchor')
  writeFileSync(meterFile,meter.replace(end,'n += extraWeights.epr * eprMeter.n\n  ;(globalThis as any).__hardCapRead?.(n)\n  return n'))
+ const mf=join(root,'core/machine.ts')
+ let machine=readFileSync(mf,'utf8')
+ machine=machine.replaceAll('coreMeter.evals += 1', 'coreMeter.evals += 1; if ((coreMeter.evals & 8191) === 0) (globalThis as any).__hardCapEval?.(coreMeter.evals)')
+ machine=machine.replace('coreMeter.evals += stepEvals', 'coreMeter.evals += stepEvals; (globalThis as any).__hardCapEval?.(coreMeter.evals)')
+ writeFileSync(mf,machine)
  command('bun',['install','--frozen-lockfile'])
  const file=join(root,'measurement.json.gz')
  const run=spawnSync('bun',['--preload',join(input,'probe-preload.ts'),join(input,'measure.ts'),root,id!,amount!,file,source,target!],{cwd:root,env,encoding:'utf8',timeout:720000,maxBuffer:32*1024*1024})

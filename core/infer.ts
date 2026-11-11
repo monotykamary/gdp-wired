@@ -1,4 +1,4 @@
-import {searchNow as countedSearchNow, checkBudget} from './wall.ts'
+import {searchNow as countedSearchNow, checkWorkEndpoint} from './wall.ts'
 // Invariants nobody wrote: a law that holds but isn't inductive, proven with laws the search finds. Nothing here is
 // trusted; what it finds is proven by the kernel with the rule's own laws, as laws of the same rule.
 //   - runs: random runs from the start (params and requests by their kinds, the assumption met) give reachable states,
@@ -298,7 +298,7 @@ export function domainStep(m: Machine, most = 20_000): ((params: Env, st: State,
     for (const r of each) {
       const far = r.names.map(() => D + 1)
       r.names.forEach((nm, i) => (env[nm] = far[i]!))
-      const fallback = r.f(env, st), cells = new Map<number, number>(), at = (xs: number[]) => { r.names.forEach((nm, i) => (env[nm] = xs[i]!)); const v = r.f(env, st); if (v !== fallback) cells.set(xs.slice(0, -1).reduceRight((b, a) => cpair(a, b), xs.at(-1)!), v) }
+      const fallback = r.f(env, st), cells = new Map<number, number>(), at = (xs: number[]) => { checkWorkEndpoint('inference relation tuple'); r.names.forEach((nm, i) => (env[nm] = xs[i]!)); const v = r.f(env, st); if (v !== fallback) cells.set(xs.slice(0, -1).reduceRight((b, a) => cpair(a, b), xs.at(-1)!), v) }
       // (the tuples it holds and those its pins allow, where its cells are 0 by default; else every tuple below D)
       const pins = fallback === 0 && !st.defaults?.[r.mp] && !m.maps?.[r.mp] ? pinsOf(r, env, st) : undefined
       if (r.n === 1) for (const k of st.maps[r.mp]?.keys() ?? []) if (k >= D) at([k])
@@ -678,7 +678,7 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
   return withTrees(() => quietly(() => withDeadline(clock() + (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - countedSearchNow())), () => inferLawsSearch(target, laws, stepLaws, opts))))
 }
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
-  checkBudget('inference entry')
+  checkWorkEndpoint('inference entry')
   // (GDP_INFER_TRACE=2: each phase's progress too, to stderr)
   if (env.GDP_INFER_TRACE === '2' && !opts.progress) opts = {...opts, progress: (phase, info) => (globalThis as unknown as {process: {stderr: {write: (s: string) => void}}}).process.stderr.write(`[infer ${phase}] ${JSON.stringify(info)}\n`)}
   const t0 = countedSearchNow(), ms = opts.ms ?? 20000, wallUntil = opts.wall ?? t0 + ms, rule = isRule(target) ? target.withSumsOf(laws, stepLaws) : undefined
@@ -687,7 +687,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const now = (): number => (timed ? countedSearchNow() - t0
     : used.tries / inferRates.tries + used.rows / inferRates.rows + used.evals / inferRates.evals + used.watched / inferRates.watched + (work.n - w0) / inferRates.work)
   let stopped = false
-  const stop = () => { checkBudget('inference poll'); return stopped || (stopped = countedSearchNow() > wallUntil) }
+  const stop = () => { checkWorkEndpoint('inference poll'); return stopped || (stopped = countedSearchNow() > wallUntil) }
   // The engine's clock (the stage below, from the small instance on): counted as `now` is, with the EPR path's work
   // (kernel/epr.ts's eprMeter) and the views' rows beside it, so that every choice it makes by its budget (a BFS cut, the
   // filter, a goal's cap, a round's growth) is the same on any machine; the wall (`stop`, `until` past `ms`) only ends it.
@@ -776,7 +776,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // of 5 but 0, say: a trial whose steps moved nothing doubles the bound at once)
   const skolems = m.inputs.some(i => i.startsWith('some$a'))
   for (let trial = 0, bound = 2, stuck = false; moreRuns(trial); trial++, bound = trial % 20 === 0 || stuck ? (bound >= 1024 ? 2 : bound * 2) : bound) {
-    checkBudget('inference trial')
+    checkWorkEndpoint('inference trial')
     stuck = false; trials++
     // (a rule with maps: one trial in four goes on from a sample, of 64 drawn, holding the value of a state variable the
     // fewest states offered held, its requests at the smallest bound. The hull's bounds come from the states past the
@@ -799,6 +799,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     }
     let took = 0
     for (let d = 0, tries = 0; d < 40 && tries < 200; tries++) {
+      checkWorkEndpoint('inference sample')
       used.tries++
       const input = randomInput(params, rare ? 2 : bound)
       let next: State
@@ -1514,6 +1515,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         // (the frame, places and extra terms compiled once a view (`compiled`); one env the keys are set in, as each
         // assignment's own copy was: a level reads only the keys above it)
         const go = (i: number, env: Env): void => {
+          checkWorkEndpoint('inference view bindings')
           if (i === v.vars.length) {
             try { if (!compiled.frame(env, st)) return } catch { return }
             const row: Env = {...params, ...st.scalars}, cells: [string, string, number][] = []
@@ -2301,6 +2303,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           }
         }
         const stepIn = (tb: typeof tables[number], params: Env, st: State, input: Request): State | undefined => {
+          checkWorkEndpoint('inference instance step')
           try { if (tb.js) return tb.js(params, st, input); return allowed(tb.m, tb.run, params, st, input) ? tb.run.step(params, st, input) : undefined } catch { return undefined }
         }
         const stepOf = (params: Env, st: State, input: Request) => stepIn(tables[0]!, params, st, input)
@@ -3391,7 +3394,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // (unproven, the search below begins as it would have: the candidates and the counterexamples as they were)
     if (why === 'inductive') chosen = cone
     else { pool = pool0; ctis.length = ctis0 }
-  } catch (e) { pool = pool0; ctis.length = ctis0; chosen = []; opts.progress?.('join failed', {why: String((e as Error).stack).slice(0, 1500)}) }
+  } catch (e) { checkWorkEndpoint('inference failure'); pool = pool0; ctis.length = ctis0; chosen = []; opts.progress?.('join failed', {why: String((e as Error).stack).slice(0, 1500)}) }
   // The search proves one law at a time (proveLaw), each with every law assumed, and keeps what it proved while laws
   // are only added (more laws assumed keep a proof a proof); dropping one forgets it all. Once every law is proven so,
   // the set is proven as a whole, by the rule's own prover: that verdict is the answer.

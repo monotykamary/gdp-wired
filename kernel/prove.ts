@@ -254,6 +254,10 @@ export const budgetEnd = (): number => (budgetUnitsEnd ?? Infinity) / fullRate
 export class BudgetExpired extends Error {
   constructor(readonly phase: string) { super(`work budget (${phase})`); this.name = 'BudgetExpired' }
 }
+// Hard-stop checkpoints must not turn a local search deadline into a whole-run stop.
+export function checkWorkEndpoint(phase: string): void {
+  if (budgetUnitsEnd !== undefined && fullWork() > budgetUnitsEnd) throw new BudgetExpired(phase)
+}
 export function checkBudget(phase: string): void {
   if (budgetUnitsEnd !== undefined && (fullWork() > budgetUnitsEnd
     || completeWorkProfile.enabled && clock() > withinDeadline(budgetEnd()))) throw new BudgetExpired(phase)
@@ -289,7 +293,7 @@ export const withWork = <T>(cap: number, f: () => T): T => { const outer = workC
 // every goal is left unknown, whatever its own budget. Untrusted: it only stops a search.
 let wallEnd = Infinity
 export const pastWall = (): boolean => {
-  checkBudget('prover boundary')
+  checkWorkEndpoint('prover boundary')
   return inWorkScope() ? clock() > withinDeadline(budgetEnd()) : wallEnd !== Infinity && searchNow() > wallEnd
 }
 export function withWall<T>(end: number, f: () => T): T {
@@ -305,7 +309,7 @@ const ranOut = (): boolean => pastWall() || withinDeadline(Infinity) <= clock()
 // (the wall's end in force, Infinity where none: a search inside that stops itself there)
 export const wallAt = (): number => inWorkScope() ? withinDeadline(budgetEnd()) : wallEnd
 export const late = (until: number): boolean => {
-  checkBudget('prover poll')
+  checkWorkEndpoint('prover poll')
   return clock() > until || (workCap !== Infinity && fullWork() > workCap) || pastWall()
 }
 // A budget's end, within the deadline (a translation's own bound, core/cyclic.ts's, kept by the export's GDP_CERT_MS).

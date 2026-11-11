@@ -1,0 +1,5 @@
+fix: enforce the outer work endpoint without changing local cuts
+
+Use global-only cancellation checkpoints and preserve local deadline behavior.
+Keep legacy binding polls and add counted-only checks inside long loops.
+Add bounded-slack, cancellation and local-deadline regression controls.

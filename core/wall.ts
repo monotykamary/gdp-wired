@@ -2,7 +2,7 @@
 // wall; an explicit work scope never consults it or grants completion headroom.
 import {pastWall, clock, searchNow, wallAt, inBudget, inWorkScope, checkBudget} from '../kernel/prove.ts'
 import {runtimeWall} from './runtime-wall.ts'
-export {withBudget, budgetEnd, inBudget, checkBudget, BudgetExpired, searchNow} from '../kernel/prove.ts'
+export {withBudget, budgetEnd, inBudget, checkBudget, checkWorkEndpoint, BudgetExpired, searchNow} from '../kernel/prove.ts'
 export {traceNow} from './trace-clock.ts'
 // CLI proposal loops historically use epoch milliseconds rather than performance.
 // Preserve that fallback, but share the work clock in either opt-in work mode.
