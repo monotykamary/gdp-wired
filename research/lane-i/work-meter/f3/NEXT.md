@@ -1,38 +1,41 @@
-# Native and original-path continuation checkpoint
+# Native and original-path checkpoint
 
-Committed: `d3171c30` (174-case format contract), `b7986de1` (strategy meter
-handoff). Frozen strategy source: `cd00524f` / tree
+All owned batches are terminal. Active handoffs: `d3171c30`, `b7986de1`,
+`33c65fb5`; frozen strategy source `cd00524f`, tree
 `6d1453342ca15df8bf948465c13cbf9a1aedf8a2`. No W or production admission.
 
-Completed original-path study (`20261111-014806-1pinis`): consensus proves and
-checks with actual ordinary work in both repetitions (212 FM, 863 plain rows),
-broken remains non-proven, raw/results/phase summaries agree. consensus_epr
-exhausts the 15M diagnostic allowance during preflight, with zero EPR work.
-The 50M follow-up (`20261111-015254-2waz3y`) likewise stops in preflight at
-49,841,887 evaluations. Both failures are retained; no original EPR coverage
-claim. Replay `calibration/audit-original.ts` on the old folder, or add
-`epr-only 50000000` on `runs/lane-i/original-epr-50m`.
+## Verified results
 
-Completed native first run (`20261111-014727-41pz5e`), frozen `32a59b2a`:
-raw/verdict/exclusive phase totals match the saved original-MLDR baseline;
-three timestamp-valid stable windows, six changed windows. The 10M span guard
-saturated and zero invocation attributions were accepted. Replay
-`audit-native.mjs` with its log and
-`runs/lane-i/resume-numeric-f3/f3-numeric-mldr-pilot.log`.
+- 174-case bounded format contract and independent negative controls passed.
+- Strategy row proof checked, complete phase events and exact source exported;
+  direct ordinary/EPR fixtures passed. See strategy/VERIFIED-SOURCE.md.
+- Original consensus proves/checks in two fresh repetitions (212 FM, 863 plain
+  rows); broken variant non-proven; raw/result/phase summaries agree.
+- Original consensus_epr stops in preflight at both 15M and 50M diagnostic
+  allowances. At 50M: 49,841,887 evaluations, zero EPR work. Both failures are
+  retained; do not manufacture coverage with further budget bumps.
+- Native 10M run preserved raw/result/phase totals but hit its observation cap.
+- Native 100M run (`20261111-015254-rydo8b`) preserved all those values with
+  31,172,052 spans and no overflow. Five timestamp-valid stable windows,
+  eleven changed windows. One ~304 ms invocation is `canonFlip`'s WeakMap.set;
+  two certFor and two tree-walker go windows remain unattributed. Invocation
+  spans include reflection/callbacks/GC, not an exact native instruction.
+  One invalid profile was excluded and retained only as hash/size metadata;
+  its full payload exceeded the diagnostic log limit.
+- Six span controls / 22 assertions and full type/lint on 1,727 files passed
+  (`20261111-015523-rjj9on`). Native canonicalizer identity: 96 cases, 335
+  marked calls, original/wrapped-off/wrapped-on raw and output agreement.
 
-IN FLIGHT — do not duplicate:
-- Native 100M guard follow-up: task `336b73f9-cccd-4637-893b-28d72a048c5e`,
-  batch `20261111-015254-rydo8b`, output `runs/lane-i/native-profile-100m/`.
-  Same source/model/baseline; only diagnostic cap changed. Require full
-  comparison and audit. Invocation spans include callbacks/reflection/GC,
-  not exact native instructions; full F3 and calibrated W remain open.
-Final type/lint retry after explicit audit receipt types PASSED in
-`20261111-015523-rjj9on`, output `runs/lane-i/native-final-typed/`: six span
-controls, 22 assertions, zero warnings/errors on 1,727 files. The prior
-audit-only TypeScript inference failure remains preserved.
+## Replay / next work
 
-Native controls: six tests / 22 assertions pass. Production canonicalization
-identity: 96 cases, 335 spans, all raw counters and outputs unchanged across
-original/wrapped-off/wrapped-on. COMMIT-30 has passed commitlint. New F3 and
-original-coverage files await final checks and commit; leave `.reflex-saved/`
-untouched. Update REPORT/README and this checkpoint with actual results.
+`audit-native.mjs` takes a native-profile log plus the saved
+`runs/lane-i/resume-numeric-f3/f3-numeric-mldr-pilot.log` baseline.
+`calibration/audit-original.ts` audits `runs/lane-i/original-path-coverage`, or
+`runs/lane-i/original-epr-50m epr-only 50000000`. Audit logs are saved there.
+
+Next: retain full invalid-profile payloads through bounded artifact transport;
+attribute certFor/tree-walker windows; investigate EPR preflight cost without
+changing original inputs; continue full F3. Lane D must deliberately freeze
+any new source and opt in to the strategy hook before pricing it. Full F3,
+original EPR coverage, calibrated W and the 35% strategy share remain open.
+Leave `.reflex-saved/` untouched.

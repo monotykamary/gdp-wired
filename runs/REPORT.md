@@ -86,8 +86,7 @@ The first invocation-level F3 follow-up (`20261111-014727-41pz5e`, source
 `32a59b2a`) preserved the original MLDR raw vector, verdict and phase totals.
 Its three stable windows have valid timestamps, but the 10-million-span guard
 saturated: zero operation attributions were accepted. The independent audit
-preserves that limitation. A 100-million-span follow-up is running with the
-same source, original input and saved baseline; no result is claimed yet.
+preserves that limitation. The 100-million-span follow-up completed in\n`20261111-015254-rydo8b`: all raw counters, verdict and exclusive phase totals\nstill match; 31,172,052 spans, **no overflow**, five timestamp-valid stable\nwindows and eleven changed windows. One stable ~304 ms window is attributed\nto **`kernel/kernel.ts::canonFlip` → `flipMemo.set` (`WeakMap.set`)**. This is\nan invocation boundary (including reflection/callbacks/possible GC), not an\nexact native instruction. The other four stable windows remain unattributed\n(two `certFor`, two tree-walker `go` frames). One invalid profile was excluded;\nonly its hash/size metadata was retained because its full payload exceeded\nthe diagnostic log limit. This limitation remains explicit.\n\nReplayable audits are in `runs/lane-i/native-profile-100m/audit.log`,\n`runs/lane-i/original-path-coverage/audit.log`, and\n`runs/lane-i/original-epr-50m/audit.log`. Final tooling passed six controls,\n22 assertions and full type/lint across 1,727 files (`20261111-015523-rjj9on`).\nAll owned batches are terminal. Full F3, remaining native attribution,\noriginal EPR coverage and calibrated W are **not** claimed.
 
 Fable's **35% strategy-pool share remains provisional**. No calibrated price
 per strategy unit is being supplied. The new phase labels expose that work to

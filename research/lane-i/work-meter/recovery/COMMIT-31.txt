@@ -1,0 +1,1 @@
+docs: record native attribution and coverage limits
