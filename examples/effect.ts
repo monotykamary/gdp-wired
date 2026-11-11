@@ -1,6 +1,6 @@
 // Effect services (core/effect.ts): for the suite (`bun examples/effect.ts`) and core/effect.test.ts.
 //   - the daily quota of examples/effect-quota.ts, read from its source with extractEffect (checked by running it on
-//     Effect's runtime beside the rule), its laws proven: a user's use stays within the limit, spend reports what is
+//     Effect's runtime beside the rule), its extracted model laws kernel-proven (source-law unchecked): a user's use stays within the limit, spend reports what is
 //     left, a refund never raises the use;
 //   - the same quota for one user written by hand, run beside the service with conforms; the broken variant's window
 //     lasts a millisecond too long, and a run shows where the two part;
@@ -13,6 +13,7 @@ import {all, bool, forall, int, Int, nat, rule, when, yes} from '../core/dsl.ts'
 import {conforms, extractEffect, fromSchema} from '../core/effect.ts'
 import {proveRule, proveSteps} from '../core/dsl.ts'
 import {DAY, make} from './effect-quota.ts'
+import {modelProven} from './model-proof.ts'
 
 export const quotaFile = fileURLToPath(new URL('./effect-quota.ts', import.meta.url))
 export const readQuota = () => extractEffect(readFileSync(quotaFile, 'utf8'), {file: quotaFile, entry: 'make', effect})
@@ -53,7 +54,7 @@ if (import.meta.main) {
   const x = readQuota(), r = x.rule!, {laws, stepLaws} = quotaLaws(r)
   results.push(['quota (Effect): read and checked on the runtime', x.ok, true])
   const v = proveRule(r, [...x.invariants!, ...laws]), s = proveSteps(r, x.invariants!, stepLaws)
-  results.push(['quota (Effect): its laws', v.proven && v.checked && s.proven && s.checked, true])
+  results.push(['quota (Effect): extracted model laws (source-law unchecked)', modelProven(v) && modelProven(s), true])
   results.push(['quota by hand: runs as the service does', !quotaConforms().failure, true])
   const broken = quotaConforms('a window a millisecond too long')
   results.push(['quota by hand, a window a millisecond too long: runs as the service does', !broken.failure, false])

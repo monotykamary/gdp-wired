@@ -35,11 +35,11 @@ test('multiple handlers share one table', () => {
   expect(x.model!.maps).toHaveLength(1)
 })
 
-test('ORM map representation invariant is proved and kernel checked', () => {
+test('ORM map representation invariant is kernel proved but source-law unchecked', () => {
   const x = extract(file, {entry: ['create', 'update', 'read'], orm, check: {runs: 8, states: 10, probes: true}})
   expect(x.refusals).toEqual([])
   expect(x.invariants!.length).toBeGreaterThan(0)
-  expect(proveRule(x.rule!, x.invariants!)).toMatchObject({proven: true, checked: true})
+  expect(proveRule(x.rule!, x.invariants!)).toMatchObject({kernelProven: true, proven: false, checked: false, translation: 'unchecked'})
 }, 30000)
 
 test('exported service method executes the actual class', () => {

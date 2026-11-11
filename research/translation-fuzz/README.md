@@ -1,0 +1,29 @@
+# Source/law translation differential fuzzer
+
+This exercises generated, owned TypeScript decisions, not external applications. A case contains source, explicit finite input/state domains, and a typed law AST. Default replay and native-law validation are enabled. `--no-replay` is available only for explicit historical/model investigations and never makes an unchecked current source proof pass. `proveSteps(..., {from: 'any', search: false})` verdicts with **both** `proven` and `checked` are source-proof candidates; `kernelProven` also selects blocked model proofs for independent diagnosis. Every proved law is independently evaluated against the real transpiled source on **every** row of the declared finite domain, even after its first violation. Neither extracted transitions, law parsing, DSL evaluation nor the library's calendar code is used by that oracle.
+
+The finite domain is the *experiment's* domain, not a completeness claim about TypeScript, all safe integers, or all strings. Map states enumerate absent/present combinations for both declared keys and every declared payload, then execute public `put` calls on a fresh instance. Records are ordinary plain data. Exceptions, extraction refusals, unknowns and timeouts are recorded separately; they never count as a passing proof. Each case gets an isolated process and an exact-process deadline.
+
+## Reproducibility and coverage
+
+Case IDs are `uint32 seed:uint32 index`; generation is random-access, so shard count and completion order do not change a case. The PRNG's state advances by odd `0x9e3779b9` modulo 2^32. Its period is exactly 2^32 for **every** seed: multiplication by the checked modular inverse proves that no smaller positive number of steps returns to a state. Right-xorshifts and odd multiplications make its output mixer bijective. Tests cover the fixed initial raw words, inverse certificate, exhaustive smaller-width cycles, repeatability, seed variation, shard partitioning and mandatory family/tag coverage. This period belongs to the word generator: finite source templates can and do repeat. This is not a cryptographic random generator.
+
+Thirteen stratified families combine bounded boolean/arithmetic expression trees, reordered and disjoint string-literal domains, absent/null results, record inputs/results, parameter destructuring, map payloads (including `false` and zero), early returns, local temporaries, truthiness, strict-null comparisons and business-day comparisons. Each family generates several plausible and deliberately false laws. Coverage receipts separate generated families from accepted/proved ones: syntax generation alone is not semantic coverage. The four historical controls pass through the same generator/prover/native-oracle path as generated cases. B1 uses the verified guarded numeric Map.get case, not a direct optional-return class rejected by the historical reader. The stronger five-case historical backport test, including published 0.47.0 Map.get, is `research/verify-all/source-crosscheck-historical.ts`.
+
+```sh
+# From the repository root, on Boat:
+bun test research/translation-fuzz/model.test.ts
+bun research/translation-fuzz/run.ts --api "$PWD" --seed 31 --count 130 --out /tmp/fuzz-31
+# Independent shard: its case indices are 1,9,17,...
+bun research/translation-fuzz/run.ts --api "$PWD" --seed 31 --count 130 --shard 1 --shards 8 --out /tmp/fuzz-shard1
+# Historical controls; pass an explicitly restored historical source tree.
+bun research/translation-fuzz/run.ts --api /tmp/historical-tree --controls --no-replay --out /tmp/controls
+# Default replay comparison and public tarball paths:
+# add --replay, and add --dist for a published package's dist/core entry points.
+```
+
+The canonical suite runs the period/generator tests and a bounded 13-family default-replay smoke job. The treadmill runs 26 cases per seed and fingerprints the reader, law translator, native checker and generator. `python3 research/translation-fuzz/treadmill_test.py` checks this registration without contacting the scheduler.
+
+`FINDING` means an actual source-proof verdict was natively false. `BLOCKED_FINDING` is a bad model proof refused by default protection; `MODEL_FINDING` is its explicit no-replay counterpart. Neither is silently counted as a source proof. `FALSE_REJECTION` means the native checker disagreed with the independent finite oracle, and `UNSAFE_VERDICT` violates the checked/unchecked contract; both fail the run. Summaries separately count all these, worker errors, timeouts and nontrivial proved-law coverage. A zero `findings` count does not mean no bad model translations remain.
+
+The oracle interprets primitive law equality as strict value equality: string contents rather than domain-local indices, and null separately from undefined. JSONL rows contain the exact source, law text, replay mode, native violations and first witness. `{$undefined:true}` encodes an actual JS `undefined`, not null. A summary contains actual native-row counts, not estimates. `--expect-clean` makes findings fail a regression run; exploration records findings without conflating them with harness failures. Use `--emit-cases` to retain every case in the Boat log, then run `aggregate.ts LOG...` to check receipt identities, generator hashes, counter totals and accepted/proved coverage. `minimize.ts API_ROOT SEED INDEX LAW_INDEX` tries strictly smaller law ASTs through the same proof/native path, with at most 64 attempts; it accepts default-blocked model errors as well as actual false source proofs (`--no-replay` as a fifth argument selects explicit model-only investigation). It does not claim to minimize source. Source reduction is a separate triage step. The worker's input is generated locally; never point it at untrusted executable source. Findings require triage and a minimal standalone regression; no outside contact or publication is part of this tool.

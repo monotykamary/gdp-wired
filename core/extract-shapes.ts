@@ -7,7 +7,7 @@ import ts from 'typescript'
 import {standaloneClosure} from './extract-standalone.ts'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
-import {type Arg, type Event, Exec, type Heap, type Layout, type ListObj, type ListOp, type ListWrite, type MapDecl, type MapObj, type Model, type Path, type Rec, Retype, type Setup, type Shape, type Sort, type Term, type V, type Var, memberName, mergeOps, normalize, program, refuse, shapeOf, unparen} from './extract-read.ts'
+import {type Arg, type Event, Exec, type Heap, type Layout, type LazyRoot, type ListObj, type ListOp, type ListWrite, type MapDecl, type MapObj, type Model, type Path, type Rec, Retype, type Setup, type Shape, type Sort, type Term, type V, type Var, lazyKey, memberName, mergeOps, normalize, program, refuse, shapeOf, unparen} from './extract-read.ts'
 
 export type ReadOptions = {
   entry: string,
@@ -96,7 +96,7 @@ function materialize(ex: Exec, v: V, layout: Layout, p: Path, at: ts.Node, out: 
         // An untyped input written here: of this field's sort, and the step read again.
         const e = v.t === 'num' || v.t === 'bool' ? v.e : v.t === 'str' ? v.e : undefined
         const name = e && (e.op === 'var' || e.op === 'svar') ? e.name : undefined, lz = name ? ex.s.lazy.get(name) : undefined
-        if (lz && !ex.s.lazySorts.has(`${lz.prefix}${lz.field}`)) throw new Retype(`${lz.prefix}${lz.field}`, sort)
+        if (lz && !ex.s.lazySorts.has(lazyKey(lz, lz.field))) throw new Retype(lazyKey(lz, lz.field), sort)
         refuse(at, `${layout.name} is set to a ${v.t}`)
       }
       out.leaves.set(layout.name, sort.k === 'choice' ? {t: 'choice', e: ex.asChoice(v, sort.values, at), values: sort.values} : v)
@@ -275,18 +275,27 @@ const OTHER = '@@other'
 // An argument as the request's inputs: a scalar is one input; a record (an action) is its fields, a union of records
 // their fields together, with the field every member gives as a literal (`type`) a choice among them.
 type ArgOf = {v: V, events: {select: Record<string, string>, arg: Arg}[], heap: [string, Rec][]}
-function argOf(ex: Exec, param: ts.ParameterDeclaration, prefix: string, body: ts.Node): ArgOf {
+function argOf(ex: Exec, param: ts.ParameterDeclaration, prefix: string, body: ts.Node, ordinal = 0): ArgOf {
   const s = ex.s, t = s.checker.getTypeAtLocation(param), pname = ts.isIdentifier(param.name) ? param.name.text : 'arg'
   const lits = ts.isIdentifier(param.name) ? literalsOf(body, param.name.text, s) : new Map<string, string[]>()
   // Untyped (JavaScript): its fields as the code reads them, numbers unless compared with string literals.
   if (t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) {
-    for (const [path, xs] of lits) if (!s.lazySorts.has(`${prefix}${path}`)) s.lazySorts.set(`${prefix}${path}`, {k: 'choice', values: [...xs, OTHER]})
-    const id = `input.${prefix}${pname}`
+    // The scope and ordinal are semantic identity; the prefix is only a readable name.
+    const root: LazyRoot = [prefix, ordinal]
+    if (ordinal) prefix = `${prefix}arg${ordinal}_`
+    const lazy = {prefix, root}
+    for (const [path, xs] of lits) {
+      const key = lazyKey(lazy, path)
+      if (!s.lazySorts.has(key)) s.lazySorts.set(key, {k: 'choice', values: [...xs, OTHER]})
+    }
+    const id = ex.id(`input.${prefix}${pname}`)
     s.notes.add(`${pname} is untyped: its fields are inputs as the code reads them (numbers, or a choice among the literals it is compared with and ${OTHER})`)
     const disc = [...lits.keys()].find(k => !k.includes('_'))
-    const arg: Arg = {k: 'lazy', prefix}
-    const events = disc ? [...lits.get(disc)!, OTHER].map(value => ({select: {[`$lazy:${prefix}${disc}`]: value}, arg})) : [{select: {}, arg}]
-    return {v: {t: 'ref', id}, events, heap: [[id, {k: 'rec', fields: new Map(), origin: 'input', lazy: {prefix}}]]}
+    const arg: Arg = {k: 'lazy', ...lazy}
+    const key = disc && lazyKey(lazy, disc)
+    if (key) (s.lazySelections ??= new Set()).add(key)
+    const events = key ? [...lits.get(disc!)!, OTHER].map(value => ({select: {[key]: value}, arg})) : [{select: {}, arg}]
+    return {v: {t: 'ref', id}, events, heap: [[id, {k: 'rec', fields: new Map(), origin: 'input', lazy}]]}
   }
   const members = t.isUnion() && t.types.every(m => m.flags & ts.TypeFlags.Object) ? t.types : [t]
   if (members.length === 1 && !(t.flags & ts.TypeFlags.Object)) {
@@ -323,7 +332,7 @@ function argOf(ex: Exec, param: ts.ParameterDeclaration, prefix: string, body: t
     vars.set(key, x)
     return Exec.valueOf(x)
   }
-  const id = `input.${prefix}${pname}`, v = make({k: 'rec', fields: [...all]}, [], id)
+  const id = ex.id(`input.${prefix}${pname}`), v = make({k: 'rec', fields: [...all]}, [], id)
   const template = (m: ts.Type | undefined): Arg => {
     const of = (sh: Shape, path: string[], present: (f: string) => boolean): Arg => (sh.k === 'rec'
       ? {k: 'rec', fields: sh.fields.filter(([f]) => path.length || present(f)).map(([f, fs]) => [f, of(fs, [...path, f], present)])}
@@ -357,6 +366,7 @@ export function readStandalone(code: string, file: string, opts: ReadOptions): M
     if (!t.isUnion() && (t.flags & ts.TypeFlags.Object)) {
       const sh = shapeOf(t, s.checker, param)
       if (sh.k !== 'rec' || !sh.fields.length || sh.fields.some(([key, field]) => ['__proto__', 'prototype', 'constructor'].includes(key) || (field.k !== 'bool' && field.k !== 'choice') || (field.k === 'choice' && (field.values.length > 64 || field.values.some(x => !x))))) refuse(param, 'standalone: record inputs need boolean or finite string choice fields')
+      s.notes.add('standalone record inputs are immutable plain-data snapshots: own data properties only, no accessors or Proxies')
       const a = argOf(ex, param, `${name}_`, fn.body ?? fn)
       if (a.events.length !== 1 || Object.keys(a.events[0]!.select).length) refuse(param, 'standalone: record input has multiple variants')
       for (const [id, object] of a.heap) p.heap.set(id, object)
@@ -518,9 +528,9 @@ function readFunctionsOnce(code: string, file: string, opts: ReadOptions): Model
     let p: Path = {pc: sel.op === 'const' ? [] : [sel], locals: new Map(), heap: h, wrote: [], nows: 0}
     p = ex.bind(f.parameters[0]!.name, stateV, p)
     const combos: {select: Record<string, string>, args: Arg[]}[] = [{select: ev ? {[ev.name]: names[i]!} : {}, args: [{k: 'state'}]}]
-    for (const param of f.parameters.slice(1)) {
+    for (const [ordinal, param] of f.parameters.slice(1).entries()) {
       if (param.dotDotDotToken) refuse(param, 'a rest parameter')
-      const a = argOf(ex, param, multi ? `${names[i]}_` : '', f.body ?? f)
+      const a = argOf(ex, param, multi ? `${names[i]}_` : '', f.body ?? f, ordinal)
       for (const [id, o] of a.heap) p.heap.set(id, o)
       p = ex.bind(param.name, a.v, p)
       const next = combos.flatMap(c => a.events.map(e => ({select: {...c.select, ...e.select}, args: [...c.args, e.arg]})))
@@ -537,12 +547,6 @@ function readFunctionsOnce(code: string, file: string, opts: ReadOptions): Model
     throws.push(refusalOf(ex))
     for (const c of combos) events.push({select: c.select, call: names[i]!, args: c.args, names: f.parameters.map(x => x.name.getText())})
   })
-  // An untyped record's discriminant, chosen by name now that the variable is made.
-  for (const e of events) for (const [k, value] of Object.entries(e.select)) if (k.startsWith('$lazy:')) {
-    delete e.select[k]
-    const v = [...s.lazy].find(([, l]) => `$lazy:${l.prefix}${l.field}` === k)
-    if (v) e.select[v[0]] = value
-  }
   const final = joinAll(ex0, outs, first)
   // A default export by its function's own name.
   const own = ts.isFunctionDeclaration(first) ? first.name?.text : ts.isVariableDeclaration(first.parent) && ts.isIdentifier(first.parent.name) ? first.parent.name.text : undefined
@@ -551,6 +555,15 @@ function readFunctionsOnce(code: string, file: string, opts: ReadOptions): Model
 }
 
 function finish(s: Setup, m: {name: string, shape: Model['shape'], file: string, entry: string, layout: Layout, init: Record<string, Term>, final: StateVal, refuse: B, pre: B, events: Event[], outputs: string[], event?: string, ctorArgs?: string[], initSource?: string}): Model {
+  // Resolve synthetic discriminants through the same structured identity as sort inference.
+  const lazyVars = new Map([...s.lazy].map(([name, field]) => [lazyKey(field, field.field), name]))
+  for (const event of m.events) for (const key of s.lazySelections ?? []) {
+    const value = event.select[key]
+    if (value === undefined) continue
+    delete event.select[key]
+    const name = lazyVars.get(key)
+    if (name) event.select[name] = value
+  }
   const vars = [...s.vars.values()]
   const writes: Record<string, Term> = {}
   for (const [n, v] of m.final.leaves) if (!sameTerm(v, Exec.valueOf(s.vars.get(n)!))) writes[n] = termOf(v)
@@ -884,9 +897,9 @@ function attempt(code: string, file: string, opts: ReadOptions, written: Set<str
     const name = memberName(m.name), ex = new Exec(s), sel = I.is(evL, name)
     let p: Path = {pc: [sel], locals: new Map(), heap: new Map(stateHeap), wrote: [], nows: 0}
     const args: Arg[] = []
-    for (const param of m.parameters) {
+    for (const [ordinal, param] of m.parameters.entries()) {
       if (param.dotDotDotToken || !ts.isIdentifier(param.name)) refuse(param, 'a rest or destructured argument')
-      const a = argOf(ex, param, `${name}_`, m.body ?? m)
+      const a = argOf(ex, param, `${name}_`, m.body ?? m, ordinal)
       if (a.events.length !== 1) refuse(param, 'an argument that is a union of records')
       for (const [id, o] of a.heap) p.heap.set(id, o)
       p = ex.bind(param.name, a.v, p)
@@ -1100,9 +1113,9 @@ function factoryAttempt(code: string, file: string, opts: ReadOptions, written: 
     const ex = new Exec(s), sel = I.is(evL, f.name)
     let p: Path = {pc: [sel], locals: new Map(), heap: new Map(stateHeap), wrote: [], nows: 0}
     const args: Arg[] = []
-    for (const param of f.decl.parameters) {
+    for (const [ordinal, param] of f.decl.parameters.entries()) {
       if (param.dotDotDotToken || !ts.isIdentifier(param.name)) refuse(param, 'a rest or destructured argument')
-      const a = argOf(ex, param, `${f.name}_`, f.decl.body ?? f.decl)
+      const a = argOf(ex, param, `${f.name}_`, f.decl.body ?? f.decl, ordinal)
       if (a.events.length !== 1) refuse(param, 'an argument that is a union of records')
       for (const [id, o] of a.heap) p.heap.set(id, o)
       p = ex.bind(param.name, a.v, p)

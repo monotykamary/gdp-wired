@@ -8,6 +8,15 @@ import {join} from 'node:path'
 import {check} from '../../core/cli.ts'
 import {scoreRecall, type RecallSide} from './score.ts'
 
+// Extraction replay remains useful, but Java has no enabled native source-law journal.
+const sourceUnknown = (law: Awaited<ReturnType<typeof check>>['rules'][number]['laws'][number], kernelProven?: boolean) => {
+  expect(law).toMatchObject({verdict: 'unknown', translation: 'unchecked', ...(kernelProven === undefined ? {} : {kernelProven})})
+  expect(law.run).toBeUndefined()
+  expect(law.replayed).toBeUndefined()
+  expect(law.cert).toBeUndefined()
+}
+
+
 const nativeTest = ['javac', 'java'].every(tool => spawnSync(tool, ['-version'], {timeout: 5000}).status === 0) ? test : test.skip
 nativeTest('owned source policy identity cannot be renamed or weakened into a repair', async () => {
   const root = mkdtempSync(join(tmpdir(), 'owned-policy-identity-'))
@@ -62,14 +71,16 @@ nativeTest('owned source policy identity cannot be renamed or weakened into a re
       expect(rule.laws).toHaveLength(1)
       expect(rule.laws[0]!.name).toBe(variant.name)
       expect(rule.laws[0]!.expr).toBe(variant.expr)
-      expect(rule.laws[0]!.verdict).toBe(i === 0 ? 'broken' : 'proven')
+      sourceUnknown(rule.laws[0]!, i !== 0)
     }
-    expect(results.map(r => r.exit)).toEqual([1, 0, 0, 0])
+    expect(results.map(r => r.exit)).toEqual([2, 2, 2, 2])
     const before: RecallSide = {version: 'vulnerable', status: 'checked', result: results[0]!}
     const after = (i: number): RecallSide => ({version: 'fixed', status: 'checked', result: results[i]!})
     expect(scoreRecall([before, after(3)]).found).toBe(false) // native original replay is still missing
     const original = results[0]!.rules[0]!.laws[0]!
-    const args = original.run!.map(line => {
+    // Authored native control; the source verdict supplies no witness or finding.
+    const witness = ['hit(allowed=false)']
+    const args = witness.map(line => {
       const call = /^hit\(allowed=(true|false)\)$/.exec(line)
       if (!call) throw Error('owned policy witness is outside the boolean fixture: ' + JSON.stringify(original.run))
       return call[1]!
@@ -85,10 +96,10 @@ nativeTest('owned source policy identity cannot be renamed or weakened into a re
       controls.push({variant: variant.id, originalContractBroken: bad === 'true', steps: Number(steps)})
       expect(readFileSync(join(root, variant.id, 'OwnedPolicy.java'), 'utf8')).toBe(sources[i]!)
     }
-    original.replayed = 'exact original witness replayed on four unchanged owned sources under the original contract'
+    sourceUnknown(original, false)
     const admissions = variants.slice(1).map((v, i) => ({variant: v.id, found: scoreRecall([before, after(i + 1)]).found}))
-    expect(admissions).toEqual([{variant: 'renamed', found: false}, {variant: 'weakened', found: false}, {variant: 'repaired', found: true}])
-    console.log('OWNED_POLICY_IDENTITY ' + JSON.stringify({scope: 'self-owned native Java only; no upstream recall', hashes: sources.map(text => createHash('sha256').update(text).digest('hex')), policies: variants.map((v, i) => ({variant: v.id, name: v.name, expr: v.expr, verdict: results[i]!.rules[0]!.laws[0]!.verdict})), witness: original.run, controls, admissions}))
+    expect(admissions).toEqual([{variant: 'renamed', found: false}, {variant: 'weakened', found: false}, {variant: 'repaired', found: false}])
+    console.log('OWNED_POLICY_IDENTITY ' + JSON.stringify({scope: 'self-owned native Java only; no upstream recall', hashes: sources.map(text => createHash('sha256').update(text).digest('hex')), policies: variants.map((v, i) => ({variant: v.id, name: v.name, expr: v.expr, verdict: results[i]!.rules[0]!.laws[0]!.verdict})), witness, controls, admissions}))
   } finally { rmSync(root, {recursive: true, force: true}) }
 }, 120_000)
 
@@ -145,14 +156,16 @@ nativeTest('owned duplicate policy declarations remain ambiguous in either order
       expect(rule.laws.map(l => l.name)).toEqual(variant.policies.map(() => name))
       expect(rule.laws.map(l => l.expr)).toEqual(variant.policies)
       if (i < 2) {
-        expect(rule.laws[0]!.verdict).toBe(i === 0 ? 'broken' : 'proven')
+        sourceUnknown(rule.laws[0]!, i !== 0)
       } else {
         expect(result.exit).not.toBe(0)
         expect(rule.laws.every(l => l.verdict === 'not read' && l.why?.includes('a law of this name is stated twice'))).toBe(true)
       }
     }
     const original = results[0]!.rules[0]!.laws[0]!
-    const args = original.run!.map(line => {
+    // Authored native control; the source verdict supplies no witness or finding.
+    const witness = ['hit(allowed=false)']
+    const args = witness.map(line => {
       const call = /^hit\(allowed=(true|false)\)$/.exec(line)
       if (!call) throw Error('owned duplicate-policy witness is outside the boolean fixture: ' + JSON.stringify(original.run))
       return call[1]!
@@ -168,15 +181,15 @@ nativeTest('owned duplicate policy declarations remain ambiguous in either order
       controls.push({variant: variant.id, broken: bad === 'true', steps: Number(steps)})
       expect(readFileSync(join(root, variant.id, 'OwnedDuplicate.java'), 'utf8')).toBe(sources[i]!)
     }
-    original.replayed = 'same original witness natively replayed on six unchanged owned policy-declaration variants'
+    sourceUnknown(original, false)
     const side = (version: string, i: number): RecallSide => ({version, status: 'checked', result: results[i]!})
-    expect(scoreRecall([side('vulnerable', 0), side('fixed', 1)]).found).toBe(true)
+    expect(scoreRecall([side('vulnerable', 0), side('fixed', 1)]).found).toBe(false)
     const admissions = [2, 3, 4].map(i => ({variant: variants[i]!.id, ...scoreRecall([side('vulnerable', 0), side('fixed', i)])}))
     admissions.push({variant: variants[5]!.id, ...scoreRecall([side('vulnerable', 5), side('fixed', 1)])})
     for (const admitted of admissions) {
       expect(admitted.found).toBe(false)
       expect(admitted.reason).toContain('ambiguous')
     }
-    console.log('OWNED_DUPLICATE_POLICIES ' + JSON.stringify({scope: 'self-owned native Java only; no upstream recall', hashes: sources.map(text => createHash('sha256').update(text).digest('hex')), policies: variants.map((v, i) => ({variant: v.id, declarations: results[i]!.rules[0]!.laws.map(l => ({name: l.name, expr: l.expr, verdict: l.verdict, why: l.why}))})), witness: original.run, controls, admissions}))
+    console.log('OWNED_DUPLICATE_POLICIES ' + JSON.stringify({scope: 'self-owned native Java only; no upstream recall', hashes: sources.map(text => createHash('sha256').update(text).digest('hex')), policies: variants.map((v, i) => ({variant: v.id, declarations: results[i]!.rules[0]!.laws.map(l => ({name: l.name, expr: l.expr, verdict: l.verdict, why: l.why}))})), witness, controls, admissions}))
   } finally { rmSync(root, {recursive: true, force: true}) }
 }, 120_000)

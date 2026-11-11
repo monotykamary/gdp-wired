@@ -13,6 +13,7 @@ import {fileURLToPath} from 'node:url'
 type Any = any
 import {type Law} from '../core/machine.ts'
 import {proveRule} from '../core/dsl.ts'
+import {modelProven} from './model-proof.ts'
 import {type Extraction} from '../core/extract.ts'
 import {extractEffect, fiberRun} from '../core/effect.ts'
 import {inProject} from './effect-retry.ts'
@@ -92,16 +93,16 @@ if (import.meta.main) {
   for (const v of [4, 3] as const) {
     const {x} = readBank(v), r = x.rule as Any
     results.push([`bank (Effect ${v}): read and checked on the runtime (${x.evidence?.requests} requests)`, x.ok, true])
-    for (const l of bankLaws(r)) { const p = proveRule(r, [...x.invariants ?? [], l]); results.push([`bank (Effect ${v}): ${l.name}`, p.proven && p.checked, true]) }
+    for (const l of bankLaws(r)) { const p = proveRule(r, [...x.invariants ?? [], l]); results.push([`bank (Effect ${v}): ${l.name}`, modelProven(p), true]) }
     const b = readBank(v, 'two transactions'), br = b.x.rule as Any
     results.push([`bank with save in two transactions (Effect ${v}): read as every fiber's steps`, b.x.ok && /every fiber/.test(br?.machine.name ?? ''), true])
     const bv = proveRule(br, [...b.x.invariants ?? [], bankLaws(br)[0]!])
-    results.push([`bank with save in two transactions (Effect ${v}): the money is conserved`, bv.proven, false])
+    results.push([`bank with save in two transactions (Effect ${v}): the money is conserved`, modelProven(bv), false])
     const raced = await raceSaves(v, b.file)
     if (bv.run) runs.push(`two transactions (Effect ${v}): ${fiberRun(b.x, bv.run).join('; ')}; on the runtime, two saves of 10 at once leave checking ${raced.checking} and savings ${raced.savings}: ${raced.checking + raced.savings} in all`)
     results.push([`bank with save in two transactions (Effect ${v}): two saves at once on the runtime keep 100`, raced.checking + raced.savings === 100, false])
   }
-  for (const [name, got, want] of results) console.log(`${got === want ? 'ok  ' : 'FAIL'} ${name}: ${got ? 'proven' : 'refused'}`)
+  for (const [name, got, want] of results) console.log(`${got === want ? 'ok  ' : 'FAIL'} ${name}: ${got ? 'passed (model/runtime check; not a source proof)' : 'refused'}`)
   for (const r of runs) console.log(`     ${r}`)
   if (results.some(([, got, want]) => got !== want)) process.exit(1)
 }

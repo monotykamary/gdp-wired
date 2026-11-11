@@ -29,7 +29,7 @@ const checked = (source: string) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const law = r.stepLaw('each request increments once', (b: any, a: any) => a.total.eq(b.total.plus(1)))
   const result = proveSteps(r, x.invariants ?? [], [law])
-  expect(result.proven && result.checked).toBe(true)
+  expect(result).toMatchObject({kernelProven: true, proven: false, checked: false, translation: 'unchecked'})
   return x
 }
 const refused = (source: string, why: RegExp) => {

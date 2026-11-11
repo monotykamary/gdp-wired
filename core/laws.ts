@@ -29,6 +29,8 @@
 //   mode == "closed", outcome == SLOW_ERROR, mode == :closed        a choice by its value
 import {type Cond, Choice, Int, Str, Term, all, any, forall, no, not, yes} from './dsl.ts'
 import type {Extraction, Name} from './extract.ts'
+import {attachNativeLaw} from './source-check.ts'
+import {nativeLaw} from './native-law.ts'
 import {type AnyRule, type TwoRunLaw, agreement, isolation, noninterference} from './relational.ts'
 import {type BusinessDays, type Calendar, CalendarError, businessDays} from './calendar.ts'
 export {businessDays, type Calendar} from './calendar.ts'
@@ -64,7 +66,7 @@ export function lawsIn(text: string, where = ''): LawText[] {
 
 // --- the expression's syntax ---------------------------------------------------------------------------------------------
 type Seg = {f: string} | {i: X} | {call: true, args?: string}
-type X = {k: 'num', v: number} | {k: 'str', v: string, holes?: X[], parts?: string[]} | {k: 'bool', v: boolean} | {k: 'null', absence?: 'null' | 'undefined'}
+export type X = {k: 'num', v: number} | {k: 'str', v: string, holes?: X[], parts?: string[]} | {k: 'bool', v: boolean} | {k: 'null', absence?: 'null' | 'undefined'}
   | {k: 'path', head: string, segs: Seg[]} | {k: 'un', op: '-' | 'not', x: X}
   | {k: 'bin', op: string, a: X, b: X} | {k: 'old', x: X} | {k: 'fn', f: string, xs: X[]} | {k: 'forall', v: string, over: X, body: X}
   | {k: 'dur', v: number, text: string} | {k: 'bdur', v: number, text: string}
@@ -213,7 +215,9 @@ export function buildLaw(x: Extraction, l: LawText, opts: LawOpts = {}): Built {
   read(e, probe, names, true)
   // (a law on a method, the line above it, is a law of its step: the state after it, old(x) before)
   const step = !!l.method || ['input', 'answer', 'result', 'failed', 'clock', 'method', 'old'].some(k => probe.roles.has(k))
-  const method = probe.methods.size === 1 ? [...probe.methods][0] : l.method
+  // An explicit binding is authoritative even when a name has only one owner.
+  if (l.method && [...probe.methods].some(method => method !== l.method)) throw new LawError(`the law is bound to ${l.method}, but reads a value belonging to ${[...probe.methods].join(', ')}`)
+  const method = l.method ?? (probe.methods.size === 1 ? [...probe.methods][0] : undefined)
   if (probe.methods.size > 1) throw new LawError(`it reads the arguments of ${[...probe.methods].join(' and ')}: a law of one step is about one method`)
   const gate = step && method && names.some(n => n.role === 'method') ? method : undefined
   const body0 = (b: Record<string, unknown>, a: Record<string, unknown>, pins?: Ctx['pins'], bits?: Bits) => read(e, {strictOptional, absence, consts: x.consts, b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock, cal, pins, ...(bits ? {bits} : {})}, names, false) as Cond
@@ -229,9 +233,10 @@ export function buildLaw(x: Extraction, l: LawText, opts: LawOpts = {}): Built {
   }
   // (a law of one step reads no function, so business days there pin each time's week to a key, ∀w. guard → law)
   const body = (b: Record<string, unknown>, a: Record<string, unknown>) => (step && probe.roles.has('bdays') ? pinned(b, a, (bb, aa, p) => body0(bb, aa, p)) : bitBody(b, a))
-  if (!step) return {kind: 'law', law: r.law(l.name, (env: never) => (x.quiet ? ((env as Record<string, Int>)[x.quiet]!.eq(0) as Cond).implies(body0(env, env)) : body0(env, env)))}
+  const bind = (built: Built): Built => { attachNativeLaw(x.rule!, built.law, l.name, built.kind === 'step' ? gate ?? method : undefined, nativeLaw(e, opts, parse, {...Object.fromEntries(names.filter(n => n.role === 'const' && n.value !== undefined).map(n => [n.code, n.value!])), ...x.consts}, new Set(names.map(n => n.code.split('.')[0]!)))); return built }
+  if (!step) return bind({kind: 'law', law: r.law(l.name, (env: never) => (x.quiet ? ((env as Record<string, Int>)[x.quiet]!.eq(0) as Cond).implies(body0(env, env)) : body0(env, env)))})
   const mname = names.find(n => n.role === 'method')?.rule
-  return {kind: 'step', ...(gate ? {method: gate} : {}), law: r.stepLaw(l.name, (b: never, a: never) => body(b, a) as never, gate ? (b: never) => ((b as Record<string, unknown>)[mname!] as Choice<string>).is(gate) : undefined)}
+  return bind({kind: 'step', ...(gate ? {method: gate} : {}), law: r.stepLaw(l.name, (b: never, a: never) => body(b, a) as never, gate ? (b: never) => ((b as Record<string, unknown>)[mname!] as Choice<string>).is(gate) : undefined)})
 }
 // A law of one step over business days: read once to find its times, then held at every week of each (a key, two for
 // a time that may be below 0), under the guards that only each time's own week meets.
@@ -344,7 +349,8 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
       // over the integers (a <= x // k is k·a <= x; a < x // k is k·(a + 1) <= x), so it needs no function, which a law
       // of one step can't read)
       const flip: Record<string, string> = {'<': '>', '<=': '>=', '>': '<', '>=': '<=', '==': '==', '!=': '!='}
-      if (flip[e.op] && (e.a.k === 'bdur' || e.b.k === 'bdur')) return {t: 'cond', v: businessCompare(e, flip, c, go, dry)}
+      // Calendar operands retain strict optional checks throughout nested arithmetic.
+      if (flip[e.op] && (e.a.k === 'bdur' || e.b.k === 'bdur')) return {t: 'cond', v: businessCompare(e, flip, c, operand => val(operand, {...c, strictOptional: true}, names, dry), dry)}
       const divk = (x: X) => (x.k === 'bin' && x.op === '//' && (constOf(x.b) ?? 0) >= 1 ? x as X & {k: 'bin'} : undefined)
       if (flip[e.op] && (divk(e.b) || divk(e.a))) {
         // Inspect the original numerator before rewriting division into comparisons.
@@ -410,7 +416,7 @@ function businessCompare(e: X & {k: 'bin'}, flip: Record<string, string>, c: Ctx
   if (!c.cal) throw new LawError(`${n.text}: business days need a calendar ([calendar] in gdp.toml: weekend = ["sat", "sun"], holidays = ["2026-12-25", ...], utc_offset = "-05:00")`)
   c.roles.add('bdays')
   const later = go(diff.a), earlier = go(diff.b)
-  if (c.strictOptional && [later, earlier].some(v => v.t === 'opt')) throw new LawError('arithmetic on an optional standalone value is not supported')
+  if ([later, earlier].some(v => v.t === 'opt')) throw new LawError(c.strictOptional ? 'arithmetic on an optional standalone value is not supported' : 'arithmetic on an optional value is not supported in calendar comparisons')
   if (dry) return yes
   const cal = c.cal, at = (x: X, v: V) => {
     const t = num(v), p = c.pins

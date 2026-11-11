@@ -76,7 +76,7 @@ test('tenant isolation templates cover creation, updates and deletion including 
   expect(del.rules[0]!.laws[1]!.verdict).toBe('broken')
 })
 
-test('read isolation is two-run noninterference, not absence of foreign writes', async () => {
+test('read isolation retains two-run model evidence, not a native source proof', async () => {
   const [l] = securityLaws({kind: 'isolation', name: 'private reads', identity: 'tenant', seeing: 'result'})
   const source = `export class Rows { rows = new Map<string, number>();
     put(tenant: string, value: number) { this.rows.set(tenant, value); }
@@ -84,9 +84,15 @@ test('read isolation is two-run noninterference, not absence of foreign writes',
     read(tenant: string, target: string): number { return this.rows.get(target) ?? 0; }
   }`
   const bad = await run(source)
-  expect(bad.rules[0]!.laws[0]!.verdict).toBe('broken')
   const good = await run(source.replace('this.rows.get(target)', 'this.rows.get(tenant)'))
-  expect(good.rules[0]!.laws[0]!.verdict).toBe('proven')
+  for (const [result, kernelProven] of [[bad, false], [good, true]] as const) {
+    expect(result.exit).toBe(2)
+    const claim = result.rules[0]!.laws[0]!
+    expect(claim).toMatchObject({verdict: 'unknown', translation: 'unchecked', kernelProven})
+    expect(claim.run).toBeUndefined()
+    expect(claim.replayed).toBeUndefined()
+    expect(claim.cert).toBeUndefined()
+  }
 })
 
 test('security mode refuses unsupported concurrency rather than proving the atomic handler', async () => {

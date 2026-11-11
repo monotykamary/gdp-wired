@@ -35,8 +35,18 @@ export type LeastRead = {name: string, some: string, map: string, key: string, w
 // Where each of the code's values is in the rule: the state's tree, leaf by leaf.
 export type Layout = {k: 'scalar', name: string} | {k: 'rec', fields: [string, Layout][]} | {k: 'map', name: string} | {k: 'list', name: string} | {k: 'const', value: Term}
 export type Term = {s: 'num', e: N} | {s: 'bool', e: B} | {s: 'choice', e: L} | {s: 'str', e: K}
+// Lazy inputs have structured semantic identities. A readable prefix is only a display name:
+// (scope, argument ordinal, field path) must not alias because underscores happen to line up.
+export type LazyRoot = readonly [scope: string, argument: number]
+export type LazyField = {prefix: string, root?: LazyRoot, field: string}
+export const lazyKey = (record: {prefix: string, root?: LazyRoot}, field: string): string => JSON.stringify([record.root ?? [record.prefix, 0], [field]])
+export const sameLazyRoot = (a: {prefix: string, root?: LazyRoot} | undefined, b: {prefix: string, root?: LazyRoot}): boolean => {
+  if (!a) return false
+  const x = a.root ?? [a.prefix, 0], y = b.root ?? [b.prefix, 0]
+  return x[0] === y[0] && x[1] === y[1]
+}
 // How a request is made of the code: the call, and its arguments built from the rule's inputs.
-export type Arg = {k: 'input', name: string} | {k: 'maybe-bool', name: string, missing: string} | {k: 'lit', value: string} | {k: 'rec', fields: [string, Arg][]} | {k: 'state'} | {k: 'lazy', prefix: string}
+export type Arg = {k: 'input', name: string} | {k: 'maybe-bool', name: string, missing: string} | {k: 'lit', value: string} | {k: 'rec', fields: [string, Arg][]} | {k: 'state'} | {k: 'lazy', prefix: string, root?: LazyRoot}
 // (names: the code's own name of each argument, for a law written over them)
 export type Event = {select: Record<string, string>, call: string, args: Arg[], names?: string[]}
 // (pre: writes at other keys before this one, in order, where a step writes several: the last one wins at its key)
@@ -65,7 +75,7 @@ export type Model = {
   // For a class: how the object is made (its constructor's arguments, by param) and the fields that are constants.
   ctorArgs?: string[],
   // The inputs an untyped record grew (by its prefix and field), and the code's own initial state (its source text).
-  lazy?: Map<string, {prefix: string, field: string}>,
+  lazy?: Map<string, LazyField>,
   initSource?: string,
   // The spans of the entry's file the step reads (for the branches counted).
   spans?: [number, number][],
@@ -110,7 +120,7 @@ type V =
   // A front end's own values (core/effect.ts): an effect not yet run (run on a path, it gives its value and the path
   // after), and a tuple a function returns (Ref.modify's [result, state]).
   | {t: 'eff', run: (p: Path) => [V, Path]} | {t: 'tuple', xs: V[]}
-type Rec = {k: 'rec', fields: Map<string, V>, origin: 'fresh' | 'input' | 'this' | 'shared', lazy?: {prefix: string}}
+type Rec = {k: 'rec', fields: Map<string, V>, origin: 'fresh' | 'input' | 'this' | 'shared', lazy?: {prefix: string, root?: LazyRoot}}
 type MapObj = {k: 'map', base: string, decl: MapDecl, w?: {key: K, has: B, vals: Map<string, V>}, origin: 'fresh' | 'input' | 'this' | 'shared', gen: number}
 type ListObj = {k: 'list', base: string, decl: MapDecl, ops: ListOp[], origin: 'fresh' | 'input' | 'this' | 'shared'}
 type Obj = Rec | MapObj | ListObj | {k: 'alias', to: V}
@@ -282,7 +292,8 @@ export type Setup = {
   hints: WeakMap<object, string>,
   notes: Set<string>,
   // The inputs an untyped record grew, each with the record's prefix and its field.
-  lazy: Map<string, {prefix: string, field: string}>,
+  lazy: Map<string, LazyField>,
+  lazySelections?: Set<string>,
   // While a constructor runs: `new Map()` and `{}` are a map that starts empty.
   ctor?: boolean,
   // The files read (the entry's, and those its relative imports name): their declarations are the step's to inline.
@@ -571,7 +582,7 @@ export class Exec {
     const set = (p: Path, there: boolean): Path => ({...p, locals: new Map(p.locals).set(x.text, there ? v.v : absent)})
     // A falsy optional scalar can be present (false or 0), not just absent.
     // Preserve the opt value on that arm; only an explicit absence comparison narrows both arms.
-    if (this.standalone && !absenceTest) return present ? [set(pt, true), pe] : [pt, set(pe, true)]
+    if (!absenceTest) return present ? [set(pt, true), pe] : [pt, set(pe, true)]
     return present ? [set(pt, true), set(pe, false)] : [set(pt, false), set(pe, true)]
   }
   bind(name: ts.BindingName, v: V, p: Path): Path {
@@ -938,11 +949,11 @@ export class Exec {
         return sh.k === 'num' || sh.k === 'bool' || sh.k === 'choice' || sh.k === 'str' ? sh : undefined
       })()
       if (opaque) return [{t: 'opaque', what: opaque}, p]
-      const path = `${o.lazy.prefix}${f}`, sort = this.s.lazySorts.get(path) ?? typed ?? {k: 'num'}
-      // The same field read again (in another guard or action, say) is the same input.
-      const seen = [...this.s.lazy].find(([, l]) => l.prefix === o.lazy!.prefix && l.field === f)?.[0]
-      const nvar = seen ? this.s.vars.get(seen)! : this.newVar(path, sort, 'input'), nv = Exec.valueOf(nvar)
-      this.s.lazy.set(nvar.name, {prefix: o.lazy.prefix, field: f})
+      const key = lazyKey(o.lazy, f), sort = this.s.lazySorts.get(key) ?? typed ?? {k: 'num'}
+      // Repeated reads share one input, independently of its readable scalar name.
+      const seen = [...this.s.lazy].find(([, l]) => lazyKey(l, l.field) === key)?.[0]
+      const nvar = seen ? this.s.vars.get(seen)! : this.newVar(`${o.lazy.prefix}${f}`, sort, 'input'), nv = Exec.valueOf(nvar)
+      this.s.lazy.set(nvar.name, {...o.lazy, field: f})
       const fields = new Map(o.fields).set(f, nv)
       return [nv, {...p, heap: new Map(p.heap).set(v.id, {...o, fields})}]
     }

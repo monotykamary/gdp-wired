@@ -170,16 +170,22 @@ const java = () => ['javac', 'java'].every(tool => spawnSync(tool, ['-version'],
       hashes.push(createHash('sha256').update(source).digest('hex'))
     }
     const [before, after] = results
-    expect(before!.exit).toBe(1); expect(after!.exit).toBe(0)
+    expect(before!.exit).toBe(2); expect(after!.exit).toBe(2)
     for (const result of results) {
       expect(result.rules.map(r => r.ctor).sort((a, b) => (a ?? '').localeCompare(b ?? ''))).toEqual(['()', '(boolean)'])
       expect(result.rules.every(r => r.ok && !!r.checked && r.entry === 'OwnedCounter')).toBe(true)
     }
     const broken = before!.rules.find(r => r.ctor === '()')!.laws[0]!
-    expect(broken.verdict).toBe('broken')
-    expect(before!.rules.find(r => r.ctor === '(boolean)')!.laws[0]!.verdict).toBe('proven')
-    expect(after!.rules.every(r => r.laws[0]!.verdict === 'proven')).toBe(true)
-    const args = broken.run!.map(line => {
+    expect(broken).toMatchObject({verdict: 'unknown', translation: 'unchecked', kernelProven: false})
+    expect(before!.rules.find(r => r.ctor === '(boolean)')!.laws[0]).toMatchObject({verdict: 'unknown', translation: 'unchecked', kernelProven: true})
+    for (const rule of after!.rules) expect(rule.laws[0]).toMatchObject({verdict: 'unknown', translation: 'unchecked', kernelProven: true})
+    for (const result of results) for (const rule of result.rules) {
+      expect(rule.laws[0]!.run).toBeUndefined()
+      expect(rule.laws[0]!.replayed).toBeUndefined()
+      expect(rule.laws[0]!.cert).toBeUndefined()
+    }
+    // Authored native replay control, not a witness supplied by the unchecked source verdict.
+    const args = ['hit(allowed=false)'].map(line => {
       const match = /^hit\(allowed=(true|false)\)$/.exec(line)
       if (!match) throw Error('owned Java witness is outside the boolean hit fixture')
       return match[1]!
@@ -198,10 +204,10 @@ const java = () => ['javac', 'java'].every(tool => spawnSync(tool, ['-version'],
     expect(readFileSync(join(root, 'fixed/OwnedCounter.java'), 'utf8')).toBe(fixed)
     const sides: RecallSide[] = [{version: 'vulnerable', status: 'checked', result: before!}, {version: 'fixed', status: 'checked', result: after!}]
     expect(scoreRecall(sides).found).toBe(false)
-    broken.replayed = 'exact boolean witness replayed by javac/java on both unchanged owned originals and both constructors'
-    expect(scoreRecall(sides).found).toBe(true)
+    // Native reproduction alone cannot promote the unchecked source verdict into strict recall.
+    expect(scoreRecall(sides).found).toBe(false)
     expect(scoreRecall([sides[0]!, {...sides[1]!, result: before!}]).found).toBe(false) // the other constructor was already safe
-    console.log('OWNED_CONSTRUCTOR_REPLAY ' + JSON.stringify({scope: 'self-owned Java source only; not upstream recall', hashes, controls, matchingFixedAdmitted: true, unchangedOriginalAdmitted: false}))
+    console.log('OWNED_CONSTRUCTOR_REPLAY ' + JSON.stringify({scope: 'self-owned Java source only; not upstream recall', hashes, controls, matchingFixedAdmitted: false, unchangedOriginalAdmitted: false}))
   } finally { rmSync(root, {recursive: true, force: true}) }
 }, 90_000)
 

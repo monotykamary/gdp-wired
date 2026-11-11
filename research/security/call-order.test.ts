@@ -8,6 +8,15 @@ import {join} from 'node:path'
 import {check} from '../../core/cli.ts'
 import {scoreRecall, type RecallSide} from './score.ts'
 
+// Extraction replay remains useful, but Java has no enabled native source-law journal.
+const sourceUnknown = (law: Awaited<ReturnType<typeof check>>['rules'][number]['laws'][number], kernelProven?: boolean) => {
+  expect(law).toMatchObject({verdict: 'unknown', translation: 'unchecked', ...(kernelProven === undefined ? {} : {kernelProven})})
+  expect(law.run).toBeUndefined()
+  expect(law.replayed).toBeUndefined()
+  expect(law.cert).toBeUndefined()
+}
+
+
 type OwnedCall = 'arm' | 'hit'
 // Fixture-only gate: validate every line before dispatch, then hand over a frozen copy.
 function replayOwnedTrace<T>(trace: unknown, dispatch: (calls: readonly OwnedCall[]) => T): T {
@@ -152,11 +161,13 @@ nativeTest('owned multi-call witness order changes the native policy outcome', a
       expect(rule.ctor).toBeUndefined()
       expect(rule.ok && !!rule.checked).toBe(true)
       expect(rule.laws).toHaveLength(1)
-      expect(rule.laws[0]!.verdict).toBe(i === 0 ? 'broken' : 'proven')
+      sourceUnknown(rule.laws[0]!, i !== 0)
+      expect(results[i]!.exit).toBe(2)
     }
     const side = (version: string, i: number): RecallSide => ({version, status: 'checked', result: results[i]!})
     expect(scoreRecall([side('vulnerable', 0), side('fixed', 1)]).found).toBe(false)
-    const law = results[0]!.rules[0]!.laws[0]!, witness = law.run!
+    // Authored finite order contrast; never synthesize a finding on the unknown source verdict.
+    const law = results[0]!.rules[0]!.laws[0]!, witness = ['arm()', 'hit()']
     const exact = replayOwnedTrace(witness, calls => [...calls])
     expect(exact).toContain('arm')
     expect(exact).toContain('hit')
@@ -225,8 +236,8 @@ nativeTest('owned multi-call witness order changes the native policy outcome', a
     expect(controls[0]!.broken).toBe(true)
     expect(controls[1]!.broken).toBe(false)
     expect(controls[0]!.sourceSha256).toBe(controls[1]!.sourceSha256)
-    law.replayed = 'exact allowlisted multi-call witness replayed natively; order-only contrast preserved call multiset and source bytes'
-    expect(scoreRecall([side('vulnerable', 0), side('fixed', 1)]).found).toBe(true)
+    sourceUnknown(law, false)
+    expect(scoreRecall([side('vulnerable', 0), side('fixed', 1)]).found).toBe(false)
     expect(scoreRecall([side('vulnerable', 0), side('fixed', 0)]).found).toBe(false)
     console.log('OWNED_CALL_ORDER ' + JSON.stringify({scope: 'finite owned allowlisted method-order contrast only; no general replay or upstream recall guarantee', hashes, constructorArguments: [], methodArguments: [], witness, reorderedWitness: reordered.map(call => call + '()'), controls}))
   } finally { rmSync(root, {recursive: true, force: true}) }

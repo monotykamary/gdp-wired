@@ -164,16 +164,39 @@ test('the complete saved corpus replays without asking the prover again', async 
   expect((missing as Error).message).toContain('every owned fixture')
 }, 120_000)
 
-test('every owned mutant is freshly refuted and source-replayed, with no clean policy refuted', async () => {
-  let count = 0
+test('fresh native mutants retain source detection; model-only frontends never fabricate findings', async () => {
+  const modelOnly = new Set(['compare-set', 'lock', 'transaction', 'race', 'read-isolation'])
+  let count = 0, uncheckedMutants = 0
   for (const fixture of fixtures) {
     const row = await measure(fixture)
-    expect(row.baseline.fullyRead).toBe(true)
+    expect(row.baseline.fullyRead).toBe(true) // extraction replay, not a source-law proof
     expect(row.baseline.claims.length).toBeGreaterThan(0)
-    expect(row.baseline.claims.every(l => l.verdict === 'proven')).toBe(true)
-    expect(row.mutants.every(m => m.detected)).toBe(true)
-    for (const m of row.mutants) expect(m.replays[0]!.mutant.steps.length).toBeGreaterThan(0)
+    if (modelOnly.has(fixture)) {
+      expect(row.baseline.exit).toBe(2)
+      for (const law of row.baseline.claims) expect(law).toMatchObject({kernelProven: true, verdict: 'unknown', translation: 'unchecked'})
+      for (const m of row.mutants) {
+        expect(m.side.fullyRead).toBe(true)
+        expect(m.side.exit).toBe(2)
+        expect(m.side.claims.length).toBeGreaterThan(0)
+        for (const law of m.side.claims) expect(law).toMatchObject({kernelProven: false, verdict: 'unknown', translation: 'unchecked'})
+        expect(m.detected).toBe(false)
+        expect(m.replays).toEqual([])
+      }
+      for (const side of [row.baseline, ...row.mutants.map(m => m.side)]) for (const law of side.claims) {
+        expect(law.run).toBeUndefined()
+        expect(law.replayed).toBeUndefined()
+        expect(law.cert).toBeUndefined()
+      }
+      uncheckedMutants += row.mutants.length
+    } else {
+      // Do not weaken native-validated TypeScript baselines or their original-source replay requirements.
+      expect(row.baseline.exit).toBe(0)
+      expect(row.baseline.claims.every(l => l.verdict === 'proven')).toBe(true)
+      expect(row.mutants.every(m => m.detected)).toBe(true)
+      for (const m of row.mutants) expect(m.replays[0]!.mutant.steps.length).toBeGreaterThan(0)
+    }
     count += row.mutants.length
   }
   expect(count).toBe(16)
+  expect(uncheckedMutants).toBe(5)
 }, 600_000)

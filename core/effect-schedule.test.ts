@@ -4,16 +4,24 @@
 // repeat inside a method read as part of its step, checked on the runtime; and what isn't read refused with why.
 import {expect, test} from 'bun:test'
 import * as effect from 'effect'
-import {proveRule, proveSteps} from './dsl.ts'
+import {all, proveRule, proveSteps} from './dsl.ts'
 import {extractEffect, fromSchedule, jitterRun, scheduleConforms} from './effect.ts'
 import type {ScheduleRule} from './effect-schedule.ts'
 import {inProject, policyLaws, readLease, readPolicy} from '../examples/effect-retry.ts'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any
+const modelOnly = {kernelProven: true, proven: false, checked: false, translation: 'unchecked'}
 // A schedule written for Effect 3, in a project whose effect is 3.x (its parameters the rule's params).
 const sched3 = (src: string, params: string[] = [], runs = 100) => extractEffect(inProject(3, 's.ts', `import {Duration, Effect, Schedule} from 'effect'\nexport const s = (${params.map(p => `${p}: number`).join(', ')}) => ${src}\n`), {entry: 's', check: {runs}} as never)
 const sched4 = (src: string, params: string[] = [], runs = 100) => fromSchedule(src, {effect, params, runs})
+
+test('a source-derived schedule cannot become a plain DSL proof when replay is off', () => {
+  const x = fromSchedule('Schedule.recurs(2)', {effect, runs: 0})
+  expect(x.ok).toBe(true)
+  const r = x.rule!
+  expect(proveRule(r, [r.law('trivial', () => all())])).toMatchObject(modelOnly)
+})
 
 const TAGGED = '{_tag: "Timeout"} | {_tag: "Refused", code: number}'
 export const V4 = [
@@ -89,8 +97,8 @@ test('the backoff\'s laws, both lines: within the cap, at most 6 retries, stops 
   for (const v of [4, 3] as const) {
     const x = readPolicy(v), r = x.rule as Any, {laws, stepLaws} = policyLaws(r)
     expect(x.ok).toBe(true)
-    for (const l of laws.slice(0, 3)) expect([v, l.name, proveRule(r, [l])]).toMatchObject([v, l.name, {proven: true, checked: true}])
-    expect(proveSteps(r, [laws[0]!, laws[3]!], stepLaws)).toMatchObject({proven: true, checked: true})
+    for (const l of laws.slice(0, 3)) expect([v, l.name, proveRule(r, [l])]).toMatchObject([v, l.name, modelOnly])
+    expect(proveSteps(r, [laws[0]!, laws[3]!], stepLaws)).toMatchObject(modelOnly)
     // (the exponential a recur function: its lemmas proven by induction when it is made, its facts the rule's)
     expect(Object.keys(r.machine.fns)).toEqual(['exponential_x2_b100'])
     expect(x.notes.join('\n')).toMatch(/defined by its recurrence .* proven by induction/)
@@ -114,7 +122,7 @@ test('broken: a jitter after the cap waits past it, a run Effect\'s schedule tak
   expect(x.replay!(run).what).toMatch(/goes on after 2399 ms$/)
   // (and before the cap, within it: a jitter of the delay before the cap is capped)
   const fine = extractEffect(inProject(3, 'p.ts', 'import {Schedule} from \'effect\'\nexport const p = Schedule.exponential(\'100 millis\').pipe(Schedule.jittered, Schedule.union(Schedule.spaced(\'2 seconds\')), Schedule.intersect(Schedule.recurs(6)))\n'), {entry: 'p'}), fr = fine.rule as Any
-  expect(proveRule(fr, [fr.law('the delay never exceeds the cap', ({delay}: Any) => delay.atMost(2000))])).toMatchObject({proven: true, checked: true})
+  expect(proveRule(fr, [fr.law('the delay never exceeds the cap', ({delay}: Any) => delay.atMost(2000))])).toMatchObject(modelOnly)
 }, 300_000)
 
 test('retry and repeat inside a method (4.x and 3.x): read as part of its step, checked on the runtime', () => {
@@ -201,5 +209,5 @@ test('the lease (examples/effect-retry-policy.ts): acquire retried with the back
   const x = readLease() as Any, r = x.rule
   expect([x.ok, x.refusals]).toEqual([true, []])
   expect(x.schedules.map((s: Any) => s.use)).toEqual(['retry'])
-  expect(proveSteps(r, x.invariants ?? [], [r.stepLaw('an acquire never takes the lease from its holder', (b: Any, a: Any) => b.holder.eq(0).or(a.holder.eq(b.holder)), (b: Any) => b.method.is('acquire'))])).toMatchObject({proven: true, checked: true})
+  expect(proveSteps(r, x.invariants ?? [], [r.stepLaw('an acquire never takes the lease from its holder', (b: Any, a: Any) => b.holder.eq(0).or(a.holder.eq(b.holder)), (b: Any) => b.method.is('acquire'))])).toMatchObject(modelOnly)
 }, 120_000)

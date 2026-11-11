@@ -24,6 +24,7 @@ import {extractEffect, fiberRun, primitiveConforms, primitiveLaws, primitiveRule
 import type {Spec} from '../core/effect-prims.ts'
 import {buildLaw, lawsIn} from '../core/laws.ts'
 import {inProject} from './effect-retry.ts'
+import {modelProven} from './model-proof.ts'
 
 export const poolFile = fileURLToPath(new URL('./effect-pool.ts', import.meta.url))
 const CANCEL = `  // Stops a worker early: gives its permit back (without having taken one).
@@ -80,24 +81,24 @@ if (import.meta.main) {
     for (const spec of SPECS) {
       const x = primRule(spec, v), {laws, stepLaws, refuted} = primitiveLaws(x, spec)
       results.push([`${specName(spec)} (Effect ${v}): its rule read and checked (${x.evidence?.requests} requests)`, x.ok, true])
-      results.push([`${specName(spec)} (Effect ${v}): ${laws.map(l => l.name).join('; ')}`, proveRule(x.rule!, laws).proven, true])
-      for (const sl of stepLaws) results.push([`${specName(spec)} (Effect ${v}): ${sl.name}`, proveSteps(x.rule!, laws, [sl]).proven, true])
-      for (const l of refuted) results.push([`${specName(spec)} (Effect ${v}): ${l.name} (Effect's own: a release is unchecked)`, proveRule(x.rule!, [...laws, l]).proven, false])
+      results.push([`${specName(spec)} (Effect ${v}): ${laws.map(l => l.name).join('; ')}`, modelProven(proveRule(x.rule!, laws)), true])
+      for (const sl of stepLaws) results.push([`${specName(spec)} (Effect ${v}): ${sl.name}`, modelProven(proveSteps(x.rule!, laws, [sl])), true])
+      for (const l of refuted) results.push([`${specName(spec)} (Effect ${v}): ${l.name} (Effect's own: a release is unchecked)`, modelProven(proveRule(x.rule!, [...laws, l])), false])
       const c = await primitiveConforms(spec, E, {x, runs: 40})
       results.push([`${specName(spec)} (Effect ${v}): the rule beside Effect's own on random operations and fibers (${c.checked} completions, ${c.blocked} found waiting, ${c.interrupted} interrupted${c.failure ? `; ${c.failure}` : ''})`, !c.failure, true])
     }
     const {x} = readPool(v)
     results.push([`pool (Effect ${v}): read as every fiber's steps and checked on the runtime (${x.evidence?.requests} requests)`, x.ok && /every fiber/.test(x.rule?.machine.name ?? ''), true])
     const p = provePool(x)
-    for (const [name, verdict] of p.verdicts) results.push([`pool (Effect ${v}): ${name}`, verdict.proven && verdict.checked, true])
+    for (const [name, verdict] of p.verdicts) results.push([`pool (Effect ${v}): ${name}`, modelProven(verdict), true])
     const b = readPool(v, 'release without acquire'), use = poolLaws(b.x).at(-1)!
     const bv = proveRule(b.x.rule!, [...b.x.invariants ?? [], use])
-    results.push([`pool with a cancel that gives back a permit it never took (Effect ${v}): ${use.name}`, bv.proven, false])
+    results.push([`pool with a cancel that gives back a permit it never took (Effect ${v}): ${use.name}`, modelProven(bv), false])
     const peak = await racePool(v, b.file, true), peak0 = await racePool(v, b.file, false)
     if (bv.run) runs.push(`release without acquire (Effect ${v}): ${fiberRun(b.x, bv.run).join('; ')}; on the runtime, three workers after one cancel: ${peak} hold a permit at once (${peak0} without the cancel)`)
     results.push([`pool with a cancel (Effect ${v}): on the runtime, at most two workers at once after a cancel`, peak <= 2, false])
   }
-  for (const [name, got, want] of results) console.log(`${got === want ? 'ok  ' : 'FAIL'} ${name}: ${got ? 'proven' : 'refused'}`)
+  for (const [name, got, want] of results) console.log(`${got === want ? 'ok  ' : 'FAIL'} ${name}: ${got ? 'passed (model/runtime check; not a source proof)' : 'refused'}`)
   for (const r of runs) console.log(`     ${r}`)
   if (results.some(([, got, want]) => got !== want)) process.exit(1)
 }

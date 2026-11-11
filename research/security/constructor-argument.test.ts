@@ -8,6 +8,15 @@ import {join} from 'node:path'
 import {check} from '../../core/cli.ts'
 import {scoreRecall, type RecallSide} from './score.ts'
 
+// Extraction replay remains useful, but Java has no enabled native source-law journal.
+const sourceUnknown = (law: Awaited<ReturnType<typeof check>>['rules'][number]['laws'][number], kernelProven?: boolean) => {
+  expect(law).toMatchObject({verdict: 'unknown', translation: 'unchecked', ...(kernelProven === undefined ? {} : {kernelProven})})
+  expect(law.run).toBeUndefined()
+  expect(law.replayed).toBeUndefined()
+  expect(law.cert).toBeUndefined()
+}
+
+
 const nativeTest = ['javac', 'java'].every(tool => spawnSync(tool, ['-version'], {timeout: 5000}).status === 0) ? test : test.skip
 nativeTest('owned boolean constructor argument changes the native witness outcome', async () => {
   const root = mkdtempSync(join(tmpdir(), 'owned-boolean-argument-'))
@@ -51,11 +60,13 @@ nativeTest('owned boolean constructor argument changes the native witness outcom
       expect(rule.ctor).toBeUndefined()
       expect(rule.ok && !!rule.checked).toBe(true)
       expect(rule.laws).toHaveLength(1)
-      expect(rule.laws[0]!.verdict).toBe(i === 0 ? 'broken' : 'proven')
+      sourceUnknown(rule.laws[0]!, i !== 0)
+      expect(results[i]!.exit).toBe(2)
     }
     const side = (version: string, i: number): RecallSide => ({version, status: 'checked', result: results[i]!})
     expect(scoreRecall([side('vulnerable', 0), side('fixed', 1)]).found).toBe(false)
-    const law = results[0]!.rules[0]!.laws[0]!, witness = law.run!
+    // Authored native constructor/call control, not a source finding.
+    const law = results[0]!.rules[0]!.laws[0]!, witness = ['made with enforce = false', 'hit(allowed=false)']
     const init = /^made with enforce = (true|false)$/.exec(witness[0] ?? '')
     expect(init).not.toBeNull()
     expect(init![1]).toBe('false')
@@ -90,10 +101,10 @@ nativeTest('owned boolean constructor argument changes the native witness outcom
     expect(controls[1]!.broken).toBe(false)
     expect(controls[0]!.calls).toEqual(controls[1]!.calls)
     expect(controls[0]!.sourceSha256).toBe(controls[1]!.sourceSha256)
-    law.replayed = 'exact boolean constructor argument and call witness replayed; only-argument-flipped contrast changed the original native outcome'
+    sourceUnknown(law, false)
     const repaired = scoreRecall([side('vulnerable', 0), side('fixed', 1)])
     const unchanged = scoreRecall([side('vulnerable', 0), side('fixed', 0)])
-    expect(repaired.found).toBe(true)
+    expect(repaired.found).toBe(false)
     expect(unchanged.found).toBe(false) // a safe alternate argument is not a repaired source
     console.log('OWNED_BOOLEAN_ARGUMENT ' + JSON.stringify({scope: 'finite owned boolean-argument contrast only; no general forwarding or upstream recall guarantee', hashes, witness, flippedWitness, controls, repairedAdmitted: repaired.found, unchangedAdmitted: unchanged.found}))
   } finally { rmSync(root, {recursive: true, force: true}) }
@@ -141,9 +152,11 @@ nativeTest('owned same-type constructor arguments require their original positio
       expect(rule.ctor).toBeUndefined()
       expect(rule.ok && !!rule.checked).toBe(true)
       expect(rule.laws).toHaveLength(1)
-      expect(rule.laws[0]!.verdict).toBe(i === 0 ? 'broken' : 'proven')
+      sourceUnknown(rule.laws[0]!, i !== 0)
+      expect(results[i]!.exit).toBe(2)
     }
-    const law = results[0]!.rules[0]!.laws[0]!, witness = law.run!
+    // Authored native argument-order control, not a source finding.
+    const law = results[0]!.rules[0]!.laws[0]!, witness = ['made with permit = false, deny = true', 'hit(allowed=false)']
     const init = /^made with (.+)$/.exec(witness[0] ?? '')
     expect(init).not.toBeNull()
     const named = new Map<string, string>()
@@ -192,9 +205,9 @@ nativeTest('owned same-type constructor arguments require their original positio
       expect(control.calls).toEqual(calls)
       expect(control.sourceSha256).toBe(hashes[0]!)
     }
-    law.replayed = 'exact named boolean bindings replayed in source order; swapped and separate single-argument flips changed native outcome'
+    sourceUnknown(law, false)
     const side = (version: string, i: number): RecallSide => ({version, status: 'checked', result: results[i]!})
-    expect(scoreRecall([side('vulnerable', 0), side('fixed', 1)]).found).toBe(true)
+    expect(scoreRecall([side('vulnerable', 0), side('fixed', 1)]).found).toBe(false)
     expect(scoreRecall([side('vulnerable', 0), side('fixed', 0)]).found).toBe(false)
     console.log('OWNED_ARGUMENT_SWAP ' + JSON.stringify({scope: 'finite owned same-type argument contrast only; no general forwarding or upstream recall guarantee', hashes, witness, parameterOrder: ['permit', 'deny'], controls}))
   } finally { rmSync(root, {recursive: true, force: true}) }

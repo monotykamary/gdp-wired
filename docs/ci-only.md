@@ -25,6 +25,73 @@ Use `--entry` to choose the function and `--mode standalone` to select the pure-
 
 Early-return decisions over booleans and string-literal unions, comparisons of comparisons, and string-union or nullable scalar results are useful cases for this path. Unsupported effects and code outside the closed function boundary are refused rather than ignored. Put one function's laws immediately above that function. Multi-step protocol models describe flows and remain separate tests: proving an individual decision does not prove that its callers enforce the right order.
 
+### Source-law validation is mandatory for a source proof
+
+A kernel proof establishes the translated model's law. Before a source law is reported as proven, its original
+expression is also evaluated over the native results, states and actual parameter bindings collected by replay.
+This independent check uses JavaScript values and semantics, including `undefined`, `NaN`, truthiness and strings;
+it does not compare the extractor's encoded choice indices or hidden optional payloads.
+
+The API verdict and CLI JSON report `translation: 'exhaustive'` for standalone decisions whose entire declared
+finite input domain was visited, or `'sampled'` for unbounded domains using the replay seeds and samples. The
+finite domain is read independently from the original TypeScript types. Domains exceeding 65,536 combinations
+are **unchecked**, not silently sampled and called exhaustive. Exhaustive here covers the declared plain-data
+input contract, not arbitrary accessors, Proxies or surrounding application behavior. Sampling is evidence of
+agreement, not a universal proof that the translation is correct.
+
+A native counterexample refuses the proof with **`translation: 'error'`**, the words **“translation error”**, and a
+`translationWitness`. CLI JSON preserves absent and non-finite values explicitly (for example `{"$undefined":true}`
+and `{"$number":"NaN"}`). Report this as a translation bug; do not work around it by disabling replay.
+
+**Breaking:** disabling replay (`[check] runs = 0`, `states = 0`, `probes = false` in `gdp.toml`, or the equivalent
+API `check` option), or setting `check.lawCrossCheck: false`, returns **`translation: 'unchecked'`**, with
+`proven: false` and `checked: false`. The CLI returns **exit 2**, never a successful unchecked source check.
+Unavailable native interpretations, lost source metadata, and source-derived model transformations that no
+longer have an original native interpretation are also unchecked. In particular, temporal and composed-source
+claims cannot become certified source proofs merely because their derived mathematical model proves.
+
+For stateful code, native laws are sampled on constructor states and traces reached from them. Arbitrary
+drawn states and solver-generated probe states still exercise source-to-model conformance, but do not
+establish reachability and cannot refute a reachable-state invariant merely by violating it at the start.
+Probe-only runs without reachable native-law observations are unchecked.
+
+Native-law support is narrower than extraction or runtime-conformance support. Foreign-language frontends,
+Effect schedules, and fiber-lifted services currently lack a compatible native-law journal and therefore
+return unchecked source results. Other Effect/ORM paths are unchecked when their actual parameter bindings
+or law interpretation are unavailable. A successful existing rule replay does not upgrade these results.
+`kernelProven: true` retains a checked mathematical model proof for diagnosis; it is not a successful source
+proof, a source certificate, or grounds for counting an unknown result as a finding. Programmatic callback
+laws over extracted models likewise remain unchecked unless independently bound to the original source law.
+Ordinary source-free DSL/model proofs retain their existing semantics.
+
+### Record arguments are plain-data snapshots
+
+Standalone record inputs model **immutable plain-data snapshots with stable own data properties**. Accessors
+(getters/setters), Proxies, inherited dynamic properties, and mutation during a call are outside this contract,
+even when their TypeScript structural types match. The extractor reports this restriction in its notes whenever
+it accepts a record argument. It cannot inspect every object a future caller will supply; generated replay inputs
+are plain records, so a successful replay does not establish that arbitrary accessor-backed or proxy-backed
+arguments are equivalent. Establish the plain-data contract at the application's input boundary before relying
+on these source-law results. Copying or spreading an unknown object may itself invoke getters or proxy traps;
+it is not an automatic proof that this contract holds.
+
+### Returned record field names
+
+A record result's fields keep their source names in laws, including `result.value` and `result.failed`:
+
+```ts
+// gdp: law fields are retained: result.value == 7 and result.failed == true
+export function decide(): {value: number, failed: boolean} {
+  return {value: 7, failed: true};
+}
+```
+
+These fields are scoped to the law's method. A standalone field named `failed` is just a returned boolean,
+not call-failure status; bare `failed` is refused when no failure channel exists. Non-standalone/class and
+Effect result envelopes retain their legacy bare `result`/`failed` aliases for compatibility. In such an
+envelope, `failed` can name a modeled result property rather than an exception; use `result.failed` for the
+returned field explicitly instead of assuming it certifies call success or failure.
+
 ## Fallback: keep the model only in tests
 
 For source outside the reader's subset, write a model beside the tests, prove its laws, and test the production function against that model. Neither the model nor the prover needs to ship.

@@ -29,7 +29,7 @@ const increment = (x: ReturnType<typeof checked>, amount: number) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const law = r.stepLaw('the selected MRO method determines the increment', (b: any, a: any) => a.total.eq(b.total.plus(amount)))
   const result = proveSteps(r, x.invariants ?? [], [law])
-  expect(result.proven).toBe(true)
+  expect(result).toMatchObject({kernelProven: true, proven: false, checked: false, translation: 'unchecked'})
 }
 
 t('leftmost own method wins over a later base inheriting the root method', () => {

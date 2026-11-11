@@ -1,21 +1,21 @@
 [
   {
     "name": "part0",
-    "cmd": "bun -e \"console.log(JSON.stringify({part:0,data:await Bun.file(\\\"/home/user/track-m-s10-receipts-NJ0RiM/0.txt\\\").text()}))\"",
+    "cmd": "bun -e \"console.log(JSON.stringify({part:0,data:await Bun.file(\\\"./section11-receipts/0.txt\\\").text()}))\"",
     "cpu": 8,
     "memory": 1024,
     "timeout": 30
   },
   {
     "name": "part1",
-    "cmd": "bun -e \"console.log(JSON.stringify({part:1,data:await Bun.file(\\\"/home/user/track-m-s10-receipts-NJ0RiM/1.txt\\\").text()}))\"",
+    "cmd": "bun -e \"console.log(JSON.stringify({part:1,data:await Bun.file(\\\"./section11-receipts/1.txt\\\").text()}))\"",
     "cpu": 8,
     "memory": 1024,
     "timeout": 30
   },
   {
     "name": "part2",
-    "cmd": "bun -e \"console.log(JSON.stringify({part:2,data:await Bun.file(\\\"/home/user/track-m-s10-receipts-NJ0RiM/2.txt\\\").text()}))\"",
+    "cmd": "bun -e \"console.log(JSON.stringify({part:2,data:await Bun.file(\\\"./section11-receipts/2.txt\\\").text()}))\"",
     "cpu": 8,
     "memory": 1024,
     "timeout": 30
