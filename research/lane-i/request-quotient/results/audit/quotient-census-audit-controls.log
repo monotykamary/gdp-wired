@@ -1,0 +1,6 @@
+QUOTIENT_AUDIT_CONTROL {"name":"source","exit":1}
+QUOTIENT_AUDIT_CONTROL {"name":"custody","exit":1}
+QUOTIENT_AUDIT_CONTROL {"name":"ledger","exit":1}
+QUOTIENT_AUDIT_CONTROL {"name":"clock","exit":1}
+QUOTIENT_AUDIT_CONTROL {"name":"repeat-trace","exit":1}
+QUOTIENT_AUDIT_CONTROLS {"source":"bfe647cfd3b81e10c497ca4d5911a8097a02586b","positive":true,"rejected":5}

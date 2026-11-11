@@ -1,0 +1,7 @@
+Lean (version 4.34.0, x86_64-unknown-linux-gnu, commit 293d5d0c0c3f3dded4688b3ccd6a33939ac5102b, Release)
+'RequestQuotient.read_congruence' depends on axioms: [propext, Classical.choice, Quot.sound]
+'RequestQuotient.same_read_projection_same_outputs' depends on axioms: [propext, Classical.choice, Quot.sound]
+research/lane-i/request-quotient/ReadSet.lean:106:0: error: Unexpected name `RequestQuotient` after `end`: The current section is unnamed
+
+Hint: Delete the name `RequestQuotient` to end the current unnamed scope; outer named scopes can then be closed using additional `end` command(s):
+  end ̵R̵e̵q̵u̵e̵s̵t̵Q̵u̵o̵t̵i̵e̵n̵t̵

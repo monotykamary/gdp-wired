@@ -1,0 +1,10 @@
+[
+  {
+    "name": "quotient-evidence-types",
+    "cmd": "bun port-input/verify.ts types",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 600,
+    "vm_type": "large"
+  }
+]

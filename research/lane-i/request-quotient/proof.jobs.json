@@ -1,0 +1,10 @@
+[
+  {
+    "name": "quotient-readset-proof",
+    "cmd": "TC=$HOME/.elan/toolchains/leanprover--lean4---v4.34.0; export LEAN_PATH=$TC/lib/lean; \"$TC/bin/lean\" --version; \"$TC/bin/lean\" research/lane-i/request-quotient/ReadSet.lean",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 180,
+    "vm_type": "large"
+  }
+]

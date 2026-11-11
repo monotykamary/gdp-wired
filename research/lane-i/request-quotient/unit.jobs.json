@@ -1,0 +1,1 @@
+[{"name":"quotient-unit","cmd":"bun port-input/verify.ts quotient","timeout":300,"cpu":2,"memory":8192,"vm_type":"large"},{"name":"quotient-types","cmd":"bun port-input/verify.ts types","timeout":600,"cpu":2,"memory":8192,"vm_type":"large"}]

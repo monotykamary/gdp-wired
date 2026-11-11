@@ -1,4 +1,30 @@
-# LATEST — main 0.48.0 merged into lane I; scoped gate staged for D
+# LATEST — request quotient gated on the release integration; staged for D
+
+Runtime **bfe647cfd3b81e10c497ca4d5911a8097a02586b**, parent D-GREEN `4c1c05dc`.
+Three-file opt-in change only; checker, Lean, interpreter and prices unchanged.
+36,288 MLDR requests reduce to **1,800** step-read classes; refusals and walks
+are not generalized.
+
+Required exclusive **9950X xlarge** same-VM ABBA: actual admission-prefix
+generation **6,243.38 → 4,320.58 ms** mean (**30.80% lower**), all **43** ordered
+candidates identical, **zero proof queries**. Net provisional units
+36,731,970.10 → 32,913,227.00. This replaces neither the old 49-law lane-B input
+with an equality claim nor a full end-to-end 60-second measurement.
+
+**84** independently audited strict census receipts: **10 checked / 18 unknown**,
+all **8** completed original candidate families unchanged, all repeats equal,
+zero forbidden clocks. Maximum **15,001,010**, inside the **1,024-unit slack**.
+All **28** separate legacy receipts exactly match the gated release baseline;
+no new counter exception. Fable Q1 passes **29 models / 49 parameter runs**:
+**2,400,700** skipped requests independently checked, zero distinct successors,
+all sample digests equal. Final type/lint clean on **1,853 files**.
+
+Reports, proof boundary, raw logs and review scope:
+`research/lane-i/request-quotient/{RESULT,SOUNDNESS,D-HANDOFF}.md`.
+D composition approval and fresh calibration remain pending. No main merge or
+push; `.reflex-saved/` untouched. All owned batches terminal.
+
+# Previous — main 0.48.0 merged into lane I; scoped gate staged for D
 
 Exact tested source **2de2ce89f9f93eb8feb5fbfb3a355da3adafc4ef** merges
 I `4d5b89fe` with main `f95f306d`. All release source/native validation and

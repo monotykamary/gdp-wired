@@ -1,0 +1,67 @@
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [525.00ms]
+
+  x typescript(switch-exhaustiveness-check): Switch is not exhaustive. Cases not matched: "add" | "max" | "min" | "prod" | "sub"
+    ,-[core/request-quotient.ts:46:10]
+ 45 |   tick();let out:number|undefined
+ 46 |   switch(e.op){
+    :          ^^^^
+ 47 |    case'const':out=e.value;break
+    `----
+
+  x typescript(switch-exhaustiveness-check): Switch is not exhaustive. Cases not matched: "<" | "<=" | "="
+    ,-[core/request-quotient.ts:60:10]
+ 59 |   tick()
+ 60 |   switch(c.op){
+    :          ^^^^
+ 61 |    case'flag':{if(visiting.has(c.name)||!flags[c.name])throw new UnsupportedQuotient('flag');const next=new Set(visiting);next.add(c.name);return boolean(flags[c.name]!,fixed,empty,next)}
+    `----
+
+  x typescript(switch-exhaustiveness-check): Switch is not exhaustive. Cases not matched: "add" | "max" | "min" | "prod" | "sub" | "tup"
+    ,-[core/request-quotient.ts:73:11]
+ 72 |    tick()
+ 73 |    switch(e.op){
+    :           ^^^^
+ 74 |     case'const':return
+    `----
+
+  x typescript(switch-exhaustiveness-check): Switch is not exhaustive. Cases not matched: "<" | "<=" | "="
+    ,-[core/request-quotient.ts:93:11]
+ 92 |    tick();if(boolean(c,fixed,bound,new Set())!==undefined)return
+ 93 |    switch(c.op){
+    :           ^^^^
+ 94 |     case'flag':{const tag='flag:'+c.name;if(visiting.has(tag)||!flags[c.name])throw new UnsupportedQuotient('flag');visiting.add(tag);cond(flags[c.name]!,empty);visiting.delete(tag);return}
+    `----
+
+Found 0 warnings and 4 errors.
+Finished in 65.5s on 1839 files with 100 rules using 4 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+error: script "check" exited with code 1
+2 | import {createHash} from 'node:crypto'
+3 | import {readFileSync,mkdtempSync,rmSync} from 'node:fs'
+4 | import {join,resolve} from 'node:path'
+5 | import {spawnSync} from 'node:child_process'
+6 | const input=resolve('port-input'),root=mkdtempSync('/tmp/merge-0480-'),mode=process.argv[2]
+7 | function run(cmd:string,args:string[]){const r=spawnSync(cmd,args,{cwd:root,encoding:'utf8',timeout:800000,maxBuffer:32*1024*1024});process.stdout.write(r.stdout??'');process.stderr.write(r.stderr??'');if(r.error||r.status!==0)throw Error(`${cmd}: ${r.status} ${r.error??''}`)}
+                                                                                                                                                                                                                                             ^
+error: bun: 1 
+      at run (/work/gdp-wired/port-input/verify.ts:7:234)
+      at /work/gdp-wired/port-input/verify.ts:14:25
+
+Bun v1.4.3 (Linux x64)

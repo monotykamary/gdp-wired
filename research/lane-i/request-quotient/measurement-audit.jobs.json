@@ -1,0 +1,10 @@
+[
+  {
+    "name": "quotient-measurement-audit",
+    "cmd": "bun research/lane-i/request-quotient/audit-measurements.ts pilot-input",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 90,
+    "vm_type": "large"
+  }
+]

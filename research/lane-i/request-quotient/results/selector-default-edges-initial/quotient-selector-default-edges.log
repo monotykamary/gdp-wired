@@ -1,0 +1,1 @@
+QUOTIENT_EDGE_CASES {"selectorChecks":525,"successorChecks":3366,"defaultChecks":180,"ops":["add","sub","min","max","prod"],"selectorValues":"0..6","targets":"0..14","bulkVariants":3,"unreadSupportKeys":[0,100]}

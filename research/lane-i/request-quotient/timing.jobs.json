@@ -1,0 +1,26 @@
+[
+  {
+    "name": "quotient-mldr-classes",
+    "cmd": "bun port-input/run-generation.ts mldr classes 3",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2400,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-mldr-samples",
+    "cmd": "bun port-input/run-generation.ts mldr samples 3",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2400,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-mldr-generation",
+    "cmd": "bun port-input/run-generation.ts mldr generation 3",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2400,
+    "vm_type": "large"
+  }
+]

@@ -1,0 +1,52 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [581.00ms]
+QUOTIENT_MEASUREMENT_CONTEXT {"source":"4c1c05dc4c41003f0c2e4fc800c6f25cf8195a03","id":"mldr","kind":"generation","repeat":0,"flag":"0"}
+
+--- stderr ---
+273 |   }
+274 | }
+275 | export function remainingWork(): number { return budgetUnitsEnd === undefined ? Infinity : admissionRefusedAt === budgetUnitsEnd ? 0 : Math.max(0, budgetUnitsEnd - fullWork()) }
+276 | export function checkBudget(phase: string): void {
+277 |   if (budgetUnitsEnd !== undefined && (admissionRefusedAt === budgetUnitsEnd || fullWork() > budgetUnitsEnd
+278 |     || completeWorkProfile.enabled && clock() > withinDeadline(budgetEnd()))) throw new BudgetExpired(phase)
+                                                                                          ^
+BudgetExpired: work budget (finite law)
+ phase: "finite law",
+
+      at checkBudget (/tmp/quotient-generation-zPVXku/kernel/prove.ts:278:85)
+      at checkWall (/tmp/quotient-generation-zPVXku/core/wall.ts:22:21)
+      at <anonymous> (/tmp/quotient-generation-zPVXku/core/finite-houdini.ts:64:5)
+      at withReachabilityWork (/tmp/quotient-generation-zPVXku/core/work-observe.ts:51:16)
+      at rejecting (/tmp/quotient-generation-zPVXku/core/finite-houdini.ts:240:95)
+      at visit (/tmp/quotient-generation-zPVXku/core/finite-houdini.ts:243:18)
+      at finiteHoudiniWithin (/tmp/quotient-generation-zPVXku/core/finite-houdini.ts:288:33)
+      at withReachabilityWork (/tmp/quotient-generation-zPVXku/core/work-observe.ts:51:16)
+      at withDeadline (/tmp/quotient-generation-zPVXku/kernel/prove.ts:341:16)
+      at finiteHoudini (/tmp/quotient-generation-zPVXku/core/finite-houdini.ts:108:12)
+
+Bun v1.4.3 (Linux x64)
+1 | import {readFileSync,mkdtempSync,rmSync} from 'node:fs'
+2 | import {resolve,join} from 'node:path'
+3 | import {spawnSync} from 'node:child_process'
+4 | const input=resolve('port-input'),[id,kind,repeatsText='1']=process.argv.slice(2),root=mkdtempSync('/tmp/quotient-generation-')
+5 | const clean=Object.fromEntries(Object.entries(process.env).filter(([k])=>!k.startsWith('GDP_')))
+6 | function run(cmd:string,args:string[],env=clean){const p=spawnSync(cmd,args,{cwd:root,env,encoding:'utf8',timeout:600000,maxBuffer:32*1024*1024});process.stdout.write(p.stdout??'');process.stderr.write(p.stderr??'');if(p.error||p.status!==0)throw Error(`${cmd} failed (${p.status}): ${p.error??''}`)}
+                                                                                                                                                                                                                                                           ^
+error: bun failed (1): 
+      at run (/work/gdp-wired/port-input/run-generation.ts:6:248)
+      at /work/gdp-wired/port-input/run-generation.ts:12:3
+
+Bun v1.4.3 (Linux x64)

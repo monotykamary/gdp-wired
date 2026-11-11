@@ -1,0 +1,234 @@
+[
+  {
+    "name": "quotient-audit-skips-consensus",
+    "cmd": "bun port-input/run-skipped.ts consensus",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-tcommit",
+    "cmd": "bun port-input/run-skipped.ts tcommit",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-lock_server",
+    "cmd": "bun port-input/run-skipped.ts lock_server",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-quorum_leader_election",
+    "cmd": "bun port-input/run-skipped.ts quorum_leader_election",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-toy_consensus_forall",
+    "cmd": "bun port-input/run-skipped.ts toy_consensus_forall",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-simple_regular",
+    "cmd": "bun port-input/run-skipped.ts simple_regular",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-simple",
+    "cmd": "bun port-input/run-skipped.ts simple",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-lockserv_automaton",
+    "cmd": "bun port-input/run-skipped.ts lockserv_automaton",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-sharded_kv_no_lost_keys",
+    "cmd": "bun port-input/run-skipped.ts sharded_kv_no_lost_keys",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-sharded_kv",
+    "cmd": "bun port-input/run-skipped.ts sharded_kv",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-lockserv",
+    "cmd": "bun port-input/run-skipped.ts lockserv",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-twophase",
+    "cmd": "bun port-input/run-skipped.ts twophase",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-simple_decentralized_lock",
+    "cmd": "bun port-input/run-skipped.ts simple_decentralized_lock",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-two_phase_commit",
+    "cmd": "bun port-input/run-skipped.ts two_phase_commit",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-consensus_forall",
+    "cmd": "bun port-input/run-skipped.ts consensus_forall",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-consensus_wo_decide",
+    "cmd": "bun port-input/run-skipped.ts consensus_wo_decide",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-naive_consensus",
+    "cmd": "bun port-input/run-skipped.ts naive_consensus",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-client_server_db_ae",
+    "cmd": "bun port-input/run-skipped.ts client_server_db_ae",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-client_server_ae",
+    "cmd": "bun port-input/run-skipped.ts client_server_ae",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-simple_election",
+    "cmd": "bun port-input/run-skipped.ts simple_election",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-toy_consensus_epr",
+    "cmd": "bun port-input/run-skipped.ts toy_consensus_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-toy_consensus",
+    "cmd": "bun port-input/run-skipped.ts toy_consensus",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-firewall",
+    "cmd": "bun port-input/run-skipped.ts firewall",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-majorityset_leader_election",
+    "cmd": "bun port-input/run-skipped.ts majorityset_leader_election",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-consensus_epr",
+    "cmd": "bun port-input/run-skipped.ts consensus_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-learning_switch",
+    "cmd": "bun port-input/run-skipped.ts learning_switch",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-learning_switch_i4",
+    "cmd": "bun port-input/run-skipped.ts learning_switch_i4",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-paxos_epr",
+    "cmd": "bun port-input/run-skipped.ts paxos_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "quotient-audit-skips-mldr",
+    "cmd": "bun port-input/run-skipped.ts mldr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

@@ -1,0 +1,50 @@
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [381.00ms]
+bun test v1.4.3 (c6da4a4d3)
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+MERGE_GATE {"source":"4c1c05dc4c41003f0c2e4fc800c6f25cf8195a03","mode":"quotient"}
+
+--- stderr ---
+
+core/request-quotient.test.ts:
+(pass) specializes every selector value, including absent tags [8.04ms]
+(pass) does not generalize refusals; finite prefixes and seeded walks stay identical [26.80ms]
+(pass) count dependencies include bounds and bodies [8.73ms]
+(pass) flags expand at definition scope, not an enclosing binder [0.75ms]
+(pass) unread carried support cannot change a plain-key past representative [8.17ms]
+(pass) unsupported functions, leasts, namespaces and forward flags retain the old sampler [0.26ms]
+(pass) does not treat memoized count keys as complete quantified support [0.35ms]
+(pass) arithmetic and Boolean branch dependencies agree with every concrete successful member [12.57ms]
+(pass) one-cell and bulk map updates retain all concrete successor components [11.03ms]
+(pass) quotient setup checks the endpoint within 256 provisional tick units [1.49ms]
+(pass) logical prefixes remain equal across the native compiled-step threshold [38.53ms]
+
+core/sample-cache.test.ts:
+(pass) relational sampling shares unchanged maps and states without mutating earlier samples [11.96ms]
+(pass) sample state keys preserve the nested-array oracle, defaults, ordering and unusual numbers [3.34ms]
+(pass) sample predicate sharing > equal literals share only evaluated rows, including false values [0.41ms]
+(pass) sample predicate sharing > preserves first-hit and preceding near misses against direct evaluation [0.28ms]
+
+core/sample-step.test.ts:
+(pass) hot sampler preserves accepted/refused requests, old-state reads and persistence [37.52ms]
+(pass) no assumption keeps flags lazy, and evaluation errors still end a trial [11.96ms]
+(pass) count-backed assumptions keep carried views and dependent flags [24.56ms]
+
+ 18 pass
+ 0 fail
+ 11369 expect() calls
+Ran 18 tests across 3 files. [267.00ms]

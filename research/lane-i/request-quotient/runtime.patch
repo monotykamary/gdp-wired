@@ -1,0 +1,307 @@
+diff --git a/core/exists.ts b/core/exists.ts
+index 7d1f1d45..82711ac2 100644
+--- a/core/exists.ts
++++ b/core/exists.ts
+@@ -1,5 +1,6 @@
+ import {traceNow as countedTraceNow, BudgetExpired} from './wall.ts'
+ import {withReachabilityWork, reachState, reachEdge} from './work-observe.ts'
++import {requestQuotient} from './request-quotient.ts'
+ // There exists: a law ∃ x. P(x) (core/machine.ts's Law with `some`: x a natural, or an integer as two, x and x$neg),
+ // proven through a witness. Nothing here is trusted: the kernel proves a plain law of a plain machine, and the Lean
+ // export states the existential again, proven by ⟨witness, proof⟩ (lean-kernel/Ghost.lean's some_updAll).
+@@ -155,6 +156,7 @@ function smallWithin(m: Machine, p: Env, b: number, cap: number, work: number, w
+   let reqs: Request[] = [{}]
+   for (const i of m.inputs) reqs = reqs.flatMap(r => Array.from({length: below(i)}, (_, x) => ({...r, [i]: x})))
+   for (const c of m.inputMaps ?? []) reqs = reqs.flatMap(r => subsets.map(s => ({...r, [c]: s})))
++  const quotient = env.GDP_REQUEST_QUOTIENT === '1' ? requestQuotient(m, reqs) : undefined
+   // (a state once: by a hash of its scalars and nonzero cells, then a cell-by-cell comparison within the hash's bucket;
+   // the same classes as a sorted text of the state, without a sort or a text per step)
+   const scalarNames = Object.keys(start.scalars), mapNames = Object.keys(start.maps)
+@@ -181,12 +183,16 @@ function smallWithin(m: Machine, p: Env, b: number, cap: number, work: number, w
+     reachState(); all.push(next); pathTo.set(next, [from, r]); return next
+   }
+   while (queue.length && all.length < cap && work > 0) {
+-    const st = queue.shift()!
++    const st = queue.shift()!, covered = quotient ? new Set<number>() : undefined
++    let requestIndex = 0
+     for (const r of reqs) {
+       checkWall('sample BFS')
+       if (--work < 0) break
++      const cls = quotient?.classes[requestIndex++]
++      if (cls !== undefined && covered!.has(cls)) continue
+       let next: State
+       try { next = step(p, st, r) } catch (error) { if (error instanceof BudgetExpired) throw error; continue }
++      if (cls !== undefined) covered!.add(cls)
+       const n0 = all.length
+       if (reached(next, st, r) && all.length > n0) queue.push(next)
+     }
+diff --git a/core/request-quotient.test.ts b/core/request-quotient.test.ts
+new file mode 100644
+index 00000000..de50cef6
+--- /dev/null
++++ b/core/request-quotient.test.ts
+@@ -0,0 +1,125 @@
++import {expect,test} from 'bun:test'
++import {type Machine,type Request,type State,get,interpret,n,same,x} from './machine.ts'
++import {small} from './exists.ts'
++import {requestQuotient} from './request-quotient.ts'
++import {completeWorkProfile} from './work-profile.ts'
++import {fullWork} from './work-meter.ts'
++import {BudgetExpired,withBudget} from './wall.ts'
++
++const machine=():Machine=>({
++ name:'read-set quotient',params:[],inputs:['op','a','unused'],state:{value:n(0)},
++ step:{flags:{first:same(x('op'),n(0)),second:same(x('op'),n(1))},
++  state:{value:{op:'if',c:{op:'flag',name:'first'},then:x('a'),else:x('value')}}},
++})
++function requests(m:Machine,b=3):Request[]{
++ let out:Request[]=[{}]
++ for(const name of m.inputs)out=out.flatMap(r=>Array.from({length:b},(_,v)=>({...r,[name]:v})))
++ const sets=Array.from({length:1<<b},(_,s)=>new Map(Array.from({length:b},(_,k)=>k).filter(k=>(s>>k)&1).map(k=>[k,1])))
++ for(const name of m.inputMaps??[])out=out.flatMap(r=>sets.map(set=>({...r,[name]:set})))
++ return out
++}
++const stateText=(s:State)=>JSON.stringify([s.scalars,Object.entries(s.maps).map(([name,cells])=>[name,[...cells].filter(([,v])=>v!==0).sort((a,b)=>a[0]!-b[0]!) ]),s.defaults??{}])
++function withQuotient<T>(on:boolean,run:()=>T):T{
++ const previous=process.env.GDP_REQUEST_QUOTIENT
++ process.env.GDP_REQUEST_QUOTIENT=on?'1':'0'
++ try{return run()}finally{if(previous===undefined)delete process.env.GDP_REQUEST_QUOTIENT;else process.env.GDP_REQUEST_QUOTIENT=previous}
++}
++function equivalent(m:Machine,b=3):void{
++ const rs=requests(m,b),q=requestQuotient(m,rs)
++ expect(q).toBeDefined()
++ const run=interpret(m),start=run.init({}),states=[start,...rs.flatMap(r=>{try{return[run.step({},start,r)]}catch{return[]}}).slice(0,12)]
++ for(const st of states){
++  const values=new Map<number,string>()
++  for(let i=0;i<rs.length;i++){
++   let next:State
++   try{next=run.step({},st,rs[i]!)}catch{continue}
++   const key=q!.classes[i]!,text=stateText(next),previous=values.get(key)
++   if(previous!==undefined)expect(text).toBe(previous);else values.set(key,text)
++  }
++ }
++}
++
++test('specializes every selector value, including absent tags',()=>{
++ const m=machine(),rs=requests(m),q=requestQuotient(m,rs)!
++ expect(q.selector).toBe('op');expect(q.count).toBe(5)
++ expect(q.reads.get(0)).toEqual(['a']);expect(q.reads.get(1)).toEqual([]);expect(q.reads.get(2)).toEqual([])
++ expect([...requestQuotient(m,rs)!.classes]).toEqual([...q.classes]);equivalent(m)
++})
++test('does not generalize refusals; finite prefixes and seeded walks stay identical',()=>{
++ const m=machine();m.assume=same(x('unused'),n(1))
++ for(const work of[0,1,2,4,9,10,15,26,27,28,67,400])for(const walks of[0,48,100]){
++  const before=withQuotient(false,()=>small(m,{},3,7,work,walks).map(stateText))
++  expect(withQuotient(true,()=>small(m,{},3,7,work,walks).map(stateText))).toEqual(before)
++ }
++ equivalent(m)
++})
++test('count dependencies include bounds and bodies',()=>{
++ const m:Machine={name:'count inputs',params:[],inputs:['limit','unused'],inputMaps:['S'],state:{v:n(0)},
++  counts:{size:{j:'row',key:'cell',below:x('limit'),body:get('S',x('cell'))}},step:{state:{v:get('size',n(0))}}}
++ expect(requestQuotient(m,requests(m))!.reads.get(undefined)).toEqual(['limit','S']);equivalent(m)
++})
++test('flags expand at definition scope, not an enclosing binder',()=>{
++ const m=machine()
++ m.step={flags:{outer:same(x('a'),n(0)),every:{op:'all',key:'a',c:{op:'flag',name:'outer'}}},
++  state:{value:{op:'if',c:{op:'flag',name:'every'},then:n(1),else:n(0)}}}
++ expect(requestQuotient(m,requests(m))!.reads.get(undefined)).toEqual(['a'])
++})
++test('unread carried support cannot change a plain-key past representative',()=>{
++ const m:Machine={name:'quantifier support',params:[],inputs:['unused'],inputMaps:['S','extra'],state:{v:n(0)},maps:{A:0},
++  step:{flags:{empty:{op:'all',key:'k',c:same(get('S',x('k')),n(0))}},
++   state:{v:{op:'if',c:{op:'flag',name:'empty'},then:n(1),else:n(0)}}}}
++ expect(requestQuotient(m,requests(m,2))!.reads.get(undefined)).toEqual(['S']);equivalent(m,2)
++ const rs:Request[]=[{unused:0,S:new Map(),extra:new Map()},{unused:1,S:new Map(),extra:new Map([[1000000,1]])}]
++ expect(requestQuotient(m,rs)!.count).toBe(1)
++ const run=interpret(m),start=run.init({})
++ expect(stateText(run.step({},start,rs[0]!))).toBe(stateText(run.step({},start,rs[1]!)))
++})
++test('unsupported functions, leasts, namespaces and forward flags retain the old sampler',()=>{
++ const base=machine(),rs=requests(base)
++ expect(requestQuotient({...base,fns:{f:{js:'x => x',lean:'id'}}},rs)).toBeUndefined()
++ expect(requestQuotient({...base,leasts:{}},rs)).toBeUndefined()
++ expect(requestQuotient({...base,params:['a']},rs)).toBeUndefined()
++ expect(requestQuotient({...base,step:{flags:{first:{op:'flag',name:'second'},second:same(x('op'),n(1))},state:base.step.state}},rs)).toBeUndefined()
++})
++test('does not treat memoized count keys as complete quantified support',()=>{
++ const base=machine(),m:Machine={...base,counts:{C:{j:'row',key:'cell',below:n(3),body:{op:'if',c:same(x('cell'),x('row')),then:n(1),else:n(0)}}},
++  step:{flags:{allZero:{op:'all',key:'k',c:same(get('C',x('k')),n(0))}},state:{value:{op:'if',c:{op:'flag',name:'allZero'},then:n(1),else:n(0)}}}}
++ expect(requestQuotient(m,requests(m))).toBeUndefined()
++})
++test('arithmetic and Boolean branch dependencies agree with every concrete successful member',()=>{
++ for(const op of['add','sub','min','max','prod'] as const){
++  const m=machine()
++  m.step.state={value:{op:'if',c:{op:'flag',name:'first'},then:{op,a:x('a'),b:n(2)},else:x('value')}}
++  equivalent(m)
++ }
++ for(const op of['and','or'] as const){
++  const m=machine()
++  m.step.flags!.first={op,xs:[same(x('op'),n(0)),same(x('a'),n(1))]}
++  equivalent(m)
++ }
++})
++test('one-cell and bulk map updates retain all concrete successor components',()=>{
++ for(const bulk of[false,true]){
++  const m=machine();m.inputMaps=['S'];m.maps={M:0}
++  m.step.maps={M:bulk?{each:'k',value:{op:'if',c:{op:'flag',name:'first'},then:get('S',x('k')),else:n(1)}}:
++   {key:x('a'),value:{op:'if',c:{op:'flag',name:'first'},then:get('S',x('a')),else:n(1)}}}
++  equivalent(m,2)
++ }
++})
++test.skipIf(!completeWorkProfile.enabled)('quotient setup checks the endpoint within 256 provisional tick units',()=>{
++ const m=machine();m.inputMaps=['S','extra']
++ const rs=requests(m)
++ for(const budget of[0,1,255,256,1000]){
++  const start=fullWork()
++  expect(()=>withBudget(budget,()=>requestQuotient(m,rs))).toThrow(BudgetExpired)
++  expect(fullWork()-start).toBeLessThanOrEqual(budget+256)
++ }
++})
++test('logical prefixes remain equal across the native compiled-step threshold',()=>{
++ const m=machine()
++ m.step.state={value:{op:'if',c:{op:'flag',name:'first'},then:{op:'add',a:x('value'),b:x('a')},else:x('value')}}
++ for(const work of[999,1000,1001,5000])for(const walks of[0,100]){
++  const before=withQuotient(false,()=>small(m,{},3,128,work,walks).map(stateText))
++  expect(withQuotient(true,()=>small(m,{},3,128,work,walks).map(stateText))).toEqual(before)
++ }
++})
+diff --git a/core/request-quotient.ts b/core/request-quotient.ts
+new file mode 100644
+index 00000000..1140d544
+--- /dev/null
++++ b/core/request-quotient.ts
+@@ -0,0 +1,133 @@
++// Untrusted sampling optimization. A class is used only AFTER one member has
++// produced a state. Refusals are never generalized; the original request order,
++// logical trial allowance and first successful witness remain unchanged.
++import {type C,type E,type Machine,type Request,walk} from './machine.ts'
++import {coreMeter} from './meter.ts'
++import {completeWorkProfile} from './work-profile.ts'
++import {checkWall} from './wall.ts'
++
++class UnsupportedQuotient extends Error {}
++type Fixed=Readonly<Record<string,number>>
++type Bound=ReadonlySet<string>
++export type RequestQuotient={classes:Uint32Array,count:number,selector?:string,reads:ReadonlyMap<number|undefined,readonly string[]>}
++
++export function requestQuotient(m:Machine,requests:readonly Request[]):RequestQuotient|undefined{
++ if(requests.length<2||Object.keys(m.fns??{}).length||m.history||m.leasts||Object.keys(m.sums??{}).length)return undefined
++ const names=[...m.inputs,...m.inputMaps??[]],inputs=new Set(m.inputs),maps=new Set(m.inputMaps??[])
++ // Ambiguous namespaces and non-topological flags use the unmodified sampler.
++ if(new Set(names).size!==names.length||names.some(n=>n.startsWith('?')||m.params.includes(n)||Object.hasOwn(m.state,n))||[...maps].some(n=>Object.hasOwn(m.maps??{},n)||Object.hasOwn(m.counts??{},n)))return undefined
++ let work=0
++ const tick=()=>{if(completeWorkProfile.enabled)coreMeter.ticks++;if((++work&255)===0)checkWall('request quotient')}
++ const flags=m.step.flags??{},known=new Set<string>(),tags=new Map<string,Set<number>>()
++ let supported=true
++ walk([m.step,m.counts],o=>{
++  tick();if(o.op==='var'&&String(o.name).startsWith('?'))supported=false
++  if(o.op==='all'&&[o.key,...(o.keys as string[]|undefined)??[]].some(name=>String(name).startsWith('?')))supported=false
++ })
++ for(const count of Object.values(m.counts??{}))walk(count,o=>{tick();if(o.op==='flag')supported=false})
++ if(Object.values(m.step.maps??{}).some(w=>'each'in w&&w.each.startsWith('?')))supported=false
++ for(const[name,c]of Object.entries(flags)){
++  walk(c,o=>{tick();if(o.op==='flag'&&!known.has(String(o.name)))supported=false})
++  known.add(name)
++ }
++ if(!supported)return undefined
++ walk(m.step,o=>{
++  tick();if(o.op!=='=')return
++  const a=o.a as E,b=o.b as E,v=a.op==='var'?a:b,k=a.op==='var'?b:a
++  if(v.op==='var'&&k.op==='const'&&inputs.has(v.name)&&Number.isSafeInteger(k.value)){
++   let values=tags.get(v.name);if(!values)tags.set(v.name,(values=new Set()));values.add(k.value)
++  }
++ })
++ const selector=[...tags].filter(([,values])=>values.size>1).sort((a,b)=>b[1].size-a[1].size||m.inputs.indexOf(a[0])-m.inputs.indexOf(b[0]))[0]?.[0]
++ const empty:Bound=new Set(),reads=new Map<number|undefined,readonly string[]>()
++ const number=(e:E,fixed:Fixed,bound:Bound):number|undefined=>{
++  tick();let out:number|undefined
++  switch(e.op){
++   case'const':out=e.value;break
++   case'var':out=bound.has(e.name)?undefined:fixed[e.name];break
++   case'if':{const c=boolean(e.c,fixed,bound,new Set());return c===undefined?undefined:number(c?e.then:e.else,fixed,bound)}
++   case'get':case'tup':case'proj':return undefined
++   case'mul':{const a=number(e.a,fixed,bound);out=a===undefined?undefined:e.k*a;break}
++   case'add':case'sub':case'min':case'max':case'prod':{const a=number(e.a,fixed,bound),b=number(e.b,fixed,bound);if(a===undefined||b===undefined)return undefined
++    out=e.op==='add'?a+b:e.op==='sub'?Math.max(0,a-b):e.op==='min'?Math.min(a,b):e.op==='max'?Math.max(a,b):a*b
++   }
++  }
++  return out!==undefined&&Number.isSafeInteger(out)&&out>=0?out:undefined
++ }
++ const boolean=(c:C,fixed:Fixed,bound:Bound,visiting:Set<string>):boolean|undefined=>{
++  tick()
++  switch(c.op){
++   case'flag':{if(visiting.has(c.name)||!flags[c.name])throw new UnsupportedQuotient('flag');const next=new Set(visiting);next.add(c.name);return boolean(flags[c.name]!,fixed,empty,next)}
++   case'all':return undefined
++   case'not':{const a=boolean(c.x,fixed,bound,visiting);return a===undefined?undefined:!a}
++   case'and':case'or':{let unknown=false;for(const x of c.xs){const a=boolean(x,fixed,bound,visiting);if(a===(c.op==='or'))return a;if(a===undefined)unknown=true}return unknown?undefined:c.op==='and'}
++   case'=':case'<':case'<=':{const a=number(c.a,fixed,bound),b=number(c.b,fixed,bound);return a===undefined||b===undefined?undefined:c.op==='='?a===b:c.op==='<'?a<b:a<=b}
++  }
++ }
++ const projection=(value:number|undefined):readonly string[]=>{
++  const cached=reads.get(value);if(cached)return cached
++  const fixed:Fixed=selector?{[selector]:value!}:{},out=new Set<string>(),visiting=new Set<string>()
++  const expr=(e:E,bound:Bound):void=>{
++   tick()
++   switch(e.op){
++    case'const':return
++    case'var':if(!bound.has(e.name)&&inputs.has(e.name)&&!Object.hasOwn(fixed,e.name))out.add(e.name);return
++    case'if':{const c=boolean(e.c,fixed,bound,new Set());if(c!==undefined){expr(c?e.then:e.else,bound);return}cond(e.c,bound);expr(e.then,bound);expr(e.else,bound);return}
++    case'get':{
++     expr(e.key,bound);if(maps.has(e.map))out.add(e.map)
++     const count=m.counts?.[e.map]
++     // A derived count has memoized, not complete, enumerable support in
++     // the runtime. Never quotient its reads under a quantified/bulk binder.
++     if(count&&bound.size)throw new UnsupportedQuotient('count under binder')
++     if(count){const tag='count:'+e.map;if(visiting.has(tag))throw new UnsupportedQuotient('count cycle');visiting.add(tag)
++      const inner=new Set([count.j,count.key,...count.lo?[count.lo]:[]]);expr(count.below,new Set([count.j,...count.lo?[count.lo]:[]]));expr(count.body,inner);visiting.delete(tag)}
++     return
++    }
++    case'mul':case'proj':expr(e.a,bound);return
++    case'add':case'sub':case'min':case'max':case'prod':case'tup':expr(e.a,bound);expr(e.b,bound)
++   }
++  }
++  const cond=(c:C,bound:Bound):void=>{
++   tick();if(boolean(c,fixed,bound,new Set())!==undefined)return
++   switch(c.op){
++    case'flag':{const tag='flag:'+c.name;if(visiting.has(tag)||!flags[c.name])throw new UnsupportedQuotient('flag');visiting.add(tag);cond(flags[c.name]!,empty);visiting.delete(tag);return}
++    case'all':
++     // For one plain key, any past-the-support key has the same observations:
++     // every bound-key read is a map's default (opaque/count maps are excluded).
++     // Keep the conservative full support for cross-key quantifiers.
++     if(c.keys?.length)for(const name of maps)out.add(name)
++     cond(c.c,new Set([...bound,c.key,...c.keys??[]]));return
++    case'not':cond(c.x,bound);return
++    case'and':case'or':for(const x of c.xs)cond(x,bound);return
++    case'=':case'<':case'<=':expr(c.a,bound);expr(c.b,bound)
++   }
++  }
++  for(const e of Object.values(m.step.state??{}))expr(e,empty)
++  for(const w of Object.values(m.step.maps??{})){
++   if('each'in w)expr(w.value,new Set([w.each]))
++   else{expr(w.key,empty);expr(w.value,empty)}
++  }
++  // The slice tag is part of the class even if the selected arm is a no-op.
++  const ordered=names.filter(name=>out.has(name));reads.set(value,ordered);return ordered
++ }
++ const tokens=new WeakMap<object,string>()
++ const mapToken=(value:Request[string]):string=>{
++  if(!(value instanceof Map))throw new UnsupportedQuotient('non-map request')
++  const cached=tokens.get(value);if(cached!==undefined)return cached
++  const entries=[...value] as [number,number][]
++  for(const[k,v]of entries){tick();if(!Number.isSafeInteger(k)||k<0||!Number.isSafeInteger(v)||v<0)throw new UnsupportedQuotient('non-natural request map')}
++  entries.sort((a,b)=>a[0]-b[0]);const token=JSON.stringify(entries);tokens.set(value,token);return token
++ }
++ try{
++  const ids=new Map<string,number>(),classes=new Uint32Array(requests.length)
++  for(let i=0;i<requests.length;i++){
++   tick();const request=requests[i]!,value=selector?request[selector]:undefined
++   if(selector&&(typeof value!=='number'||!Number.isSafeInteger(value)||value<0))return undefined
++   const fields=projection(value as number|undefined),parts:(number|string|undefined)[]=[value as number|undefined]
++   for(const name of fields){tick();const v=request[name];if(maps.has(name))parts.push(mapToken(v!));else{if(typeof v!=='number'||!Number.isSafeInteger(v)||v<0)return undefined;parts.push(v)}}
++   const key=JSON.stringify(parts);let id=ids.get(key);if(id===undefined){id=ids.size;ids.set(key,id)}classes[i]=id
++  }
++  checkWall('request quotient complete')
++  return ids.size<requests.length?{classes,count:ids.size,selector,reads}:undefined
++ }catch(error){if(error instanceof UnsupportedQuotient)return undefined;throw error}
++}

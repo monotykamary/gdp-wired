@@ -1,0 +1,23 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [1204.00ms]
+QUOTIENT_MEASUREMENT_CONTEXT {"source":"4c1c05dc4c41003f0c2e4fc800c6f25cf8195a03","id":"mldr","kind":"samples","repeat":0,"flag":"0"}
+QUOTIENT_MEASUREMENT {"id":"mldr","kind":"samples","quotient":"0","wallMs":6498.674443,"units":10573409.92,"raw":{"fm":0,"fcells":0,"plainRows":0,"values":0,"copies":0,"edges":0,"scan":0,"pivotRows":0,"unitRows":0,"unfoldRows":0,"goalNodes":0,"translateRows":0,"tableCells":0,"checkSteps":0,"astNodes":0,"evals":0,"cubeTests":0,"ticks":94122,"cdclNodes":0,"epr":0,"tinyNodes":0,"tinyTerms":0,"reachStates":1536,"reachEdges":800064,"reachEvals":1054466,"reachCompiledEvals":482829930},"samples":[{"params":{"size":2},"count":32,"hash":"7ff5060bb6bc18c6c702d1ad77f7a164c03f693d66db9d91b01e8c42e012bc45"},{"params":{"size":3},"count":1504,"hash":"421a0e6949a09b9d6eea1a517307993e75ffc6a947009600038f50d976d1782b"}]}
+QUOTIENT_MEASUREMENT_CONTEXT {"source":"4c1c05dc4c41003f0c2e4fc800c6f25cf8195a03","id":"mldr","kind":"samples","repeat":0,"flag":"1"}
+QUOTIENT_MEASUREMENT {"id":"mldr","kind":"samples","quotient":"1","wallMs":3587.540822,"units":6754666.82,"raw":{"fm":0,"fcells":0,"plainRows":0,"values":0,"copies":0,"edges":0,"scan":0,"pivotRows":0,"unitRows":0,"unfoldRows":0,"goalNodes":0,"translateRows":0,"tableCells":0,"checkSteps":0,"astNodes":0,"evals":0,"cubeTests":0,"ticks":342226,"cdclNodes":0,"epr":0,"tinyNodes":0,"tinyTerms":0,"reachStates":1536,"reachEdges":490276,"reachEvals":623251,"reachCompiledEvals":295408190},"samples":[{"params":{"size":2},"count":32,"hash":"7ff5060bb6bc18c6c702d1ad77f7a164c03f693d66db9d91b01e8c42e012bc45"},{"params":{"size":3},"count":1504,"hash":"421a0e6949a09b9d6eea1a517307993e75ffc6a947009600038f50d976d1782b"}]}
+QUOTIENT_MEASUREMENT_CONTEXT {"source":"4c1c05dc4c41003f0c2e4fc800c6f25cf8195a03","id":"mldr","kind":"samples","repeat":1,"flag":"1"}
+QUOTIENT_MEASUREMENT {"id":"mldr","kind":"samples","quotient":"1","wallMs":6191.285226999999,"units":6754666.82,"raw":{"fm":0,"fcells":0,"plainRows":0,"values":0,"copies":0,"edges":0,"scan":0,"pivotRows":0,"unitRows":0,"unfoldRows":0,"goalNodes":0,"translateRows":0,"tableCells":0,"checkSteps":0,"astNodes":0,"evals":0,"cubeTests":0,"ticks":342226,"cdclNodes":0,"epr":0,"tinyNodes":0,"tinyTerms":0,"reachStates":1536,"reachEdges":490276,"reachEvals":623251,"reachCompiledEvals":295408190},"samples":[{"params":{"size":2},"count":32,"hash":"7ff5060bb6bc18c6c702d1ad77f7a164c03f693d66db9d91b01e8c42e012bc45"},{"params":{"size":3},"count":1504,"hash":"421a0e6949a09b9d6eea1a517307993e75ffc6a947009600038f50d976d1782b"}]}
+QUOTIENT_MEASUREMENT_CONTEXT {"source":"4c1c05dc4c41003f0c2e4fc800c6f25cf8195a03","id":"mldr","kind":"samples","repeat":1,"flag":"0"}
+QUOTIENT_MEASUREMENT {"id":"mldr","kind":"samples","quotient":"0","wallMs":7914.6410860000005,"units":10573409.92,"raw":{"fm":0,"fcells":0,"plainRows":0,"values":0,"copies":0,"edges":0,"scan":0,"pivotRows":0,"unitRows":0,"unfoldRows":0,"goalNodes":0,"translateRows":0,"tableCells":0,"checkSteps":0,"astNodes":0,"evals":0,"cubeTests":0,"ticks":94122,"cdclNodes":0,"epr":0,"tinyNodes":0,"tinyTerms":0,"reachStates":1536,"reachEdges":800064,"reachEvals":1054466,"reachCompiledEvals":482829930},"samples":[{"params":{"size":2},"count":32,"hash":"7ff5060bb6bc18c6c702d1ad77f7a164c03f693d66db9d91b01e8c42e012bc45"},{"params":{"size":3},"count":1504,"hash":"421a0e6949a09b9d6eea1a517307993e75ffc6a947009600038f50d976d1782b"}]}

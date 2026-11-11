@@ -1,0 +1,26 @@
+[
+  {
+    "name": "oracle-mldr-pilot",
+    "cmd": "bun port-input/run-skipped.ts mldr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "oracle-paxos-pilot",
+    "cmd": "bun port-input/run-skipped.ts paxos_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "oracle-typecheck",
+    "cmd": "bun port-input/verify.ts types",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

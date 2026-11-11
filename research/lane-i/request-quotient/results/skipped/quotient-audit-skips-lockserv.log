@@ -1,0 +1,16 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [1174.00ms]
+QUOTIENT_SKIPPED_AUDIT {"id":"lockserv","source":"bfe647cfd3b81e10c497ca4d5911a8097a02586b","originalSamplerSHA256":"4311cd92c1764de91a03a22ff85276b539e6dd4ca81b92ff66583b95e86b3c86","instrumentedSamplerSHA256":"bb4f8d3f6f1c461f8d5c086c1c5f9ba65eaf2138e6f64c24622c4ed0105f98ad","adapterEdits":2,"skipped":0,"matched":0,"refused":0,"kept":0,"rows":[{"params":{},"states":80,"digest":"d100e843b952bff70964b2fca33f5536047cdb35541eb0a8c97b61beaff86619","skipped":0,"matched":0,"refused":0,"kept":0}],"workMode":"logical trial budget only; no counted endpoint during oracle re-execution"}

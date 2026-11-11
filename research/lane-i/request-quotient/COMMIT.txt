@@ -1,0 +1,8 @@
+docs(integration): gate the request quotient on the release tree
+
+Record the exact bfe647cf census, strict legacy comparisons and isolated
+9950X xlarge ABBA measurement of the real admission prefix.
+
+Preserve the read-set proof, corruption controls and skipped-request
+oracle, including failed pilots and the final reproducible drivers.
+Keep calibration and end-to-end MLDR claims explicitly out of scope.

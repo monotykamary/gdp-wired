@@ -1,0 +1,60 @@
+{
+  "source": "bfe647cfd3b81e10c497ca4d5911a8097a02586b",
+  "parent": "4c1c05dc4c41003f0c2e4fc800c6f25cf8195a03",
+  "runtimeBase": "2de2ce89f9f93eb8feb5fbfb3a355da3adafc4ef",
+  "status": "all-local-gates-green; staged-for-D",
+  "dApproval": "pending",
+  "calibration": "provisional; no fit transfers",
+  "sourceDiff": {
+    "files": 3,
+    "insertions": 265,
+    "deletions": 1
+  },
+  "census": {
+    "receipts": 84,
+    "models": 28,
+    "checked": 10,
+    "unknown": 18,
+    "completedCandidateFamilies": 8,
+    "clockReads": 0,
+    "maximumUnits": 15001010,
+    "allowance": 15000000,
+    "slack": 1024
+  },
+  "legacy": {
+    "receipts": 28,
+    "checked": 27,
+    "unknown": 1,
+    "exactNormalizedReceipts": 28,
+    "clockTripwire": false
+  },
+  "timing": {
+    "vm": "bx_hep79j25",
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "vmType": "xlarge",
+    "exclusive": true,
+    "coTenants": 0,
+    "generationBeforeMeanMs": 6243.383209,
+    "generationAfterMeanMs": 4320.57736,
+    "candidateCount": 43,
+    "proofQueries": 0
+  },
+  "flags": {
+    "GDP_REQUEST_QUOTIENT": "opt-in; default unchanged"
+  },
+  "tasks": {},
+  "oracle": {
+    "models": 29,
+    "parameterRuns": 49,
+    "skipped": 2400700,
+    "matched": 2099352,
+    "refused": 301348,
+    "changedSamples": 0
+  },
+  "static": {
+    "files": 1853,
+    "warnings": 0,
+    "errors": 0
+  },
+  "ownedBatchesTerminal": true
+}

@@ -1,0 +1,12 @@
+[
+  {
+    "name": "quotient-mldr-9950x-abba",
+    "cmd": "bun port-input/run-ledger-generation.ts mldr classes 2 && bun port-input/run-ledger-generation.ts mldr samples 2 && bun port-input/run-ledger-generation.ts mldr generation 2",
+    "cpu": 4,
+    "memory": 16384,
+    "timeout": 2400,
+    "vm_type": "xlarge",
+    "cpu_model": "AMD Ryzen 9 9950X 16-Core Processor",
+    "cpu_model_max_fruitless": 64
+  }
+]

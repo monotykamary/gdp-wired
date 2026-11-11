@@ -1,0 +1,2 @@
+'RequestQuotient.read_congruence' depends on axioms: [propext, Classical.choice, Quot.sound]
+'RequestQuotient.same_read_projection_same_outputs' depends on axioms: [propext, Classical.choice, Quot.sound]

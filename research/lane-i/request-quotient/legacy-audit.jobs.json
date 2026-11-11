@@ -1,0 +1,10 @@
+[
+  {
+    "name": "quotient-legacy-audit",
+    "cmd": "bun research/lane-i/request-quotient/audit-legacy.ts legacy-input baseline-input bfe647cfd3b81e10c497ca4d5911a8097a02586b 1e2c9770632f3aeeadd36ea09f3f90cf169b06948abdeaf88bf0150a50d3f240 b589579e4e516391d007b40447855d88a7ec08ebe954ed4c073c09e23ffc8157",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 180,
+    "vm_type": "large"
+  }
+]

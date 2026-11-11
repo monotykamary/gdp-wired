@@ -1,0 +1,10 @@
+[
+  {
+    "name": "quotient-skipped-summary",
+    "cmd": "bun research/lane-i/request-quotient/audit-skipped-summary.ts oracle-input bfe647cfd3b81e10c497ca4d5911a8097a02586b 4311cd92c1764de91a03a22ff85276b539e6dd4ca81b92ff66583b95e86b3c86",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 180,
+    "vm_type": "large"
+  }
+]
