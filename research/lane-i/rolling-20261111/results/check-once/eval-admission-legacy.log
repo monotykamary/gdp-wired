@@ -1,0 +1,62 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [1.61s]
+bun test v1.4.3 (c6da4a4d3)
+ROLLING_GATE {"sourceTree":"8ec48490b0ebaa22caf7a2748fb6365d78f47bf8","mode":"test","files":["core/count-final-step.test.ts","core/count-strategy.test.ts","core/count-proof-scope.test.ts","core/evaluation-admission.test.ts"],"protected":181}
+
+--- stderr ---
+
+core/evaluation-admission.test.ts:
+(pass) scoped evaluation counts are unchanged without an active budget [0.40ms]
+(skip) ordinary interpreter batches reduce admission calls without granting units
+(skip) zero and near-endpoint budgets refuse before another evaluation
+(skip) nested and exceptional scopes do not retain a stale evaluation credit
+(skip) a large compiled charge is admitted as one exact block
+
+core/count-strategy.test.ts:
+(pass) a search leaf is one one-hundred-twentieth of the original work allowance [1.09ms]
+(pass) standalone INIT uses the pool even when search leaves have no allowance [11.57ms]
+
+core/count-proof-scope.test.ts:
+(pass) record referenced laws, not every available scalar or instantiated law [9.06ms]
+(pass) premise matching ignores AST property insertion order [1.91ms]
+(pass) independent cut source slices remain premises even if the main tree does not cite the cut [3.46ms]
+(pass) reordering and adding unused laws reindexes but never searches [2.00ms]
+(pass) removing an actual premise or changing its body invalidates retention [3.45ms]
+(pass) declared strategy scopes cannot omit used premises or invent names [1.82ms]
+(pass) mutated original laws do not mutate recorded premise identities [1.43ms]
+(pass) changed machine or damaged certificate still requires the current kernel check [1.92ms]
+(pass) a mutual induction cycle survives unrelated drops with checks only in round one [31.39ms]
+(pass) a helper that falls cannot authorize the caller in the following round [13.11ms]
+(pass) flags off retain legacy carry without premise metadata or replay phases [10.87ms]
+(pass) scope capture and replay consume complete work with both control clocks forbidden [87.91ms]
+
+core/count-final-step.test.ts:
+(pass) final STEP deferral needs the internal capability as well as full-mode opt-in [0.09ms]
+(pass) standalone finishing remains checked even with the environment opt-in [6.06ms]
+(skip) a bad deferred STEP is a proposal, never an accepted proof
+(skip) valid proposal checks current bytes each time, including a post-check mutation
+(skip) closing refuses missing/bad INIT, bad STEP and malformed changed inputs
+(skip) a deferred replay remains unchecked; standalone replay still checks
+(skip) a deferred proposal cannot use a dropped or changed helper
+(skip) the closing gate enforces global witness freshness beyond per-packet validity
+(skip) changing a required helper instance invalidates the final family proposal
+(skip) throwing and expired closing checks are clean refusals
+
+ 17 pass
+ 12 skip
+ 0 fail
+ 69 expect() calls
+Ran 29 tests across 4 files. [297.00ms]

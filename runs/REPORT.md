@@ -1,4 +1,28 @@
-# LATEST — request quotient gated on the release integration; staged for D
+# LATEST — combined check-once and scoped admission committed; staged for D
+
+Source **51ee4018ba8ad802a4b2d061a51afa59bd943aff** includes F on the
+B/K3/A/reader line. **45/45 execution/audit jobs passed**, **233 test
+executions / 6,436 assertions**, types/lint clean across **1,973 files**.
+Strict **28/28 legacy pairs** retain results, counters, events and candidates.
+Supplied F family: **19 laws / 38 packets**, four mutation classes and global
+freshness. Actual public admission also rejects injected invalid proposals;
+the native closing checker is unchanged.
+
+Inv* returns explicitly **unchecked** before root end. Standalone and INIT
+still check. W225M original verdicts remain **UNKNOWN**: nine-entry manifest
+**224,999,999 units**; plus3F entries **225,000,051**. The latter is inside
+the documented1,024-unit envelope, not strictly <=W.
+
+Batched admission: **6.569 ms /1M evals**, versus **12.242 ms** per-node
+(baseline3.726), identical1M units: **66.6% less added admission overhead**.
+Two-observation microbenchmark, not a whole-prover speedup or unit savings.
+
+**Pending:** A's closing reserve, full-work W census and final calibration.
+No final MLDR/GO claim. Details:
+`research/lane-i/rolling-20261111/CHECK-ONCE-HANDOFF.md`,
+`EVALUATION-ADMISSION.md`, `FINAL-STEP-RESULT.md`, `results/check-once/`.
+
+# PREVIOUS — request quotient gated on the release integration; staged for D
 
 Runtime **bfe647cfd3b81e10c497ca4d5911a8097a02586b**, parent D-GREEN `4c1c05dc`.
 Three-file opt-in change only; checker, Lean, interpreter and prices unchanged.

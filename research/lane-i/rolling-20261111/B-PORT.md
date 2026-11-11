@@ -43,8 +43,9 @@ does not modify cancellation or replay runtime. Corrected exact index tree:
 `3653d54eaa5c58f4f7bfaff6975fbd6072b030af`; transport retry PASSED: 38 tests /
 115 assertions in batch `20261111-070907-npjy60`, as did commitlint. Receipts:
 `runs/lane-i/rolling-B-retry/`. Total across the four test jobs: 174 passing
-tests / 6,125 assertions; one existing optional full-profile test remains
-explicitly skipped in the preservation job. The first retry and commitlint
+tests / 6,125 assertions; three full-profile-only tests are explicitly skipped
+in this clock-off preservation job. This corrects the earlier one-skip wording;
+the preserved native log has always recorded all three. The first retry and commitlint
 attempts failed during scheduler handoff before running; those setup failures
 remain retained, not relabelled.
 

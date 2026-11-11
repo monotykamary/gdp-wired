@@ -1,0 +1,10 @@
+[
+  {
+    "name": "conditional-route-message",
+    "cmd": "set -euo pipefail; temp=$(mktemp -d); trap 'rm -rf \"$temp\"' EXIT; printf '{\"private\":true}\\n' > \"$temp/package.json\"; (cd \"$temp\" && bun add --dev @commitlint/cli @commitlint/config-conventional >/dev/null); printf \"module.exports={extends:['@commitlint/config-conventional']};\\n\" > \"$temp/commitlint.config.cjs\"; for file in message-input/*.txt; do sha256sum \"$file\"; \"$temp/node_modules/.bin/commitlint\" --cwd \"$temp\" < \"$file\"; done",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 180,
+    "vm_type": "large"
+  }
+]

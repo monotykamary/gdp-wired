@@ -1,0 +1,97 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [4.54s]
+bun test v1.4.3 (c6da4a4d3)
+ROLLING_GATE {"sourceTree":"8ec48490b0ebaa22caf7a2748fb6365d78f47bf8","mode":"test","files":["core/row-agreement-shape.test.ts","core/count-guard-shape.test.ts","core/count-row-agreement.test.ts","core/count-row-copy-linear.test.ts","core/count-row-symmetry.test.ts","core/field-laws.test.ts","core/field-loaded.test.ts","core/finite-work.test.ts"],"protected":181}
+
+--- stderr ---
+
+core/field-loaded.test.ts:
+(pass) loaded row families are structural under renaming and multiple strides [12.67ms]
+(pass) a minimal admitted singleton suppresses later load guards, not prior families [0.40ms]
+(pass) compiled Boolean marker muxes retain the direct load shape [2.69ms]
+(pass) negated or merely disjunctive marker flags do not establish a load marker [0.39ms]
+(pass) the load read must share a positive flag and both exact row-window bounds [0.87ms]
+(pass) mismatched marker keys and source strides are not guessed [0.13ms]
+(pass) nested conjunctions expose singleton guards without capturing binder names [0.25ms]
+
+core/row-agreement-shape.test.ts:
+(pass) versioned row agreement is selected by syntax, not names [4.29ms]
+(pass) a sibling field not moved with the row is not the versioned-row strategy [0.24ms]
+(pass) wrong stride, unmatched marker and count-valued rows decline [0.19ms]
+
+core/count-row-copy-linear.test.ts:
+(pass) pointwise row-copy cuts yield an ordinarily checked INIT/STEP proof [270.45ms]
+(pass) inactive copy frames exclude writes guarded by other operation values [126.50ms]
+(pass) copy proof refuses a membership-clock update that invalidates inclusion [44.89ms]
+
+core/count-row-agreement.test.ts:
+(pass) deferRowChecks alone never defers standalone row verification [12.31ms]
+(pass) written-row discovery sees inlined operation guards and excludes inactive writes [0.44ms]
+(pass) written-row discovery expands raw flags before consulting the kernel [0.22ms]
+(pass) written-row discovery includes active point writes, not unrelated operations [0.17ms]
+(pass) written-row discovery retains a row equality outside its operation guard [0.10ms]
+(pass) the row proposer checks plain frame INIT and STEP [6.80ms]
+(pass) deferred row cases omit INIT and a separate original INIT proposal checks [5.35ms]
+(pass) a fixed frame can propose only its own demanded tuple [11.27ms]
+(pass) sparse own-law proposals keep requested source rows but not destination rows [9.76ms]
+(pass) optional linear closure is checked and never authorizes a broken row [7.97ms]
+(pass) mirrored no-op written-row cases reuse only checked trees [98.61ms]
+(pass) written-row diagonal aliases are only ordinary checked splits [172.86ms]
+(pass) explicit fixed-operation paths retain checked excluded branches [107.85ms]
+(pass) an anchored own-law pool keeps only the demanded pair for a plain frame [6.11ms]
+(pass) an optional premise pool keeps target rows and explicit seeds, not incidental reads [50.84ms]
+(pass) explicit premise mode does not silently seed unrelated family laws [15.20ms]
+(pass) explicit PRE instances are recorded without mutating the seed [20.77ms]
+(pass) an unchecked shape cannot make a broken row write inductive [3.14ms]
+
+core/count-guard-shape.test.ts:
+(pass) guard shape discovery is independent of protocol and field names [4.78ms]
+(pass) a different coefficient or missing row predicate is outside this strategy [11.82ms]
+(pass) row-copy discovery follows renamed writes and rejects the wrong operation [0.40ms]
+(pass) threshold-write discovery identifies renamed input and committed sets [1.80ms]
+(pass) guard context is a fresh conservative extension and rejects ambiguous carried counts [0.21ms]
+(pass) guard context does not allocate a count over a declared parameter name [0.07ms]
+(pass) ambiguous zero phases are resolved only by a unique common write guard [0.28ms]
+(pass) discovery does not invent a phase premise [0.04ms]
+
+core/count-row-symmetry.test.ts:
+(pass) symmetry derives a bijection of variables, count reads and witnesses [0.29ms]
+(pass) a mirrored linear proof remaps input rows and is checked in its target path [0.29ms]
+(pass) deferred symmetry transport returns only an unchecked candidate, not a verdict [0.13ms]
+(pass) an asymmetric goal or expired allowance cannot reuse a verdict [0.08ms]
+
+core/field-laws.test.ts:
+cyclic: {"kind":"machine","name":"replicated fields","cert":true,"usual":true,"cyclic":true,"ms":32,"usualMs":7,"route":"translated","leaves":29,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+(pass) field equality is proposed from structure and proven by the ordinary kernel [54.85ms]
+(pass) the same candidate on a broken write is filtered and not proven [11.87ms]
+(pass) cross-record field equality can guard an ordering, without input leakage [0.34ms]
+(pass) ambiguous domains and a single numeric field are not guessed [0.05ms]
+(pass) two equal fields can identify a tuple-keyed row, with an independent member [51.37ms]
+(pass) composed-key rows use their encoded base and still require induction [34.75ms]
+(pass) generated binders do not capture state, request or flag variables [0.53ms]
+(pass) a row loaded from a plain-key map under a marker proposes the load law and the marker-guarded row agreement [6.11ms]
+
+core/finite-work.test.ts:
+(pass) work prefixes are deterministic and spend no more than their shared limit [41.21ms]
+(pass) frontiers and rejected neighbors consume the same invocation-wide allowance [1.01ms]
+(pass) work exhaustion preserves only fully certified drops and protects callers [0.55ms]
+(pass) work mode never converts enclosing wall cancellation into a partial family [1.70ms]
+(pass) invalid work limits are refused instead of silently becoming unbounded [0.09ms]
+
+ 56 pass
+ 0 fail
+ 834 expect() calls
+Ran 56 tests across 8 files. [1298.00ms]

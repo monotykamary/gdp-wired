@@ -1,0 +1,157 @@
+[
+  {
+    "name": "combined-b-port-shapes",
+    "cmd": "bun port-input/run.ts test core/row-agreement-shape.test.ts core/count-guard-shape.test.ts core/count-row-agreement.test.ts core/count-row-copy-linear.test.ts core/count-row-symmetry.test.ts core/field-laws.test.ts core/field-loaded.test.ts core/finite-work.test.ts",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "combined-b-port-transport",
+    "cmd": "bun port-input/run.ts test core/count-cert-rename.test.ts core/count-cert-transport.test.ts core/count-proof-scope.test.ts core/count-guard-tree.test.ts core/count-query.test.ts core/count-recovery/reframe-tree.test.ts core/solver-deadline.test.ts",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "combined-b-port-dispatch",
+    "cmd": "bun port-input/run.ts test core/count-strategy.test.ts core/count-strategies.test.ts core/count-strategy-clock.test.ts core/count-tier-budget.test.ts core/count-tier-integration.test.ts core/count-row-composition.test.ts core/count-case-compose.test.ts core/count-frames.test.ts core/count-phase.test.ts",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "combined-b-port-preservation",
+    "cmd": "bun port-input/run.ts test core/count-attempt-expiration.test.ts core/prover-row-budget.test.ts core/i6-meter.test.ts core/work-admission-perf.test.ts core/work-observe.test.ts core/hard-cap.test.ts core/common-counted.test.ts core/request-quotient.test.ts",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "combined-a-local-containment",
+    "cmd": "bun port-input/run.ts test core/count-premise-view.test.ts core/count-premise-search.test.ts core/count-premise-integration.test.ts",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "eval-admission-full",
+    "cmd": "bun port-input/run.ts test core/count-final-step.test.ts core/count-primitive-budget.test.ts core/evaluation-admission.test.ts core/work-observe.test.ts",
+    "env": {
+      "GDP_WORK_FULL": "1",
+      "GDP_COUNT_FINAL_DEFER_CHECKS": "1"
+    }
+  },
+  {
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "eval-admission-legacy",
+    "cmd": "bun port-input/run.ts test core/count-final-step.test.ts core/count-strategy.test.ts core/count-proof-scope.test.ts core/evaluation-admission.test.ts",
+    "env": {
+      "GDP_WORK_FULL": "0",
+      "GDP_COUNT_FINAL_DEFER_CHECKS": "1"
+    }
+  },
+  {
+    "name": "eval-admission-benchmark",
+    "cmd": "bun port-input/run.ts evaluation-benchmark",
+    "env": {
+      "GDP_WORK_FULL": "1",
+      "GDP_WORK_STEPS": "0"
+    },
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "eval-admission-types",
+    "cmd": "bun port-input/run.ts types"
+  },
+  {
+    "name": "f-full-family-native",
+    "cmd": "bun port-input/run.ts family",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "f-full-family-freshness",
+    "cmd": "bun port-input/run.ts test research/lane-i/rolling-20261111/family-freshness.test.ts",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "f-original-admission",
+    "cmd": "bun port-input/run.ts source",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large",
+    "env": {
+      "GDP_COUNT_STRATEGIES": "1",
+      "GDP_COUNT_LIFTED": "1",
+      "GDP_COUNT_LIFTED_PREREQUISITES": "1",
+      "GDP_COUNT_LIFTED_REPLACEMENT": "1"
+    }
+  },
+  {
+    "name": "combined-original-check-once",
+    "cmd": "bun port-input/run.ts dispatch",
+    "env": {
+      "GDP_WORK_FULL": "1",
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_FRAMES": "1",
+      "GDP_COUNT_REJECTIONS": "1",
+      "GDP_COUNT_STRATEGIES": "1",
+      "GDP_COUNT_TIERS": "1",
+      "GDP_REQUEST_QUOTIENT": "1",
+      "GDP_COUNT_ROW_DEFER_CHECKS": "1",
+      "GDP_COUNT_FINAL_DEFER_CHECKS": "1"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "combined-original-lifted-report",
+    "cmd": "bun port-input/run.ts dispatch-report",
+    "env": {
+      "GDP_WORK_FULL": "1",
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_FRAMES": "1",
+      "GDP_COUNT_REJECTIONS": "1",
+      "GDP_COUNT_STRATEGIES": "1",
+      "GDP_COUNT_TIERS": "1",
+      "GDP_REQUEST_QUOTIENT": "1",
+      "GDP_COUNT_ROW_DEFER_CHECKS": "1",
+      "GDP_COUNT_FINAL_DEFER_CHECKS": "1",
+      "GDP_COUNT_LIFTED": "1",
+      "GDP_COUNT_LIFTED_PREREQUISITES": "1",
+      "GDP_COUNT_LIFTED_REPLACEMENT": "1"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  }
+]

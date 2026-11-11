@@ -1,0 +1,11 @@
+import {countsDump} from '../core/counts.ts'
+import {clock,budgetEnd} from '../kernel/prove.ts'
+const selected=new Set(['count-strategy','count-strategy-result','count-tier-plan','count-tier-attempt','premise-context','houdini-attempt','houdini-result'])
+countsDump.on=(event:object)=>{
+ const e=event as Record<string,any>
+ if(e.phase==='candidates')console.log('DISPATCH_CANDIDATES '+JSON.stringify({count:e.laws.length,laws:e.laws.map((law:any)=>law.name)}))
+ if(!selected.has(e.phase))return
+ const out=Object.fromEntries(Object.entries(e).filter(([key,value])=>!['machine','laws','goal','hyps','decls','witness','path'].includes(key)&&(value===null||['string','number','boolean'].includes(typeof value)||Array.isArray(value)&&value.every(x=>typeof x==='string'))))
+ if(e.phase==='count-strategy-result'){out.at=clock();out.rootEnd=budgetEnd()}
+ console.log('DISPATCH_EVENT '+JSON.stringify(out))
+}

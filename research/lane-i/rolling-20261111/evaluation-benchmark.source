@@ -1,0 +1,24 @@
+import {strict as a} from 'node:assert'
+import {observeEval,withEvaluationAdmission} from '../core/work-observe.ts'
+import {runtimeWall} from '../core/runtime-wall.ts'
+import {completeWorkProfile} from '../core/work-profile.ts'
+import {rawWork,fullWork} from '../core/work-meter.ts'
+import {withBudget} from '../core/wall.ts'
+import {tripwireGate} from '../core/clock-tripwire-preload.ts'
+a(completeWorkProfile.enabled);a.equal(typeof runtimeWall.admit,'function')
+const n=1000000,weight=completeWorkProfile.weights.evals,records:any[]=[]
+for(const mode of ['baseline','batch','per-node','per-node','batch','baseline']){
+ const prior=runtimeWall.admit;let calls=0
+ runtimeWall.admit=(units,phase)=>{calls++;prior?.(units,phase)}
+ const before=rawWork(),start=fullWork(),wall=performance.now()
+ tripwireGate.active=true
+ try{withBudget(n*weight,()=>{
+  const run=()=>{for(let i=0;i<n;i++){if(mode==='per-node')runtimeWall.admit?.(weight,'benchmark per-node');observeEval()}}
+  if(mode==='batch')withEvaluationAdmission(run);else run()
+ })}finally{tripwireGate.active=false;runtimeWall.admit=prior}
+ const ms=performance.now()-wall,units=fullWork()-start,after=rawWork()
+ a.equal(after.evals-before.evals,n);a.equal(units,n*weight)
+ for(const key of Object.keys(after) as (keyof typeof after)[])if(key!=='evals')a.equal(after[key],before[key],key)
+ records.push({mode,ms,units,admissionCalls:calls,evaluations:n})
+}
+console.log('EVALUATION_BENCHMARK '+JSON.stringify({records,clockReads:tripwireGate.reads}))

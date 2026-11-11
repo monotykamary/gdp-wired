@@ -1,0 +1,46 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [5.42s]
+bun test v1.4.3 (c6da4a4d3)
+ROLLING_GATE {"sourceTree":"8ec48490b0ebaa22caf7a2748fb6365d78f47bf8","mode":"test","files":["core/count-premise-view.test.ts","core/count-premise-search.test.ts","core/count-premise-integration.test.ts"],"protected":181}
+
+--- stderr ---
+
+core/count-premise-integration.test.ts:
+(pass) production containment transports a local proof to the full row layout [156.02ms]
+(pass) production fallback can prove a full goal after its contained local model [17.73ms]
+
+core/count-premise-search.test.ts:
+(pass) a checked local result wins; an unchecked proposal never does [0.61ms]
+(pass) a local refutation or unknown always falls back, and genuine full refutation survives [0.24ms]
+(pass) integer-charge local expiration leaves a positive full-context reserve [2.69ms]
+(pass) selection exhaustion also returns to full context [1.10ms]
+(pass) an exact local endpoint cannot return an unchecked local result [0.46ms]
+(pass) an explicitly unsupported local proposal cannot suppress the full fallback [0.11ms]
+(pass) outer expiration and unrelated exceptions propagate unchanged [0.40ms]
+
+core/count-premise-view.test.ts:
+(pass) containment follows the active operation and target writes, not map spelling [3.07ms]
+(pass) a shared cell cannot admit a hypothesis with an extra uncontained map [0.87ms]
+(pass) data-first containment distinguishes opaque Boolean control from copied data [7.56ms]
+(pass) derived count vocabulary requires every underlying read [0.58ms]
+(pass) expired or structurally unsupported containment does not manufacture a view [0.35ms]
+(pass) family containment retains original laws and order without assuming an operation [0.93ms]
+(pass) state scalars and counts with an uncontained read do not leak into family scope [1.62ms]
+
+ 16 pass
+ 0 fail
+ 52 expect() calls
+Ran 16 tests across 3 files. [962.00ms]

@@ -1,0 +1,10 @@
+[
+  {
+    "name": "combined-defaults-audit",
+    "cmd": "bun research/lane-i/rolling-20261111/default-audit.ts receipt-input 8ec48490b0ebaa22caf7a2748fb6365d78f47bf8 5e52d5ee032bd1f534209f7480b2c7ce2640cdc7",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 300,
+    "vm_type": "large"
+  }
+]

@@ -1,0 +1,24 @@
+[
+  {
+    "name": "public-closing-mutations",
+    "cmd": "bun port-input/run.ts test core/public-closing-proposal.test.ts",
+    "env": {
+      "GDP_WORK_FULL": "1",
+      "GDP_COUNT_STRATEGIES": "1",
+      "GDP_COUNT_TIERS": "1",
+      "GDP_COUNT_FINAL_DEFER_CHECKS": "1"
+    },
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "public-closing-types",
+    "cmd": "bun port-input/run.ts types",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

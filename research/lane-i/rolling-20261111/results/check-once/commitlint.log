@@ -1,0 +1,7 @@
+c66c3e6419ff354cdac72d705eb6cc91b4f85655e943b3d57d0a195725dd5e1f  message-input/f.txt
+ce282c994b6dab3dc1e728a643cb21a0c52f1059ade14f906ca1be89e44670e8  message-input/proposal.txt
+
+--- stderr ---
+Resolving dependencies
+Resolved, downloaded and extracted [276]
+Saved lockfile

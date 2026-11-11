@@ -1,0 +1,16 @@
+{
+  "sourceCommit": "51ee4018ba8ad802a4b2d061a51afa59bd943aff",
+  "runtimeTree": "8ec48490b0ebaa22caf7a2748fb6365d78f47bf8",
+  "runtimePlusPublicTestTree": "59f390b733ad4afc9f704a8d23d91a756a5732b9",
+  "coreDiffEmpty": true,
+  "verifiedBy": "git diff --quiet 59f390b733ad4afc9f704a8d23d91a756a5732b9 HEAD -- core",
+  "codeChangesSinceRuntimeTree": [
+    "core/public-closing-proposal.test.ts"
+  ],
+  "nativeJobs": 14,
+  "legacyPairJobs": 28,
+  "legacyAuditJobs": 1,
+  "publicBoundaryJobs": 2,
+  "testExecutions": 233,
+  "assertions": 6436
+}

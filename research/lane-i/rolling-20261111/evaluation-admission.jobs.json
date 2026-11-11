@@ -1,0 +1,65 @@
+[
+  {
+    "name": "eval-admission-original",
+    "cmd": "bun port-input/run.ts dispatch",
+    "env": {
+      "GDP_WORK_FULL": "1",
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_FRAMES": "1",
+      "GDP_COUNT_REJECTIONS": "1",
+      "GDP_COUNT_STRATEGIES": "1",
+      "GDP_COUNT_TIERS": "1",
+      "GDP_REQUEST_QUOTIENT": "1",
+      "GDP_COUNT_ROW_DEFER_CHECKS": "1",
+      "GDP_COUNT_FINAL_DEFER_CHECKS": "1"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "eval-admission-full",
+    "cmd": "bun port-input/run.ts test core/count-final-step.test.ts core/count-primitive-budget.test.ts core/evaluation-admission.test.ts core/work-observe.test.ts",
+    "env": {
+      "GDP_WORK_FULL": "1",
+      "GDP_COUNT_FINAL_DEFER_CHECKS": "1"
+    }
+  },
+  {
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "eval-admission-legacy",
+    "cmd": "bun port-input/run.ts test core/count-final-step.test.ts core/count-strategy.test.ts core/count-proof-scope.test.ts core/evaluation-admission.test.ts",
+    "env": {
+      "GDP_WORK_FULL": "0",
+      "GDP_COUNT_FINAL_DEFER_CHECKS": "1"
+    }
+  },
+  {
+    "name": "eval-admission-benchmark",
+    "cmd": "bun port-input/run.ts evaluation-benchmark",
+    "env": {
+      "GDP_WORK_FULL": "1",
+      "GDP_WORK_STEPS": "0"
+    },
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "eval-admission-types",
+    "cmd": "bun port-input/run.ts types"
+  }
+]
