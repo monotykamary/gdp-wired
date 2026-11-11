@@ -1,0 +1,327 @@
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [1.72s]
+bun test v1.4.3 (c6da4a4d3)
+{
+ "rules": [
+  {
+   "file": "../gdp-draft-Wf57XC/desk.py",
+   "lang": "Python",
+   "entry": "RecordsDesk",
+   "ok": true,
+   "refusals": [],
+   "notes": [
+    "the entry inferred: RecordsDesk, the class whose public methods write its state (receive, fulfill; the others read it)",
+    "receive: raise ValueError('already received') (desk.py:19:13) is the step's refusal",
+    "time.time() is the request's time (an input, read once a step, at whole seconds: the claim is for those)",
+    "fulfill: raise ValueError('no such request') (desk.py:27:13) is the step's refusal",
+    "fulfill: raise ValueError('closed') (desk.py:30:13) is the step's refusal",
+    "receive_diagnosis: an integer (the code takes any whole number)"
+   ],
+   "names": [
+    {
+     "code": "requests",
+     "rule": "requests",
+     "role": "state",
+     "map": {
+      "fields": [
+       "received",
+       "fulfilled",
+       "escalated"
+      ]
+     }
+    },
+    {
+     "code": "notes",
+     "rule": "notes",
+     "role": "state",
+     "map": {
+      "fields": [
+       "value"
+      ]
+     }
+    },
+    {
+     "code": "rid",
+     "rule": "receive_rid",
+     "role": "input",
+     "method": "receive"
+    },
+    {
+     "code": "diagnosis",
+     "rule": "receive_diagnosis",
+     "role": "input",
+     "method": "receive"
+    },
+    {
+     "code": "rid",
+     "rule": "fulfill_rid",
+     "role": "input",
+     "method": "fulfill"
+    },
+    {
+     "code": "now",
+     "rule": "now",
+     "role": "clock"
+    },
+    {
+     "code": "method",
+     "rule": "method",
+     "role": "method"
+    }
+   ],
+   "laws": [
+    {
+     "name": "acted on within 30 days",
+     "expr": "requests[rid].fulfilled implies now - requests[rid].received < 30 days",
+     "where": "desk.py:23",
+     "cites": [
+      "45 CFR 164.524(b)(2): \"no later than 30 days\" [unreviewed: drafted by a model]"
+     ],
+     "translation": "unchecked",
+     "kernelProven": true,
+     "kind": "step",
+     "verdict": "unknown",
+     "why": "source translation unchecked: native source replay is unavailable or disabled",
+     "ms": 1989
+    }
+   ],
+   "proposed": [],
+   "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 7 of 8 branch arms"
+  }
+ ],
+ "exit": 2
+}
+{
+ "rules": [
+  {
+   "file": "../gdp-draft-Wf57XC/desk.py",
+   "lang": "Python",
+   "entry": "RecordsDesk",
+   "ok": true,
+   "refusals": [],
+   "notes": [
+    "the entry inferred: RecordsDesk, the class whose public methods write its state (receive, fulfill; the others read it)",
+    "receive: raise ValueError('already received') (desk.py:19:13) is the step's refusal",
+    "time.time() is the request's time (an input, read once a step, at whole seconds: the claim is for those)",
+    "fulfill: raise ValueError('no such request') (desk.py:27:13) is the step's refusal",
+    "fulfill: raise ValueError('closed') (desk.py:30:13) is the step's refusal",
+    "receive_diagnosis: an integer (the code takes any whole number)"
+   ],
+   "names": [
+    {
+     "code": "requests",
+     "rule": "requests",
+     "role": "state",
+     "map": {
+      "fields": [
+       "received",
+       "fulfilled",
+       "escalated"
+      ]
+     }
+    },
+    {
+     "code": "notes",
+     "rule": "notes",
+     "role": "state",
+     "map": {
+      "fields": [
+       "value"
+      ]
+     }
+    },
+    {
+     "code": "rid",
+     "rule": "receive_rid",
+     "role": "input",
+     "method": "receive"
+    },
+    {
+     "code": "diagnosis",
+     "rule": "receive_diagnosis",
+     "role": "input",
+     "method": "receive"
+    },
+    {
+     "code": "rid",
+     "rule": "fulfill_rid",
+     "role": "input",
+     "method": "fulfill"
+    },
+    {
+     "code": "now",
+     "rule": "now",
+     "role": "clock"
+    },
+    {
+     "code": "method",
+     "rule": "method",
+     "role": "method"
+    }
+   ],
+   "laws": [
+    {
+     "name": "acted on within 30 days",
+     "expr": "requests[rid].fulfilled implies now - requests[rid].received < 30 days",
+     "where": "desk.py:23",
+     "cites": [
+      "45 CFR 164.524(b)(2): \"no later than 30 days\" [unreviewed: drafted by a model]"
+     ],
+     "translation": "unchecked",
+     "kernelProven": true,
+     "kind": "step",
+     "verdict": "unknown",
+     "why": "source translation unchecked: native source replay is unavailable or disabled",
+     "ms": 2654
+    }
+   ],
+   "proposed": [],
+   "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 7 of 8 branch arms"
+  }
+ ],
+ "exit": 2
+}
+{
+ "rules": [
+  {
+   "file": "../gdp-draft-Wf57XC/desk.py",
+   "lang": "Python",
+   "entry": "RecordsDesk",
+   "ok": true,
+   "refusals": [],
+   "notes": [
+    "the entry inferred: RecordsDesk, the class whose public methods write its state (receive, fulfill; the others read it)",
+    "receive: raise ValueError('already received') (desk.py:19:13) is the step's refusal",
+    "time.time() is the request's time (an input, read once a step, at whole seconds: the claim is for those)",
+    "fulfill: raise ValueError('no such request') (desk.py:27:13) is the step's refusal",
+    "fulfill: raise ValueError('closed') (desk.py:30:13) is the step's refusal",
+    "receive_diagnosis: an integer (the code takes any whole number)"
+   ],
+   "names": [
+    {
+     "code": "requests",
+     "rule": "requests",
+     "role": "state",
+     "map": {
+      "fields": [
+       "received",
+       "fulfilled",
+       "escalated"
+      ]
+     }
+    },
+    {
+     "code": "notes",
+     "rule": "notes",
+     "role": "state",
+     "map": {
+      "fields": [
+       "value"
+      ]
+     }
+    },
+    {
+     "code": "rid",
+     "rule": "receive_rid",
+     "role": "input",
+     "method": "receive"
+    },
+    {
+     "code": "diagnosis",
+     "rule": "receive_diagnosis",
+     "role": "input",
+     "method": "receive"
+    },
+    {
+     "code": "rid",
+     "rule": "fulfill_rid",
+     "role": "input",
+     "method": "fulfill"
+    },
+    {
+     "code": "now",
+     "rule": "now",
+     "role": "clock"
+    },
+    {
+     "code": "method",
+     "rule": "method",
+     "role": "method"
+    }
+   ],
+   "laws": [
+    {
+     "name": "acted on within 30 days",
+     "expr": "requests[rid].fulfilled implies now - requests[rid].received < 30 days",
+     "where": "desk.py:23",
+     "cites": [
+      "45 CFR 164.524(b)(2): \"no later than 30 days\" [reviewed-by: A. Person, 2026-11-02]"
+     ],
+     "translation": "unchecked",
+     "kernelProven": true,
+     "kind": "step",
+     "verdict": "unknown",
+     "why": "source translation unchecked: native source replay is unavailable or disabled",
+     "ms": 2691
+    }
+   ],
+   "proposed": [],
+   "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 7 of 8 branch arms"
+  }
+ ],
+ "exit": 2
+}
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+MERGE_GATE {"source":"2de2ce89f9f93eb8feb5fbfb3a355da3adafc4ef","mode":"calendar"}
+
+--- stderr ---
+
+core/calendar.test.ts:
+(pass) business days: the count is the calendar walked day by day [574.02ms]
+cyclic: {"kind":"machine","name":"desk14","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"desk14","cert":true,"usual":true,"cyclic":true,"ms":610,"usualMs":378,"route":"translated","leaves":1515,"regrown":0,"splits":14,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"desk14","cert":true,"usual":true,"cyclic":false,"ms":7150,"usualMs":10470,"route":"fallback","leaves":17908,"regrown":0,"splits":2,"carried":0,"uncarried":0,"cached":0,"fellBack":"desk14: recorded within 10, after a step: not translated"}
+cyclic: {"kind":"machine","name":"desk14","uncovered":true,"why":"no cyclic proof found (not translated: desk14: recorded within 10, after a step: not translated)"}
+(pass) business days: a deadline law of one step (each time's week a key) and of the state (divided out), proven and broken [42236.58ms]
+cyclic: {"kind":"machine","name":"RecordsDesk: receive_diagnosis secret","cert":true,"usual":true,"cyclic":false,"ms":10008,"usualMs":1601,"route":"fallback","leaves":2670,"regrown":39,"splits":1130,"carried":8,"uncarried":1,"cached":0,"fellBack":"RecordsDesk: receive_diagnosis secret: the diagnosis stays private: unknown"}
+cyclic: {"kind":"machine","name":"RecordsDesk: receive_diagnosis secret","uncovered":true,"why":"no cyclic proof found within the caller or certificate budget (not translated: RecordsDesk: receive_diagnosis secret: the diagnosis stays private: unknown)"}
+cyclic: {"kind":"machine","name":"RecordsDesk: isolation of the owner","cert":true,"usual":true,"cyclic":false,"ms":17513,"usualMs":1198,"route":"fallback","leaves":2178,"regrown":101,"splits":761,"carried":0,"uncarried":0,"cached":0,"fellBack":"RecordsDesk: isolation of the owner: one patient's requests never change another's: requests, notes at B, after a step: not translated"}
+cyclic: {"kind":"machine","name":"RecordsDesk: isolation of the owner","uncovered":true,"why":"no cyclic proof found within the caller or certificate budget (not translated: RecordsDesk: isolation of the owner: one patient's requests never change another's: requests, notes at B, after a step: not translated)"}
+cyclic: {"kind":"machine","name":"RecordsDesk: receive_diagnosis secret","cert":true,"usual":true,"cyclic":false,"ms":13981,"usualMs":713,"route":"fallback","leaves":2664,"regrown":39,"splits":1129,"carried":8,"uncarried":1,"cached":0,"fellBack":"RecordsDesk: receive_diagnosis secret: the diagnosis stays private: use of node 18, its hypothesis 0: unknown"}
+cyclic: {"kind":"machine","name":"RecordsDesk: receive_diagnosis secret","uncovered":true,"why":"no cyclic proof found within the caller or certificate budget (not translated: RecordsDesk: receive_diagnosis secret: the diagnosis stays private: use of node 18, its hypothesis 0: unknown)"}
+cyclic: {"kind":"machine","name":"RecordsDesk: isolation of the owner","cert":true,"usual":true,"cyclic":false,"ms":15596,"usualMs":1308,"route":"fallback","leaves":2178,"regrown":101,"splits":761,"carried":0,"uncarried":0,"cached":0,"fellBack":"RecordsDesk: isolation of the owner: one patient's requests never change another's: requests, notes at B, after a step: not translated"}
+cyclic: {"kind":"machine","name":"RecordsDesk: isolation of the owner","uncovered":true,"why":"no cyclic proof found within the caller or certificate budget (not translated: RecordsDesk: isolation of the owner: one patient's requests never change another's: requests, notes at B, after a step: not translated)"}
+cyclic: {"kind":"machine","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":1576,"usualMs":46,"route":"translated","leaves":707,"regrown":0,"splits":492,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"RecordsDesk","cert":true,"usual":true,"cyclic":false,"ms":222,"usualMs":344,"route":"fallback","leaves":681,"regrown":0,"splits":3,"carried":0,"uncarried":0,"cached":0,"fellBack":"RecordsDesk: within 10 business days, after a step: not translated"}
+cyclic: {"kind":"step law","name":"RecordsDesk","uncovered":true,"why":"no cyclic proof found (not translated: RecordsDesk: within 10 business days, after a step: not translated)"}
+(pass) the CLI: business-day model verdicts retained without a Python source proof [74353.68ms]
+cyclic: {"kind":"machine","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":1974,"usualMs":152,"route":"translated","leaves":707,"regrown":0,"splits":492,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":909,"usualMs":18,"route":"translated","leaves":71,"regrown":0,"splits":44,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":1258,"usualMs":44,"route":"translated","leaves":707,"regrown":0,"splits":492,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":657,"usualMs":10,"route":"translated","leaves":71,"regrown":0,"splits":44,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":1821,"usualMs":80,"route":"translated","leaves":707,"regrown":0,"splits":492,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":720,"usualMs":14,"route":"translated","leaves":71,"regrown":0,"splits":44,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":1740,"usualMs":48,"route":"translated","leaves":707,"regrown":0,"splits":492,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":877,"usualMs":9,"route":"translated","leaves":71,"regrown":0,"splits":44,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":1518,"usualMs":59,"route":"translated","leaves":707,"regrown":0,"splits":492,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":591,"usualMs":15,"route":"translated","leaves":71,"regrown":0,"splits":44,"carried":1,"uncarried":0,"cached":0}
+(pass) drafting: a drafter's laws read over the code's names, refused where they name what it lacks; an unreviewed citation refused by --require-review [18751.81ms]
+
+ 4 pass
+ 0 fail
+ 9832 expect() calls
+Ran 4 tests across 1 file. [136.18s]

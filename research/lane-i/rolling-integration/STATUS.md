@@ -1,6 +1,22 @@
 # Rolling integration — scoped entries only
 
-## Latest: cap repair and A local-expiry seam
+## Latest: main 0.48.0 merge, staged for D
+
+Main `f95f306d` is now an ancestor through exact tested merge **2de2ce89**.
+All release safety/privacy changes are preserved; only `core/dsl.ts` and
+`core/infer.ts` conflicted (release validation plus counted clocks).
+541 test executions / 16,106 assertions pass, with 2 profile skips; merged
+source and evidence tooling pass static checks. All 56 census receipts are
+audited: full mode 10 checked/18 unknown; off mode 27 checked/1 unknown.
+Verdicts, candidates, traces and charged work are unchanged. Strict raw
+identity is **19/28**, not 28: nine cases lose unpriced evals, two also lose
+astNodes with main’s internal model-proving path. Scope and all receipts:
+`../merge-0480/RESULT.md` and `../merge-0480/D-HANDOFF.md`.
+
+D approval and calibration are pending. The quotient remains uncommitted
+WIP, isolated from this tested source.
+
+## Previous: cap repair and A local-expiry seam
 
 Exact local validated source **17119b50**, still on the 00b58ee5 line.
 `../cap-gap/RESULT.md` and `../cap-gap/D-HANDOFF.md` supersede the previous

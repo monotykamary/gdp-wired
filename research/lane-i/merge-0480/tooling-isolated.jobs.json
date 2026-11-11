@@ -1,0 +1,1 @@
+[{"name":"merge-evidence-check","cmd":"bun research/lane-i/merge-0480/tooling-check.ts","cpu":4,"memory":8192,"timeout":690,"vm_type":"large"}]

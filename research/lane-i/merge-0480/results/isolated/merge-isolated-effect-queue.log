@@ -1,0 +1,275 @@
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [1.76s]
+bun test v1.4.3 (c6da4a4d3)
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+MERGE_GATE {"source":"2de2ce89f9f93eb8feb5fbfb3a355da3adafc4ef","mode":"effect-queue"}
+
+--- stderr ---
+
+core/effect-queue.test.ts:
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":221,"usualMs":33,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":172,"usualMs":4,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":168,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":352,"usualMs":43,"route":"translated","leaves":138,"regrown":0,"splits":61,"carried":7,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":28,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":341,"usualMs":9,"route":"translated","leaves":32,"regrown":0,"splits":20,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":40,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":341,"usualMs":13,"route":"translated","leaves":37,"regrown":0,"splits":15,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":26,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":366,"usualMs":9,"route":"translated","leaves":45,"regrown":0,"splits":31,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":33,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":288,"usualMs":3,"route":"translated","leaves":22,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":18,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":289,"usualMs":3,"route":"translated","leaves":24,"regrown":0,"splits":21,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":148,"usualMs":7,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":162,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":750,"usualMs":44,"route":"translated","leaves":137,"regrown":0,"splits":61,"carried":7,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":22,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":339,"usualMs":9,"route":"translated","leaves":36,"regrown":0,"splits":23,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":21,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":326,"usualMs":10,"route":"translated","leaves":37,"regrown":0,"splits":15,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":18,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":297,"usualMs":6,"route":"translated","leaves":45,"regrown":0,"splits":31,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":51,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":false,"ms":519,"usualMs":4,"route":"fallback","leaves":13,"regrown":0,"splits":12,"carried":0,"uncarried":1,"cached":0,"fellBack":"make: nothing comes in but an offer, at the tail: unknown"}
+cyclic: {"kind":"step law","name":"make","uncovered":true,"why":"no cyclic proof found (not translated: make: nothing comes in but an offer, at the tail: unknown)"}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":31,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":263,"usualMs":4,"route":"translated","leaves":24,"regrown":0,"splits":21,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":121,"usualMs":5,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":118,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":516,"usualMs":22,"route":"translated","leaves":136,"regrown":0,"splits":61,"carried":7,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":28,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":427,"usualMs":11,"route":"translated","leaves":44,"regrown":0,"splits":29,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":22,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":247,"usualMs":8,"route":"translated","leaves":36,"regrown":0,"splits":15,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":20,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":false,"ms":284,"usualMs":7,"route":"fallback","leaves":16,"regrown":0,"splits":1,"carried":0,"uncarried":0,"cached":0,"fellBack":"make: only the oldest item leaves, to a take, a poll, a slide or a shutdown, after a step: unknown"}
+cyclic: {"kind":"step law","name":"make","uncovered":true,"why":"no cyclic proof found (not translated: make: only the oldest item leaves, to a take, a poll, a slide or a shutdown, after a step: unknown)"}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":37,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":776,"usualMs":4,"route":"translated","leaves":22,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":21,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":604,"usualMs":4,"route":"translated","leaves":24,"regrown":0,"splits":21,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":259,"usualMs":14,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":131,"usualMs":5,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":293,"usualMs":22,"route":"translated","leaves":126,"regrown":0,"splits":55,"carried":7,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":17,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":540,"usualMs":5,"route":"translated","leaves":28,"regrown":0,"splits":19,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":21,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":624,"usualMs":11,"route":"translated","leaves":37,"regrown":0,"splits":15,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":22,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":329,"usualMs":8,"route":"translated","leaves":45,"regrown":0,"splits":31,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":20,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":260,"usualMs":2,"route":"translated","leaves":22,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":25,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":278,"usualMs":4,"route":"translated","leaves":24,"regrown":0,"splits":21,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":27,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":31,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":117,"usualMs":20,"route":"translated","leaves":72,"regrown":0,"splits":13,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":14,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":200,"usualMs":7,"route":"translated","leaves":29,"regrown":0,"splits":18,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":24,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":180,"usualMs":7,"route":"translated","leaves":23,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":18,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":105,"usualMs":8,"route":"translated","leaves":23,"regrown":0,"splits":12,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":297,"usualMs":8,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":165,"usualMs":4,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":273,"usualMs":4,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":215,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":353,"usualMs":24,"route":"translated","leaves":135,"regrown":0,"splits":74,"carried":6,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":17,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":279,"usualMs":9,"route":"translated","leaves":25,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":123,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":324,"usualMs":11,"route":"translated","leaves":35,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":19,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":319,"usualMs":8,"route":"translated","leaves":53,"regrown":0,"splits":41,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":16,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":319,"usualMs":2,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":19,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":329,"usualMs":4,"route":"translated","leaves":32,"regrown":0,"splits":29,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":588,"usualMs":4,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":433,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":12,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":false,"ms":258,"usualMs":21,"route":"fallback","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0,"fellBack":"make: probe 17: use of node 12, its hypothesis 5: unknown"}
+cyclic: {"kind":"step law","name":"make","uncovered":true,"why":"no cyclic proof found (not translated: make: probe 17: use of node 12, its hypothesis 5: unknown)"}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":2,"usualMs":58,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":339,"usualMs":29,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":303,"usualMs":23,"route":"translated","leaves":137,"regrown":0,"splits":74,"carried":6,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":17,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":322,"usualMs":8,"route":"translated","leaves":30,"regrown":0,"splits":20,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":16,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":309,"usualMs":10,"route":"translated","leaves":35,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":19,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":354,"usualMs":7,"route":"translated","leaves":53,"regrown":0,"splits":41,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":16,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":266,"usualMs":2,"route":"translated","leaves":21,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":20,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":341,"usualMs":3,"route":"translated","leaves":32,"regrown":0,"splits":29,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":169,"usualMs":5,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":344,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":16,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":174,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":253,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":318,"usualMs":18,"route":"translated","leaves":132,"regrown":0,"splits":74,"carried":6,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":21,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":400,"usualMs":11,"route":"translated","leaves":36,"regrown":0,"splits":24,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":18,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":679,"usualMs":9,"route":"translated","leaves":35,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":23,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":482,"usualMs":10,"route":"translated","leaves":60,"regrown":0,"splits":47,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":18,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":377,"usualMs":1,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":21,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":582,"usualMs":4,"route":"translated","leaves":32,"regrown":0,"splits":29,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":211,"usualMs":5,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":198,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":277,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":7,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":300,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":476,"usualMs":20,"route":"translated","leaves":117,"regrown":0,"splits":63,"carried":6,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":22,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":484,"usualMs":6,"route":"translated","leaves":19,"regrown":0,"splits":12,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":17,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":338,"usualMs":10,"route":"translated","leaves":35,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":21,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":408,"usualMs":8,"route":"translated","leaves":53,"regrown":0,"splits":41,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":21,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":341,"usualMs":2,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":16,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":271,"usualMs":3,"route":"translated","leaves":32,"regrown":0,"splits":29,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":25,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":21,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":11,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":23,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":9,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":23,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":9,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) each primitive's rule (4.x and 3.x): read, checked, its laws proven for every capacity and number of permits [54139.23ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":241,"usualMs":6,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":147,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":165,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":169,"usualMs":7,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":123,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":336,"usualMs":14,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":185,"usualMs":10,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":483,"usualMs":8,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":392,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":169,"usualMs":4,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":306,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":111,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":298,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":137,"usualMs":5,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":145,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":141,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":108,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":165,"usualMs":6,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":152,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":148,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":261,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":185,"usualMs":5,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":144,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":130,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":138,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":208,"usualMs":7,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":171,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) each rule beside Effect's own primitive (4.x and 3.x) on random operations and fibers; a wrong strategy is caught [87529.00ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":251,"usualMs":6,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":230,"usualMs":5,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":351,"usualMs":5,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":254,"usualMs":7,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":400,"usualMs":4,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":7,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":318,"usualMs":7,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":232,"usualMs":7,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":193,"usualMs":4,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":254,"usualMs":5,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":436,"usualMs":5,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":236,"usualMs":7,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":278,"usualMs":10,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) the pool (examples/effect-pool.ts, and on 3.x): every fiber's steps, its laws proven; a release without its acquire refuted by a run and seen on the runtime [139825.15ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":677,"usualMs":23,"route":"translated","leaves":59,"regrown":0,"splits":25,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":581,"usualMs":7,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":458,"usualMs":29,"route":"translated","leaves":59,"regrown":0,"splits":25,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":700,"usualMs":7,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) a failure in withPermits' body gives the permits back first (checked on the runtime, no run breaks the use law); a poll, a dropping and a sliding queue [152383.53ms]
+(pass) what the model doesn't hold is refused where it is, with why [19807.87ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":252,"usualMs":10,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":219,"usualMs":8,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":218,"usualMs":5,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":234,"usualMs":6,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":189,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":182,"usualMs":5,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":310,"usualMs":6,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":186,"usualMs":4,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":202,"usualMs":4,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":247,"usualMs":6,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":337,"usualMs":4,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":212,"usualMs":5,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) the CLI refuses unchecked pool source laws on both Effect versions and the broken variant [84822.17ms]
+
+ 6 pass
+ 0 fail
+ 181 expect() calls
+Ran 6 tests across 1 file. [539.02s]

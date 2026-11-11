@@ -1,0 +1,47 @@
+{
+  "source": "2de2ce89f9f93eb8feb5fbfb3a355da3adafc4ef",
+  "releaseParent": "f95f306d01d70249fea7635bbf9584287073355f",
+  "integrationParent": "4d5b89fedfcd66380b511d516c9db765270c4446",
+  "status": "local-checks-complete-pending-D",
+  "batch": "20261111-052837-wtq6py",
+  "task": null,
+  "gateJobs": 62,
+  "logDirectory": "runs/lane-i/merge0480-gate",
+  "checkerSHA256": {
+    "kernel/kernel.ts": "1e2c9770632f3aeeadd36ea09f3f90cf169b06948abdeaf88bf0150a50d3f240",
+    "core/check.ts": "b589579e4e516391d007b40447855d88a7ec08ebe954ed4c073c09e23ffc8157"
+  },
+  "quotientStash": "8b630c720f76cf17877e2b6812269016a13be795",
+  "dApproval": "pending",
+  "calibration": "pending; no old fit transfers",
+  "completedBatches": {
+    "production": "20261111-052837-wtq6py",
+    "isolated": "20261111-054412-3ex1y4",
+    "compatibility": "20261111-054557-4cd4sk",
+    "evidence": "20261111-055231-wh0uky",
+    "commitlint": "20261111-055546-9vax24"
+  },
+  "tests": {
+    "passed": 541,
+    "assertions": 16106,
+    "skipped": 2
+  },
+  "census": {
+    "receipts": 56,
+    "full": {
+      "checked": 10,
+      "unknown": 18
+    },
+    "off": {
+      "checked": 27,
+      "unknown": 1
+    },
+    "rawIdentity": 19,
+    "unpricedObservationDecreases": 9,
+    "maxUnits": 15000276.18
+  },
+  "audit": "scoped compatibility + five corruption controls pass; strict raw identity fails in nine",
+  "baselineSource": "17119b508485c0f0d104c71df28b11e5f48656d2",
+  "effectivePassingProductionJobs": 68,
+  "evidenceStaticFiles": 1837
+}

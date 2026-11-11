@@ -1,0 +1,70 @@
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [1328.00ms]
+bun test v1.4.3 (c6da4a4d3)
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+MERGE_GATE {"source":"2de2ce89f9f93eb8feb5fbfb3a355da3adafc4ef","mode":"effect-schedule"}
+
+--- stderr ---
+
+core/effect-schedule.test.ts:
+cyclic: {"kind":"machine","name":"schedule","cert":true,"usual":true,"cyclic":true,"ms":47,"usualMs":10,"route":"translated","leaves":10,"regrown":0,"splits":4,"carried":2,"uncarried":0,"cached":0}
+(pass) a source-derived schedule cannot become a plain DSL proof when replay is off [1099.61ms]
+cyclic: {"kind":"recurrence","name":"exponential_x2_b10","cert":true,"usual":true,"cyclic":true,"ms":15,"usualMs":4,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"recurrence, between","name":"exponential_x2_b10","cert":true,"usual":true,"cyclic":true,"ms":23,"usualMs":4,"route":"translated","leaves":15,"regrown":0,"splits":9,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"recurrence","name":"exponential_x3_b10","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":4,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"recurrence, between","name":"exponential_x3_b10","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":3,"route":"translated","leaves":15,"regrown":0,"splits":9,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"recurrence","name":"exponential_x2_b100","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":5,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"recurrence, between","name":"exponential_x2_b100","cert":true,"usual":true,"cyclic":true,"ms":23,"usualMs":3,"route":"translated","leaves":15,"regrown":0,"splits":9,"carried":2,"uncarried":0,"cached":0}
+(pass) every combinator (4.x) decides as Effect's own schedule does: random attempt times, inputs, jitters and params [20495.43ms]
+cyclic: {"kind":"recurrence","name":"exponential_x2_b20","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":7,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"recurrence, between","name":"exponential_x2_b20","cert":true,"usual":true,"cyclic":true,"ms":29,"usualMs":3,"route":"translated","leaves":15,"regrown":0,"splits":9,"carried":2,"uncarried":0,"cached":0}
+(pass) every combinator (3.x) decides as Effect's own schedule does: random attempt times, inputs, jitters and params [24675.09ms]
+(pass) a rule given wrongly is caught: the rule of one schedule beside Effect running another parts at the first decision they differ [893.73ms]
+cyclic: {"kind":"machine","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":40,"usualMs":41,"route":"translated","leaves":20,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":39,"usualMs":11,"route":"translated","leaves":21,"regrown":0,"splits":9,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":91,"usualMs":58,"route":"translated","leaves":38,"regrown":0,"splits":13,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":55,"usualMs":45,"route":"translated","leaves":15,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":36,"usualMs":83,"route":"translated","leaves":23,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":1034,"usualMs":141,"route":"translated","leaves":21,"regrown":0,"splits":9,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":183,"usualMs":269,"route":"translated","leaves":44,"regrown":0,"splits":13,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":66,"usualMs":63,"route":"translated","leaves":16,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) the backoff's laws, both lines: within the cap, at most 6 retries, stops after the deadline, never decreasing (beside its lemma) [11223.33ms]
+(pass) broken: the backoff without its cap is refuted by a run, and Effect's own schedule takes it past the cap [1516.95ms]
+cyclic: {"kind":"machine","name":"p","cert":true,"usual":true,"cyclic":true,"ms":71,"usualMs":21,"route":"translated","leaves":24,"regrown":0,"splits":9,"carried":3,"uncarried":0,"cached":0}
+(pass) broken: a jitter after the cap waits past it, a run Effect's schedule takes with its Random answered [8195.66ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":58,"usualMs":6,"route":"translated","leaves":9,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) retry and repeat inside a method (4.x and 3.x): read as part of its step, checked on the runtime [24268.14ms]
+(pass) what the schedule reader doesn't take is refused where it is, with the reason and what reads instead [22669.08ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":1,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":26,"usualMs":3,"route":"translated","leaves":17,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":23,"usualMs":2,"route":"translated","leaves":19,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+(pass) the lease (examples/effect-retry-policy.ts): acquire retried with the backoff, read with it, its law proven [2512.58ms]
+
+ 10 pass
+ 0 fail
+ 223 expect() calls
+Ran 10 tests across 1 file. [117.88s]

@@ -1,0 +1,58 @@
+[
+  {
+    "name": "merge-isolated-infer",
+    "cmd": "bun port-input/verify.ts infer",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 890,
+    "vm_type": "large"
+  },
+  {
+    "name": "merge-isolated-relational",
+    "cmd": "bun port-input/verify.ts relational",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 890,
+    "vm_type": "large"
+  },
+  {
+    "name": "merge-isolated-effect",
+    "cmd": "bun port-input/verify.ts effect",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 890,
+    "vm_type": "large"
+  },
+  {
+    "name": "merge-isolated-effect-queue",
+    "cmd": "bun port-input/verify.ts effect-queue",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 890,
+    "vm_type": "large"
+  },
+  {
+    "name": "merge-isolated-effect-stm",
+    "cmd": "bun port-input/verify.ts effect-stm",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 890,
+    "vm_type": "large"
+  },
+  {
+    "name": "merge-isolated-effect-schedule",
+    "cmd": "bun port-input/verify.ts effect-schedule",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 890,
+    "vm_type": "large"
+  },
+  {
+    "name": "merge-isolated-calendar",
+    "cmd": "bun port-input/verify.ts calendar",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 890,
+    "vm_type": "large"
+  }
+]

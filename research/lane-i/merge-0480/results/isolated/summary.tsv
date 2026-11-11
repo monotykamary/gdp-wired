@@ -1,0 +1,7 @@
+merge-isolated-infer	0	8.16	boat
+merge-isolated-relational	0	52.25	boat
+merge-isolated-effect	0	43.28	boat
+merge-isolated-effect-queue	0	542.76	boat
+merge-isolated-effect-stm	0	68.0	boat
+merge-isolated-effect-schedule	0	119.97	boat
+merge-isolated-calendar	0	139.35	boat

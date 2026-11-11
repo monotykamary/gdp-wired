@@ -1,0 +1,15 @@
+
+--- stderr ---
+14 | a.equal(files.length,28)
+15 | const rows:any[]=[],offDrift:any[]=[],regressions:any[]=[]
+16 | for(const file of files){const id=file.slice(14,-4),off=read(current!,file),oldOff=read(before!,file),full=read(current!,'strict-'+id+'.log'),oldFull=read(before!,'strict-'+id+'.log')
+17 |  for(const r of[off,full]){a.equal(r.source,source);a.equal(r.allowance,15000000);a.deepEqual(r.custody,{'kernel/kernel.ts':kernelHash,'core/check.ts':checkerHash});a.deepEqual(Object.keys(r.raw),keys);a.equal(r.phases.filter((p:any)=>p.parentId===null).length,1)
+18 |   for(const k of keys){a(Number.isSafeInteger(r.raw[k])&&r.raw[k]>=0,k);a.equal(r.phases.find((p:any)=>p.parentId===null).raw[k],r.raw[k]);a.equal(r.phases.reduce((n:number,p:any)=>n+p.exclusiveRaw[k],0),r.raw[k])}
+19 |   const units=keys.reduce((n,k,i)=>n+r.raw[k]*(i<12?prices[i]!:r.weights[k]),0);a(Math.abs(units-r.units)<Math.max(1e-5,Math.abs(units)*1e-11))
+                                                                      ^
+TypeError: undefined is not an object (evaluating 'r.weights[k]')
+      at <anonymous> (/work/gdp-wired/research/lane-i/merge-0480/audit.ts:19:66)
+      at reduce (1:11)
+      at /work/gdp-wired/research/lane-i/merge-0480/audit.ts:19:20
+
+Bun v1.4.3 (Linux x64)

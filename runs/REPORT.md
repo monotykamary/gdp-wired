@@ -1,4 +1,29 @@
-# LATEST — I6 cap repaired; scoped A follow-up staged for D
+# LATEST — main 0.48.0 merged into lane I; scoped gate staged for D
+
+Exact tested source **2de2ce89f9f93eb8feb5fbfb3a355da3adafc4ef** merges
+I `4d5b89fe` with main `f95f306d`. All release source/native validation and
+privacy changes are retained. Only two conflict resolutions, both combining
+main validation with counted clocks. Checker/Lean merge delta is empty.
+
+Boat validation: **541 passing test executions / 16,106 assertions**, 2 profile
+skips; source type/lint 1,829 files, final evidence tooling 1,837 files. All
+28 strict originals retain 10 checked / 18 unknown, maximum 15,000,276.18;
+all 28 off originals retain 27 checked / 1 unknown. No candidate, event/query,
+charged-work or verdict drift. Resolved checker hashes recorded in all 56
+receipts. Scoped audit and five corruption controls pass.
+
+**Qualification:** strict off raw identity is 19/28. Nine cases lose unpriced
+evals; two also lose astNodes under the release's model-only inference path.
+The failing strict audit is retained; no counters or release checks were
+changed to manufacture identity. A grouped test timeout was superseded by
+all seven unchanged files passing independently.
+
+Full receipts and exact review scope: `research/lane-i/merge-0480/{RESULT,
+D-HANDOFF}.md`. D approval and fresh W calibration remain pending. Private
+reproducers are not included. No push or merge back to main. All owned
+batches terminal. Quotient WIP remains separate from this pin.
+
+# Previous — I6 cap repaired; scoped A follow-up staged for D
 
 Exact validated runtime **17119b508485c0f0d104c71df28b11e5f48656d2**.
 Native Boat gate 20261111-050507-9xdfen passes all 58 jobs: 28 strict originals,

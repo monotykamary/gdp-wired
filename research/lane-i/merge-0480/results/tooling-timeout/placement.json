@@ -1,0 +1,11 @@
+{
+ "merge-evidence-check": {
+  "vm": "bx_cke65pk9",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ }
+}

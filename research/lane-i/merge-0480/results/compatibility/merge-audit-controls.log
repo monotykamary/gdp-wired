@@ -1,0 +1,6 @@
+MERGE_AUDIT_CONTROL {"name":"source","exit":1}
+MERGE_AUDIT_CONTROL {"name":"custody","exit":1}
+MERGE_AUDIT_CONTROL {"name":"ledger","exit":1}
+MERGE_AUDIT_CONTROL {"name":"clock","exit":1}
+MERGE_AUDIT_CONTROL {"name":"off-trace","exit":1}
+MERGE_AUDIT_CONTROLS {"source":"2de2ce89f9f93eb8feb5fbfb3a355da3adafc4ef","positive":true,"rejected":5}

@@ -1,0 +1,62 @@
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [564.00ms]
+bun test v1.4.3 (c6da4a4d3)
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+MERGE_GATE {"source":"2de2ce89f9f93eb8feb5fbfb3a355da3adafc4ef","mode":"effect"}
+
+--- stderr ---
+
+core/effect.test.ts:
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":2,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":34,"usualMs":6,"route":"translated","leaves":11,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":18,"route":"translated","leaves":17,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) a service (4.x): Refs, Effect.fn methods, a yielded error, a result; read, checked on the runtime, its law proven [1283.06ms]
+(pass) the forms a make effect is written in (4.x): Layer.effect, a Context.Service, Effect.fn, a lock, Ref.modify [15697.27ms]
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":2,"route":"translated","leaves":11,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":20,"usualMs":5,"route":"translated","leaves":13,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+(pass) a service (3.x): Effect.Service, Data.TaggedError, SynchronizedRef, a lock, Effect.fail; run on Effect 3 [9376.50ms]
+(pass) a Set in a Ref, a flag from Ref.modify, and a failure after a write that changed nothing [1529.98ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":2,"route":"translated","leaves":10,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) state typed by a Schema (a Struct of Literals and an Int), a record replaced by cases [1647.81ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":933,"usualMs":145,"route":"translated","leaves":415,"regrown":0,"splits":178,"carried":4,"uncarried":0,"cached":0}
+(pass) a map of records in a Ref, copied and set, with the clock: the example's quota proven [4648.33ms]
+(pass) a rule by hand beside the service: the right one runs as it does, a wrong one is caught by a run [223.51ms]
+(pass) Effect's Semaphore (4.x and 3.x) runs as a rule written by hand; a rule that clamps a release is caught [270.39ms]
+cyclic: {"kind":"machine","name":"sum","cert":true,"usual":true,"cyclic":false,"ms":16,"usualMs":3,"route":"fallback","leaves":10,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0,"fellBack":"sum: the total is never below 0: use 0, hypothesis 4 of sum: the total is never below 0, after a step"}
+cyclic: {"kind":"machine","name":"sum","uncovered":true,"why":"no cyclic proof found (not translated: sum: the total is never below 0: use 0, hypothesis 4 of sum: the total is never below 0, after a step)"}
+cyclic: {"kind":"machine","name":"sum","cert":true,"usual":true,"cyclic":false,"ms":6,"usualMs":2,"route":"fallback","leaves":10,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0,"fellBack":"sum: the total is never below 0: use 0, hypothesis 4 of sum: the total is never below 0, after a step"}
+cyclic: {"kind":"machine","name":"sum","uncovered":true,"why":"no cyclic proof found (not translated: sum: the total is never below 0: use 0, hypothesis 4 of sum: the total is never below 0, after a step)"}
+(pass) Schemas as kinds (4.x and 3.x): signed integers, strict NullOr and explicit optional normalization [34.24ms]
+(pass) one way in: two services in a file are refused with their names, none with what to write [438.48ms]
+(pass) what the reader doesn't take is refused where it is, with the reason [6865.87ms]
+
+ 11 pass
+ 0 fail
+ 78 expect() calls
+Ran 11 tests across 1 file. [42.29s]

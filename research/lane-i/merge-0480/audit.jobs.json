@@ -1,0 +1,12 @@
+[
+  {
+    "name": "merge-independent-audit",
+    "cmd": "bun research/lane-i/merge-0480/audit.ts current-receipts baseline-receipts 2de2ce89f9f93eb8feb5fbfb3a355da3adafc4ef 1e2c9770632f3aeeadd36ea09f3f90cf169b06948abdeaf88bf0150a50d3f240 b589579e4e516391d007b40447855d88a7ec08ebe954ed4c073c09e23ffc8157",
+    "cpu": 2, "memory": 4096, "timeout": 180, "vm_type": "large"
+  },
+  {
+    "name": "merge-audit-controls",
+    "cmd": "bun research/lane-i/merge-0480/audit-controls.ts current-receipts baseline-receipts 2de2ce89f9f93eb8feb5fbfb3a355da3adafc4ef 1e2c9770632f3aeeadd36ea09f3f90cf169b06948abdeaf88bf0150a50d3f240 b589579e4e516391d007b40447855d88a7ec08ebe954ed4c073c09e23ffc8157",
+    "cpu": 2, "memory": 4096, "timeout": 180, "vm_type": "large"
+  }
+]

@@ -1,0 +1,682 @@
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [365.00ms]
+bun test v1.4.3 (c6da4a4d3)
+{
+ "rules": [
+  {
+   "file": "../gdp-draft-wPVtwC/desk.py",
+   "lang": "Python",
+   "entry": "RecordsDesk",
+   "ok": true,
+   "refusals": [],
+   "notes": [
+    "the entry inferred: RecordsDesk, the class whose public methods write its state (receive, fulfill; the others read it)",
+    "receive: raise ValueError('already received') (desk.py:19:13) is the step's refusal",
+    "time.time() is the request's time (an input, read once a step, at whole seconds: the claim is for those)",
+    "fulfill: raise ValueError('no such request') (desk.py:27:13) is the step's refusal",
+    "fulfill: raise ValueError('closed') (desk.py:30:13) is the step's refusal",
+    "receive_diagnosis: an integer (the code takes any whole number)"
+   ],
+   "names": [
+    {
+     "code": "requests",
+     "rule": "requests",
+     "role": "state",
+     "map": {
+      "fields": [
+       "received",
+       "fulfilled",
+       "escalated"
+      ]
+     }
+    },
+    {
+     "code": "notes",
+     "rule": "notes",
+     "role": "state",
+     "map": {
+      "fields": [
+       "value"
+      ]
+     }
+    },
+    {
+     "code": "rid",
+     "rule": "receive_rid",
+     "role": "input",
+     "method": "receive"
+    },
+    {
+     "code": "diagnosis",
+     "rule": "receive_diagnosis",
+     "role": "input",
+     "method": "receive"
+    },
+    {
+     "code": "rid",
+     "rule": "fulfill_rid",
+     "role": "input",
+     "method": "fulfill"
+    },
+    {
+     "code": "now",
+     "rule": "now",
+     "role": "clock"
+    },
+    {
+     "code": "method",
+     "rule": "method",
+     "role": "method"
+    }
+   ],
+   "laws": [
+    {
+     "name": "acted on within 30 days",
+     "expr": "requests[rid].fulfilled implies now - requests[rid].received < 30 days",
+     "where": "desk.py:23",
+     "cites": [
+      "45 CFR 164.524(b)(2): \"no later than 30 days\" [unreviewed: drafted by a model]"
+     ],
+     "translation": "unchecked",
+     "kernelProven": true,
+     "kind": "step",
+     "verdict": "unknown",
+     "why": "source translation unchecked: native source replay is unavailable or disabled",
+     "ms": 2524
+    }
+   ],
+   "proposed": [],
+   "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 7 of 8 branch arms"
+  }
+ ],
+ "exit": 2
+}
+{
+ "rules": [
+  {
+   "file": "../gdp-draft-wPVtwC/desk.py",
+   "lang": "Python",
+   "entry": "RecordsDesk",
+   "ok": true,
+   "refusals": [],
+   "notes": [
+    "the entry inferred: RecordsDesk, the class whose public methods write its state (receive, fulfill; the others read it)",
+    "receive: raise ValueError('already received') (desk.py:19:13) is the step's refusal",
+    "time.time() is the request's time (an input, read once a step, at whole seconds: the claim is for those)",
+    "fulfill: raise ValueError('no such request') (desk.py:27:13) is the step's refusal",
+    "fulfill: raise ValueError('closed') (desk.py:30:13) is the step's refusal",
+    "receive_diagnosis: an integer (the code takes any whole number)"
+   ],
+   "names": [
+    {
+     "code": "requests",
+     "rule": "requests",
+     "role": "state",
+     "map": {
+      "fields": [
+       "received",
+       "fulfilled",
+       "escalated"
+      ]
+     }
+    },
+    {
+     "code": "notes",
+     "rule": "notes",
+     "role": "state",
+     "map": {
+      "fields": [
+       "value"
+      ]
+     }
+    },
+    {
+     "code": "rid",
+     "rule": "receive_rid",
+     "role": "input",
+     "method": "receive"
+    },
+    {
+     "code": "diagnosis",
+     "rule": "receive_diagnosis",
+     "role": "input",
+     "method": "receive"
+    },
+    {
+     "code": "rid",
+     "rule": "fulfill_rid",
+     "role": "input",
+     "method": "fulfill"
+    },
+    {
+     "code": "now",
+     "rule": "now",
+     "role": "clock"
+    },
+    {
+     "code": "method",
+     "rule": "method",
+     "role": "method"
+    }
+   ],
+   "laws": [
+    {
+     "name": "acted on within 30 days",
+     "expr": "requests[rid].fulfilled implies now - requests[rid].received < 30 days",
+     "where": "desk.py:23",
+     "cites": [
+      "45 CFR 164.524(b)(2): \"no later than 30 days\" [unreviewed: drafted by a model]"
+     ],
+     "translation": "unchecked",
+     "kernelProven": true,
+     "kind": "step",
+     "verdict": "unknown",
+     "why": "source translation unchecked: native source replay is unavailable or disabled",
+     "ms": 2027
+    }
+   ],
+   "proposed": [],
+   "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 7 of 8 branch arms"
+  }
+ ],
+ "exit": 2
+}
+{
+ "rules": [
+  {
+   "file": "../gdp-draft-wPVtwC/desk.py",
+   "lang": "Python",
+   "entry": "RecordsDesk",
+   "ok": true,
+   "refusals": [],
+   "notes": [
+    "the entry inferred: RecordsDesk, the class whose public methods write its state (receive, fulfill; the others read it)",
+    "receive: raise ValueError('already received') (desk.py:19:13) is the step's refusal",
+    "time.time() is the request's time (an input, read once a step, at whole seconds: the claim is for those)",
+    "fulfill: raise ValueError('no such request') (desk.py:27:13) is the step's refusal",
+    "fulfill: raise ValueError('closed') (desk.py:30:13) is the step's refusal",
+    "receive_diagnosis: an integer (the code takes any whole number)"
+   ],
+   "names": [
+    {
+     "code": "requests",
+     "rule": "requests",
+     "role": "state",
+     "map": {
+      "fields": [
+       "received",
+       "fulfilled",
+       "escalated"
+      ]
+     }
+    },
+    {
+     "code": "notes",
+     "rule": "notes",
+     "role": "state",
+     "map": {
+      "fields": [
+       "value"
+      ]
+     }
+    },
+    {
+     "code": "rid",
+     "rule": "receive_rid",
+     "role": "input",
+     "method": "receive"
+    },
+    {
+     "code": "diagnosis",
+     "rule": "receive_diagnosis",
+     "role": "input",
+     "method": "receive"
+    },
+    {
+     "code": "rid",
+     "rule": "fulfill_rid",
+     "role": "input",
+     "method": "fulfill"
+    },
+    {
+     "code": "now",
+     "rule": "now",
+     "role": "clock"
+    },
+    {
+     "code": "method",
+     "rule": "method",
+     "role": "method"
+    }
+   ],
+   "laws": [
+    {
+     "name": "acted on within 30 days",
+     "expr": "requests[rid].fulfilled implies now - requests[rid].received < 30 days",
+     "where": "desk.py:23",
+     "cites": [
+      "45 CFR 164.524(b)(2): \"no later than 30 days\" [reviewed-by: A. Person, 2026-11-02]"
+     ],
+     "translation": "unchecked",
+     "kernelProven": true,
+     "kind": "step",
+     "verdict": "unknown",
+     "why": "source translation unchecked: native source replay is unavailable or disabled",
+     "ms": 3003
+    }
+   ],
+   "proposed": [],
+   "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 7 of 8 branch arms"
+  }
+ ],
+ "exit": 2
+}
+
+--- stderr ---
+
+core/effect-schedule.test.ts:
+cyclic: {"kind":"machine","name":"schedule","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":7,"route":"translated","leaves":10,"regrown":0,"splits":4,"carried":2,"uncarried":0,"cached":0}
+(pass) a source-derived schedule cannot become a plain DSL proof when replay is off [710.35ms]
+cyclic: {"kind":"recurrence","name":"exponential_x2_b10","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":3,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"recurrence, between","name":"exponential_x2_b10","cert":true,"usual":true,"cyclic":true,"ms":25,"usualMs":4,"route":"translated","leaves":15,"regrown":0,"splits":9,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"recurrence","name":"exponential_x3_b10","cert":true,"usual":true,"cyclic":true,"ms":14,"usualMs":4,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"recurrence, between","name":"exponential_x3_b10","cert":true,"usual":true,"cyclic":true,"ms":23,"usualMs":3,"route":"translated","leaves":15,"regrown":0,"splits":9,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"recurrence","name":"exponential_x2_b100","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":4,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"recurrence, between","name":"exponential_x2_b100","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":2,"route":"translated","leaves":15,"regrown":0,"splits":9,"carried":2,"uncarried":0,"cached":0}
+(pass) every combinator (4.x) decides as Effect's own schedule does: random attempt times, inputs, jitters and params [15670.62ms]
+cyclic: {"kind":"recurrence","name":"exponential_x2_b20","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":4,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"recurrence, between","name":"exponential_x2_b20","cert":true,"usual":true,"cyclic":true,"ms":19,"usualMs":2,"route":"translated","leaves":15,"regrown":0,"splits":9,"carried":2,"uncarried":0,"cached":0}
+(pass) every combinator (3.x) decides as Effect's own schedule does: random attempt times, inputs, jitters and params [14793.06ms]
+(pass) a rule given wrongly is caught: the rule of one schedule beside Effect running another parts at the first decision they differ [552.63ms]
+cyclic: {"kind":"machine","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":53,"usualMs":24,"route":"translated","leaves":20,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":29,"usualMs":7,"route":"translated","leaves":21,"regrown":0,"splits":9,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":51,"usualMs":52,"route":"translated","leaves":38,"regrown":0,"splits":13,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":26,"usualMs":34,"route":"translated","leaves":15,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":26,"usualMs":26,"route":"translated","leaves":23,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":26,"usualMs":9,"route":"translated","leaves":21,"regrown":0,"splits":9,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":50,"usualMs":78,"route":"translated","leaves":44,"regrown":0,"splits":13,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"backoff","cert":true,"usual":true,"cyclic":true,"ms":39,"usualMs":26,"route":"translated","leaves":16,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) the backoff's laws, both lines: within the cap, at most 6 retries, stops after the deadline, never decreasing (beside its lemma) [5020.09ms]
+(pass) broken: the backoff without its cap is refuted by a run, and Effect's own schedule takes it past the cap [1037.48ms]
+cyclic: {"kind":"machine","name":"p","cert":true,"usual":true,"cyclic":true,"ms":58,"usualMs":13,"route":"translated","leaves":24,"regrown":0,"splits":9,"carried":3,"uncarried":0,"cached":0}
+(pass) broken: a jitter after the cap waits past it, a run Effect's schedule takes with its Random answered [3806.16ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":23,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) retry and repeat inside a method (4.x and 3.x): read as part of its step, checked on the runtime [18926.07ms]
+(pass) what the schedule reader doesn't take is refused where it is, with the reason and what reads instead [18321.28ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":20,"usualMs":2,"route":"translated","leaves":17,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":15,"usualMs":1,"route":"translated","leaves":19,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+(pass) the lease (examples/effect-retry-policy.ts): acquire retried with the backoff, read with it, its law proven [2369.44ms]
+
+core/relational.test.ts:
+cyclic: {"kind":"machine","name":"desk: diagnosis secret","cert":true,"usual":true,"cyclic":true,"ms":80,"usualMs":18,"route":"translated","leaves":69,"regrown":0,"splits":22,"carried":4,"uncarried":0,"cached":0}
+(pass) noninterference: the diagnosis never reaches the status, the total or the refusals [116.10ms]
+(pass) noninterference: a decision by the diagnosis is refuted by two runs [16.61ms]
+cyclic: {"kind":"machine","name":"desk: diagnosis secret","cert":true,"usual":true,"cyclic":true,"ms":74,"usualMs":14,"route":"translated","leaves":58,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+(pass) noninterference: a refusal by the secret is a difference [321.50ms]
+cyclic: {"kind":"machine","name":"lockout: isolation of user","cert":true,"usual":true,"cyclic":true,"ms":66,"usualMs":16,"route":"translated","leaves":62,"regrown":0,"splits":18,"carried":2,"uncarried":0,"cached":0}
+(pass) isolation: a per-user lockout keeps each user's cell and refusals whatever the others do [91.11ms]
+(pass) isolation: a global lockout lets the others lock B out [23.47ms]
+cyclic: {"kind":"machine","name":"cap agrees with cap","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":3,"route":"translated","leaves":25,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+(pass) agreement: a refactor agrees on every history; a moved boundary is refuted [19.53ms]
+(pass) two runs side by side run as their sides do [1.22ms]
+(pass) durations: linear over the clock; a month, a year or a business day refused [2.10ms]
+cyclic: {"kind":"machine","name":"RecordsDesk: receive_diagnosis secret","cert":true,"usual":true,"cyclic":false,"ms":11752,"usualMs":552,"route":"fallback","leaves":2638,"regrown":39,"splits":1099,"carried":8,"uncarried":1,"cached":0,"fellBack":"RecordsDesk: receive_diagnosis secret: the diagnosis stays private: use of node 18, its hypothesis 0: unknown"}
+cyclic: {"kind":"machine","name":"RecordsDesk: receive_diagnosis secret","uncovered":true,"why":"no cyclic proof found within the caller or certificate budget (not translated: RecordsDesk: receive_diagnosis secret: the diagnosis stays private: use of node 18, its hypothesis 0: unknown)"}
+cyclic: {"kind":"machine","name":"RecordsDesk: isolation of the owner","cert":true,"usual":true,"cyclic":false,"ms":11997,"usualMs":840,"route":"fallback","leaves":2178,"regrown":101,"splits":761,"carried":0,"uncarried":0,"cached":0,"fellBack":"RecordsDesk: isolation of the owner: one patient's requests never change another's: requests, notes at B, after a step: not translated"}
+cyclic: {"kind":"machine","name":"RecordsDesk: isolation of the owner","uncovered":true,"why":"no cyclic proof found within the caller or certificate budget (not translated: RecordsDesk: isolation of the owner: one patient's requests never change another's: requests, notes at B, after a step: not translated)"}
+cyclic: {"kind":"machine","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":1213,"usualMs":41,"route":"translated","leaves":707,"regrown":0,"splits":492,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":739,"usualMs":10,"route":"translated","leaves":71,"regrown":0,"splits":44,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"RecordsDesk: isolation of the owner","cert":true,"usual":true,"cyclic":false,"ms":12386,"usualMs":911,"route":"fallback","leaves":2268,"regrown":87,"splits":811,"carried":0,"uncarried":0,"cached":0,"fellBack":"RecordsDesk: isolation of the owner: one patient's requests never change another's: requests, notes at B, after a step: not translated"}
+cyclic: {"kind":"machine","name":"RecordsDesk: isolation of the owner","uncovered":true,"why":"no cyclic proof found within the caller or certificate budget (not translated: RecordsDesk: isolation of the owner: one patient's requests never change another's: requests, notes at B, after a step: not translated)"}
+cyclic: {"kind":"machine","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":1753,"usualMs":66,"route":"translated","leaves":689,"regrown":0,"splits":492,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":909,"usualMs":18,"route":"translated","leaves":74,"regrown":0,"splits":44,"carried":1,"uncarried":0,"cached":0}
+(pass) the CLI: Python two-run and deadline model proofs retain citations, not source certificates [47956.27ms]
+
+core/calendar.test.ts:
+(pass) business days: the count is the calendar walked day by day [99.13ms]
+cyclic: {"kind":"machine","name":"desk14","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"desk14","cert":true,"usual":true,"cyclic":true,"ms":703,"usualMs":372,"route":"translated","leaves":1515,"regrown":0,"splits":14,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"desk14","cert":true,"usual":true,"cyclic":false,"ms":1972,"usualMs":5605,"route":"fallback","leaves":9829,"regrown":0,"splits":2,"carried":0,"uncarried":0,"cached":0,"fellBack":"desk14: recorded within 10, after a step: not translated"}
+cyclic: {"kind":"machine","name":"desk14","uncovered":true,"why":"no cyclic proof found (not translated: desk14: recorded within 10, after a step: not translated)"}
+(pass) business days: a deadline law of one step (each time's week a key) and of the state (divided out), proven and broken [28772.93ms]
+cyclic: {"kind":"machine","name":"RecordsDesk: receive_diagnosis secret","cert":true,"usual":true,"cyclic":false,"ms":12683,"usualMs":686,"route":"fallback","leaves":2714,"regrown":39,"splits":1180,"carried":8,"uncarried":1,"cached":0,"fellBack":"RecordsDesk: receive_diagnosis secret: the diagnosis stays private: use of node 18, its hypothesis 0: unknown"}
+cyclic: {"kind":"machine","name":"RecordsDesk: receive_diagnosis secret","uncovered":true,"why":"no cyclic proof found within the caller or certificate budget (not translated: RecordsDesk: receive_diagnosis secret: the diagnosis stays private: use of node 18, its hypothesis 0: unknown)"}
+cyclic: {"kind":"machine","name":"RecordsDesk: isolation of the owner","cert":true,"usual":true,"cyclic":false,"ms":11511,"usualMs":958,"route":"fallback","leaves":2178,"regrown":101,"splits":761,"carried":0,"uncarried":0,"cached":0,"fellBack":"RecordsDesk: isolation of the owner: one patient's requests never change another's: requests, notes at B, after a step: not translated"}
+cyclic: {"kind":"machine","name":"RecordsDesk: isolation of the owner","uncovered":true,"why":"no cyclic proof found within the caller or certificate budget (not translated: RecordsDesk: isolation of the owner: one patient's requests never change another's: requests, notes at B, after a step: not translated)"}
+cyclic: {"kind":"machine","name":"RecordsDesk: receive_diagnosis secret","cert":true,"usual":true,"cyclic":false,"ms":14754,"usualMs":545,"route":"fallback","leaves":2587,"regrown":39,"splits":1050,"carried":8,"uncarried":1,"cached":0,"fellBack":"RecordsDesk: receive_diagnosis secret: the diagnosis stays private: use of node 18, its hypothesis 0: unknown"}
+cyclic: {"kind":"machine","name":"RecordsDesk: receive_diagnosis secret","uncovered":true,"why":"no cyclic proof found within the caller or certificate budget (not translated: RecordsDesk: receive_diagnosis secret: the diagnosis stays private: use of node 18, its hypothesis 0: unknown)"}
+cyclic: {"kind":"machine","name":"RecordsDesk: isolation of the owner","cert":true,"usual":true,"cyclic":false,"ms":16393,"usualMs":1165,"route":"fallback","leaves":2178,"regrown":101,"splits":761,"carried":0,"uncarried":0,"cached":0,"fellBack":"RecordsDesk: isolation of the owner: one patient's requests never change another's: requests, notes at B, after a step: not translated"}
+cyclic: {"kind":"machine","name":"RecordsDesk: isolation of the owner","uncovered":true,"why":"no cyclic proof found within the caller or certificate budget (not translated: RecordsDesk: isolation of the owner: one patient's requests never change another's: requests, notes at B, after a step: not translated)"}
+cyclic: {"kind":"machine","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":1409,"usualMs":50,"route":"translated","leaves":707,"regrown":0,"splits":492,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"RecordsDesk","cert":true,"usual":true,"cyclic":false,"ms":261,"usualMs":416,"route":"fallback","leaves":826,"regrown":0,"splits":3,"carried":0,"uncarried":0,"cached":0,"fellBack":"RecordsDesk: within 10 business days, after a step: not translated"}
+cyclic: {"kind":"step law","name":"RecordsDesk","uncovered":true,"why":"no cyclic proof found (not translated: RecordsDesk: within 10 business days, after a step: not translated)"}
+(pass) the CLI: business-day model verdicts retained without a Python source proof [68401.14ms]
+cyclic: {"kind":"machine","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":1432,"usualMs":58,"route":"translated","leaves":707,"regrown":0,"splits":492,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":975,"usualMs":13,"route":"translated","leaves":71,"regrown":0,"splits":44,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":1616,"usualMs":49,"route":"translated","leaves":707,"regrown":0,"splits":492,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":828,"usualMs":9,"route":"translated","leaves":71,"regrown":0,"splits":44,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":1428,"usualMs":255,"route":"translated","leaves":707,"regrown":0,"splits":492,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"RecordsDesk","cert":true,"usual":true,"cyclic":false,"ms":303,"usualMs":11,"route":"fallback","leaves":41,"regrown":0,"splits":26,"carried":0,"uncarried":1,"cached":0,"fellBack":"RecordsDesk: acted on within 30 days: unknown"}
+cyclic: {"kind":"step law","name":"RecordsDesk","uncovered":true,"why":"no cyclic proof found (not translated: RecordsDesk: acted on within 30 days: unknown)"}
+cyclic: {"kind":"machine","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":2132,"usualMs":48,"route":"translated","leaves":707,"regrown":0,"splits":492,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":796,"usualMs":9,"route":"translated","leaves":71,"regrown":0,"splits":44,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"RecordsDesk","cert":true,"usual":true,"cyclic":true,"ms":1410,"usualMs":246,"route":"translated","leaves":707,"regrown":0,"splits":492,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"RecordsDesk","cert":true,"usual":true,"cyclic":false,"ms":254,"usualMs":11,"route":"fallback","leaves":50,"regrown":0,"splits":26,"carried":0,"uncarried":1,"cached":0,"fellBack":"RecordsDesk: acted on within 30 days: unknown"}
+cyclic: {"kind":"step law","name":"RecordsDesk","uncovered":true,"why":"no cyclic proof found (not translated: RecordsDesk: acted on within 30 days: unknown)"}
+(pass) drafting: a drafter's laws read over the code's names, refused where they name what it lacks; an unreviewed citation refused by --require-review [21212.57ms]
+
+core/infer.test.ts:
+(pass) constants under tuple constructors and projections are sampled, not the selector [0.20ms]
+cyclic: {"kind":"machine","name":"connection pool","cert":true,"usual":true,"cyclic":true,"ms":18,"usualMs":3,"route":"translated","leaves":22,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"token bucket","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":3,"route":"translated","leaves":19,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"lease","cert":true,"usual":true,"cyclic":true,"ms":72,"usualMs":26,"route":"translated","leaves":113,"regrown":0,"splits":19,"carried":2,"uncarried":0,"cached":0}
+(pass) a law that needs an invariant: not proven alone, proven with what the search finds, and the set checks [3334.42ms]
+cyclic: {"kind":"machine","name":"connection pool","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":6,"route":"translated","leaves":22,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"lease","cert":true,"usual":true,"cyclic":true,"ms":61,"usualMs":21,"route":"translated","leaves":113,"regrown":0,"splits":19,"carried":2,"uncarried":0,"cached":0}
+(pass) what was found reads as the builder call that states it, and that call, written out, proves the law again [2247.05ms]
+cyclic: {"kind":"machine","name":"three accounts","cert":true,"usual":true,"cyclic":true,"ms":34,"usualMs":16,"route":"translated","leaves":43,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+(pass) an invariant over four values (the join: the samples' hull, made inductive): one account within the total paid in [3493.55ms]
+cyclic: {"kind":"machine","name":"in-flight requests","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":2,"route":"translated","leaves":20,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+(pass) a machine with no rule: the in-flight bound needs s + 50·p <= b + 150 or tighter [1551.99ms]
+(pass) a false law is answered with the run that breaks it; a law proven alone needs nothing found [6.18ms]
+
+core/effect.test.ts:
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":30,"usualMs":2,"route":"translated","leaves":11,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":27,"usualMs":13,"route":"translated","leaves":17,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) a service (4.x): Refs, Effect.fn methods, a yielded error, a result; read, checked on the runtime, its law proven [2410.55ms]
+(pass) the forms a make effect is written in (4.x): Layer.effect, a Context.Service, Effect.fn, a lock, Ref.modify [25894.79ms]
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":40,"usualMs":2,"route":"translated","leaves":11,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":8,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":27,"usualMs":5,"route":"translated","leaves":13,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":2,"route":"translated","leaves":9,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+(pass) a service (3.x): Effect.Service, Data.TaggedError, SynchronizedRef, a lock, Effect.fail; run on Effect 3 [18471.92ms]
+(pass) a Set in a Ref, a flag from Ref.modify, and a failure after a write that changed nothing [2265.86ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":20,"usualMs":3,"route":"translated","leaves":10,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":25,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) state typed by a Schema (a Struct of Literals and an Int), a record replaced by cases [2170.65ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":1432,"usualMs":108,"route":"translated","leaves":415,"regrown":0,"splits":178,"carried":4,"uncarried":0,"cached":0}
+(pass) a map of records in a Ref, copied and set, with the clock: the example's quota proven [7326.69ms]
+(pass) a rule by hand beside the service: the right one runs as it does, a wrong one is caught by a run [306.88ms]
+(pass) Effect's Semaphore (4.x and 3.x) runs as a rule written by hand; a rule that clamps a release is caught [435.74ms]
+cyclic: {"kind":"machine","name":"sum","cert":true,"usual":true,"cyclic":false,"ms":21,"usualMs":4,"route":"fallback","leaves":10,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0,"fellBack":"sum: the total is never below 0: use 0, hypothesis 4 of sum: the total is never below 0, after a step"}
+cyclic: {"kind":"machine","name":"sum","uncovered":true,"why":"no cyclic proof found (not translated: sum: the total is never below 0: use 0, hypothesis 4 of sum: the total is never below 0, after a step)"}
+cyclic: {"kind":"machine","name":"sum","cert":true,"usual":true,"cyclic":false,"ms":7,"usualMs":2,"route":"fallback","leaves":10,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0,"fellBack":"sum: the total is never below 0: use 0, hypothesis 4 of sum: the total is never below 0, after a step"}
+cyclic: {"kind":"machine","name":"sum","uncovered":true,"why":"no cyclic proof found (not translated: sum: the total is never below 0: use 0, hypothesis 4 of sum: the total is never below 0, after a step)"}
+(pass) Schemas as kinds (4.x and 3.x): signed integers, strict NullOr and explicit optional normalization [46.41ms]
+(pass) one way in: two services in a file are refused with their names, none with what to write [479.60ms]
+(pass) what the reader doesn't take is refused where it is, with the reason [10404.64ms]
+
+core/effect-queue.test.ts:
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":261,"usualMs":10,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":291,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":487,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":389,"usualMs":52,"route":"translated","leaves":138,"regrown":0,"splits":61,"carried":7,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":34,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":448,"usualMs":13,"route":"translated","leaves":32,"regrown":0,"splits":20,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":36,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":401,"usualMs":233,"route":"translated","leaves":37,"regrown":0,"splits":15,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":19,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":428,"usualMs":8,"route":"translated","leaves":45,"regrown":0,"splits":31,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":23,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":627,"usualMs":3,"route":"translated","leaves":22,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":33,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":394,"usualMs":6,"route":"translated","leaves":24,"regrown":0,"splits":21,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":185,"usualMs":8,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":143,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":538,"usualMs":26,"route":"translated","leaves":137,"regrown":0,"splits":61,"carried":7,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":29,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":414,"usualMs":15,"route":"translated","leaves":36,"regrown":0,"splits":23,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":24,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":542,"usualMs":11,"route":"translated","leaves":37,"regrown":0,"splits":15,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":37,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":418,"usualMs":12,"route":"translated","leaves":45,"regrown":0,"splits":31,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":28,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":294,"usualMs":4,"route":"translated","leaves":23,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":21,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":574,"usualMs":4,"route":"translated","leaves":24,"regrown":0,"splits":21,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":482,"usualMs":7,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":229,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":386,"usualMs":31,"route":"translated","leaves":136,"regrown":0,"splits":61,"carried":7,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":32,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":610,"usualMs":16,"route":"translated","leaves":44,"regrown":0,"splits":29,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":34,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":347,"usualMs":12,"route":"translated","leaves":36,"regrown":0,"splits":15,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":30,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":624,"usualMs":11,"route":"translated","leaves":58,"regrown":0,"splits":42,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":30,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":331,"usualMs":4,"route":"translated","leaves":22,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":27,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":312,"usualMs":5,"route":"translated","leaves":24,"regrown":0,"splits":21,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":195,"usualMs":10,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":167,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":261,"usualMs":22,"route":"translated","leaves":126,"regrown":0,"splits":55,"carried":7,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":23,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":476,"usualMs":6,"route":"translated","leaves":28,"regrown":0,"splits":19,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":22,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":275,"usualMs":13,"route":"translated","leaves":37,"regrown":0,"splits":15,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":24,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":602,"usualMs":10,"route":"translated","leaves":45,"regrown":0,"splits":31,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":31,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":235,"usualMs":3,"route":"translated","leaves":22,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":29,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":327,"usualMs":6,"route":"translated","leaves":24,"regrown":0,"splits":21,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":34,"usualMs":2,"route":"translated","leaves":9,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":50,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":145,"usualMs":28,"route":"translated","leaves":72,"regrown":0,"splits":13,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":22,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":172,"usualMs":10,"route":"translated","leaves":29,"regrown":0,"splits":18,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":28,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":115,"usualMs":7,"route":"translated","leaves":23,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":20,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":152,"usualMs":10,"route":"translated","leaves":23,"regrown":0,"splits":12,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":399,"usualMs":6,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":238,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":197,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":199,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":564,"usualMs":24,"route":"translated","leaves":135,"regrown":0,"splits":74,"carried":6,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":18,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":393,"usualMs":8,"route":"translated","leaves":25,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":23,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":563,"usualMs":12,"route":"translated","leaves":35,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":17,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":512,"usualMs":8,"route":"translated","leaves":53,"regrown":0,"splits":41,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":21,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":477,"usualMs":2,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":21,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":516,"usualMs":4,"route":"translated","leaves":32,"regrown":0,"splits":29,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":224,"usualMs":8,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":190,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":174,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":405,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":405,"usualMs":31,"route":"translated","leaves":137,"regrown":0,"splits":74,"carried":6,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":28,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":401,"usualMs":13,"route":"translated","leaves":30,"regrown":0,"splits":20,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":24,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":641,"usualMs":12,"route":"translated","leaves":35,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":33,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":503,"usualMs":12,"route":"translated","leaves":53,"regrown":0,"splits":41,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":25,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":325,"usualMs":2,"route":"translated","leaves":21,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":19,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":627,"usualMs":4,"route":"translated","leaves":32,"regrown":0,"splits":29,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":279,"usualMs":6,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":172,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":252,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":218,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":339,"usualMs":26,"route":"translated","leaves":132,"regrown":0,"splits":74,"carried":6,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":21,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":364,"usualMs":9,"route":"translated","leaves":36,"regrown":0,"splits":24,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":18,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":false,"ms":257,"usualMs":12,"route":"fallback","leaves":35,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0,"fellBack":"make: a take or a poll answers the oldest item, which leaves: use of node 18, its hypothesis 3: unknown"}
+cyclic: {"kind":"step law","name":"make","uncovered":true,"why":"no cyclic proof found (not translated: make: a take or a poll answers the oldest item, which leaves: use of node 18, its hypothesis 3: unknown)"}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":20,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":505,"usualMs":10,"route":"translated","leaves":60,"regrown":0,"splits":47,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":21,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":343,"usualMs":2,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":30,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":700,"usualMs":6,"route":"translated","leaves":32,"regrown":0,"splits":29,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":322,"usualMs":7,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":206,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":169,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":148,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":292,"usualMs":19,"route":"translated","leaves":117,"regrown":0,"splits":63,"carried":6,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":15,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":496,"usualMs":6,"route":"translated","leaves":19,"regrown":0,"splits":12,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":21,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":355,"usualMs":12,"route":"translated","leaves":35,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":17,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":364,"usualMs":8,"route":"translated","leaves":53,"regrown":0,"splits":41,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":14,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":406,"usualMs":1,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":26,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":343,"usualMs":5,"route":"translated","leaves":32,"regrown":0,"splits":29,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":22,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":24,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":13,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":31,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":15,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":29,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":15,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) each primitive's rule (4.x and 3.x): read, checked, its laws proven for every capacity and number of permits [53802.60ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":331,"usualMs":11,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":275,"usualMs":175,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":10,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":279,"usualMs":4,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":375,"usualMs":12,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":151,"usualMs":4,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":175,"usualMs":8,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":353,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":139,"usualMs":6,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":137,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":229,"usualMs":7,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":130,"usualMs":4,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":177,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":7,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":195,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":265,"usualMs":10,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":193,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":8,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":188,"usualMs":4,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":9,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":170,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":210,"usualMs":7,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":186,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":8,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":158,"usualMs":5,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":164,"usualMs":2,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":368,"usualMs":8,"route":"translated","leaves":29,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":155,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":229,"usualMs":5,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":9,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":245,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":199,"usualMs":12,"route":"translated","leaves":35,"regrown":0,"splits":19,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":197,"usualMs":5,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) each rule beside Effect's own primitive (4.x and 3.x) on random operations and fibers; a wrong strategy is caught [98774.79ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":261,"usualMs":6,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":219,"usualMs":5,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":7,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":232,"usualMs":5,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":249,"usualMs":7,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":259,"usualMs":5,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":251,"usualMs":5,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":231,"usualMs":6,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":226,"usualMs":5,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":7,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":229,"usualMs":6,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make, every fiber","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":278,"usualMs":7,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":275,"usualMs":4,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":288,"usualMs":5,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) the pool (examples/effect-pool.ts, and on 3.x): every fiber's steps, its laws proven; a release without its acquire refuted by a run and seen on the runtime [132541.46ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":479,"usualMs":33,"route":"translated","leaves":59,"regrown":0,"splits":25,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":443,"usualMs":10,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":578,"usualMs":31,"route":"translated","leaves":59,"regrown":0,"splits":25,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":1107,"usualMs":10,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) a failure in withPermits' body gives the permits back first (checked on the runtime, no run breaks the use law); a poll, a dropping and a sliding queue [138688.54ms]
+(pass) what the model doesn't hold is refused where it is, with why [31566.09ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":154,"usualMs":5,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":143,"usualMs":4,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":152,"usualMs":4,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+2 | import {createHash} from 'node:crypto'
+3 | import {readFileSync,mkdtempSync,rmSync} from 'node:fs'
+4 | import {join,resolve} from 'node:path'
+5 | import {spawnSync} from 'node:child_process'
+6 | const input=resolve('port-input'),root=mkdtempSync('/tmp/merge-0480-'),mode=process.argv[2]
+7 | function run(cmd:string,args:string[]){const r=spawnSync(cmd,args,{cwd:root,encoding:'utf8',timeout:800000,maxBuffer:32*1024*1024});process.stdout.write(r.stdout??'');process.stderr.write(r.stderr??'');if(r.error||r.status!==0)throw Error(`${cmd}: ${r.status} ${r.error??''}`)}
+                                                                                                                                                                                                                                             ^
+error: bun: null SystemError: spawnSync bun ETIMEDOUT
+      at run (/work/gdp-wired/port-input/verify.ts:7:234)
+      at /work/gdp-wired/port-input/verify.ts:15:29
+
+Bun v1.4.3 (Linux x64)

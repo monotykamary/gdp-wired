@@ -1,0 +1,20 @@
+{
+ "merge-independent-audit": {
+  "vm": "bx_48zyya99",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 2,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 3
+ },
+ "merge-audit-controls": {
+  "vm": "bx_3nwpje9e",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 2,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 3
+ }
+}

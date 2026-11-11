@@ -1,0 +1,9 @@
+chore(integration): merge 0.48.0 safety and privacy fixes
+
+Merge main f95f306d into the counted-work integration line.
+Keep native source cross-checks, unchecked-law exit status and privacy
+boundaries intact. Resolve DSL and inference conflicts by retaining the
+release's source finalization and model-refutation paths with counted clocks.
+
+Validation pending: exact-source boat suites and 28 flags-off originals.
+

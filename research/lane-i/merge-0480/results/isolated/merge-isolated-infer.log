@@ -1,0 +1,41 @@
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [511.00ms]
+bun test v1.4.3 (c6da4a4d3)
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+MERGE_GATE {"source":"2de2ce89f9f93eb8feb5fbfb3a355da3adafc4ef","mode":"infer"}
+
+--- stderr ---
+
+core/infer.test.ts:
+(pass) constants under tuple constructors and projections are sampled, not the selector [0.36ms]
+cyclic: {"kind":"machine","name":"connection pool","cert":true,"usual":true,"cyclic":true,"ms":30,"usualMs":7,"route":"translated","leaves":22,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"token bucket","cert":true,"usual":true,"cyclic":true,"ms":15,"usualMs":2,"route":"translated","leaves":19,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"lease","cert":true,"usual":true,"cyclic":true,"ms":45,"usualMs":17,"route":"translated","leaves":113,"regrown":0,"splits":19,"carried":2,"uncarried":0,"cached":0}
+(pass) a law that needs an invariant: not proven alone, proven with what the search finds, and the set checks [2047.75ms]
+cyclic: {"kind":"machine","name":"connection pool","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":3,"route":"translated","leaves":22,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"lease","cert":true,"usual":true,"cyclic":true,"ms":40,"usualMs":17,"route":"translated","leaves":113,"regrown":0,"splits":19,"carried":2,"uncarried":0,"cached":0}
+(pass) what was found reads as the builder call that states it, and that call, written out, proves the law again [1342.20ms]
+cyclic: {"kind":"machine","name":"three accounts","cert":true,"usual":true,"cyclic":true,"ms":21,"usualMs":9,"route":"translated","leaves":43,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+(pass) an invariant over four values (the join: the samples' hull, made inductive): one account within the total paid in [2610.33ms]
+cyclic: {"kind":"machine","name":"in-flight requests","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":2,"route":"translated","leaves":20,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+(pass) a machine with no rule: the in-flight bound needs s + 50·p <= b + 150 or tighter [1239.59ms]
+(pass) a false law is answered with the run that breaks it; a law proven alone needs nothing found [3.80ms]
+
+ 6 pass
+ 0 fail
+ 34 expect() calls
+Ran 6 tests across 1 file. [7.29s]

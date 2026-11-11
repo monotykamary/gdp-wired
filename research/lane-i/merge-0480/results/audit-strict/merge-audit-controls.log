@@ -1,0 +1,45 @@
+
+--- stderr ---
+ 5 | import {tmpdir} from 'node:os'
+ 6 | import {spawnSync} from 'node:child_process'
+ 7 | import {gunzipSync,gzipSync} from 'node:zlib'
+ 8 | const [current,before,source,kernelHash,checkerHash]=process.argv.slice(2),auditor=resolve('research/lane-i/merge-0480/audit.ts')
+ 9 | const run=(dir:string)=>spawnSync('bun',[auditor,dir,before!,source!,kernelHash!,checkerHash!],{encoding:'utf8',timeout:30000,maxBuffer:4*1024*1024})
+10 | const positive=run(current!);a.equal(positive.status,0,positive.stdout+positive.stderr)
+                                    ^
+AssertionError: MERGE_CENSUS_AUDIT {"source":"2de2ce89f9f93eb8feb5fbfb3a355da3adafc4ef","receipts":56,"checkerCustodyReceipts":56,"fullProven":10,"offProven":27,"maxUnits":15000276.18,"offDrift":[{"id":"firewall","fields":["raw","searchRaw","phases"]},{"id":"learning_switch","fields":["raw","searchRaw","phases"]},{"id":"learning_switch_i4","fields":["raw","searchRaw","phases"]},{"id":"lock_server","fields":["raw","searchRaw","phases"]},{"id":"lockserv","fields":["raw","searchRaw","phases"]},{"id":"lockserv_automaton","fields":["raw","searchRaw","phases"]},{"id":"simple_decentralized_lock","fields":["raw","searchRaw","phases"]},{"id":"two_phase_commit","fields":["raw","searchRaw","phases"]},{"id":"twophase","fields":["raw","searchRaw","phases"]}],"regressions":[],"rows":[{"id":"client_server_ae","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000048.179999998,"offExact":true},{"id":"client_server_db_ae","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000181.3333,"offExact":true},{"id":"consensus","offBefore":"proven","offAfter":"proven","fullBefore":"proven","fullAfter":"proven","searchUnits":926294.9687,"offExact":true},{"id":"consensus_epr","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000005.52,"offExact":true,"candidatesBefore":"6f7b0cf37f17ad51e1b67a44657849d4a36f909f5d54b8ea14afaad295cfbead","candidatesAfter":"6f7b0cf37f17ad51e1b67a44657849d4a36f909f5d54b8ea14afaad295cfbead"},{"id":"consensus_forall","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000025.1,"offExact":true,"candidatesBefore":"60719348d065acafee0813f3810e01dcc590c288c4d8bf77b106fcc0f0b4b8a0","candidatesAfter":"60719348d065acafee0813f3810e01dcc590c288c4d8bf77b106fcc0f0b4b8a0"},{"id":"consensus_wo_decide","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":14451492.7445,"offExact":true,"candidatesBefore":"8a07760a6f3d37d66ad9c2688f40e912a8c85517fb12b6958032e9ec776633a5","candidatesAfter":"8a07760a6f3d37d66ad9c2688f40e912a8c85517fb12b6958032e9ec776633a5"},{"id":"firewall","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000087.984000001,"offExact":false},{"id":"learning_switch","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000129.5555,"offExact":false},{"id":"learning_switch_i4","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000058.014,"offExact":false},{"id":"lock_server","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000120.686,"offExact":false},{"id":"lockserv","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000178.2075,"offExact":false},{"id":"lockserv_automaton","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000012.0997,"offExact":false},{"id":"majorityset_leader_election","offBefore":"proven","offAfter":"proven","fullBefore":"proven","fullAfter":"proven","searchUnits":9094421.158100002,"offExact":true,"candidatesBefore":"d0cf8bae61ba38fdfe2767bbc4fee3284dcfe1985bb50747515fecf460895a61","candidatesAfter":"d0cf8bae61ba38fdfe2767bbc4fee3284dcfe1985bb50747515fecf460895a61"},{"id":"naive_consensus","offBefore":"proven","offAfter":"proven","fullBefore":"proven","fullAfter":"proven","searchUnits":4953491.4876999995,"offExact":true,"candidatesBefore":"a25c79a710c26ffb92cde11ec4091e66baa4dbb41b7aaa2d9c31d8d8970d571a","candidatesAfter":"a25c79a710c26ffb92cde11ec4091e66baa4dbb41b7aaa2d9c31d8d8970d571a"},{"id":"paxos_epr","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000276.18,"offExact":true,"candidatesBefore":"ad731d4bbccfa03ac2d90b90fb87e924b17236cfdd6dc5887eedc807d11d19e5","candidatesAfter":"ad731d4bbccfa03ac2d90b90fb87e924b17236cfdd6dc5887eedc807d11d19e5"},{"id":"quorum_leader_election","offBefore":"proven","offAfter":"proven","fullBefore":"proven","fullAfter":"proven","searchUnits":2579275.9903,"offExact":true,"candidatesBefore":"0c8985ce755eefbf90dd6982cf41ff0116a3a3a7e319dbb15a348b456c038fc2","candidatesAfter":"0c8985ce755eefbf90dd6982cf41ff0116a3a3a7e319dbb15a348b456c038fc2"},{"id":"sharded_kv","offBefore":"unknown","offAfter":"unknown","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000018.2817,"offExact":true},{"id":"sharded_kv_no_lost_keys","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000076.4294,"offExact":true},{"id":"simple","offBefore":"proven","offAfter":"proven","fullBefore":"proven","fullAfter":"proven","searchUnits":8516983.8159,"offExact":true},{"id":"simple_decentralized_lock","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000075.554,"offExact":false},{"id":"simple_election","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":4842482.179799999,"offExact":true,"candidatesBefore":"a43d83514420280cb8799f4943003680a98f285d023ed479f0f57cac77004b27","candidatesAfter":"a43d83514420280cb8799f4943003680a98f285d023ed479f0f57cac77004b27"},{"id":"simple_regular","offBefore":"proven","offAfter":"proven","fullBefore":"proven","fullAfter":"proven","searchUnits":13836695.4736,"offExact":true},{"id":"tcommit","offBefore":"proven","offAfter":"proven","fullBefore":"proven","fullAfter":"proven","searchUnits":2418042.0489,"offExact":true},{"id":"toy_consensus","offBefore":"proven","offAfter":"proven","fullBefore":"proven","fullAfter":"proven","searchUnits":3536980.3943000003,"offExact":true,"candidatesBefore":"4752a648fe9e7c9bfeec84a64ced41dfce019ba5d41b91f5eab7e7eb46d57708","candidatesAfter":"4752a648fe9e7c9bfeec84a64ced41dfce019ba5d41b91f5eab7e7eb46d57708"},{"id":"toy_consensus_epr","offBefore":"proven","offAfter":"proven","fullBefore":"proven","fullAfter":"proven","searchUnits":4479300.1618,"offExact":true,"candidatesBefore":"da567551aed533e401f7e032e2f590a6e14bf2cf0db3ad2c59a2adc75424084c","candidatesAfter":"da567551aed533e401f7e032e2f590a6e14bf2cf0db3ad2c59a2adc75424084c"},{"id":"toy_consensus_forall","offBefore":"proven","offAfter":"proven","fullBefore":"proven","fullAfter":"proven","searchUnits":3852910.6047000005,"offExact":true,"candidatesBefore":"5dc6c87e97670440bbc5870425103bbfb10110b07c9e940bed95cc6f1cea215f","candidatesAfter":"5dc6c87e97670440bbc5870425103bbfb10110b07c9e940bed95cc6f1cea215f"},{"id":"two_phase_commit","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000200.9145,"offExact":false},{"id":"twophase","offBefore":"proven","offAfter":"proven","fullBefore":"unknown","fullAfter":"unknown","searchUnits":15000059.8476,"offExact":false}]}
+29 |  rows.push({id,offBefore:oldOff.result.verdict,offAfter:off.result.verdict,fullBefore:oldFull.result.verdict,fullAfter:full.result.verdict,searchUnits:full.searchUnits,offExact:!offDrift.some(x=>x.id===id),candidatesBefore:oldOff.generated?.hash,candidatesAfter:off.generated?.hash})
+30 | }
+31 | const report={source,receipts:56,checkerCustodyReceipts:56,fullProven:rows.filter(r=>r.fullAfter==='proven').length,offProven:rows.filter(r=>r.offAfter==='proven').length,maxUnits:Math.max(...rows.map(r=>r.searchUnits)),offDrift,regressions,rows}
+32 | console.log('MERGE_CENSUS_AUDIT '+JSON.stringify(report))
+33 | a.equal(regressions.length,0,'lost checked verdicts')
+34 | a.equal(offDrift.length,0,'flags-off normalized receipts changed')
+       ^
+AssertionError: flags-off normalized receipts changed
+
+9 !== 0
+
+ generatedMessage: false,
+     actual: 9,
+   expected: 0,
+   operator: "strictEqual",
+       diff: "simple",
+       code: "ERR_ASSERTION"
+
+      at /work/gdp-wired/research/lane-i/merge-0480/audit.ts:34:3
+
+Bun v1.4.3 (Linux x64)
+
+
+1 !== 0
+
+ generatedMessage: false,
+     actual: 1,
+   expected: 0,
+   operator: "strictEqual",
+       diff: "simple",
+       code: "ERR_ASSERTION"
+
+      at /work/gdp-wired/research/lane-i/merge-0480/audit-controls.ts:10:32
+
+Bun v1.4.3 (Linux x64)

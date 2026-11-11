@@ -1,0 +1,3 @@
+results/** -text -whitespace
+driver/conflict-resolution.patch -text -whitespace
+driver/MERGE-MESSAGE.txt -text -whitespace

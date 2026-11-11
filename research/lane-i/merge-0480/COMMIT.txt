@@ -1,0 +1,8 @@
+docs(integration): record the 0.48.0 merge gate
+
+Retain exact-source boat receipts, isolated timeout recovery and independent
+census audits for 2de2ce89. Record the nine lower unpriced observation vectors
+explicitly; do not claim strict flags-off raw identity or D approval.
+
+Preserve the release safety checks and private-input boundary. Keep the
+request-space quotient outside the tested merge source.

@@ -1,0 +1,482 @@
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [828.00ms]
+bun test v1.4.3 (c6da4a4d3)
+MERGE_IDENTITIES {"preserved":132,"safety":14,"untrustedExceptions":["kernel/prove.ts","kernel/prover-rows.ts"]}
+MERGE_GATE {"source":"2de2ce89f9f93eb8feb5fbfb3a355da3adafc4ef","mode":"extract"}
+
+--- stderr ---
+
+core/extract-orm.test.ts:
+(pass) ORM create checks the original async handler [130.92ms]
+(pass) ORM update checks the original async handler [204.96ms]
+(pass) ORM read checks the original async handler [75.24ms]
+(pass) ORM lookup checks the original async handler [144.33ms]
+(pass) ORM save checks the original async handler [73.39ms]
+(pass) nullable reads and incomplete saves fail closed [8.28ms]
+(pass) the harness imports the original module, not generated code [26.41ms]
+(pass) multiple handlers share one table [134.01ms]
+cyclic: {"kind":"machine","name":"ts","cert":true,"usual":true,"cyclic":true,"ms":3012,"usualMs":104,"route":"translated","leaves":847,"regrown":0,"splits":661,"carried":2,"uncarried":0,"cached":0}
+(pass) ORM map representation invariant is kernel proved but source-law unchecked [3262.02ms]
+(pass) exported service method executes the actual class [31.48ms]
+(pass) refuses generator, rest, client shadowing and custom constructor [6.70ms]
+(pass) schema spoofing and duplicate keys refuse [2.41ms]
+(pass) harness snapshots isolate rows, prototype keys and duplicate creates [13.44ms]
+(pass) query diagnostics: report schema primary keys and supplied where fields [4.41ms]
+(pass) non-key updates refuse [0.93ms]
+
+core/sol-concrete.test.ts:
+(pass) an ordinary concrete entry stays ordinary [12.41ms]
+(pass) an abstract class becomes only a constructor-forwarding subclass, checked on its bytecode [209.47ms]
+(pass) a missing indirect base constructor is forwarded without replacing its body [220.22ms]
+(pass) constructor forwarding preserves shadowed parameters and base-to-derived execution [215.46ms]
+(pass) constructor type spans use Solidity UTF-8 byte offsets [12.24ms]
+(pass) abstract methods are not invented [3.91ms]
+(pass) the repository mock is preferred and its hook implementations are disclosed [226.09ms]
+(pass) an unrelated explicit harness is rejected, even with a same-named base [9.97ms]
+(pass) several unranked repository harnesses require an explicit selection [24.29ms]
+(pass) a later lowering refusal retains the chosen harness and its assumptions [13.23ms]
+(pass) an internal pure library is called through an unchanged forwarding body [240.20ms]
+(pass) linked libraries and storage context are not silently replaced [11.34ms]
+(pass) an explicitly selected view is exposed; an unrelated unsupported method is not selected [5.80ms]
+(pass) a repository override uses its most-derived body, not the inherited implementation [182.27ms]
+(pass) CLI configuration passes an explicitly selected harness to the Solidity frontend [256.87ms]
+(pass) invalid harness configuration does not silently fall back to auto [16.47ms]
+(pass) harnessing can be disabled explicitly [6.49ms]
+cyclic: {"kind":"machine","name":"GDPConcrete_Target","cert":true,"usual":true,"cyclic":true,"ms":78,"usualMs":5,"route":"translated","leaves":20,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"GDPConcrete_Target","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) a vulnerable inherited body is refuted and replayed; the fixed original is not refuted [1218.50ms]
+
+core/extract-py-hasattr.test.ts:
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) hasattr checks a literal instance binding without reading its value [177.67ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) hasattr checks a literal missing binding without reading its value [150.60ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) hasattr checks a literal method binding without reading its value [187.50ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) hasattr checks a literal constant binding without reading its value [146.23ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) hasattr checks a literal collection binding without reading its value [139.84ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) hasattr follows declaration-owned C3 through a diamond [147.70ms]
+(pass) hasattr does not invoke a property, including one raising AttributeError [118.87ms]
+(pass) hasattr refuses unresolved final binding: flag = Descriptor() [40.18ms]
+(pass) hasattr refuses unresolved final binding: flag: object = Descriptor() [38.46ms]
+(pass) hasattr refuses unresolved final binding: flag = alias = Descriptor() [38.52ms]
+(pass) hasattr refuses unresolved final binding: flag, alias = (Descriptor(), 1) [44.33ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) annotation-only and final method definitions preserve presence [282.46ms]
+(pass) overwritten inherited method metadata cannot establish presence [44.00ms]
+(pass) dynamic names, keyword calls and implicit object attributes remain refused [111.22ms]
+(pass) a duplicate final method without annotation clears the earlier return type [38.18ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) the final initializer supplies field types rather than an earlier definition [184.77ms]
+(pass) entry and nested constructors reject __init__ = None [124.95ms]
+(pass) entry and nested constructors reject __init__ = [1] [109.13ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) an inherited initializer and annotation-only declaration still construct [130.90ms]
+(pass) a property constructor is refused [35.42ms]
+(pass) a classmethod constructor is refused [37.39ms]
+(pass) a staticmethod constructor is refused [38.45ms]
+(pass) unknown class construction is refused even with a syntactic initializer [128.12ms]
+(pass) custom allocation and attribute hooks are refused, including inherited hooks [571.30ms]
+
+core/extract.test.ts:
+cyclic: {"kind":"machine","name":"Bucket","cert":true,"usual":true,"cyclic":true,"ms":70,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Bucket","cert":true,"usual":true,"cyclic":true,"ms":30,"usualMs":3,"route":"translated","leaves":5,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Bucket","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Bucket","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Bucket","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Bucket","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Bucket","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Bucket","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) one way in: a path, a URL and {code, file} read the rule the code-first call reads, the entry inferred [1768.06ms]
+cyclic: {"kind":"machine","name":"reducer","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"reducer","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":2,"route":"translated","leaves":9,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"reducer","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":4,"route":"translated","leaves":11,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) a reducer over a discriminated union: switch, spreads, Math.max, a throw as the assumption [212.10ms]
+cyclic: {"kind":"machine","name":"KeyedLimiter","cert":true,"usual":true,"cyclic":true,"ms":106,"usualMs":8,"route":"translated","leaves":16,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"KeyedLimiter","cert":true,"usual":true,"cyclic":true,"ms":100,"usualMs":5,"route":"translated","leaves":5,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"KeyedLimiter","cert":true,"usual":true,"cyclic":true,"ms":202,"usualMs":32,"route":"translated","leaves":92,"regrown":0,"splits":61,"carried":3,"uncarried":0,"cached":0}
+(pass) a class with a keyed map: get or create, refill by elapsed seconds, a result kept [817.46ms]
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":43,"usualMs":3,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":29,"usualMs":2,"route":"translated","leaves":5,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":61,"usualMs":2,"route":"translated","leaves":5,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":24,"usualMs":4,"route":"translated","leaves":11,"regrown":0,"splits":5,"carried":2,"uncarried":0,"cached":0}
+(pass) a wallet: debit refused past the balance, a getter, a counter of calls [408.26ms]
+(pass) plain JavaScript: a Redux reducer with an untyped action and a default for unknown actions [90.90ms]
+cyclic: {"kind":"machine","name":"reducer","cert":true,"usual":true,"cyclic":true,"ms":42,"usualMs":3,"route":"translated","leaves":13,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"reducer","cert":true,"usual":true,"cyclic":true,"ms":20,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) useReducer: the initial state from the hook, a string-literal union, an exhaustive throw [214.00ms]
+cyclic: {"kind":"machine","name":"deposit","cert":true,"usual":true,"cyclic":true,"ms":146,"usualMs":8,"route":"translated","leaves":29,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"deposit","cert":true,"usual":true,"cyclic":true,"ms":118,"usualMs":5,"route":"translated","leaves":5,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) functions over one record, each an event; a Record keyed by strings with ?? 0 [474.47ms]
+(pass) what the subset does not read is refused where it is, with the reason [424.05ms]
+(pass) aliasing: a write through a second name for a fresh copy is the copy's [138.70ms]
+(pass) aliasing that depends on the path: a write through one of two objects is seen through every name for it [112.58ms]
+(pass) mutation through a reference to the state a reducer is given is refused [125.15ms]
+cyclic: {"kind":"machine","name":"Two","cert":true,"usual":true,"cyclic":true,"ms":72,"usualMs":6,"route":"translated","leaves":26,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Two","cert":true,"usual":true,"cyclic":true,"ms":23,"usualMs":1,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Two","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Two","cert":true,"usual":true,"cyclic":true,"ms":26,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) two names into one map: a write through one is seen through the other at the same key [394.16ms]
+(pass) a reference into a map held across a set is refused [45.87ms]
+(pass) overflow: past 2^53 the code rounds where the rule's runtime refuses; the claim stops there and says so [165.49ms]
+(pass) floating point and division are refused [256.16ms]
+(pass) JavaScript's % on a value that may be negative is refused; on a natural it is the remainder [231.47ms]
+(pass) NaN and Infinity: none of the ways to make them is read [169.53ms]
+(pass) short-circuit effects: the right side runs only where the left does not decide [171.76ms]
+cyclic: {"kind":"machine","name":"r","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"r","cert":true,"usual":true,"cyclic":true,"ms":40,"usualMs":1,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+(pass) an exception mid-update: a method that throws after writing a field is refused [245.69ms]
+(pass) a getter with effects runs where it is read [145.41ms]
+(pass) closures and module state over mutable values are refused [188.30ms]
+(pass) time: Date.now() is an input read once; twice in one step is refused; Math.random is refused [306.71ms]
+(pass) loose equality of a number with a string is refused; a string as a condition is whether it is empty [218.75ms]
+(pass) truthiness of 0, fall-through, and a postfix increment's old value [190.17ms]
+(pass) a check that finds a difference refuses the extraction with it [121.19ms]
+cyclic: {"kind":"machine","name":"order","cert":true,"usual":true,"cyclic":true,"ms":26,"usualMs":14,"route":"translated","leaves":32,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"order","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":15,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) an XState machine: guards and assign actions read from setup(), the chart run beside XState's actor [1423.76ms]
+(pass) XState: a payload read by a guard and an action; a context that goes below 0 is an integer [882.94ms]
+(pass) XState: v4 cond, a machine made by a function, and what fromXState refuses, each refused with the reason [200.46ms]
+cyclic: {"kind":"machine","name":"m","cert":true,"usual":true,"cyclic":true,"ms":19,"usualMs":11,"route":"translated","leaves":23,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+(pass) XState: guards and actions from another file (amplify's): an imported object, its entries by name and spread; only those the config names read [136.15ms]
+cyclic: {"kind":"machine","name":"counter","cert":true,"usual":true,"cyclic":true,"ms":39,"usualMs":3,"route":"translated","leaves":11,"regrown":0,"splits":5,"carried":2,"uncarried":0,"cached":0}
+(pass) XState: inline assign actions and an inline guard, given by their place in the config; a machine with no states [462.51ms]
+cyclic: {"kind":"machine","name":"r","cert":true,"usual":true,"cyclic":true,"ms":61,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"r","cert":true,"usual":true,"cyclic":true,"ms":158,"usualMs":3,"route":"translated","leaves":6,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"r","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"r","cert":true,"usual":true,"cyclic":true,"ms":126,"usualMs":6,"route":"translated","leaves":9,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) a string field: set and compared, nothing else read of it [492.51ms]
+(pass) constants from another file of the repository: read, and loaded in the check [163.03ms]
+(pass) an absolute file path: read as the relative one is (it threw in findFunction up to 0.30.0) [370.49ms]
+(pass) a Redux Toolkit slice: case reducers on the draft, a thunk's cases, checked against Redux Toolkit itself [417.48ms]
+(pass) inheritance: an override reached through the base, super calls with side effects, constructors in order [221.03ms]
+(pass) a class that extends a generic one with its type arguments (upstash's Ratelimit<RegionContext>): the fields at the types given [247.65ms]
+cyclic: {"kind":"machine","name":"Window","cert":true,"usual":true,"cyclic":true,"ms":59,"usualMs":10,"route":"translated","leaves":24,"regrown":0,"splits":12,"carried":2,"uncarried":0,"cached":0}
+(pass) a field holding a function (an injected clock): each call an input, one a step, the same in every method [534.58ms]
+(pass) a field holding a function: called twice in a step, set by a method, called while made, or read as a value, refused [569.87ms]
+cyclic: {"kind":"machine","name":"Meter","cert":true,"usual":true,"cyclic":true,"ms":49,"usualMs":9,"route":"translated","leaves":24,"regrown":0,"splits":12,"carried":2,"uncarried":0,"cached":0}
+(pass) a mixin of the files read: its class between the entry and the class it is given, members resolved in that order [482.71ms]
+(pass) inheritance: a mixin, a class from another module, a field declared again and a missing super(...) are refused [354.72ms]
+(pass) a Map given to the constructor starts empty, as the callers make it; results: a record, a value or null [500.87ms]
+(pass) Dates as naturals: new Date(), getTime(), setTime() where the Date is held; a second name for one is refused [521.05ms]
+cyclic: {"kind":"machine","name":"counter","cert":true,"usual":true,"cyclic":true,"ms":135,"usualMs":7,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"counter","cert":true,"usual":true,"cyclic":true,"ms":84,"usualMs":3,"route":"translated","leaves":5,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"counter","cert":true,"usual":true,"cyclic":true,"ms":231,"usualMs":37,"route":"translated","leaves":107,"regrown":0,"splits":60,"carried":4,"uncarried":0,"cached":0}
+(pass) a factory's object: the variables its functions close over are its state, a helper writing them inlined [726.81ms]
+(pass) a factory's object: state outside the factory, this, a value beside the functions and async are refused [343.56ms]
+cyclic: {"kind":"machine","name":"Recent","cert":true,"usual":true,"cyclic":true,"ms":1,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Recent","cert":true,"usual":true,"cyclic":true,"ms":19,"usualMs":3,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Recent","cert":true,"usual":true,"cyclic":true,"ms":113,"usualMs":30,"route":"translated","leaves":62,"regrown":0,"splits":17,"carried":2,"uncarried":0,"cached":0}
+(pass) arrays as lists: push, pop, length, an item read and set within the array; a reducer's [...xs, x] [671.50ms]
+(pass) arrays: one array in two places, a write to the state given, past the end, two writes, a read after a write are refused [434.27ms]
+cyclic: {"kind":"machine","name":"up","cert":true,"usual":true,"cyclic":true,"ms":479,"usualMs":108,"route":"translated","leaves":52,"regrown":0,"splits":9,"carried":3,"uncarried":0,"cached":0}
+(pass) XState: a machine a factory makes, its answers from outside an input; an actor, a timer and always run as XState [1099.37ms]
+(pass) XState: a factory argument with untyped functions (of type any), called only by an actor: outside the machine [279.55ms]
+(pass) XState: what a factory or a machine could not run the same way is refused, with the reason [442.09ms]
+(pass) XState v4: cond, (context, event) guards and actions, services, after; a field written from an unread payload left out [2758.03ms]
+(pass) the boundary inferred: another module's function a class calls answered over its declared type, one returning nothing left out [247.09ms]
+(pass) adversarial t01: injected callback handed this [59.15ms]
+(pass) adversarial t02: injected boolean result truthiness [131.78ms]
+(pass) a property its type doesn't have where it is read (a union member without it): refused, undefined where it runs [68.78ms]
+(pass) a second body of one method in one class: refused (JavaScript keeps the last, TypeScript refuses it) [44.79ms]
+(pass) a request past the check's time: the check's harness failed, retried once, never "the rule and the code differ" [1006.22ms]
+(pass) a second member of one name in the object a factory returns: refused (it crashed the reader) [44.92ms]
+(pass) a module-level const that reads the clock: refused (the time the module loaded, not the request's) [53.75ms]
+(pass) two declarations of one name at the module's top level: refused before reading [0.78ms]
+(pass) reader fuzz 673062: an empty extends clause is refused, not dereferenced [47.26ms]
+
+core/extract-py-mro.test.ts:
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) leftmost own method wins over a later base inheriting the root method [230.90ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) a later own declaration wins over an earlier base merely inheriting the root [150.52ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) cooperative super visits the next sibling in the actual receiver MRO [164.58ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) cooperative constructors visit both sibling initializers exactly once [151.14ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) super reads a sibling scalar through a property without consulting instance fields [150.67ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) ordinary class-name attribute reads use the same selected scalar binding [139.62ms]
+(pass) field declarations follow C3 owners rather than flattened base fields [246.82ms]
+(pass) same-named classes from different modules keep different method identities [1213.85ms]
+(pass) an unbound class value shadows an inherited method instead of falling through [63.78ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) an inherited collection may pass through a constructor only while its value stays unread [158.84ms]
+(pass) shared collection contents and alias identity remain refused, not scalarized [92.55ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) empty variadics in inherited constructors and methods are bound, not unbound locals [214.19ms]
+(pass) nonempty variadic calls are refused rather than dropping their arguments [46.07ms]
+(pass) object initializer arguments and non-own explicit super remain refused [86.12ms]
+
+core/extract-py.test.ts:
+cyclic: {"kind":"machine","name":"TokenBucket","cert":true,"usual":true,"cyclic":true,"ms":49,"usualMs":3,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"TokenBucket","cert":true,"usual":true,"cyclic":true,"ms":50,"usualMs":2,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"TokenBucket","cert":true,"usual":true,"cyclic":true,"ms":67,"usualMs":12,"route":"translated","leaves":19,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+(pass) a token bucket: the clock an input, the lock atomic, a failure before any write the refusal [453.35ms]
+cyclic: {"kind":"machine","name":"Ledger","cert":true,"usual":true,"cyclic":true,"ms":1092,"usualMs":63,"route":"translated","leaves":413,"regrown":0,"splits":164,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Ledger","cert":true,"usual":true,"cyclic":true,"ms":641,"usualMs":34,"route":"translated","leaves":91,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) a dict of dataclasses: a missing key, a Literal mode, a result kept [2258.71ms]
+cyclic: {"kind":"machine","name":"check","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"check","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":2,"route":"translated","leaves":9,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"check","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"check","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"check","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"check","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":2,"route":"translated","leaves":11,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) a decision whose failure is kept: the law about when it raises [302.49ms]
+cyclic: {"kind":"machine","name":"SessionLimit","cert":true,"usual":true,"cyclic":true,"ms":115,"usualMs":12,"route":"translated","leaves":64,"regrown":0,"splits":39,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"SessionLimit","cert":true,"usual":true,"cyclic":true,"ms":83,"usualMs":6,"route":"translated","leaves":26,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"SessionLimit","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":16,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"SessionLimit","cert":true,"usual":true,"cyclic":true,"ms":111,"usualMs":10,"route":"translated","leaves":18,"regrown":0,"splits":10,"carried":1,"uncarried":0,"cached":0}
+(pass) a store the caller states: its keys by template, a count kept with the failure after it [657.28ms]
+(pass) the boundary: an answered call an input, a skipped one kept only where nothing reads it [198.11ms]
+(pass) the boundary inferred: a store, a skip, an answer tagged where the code is a stand-in [996.23ms]
+cyclic: {"kind":"machine","name":"Gate","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Gate","cert":true,"usual":true,"cyclic":true,"ms":21,"usualMs":2,"route":"translated","leaves":9,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Gate","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Gate","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":3,"route":"translated","leaves":15,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+(pass) the boundary inferred: the entry, own code outside the subset cut, an injected protocol answered [376.20ms]
+cyclic: {"kind":"machine","name":"RateLimiter","cert":true,"usual":true,"cyclic":true,"ms":133,"usualMs":16,"route":"translated","leaves":73,"regrown":0,"splits":39,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"RateLimiter","cert":true,"usual":true,"cyclic":true,"ms":70,"usualMs":6,"route":"translated","leaves":26,"regrown":0,"splits":16,"carried":1,"uncarried":0,"cached":0}
+(pass) the boundary inferred: a dependency FastAPI injects (Depends) held as a store [597.55ms]
+(pass) refusals, each where it is with why [243.95ms]
+cyclic: {"kind":"machine","name":"Ledger","cert":true,"usual":true,"cyclic":true,"ms":1106,"usualMs":97,"route":"translated","leaves":28,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Ledger","cert":true,"usual":true,"cyclic":true,"ms":1150,"usualMs":93,"route":"translated","leaves":30,"regrown":0,"splits":15,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Ledger","cert":true,"usual":true,"cyclic":true,"ms":872,"usualMs":79,"route":"translated","leaves":28,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Ledger","cert":true,"usual":true,"cyclic":true,"ms":1486,"usualMs":134,"route":"translated","leaves":30,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Ledger","cert":true,"usual":true,"cyclic":true,"ms":956,"usualMs":136,"route":"translated","leaves":28,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Ledger","cert":true,"usual":true,"cyclic":false,"ms":99,"usualMs":75,"route":"fallback","leaves":4,"regrown":2,"splits":4,"carried":0,"uncarried":0,"cached":0,"fellBack":"Ledger: has_big is false on an empty list, after a step: not translated"}
+cyclic: {"kind":"step law","name":"Ledger","uncovered":true,"why":"no cyclic proof found (not translated: Ledger: has_big is false on an empty list, after a step: not translated)"}
+cyclic: {"kind":"machine","name":"Ledger","cert":true,"usual":true,"cyclic":true,"ms":1112,"usualMs":118,"route":"translated","leaves":28,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Ledger","cert":true,"usual":true,"cyclic":false,"ms":375,"usualMs":92,"route":"fallback","leaves":32,"regrown":0,"splits":15,"carried":1,"uncarried":0,"cached":0,"fellBack":"Ledger: has_big of one item past k is true: use of node 12, its hypothesis 29: unknown"}
+cyclic: {"kind":"step law","name":"Ledger","uncovered":true,"why":"no cyclic proof found (not translated: Ledger: has_big of one item past k is true: use of node 12, its hypothesis 29: unknown)"}
+cyclic: {"kind":"machine","name":"Ledger","cert":true,"usual":true,"cyclic":true,"ms":1502,"usualMs":161,"route":"translated","leaves":28,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Ledger","cert":true,"usual":true,"cyclic":true,"ms":2057,"usualMs":263,"route":"translated","leaves":30,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Ledger","cert":true,"usual":true,"cyclic":true,"ms":1174,"usualMs":106,"route":"translated","leaves":28,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Ledger","cert":true,"usual":true,"cyclic":false,"ms":61,"usualMs":73,"route":"fallback","leaves":6,"regrown":2,"splits":4,"carried":0,"uncarried":0,"cached":0,"fellBack":"Ledger: owed of no items is the spend, after a step: not translated"}
+cyclic: {"kind":"step law","name":"Ledger","uncovered":true,"why":"no cyclic proof found (not translated: Ledger: owed of no items is the spend, after a step: not translated)"}
+cyclic: {"kind":"machine","name":"Ledger","cert":true,"usual":true,"cyclic":true,"ms":1273,"usualMs":107,"route":"translated","leaves":28,"regrown":0,"splits":16,"carried":4,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Ledger","cert":true,"usual":true,"cyclic":false,"ms":69,"usualMs":76,"route":"fallback","leaves":7,"regrown":2,"splits":4,"carried":0,"uncarried":0,"cached":0,"fellBack":"Ledger: count of no items is the other list's length, after a step: not translated"}
+cyclic: {"kind":"step law","name":"Ledger","uncovered":true,"why":"no cyclic proof found (not translated: Ledger: count of no items is the other list's length, after a step: not translated)"}
+(pass) a loop over a list the request carries: a fold, exact for every length [52399.90ms]
+(pass) a loop over a list of the state: the fold over its places [291.75ms]
+cyclic: {"kind":"machine","name":"Hits","cert":true,"usual":true,"cyclic":true,"ms":170,"usualMs":33,"route":"translated","leaves":86,"regrown":0,"splits":39,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Hits","cert":true,"usual":true,"cyclic":true,"ms":162,"usualMs":5,"route":"translated","leaves":22,"regrown":0,"splits":18,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Hits","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":24,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Hits","cert":true,"usual":true,"cyclic":true,"ms":242,"usualMs":16,"route":"translated","leaves":25,"regrown":0,"splits":14,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"A","cert":true,"usual":true,"cyclic":true,"ms":69,"usualMs":3,"route":"translated","leaves":38,"regrown":0,"splits":28,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"A","cert":true,"usual":true,"cyclic":true,"ms":57,"usualMs":2,"route":"translated","leaves":14,"regrown":0,"splits":10,"carried":1,"uncarried":0,"cached":0}
+(pass) a store that may fail inside a try; a finally on a raise's way out; a raise's argument failing first [1484.43ms]
+(pass) a function returning other code's value its caller reads: cut, answered by its declared type [185.51ms]
+cyclic: {"kind":"machine","name":"Book","cert":true,"usual":true,"cyclic":true,"ms":293,"usualMs":12,"route":"translated","leaves":77,"regrown":0,"splits":39,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Book","cert":true,"usual":true,"cyclic":true,"ms":244,"usualMs":6,"route":"translated","leaves":23,"regrown":0,"splits":14,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Book","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":15,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Book","cert":true,"usual":true,"cyclic":true,"ms":187,"usualMs":5,"route":"translated","leaves":21,"regrown":0,"splits":14,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Book","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":15,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Book","cert":true,"usual":true,"cyclic":true,"ms":268,"usualMs":4,"route":"translated","leaves":22,"regrown":0,"splits":18,"carried":1,"uncarried":0,"cached":0}
+(pass) try/except: a call that may raise, a KeyError, a raise by its class, else and finally, a re-raise [1483.82ms]
+(pass) key templates: disjoint where their fixed parts differ [0.43ms]
+(pass) adversarial p01: listener handed self [43.34ms]
+(pass) adversarial p02: listener handed mutable state field [34.76ms]
+(pass) adversarial p03: alias to self passed to listener [36.45ms]
+(pass) adversarial p04: repository save mutates held record [36.37ms]
+(pass) adversarial p05: store get mutable object alias [39.03ms]
+(pass) adversarial p06: skipped helper mutates global used by rule [39.46ms]
+(pass) adversarial p07: truthiness of inferred boolean answer [138.48ms]
+(pass) adversarial p08: optional None answer truthiness [138.89ms]
+(pass) adversarial p09: untyped Any answer [39.45ms]
+(pass) adversarial p10: async answer [146.87ms]
+(pass) adversarial p11: post-construction field injection [36.22ms]
+(pass) adversarial p12: two dependencies with shared underlying store [33.67ms]
+(pass) adversarial p13: entry discovery through private helper [134.41ms]
+(pass) adversarial p14: overloaded declared result [144.22ms]
+(pass) adversarial p15: generic return TypeVar [36.13ms]
+(pass) adversarial p16: exception-only use of external call [192.02ms]
+(pass) adversarial p17: FastAPI Depends with yielding dependency [373.67ms]
+cyclic: {"kind":"machine","name":"Claims","cert":true,"usual":true,"cyclic":true,"ms":752,"usualMs":138,"route":"translated","leaves":405,"regrown":0,"splits":196,"carried":6,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Claims","cert":true,"usual":true,"cyclic":true,"ms":476,"usualMs":7,"route":"translated","leaves":44,"regrown":0,"splits":24,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Claims","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":56,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Claims","cert":true,"usual":true,"cyclic":true,"ms":455,"usualMs":6,"route":"translated","leaves":31,"regrown":0,"splits":22,"carried":1,"uncarried":0,"cached":0}
+(pass) a store of JSON records over a client of name= and nx: the conditional set, the lock by @contextmanager, a record made by its class [2279.16ms]
+(pass) a store key template that may name another's is refused unless stated apart [42.09ms]
+cyclic: {"kind":"machine","name":"ItemFate","cert":true,"usual":true,"cyclic":true,"ms":629,"usualMs":57,"route":"translated","leaves":216,"regrown":0,"splits":87,"carried":6,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"ItemFate","cert":true,"usual":true,"cyclic":true,"ms":233,"usualMs":55,"route":"translated","leaves":109,"regrown":0,"splits":17,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"ItemFate","cert":true,"usual":true,"cyclic":true,"ms":461,"usualMs":12,"route":"translated","leaves":74,"regrown":0,"splits":62,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"ItemFate","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":42,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"ItemFate","cert":true,"usual":true,"cyclic":false,"ms":253,"usualMs":12,"route":"fallback","leaves":129,"regrown":0,"splits":111,"carried":0,"uncarried":1,"cached":0,"fellBack":"ItemFate: a VM failed on is avoided after: unknown"}
+cyclic: {"kind":"step law","name":"ItemFate","uncovered":true,"why":"no cyclic proof found (not translated: ItemFate: a VM failed on is avoided after: unknown)"}
+(pass) a set of the state (add, discard, in), a Literal alias, a Literal result, an int param beside a choice [2047.11ms]
+cyclic: {"kind":"machine","name":"Seen","cert":true,"usual":true,"cyclic":true,"ms":57,"usualMs":4,"route":"translated","leaves":32,"regrown":0,"splits":8,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Seen","cert":true,"usual":true,"cyclic":true,"ms":147,"usualMs":2,"route":"translated","leaves":28,"regrown":0,"splits":22,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Seen","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Seen","cert":true,"usual":true,"cyclic":true,"ms":121,"usualMs":4,"route":"translated","leaves":63,"regrown":0,"splits":52,"carried":1,"uncarried":0,"cached":0}
+(pass) a set removed from: a key it doesn't hold is a KeyError, the step's failure [531.59ms]
+(pass) a type alias of 3.12 (type X = ...), and dict() as {} [190.08ms]
+cyclic: {"kind":"machine","name":"Gate","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":3,"route":"translated","leaves":20,"regrown":0,"splits":12,"carried":2,"uncarried":0,"cached":0}
+(pass) a constructor given a dict of no stated types, read nowhere the rule keeps; a dict of other code's objects left out [212.01ms]
+cyclic: {"kind":"machine","name":"Box","cert":true,"usual":true,"cyclic":true,"ms":136,"usualMs":5,"route":"translated","leaves":19,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Box","cert":true,"usual":true,"cyclic":true,"ms":14,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Box","cert":true,"usual":true,"cyclic":true,"ms":76,"usualMs":2,"route":"translated","leaves":27,"regrown":0,"splits":22,"carried":1,"uncarried":0,"cached":0}
+(pass) another module's constant read as its value; bytes never equal to a str [404.19ms]
+cyclic: {"kind":"machine","name":"Life","cert":true,"usual":true,"cyclic":true,"ms":32,"usualMs":5,"route":"translated","leaves":25,"regrown":0,"splits":9,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Life","cert":true,"usual":true,"cyclic":true,"ms":35,"usualMs":2,"route":"translated","leaves":17,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+(pass) a str result that is one of its literals on every path: a choice of them [234.45ms]
+(pass) an argument the code ignores, kept where a law reads it (keep): the law about it broken [309.81ms]
+cyclic: {"kind":"machine","name":"Window","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Window","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":3,"route":"translated","leaves":7,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) the clock pinned only in the code's run: a module a call first imports reads the real datetime [241.81ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":19,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":32,"usualMs":4,"route":"translated","leaves":10,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) a Protocol-typed constructor argument, assigned in a tuple: an injected dependency whose calls are answered [523.45ms]
+(pass) a store's options given a constant read as one map, noted; one the request decides refused [283.40ms]
+(pass) a name nothing binds, an attribute Python's library lacks, the module object's own method: refused (they raise where they run) [337.67ms]
+(pass) a module variable a function rebinds (global) is no constant: refused where it is read [39.79ms]
+(pass) an injected dependency's call left out inside a try: the check's dependency raises where the request says [212.62ms]
+(pass) a key of the other kind than its dict's (a str into a dict[int, int]): refused, never one it holds [40.31ms]
+(pass) inherited immutable class defaults follow C3, not flattened direct-base attributes [588.20ms]
+(pass) a nonliteral or property declaration shadows a base constant instead of falling through [290.90ms]
+(pass) inherited constants are resolved across repository reexports, not guessed for outside bases [255.34ms]
+(pass) dynamic class bodies and runtime monkey patches cannot become accepted inherited constants [253.95ms]
+(pass) selected scalar defaults shadow inherited descriptors and remain dynamic in base methods [413.11ms]
+(pass) inherited Python method coverage distinguishes equal basenames [338.84ms]
+(pass) the Python tracer counts only exact read-source files, including equal basenames [60.73ms]
+(pass) nested module exception sites retain their source identity through request stubs [367.04ms]
+
+core/extract-standalone.test.ts:
+(pass) closed constants, erased import, pure helper and uncalled callback declaration [284.39ms]
+(pass) finite string choices preserve early returns and comparison equivalence [98.08ms]
+(pass) finite choice result preserves each case [77.43ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) nullable choice results distinguish null from undefined in false laws [384.68ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":15,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) flat record input and result replay all values [173.93ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":18,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) destructured record input supports early returns [165.17ms]
+(pass) different choice domains compare by string, never encoded index [119.86ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":43,"usualMs":1,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":1,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: singleton equality and inequality use strings [384.38ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: same-index multi-value equality and inequality use strings [317.53ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":13,"regrown":0,"splits":9,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":13,"regrown":0,"splits":9,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: a shared value at different indices compares by name [401.59ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":1,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: nullable locals and nested returns retain domain semantics [292.03ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":1,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: comparisons nested in boolean equality retain semantics [200.36ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: literals are checked within their domain in either order [675.17ms]
+(pass) optional choice law: unsupported nested optional input is explicitly refused [27.93ms]
+(pass) optional standalone calendar operands cannot bypass absence checks [65.23ms]
+(pass) finite choice support still refuses unrestricted strings and effects [68.19ms]
+(pass) helper parameters bind by symbol rather than a same-named module constant [64.70ms]
+(pass) multi-return helper retains present false separately from undefined [114.44ms]
+(pass) numeric union works through a supplied erased type module [76.76ms]
+(pass) prover witnesses replay returns, not prior result fields as source state [91.72ms]
+(pass) empty source state never hides a wrong return or missing bit in prover probes [405.85ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":15,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":26,"usualMs":3,"route":"translated","leaves":16,"regrown":0,"splits":10,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":19,"usualMs":3,"route":"translated","leaves":15,"regrown":0,"splits":9,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":42,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":23,"usualMs":3,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":14,"usualMs":1,"route":"translated","leaves":7,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":26,"usualMs":3,"route":"translated","leaves":16,"regrown":0,"splits":10,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":2,"route":"translated","leaves":17,"regrown":0,"splits":11,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":3,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) standalone laws preserve optional boolean truth, absence and hidden payloads [386.32ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":2,"route":"translated","leaves":8,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+(pass) standalone laws preserve optional numeric comparisons and refuse absent arithmetic [140.20ms]
+(pass) standalone optional predicates check both hidden boolean values and present values [79.27ms]
+(pass) optional floor-division refuses original numerators before comparison rewrites [154.83ms]
+(pass) nonoptional division rewrites retain standalone and default-reader semantics [223.81ms]
+(pass) scalar constants may depend on earlier constants [105.13ms]
+(pass) module evaluation and imported runtime code are refused before execution [424.10ms]
+(pass) reachable helper effects, closures, mutation and recursion are refused statically [357.81ms]
+(pass) invalid modes and contradictory numeric domains are not silently ignored [39.21ms]
+(pass) nonintegral declared numeric domains and literals cannot be widened silently [71.26ms]
+
+core/extract-sol.test.ts:
+cyclic: {"kind":"machine","name":"Ledger","cert":true,"uncovered":true,"why":"a sum over a map's keys (Sums.lean checks the usual trees)"}
+cyclic: {"kind":"machine","name":"Ledger","cert":true,"usual":true,"cyclic":true,"ms":917,"usualMs":36,"route":"translated","leaves":106,"regrown":0,"splits":25,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Ledger","cert":true,"usual":true,"cyclic":true,"ms":748,"usualMs":4,"route":"translated","leaves":9,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) a ledger: the balances sum to the supply, a transfer never mints (two cells in one step, unchecked) [7631.92ms]
+(pass) the DAO's shape: broken by a re-entrant run, replayed on the code; cleared first, proven [62912.33ms]
+(pass) a lock held across the call: re-entering withdraw reverts, the law proven [71578.03ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":155,"usualMs":17,"route":"translated","leaves":31,"regrown":0,"splits":12,"carried":2,"uncarried":0,"cached":0}
+(pass) a wrap past 2^256: unchecked, a counter below its start is reached; checked, never [26057.80ms]
+(pass) refused, each where it is with why [29.55ms]
+(pass) the check's harness failing (anvil's transport) is retried once, then the check's own outcome: never a difference [927.53ms]
+(pass) a call into other code whose failure the function goes on past: refused (re-entrancy) [37438.52ms]
+(pass) a killed harness leaves no anvil state behind; what killed runs left is removed at start [741.16ms]
+
+ 226 pass
+ 0 fail
+ 1676 expect() calls
+Ran 226 tests across 8 files. [326.13s]
