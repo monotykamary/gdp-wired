@@ -1,12 +1,15 @@
-import {expect,test} from 'bun:test'
+import {expect,test as profileTest} from 'bun:test'
+import {stepWorkProfile} from './step-work.ts'
 import {type Law,type Machine,plus,ite,n,x} from './machine.ts'
 import {small} from './exists.ts'
 import {countReachabilityScreen} from './count-reachability.ts'
 import {countReachabilityAllowance} from './count-reachability-budget.ts'
 import {BudgetExpired,clock,counted,fullRate,withBudget,withWall} from '../kernel/prove.ts'
+// No-witness screens require the bookkeeping clock; raw legacy OFF omits it.
+const test=profileTest.skipIf(!stepWorkProfile.enabled)
 const bound=(name:string,amount:number):Law=>({name,holds:{op:'<=',a:x('v'),b:n(amount)}})
 const counter:Machine={name:'unbounded counter',params:[],inputs:[],state:{v:n(0)},step:{state:{v:plus(x('v'),n(1))}}}
-const run=<T>(body:()=>T,work=2_000_000)=>counted(fullRate,()=>withBudget(work,()=>withWall(clock()+work/fullRate,body)))
+const run=<T>(body:()=>T,work=2_000_000)=>counted(fullRate,()=>withBudget(work,()=>withWall(clock()+work/fullRate,body)),true)
 test('retained extrema are extended and only original replay can reject',()=>run(()=>{
  const states=small(counter,{},1,4,4),last=Math.max(...states.map(s=>s.scalars.v!)),law=bound('sample maximum',last)
  const screen=countReachabilityScreen(counter,counter,[],100000,()=>[{p:{},sts:states}])

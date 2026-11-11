@@ -10,6 +10,8 @@ import {type C, type E, type Machine, cpair, evalC, tupleParts} from '../core/ma
 import {type Goal, canon, linear, projected, projectedC} from './kernel.ts'
 import {type Constraint, type Lin, env, konst, plus, solve, times, v as tv} from '../core/solver.ts'
 import {Simplex} from './simplex.ts'
+import {startWork, workCounterView} from '../core/work-admission.ts'
+import {completeWorkProfile} from '../core/work-profile.ts'
 
 // (a term's text, once per object: the decision asks it of the same terms many times)
 const textsOf = new WeakMap<object, string>()
@@ -192,7 +194,7 @@ const pastEnd = new Error('past the deadline')
 // The work the EPR path does, counted (each clause and hypothesis read, each literal the CDCL search propagates), and a
 // cap on it a caller sets (core/infer.ts's engine, per goal): past the cap the decision is unknown, at the same place on
 // any machine, where a wall-clock end stops it wherever the machine has got to. Untrusted: it only stops a search.
-export const eprMeter = {n: 0}
+export const eprMeter = workCounterView({n: 0}, {n: 'epr'})
 let eprCap = Infinity
 export const pastEprCap = (): boolean => eprMeter.n > eprCap
 export function withEprCap<T>(units: number, f: () => T): T {
@@ -219,7 +221,7 @@ function factsOf(h0: C | undefined, tick: () => void): Facts {
   const h = h0 && liftedKeys(h0), reads: Get[] = [], comps: Comp[] = [], bounds: [string, number][] = [], seen = new WeakSet<object>()
   const gather = (o: unknown): void => {
     if (!o || typeof o !== 'object' || seen.has(o)) return
-    seen.add(o); tick()
+    tick(); seen.add(o)
     const x = o as {op?: string, a?: unknown}
     if (x.op === 'get') reads.push(o as Get)
     else if ((x.op === '<' || x.op === '<=' || x.op === '=') && x.a) comps.push(o as Comp)
@@ -324,7 +326,7 @@ type Enc = {decide: (goal: Goal, fs: Facts[], st: State, opts: Opts) => Decision
 const pool = new Map<string, Enc>(), other = 'another encoder\'s goal'
 function decide0(goal: Goal, patterns: Patterns, opts: Opts): Decision {
   let ticks = 0
-  const tick = () => { eprMeter.n++; if ((++ticks & 4095) === 0 && opts.late?.()) throw pastEnd }
+  const tick = () => { if (completeWorkProfile.enabled) startWork('epr', 1, 'EPR traversal'); else eprMeter.n++; if ((++ticks & 4095) === 0 && opts.late?.()) throw pastEnd }
   const fs = goal.hyps.map(h => factsOf(h, tick))
   // --- which hypotheses are EPR-shaped: every map read at a key of its map's pattern
   const shapedOf = (f: Facts) => f.reads.every(x => (fnMaps.has(x.map) ? partName(x) !== undefined : (t => !!t && !!patterns[x.map] && sameCoefs(t.coefs, patterns[x.map]!))((x as {args?: unknown}).args ? undefined : tupleOf(x.key))))
@@ -347,7 +349,7 @@ function encoder(st: State, patterns: Patterns): Enc {
   const {parts, bounded, caps, ordMaps, ordScalars} = st
   const fits = (map: string, key: E) => { const t = tupleOf(key), p = patterns[map]; return t && p && sameCoefs(t.coefs, p) ? t : undefined }
   const exactOf = (e: E): number | undefined => (e.op === 'get' ? (!ordMaps.has(e.map) ? bounded.get(textOfE(e)) : undefined) : e.op === 'var' && !parts.has(e.name) && !ordScalars.has(e.name) ? bounded.get(textOfE(e)) : undefined)
-  let tick = () => { eprMeter.n++ }
+  let tick = () => { if (completeWorkProfile.enabled) startWork('epr', 1, 'EPR encoding'); else eprMeter.n++ }
   // (what the hypothesis being encoded reads: its ordered terms, finite terms, opaque atoms and successors)
   let use: Use = {ords: [], fins: [], opq: [], succ: []}
   // --- atoms
@@ -711,7 +713,7 @@ function encoder(st: State, patterns: Patterns): Enc {
   const seedLemmas = () => { for (const [key, l] of lemmaCache) { if (lemmasIn.has(key)) continue; const xs = l.map(([k, b]) => { const x = ids.get(k); return x === undefined ? undefined : b ? x : -x }); if (xs.every((x): x is number => x !== undefined)) { lemmasIn.add(key); add(xs, -1) } } }
 
   const decideGoal = (goal: Goal, fs: Facts[], gst: State, opts: Opts): Decision => {
-    tick = () => { eprMeter.n++; if ((++ticks & 4095) === 0 && opts.late?.()) throw pastEnd }
+    tick = () => { if (completeWorkProfile.enabled) startWork('epr', 1, 'EPR traversal'); else eprMeter.n++; if ((++ticks & 4095) === 0 && opts.late?.()) throw pastEnd }
     let ticks = 0
     const hs = fs.map(encode), gOrds = new Set<string>(['k:0', ...[...parts].map(x => `p:${x}`)]), gFins = new Set<Fin>(), gOpq = new Set<number>(), gSuccs = new Set<number>()
     for (const h of hs) { for (const x of h.use.ords) gOrds.add(x); for (const f of h.use.fins) gFins.add(f); for (const x of h.use.opq) gOpq.add(x); for (const x of h.use.succ) gSuccs.add(x) }
@@ -1103,8 +1105,9 @@ function cdclSolver(trueFirst: Set<number>, keepPhase: Set<number>): {solve: (bu
   }
   const propagate = (): Cl | undefined => {
     while (qhead < trail.length) {
+      if (completeWorkProfile.enabled) startWork('epr', 1, 'EPR propagation')
       const l = trail[qhead++]!, ws = wl(l)
-      eprMeter.n++
+      if (!completeWorkProfile.enabled) eprMeter.n++
       for (let i = 0; i < ws.length; i++) {
         const c = ws[i]!
         if (c.lits[0] === -l) { c.lits[0] = c.lits[1]!; c.lits[1] = -l }

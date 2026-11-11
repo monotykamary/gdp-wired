@@ -12,6 +12,8 @@
 import {type C, type E, walk} from './machine.ts'
 import {type Lin, type Step, add, costs, env, refuteFast, scale, solve} from './solver.ts'
 import {checkRefutation} from './check.ts'
+import {completeWorkProfile} from './work-profile.ts'
+import {startWork} from './work-admission.ts'
 import {type Goal, type Path, type Subst, type Tree, canon, canonFlip, columnTerm, factorsOf, isCell, isMonomial, leafConstraints, leafConstraintsReusing, linear, substE, truth, withProducts} from '../kernel/kernel.ts'
 import {cellProducts, grow, late, leafRowsOf, parseKey, withinDeadline} from '../kernel/prove.ts'
 import {Reader, times} from '../kernel/reader.ts'
@@ -158,11 +160,17 @@ export function translate(part: Goal, whole: Goal, tree: Tree, ren0: Renamer, st
   if (late(until)) return undefined
   // (the usual leaf's rows as its search kept them, where it did: kernel/prove.ts's leafRowsOf; else read again)
   const kept = !tree.products && !tree.squares ? leafRowsOf.get(tree) : undefined
-  const rp = kept ? undefined : leafConstraintsReusing(part, pp), rw = rowsAt(whole, wp), at = new Map<string, number>()
+  let rp = kept ? undefined : leafConstraintsReusing(part, pp)
+  const rw = rowsAt(whole, wp), at = new Map<string, number>()
+  if(completeWorkProfile.enabled&&rp){
+    const prepared:typeof rp=[]
+    for(let i=0;i<rp.length;i++){startWork('translateRows',1,'translation source row');prepared.push(rp[i]!)}
+    rp=prepared
+  }
   const np = kept ? kept.n : rp!.length, linP = (i: number): Lin => (kept ? kept.at.get(i)!.lin : rp![i]!.lin)
   const pairP = (i: number): [string, string] | undefined => { if (kept) { const s = kept.at.get(i)?.src; return Array.isArray(s) ? s : undefined } const s = rp![i]!.src; return s && 'pair' in s ? s.pair : undefined }
-  costs.translateRows += (rp?.length ?? 0) + rw.length
-  rw.forEach((r, i) => { const key = canon(r.lin); if (!at.has(key)) at.set(key, i) })
+  if (!completeWorkProfile.enabled) costs.translateRows += (rp?.length ?? 0) + rw.length
+  rw.forEach((r, i) => { if(completeWorkProfile.enabled)startWork('translateRows',1,'translation target row'); const key = canon(r.lin); if (!at.has(key)) at.set(key, i) })
   // Two cells the usual path proves equal (a row of the leaf's from their pair) are cells over time here, at keys
   // (t − 1) + a·Ω and (t − 1) + b·Ω: the path has a = b, and the keys' difference (a − b)·Ω is split (each other side
   // refuted by (a − b)·Ω = 0, the product of a − b <= 0 or b − a <= 0 with Ω >= 0), the leaf then read again.

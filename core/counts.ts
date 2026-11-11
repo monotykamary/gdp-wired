@@ -720,10 +720,11 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
     }
     const probe=(law:Law,ordinary:number,citing:number,end:number)=>{
       if(!reach)return undefined
+      const screen=reach
       reconcile();if(restarted)return undefined
       const before=clock()
-      let row:ReturnType<typeof reach.screen>|undefined
-      try{row=beforeClosing(()=>reach.screen(law,ordinary,citing,end,attempts.countermodel(law)))}
+      let row:ReturnType<typeof screen.screen>|undefined
+      try{row=beforeClosing(()=>screen.screen(law,ordinary,citing,end,attempts.countermodel(law)))}
       finally{reconcile()}
       if(row)countsDump.on?.({phase:'count-reachability',...row,invocationUnits:(clock()-before)*fullRate})
       return row

@@ -8,9 +8,8 @@ import {createRejectionStage} from './rejection-stage.ts'
 import {countGenerationPhase} from './count-generation-phase.ts'
 import {countReachabilityAllowance} from './count-reachability-budget.ts'
 import {requestQuotient} from './request-quotient.ts'
-import {coreMeter} from './meter.ts'
+import {startWork} from './work-admission.ts'
 import {completeWorkProfile} from './work-profile.ts'
-import {runtimeWall} from './runtime-wall.ts'
 import {strategyLawKey} from './strategy-premises.ts'
 import {reachEdge,reachState,withReachabilityWork} from './work-observe.ts'
 import {BudgetExpired,checkBudget,clock,fullRate,keyValue} from '../kernel/prove.ts'
@@ -22,7 +21,7 @@ type Node={p:Params,state:State,path:readonly Request[],depth:number}
 export type CountReachabilityReceipt={law:string,stage:'not-required'|'samples'|'model'|'frontier',outcome:'not-required'|'no-witness'|'exhausted'|'rejected'|'broken',granted:number,used:number,incomplete:true,phases:{stage:string,used:number,complete:boolean}[],maxSize:number,maxDepth:number}
 function tick():void{
  checkBudget('reachable screen')
- if(completeWorkProfile.enabled){runtimeWall.admit?.(completeWorkProfile.weights.ticks,'reachable bookkeeping');coreMeter.ticks++}
+ if(completeWorkProfile.enabled)startWork('ticks',1,'reachable bookkeeping')
 }
 const natural=(x:unknown):x is number=>typeof x==='number'&&Number.isSafeInteger(x)&&x>=0
 const atoms=(c:C):C[]=>c.op==='and'?c.xs.flatMap(atoms):[c]

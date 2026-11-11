@@ -26,6 +26,7 @@ import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
 import {WallExpired, checkWall, checkWorkEndpoint, searchWall, withBudget, BudgetExpired} from './wall.ts'
 import {completeWorkProfile} from './work-profile.ts'
+import {type WorkAmount, workDivide, workFromNumber, workToNumber} from './work-amount.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws, inferRates} from './infer.ts'
@@ -2767,7 +2768,7 @@ export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?
 // (`stuck: 'sat'`, `witness`), reachable or not.
 // `fast`: the laws proven as a set by kernel/prove.ts's proveSetFast (a search's set proof, asked again after a drop: what
 // was settled before kept where it stands), not proveLaws; no cyclic certificate.
-export type ProveOptions = {search?: boolean | {ms?: number, work?: number, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean}
+export type ProveOptions = {search?: boolean | {ms?: number, work?: number | WorkAmount, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean}
 // A verdict that isn't a checked proof, as the error a lemma, a guard or a gate is refused with (the verdict on `.verdict`).
 export class Unproven extends Error {
   constructor(what: string, readonly verdict: Verdict) {
@@ -2908,7 +2909,7 @@ const refutedVerdict = (out: NonNullable<ReturnType<typeof refuteByRuns>>): Verd
 // The divisors some laws read (modBy, divBy), noted on the rule so its machine declares them: a law may come from
 // another instance of the same rule (a factory called twice).
 const noting = <R extends Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>>(r: R, ...xs: object[]): R => { const ks = divisorsIn(xs as never); if (ks.size) r.dividesBy(...ks); return r }
-function workPlan(opts: ProveOptions): {work: number | undefined, opts: ProveOptions} {
+function workPlan(opts: ProveOptions): {work: number | WorkAmount | undefined, opts: ProveOptions} {
   const explicit = typeof opts.search === 'object' ? opts.search.work : undefined
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
   if (explicit !== undefined && ms !== undefined) throw new RangeError('choose a work budget or a legacy ms budget, not both')
@@ -2916,7 +2917,9 @@ function workPlan(opts: ProveOptions): {work: number | undefined, opts: ProveOpt
   if (work === undefined || opts.search === false) return {work, opts}
   const search = typeof opts.search === 'object' ? {...opts.search} : {}
   delete search.work
-  search.ms = work / fullRate
+  // Compatibility scheduling hint only; withBudget below receives the exact
+  // original amount. This display must never become the root's authority.
+  search.ms = typeof work === 'number' ? work / fullRate : workToNumber(workDivide(work, workFromNumber(fullRate)))
   return {work, opts: {...opts, search}}
 }
 function workVerdict(opts: ProveOptions, supported: boolean, run: (opts: ProveOptions) => Verdict): Verdict {

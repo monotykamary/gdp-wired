@@ -1,16 +1,16 @@
 import {expect,test} from 'bun:test'
-import {costs} from './solver.ts'
 import {coreMeter,observeTableCells,observeLinearRows,observeConstraintRows} from './meter.ts'
-import {rawWork,workKeys,legacyWeights} from './work-meter.ts'
-import {eprMeter} from '../kernel/epr.ts'
+import {rawWork,workKeys} from './work-meter.ts'
 import {Reader,type Trail} from '../kernel/reader.ts'
 import {BudgetExpired,withBudget} from './wall.ts'
-import {fullWork} from '../kernel/prove.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {runtimeWall} from './runtime-wall.ts'
 import {withTableAdmission} from './table-admission.ts'
 import {tableAdmissionHook} from './table-admission-hook.ts'
+import {admittedWork,startWork,withAdmittedChunk,withWorkAdmissionTrace,workLedger} from './work-admission.ts'
+import {compareWork,workAdd,workSub,workMultiply,workAmount,workShare} from './work-amount.ts'
 const full=completeWorkProfile.enabled?test:test.skip
+const cell=workLedger.weights.tableCells,units=(n:bigint)=>workMultiply(cell,workAmount(n))
 const trail:Trail={get:()=>undefined,stamp:()=>0,size:()=>0,lin:()=>{throw Error('empty trail')}}
 test('unscoped and ample scoped tables keep all raw observations',()=>{
  const run=()=>{observeTableCells(7);observeLinearRows([{x:1,y:2},{}]);observeConstraintRows([{lin:{z:1}}],0)}
@@ -21,66 +21,67 @@ test('unscoped and ample scoped tables keep all raw observations',()=>{
 })
 full('ample scoped reader decisions preserve results and all 26 raw buckets',()=>{
  const run=()=>{const r=new Reader({name:'paired reader',hyps:[]},trail),lin={row_key:1,other_key:-1};return[r.dec(lin),r.dec(lin),r.dec({third_key:1,'1':-2})]}
+ run() // warm shared immutable key caches equally for both measurements
  const before=rawWork(),plain=run(),middle=rawWork(),scoped=withBudget(100000,()=>withTableAdmission(run)),after=rawWork()
  expect(scoped).toEqual(plain)
  for(const key of workKeys)expect(after[key]-middle[key],key).toBe(middle[key]-before[key])
 })
-full('table admission batches 1024 visits without adding raw units',()=>{
- const prior=runtimeWall.admit;let calls=0
- runtimeWall.admit=(units,phase)=>{calls++;prior?.(units,phase)}
- const start=fullWork(),before=rawWork()
- try{withBudget(100000,()=>withTableAdmission(()=>{for(let i=0;i<1024;i++)observeTableCells()}))}finally{runtimeWall.admit=prior}
- expect(calls).toBeLessThan(20);expect(calls).toBeGreaterThan(0)
- expect(rawWork().tableCells-before.tableCells).toBe(1024)
- expect(fullWork()-start).toBeCloseTo(1024*completeWorkProfile.weights.tableCells,5)
+full('1024 visits use exact starts and no retired numeric side-credit hook',()=>{
+ const prior=runtimeWall.admit;let calls=0,starts=0
+ runtimeWall.admit=(amount,phase)=>{calls++;prior?.(amount,phase)}
+ const before=admittedWork(),counter=workLedger.counter('tableCells')
+ try{withBudget(units(1024n),()=>withWorkAdmissionTrace(e=>{if(e.kind==='start'&&e.sink==='tableCells')starts++},()=>withTableAdmission(()=>{for(let i=0;i<1024;i++)observeTableCells()})))}finally{runtimeWall.admit=prior}
+ expect(calls).toBe(0);expect(starts).toBe(1024)
+ expect(workLedger.counter('tableCells')-counter).toBe(1024n)
+ expect(compareWork(workSub(admittedWork(),before),units(1024n))).toBe(0)
 })
-full('zero, near-endpoint and oversized table batches never charge an unaffordable visit',()=>{
- const weight=completeWorkProfile.weights.tableCells
- for(const allowance of [0,2*weight,9*weight]){
-  const before=coreMeter.tableCells,start=fullWork()
-  expect(()=>withBudget(allowance,()=>withTableAdmission(()=>{if(allowance===9*weight)observeTableCells(10);else for(let i=0;i<3;i++)observeTableCells()}))).toThrow(BudgetExpired)
-  expect(fullWork()-start).toBeLessThanOrEqual(allowance+0.00001)
-  expect(coreMeter.tableCells-before).toBe(allowance===2*weight?2:0)
+full('zero fractional and oversized atomic requests never start an unaffordable unit',()=>{
+ for(const count of [0n,2n,9n]){
+  const before=admittedWork(),counter=workLedger.counter('tableCells')
+  expect(()=>withBudget(units(count),()=>withTableAdmission(()=>{if(count===9n)observeTableCells(10);else for(let i=0;i<3;i++)observeTableCells()}))).toThrow(BudgetExpired)
+  expect(compareWork(workSub(admittedWork(),before),units(count))).toBeLessThanOrEqual(0)
+  expect(workLedger.counter('tableCells')-counter).toBe(count===2n?2n:0n)
  }
+ const before=admittedWork()
+ expect(()=>withBudget(workShare(cell,1n,2n),()=>observeTableCells())).toThrow(BudgetExpired)
+ expect(compareWork(admittedWork(),before)).toBe(0)
 })
-full('every other raw bucket invalidates cached permission',()=>{
- const weights=Object.fromEntries([...legacyWeights,...Object.entries(completeWorkProfile.weights)])
+full('every foreign raw bucket invalidates unused table permission',()=>{
  for(const key of workKeys.filter(key=>key!=='tableCells')){
-  const scale=Math.ceil(512/weights[key]!),start=fullWork(),before=coreMeter.tableCells,W=completeWorkProfile.weights.tableCells+weights[key]!*scale+0.25
-  expect(()=>withBudget(W,()=>withTableAdmission(()=>{
-   observeTableCells()
-   if(key==='epr')eprMeter.n+=scale
-   else if(key in coreMeter)(coreMeter as Record<string,number>)[key]!+=scale
-   else (costs as Record<string,number>)[key]!+=scale
-   observeTableCells()
-  }))).toThrow(BudgetExpired)
-  expect(coreMeter.tableCells-before,key).toBe(1);expect(fullWork()-start,key).toBeLessThanOrEqual(W)
+  const before=admittedWork(),grant=workAdd(units(2n),workLedger.weights[key])
+  withBudget(grant,()=>withAdmittedChunk('tableCells',2,lease=>{
+   lease.start();startWork(key,1,'foreign table control')
+   expect(()=>lease.start()).toThrow(BudgetExpired)
+  }))
+  expect(compareWork(workSub(admittedWork(),before),workAdd(cell,workLedger.weights[key])),key).toBe(0)
+  expect(workLedger.reserved().num).toBe(0n)
  }
 })
-full('direct table writes and a smaller nested budget cannot reuse cached permission',()=>{
- let before=coreMeter.tableCells
- expect(()=>withBudget(1000,()=>withTableAdmission(()=>{observeTableCells();coreMeter.tableCells+=999;observeTableCells()}))).toThrow(BudgetExpired)
- expect(coreMeter.tableCells-before).toBe(1000)
- before=coreMeter.tableCells
+full('direct table writes are refused before mutation and smaller scopes retain no credit',()=>{
+ const before=workLedger.counter('tableCells')
+ expect(()=>withBudget(1000,()=>withTableAdmission(()=>{observeTableCells();coreMeter.tableCells+=999;observeTableCells()}))).toThrow('unadmitted work counter mutation')
+ expect(workLedger.counter('tableCells')-before).toBe(1n)
+ const next=workLedger.counter('tableCells')
  withBudget(1000,()=>withTableAdmission(()=>{
   observeTableCells();expect(()=>withBudget(0,()=>observeTableCells())).toThrow(BudgetExpired);observeTableCells()
  }))
- expect(coreMeter.tableCells-before).toBe(2)
+ expect(workLedger.counter('tableCells')-next).toBe(2n)
 })
-full('primitive refusal and exceptional nested scopes discard permission and restore the hooks',()=>{
+full('refusal and exceptional nested scopes retire credit without poisoning legal remaining work',()=>{
  const hook=tableAdmissionHook.admit,admit=runtimeWall.admit
- expect(()=>withBudget(1000,()=>withTableAdmission(()=>{
+ withBudget(1000,()=>withTableAdmission(()=>{
   observeTableCells();expect(()=>withTableAdmission(()=>{observeTableCells();throw Error('unwind')})).toThrow('unwind');observeTableCells()
   expect(()=>runtimeWall.admit!(1001,'refusal')).toThrow(BudgetExpired)
-  const before=coreMeter.tableCells;expect(()=>observeTableCells()).toThrow(BudgetExpired);expect(coreMeter.tableCells).toBe(before)
- }))).toThrow(BudgetExpired)
+  const before=workLedger.counter('tableCells');observeTableCells();expect(workLedger.counter('tableCells')-before).toBe(1n)
+ }))
  expect(tableAdmissionHook.admit).toBe(hook);expect(runtimeWall.admit).toBe(admit)
+ expect(workLedger.reserved().num).toBe(0n)
  expect(()=>withBudget(0,()=>withTableAdmission(()=>observeTableCells()))).toThrow(BudgetExpired)
 })
-full('the unchanged reader canonicalizer stops before exceeding a tight allowance',()=>{
+full('the reader canonicalizer stops before exceeding an exact tight allowance',()=>{
  for(const W of [0,1,5,17,31]){
-  const r=new Reader({name:'canonical bound',hyps:[]},trail),start=fullWork()
-  expect(()=>withBudget(W,()=>withTableAdmission(()=>r.dec({long_variable_name:1,other_variable:-1})))).toThrow(BudgetExpired)
-  expect(fullWork()-start).toBeLessThanOrEqual(W)
+  const r=new Reader({name:'canonical bound',hyps:[]},trail),before=admittedWork(),grant=workAmount(BigInt(W))
+  expect(()=>withBudget(grant,()=>withTableAdmission(()=>r.dec({long_variable_name:1,other_variable:-1})))).toThrow(BudgetExpired)
+  expect(compareWork(workSub(admittedWork(),before),grant)).toBeLessThanOrEqual(0)
  }
 })

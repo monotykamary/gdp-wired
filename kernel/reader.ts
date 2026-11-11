@@ -14,8 +14,11 @@
 import type {C, E} from '../core/machine.ts'
 import {completeWorkProfile} from '../core/work-profile.ts'
 import {checkWorkEndpoint} from './prove.ts'
+import {startWork} from '../core/work-admission.ts'
 import {shareTerms} from './share.ts'
-import {type Lin, add, costs, env, k, scale, sub, v} from '../core/solver.ts'
+import {type Lin, costs, env} from '../core/solver.ts'
+import {fundedAdd as add,fundedConstant as k,fundedScale as scale,fundedSub as sub,fundedVariable as v,admittedLinearProduct,everyLinearCell} from '../core/linear-admission.ts'
+import {workConcat,workStrings,workJoin} from '../core/work-collections.ts'
 import {type Goal, atomOf, canon, canonFlip, cellParts, plainMap, columnTerm, factorsOf, isCell, termColumn, tupleAnd} from './kernel.ts'
 
 export type W = ReadonlySet<string>
@@ -49,6 +52,11 @@ export type Row = {lin: Lin, w: W, label: ''}
 
 // The kernel's product of two linear forms (kernel.ts's `times`): each monomial its factors sorted, joined by '*'.
 export function times(a: Lin, b: Lin): Lin | undefined {
+  if(completeWorkProfile.enabled)return admittedLinearProduct(a,b,(p,q)=>{
+    if(p.includes('⟦')||q.includes('⟦'))return undefined
+    const fs=workStrings(workConcat(p==='1'?[]:factorsOf(p),q==='1'?[]:factorsOf(q),'reader product:factors'),'reader product:sort')
+    return fs.length?workJoin(fs,'*','reader product:join'):'1'
+  },'reader product',false)
   const out: Lin[] = []
   for (const [p, cp] of Object.entries(a)) for (const [q, cq] of Object.entries(b)) {
     if (p.includes('⟦') || q.includes('⟦')) return undefined
@@ -59,7 +67,7 @@ export function times(a: Lin, b: Lin): Lin | undefined {
 }
 const one = k(1)
 const namePair = new WeakMap<Lin, [string, string]>()
-const constantLin = (l: Lin) => Object.entries(l).every(([key, c]) => key === '1' || c === 0)
+const constantLin = (l: Lin) => everyLinearCell(l,(key,c)=>key==='1'||c===0,'reader constant branch')
 
 // The last value made from some parts, made again only when a part is a different object: a node's linear forms are
 // then the same objects as the node's before wherever they are equal, so what is remembered per form (canonical texts,
@@ -121,9 +129,9 @@ export class Reader {
     s.set(f.key, f)
   }
   private within<T>(key: object, f: () => T): T {
-    if (completeWorkProfile.enabled) checkWorkEndpoint('reader value')
+    if (completeWorkProfile.enabled) startWork('values', 1, 'reader value')
     const was = this.finding, now = {key}
-    costs.values++
+    if (!completeWorkProfile.enabled) costs.values++
     this.found.set(key, now)
     this.finding = now
     try { return f() } finally { this.finding = was }
@@ -133,7 +141,7 @@ export class Reader {
   touch(name: string) {
     const todo: object[] = [], seen = new Set<object>(), found = this.found
     const walk = (edges: Map<object, Finding> | undefined) => {
-      if (edges) { costs.edges += edges.size; for (const [k, f] of edges) { if (found.get(k) === f) todo.push(k); else edges.delete(k) } }
+      if (edges) { if (!completeWorkProfile.enabled) costs.edges += edges.size; for (const [k, f] of edges) { if (completeWorkProfile.enabled) startWork('edges', 1, 'reader dependency'); if (found.get(k) === f) todo.push(k); else edges.delete(k) } }
     }
     walk(this.byAtom.get(name))
     while (todo.length) {
@@ -452,10 +460,11 @@ export class Reader {
   private pairs = new Map<string, {parts?: [Lin, Lin][], pq: Lin, qp: Lin}>()
   // The rows in kernel.ts's order, copies kept (a leaf's derivation indexes these).
   // With `src`, each row's source beside it: the hypothesis whose facts it is, the pair of cells it equates, else -1.
-  leafRows(src?: (number | [string, string])[]): Row[] {
+  leafRows(src?: (number | [string, string])[], beforeRow?: (count: number) => void): Row[] {
     const rows: Row[] = []
     for (let i = 0; i < this.trail.size(); i++) {
       if (this.trail.quiet?.(i)) continue
+      beforeRow?.(1)
       const s = this.trail.stamp(i)
       let r = this.trailStamps[i] === s ? this.trailRows[i] : undefined
       if (!r) {
@@ -468,7 +477,7 @@ export class Reader {
       rows.push(r)
       src?.push(-1)
     }
-    for (let i = 0; i < this.goal.hyps.length; i++) for (const r of this.facts(i).rows) { rows.push(r); src?.push(i) }
+    for (let i = 0; i < this.goal.hyps.length; i++) for (const r of this.facts(i).rows) { beforeRow?.(1); rows.push(r); src?.push(i) }
     // (each name once, in the order first read, as a set of texts would keep them)
     const g = ++this.gen, names: number[] = [], seen = this.nameSeen, kind = this.nameKind
     for (const r of rows) for (const j of this.form(r.lin).names) if (seen[j] !== g) { seen[j] = g; names.push(j) }
@@ -476,7 +485,7 @@ export class Reader {
     for (const [i, p] of cells.entries()) for (const q of cells.slice(i + 1)) {
       if (p.map !== q.map) continue
       const f = this.pair(p, q), w = this.equal(f)
-      if (w) { rows.push({lin: f.pq, w, label: ''}, {lin: f.qp, w, label: ''}); src?.push([p.name, q.name], [p.name, q.name]) }
+      if (w) { beforeRow?.(1); rows.push({lin: f.pq, w, label: ''}); src?.push([p.name, q.name]); beforeRow?.(1); rows.push({lin: f.qp, w, label: ''}); src?.push([p.name, q.name]) }
     }
     const done = this.termSeen, todo = names.filter(j => kind[j] === 1)
     while (todo.length) {
@@ -484,11 +493,11 @@ export class Reader {
       if (done[j] === g) continue
       done[j] = g
       for (const r of this.termRows(this.nameText[j]!)) {
-        rows.push(r); src?.push(-1)
+        beforeRow?.(1); rows.push(r); src?.push(-1)
         for (const n of this.form(r.lin).names) { if (seen[n] !== g) { seen[n] = g; names.push(n) } if (kind[n] === 1 && done[n] !== g) todo.push(n) }
       }
     }
-    for (const j of names) { const name = this.nameText[j]!; let r = this.natRows.get(name); if (!r) this.natRows.set(name, (r = {lin: {[name]: -1}, w: none, label: ''})); rows.push(r); src?.push(-1) }
+    for (const j of names) { beforeRow?.(1); const name = this.nameText[j]!; let r = this.natRows.get(name); if (!r) this.natRows.set(name, (r = {lin: completeWorkProfile.enabled?scale(v(name),-1):{[name]:-1}, w: none, label: ''})); rows.push(r); src?.push(-1) }
     return rows
   }
   // --- The live rows: kept from one node to the next (kernel/cdcl.ts's search) ---------------------------------------
@@ -624,15 +633,17 @@ export class Reader {
   // A copy of a row in (kind 1: from the trail or the facts, 2: a column's term rows, its own name not counted; 0: a
   // natural's or a pair of cells', whose names it doesn't count).
   private addCopy(r: Row, kind: number, self = -1) {
-    const f = this.form(r.lin), id = f.id, cs = (this.copies[id] ??= [])
-    costs.copies++
+    const f = this.form(r.lin), id = f.id
+    if (completeWorkProfile.enabled) startWork('copies', 1, 'reader add copy')
+    const cs = (this.copies[id] ??= [])
+    if (!completeWorkProfile.enabled) costs.copies++
     if (!cs.length) { this.mark(id, false); this.slot[id] = this.live.length; this.live.push(r) } else { const at = this.slot[id]!; if (r.w.size < this.live[at]!.w.size) this.live[at] = r }
     cs.push(r)
     if (kind) for (const j of f.names) if (j !== self) this.countUp(j, kind)
   }
   private removeCopy(r: Row, kind: number, self = -1) {
     const f = this.form(r.lin), id = f.id, cs = this.copies[id]!
-    costs.copies++
+    if (completeWorkProfile.enabled) startWork('copies', 1, 'reader remove copy'); else costs.copies++
     cs.splice(cs.indexOf(r), 1)
     const at = this.slot[id]!
     if (!cs.length) {
@@ -657,7 +668,7 @@ export class Reader {
   private nameOn(j: number) {
     const name = this.nameText[j]!
     let r = this.natRows.get(name)
-    if (!r) this.natRows.set(name, (r = {lin: {[name]: -1}, w: none, label: ''}))
+    if (!r) this.natRows.set(name, (r = {lin: completeWorkProfile.enabled?scale(v(name),-1):{[name]:-1}, w: none, label: ''}))
     this.inNat[j] = r
     this.addCopy(r, 0)
     if (this.nameKind[j] === 2) {

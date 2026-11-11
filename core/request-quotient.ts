@@ -2,7 +2,7 @@
 // produced a state. Refusals are never generalized; the original request order,
 // logical trial allowance and first successful witness remain unchanged.
 import {type C,type E,type Machine,type Request,walk} from './machine.ts'
-import {coreMeter} from './meter.ts'
+import {startWork} from './work-admission.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {checkWall} from './wall.ts'
 
@@ -17,7 +17,14 @@ export function requestQuotient(m:Machine,requests:readonly Request[]):RequestQu
  // Ambiguous namespaces and non-topological flags use the unmodified sampler.
  if(new Set(names).size!==names.length||names.some(n=>n.startsWith('?')||m.params.includes(n)||Object.hasOwn(m.state,n))||[...maps].some(n=>Object.hasOwn(m.maps??{},n)||Object.hasOwn(m.counts??{},n)))return undefined
  let work=0
- const tick=()=>{if(completeWorkProfile.enabled)coreMeter.ticks++;if((++work&255)===0)checkWall('request quotient')}
+ const tick=()=>{
+  if(completeWorkProfile.enabled){
+   // Polling every 256 visits remains a wall-cancellation optimization, not
+   // permission to debit past an inherited raw-work endpoint.
+   startWork('ticks',1,'request quotient')
+  }
+  if((++work&255)===0)checkWall('request quotient')
+ }
  const flags=m.step.flags??{},known=new Set<string>(),tags=new Map<string,Set<number>>()
  let supported=true
  walk([m.step,m.counts],o=>{

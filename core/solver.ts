@@ -13,6 +13,8 @@
 
 import {type Rat, Q0, Q1, q, qadd, qcmp, qdiv, qneg, qnum, qrow, qsub} from './q.ts'
 import type {E} from './machine.ts'
+import {startWork, workCounterView} from './work-admission.ts'
+import {completeWorkProfile} from './work-profile.ts'
 
 export type Lin = Record<string, number> // variable -> coefficient, '1' -> constant
 // The process's environment (the switches and traces the searches read), empty where there is none.
@@ -92,8 +94,9 @@ export const canon = (l: Lin) => JSON.stringify(Object.keys(l).sort().map(x => [
 // The rows the solver has read and made, which a counted search reads as its clock (kernel/prove.ts's `counted`).
 export const work = {n: 0}
 // What the searches did, by kind, beside work.n (research/query reads them: the cost of each query's parts).
-export const costs = {solves: 0, solveRows: 0, fm: 0, fpivots: 0, fcells: 0, cdclNodes: 0, cdclRows: 0, scan: 0, pivots: 0, pivotRows: 0, plainNodes: 0, plainRows: 0,
-  values: 0, copies: 0, edges: 0, unitRows: 0, unfoldRows: 0, goalNodes: 0, translateRows: 0}
+export const costs = workCounterView({solves: 0, solveRows: 0, fm: 0, fpivots: 0, fcells: 0, cdclNodes: 0, cdclRows: 0, scan: 0, pivots: 0, pivotRows: 0, plainNodes: 0, plainRows: 0,
+  values: 0, copies: 0, edges: 0, unitRows: 0, unfoldRows: 0, goalNodes: 0, translateRows: 0}, {fm: 'fm', fcells: 'fcells', cdclNodes: 'cdclNodes', scan: 'scan', pivotRows: 'pivotRows', plainRows: 'plainRows',
+  values: 'values', copies: 'copies', edges: 'edges', unitRows: 'unitRows', unfoldRows: 'unfoldRows', goalNodes: 'goalNodes', translateRows: 'translateRows'})
 // `more` is opt-in. Normal callers retain the exact charge/order path; bounded
 // callers may stop before an elimination round or between generated rows.
 export function solve(constraints: Constraint[], maxRows = 20_000, integral = true, more?: () => boolean): Verdict {
@@ -193,16 +196,15 @@ export function solve(constraints: Constraint[], maxRows = 20_000, integral = tr
     if (choice.pos.length * choice.neg.length > 5 * maxRows) return {kind: 'unknown'}
     if (!more) {
       work.n += choice.pos.length * choice.neg.length
-      costs.fm += choice.pos.length * choice.neg.length
+      if (!completeWorkProfile.enabled) costs.fm += choice.pos.length * choice.neg.length
     }
     exact &&= choice.isExact
     eliminated.push({x: choice.x, rows: [...choice.pos, ...choice.neg]})
     const next = rows.filter(r => (lins[r]![choice.x] ?? 0) === 0)
     for (const p of choice.pos) for (const n of choice.neg) {
-      if (more) {
-        if (!more()) return {kind: 'unknown'}
-        work.n++; costs.fm++
-      }
+      if (more && !more()) return {kind: 'unknown'}
+      if (completeWorkProfile.enabled) startWork('fm', 1, 'Fourier-Motzkin pair')
+      if (more) { work.n++; if (!completeWorkProfile.enabled) costs.fm++ }
       const a = lins[p]![choice.x]!, b = -lins[n]![choice.x]!
       const combined = pushExact({kind: 'combine', a: p, b: n, ma: b / gcd(a, b), mb: a / gcd(a, b)}, add(scale(lins[p]!, b / gcd(a, b)), scale(lins[n]!, a / gcd(a, b))), stricts[p]! || stricts[n]!)
       next.push(tighten(combined))
@@ -345,7 +347,12 @@ export function refuteFast(constraints: Constraint[], maxRows = 2_000, integral 
   const eps = 1e-9
   for (let iter = 0; iter < 50 * (R + m); iter++) {
     work.n += 1 + ((R * cols) >> 8)
-    costs.fpivots++; costs.fcells += (R * cols) >> 8
+    if (completeWorkProfile.enabled) {
+      const cells = R * cols
+      if (!Number.isSafeInteger(cells) || cells < 0) throw new RangeError('unsafe float tableau size')
+      startWork('fcells', Math.floor(cells / 256), 'float tableau iteration')
+    }
+    costs.fpivots++; if (!completeWorkProfile.enabled) costs.fcells += (R * cols) >> 8
     // Bland's rule: the first column with a negative reduced cost enters (no cycling on degenerate systems).
     let enter = -1
     for (let j = 0; j < cols; j++) if (z[j]! < -eps) { enter = j; break }

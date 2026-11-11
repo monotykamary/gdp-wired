@@ -1,15 +1,18 @@
 // Real original replay + the same reconciliation function the production
 // probe uses. Queue snapshots are untrusted held/committed proposal state.
-import {expect,test} from 'bun:test'
+import {expect,test as profileTest} from 'bun:test'
+import {stepWorkProfile} from './step-work.ts'
 import {type Law,type Machine,n,plus,x} from './machine.ts'
 import {small} from './exists.ts'
 import {countReachabilityScreen} from './count-reachability.ts'
 import {reconcileReachableRejections,withoutReachableRejections} from './count-reachability-reconcile.ts'
 import {countPrerequisiteComponents} from './count-prerequisite-components.ts'
 import {clock,counted,fullRate,withBudget,withWall} from '../kernel/prove.ts'
+// No-witness screens require the bookkeeping clock; raw legacy OFF omits it.
+const test=profileTest.skipIf(!stepWorkProfile.enabled)
 const bound=(name:string,amount:number):Law=>({name,holds:{op:'<=',a:x('v'),b:n(amount)}})
 const machine:Machine={name:'multi-law replay',params:[],inputs:['amount'],state:{v:n(0)},step:{state:{v:plus(x('v'),x('amount'))}}}
-const run=<T>(body:()=>T)=>counted(fullRate,()=>withBudget(4_000_000,()=>withWall(clock()+4_000_000/fullRate,body)))
+const run=<T>(body:()=>T)=>counted(fullRate,()=>withBudget(4_000_000,()=>withWall(clock()+4_000_000/fullRate,body)),true)
 function multi(){
  const a=bound('A',0),b=bound('B',1),funding=new Map<string,{grant:number,used:number}>()
  const screen=countReachabilityScreen(machine,machine,[],100000,undefined,funding)

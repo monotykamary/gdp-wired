@@ -2,19 +2,11 @@ import {costs} from './solver.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {coreMeter} from './meter.ts'
 import {eprMeter} from '../kernel/epr.ts'
+import {admittedWorkNumber} from './work-admission.ts'
+import {legacyWeights, extraWorkKeys, type ExtraWorkWeights, type RawWork} from './work-kinds.ts'
+export {legacyWeights, extraWorkKeys, workKeys} from './work-kinds.ts'
+export type {ExtraWorkKey, ExtraWorkWeights, WorkKey, RawWork} from './work-kinds.ts'
 
-// The twelve historical coefficients, in their historical summation order.
-const initialLegacyWeights = [
-  ['fm', 2.33], ['fcells', 0.0123], ['plainRows', 7.93], ['values', 0.672], ['copies', 0.735], ['edges', 0.0435],
-  ['scan', 0.0765], ['pivotRows', 0.599], ['unitRows', 15.6], ['unfoldRows', 0.735], ['goalNodes', 0.492], ['translateRows', 7.93],
-] as const
-export const legacyWeights = Object.freeze(initialLegacyWeights.map(pair => Object.freeze(pair)))
-export const extraWorkKeys = ['tableCells', 'checkSteps', 'astNodes', 'evals', 'cubeTests', 'ticks', 'cdclNodes', 'epr', 'tinyNodes', 'tinyTerms', 'reachStates', 'reachEdges', 'reachEvals', 'reachCompiledEvals'] as const
-export type ExtraWorkKey = typeof extraWorkKeys[number]
-export type ExtraWorkWeights = Readonly<Record<ExtraWorkKey, number>>
-export type WorkKey = typeof legacyWeights[number][0] | ExtraWorkKey
-export type RawWork = Record<WorkKey, number>
-export const workKeys: readonly WorkKey[] = Object.freeze([...legacyWeights.map(([key]) => key), ...extraWorkKeys])
 let extraWeights: ExtraWorkWeights | undefined = completeWorkProfile.enabled ? completeWorkProfile.weights : undefined
 
 export function rawWork(): RawWork {
@@ -33,6 +25,7 @@ export function weightedWork(raw: RawWork, extra: ExtraWorkWeights | undefined =
   return n
 }
 export function fullWork(): number {
+  if (completeWorkProfile.enabled) return admittedWorkNumber()
   let n = 0
   // Keep flags-off on the historical path. In full mode the same ordered
   // additions are explicit: admission calls this once per expression node.

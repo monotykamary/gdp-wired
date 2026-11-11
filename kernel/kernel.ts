@@ -18,9 +18,14 @@
 // meet it), so it holds at the start and at every step; `assume`, about each request, holds only at a step, since no
 // request has come at the start.
 import {checkRefutation} from '../core/check.ts'
-import {observeCheckStep, observeTableCells, observeLinearRows, observeConstraintRows} from '../core/meter.ts'
+import {observeCheckStep, observeTableCells} from '../core/meter.ts'
+import {admittedLinearSub as rowSub, admittedLinearAdd as rowAdd, admittedLinearScale as rowScale, admittedLinearCopy as rowCopy, admittedLinearVariable as rowVariable, visitLinearCells} from '../core/linear-admission.ts'
 import type {C, Counted, E, Law, Machine, MapUpdate} from '../core/machine.ts'
-import {type Constraint, type Lin, type Step, add, k, scale, sub, v} from '../core/solver.ts'
+import {type Constraint, type Lin, type Step} from '../core/solver.ts'
+import {fundedAdd as add,fundedConstant as k,fundedScale as scale,fundedSub as sub,fundedVariable as v,admittedLinearProduct,everyLinearCell} from '../core/linear-admission.ts'
+import {workMap,workFilter,workConcat,workStrings,workJoin,workSlice,workSetArray,workEntries,workJSON,workFlatMap,workArraySlice} from '../core/work-collections.ts'
+import {completeWorkProfile} from '../core/work-profile.ts'
+import {startWork} from '../core/work-admission.ts'
 
 // An exhaustive switch's default: TypeScript proves it unreachable, and if it is reached anyway (a value from outside
 // the types), it fails loudly instead of returning undefined.
@@ -43,7 +48,12 @@ const canonMemo = new WeakMap<Lin, string>(), flipMemo = new WeakMap<Lin, string
 export const canon = (lin: Lin): string => {
   observeTableCells()
   let out = canonMemo.get(lin)
-  if (out === undefined) canonMemo.set(lin, (out = Object.keys(lin).sort().map(key => (observeTableCells(key.length + 1), `${key}:${lin[key]}`)).join(',')))
+  if (out === undefined) {
+    const keys:string[]=[],values=new Map<string,number>()
+    visitLinearCells(lin,(key,value)=>{keys.push(key);values.set(key,value)},'canon:keys')
+    const parts=workMap(workStrings(keys,'canon:sort'),key=>{observeTableCells(key.length+1);return `${key}:${values.get(key)}`},'canon:format')
+    canonMemo.set(lin,(out=workJoin(parts,',','canon:join')))
+  }
   return out
 }
 // canon(1 − lin), the atom that decides lin <= 0 the other way, without building it.
@@ -51,11 +61,12 @@ export const canonFlip = (lin: Lin): string => {
   observeTableCells()
   let out = flipMemo.get(lin)
   if (out !== undefined) return out
-  const keys = Object.keys(lin)
-  if (!('1' in lin)) keys.push('1')
+  const keys:string[]=[],values=new Map<string,number>()
+  visitLinearCells(lin,(key,value)=>{keys.push(key);values.set(key,value)},'canonFlip:keys')
+  if (!values.has('1')) keys.push('1')
   const parts: string[] = []
-  for (const key of keys.sort()) { observeTableCells(key.length + 1); const c = key === '1' ? 1 - (lin['1'] ?? 0) : -lin[key]!; if (c !== 0) parts.push(`${key}:${c}`) }
-  flipMemo.set(lin, (out = parts.join(',')))
+  for (const key of workStrings(keys,'canonFlip:sort')) { observeTableCells(key.length + 1); const c = key === '1' ? 1 - (values.get('1') ?? 0) : -values.get(key)!; if (c !== 0) parts.push(`${key}:${c}`) }
+  flipMemo.set(lin, (out = workJoin(parts,',','canonFlip:join')))
   return out
 }
 export const atomOf = (lin: Lin, holds: boolean): Constraint => ({lin: holds ? lin : add(k(1), scale(lin, -1)), label: ''})
@@ -86,6 +97,7 @@ const look = (path: Path, key: string): boolean | undefined => { const out = pat
 const linearMemo = new WeakMap<Path, WeakMap<E, Lin | undefined>>()
 const freeMemo = new WeakMap<E, boolean>(), freeLinear = new WeakMap<E, Lin | undefined>()
 const choiceFree = (e: E): boolean => {
+  startWork('ticks',1,'kernel choiceFree')
   let out = freeMemo.get(e)
   if (out !== undefined) return out
   switch (e.op) {
@@ -100,6 +112,7 @@ const choiceFree = (e: E): boolean => {
   return out
 }
 export function linear(e: E, path: Path): Lin | undefined {
+  startWork('ticks',1,'kernel linear')
   if (choiceFree(e)) {
     if (freeLinear.has(e)) return freeLinear.get(e)
     const out = linearOf(e, path)
@@ -120,7 +133,7 @@ function linearOf(e: E, path: Path): Lin | undefined {
   const out = linearOp(e, path)
   return out && safe(out) ? out : undefined
 }
-const safe = (lin: Lin) => Object.values(lin).every(c => (observeTableCells(), Number.isSafeInteger(c)))
+const safe = (lin: Lin) => everyLinearCell(lin,(_key,c)=>Number.isSafeInteger(c),'linear safety')
 function linearOp(e: E, path: Path): Lin | undefined {
   switch (e.op) {
     case 'var': return e.name === '1' || /[*[\],:⟦⟨⟩|]/.test(e.name) ? undefined : v(e.name) // those characters build cells, monomials, term columns and tuple keys
@@ -155,7 +168,7 @@ export const plainMap = (name: string): boolean => { let ok = plainMaps.get(name
 // form; so tup(tup(a, b), c) has none (its first part is a tuple). A read at it is the cell M[⟨k1|k2|…⟩].
 // A tuple's rest (proj 1 of it) is its parts after the first, while two or more are left (Lean's `parts`).
 function keyParts(e: E, path: Path): Lin[] | undefined {
-  if (e.op === 'proj') { const ps = e.k === 0 ? undefined : keyParts(e.a, path); return ps && ps.length >= 3 ? ps.slice(1) : undefined }
+  if (e.op === 'proj') { const ps = e.k === 0 ? undefined : keyParts(e.a, path); return ps && ps.length >= 3 ? workArraySlice(ps,1,'keyParts:rest') : undefined }
   if (e.op !== 'tup') return undefined
   const a = linear(e.a, path)
   if (!a) return undefined
@@ -172,10 +185,17 @@ function keyParts(e: E, path: Path): Lin[] | undefined {
 // deep term (a k-step run nests k steps) is read once, not once per lookup.
 const termIds = new Map<string, number>(), termTable: (E | C)[] = [], memo = new WeakMap<object, number>()
 function termId(t: E | C): number {
+  startWork('ticks',1,'kernel termId')
   const had = memo.get(t)
   if (had !== undefined) return had
-  const parts = Object.entries(t).sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0)).map(([key, val]) => (Array.isArray(val) ? `${key}=[${val.map(x => termId(x as E | C)).join(',')}]` : typeof val === 'object' && val !== null ? `${key}=#${termId(val as E | C)}` : `${key}=${JSON.stringify(val)}`))
-  const key = parts.join(';')
+  const entries=workEntries(t,'termId:members'),values=new Map(entries)
+  const keys=workStrings(workMap(entries,entry=>entry[0],'termId:keys'),'termId:sort')
+  const parts=workMap(keys,key=>{
+    const val=values.get(key)
+    if(Array.isArray(val))return `${key}=[${workJoin(workMap(val,x=>String(termId(x as E|C)),'termId:array'),',','termId:array-join')}]`
+    return typeof val==='object'&&val!==null?`${key}=#${termId(val as E|C)}`:`${key}=${workJSON(val,'termId:scalar')}`
+  },'termId:parts')
+  const key = workJoin(parts,';','termId:join')
   let id = termIds.get(key)
   if (id === undefined) { id = termTable.length; termIds.set(key, id); termTable.push(t) }
   memo.set(t, id)
@@ -193,24 +213,23 @@ export function decided(e: E, path: Path): boolean {
 // The rows a term column brings: its bounds, true whichever way the choice goes (min(a, b) ≤ a and ≤ b; max(a, b) ≥ a
 // and ≥ b; a ∸ b ≥ a − b and ≤ a), and, once the path decides it, its equality to the branch taken.
 export function termRows(name: string, path: Path): Lin[] {
-  const e = columnTerm(name)!, col = v(name), out: Lin[] = []
+  const e = columnTerm(name)!, col = rowVariable(name,1,'termRows:column'), out: Lin[] = []
   if (e.op === 'min' || e.op === 'max' || e.op === 'sub') {
     const a = linear(e.a, path), b = linear(e.b, path)
     if (a && b) {
-      if (e.op === 'min') out.push(sub(col, a), sub(col, b))
-      if (e.op === 'max') out.push(sub(a, col), sub(b, col))
-      if (e.op === 'sub') out.push(sub(sub(a, b), col), sub(col, a))
+      if (e.op === 'min') out.push(rowSub(col,a,'termRows:min-left'),rowSub(col,b,'termRows:min-right'))
+      if (e.op === 'max') out.push(rowSub(a,col,'termRows:max-left'),rowSub(b,col,'termRows:max-right'))
+      if (e.op === 'sub') out.push(rowSub(rowSub(a,b,'termRows:subtract-inputs'),col,'termRows:subtract-bound'),rowSub(col,a,'termRows:subtract-upper'))
     }
   }
   // An if is one of its two naturals, so at most their sum, whichever way its condition goes (a yes/no's if(c, 1, 0)
   // is at most 1 without deciding c). Only over constant branches: over a variable one (a map's if(c, Given[k], 0)),
   // each such row is one more in every leaf and slows the solve more than it saves.
   if (e.op === 'if') {
-    const a = linear(e.then, path), b = linear(e.else, path), constant = (l: Lin) => Object.entries(l).every(([key, c]) => key === '1' || c === 0)
-    if (a && b && constant(a) && constant(b)) out.push(sub(col, add(a, b)))
+    const a = linear(e.then, path), b = linear(e.else, path), constant = (l: Lin) => everyLinearCell(l,(key,c)=>key==='1'||c===0,'constant branch')
+    if (a && b && constant(a) && constant(b)) out.push(rowSub(col,rowAdd(a,b,'termRows:if-sum'),'termRows:if-bound'))
   }
-  if (decided(e, path)) { const r = linear(e, path); if (r) out.push(sub(col, r), sub(r, col)) }
-  observeLinearRows(out)
+  if (decided(e, path)) { const r = linear(e, path); if (r) out.push(rowSub(col,r,'termRows:equal-left'),rowSub(r,col,'termRows:equal-right')) }
   return out
 }
 
@@ -222,15 +241,21 @@ export function termRows(name: string, path: Path): Lin[] {
 // Every coefficient, product and partial sum a safe integer, else no product: a rounded product is past 2^53, but a
 // monomial's other products could bring its sum back under it (and a square's form is the prover's, any float).
 function times(a: Lin, b: Lin): Lin | undefined {
+  if(completeWorkProfile.enabled)return admittedLinearProduct(a,b,(p,q)=>{
+    if(p.includes('⟦')||q.includes('⟦'))return undefined
+    const fs=workStrings(workConcat(p==='1'?[]:factorsOf(p),q==='1'?[]:factorsOf(q),'product:factors'),'product:sort')
+    return fs.length?workJoin(fs,'*','product:join'):'1'
+  },'kernel product',true)
   const out: Lin = Object.create(null)
-  for (const [p, cp] of Object.entries(a)) for (const [q, cq] of Object.entries(b)) {
+  for (const p in a) for (const q in b) {
     observeTableCells()
+    const cp=a[p]!,cq=b[q]!
     if (p.includes('⟦') || q.includes('⟦')) return undefined
     const fs = [...(p === '1' ? [] : factorsOf(p)), ...(q === '1' ? [] : factorsOf(q))].sort(), key = fs.length ? fs.join('*') : '1', c = (out[key] ?? 0) + cp * cq
     if (!(Number.isSafeInteger(cp) && Number.isSafeInteger(cq) && Number.isSafeInteger(cp * cq) && Number.isSafeInteger(c))) return undefined
     out[key] = c
   }
-  for (const key in out) if (out[key] === 0) delete out[key]
+  for (const key in out) {observeTableCells();if (out[key] === 0) delete out[key]}
   return out
 }
 // A name's factors: split at each '*' outside a cell's brackets (a cell's key may itself read a monomial).
@@ -241,10 +266,11 @@ export function factorsOf(name: string): string[] {
   out = []
   let depth = 0, start = 0
   for (let i = 0; i <= name.length; i++) {
+    observeTableCells()
     const ch = name[i]
     if (ch === '[') depth++
     else if (ch === ']') depth--
-    else if ((ch === '*' && depth === 0) || i === name.length) { out.push(name.slice(start, i)); start = i + 1 }
+    else if ((ch === '*' && depth === 0) || i === name.length) { out.push(workSlice(name,start,i,'factor slice')); start = i + 1 }
   }
   factorMemo.set(name, out)
   return out
@@ -283,6 +309,7 @@ function comparisonOf(c: Extract<C, {a: E}>, path: Path): Comparison {
 // Kleene truth under the path: true, false, or undefined when open (remembered per path and condition).
 const truthMemo = new WeakMap<Path, WeakMap<C, boolean | undefined>>()
 export function truth(c: C, path: Path): boolean | undefined {
+  startWork('ticks',1,'kernel truth')
   if (reuse) return reusing(seenOf(truthSeen, c), path, p => truthOf(c, p))
   let memo = truthMemo.get(path)
   if (!memo) truthMemo.set(path, (memo = new WeakMap()))
@@ -297,7 +324,7 @@ function truthOf(c: C, path: Path): boolean | undefined {
     case 'all': return undefined // closed before a goal is checked; opaque here, so it gives a leaf nothing
     case 'not': { const t = truth(c.x, path); return t === undefined ? undefined : !t }
     case 'and': case 'or': {
-      const ts = c.xs.map(y => truth(y, path)), dominant = c.op === 'or'
+      const ts = workMap(c.xs,y=>truth(y,path),'truth:children'), dominant = c.op === 'or'
       return ts.includes(dominant) ? dominant : ts.every(t => t === !dominant) ? !dominant : undefined
     }
     case '<': case '<=': case '=': {
@@ -331,21 +358,22 @@ export function tupleEq(c: Extract<C, {a: E}>): [C, C] | undefined {
 
 // The linear facts a hypothesis gives under the path (each lin <= 0).
 export function facts(c: C, path: Path, positive = true): Lin[] {
+  startWork('ticks',1,'kernel facts')
   switch (c.op) {
     case 'flag': throw new Error('flags are inlined before the kernel sees them')
     case 'all': return []
     case 'not': return facts(c.x, path, !positive)
     case 'and': case 'or': {
-      if ((c.op === 'and') === positive) return c.xs.flatMap(y => facts(y, path, positive))
-      const open = c.xs.filter(y => truth(y, path) !== !positive)
+      if ((c.op === 'and') === positive) return workFlatMap(c.xs,y=>facts(y,path,positive),'facts:conjunction')
+      const open = workFilter(c.xs,y=>truth(y,path)!==!positive,'facts:disjunction')
       return open.length === 0 ? [k(1)] : open.length === 1 ? facts(open[0]!, path, positive) : []
     }
     case '<': case '<=': case '=': {
       // Two tuples equal is their parts equal (the pairing is a bijection): Lean's facts of `and (eq a1 b1) (eq a2 b2)`.
       const parts = tupleEq(c)
       if (parts) {
-        if (positive) return [...facts(parts[0], path, true), ...facts(parts[1], path, true)]
-        const open = parts.filter(y => truth(y, path) !== true)
+        if (positive) return workConcat(facts(parts[0],path,true),facts(parts[1],path,true),'facts:tuple')
+        const open = workFilter(parts,y=>truth(y,path)!==true,'facts:tuple-open')
         return open.length === 0 ? [k(1)] : open.length === 1 ? facts(open[0]!, path, false) : []
       }
       const cmp = comparison(c, path)
@@ -429,30 +457,36 @@ let reuse = false
 const linearSeen = new WeakMap<E, Seen<Lin | undefined>>(), comparisonSeen = new WeakMap<C, Seen<Comparison>>(), truthSeen = new WeakMap<C, Seen<boolean | undefined>>()
 const seenOf = <K extends object, T>(m: WeakMap<K, Seen<T>>, k: K): Seen<T> => { let s = m.get(k); if (!s) m.set(k, (s = {})); return s }
 function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[] {
-  const rows: Constraint[] = [...path.values()].map((a, i) => ({...atomOf(a.lin, a.holds), src: {atom: i}}))
-  for (const [i, h] of goal.hyps.entries()) for (const lin of factsOf(h)) rows.push({lin, label: '', src: {fact: i}})
-  const names = new Set(rows.flatMap(r => Object.keys(r.lin).filter(key => key !== '1')))
+  const rows: Constraint[] = [];let atom=0
+  for(const a of path.values()){
+    const lin=a.holds?rowCopy(a.lin,'leafRows:atom-copy'):rowAdd(rowVariable('1',1,'leafRows:atom-one'),rowScale(a.lin,-1,'leafRows:atom-negate'),'leafRows:atom-flip')
+    rows.push({lin,label:'',src:{atom:atom++}})
+  }
+  for (const [i, h] of goal.hyps.entries()) for (const lin of factsOf(h)) rows.push({lin:rowCopy(lin,'leafRows:fact'), label: '', src: {fact: i}})
+  const names = new Set<string>()
+  for(const row of rows)visitLinearCells(row.lin,key=>{if(key!=='1')names.add(key)},'leafRows:names')
   // Two reads of one map whose keys the path proves equal are equal.
-  const cells = [...names].filter(isCell).map(name => ({name, ...cellParts(name)}))
-  for (const [i, p] of cells.entries()) for (const q of cells.slice(i + 1)) {
+  const cells = workMap(workFilter(workSetArray(names,'leafRows:names-copy'),isCell,'leafRows:cell-filter'),name=>({name,...cellParts(name)}),'leafRows:cell-parts')
+  for (let i=0;i<cells.length;i++)for(let j=i+1;j<cells.length;j++){
+    const p=cells[i]!,q=cells[j]!
     observeTableCells()
     if (p.map !== q.map) continue
     if (!sameKey(p, q, path)) continue
-    rows.push({lin: sub(v(p.name), v(q.name)), label: '', src: {pair: [p.name, q.name]}}, {lin: sub(v(q.name), v(p.name)), label: '', src: {pair: [p.name, q.name]}})
+    const pRow=rowVariable(p.name,1,'leafRows:pair-p'),qRow=rowVariable(q.name,1,'leafRows:pair-q')
+    rows.push({lin: rowSub(pRow,qRow,'leafRows:pair-left'), label: '', src: {pair: [p.name, q.name]}}, {lin: rowSub(qRow,pRow,'leafRows:pair-right'), label: '', src: {pair: [p.name, q.name]}})
   }
   // Each term column's rows, and the columns those rows bring in turn.
-  const seen = new Set<string>(), todo = [...names].filter(n => n.startsWith('⟦'))
+  const seen = new Set<string>(), todo = workFilter(workSetArray(names,'leafRows:todo-copy'),n=>n.startsWith('⟦'),'leafRows:todo-filter')
   while (todo.length) {
     const name = todo.pop()!
     if (seen.has(name)) continue
     seen.add(name)
     for (const lin of termRows(name, path)) {
-      rows.push({lin, label: '', src: {term: name}})
-      for (const key of Object.keys(lin)) if (key !== '1') { names.add(key); if (key.startsWith('⟦') && !seen.has(key)) todo.push(key) }
+      rows.push({lin:rowCopy(lin,'leafRows:term'), label: '', src: {term: name}})
+      visitLinearCells(lin,key=>{if (key !== '1') { names.add(key); if (key.startsWith('⟦') && !seen.has(key)) todo.push(key) }},'leafRows:term-names')
     }
   }
-  for (const name of names) rows.push({lin: {[name]: -1}, label: '', src: {nat: name}})
-  observeConstraintRows(rows)
+  for (const name of names) rows.push({lin: rowVariable(name,-1,'leafRows:natural'), label: '', src: {nat: name}})
   return rows
 }
 // A cell's map and key: M[k] a key, M[⟨k1|k2|…⟩] a tuple's parts (each a canonical text). Split at the outer level only:
@@ -486,7 +520,7 @@ const splitOuter = (text: string, sep: string): string[] => {
 const linOf = (text: string): Lin => {
   const out: Lin = Object.create(null)
   for (const part of splitOuter(text, ',')) if ((observeTableCells(part.length + 1), part)) { const at = part.lastIndexOf(':'); out[part.slice(0, at)] = Number(part.slice(at + 1)) }
-  return out
+  return completeWorkProfile.enabled?rowCopy(out,'linOf:output'):out
 }
 // Two keys the path proves equal: two plain keys whose difference it decides 0 both ways, or two tuples of as many parts,
 // each pair of parts so (Lean's cellEq). A plain key and a tuple are never claimed equal.
@@ -502,12 +536,11 @@ function sameKey(p: {key?: Lin, keys?: Lin[]}, q: {key?: Lin, keys?: Lin[]}, pat
 // product (an index past the leaf's rows), each a row of the same kind, so degrees go higher.
 export function withProducts(rows: Constraint[], pairs: [number, number][], squares: Lin[] = []): Constraint[] {
   const out = [...rows]
-  for (const t of squares) { const tt = times(t, t); out.push(tt ? {lin: scale(tt, -1), label: ''} : {lin: {}, label: ''}) }
+  for (const t of squares) { const tt = times(t, t); out.push(tt ? {lin: rowScale(tt,-1,'withProducts:square'), label: ''} : {lin: {}, label: ''}) }
   for (const [i, j] of pairs) {
     const p = out[i], q = out[j], pq = p && q ? times(p.lin, q.lin) : undefined
-    out.push(pq ? {lin: scale(pq, -1), label: ''} : {lin: {}, label: ''})
+    out.push(pq ? {lin: rowScale(pq,-1,'withProducts:pair'), label: ''} : {lin: {}, label: ''})
   }
-  observeConstraintRows(out, rows.length)
   return out
 }
 
@@ -741,7 +774,11 @@ const linCounts = (counts: Count[], side: [number, string][]): [number, Count][]
   return out
 }
 const linTerm = (xs: [number, Count][]): E => xs.reduceRight<E>((rest, [m, c]) => ({op: 'add', a: {op: 'mul', k: m, a: c.body}, b: rest}), {op: 'const', value: 0})
-const linSide = (side: [number, string][], sign: number): Lin => { const out: Lin = Object.create(null); for (const [m, v] of side) out[v] = (out[v] ?? 0) + sign * m; return out }
+const linSide = (side: [number, string][], sign: number): Lin => {
+ const out:Lin=Object.create(null)
+ for(let i=0;i<side.length;i++){startWork('tableCells',1,'linear cut input');const[m,v]=side[i]!;out[v]=(out[v]??0)+sign*m}
+ return completeWorkProfile.enabled?rowCopy(out,'linear cut side'):out
+}
 export function linOk(counts: Count[], l: LinCut): boolean {
   const ps = linCounts(counts, l.pos), ns = linCounts(counts, l.neg)
   if (!ps || !ns || !ps.length && !ns.length) return false
@@ -750,7 +787,7 @@ export function linOk(counts: Count[], l: LinCut): boolean {
   if (!shape(ps) || !shape(ns) || mentionsKey(c0.below, c0.key) || l.when.some(c => mentionsKey(c, c0.key))) return false
   return check({name: 'linear cut', hyps: [...l.when, {op: '<', a: {op: 'var', name: c0.key}, b: c0.below}, {op: '<', a: linTerm(ns), b: linTerm(ps)}]}, l.tree)
 }
-export const linRows = (l: LinCut): Lin[] => { const row = linSide(l.pos, 1); for (const [k, v] of Object.entries(linSide(l.neg, -1))) row[k] = (row[k] ?? 0) + v; for (const k of Object.keys(row)) if (row[k] === 0) delete row[k]; return [row] }
+export const linRows = (l: LinCut): Lin[] => [add(linSide(l.pos,1),linSide(l.neg,-1))]
 export const linActive = (l: LinCut, path: Path): boolean => l.when.every(c => truth(c, path) === true)
 const linShape = (l: unknown): l is LinCut => !!l && typeof l === 'object' && Array.isArray((l as LinCut).when) && Array.isArray((l as LinCut).pos) && Array.isArray((l as LinCut).neg)
   && [...(l as LinCut).pos, ...(l as LinCut).neg].every(p => Array.isArray(p) && Number.isSafeInteger(p[0]) && p[0] >= 0 && typeof p[1] === 'string') && !!(l as LinCut).tree && typeof (l as LinCut).tree === 'object'
@@ -1882,15 +1919,20 @@ export const qdif = (a: LF, b: LF): QRow => radd(rscale(b.den, a.row), rscale(-a
 // never wrong); and its key, as `canon` writes a Lin (zero coefficients dropped: Lean's `same` compares by value).
 export const qLin = (r: QRow): Lin | undefined => {
   const out: Lin = Object.create(null)
-  for (const [x, c] of r.cs) { if (c < -(2n ** 53n) + 1n || c > 2n ** 53n - 1n) return undefined; out[x] = Number(c) }
+  const iterator=r.cs.entries(),size=r.cs.size
+  for(let i=0;i<size;i++){
+    startWork('tableCells',1,'qLin input');const entry=iterator.next();if(entry.done)throw new Error('rational row changed during traversal')
+    const[x,c]=entry.value;if(c<-(2n**53n)+1n||c>2n**53n-1n)return undefined;out[x]=Number(c)
+  }
+  startWork('tableCells',1,'qLin constant')
   if (r.c !== 0n) { if (r.c < -(2n ** 53n) + 1n || r.c > 2n ** 53n - 1n) return undefined; out['1'] = Number(r.c) }
-  return out
+  return completeWorkProfile.enabled?rowCopy(out,'qLin output'):out
 }
 const linRow = (lin: Lin): QRow | undefined => {
-  if (!Object.values(lin).every(c => Number.isSafeInteger(c))) return undefined
-  const cs = new Map<string, bigint>()
-  for (const [x, c] of Object.entries(lin)) if (x !== '1' && c !== 0) cs.set(x, BigInt(c))
-  return {cs, c: BigInt(lin['1'] ?? 0)}
+  if (!everyLinearCell(lin,(_key,c)=>Number.isSafeInteger(c),'linRow safety')) return undefined
+  const cs = new Map<string, bigint>();let constant=0n
+  visitLinearCells(lin,(x,c)=>{if(x==='1')constant=BigInt(c);else if(c!==0)cs.set(x,BigInt(c))},'linRow conversion')
+  return {cs, c: constant}
 }
 const rowKey = (r: QRow): string | undefined => { const lin = qLin(r); return lin && canon(lin) }
 export function qdec(path: Path, r: QRow): boolean | undefined {

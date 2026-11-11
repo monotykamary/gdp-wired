@@ -1,10 +1,17 @@
 import {expect,test} from 'bun:test'
+import {mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
+import {pathToFileURL} from 'node:url'
 import {type Machine,type Request,type State,get,interpret,n,same,x} from './machine.ts'
 import {small} from './exists.ts'
 import {requestQuotient} from './request-quotient.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {fullWork} from './work-meter.ts'
 import {BudgetExpired,withBudget} from './wall.ts'
+import {clock,fullRate} from '../kernel/prove.ts'
+import {coreMeter} from './meter.ts'
+import {countGenerationPhase} from './count-generation-phase.ts'
 
 const machine=():Machine=>({
  name:'read-set quotient',params:[],inputs:['op','a','unused'],state:{value:n(0)},
@@ -106,15 +113,63 @@ test('one-cell and bulk map updates retain all concrete successor components',()
   equivalent(m,2)
  }
 })
-test.skipIf(!completeWorkProfile.enabled)('quotient setup checks the endpoint within 256 provisional tick units',()=>{
+test.skipIf(!completeWorkProfile.enabled)('quotient setup pre-admits every raw tick without endpoint headroom',()=>{
  const m=machine();m.inputMaps=['S','extra']
  const rs=requests(m)
  for(const budget of[0,1,255,256,1000]){
   const start=fullWork()
   expect(()=>withBudget(budget,()=>requestQuotient(m,rs))).toThrow(BudgetExpired)
-  expect(fullWork()-start).toBeLessThanOrEqual(budget+256)
+  expect(fullWork()-start).toBeLessThanOrEqual(budget)
  }
 })
+function nestedQuotient(run:typeof requestQuotient,parentRaw:number,localRaw:number){
+ const m=machine();m.inputMaps=['S','extra']
+ const rs=requests(m),start=fullWork(),beforeTicks=coreMeter.ticks
+ let result:{complete:boolean}|undefined,error:unknown
+ try{result=withBudget(parentRaw,()=>countGenerationPhase(clock()+localRaw/fullRate,()=>run(m,rs)))}catch(caught){error=caught}
+ return {result,error,usedRaw:fullWork()-start,ticks:coreMeter.ticks-beforeTicks}
+}
+for(const parentRaw of [10,1000])test.skipIf(!completeWorkProfile.enabled)(`nested quotient respects raw local10/parent${parentRaw} without rounding`,()=>{
+ const out=nestedQuotient(requestQuotient,parentRaw,10)
+ expect(out.usedRaw).toBeLessThanOrEqual(10)
+ expect(out.usedRaw).toBeLessThanOrEqual(parentRaw)
+ if(parentRaw===10)expect(out.error).toBeInstanceOf(BudgetExpired)
+ else {expect(out.error).toBeUndefined();expect(out.result?.complete).toBe(false)}
+})
+test.skipIf(!completeWorkProfile.enabled)('fractional quotient endpoints never round up a raw tick',()=>{
+ for(const localRaw of [0,0.125,0.5,1.25,9.75]){
+  const out=nestedQuotient(requestQuotient,1000,localRaw)
+  expect(out.usedRaw).toBeLessThanOrEqual(localRaw)
+  expect(out.error).toBeUndefined();expect(out.result?.complete).toBe(false)
+ }
+})
+test.skipIf(!completeWorkProfile.enabled)('charge-before-check mutant violates both nested raw endpoint cases',async()=>{
+ const sourceURL=new URL('./request-quotient.ts',import.meta.url),original=readFileSync(sourceURL,'utf8')
+ const admission="   startWork('ticks',1,'request quotient')\n"
+ const polling="  if((++work&255)===0)checkWall('request quotient')"
+ expect(original.split(admission)).toHaveLength(2);expect(original.split(polling)).toHaveLength(2)
+ // Historical defect: 255 physical visits complete before the first batched
+ // charge. A protected raw counter cannot reproduce it by a direct write now;
+ // an independent physical-visit probe must catch it even when F stays zero.
+ const mutant=("export const unsafeTicks={count:0};\n"+original.replace(admission,'   unsafeTicks.count++\n')
+  .replace(polling,"  if((++work&255)===0){startWork('ticks',256,'delayed quotient');checkWall('request quotient')}"))
+  .replace(/from '(\.\/[^']+)'/g,(_all,specifier:string)=>`from '${new URL(specifier,sourceURL).href}'`)
+ const dir=mkdtempSync(join(tmpdir(),'gdp-quotient-mutant-')),file=join(dir,'mutant.ts')
+ try{
+  writeFileSync(file,mutant)
+  const loaded=await import(pathToFileURL(file).href) as {requestQuotient:typeof requestQuotient,unsafeTicks:{count:number}}
+  for(const parentRaw of [10,1000]){
+   loaded.unsafeTicks.count=0
+   const out=nestedQuotient(loaded.requestQuotient,parentRaw,10)
+   expect(loaded.unsafeTicks.count).toBe(256)
+   expect((loaded.unsafeTicks.count-1)*completeWorkProfile.weights.ticks).toBeGreaterThan(10)
+   expect(out.usedRaw).toBeLessThanOrEqual(10)
+   if(parentRaw===10)expect(out.error).toBeInstanceOf(BudgetExpired)
+   else {expect(out.error).toBeUndefined();expect(out.result?.complete).toBe(false)}
+  }
+ }finally{rmSync(dir,{recursive:true,force:true})}
+})
+
 test('logical prefixes remain equal across the native compiled-step threshold',()=>{
  const m=machine()
  m.step.state={value:{op:'if',c:{op:'flag',name:'first'},then:{op:'add',a:x('value'),b:x('a')},else:x('value')}}

@@ -11,6 +11,8 @@
 // false) nothing is rounded, and a strict row's bound is moved in by a hair (1e-7, relative): the floats only pick a
 // conflict's rows, which the exact elimination then refutes, strictness and all, or doesn't.
 import {type Lin, costs, gcd} from '../core/solver.ts'
+import {completeWorkProfile} from '../core/work-profile.ts'
+import {startWork} from '../core/work-admission.ts'
 
 const eps = 1e-9
 // A bound's tolerance: relative past 1 (values drift by a few ulps a pivot).
@@ -275,8 +277,11 @@ export class Simplex {
     this.rowOf[e] = r; this.rowOf[b] = -1
     for (const j of ecoef.keys()) this.colOf[j]!.add(r)
     // Every other row reading x_e: substitute.
-    costs.pivotRows += this.colOf[e]!.size
-    for (const q of [...this.colOf[e]!]) {
+    if (!completeWorkProfile.enabled) costs.pivotRows += this.colOf[e]!.size
+    // ecoef excludes e: this traversal only deletes its current member from
+    // colOf[e], never inserts a new one. OFF retains its original snapshot.
+    for (const q of completeWorkProfile.enabled ? this.colOf[e]! : [...this.colOf[e]!]) {
+      if (completeWorkProfile.enabled) startWork('pivotRows', 1, 'simplex pivot substitution')
       if (q === r) continue
       const other = this.rows[q]!, c = other.coef.get(e)!, before = other.coef.size
       other.coef.delete(e); this.colOf[e]!.delete(q)

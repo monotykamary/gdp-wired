@@ -14,6 +14,9 @@ import {checkRefutation} from '../core/check.ts'
 import {fullWork as rawFullWork} from '../core/work-meter.ts'
 import {stepWork, stepWorkProfile} from '../core/step-work.ts'
 import {completeWorkProfile} from '../core/work-profile.ts'
+import {BudgetExpired, admittedWork, startWork, workLedger} from '../core/work-admission.ts'
+import {type WorkAmount, workDivide, workFromNumber, workMultiply, workToNumber} from '../core/work-amount.ts'
+export {BudgetExpired} from '../core/work-admission.ts'
 import {traceNow, withTraceWorkScope} from '../core/trace-clock.ts'
 import {allowNode, allowTranslated, certCyclic, certOn, certSearch, stepCertFloor, translateMs, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, loopNodes, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
 import type {TStats} from '../core/translate.ts'
@@ -227,7 +230,7 @@ const eprTimeSince = (start: number): number => rate ? (eprMeter.n - start) / ra
 // speed. A counted search inside another reads the outer's clock.
 // With `full`, the clock reads the cost model below in place of work.n.
 let rate = 0, meter = (): number => work.n
-export const clock = (): number => stepWorkProfile.enabled ? fullWork() / fullRate : (rate ? meter() / rate : performance.now())
+export const clock = (): number => completeWorkProfile.enabled ? workToNumber(workDivide(admittedWork(), workFromNumber(fullRate))) : stepWorkProfile.enabled ? fullWork() / fullRate : (rate ? meter() / rate : performance.now())
 export function counted<T>(perMs: number, f: () => T, full = false): T {
   return withTraceWorkScope(() => {
     if (rate || completeWorkProfile.enabled) return f()
@@ -251,33 +254,47 @@ export const fullWork = (): number => stepWork() + rawFullWork()
 // count/plain migrations and legacy deadline-reset semantics are separate steps.
 let budgetUnitsEnd: number | undefined
 let admissionRefusedAt: number | undefined
-export const inBudget = (): boolean => budgetUnitsEnd !== undefined
+export const inBudget = (): boolean => completeWorkProfile.enabled ? workLedger.inBudget() : budgetUnitsEnd !== undefined
 export const inWorkScope = (): boolean => inBudget() || rate !== 0 || stepWorkProfile.enabled
 // An inherited counted scope has no wall-clock control path.
 export const searchNow = (): number => inWorkScope() ? clock() : performance.now()
-export const budgetEnd = (): number => (budgetUnitsEnd ?? Infinity) / fullRate
-export class BudgetExpired extends Error {
-  constructor(readonly phase: string) { super(`work budget (${phase})`); this.name = 'BudgetExpired' }
+export const budgetEnd = (): number => {
+  if (!completeWorkProfile.enabled) return (budgetUnitsEnd ?? Infinity) / fullRate
+  const end = workLedger.endpoint()
+  return end === null ? Infinity : workToNumber(workDivide(end, workFromNumber(fullRate)))
 }
 // Hard-stop checkpoints must not turn a local search deadline into a whole-run stop.
 export function checkWorkEndpoint(phase: string): void {
+  if (completeWorkProfile.enabled) { workLedger.check(phase); return }
   if (budgetUnitsEnd !== undefined && (admissionRefusedAt === budgetUnitsEnd || fullWork() > budgetUnitsEnd)) throw new BudgetExpired(phase)
 }
 // Pre-step admission for new native primitive counters. No credit is minted and
 // no local deadline is promoted to whole-search cancellation.
 export function checkWorkAdmission(units: number, phase: string): void {
   if (!Number.isFinite(units) || units < 0) throw new RangeError('work charge must be finite and nonnegative')
+  if (completeWorkProfile.enabled) { workLedger.checkAmount(workFromNumber(units), phase); return }
   if (budgetUnitsEnd !== undefined && (admissionRefusedAt === budgetUnitsEnd || fullWork() + units > budgetUnitsEnd)) {
     admissionRefusedAt = budgetUnitsEnd
     throw new BudgetExpired(phase)
   }
 }
-export function remainingWork(): number { return budgetUnitsEnd === undefined ? Infinity : admissionRefusedAt === budgetUnitsEnd ? 0 : Math.max(0, budgetUnitsEnd - fullWork()) }
+export function remainingWork(): number {
+  if (completeWorkProfile.enabled) { const left = workLedger.available(); return left === null ? Infinity : workToNumber(left) }
+  return budgetUnitsEnd === undefined ? Infinity : admissionRefusedAt === budgetUnitsEnd ? 0 : Math.max(0, budgetUnitsEnd - fullWork())
+}
 export function checkBudget(phase: string): void {
+  if (completeWorkProfile.enabled) { workLedger.check(phase); return }
   if (budgetUnitsEnd !== undefined && (admissionRefusedAt === budgetUnitsEnd || fullWork() > budgetUnitsEnd
     || completeWorkProfile.enabled && clock() > withinDeadline(budgetEnd()))) throw new BudgetExpired(phase)
 }
-export function withBudget<T>(units: number, f: () => T): T {
+export function withBudget<T>(units: number | WorkAmount, f: () => T): T {
+  if (completeWorkProfile.enabled) {
+    const grant = typeof units === 'number' ? workFromNumber(units) : units
+    return counted(fullRate, () => workLedger.withBudget(grant, () => {
+      checkBudget('entry'); const result = f(); checkBudget('completion'); return result
+    }), true)
+  }
+  if (typeof units !== 'number') throw new Error('exact work budgets require the full-work profile')
   if (!Number.isFinite(units) || units < 0) throw new RangeError('work budget must be finite and nonnegative')
   // Never silently interpret units using a legacy work.n/count-rate island.
   if (rate && meter !== fullWork) throw new Error('work budget requires the outer full-work clock')
@@ -307,7 +324,14 @@ export function withBudget<T>(units: number, f: () => T): T {
 // on any machine; a deadline it is grown within stays.
 const groundRate = 180
 let workCap = Infinity
-export const withWork = <T>(cap: number, f: () => T): T => { const outer = workCap; workCap = Math.min(outer, cap); try { return f() } finally { workCap = outer } }
+export const withWork = <T>(cap: number | WorkAmount, f: () => T): T => {
+  if (completeWorkProfile.enabled) {
+    if (cap === Infinity) return f()
+    return workLedger.withEndpoint('work-cap', typeof cap === 'number' ? workFromNumber(cap) : cap, f)
+  }
+  if (typeof cap !== 'number') throw new Error('exact work caps require the full-work profile')
+  const outer = workCap; workCap = Math.min(outer, cap); try { return f() } finally { workCap = outer }
+}
 // Past a budget's end on the clock, or past the work a goal's own budget allows.
 // A wall-clock end beside the clock's (withWall: the search's own end, core/dsl.ts): work the counted clock doesn't count
 // (the EPR path's propositional search, a node's propagation, building a large goal's rows) stops there too, and past it
@@ -334,8 +358,12 @@ export const late = (until: number): boolean => {
   return clock() > until || (workCap !== Infinity && fullWork() > workCap) || pastWall()
 }
 // A budget's end, within the deadline (a translation's own bound, core/cyclic.ts's, kept by the export's GDP_CERT_MS).
-export const withinDeadline = (until: number): number => Math.min(until, deadline - eprTimeSince(deadlineEpr))
+export const withinDeadline = (until: number): number => completeWorkProfile.enabled ? Math.min(until, budgetEnd()) : Math.min(until, deadline - eprTimeSince(deadlineEpr))
 export function withDeadline<T>(until: number, f: () => T): T {
+  if (completeWorkProfile.enabled) {
+    if (until === Infinity) return f()
+    return workLedger.withEndpoint('deadline', workMultiply(workFromNumber(until), workFromNumber(fullRate)), f)
+  }
   const outer = deadline, outerEpr = deadlineEpr
   deadline = withinDeadline(until); deadlineEpr = eprMeter.n
   try { return f() } finally { deadline = outer; deadlineEpr = outerEpr }
@@ -595,9 +623,12 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
   // (what it saw before term columns), renumbered to the whole leaf's when a leaf is found.
   const full = timed(() => rowsAt(goal, path), ms => { profile.rowsMs += ms })
   work.n += 1 + full.length
-  costs.plainNodes++; costs.plainRows += full.length
+  costs.plainNodes++; if (!completeWorkProfile.enabled) costs.plainRows += full.length
   const columns = [...path.values()].some(a => Object.keys(a.lin).some(key => key.startsWith('⟦')))
-  const idx = full.flatMap((r, i) => (columns || !Object.keys(r.lin).some(key => key.startsWith('⟦')) ? [i] : []))
+  const idx = full.flatMap((r, i) => {
+    if (completeWorkProfile.enabled) startWork('plainRows',1,'plain row processing')
+    return columns || !Object.keys(r.lin).some(key => key.startsWith('⟦')) ? [i] : []
+  })
   const rows = idx.map(i => full[i]!), at = (i: number) => (i < rows.length ? idx[i]! : full.length + i - rows.length)
   const leafOf = (steps0: Step[], products0?: [number, number][], squares0?: Lin[]): Tree => {
     const {steps, products, squares} = products0 || squares0 ? trimmed(rows.length, steps0, products0 ?? [], squares0 ?? []) : {steps: steps0, products: undefined, squares: undefined}
@@ -932,7 +963,7 @@ const nearSeen = new WeakMap<Goal, boolean[]>()
 // (the names a term reads, its shared parts walked once: a witness read at each of its uses is one object)
 const namesOf = (t: unknown): Set<string> => {
   const out = new Set<string>()
-  walkOnce(t, o => { costs.goalNodes++; for (const [key, v] of Object.entries(o)) if ((key === 'name' || key === 'map') && typeof v === 'string') out.add(v) })
+  walkOnce(t, o => { if (!completeWorkProfile.enabled) costs.goalNodes++; for (const [key, v] of Object.entries(o)) if ((key === 'name' || key === 'map') && typeof v === 'string') out.add(v) }, completeWorkProfile.enabled ? () => startWork('goalNodes', 1, 'goal name traversal') : undefined)
   return out
 }
 export function nearOf(goal: Goal): boolean[] {
@@ -958,9 +989,10 @@ function unitsOf(goal: Goal): Lin[] {
   // Forced by the root's rows without a solver: a row the atom is (or is the negation of), or the bounds the rows give
   // single variables (x <= c, x >= c) deciding it whichever way its variables go.
   const root: Path = new Map(), rows = leafConstraints(goal, root), seen = new Set<string>(), given = new Set<string>()
-  costs.unitRows += rows.length
+  if (!completeWorkProfile.enabled) costs.unitRows += rows.length
   const lo = new Map<string, number>(), hi = new Map<string, number>()
   for (const r of rows) {
+    if (completeWorkProfile.enabled) startWork('unitRows',1,'unit row processing')
     given.add(canon(r.lin))
     const vs = Object.keys(r.lin).filter(key => key !== '1')
     if (vs.length !== 1) continue
@@ -1062,7 +1094,7 @@ function growFocused(goal: Goal, path: Path, focus: Lin[], budget: {nodes: numbe
   if (++budget.nodes > 64 || late(budget.until ?? Infinity)) return {stuck: 'unknown', path}
   // (each node reads its whole leaf, counted as growPlain counts a node's rows)
   const leaf = leafConstraints(goal, path)
-  work.n += 1 + leaf.length; costs.plainRows += leaf.length
+  work.n += 1 + leaf.length; if (!completeWorkProfile.enabled) costs.plainRows += leaf.length
   const verdict = solveNear(leaf, [...near, ...[...path.values()].slice(-1).map(a => a.lin)])
   if (verdict.kind === 'refuted') return {tree: {leaf: verdict.steps}, nodes: budget.nodes}
   const split = focus.find(l => !path.has(canon(l)) && !path.has(canonFlip(l)))
@@ -1081,7 +1113,10 @@ function growFocused(goal: Goal, path: Path, focus: Lin[], budget: {nodes: numbe
 // read (a param every step reads) joins no rows: through it every step is near every other.
 function solveNear(rows: {lin: Lin, label: string}[], seeds: Lin[]): ReturnType<typeof solve> {
   const uses = new Map<string, number>()
-  for (const r of rows) for (const key in r.lin) if (key !== '1') uses.set(key, (uses.get(key) ?? 0) + 1)
+  for (const r of rows) {
+    if(completeWorkProfile.enabled)startWork('plainRows',1,'focused row processing')
+    for (const key in r.lin) if (key !== '1') uses.set(key, (uses.get(key) ?? 0) + 1)
+  }
   const hub = (key: string) => (uses.get(key) ?? 0) > Math.max(16, rows.length / 8)
   const reach = new Set(seeds.flatMap(l => Object.keys(l).filter(key => key !== '1')))
   for (let hop = 0; hop < 2; hop++) {

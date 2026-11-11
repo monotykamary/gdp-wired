@@ -11,6 +11,7 @@ import {type Goal, type Path, canon, check, leafConstraints, termColumn} from '.
 import {clock, grow} from './prove.ts'
 import {REFUTED, growCdcl, cdclStats} from './cdcl.ts'
 import {Reader} from './reader.ts'
+import {stepWorkProfile} from '../core/step-work.ts'
 
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
 // (core/machine.ts's generator: exact since its float form folded every seed into a few short cycles, a seed on a short
@@ -29,7 +30,10 @@ test('optional phase counters do not change CDCL verdicts or checked trees',()=>
   cdclStats.on=false;const before=stamp(),plain=goals.map(g=>growCdcl(g,new Map(),{nodes:0,until:clock()+500}))
   expect(stamp()).toEqual(before)
   cdclStats.on=true;const measured=goals.map(g=>growCdcl(g,new Map(),{nodes:0,until:clock()+500}))
-  expect(cdclStats.setupMs).toBeGreaterThan(before.setup);expect(cdclStats.propagationMs).toBeGreaterThanOrEqual(before.prop)
+  // Counted profiles deliberately disable wall telemetry. Keep the semantic
+  // and native comparisons below in both modes; do not assert elapsed wall.
+  if(stepWorkProfile.enabled)expect(stamp()).toEqual(before)
+  else {expect(cdclStats.setupMs).toBeGreaterThan(before.setup);expect(cdclStats.propagationMs).toBeGreaterThanOrEqual(before.prop)}
   for(let i=0;i<goals.length;i++){
    const a=plain[i]!,b=measured[i]!;expect('tree'in a).toBe('tree'in b)
    if('tree'in a)expect(check(goals[i]!,a.tree)).toBe(true)

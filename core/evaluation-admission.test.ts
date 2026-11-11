@@ -3,10 +3,10 @@ import {observeEval} from './work-observe.ts'
 import {withEvaluationAdmission} from './evaluation-admission.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {runtimeWall} from './runtime-wall.ts'
-import {rawWork,workKeys,legacyWeights} from './work-meter.ts'
+import {rawWork,workKeys} from './work-meter.ts'
 import {coreMeter} from './meter.ts'
-import {costs} from './solver.ts'
-import {eprMeter} from '../kernel/epr.ts'
+import {admittedWork,startWork,withAdmittedChunk,workLedger} from './work-admission.ts'
+import {compareWork,workAdd,workSub,workMultiply,workAmount} from './work-amount.ts'
 import {BudgetExpired,fullWork} from '../kernel/prove.ts'
 import {withBudget} from './wall.ts'
 const full=completeWorkProfile.enabled?test:test.skip
@@ -15,14 +15,14 @@ test('scoped evaluation counts are unchanged without an active budget',()=>{
  withEvaluationAdmission(()=>{for(let i=0;i<513;i++)observeEval()})
  expect(rawWork().evals-before).toBe(513)
 })
-full('ordinary interpreter batches reduce admission calls without granting units',()=>{
+full('ordinary interpreter visits use exact starts with no numeric side-credit hook',()=>{
  const prior=runtimeWall.admit;let calls=0
  runtimeWall.admit=(units,phase)=>{calls++;prior?.(units,phase)}
- const start=fullWork(),before=rawWork().evals
+ const start=admittedWork(),before=rawWork().evals
  try{withBudget(100000,()=>withEvaluationAdmission(()=>{for(let i=0;i<1024;i++)observeEval()}))}finally{runtimeWall.admit=prior}
  expect(rawWork().evals-before).toBe(1024)
- expect(fullWork()-start).toBeCloseTo(1024*completeWorkProfile.weights.evals,6)
- expect(calls).toBeLessThan(20)
+ expect(compareWork(workSub(admittedWork(),start),workMultiply(workLedger.weights.evals,workAmount(1024n)))).toBe(0)
+ expect(calls).toBe(0)
 })
 full('zero and near-endpoint budgets refuse before another evaluation',()=>{
  let before=rawWork().evals
@@ -52,35 +52,29 @@ full('unscoped evaluator fallback refuses before charging past the endpoint',()=
   expect(fullWork()-start).toBeLessThanOrEqual(W)
  }
 })
-full('every other raw bucket invalidates evaluator permission',()=>{
- const weights=Object.fromEntries([...legacyWeights,...Object.entries(completeWorkProfile.weights)])
+full('every other raw bucket invalidates unused evaluator permission',()=>{
  for(const key of workKeys.filter(key=>key!=='evals')){
-  const scale=Math.ceil(512/weights[key]!),W=completeWorkProfile.weights.evals+weights[key]!*scale+0.25
-  const start=fullWork(),before=rawWork().evals
-  expect(()=>withBudget(W,()=>withEvaluationAdmission(()=>{
-   observeEval()
-   if(key==='epr')eprMeter.n+=scale
-   else if(key in coreMeter)(coreMeter as Record<string,number>)[key]!+=scale
-   else (costs as Record<string,number>)[key]!+=scale
-   observeEval()
-  }))).toThrow(BudgetExpired)
-  expect(rawWork().evals-before,key).toBe(1)
-  expect(fullWork()-start,key).toBeLessThanOrEqual(W)
+  const cost=workAdd(workLedger.weights.evals,workLedger.weights[key]),start=admittedWork()
+  withBudget(workAdd(cost,workLedger.weights.evals),()=>withAdmittedChunk('evals',2,lease=>{
+   lease.start();startWork(key,1,'foreign evaluator control');expect(()=>lease.start()).toThrow(BudgetExpired)
+  }))
+  expect(compareWork(workSub(admittedWork(),start),cost),key).toBe(0)
+  expect(workLedger.reserved().num).toBe(0n)
  }
 })
 full('direct evaluator writes and smaller nested budgets invalidate permission',()=>{
  const weight=completeWorkProfile.weights.evals,before=rawWork().evals
- expect(()=>withBudget(1000*weight,()=>withEvaluationAdmission(()=>{observeEval();coreMeter.evals+=999;observeEval()}))).toThrow(BudgetExpired)
- expect(rawWork().evals-before).toBe(1000)
+ expect(()=>withBudget(1000*weight,()=>withEvaluationAdmission(()=>{observeEval();coreMeter.evals+=999;observeEval()}))).toThrow('unadmitted work counter mutation')
+ expect(rawWork().evals-before).toBe(1)
  const nested=rawWork().evals
  withBudget(1000*weight,()=>withEvaluationAdmission(()=>{observeEval();expect(()=>withBudget(0,()=>observeEval())).toThrow(BudgetExpired);observeEval()}))
  expect(rawWork().evals-nested).toBe(2)
 })
-full('a caught admission refusal cannot spend cached evaluator permission',()=>{
+full('a caught request refusal cannot grant credit or poison legal remaining work',()=>{
  const prior=runtimeWall.admit,before=rawWork().evals
- expect(()=>withBudget(1000,()=>withEvaluationAdmission(()=>{
+ withBudget(1000,()=>withEvaluationAdmission(()=>{
   observeEval();expect(()=>runtimeWall.admit!(1001,'foreign refusal')).toThrow(BudgetExpired);observeEval()
- }))).toThrow(BudgetExpired)
- expect(rawWork().evals-before).toBe(1)
- expect(runtimeWall.admit).toBe(prior)
+ }))
+ expect(rawWork().evals-before).toBe(2)
+ expect(workLedger.reserved().num).toBe(0n);expect(runtimeWall.admit).toBe(prior)
 })

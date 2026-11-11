@@ -21,6 +21,8 @@ import {searchNow as countedSearchNow} from '../core/wall.ts'
 // afresh.
 import {type Constraint, type Lin, type Step, costs, env, refuteFast, solve, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
+import {completeWorkProfile} from '../core/work-profile.ts'
+import {startWork} from '../core/work-admission.ts'
 import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isMonomial, leafConstraints} from './kernel.ts'
 import {atPoint, cellPair, tupleCellPairs, growWide, late, leafRowsOf, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, wideFor, wideScope, type Outcome} from './prove.ts'
 import {Clausal, Reader, type Row, namesOf} from './reader.ts'
@@ -274,8 +276,10 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
         const ci = own[i]!
         if (retired[ci]) continue
         const c = cls[ci]!
-        costs.scan += 1 + (c.length >> 2)
-        for (let j = 0; j < c.length; j++) { const y = c[j]! >> 1; if (rel[y]! < 0) { rel[y] = levels.length; relStack.push(y); heapIn(byId[y]!); if (vals[y]) todo.push(y) } }
+        if (completeWorkProfile.enabled) startWork('scan', 1, 'clause scan entry'); else costs.scan += 1 + (c.length >> 2)
+        for (let j = 0; j < c.length; j++) {
+          if(completeWorkProfile.enabled&&j%4===0&&j+4<=c.length)startWork('scan',1,'clause four-literal group')
+          const y = c[j]! >> 1; if (rel[y]! < 0) { rel[y] = levels.length; relStack.push(y); heapIn(byId[y]!); if (vals[y]) todo.push(y) } }
       }
     }
   }
@@ -361,7 +365,15 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   // needed clause is relevant, so where none is open, every needed clause is satisfied (unit propagation found no
   // conflict), and a model of the needed clauses is a model of the goal.
   const needed = (ci: number) => !retired[ci] && (oc[ci]! < 0 || (rel[oc[ci]! >> 1]! >= 0 && holds(oc[ci]!)))
-  const satisfied = (ci: number) => { const c = cls[ci]!; costs.scan += 1 + (c.length >> 2); for (let j = 0; j < c.length; j++) if (opposed(c[j]!)) return true; return false }
+  const satisfied = (ci: number) => {
+    const c = cls[ci]!
+    if (completeWorkProfile.enabled) startWork('scan',1,'clause scan entry'); else costs.scan += 1 + (c.length >> 2)
+    for (let j = 0; j < c.length; j++) {
+      if(completeWorkProfile.enabled&&j%4===0&&j+4<=c.length)startWork('scan',1,'clause four-literal group')
+      if(opposed(c[j]!))return true
+    }
+    return false
+  }
   const pickOpen = (): Var | undefined => {
     while (heap.length) {
       const x = heap[0]!
@@ -423,6 +435,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
       for (let i = 0; i < ws.length;) {
         const blocker = ws[i + 1]!
         if (vals[blocker >> 1] === 1 + (blocker & 1)) { i += 2; continue }
+        if (completeWorkProfile.enabled) startWork('scan', 1, 'watched clause scan')
         const ci = ws[i]!, c = cls[ci]!
         n++
         if (retired[ci]) { ws[i] = ws[ws.length - 2]!; ws[i + 1] = ws[ws.length - 1]!; ws.length -= 2; continue }
@@ -434,10 +447,10 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
         while (j < len) { const z = c[j]!; if (vals[z >> 1] !== 2 - (z & 1)) break; j++ }
         if (j < len) { const z = c[j]!; c[j] = code; c[1] = z; (wl[z] ??= []).push(ci, o); ws[i] = ws[ws.length - 2]!; ws[i + 1] = ws[ws.length - 1]!; ws.length -= 2; continue }
         if (!vals[o >> 1]) { assignClausal(byId[o >> 1]!, !(o & 1), ci); i += 2; continue }
-        costs.scan += n
+        if (!completeWorkProfile.enabled) costs.scan += n
         return ci
       }
-      costs.scan += n
+      if (!completeWorkProfile.enabled) costs.scan += n
     }
     return undefined
   }
@@ -626,6 +639,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
         // each its own level, an atom's value the point's: they keep that point, so the rows meet it but where unit
         // propagation brought an atom it doesn't meet, which the next node finds)
         if (free > 0 && decideFree()) continue
+        if (completeWorkProfile.enabled) startWork('cdclNodes',1,'CDCL node')
         reader.begin()
         st.nodes++
         // The rows, kept from the node before (reader.ts's sync); the forms that came and went: the single-variable
@@ -641,7 +655,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
           if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}: reader's alone ${[...mine].filter(x => !theirs.has(x)).slice(0, 4).join(' ; ')}; kernel's alone ${[...theirs].filter(x => !mine.has(x)).slice(0, 4).join(' ; ')}; path ${[...pathOf()].map(([k2, a]) => `${a.holds ? '' : '¬'}${k2}`).join(' ; ')}`)
         }
         work.n += 1 + full.length
-        costs.cdclNodes++; costs.cdclRows += full.length
+        if (!completeWorkProfile.enabled) costs.cdclNodes++; costs.cdclRows += full.length
         // (the elimination below reads term columns' rows only once the trail has an atom about one, as growPlain does)
         const columns = colsOn > 0
         // (the rows read by the elimination, made when it runs, in kernel.ts's order: elimination's choices, and the
@@ -662,9 +676,17 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
           const g = ++candGen, keep: Var[] = []
           const take = (lins: Lin[]) => {
             let rs = listRecs.get(lins)
-            if (!rs) listRecs.set(lins, (rs = lins.map(recOf)))
-            costs.scan += rs.length
-            for (const r of rs) { if (r.seen === g) continue; r.seen = g; if (r.x && r.x.val === undefined) keep.push(r.x) }
+            const use=(r:ReturnType<typeof recOf>)=>{if(r.seen===g)return;r.seen=g;if(r.x&&r.x.val===undefined)keep.push(r.x)}
+            if(!completeWorkProfile.enabled){
+              if(!rs)listRecs.set(lins,(rs=lins.map(recOf)))
+              costs.scan+=rs.length;for(const r of rs)use(r)
+            }else if(rs){
+              for(const r of rs){startWork('scan',1,'cached candidate scan');use(r)}
+            }else{
+              rs=[]
+              for(const lin of lins){startWork('scan',1,'candidate scan');const r=recOf(lin);rs.push(r);use(r)}
+              listRecs.set(lins,rs)
+            }
           }
           take(unitAtoms(goal))
           if (last >= 0) take(reader.openList(last))
@@ -885,8 +907,8 @@ function unfold(goal: Goal, nodes: DagNode[], top: number, root: Path, maxLeaves
     if ('hyp' in n) return undefined // (the clausal mode's: never unfolded, a model alone wanted there)
     if (++leaves > maxLeaves || late(until)) { cdclStats.unfoldWhy = leaves > maxLeaves ? 'leaves' : 'time'; return undefined }
     reader.begin()
-    const src: (number | [string, string])[] = [], rows = reader.leafRows(src)
-    costs.unfoldRows += rows.length
+    const src: (number | [string, string])[] = [], rows = reader.leafRows(src, completeWorkProfile.enabled ? count => startWork('unfoldRows', count, 'unfold row assembly') : undefined)
+    if (!completeWorkProfile.enabled) costs.unfoldRows += rows.length
     // (the rows the leaf's derivation reads kept with it: prove.ts's leafRowsOf)
     const noted = (leaf: Step[]): Tree => {
       const t = {leaf}, at = new Map<number, {lin: Lin, src: number | [string, string]}>()
@@ -913,11 +935,16 @@ function unfold(goal: Goal, nodes: DagNode[], top: number, root: Path, maxLeaves
     if (steps.length === n.steps.length && checkRefutation(rows, steps)) return noted(steps)
     // (a row a longer path reads otherwise: a hypothesis false outright there, a choice decided)
     cdclStats.resolved2++
+    const fallbackRows:Constraint[]=completeWorkProfile.enabled?[]:rows
+    if(completeWorkProfile.enabled)for(let i=0;i<rows.length;i++){
+      startWork('unfoldRows',1,'unfold fallback row')
+      fallbackRows.push(rows[i]!)
+    }
     work.n += 1 + rows.length
-    costs.unfoldRows += rows.length
-    const fast = rows.length > 60 ? refuteFast(rows) : undefined
+    if (!completeWorkProfile.enabled) costs.unfoldRows += rows.length
+    const fast = fallbackRows.length > 60 ? refuteFast(fallbackRows) : undefined
     if (fast?.kind === 'refuted') return noted(fast.steps)
-    const out = solve(rows)
+    const out = solve(fallbackRows)
     if (out.kind === 'refuted') return noted(out.steps)
     cdclStats.unfoldWhy = 'refute'
     return undefined
