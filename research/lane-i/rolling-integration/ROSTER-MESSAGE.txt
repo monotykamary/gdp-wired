@@ -1,0 +1,1 @@
+test: register inherited meter and checker controls
