@@ -58,7 +58,7 @@ export function proveLiftedCountLoad(m:Machine,family:Law[],law:Law,until:number
    if(json(reads)!==json(again.reads))return decline('read-layout-drift')
    const request={reads,insts,picks:[]},goal=mcGoal(step.goal.hyps,step.decls,request),counts=countsForReads(step.decls,reads)
    if(!goal||!counts)return decline('encoding')
-   const frames:FrameCut[]=[],lins:LinCut[]=[],prefix=new UnwrittenCountPrefix(step.decls,reads,[same(x(choice.name),n(choice.value)),m.pre],written,bound,'cdcl')
+   const frames:FrameCut[]=[],lins:LinCut[]=[],prefix=new UnwrittenCountPrefix(step.decls,reads,[same(x(choice.name),n(choice.value)),m.pre],written,bound,'cdcl',{leafUnits:options.leafUnits})
    const prefixFact=(postId:string,preId:string,rows:E[],sign:1|-1)=>{
     if(late(until))return
     const positive=sign===1?postId:preId,negative=sign===1?preId:postId,opposite=lins.find(cut=>cut.pos.length===1&&cut.neg.length===1&&cut.pos[0]![0]===1&&cut.neg[0]![0]===1&&cut.pos[0]![1]===negative&&cut.neg[0]![1]===positive)
