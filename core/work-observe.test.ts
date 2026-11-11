@@ -1,5 +1,16 @@
 import {expect, test} from 'bun:test'
 import {spawnSync} from 'node:child_process'
+import {rule,nat,when,proveRule} from './dsl.ts'
+
+test('pre-admission policy is checked and the always-spend mutation is rejected',()=>{
+ const r=rule('native pre-admission').params({limit:nat}).inputs({charge:nat}).state({spent:0})
+   .step(({spent,charge,limit})=>({spent:when(spent.plus(charge).atMost(limit),spent.plus(charge),spent)}))
+ const law=r.law('never overdraw',({spent,limit})=>spent.atMost(limit))
+ const yes=proveRule(r,[law],{search:false})
+ expect(yes.proven).toBe(true);expect(yes.checked).toBe(true)
+ const broken=r.step(({spent,charge})=>({spent:spent.plus(charge)}))
+ expect(proveRule(broken,[law],{search:false}).proven).toBe(false)
+})
 
 const program = `
 import {strict as a} from 'node:assert';

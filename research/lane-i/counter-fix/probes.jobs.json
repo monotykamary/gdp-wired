@@ -1,0 +1,74 @@
+[
+  {
+    "name": "baseline-tiny-small",
+    "cmd": "bun port-input/probe-run.ts baseline tiny 0,1 1000000000000 2",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2200,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-reach-finite",
+    "cmd": "bun port-input/probe-run.ts baseline reach 1 2",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2200,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-reach-compiled",
+    "cmd": "bun port-input/probe-run.ts baseline reach 1 2 compiled",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2200,
+    "vm_type": "large"
+  },
+  {
+    "name": "baseline-tiny-boundary-round",
+    "cmd": "COUNTER_ROUNDS=1 bun port-input/probe-run.ts baseline tiny 0,1,73,74 1000000000000 2",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2200,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-tiny-small",
+    "cmd": "bun port-input/probe-run.ts candidate tiny 0,1 1000000000000 2",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2200,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-reach-finite",
+    "cmd": "bun port-input/probe-run.ts candidate reach 1 2",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2200,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-reach-compiled",
+    "cmd": "bun port-input/probe-run.ts candidate reach 1 2 compiled",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2200,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-tiny-boundary-round",
+    "cmd": "COUNTER_ROUNDS=1 bun port-input/probe-run.ts candidate tiny 0,1,73,74 1000000000000 2",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2200,
+    "vm_type": "large"
+  },
+  {
+    "name": "candidate-pruned-cap",
+    "cmd": "COUNTER_ALLOWANCE=15000000 bun port-input/probe-run.ts candidate tiny 0,1 1000000000000 2 pruned",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  }
+]

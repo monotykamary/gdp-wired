@@ -1,0 +1,80 @@
+// Section 23 addendum probe: the ENGINE's own passes on the original MLDR model and the 49 generated laws (lane A's
+// hash-bound capture), against the brute-force transcription's table. Research harness: nothing here is production.
+//   bun engine-tiny.ts tiny <domain,comma> <wallMs> [size]     finiteTinyHoudini to its fixpoint (or its wall)
+//   bun engine-tiny.ts reach <T> <V>                           breadth-first from init (check.ts's requests), laws evaluated by finiteEvaluator
+// Work is the complete counter under GDP_WORK_FULL=1 with lane A's provisional all-one extra weights: UNCALIBRATED.
+import {createHash} from 'node:crypto'
+import {readFileSync} from 'node:fs'
+function loadStrategyFixture():any {
+ const model=readFileSync(new URL('../protocols/ic3syn/models.ts',import.meta.url));
+ if(createHash('sha1').update('blob '+model.length+'\0').update(model).digest('hex')!=='0541fa9436e307a6fb716aa5064637b30b893b79')throw Error('original model source changed');
+ const bytes=readFileSync(new URL('./counter-fixture.json',import.meta.url));
+ if(createHash('sha256').update(bytes).digest('hex')!=='49a805953627fa2a5e55531f15c77147403cb86334e7054954a33a1c6cd5f190')throw Error('wrong original strategy capture');
+ return JSON.parse(bytes.toString());
+}
+import {protocols} from '../protocols/ic3syn/models.ts'
+import {interpret, type Law, type State} from '../../core/machine.ts'
+import {finiteEvaluator, finiteTinyHoudini} from '../../core/finite-houdini.ts'
+import {rawWork, fullWork} from '../../core/work-meter.ts'
+import {completeWorkProfile} from '../../core/work-profile.ts'
+import {holdsAt} from '../../core/exists.ts'
+import {withBudget,BudgetExpired} from '../../kernel/prove.ts'
+import {withWorkLedger} from '../../core/work-ledger.ts'
+const native=completeWorkProfile.id==='raw-work-v0'?{withReachabilityWork:<T>(f:()=>T)=>f(),reachState:()=>{},reachEdge:()=>{}}:await import('../../core/work-observe.ts')
+const {withReachabilityWork,reachState,reachEdge}=native
+
+
+const mode = process.argv[2], fixture = loadStrategyFixture(), p = protocols.find(q => q.id === 'mldr')!, source = (p.make() as any).machine
+const m = fixture.m, laws = fixture.laws, callerSet = new Set(fixture.caller), index = new Map(laws.map((l, i) => [l, i]))
+const caller = fixture.caller.map(i => laws[i]!), candidates = laws.filter((_, i) => !callerSet.has(i))
+const delta = (a: Record<string, number>, b: Record<string, number>) => Object.fromEntries(Object.keys(b).map(k => [k, b[k]! - (a[k] ?? 0)]).filter(([, v]) => v !== 0))
+const plainState = (st: State) => ({scalars: st.scalars, defaults: st.defaults, maps: Object.fromEntries(Object.entries(st.maps).map(([k, v]) => [k, [...v].filter(([, x]) => x !== 0)]))})
+console.log('META ' + JSON.stringify({mode, laws: laws.length, caller: fixture.caller, profile: completeWorkProfile, argv: process.argv.slice(2)}))
+
+const phases:any[]=[], rawStart=rawWork(), workStart=fullWork(), wallStart=performance.now()
+let outcome='complete'
+try {withWorkLedger('counter-probe',p=>phases.push(p),()=>withBudget(Number(process.env.COUNTER_ALLOWANCE??1e12),()=>withReachabilityWork(()=>{
+if (mode === 'tiny') {
+  const domain = (process.argv[3] ?? '0,1').split(',').map(Number), wallMs = Number(process.argv[4] ?? 600000), size = Number(process.argv[5] ?? 3)
+  const raw0 = rawWork(), full0 = fullWork(), t0 = performance.now(), drops: number[] = []
+  const survivors = finiteTinyHoudini(source, m, caller, candidates, [{size}], {
+    valueDomain: domain, wallMs, ...(process.env.COUNTER_ROUNDS ? {rounds:Number(process.env.COUNTER_ROUNDS)} : {}), ...(process.argv[6] === 'pruned' ? {postRequestOrder: true, postConeOrder: true, focusTargets: true, preIntervals: true, postTargetPruning: true, postTargetIntervals: true, postTargetSourceIntervals: true, postTargetSharedIntervals: true} : {}),
+    onDrop: d => { drops.push(index.get(d.law)!); console.log('DROP ' + JSON.stringify({round: d.round, native: index.get(d.law), name: d.law.name, request: Object.fromEntries(Object.entries(d.request).map(([k, v]) => [k, v instanceof Map ? [...v] : v])), pre: plainState(d.pre)}).slice(0, 1500)) },
+    onTiny: (round, s) => console.log('TINY ' + JSON.stringify({round, completed: s.completed, exhausted: s.exhausted, timedOut: s.timedOut, nodes: s.nodes, states: s.states, steps: s.steps, scenarios: s.scenarios, candidates: s.candidates, unsupported: s.unsupported, ms: Math.round(performance.now() - t0), fullWork: fullWork() - full0, scope: round === 0 ? s.scope : undefined}).slice(0, 4000)),
+    onFinish: row => console.log('FINISH ' + JSON.stringify(row)),
+  })
+  const full = fullWork() - full0
+  console.log('RESULT ' + JSON.stringify({domain, size, wallMs, ms: Math.round(performance.now() - t0), fullWork: full, units: full / 250, raw: delta(raw0 as any, rawWork() as any), dropped: [...drops].sort((a, b) => a - b), survivors: survivors.length}))
+} else if (mode === 'reach') {
+  const T = Number(process.argv[3] ?? 2), V = Number(process.argv[4] ?? 2), c: any = p.check, params = c.params, run = interpret(source), finite = finiteEvaluator(m), compiled = process.argv[5] === 'compiled'
+  // 'compiled': the generator's own sample test (exists.ts holdsAt, keys below 4), as trueSmall reads a law at a state
+  const evaluate = (law: Law, q: Record<string, number>, st: State): boolean | undefined => compiled ? (law.some?.length ? undefined : holdsAt(m, law, q, st, 4)) : finite(law, q, st)
+  const product = (dom: Record<string, unknown[]>): Record<string, unknown>[] => Object.entries(dom).reduce<Record<string, unknown>[]>((acc, [k, vs]) => acc.flatMap(a => vs.map(v => ({...a, [k]: v}))), [{}])
+  const given = product(c.inputs), dflt = (st: any, name: string) => st.defaults?.[name] ?? source.maps?.[name] ?? 0
+  const read = (st: any) => ({cell: (map: string, key: number) => st.maps[map]?.get(key) ?? dflt(st, map), scalar: (name: string) => st.scalars[name]})
+  const keyOf = (st: any) => JSON.stringify([st.scalars, Object.keys(st.maps).sort().map(k => [k, dflt(st, k), [...st.maps[k]].filter(([, v]: any) => v !== dflt(st, k)).sort((a: any, b: any) => a[0] - b[0])])])
+  const inside = (st: any) => [0, 1, 2].every(s => read(st).cell('CT', s) <= T && read(st).cell('CfgT', s) <= T && read(st).cell('CV', s) <= V)
+  const raw0 = rawWork(), full0 = fullWork(), t0 = performance.now(), st0 = run.init(params), seen = new Set([keyOf(st0)]), broken = new Map<number, {depth: number, state: unknown}>(), unknown = new Set<number>()
+  let frontier: State[] = [st0], depth = 0, beyond = 0, steps = 0
+  const check = (st: State) => { for (const [i, law] of laws.entries()) { if (broken.has(i)) continue; const v = evaluate(law, params, st); if (v === false) broken.set(i, {depth, state: plainState(st)}); else if (v === undefined) unknown.add(i) } }
+  reachState(); check(st0)
+  while (frontier.length) {
+    depth++
+    const next: State[] = []
+    for (const u of frontier) for (const g of given) for (const q of c.expand(g, read(u))) {
+      let v: State
+      try { reachEdge(); v = run.step(params, u, q) } catch(error) { if(error instanceof BudgetExpired)throw error; continue }
+      steps++
+      const k = keyOf(v); if (seen.has(k)) continue
+      seen.add(k); reachState(); check(v)
+      if (inside(v)) next.push(v); else beyond++
+    }
+    frontier = next
+  }
+  const full = fullWork() - full0
+  for (const [i, b] of [...broken].sort((a, b) => a[0] - b[0])) console.log('BROKEN ' + JSON.stringify({native: i, name: laws[i]!.name, depth: b.depth, state: b.state}).slice(0, 900))
+  console.log('RESULT ' + JSON.stringify({T, V, states: seen.size, beyond, steps, depth, ms: Math.round(performance.now() - t0), fullWork: full, units: full / 250, raw: delta(raw0 as any, rawWork() as any), broken: [...broken.keys()].sort((a, b) => a - b), unknownEvaluations: [...unknown].sort((a, b) => a - b)}))
+}
+
+}))) } catch(error) {if(!(error instanceof BudgetExpired))throw error;outcome='unknown: '+error.message}
+console.log('COUNTER_PROBE '+JSON.stringify({source:process.env.COUNTER_SOURCE,argv:process.argv.slice(2),allowance:Number(process.env.COUNTER_ALLOWANCE??1e12),outcome,profile:completeWorkProfile,raw:delta(rawStart as any,rawWork() as any),units:fullWork()-workStart,wallMs:performance.now()-wallStart,phases}))

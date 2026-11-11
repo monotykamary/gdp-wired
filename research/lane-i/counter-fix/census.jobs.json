@@ -1,0 +1,450 @@
+[
+  {
+    "name": "strict-consensus",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate consensus 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-tcommit",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate tcommit 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-lock_server",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate lock_server 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-quorum_leader_election",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate quorum_leader_election 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-toy_consensus_forall",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate toy_consensus_forall 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-simple_regular",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate simple_regular 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-simple",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate simple 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-lockserv_automaton",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate lockserv_automaton 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-sharded_kv_no_lost_keys",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate sharded_kv_no_lost_keys 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-sharded_kv",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate sharded_kv 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-lockserv",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate lockserv 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-twophase",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate twophase 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-simple_decentralized_lock",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate simple_decentralized_lock 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-two_phase_commit",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate two_phase_commit 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-consensus_forall",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate consensus_forall 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-consensus_wo_decide",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate consensus_wo_decide 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-naive_consensus",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate naive_consensus 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-client_server_db_ae",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate client_server_db_ae 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-client_server_ae",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate client_server_ae 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-simple_election",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate simple_election 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-toy_consensus_epr",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate toy_consensus_epr 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-toy_consensus",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate toy_consensus 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-firewall",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate firewall 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-majorityset_leader_election",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate majorityset_leader_election 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-consensus_epr",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate consensus_epr 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-learning_switch",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate learning_switch 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-learning_switch_i4",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate learning_switch_i4 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "strict-paxos_epr",
+    "cmd": "GDP_CENSUS_TRIPWIRE=1 bun port-input/run-model.ts candidate paxos_epr 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-consensus",
+    "cmd": "bun port-input/off-model.ts candidate consensus 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-tcommit",
+    "cmd": "bun port-input/off-model.ts candidate tcommit 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-lock_server",
+    "cmd": "bun port-input/off-model.ts candidate lock_server 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-quorum_leader_election",
+    "cmd": "bun port-input/off-model.ts candidate quorum_leader_election 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-toy_consensus_forall",
+    "cmd": "bun port-input/off-model.ts candidate toy_consensus_forall 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-simple_regular",
+    "cmd": "bun port-input/off-model.ts candidate simple_regular 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-simple",
+    "cmd": "bun port-input/off-model.ts candidate simple 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-lockserv_automaton",
+    "cmd": "bun port-input/off-model.ts candidate lockserv_automaton 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-sharded_kv_no_lost_keys",
+    "cmd": "bun port-input/off-model.ts candidate sharded_kv_no_lost_keys 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-sharded_kv",
+    "cmd": "bun port-input/off-model.ts candidate sharded_kv 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-lockserv",
+    "cmd": "bun port-input/off-model.ts candidate lockserv 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-twophase",
+    "cmd": "bun port-input/off-model.ts candidate twophase 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-simple_decentralized_lock",
+    "cmd": "bun port-input/off-model.ts candidate simple_decentralized_lock 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-two_phase_commit",
+    "cmd": "bun port-input/off-model.ts candidate two_phase_commit 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-consensus_forall",
+    "cmd": "bun port-input/off-model.ts candidate consensus_forall 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-consensus_wo_decide",
+    "cmd": "bun port-input/off-model.ts candidate consensus_wo_decide 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-naive_consensus",
+    "cmd": "bun port-input/off-model.ts candidate naive_consensus 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-client_server_db_ae",
+    "cmd": "bun port-input/off-model.ts candidate client_server_db_ae 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-client_server_ae",
+    "cmd": "bun port-input/off-model.ts candidate client_server_ae 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-simple_election",
+    "cmd": "bun port-input/off-model.ts candidate simple_election 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-toy_consensus_epr",
+    "cmd": "bun port-input/off-model.ts candidate toy_consensus_epr 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-toy_consensus",
+    "cmd": "bun port-input/off-model.ts candidate toy_consensus 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-firewall",
+    "cmd": "bun port-input/off-model.ts candidate firewall 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-majorityset_leader_election",
+    "cmd": "bun port-input/off-model.ts candidate majorityset_leader_election 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-consensus_epr",
+    "cmd": "bun port-input/off-model.ts candidate consensus_epr 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-learning_switch",
+    "cmd": "bun port-input/off-model.ts candidate learning_switch 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-learning_switch_i4",
+    "cmd": "bun port-input/off-model.ts candidate learning_switch_i4 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  },
+  {
+    "name": "off-candidate-paxos_epr",
+    "cmd": "bun port-input/off-model.ts candidate paxos_epr 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 650,
+    "vm_type": "large"
+  }
+]

@@ -1,0 +1,1 @@
+[{"name":"counter-tests","cmd":"bun port-input/verify.ts tests","cpu":4,"memory":8192,"timeout":1200,"vm_type":"large"}]
