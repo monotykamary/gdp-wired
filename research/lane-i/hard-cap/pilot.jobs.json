@@ -1,0 +1,26 @@
+[
+  {
+    "name": "pilot-lock_server",
+    "cmd": "bun port-input/run-model.ts candidate lock_server 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 200,
+    "vm_type": "large"
+  },
+  {
+    "name": "pilot-client_server_ae",
+    "cmd": "bun port-input/run-model.ts candidate client_server_ae 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 200,
+    "vm_type": "large"
+  },
+  {
+    "name": "pilot-lockserv_automaton",
+    "cmd": "bun port-input/run-model.ts candidate lockserv_automaton 15000000",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 200,
+    "vm_type": "large"
+  }
+]

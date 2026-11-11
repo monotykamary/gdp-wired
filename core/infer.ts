@@ -1,4 +1,4 @@
-import {searchNow as countedSearchNow} from './wall.ts'
+import {searchNow as countedSearchNow, checkBudget} from './wall.ts'
 // Invariants nobody wrote: a law that holds but isn't inductive, proven with laws the search finds. Nothing here is
 // trusted; what it finds is proven by the kernel with the rule's own laws, as laws of the same rule.
 //   - runs: random runs from the start (params and requests by their kinds, the assumption met) give reachable states,
@@ -678,6 +678,7 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
   return withTrees(() => quietly(() => withDeadline(clock() + (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - countedSearchNow())), () => inferLawsSearch(target, laws, stepLaws, opts))))
 }
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
+  checkBudget('inference entry')
   // (GDP_INFER_TRACE=2: each phase's progress too, to stderr)
   if (env.GDP_INFER_TRACE === '2' && !opts.progress) opts = {...opts, progress: (phase, info) => (globalThis as unknown as {process: {stderr: {write: (s: string) => void}}}).process.stderr.write(`[infer ${phase}] ${JSON.stringify(info)}\n`)}
   const t0 = countedSearchNow(), ms = opts.ms ?? 20000, wallUntil = opts.wall ?? t0 + ms, rule = isRule(target) ? target.withSumsOf(laws, stepLaws) : undefined
@@ -686,7 +687,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const now = (): number => (timed ? countedSearchNow() - t0
     : used.tries / inferRates.tries + used.rows / inferRates.rows + used.evals / inferRates.evals + used.watched / inferRates.watched + (work.n - w0) / inferRates.work)
   let stopped = false
-  const stop = () => stopped || (stopped = countedSearchNow() > wallUntil)
+  const stop = () => { checkBudget('inference poll'); return stopped || (stopped = countedSearchNow() > wallUntil) }
   // The engine's clock (the stage below, from the small instance on): counted as `now` is, with the EPR path's work
   // (kernel/epr.ts's eprMeter) and the views' rows beside it, so that every choice it makes by its budget (a BFS cut, the
   // filter, a goal's cap, a round's growth) is the same on any machine; the wall (`stop`, `until` past `ms`) only ends it.
@@ -775,6 +776,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // of 5 but 0, say: a trial whose steps moved nothing doubles the bound at once)
   const skolems = m.inputs.some(i => i.startsWith('some$a'))
   for (let trial = 0, bound = 2, stuck = false; moreRuns(trial); trial++, bound = trial % 20 === 0 || stuck ? (bound >= 1024 ? 2 : bound * 2) : bound) {
+    checkBudget('inference trial')
     stuck = false; trials++
     // (a rule with maps: one trial in four goes on from a sample, of 64 drawn, holding the value of a state variable the
     // fewest states offered held, its requests at the smallest bound. The hull's bounds come from the states past the

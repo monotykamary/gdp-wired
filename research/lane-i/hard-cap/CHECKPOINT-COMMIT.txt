@@ -1,0 +1,5 @@
+fix: stop expired work at prover and sampling boundaries
+
+Add cancellation-only checks to refutation, inference and fresh sampling, and
+the untrusted prover poll functions. Tighten counted watch polling only while
+a work scope is active. Preserve legacy decisions and trusted checking code.

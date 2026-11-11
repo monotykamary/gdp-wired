@@ -288,7 +288,10 @@ export const withWork = <T>(cap: number, f: () => T): T => { const outer = workC
 // (the EPR path's propositional search, a node's propagation, building a large goal's rows) stops there too, and past it
 // every goal is left unknown, whatever its own budget. Untrusted: it only stops a search.
 let wallEnd = Infinity
-export const pastWall = (): boolean => inWorkScope() ? clock() > withinDeadline(budgetEnd()) : wallEnd !== Infinity && searchNow() > wallEnd
+export const pastWall = (): boolean => {
+  checkBudget('prover boundary')
+  return inWorkScope() ? clock() > withinDeadline(budgetEnd()) : wallEnd !== Infinity && searchNow() > wallEnd
+}
 export function withWall<T>(end: number, f: () => T): T {
   // Scoped callers supply searchWall()/clock() endpoints in counted units.
   // Keep A's inherited deadline semantics without consulting the wall clock.
@@ -301,7 +304,10 @@ export function withWall<T>(end: number, f: () => T): T {
 const ranOut = (): boolean => pastWall() || withinDeadline(Infinity) <= clock()
 // (the wall's end in force, Infinity where none: a search inside that stops itself there)
 export const wallAt = (): number => inWorkScope() ? withinDeadline(budgetEnd()) : wallEnd
-export const late = (until: number): boolean => clock() > until || (workCap !== Infinity && fullWork() > workCap) || pastWall()
+export const late = (until: number): boolean => {
+  checkBudget('prover poll')
+  return clock() > until || (workCap !== Infinity && fullWork() > workCap) || pastWall()
+}
 // A budget's end, within the deadline (a translation's own bound, core/cyclic.ts's, kept by the export's GDP_CERT_MS).
 export const withinDeadline = (until: number): number => Math.min(until, deadline - eprTimeSince(deadlineEpr))
 export function withDeadline<T>(until: number, f: () => T): T {

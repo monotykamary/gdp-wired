@@ -23,7 +23,7 @@ import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
-import {WallExpired, checkWall, searchWall, withBudget, BudgetExpired} from './wall.ts'
+import {WallExpired, checkWall, checkBudget, searchWall, withBudget, BudgetExpired} from './wall.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
@@ -2844,7 +2844,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     && facts.filter(readsParams).every(f => holds(f, params))
   const cap = watchWork.n + perTrial * budget.trials
   try {
-    const late = () => pastWall() || budget.until !== undefined && countedSearchNow() > budget.until
+    const late = () => { checkBudget('refutation poll'); return pastWall() || budget.until !== undefined && countedSearchNow() > budget.until }
     for (let trial = 0; trial < budget.trials && watchWork.n <= cap && !late(); trial++) {
       // (`mixed`: the trials in turn at bounds 1 to 4, every fourth near)
       const bound = budget.mixed ? 1 + trial % 4 : budget.bound, guided = guides, near = budget.mixed && trial % 4 ? undefined : budget.near
@@ -2945,6 +2945,7 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   r = r.withSumsOf(laws)
   noting(r, laws)
   const refuted = refuteByRuns(r, laws)
+  checkBudget('refutation result')
   // A state the laws allow whose step breaks one, with no run to it (a wide rule's: what the kernel's step goal would end
   // at), is a counterexample to induction: the laws may still hold, so the search goes on from it, as from the kernel's.
   // (A step law broken so is refused, proveSteps below: it holds from every state the laws allow, reached or not.)
@@ -2990,6 +2991,7 @@ function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
   r = r.withSumsOf(laws, stepLaws)
   noting(r, laws, stepLaws)
   const refuted = refuteByRuns(r, laws, stepLaws)
+  checkBudget('refutation result')
   // (a step law broken from a state the laws allow, with no run to it: the laws may need an invariant there, or the run
   // be further than these runs go; the search goes on from it, as from the kernel's)
   if (refuted) return refuted.run ? refutedVerdict(refuted) : searched(r, laws, stepLaws, refutedVerdict(refuted), opts)
