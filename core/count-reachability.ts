@@ -14,6 +14,11 @@ import {strategyLawKey} from './strategy-premises.ts'
 import {reachEdge,reachState,withReachabilityWork} from './work-observe.ts'
 import {BudgetExpired,checkBudget,clock,fullRate,keyValue} from '../kernel/prove.ts'
 import {WallExpired} from './wall.ts'
+// The production scheduler must opt in before context hashing, samples, replay
+// ledger creation or any screen-side allocation. Direct calls remain explicit.
+export function optionalReachabilityScreen<T>(create:()=>T):T|undefined{
+ return process.env.GDP_COUNT_REACHABILITY_SCREEN==='1'?create():undefined
+}
 type Params=Record<string,number>
 export type CountReachabilityModel=Readonly<Record<string,number>>
 export type CountReachabilityFunding=Map<string,{grant:number,used:number}>

@@ -55,7 +55,7 @@ import {prepareCountStrategyMachine, proveCountStrategies, proposeCountStrategie
 import {type CountTierBudget,countTierBudget,remainingCountTierBudget,ordinaryTierShare} from './count-tier-budget.ts'
 import {countRejectionBudget,remainingRejectionAllowance} from './count-rejection-budget.ts'
 import {countGenerationPhase} from './count-generation-phase.ts'
-import {countReachabilityScreen,type CountReachabilityFunding} from './count-reachability.ts'
+import {countReachabilityScreen,optionalReachabilityScreen,type CountReachabilityFunding} from './count-reachability.ts'
 import {reconcileReachableRejections,withoutReachableRejections} from './count-reachability-reconcile.ts'
 import {rejectionStage} from './rejection-discovery.ts'
 import {type RejectionStage,rejectionFamily} from './rejection-stage.ts'
@@ -642,13 +642,14 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
   }
   let set=rejections?rejectionFamily(rejections,initial):initial.slice()
   let reach:ReturnType<typeof countReachabilityScreen>|undefined
-  if(proofGuided){
+  if(proofGuided)reach=optionalReachabilityScreen(()=>{
     const setup=clock(),key=JSON.stringify(m)
     if(tierRun.reachability?.key!==key)tierRun.reachability={key,screen:countReachabilityScreen(tierRun.source??m,m,caller,workAllowance,undefined,tierRun.reachFunding??=new Map())}
-    reach=tierRun.reachability.screen
-    set=withoutReachableRejections(set,reach.rejectedNames())
+    const screen=tierRun.reachability.screen
+    set=withoutReachableRejections(set,screen.rejectedNames())
     countsDump.on?.({phase:'count-reachability-setup',units:(clock()-setup)*fullRate})
-  }
+    return screen
+  })
   const scopeEnabled = env.GDP_COUNT_STRATEGIES === '1'
   const attempts = countedAttempts(m, caller, support, proofGuided ? closingBudget!.until : until, structured, selected, workAllowance, budget, prerequisiteFirst ? initial : undefined), traced = attempts.traced
   const isCount = (mp: string) => !!m.counts?.[mp]
