@@ -1,0 +1,18 @@
+{
+  "version": "c2-production-gates-v1",
+  "candidate": {"commit": null, "tree": null, "sourceClosureSha256": null},
+  "flags": {"GDP_WORK_FULL": "1", "GDP_WORK_STEPS": "0", "GDP_COUNT_C2_LEMMAS": "1"},
+  "protocolId": null,
+  "searchWorkRaw": null,
+  "wallMs": null,
+  "rootGrant": null,
+  "workKeys": [],
+  "weightsSha256": null,
+  "originalMachineSha256": null,
+  "candidateRoster": [],
+  "closedRoster": [],
+  "exclusions": [],
+  "halfLaw": null,
+  "operations": [],
+  "authorization": {"status": "NOT_RUN", "releaseSha256": null}
+}

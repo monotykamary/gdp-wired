@@ -10,6 +10,8 @@ import {remainingAdmittedWork, workAdmissionSnapshot, workLedger} from './work-a
 
 export type LiftedWorkSlice = Readonly<{kind:'case'|'leaf',key:string,caseKey?:string,allocation:WorkAmount,scopeId:number,rootEpoch:number}>
 export type LiftedWorkSliceObserver = (slice:LiftedWorkSlice)=>void
+let sliceObserver:LiftedWorkSliceObserver|undefined
+export function withLiftedWorkSliceObservation<T>(observe:LiftedWorkSliceObserver,run:()=>T):T{const prior=sliceObserver;sliceObserver=observe;try{return run()}finally{sliceObserver=prior}}
 export type LiftedLeasePlan = Readonly<{original:WorkAmount,leaf:WorkAmount,operation:WorkAmount,cases:Readonly<Record<string,WorkAmount>>,observe?:LiftedWorkSliceObserver}>
 export type LiftedWorkBudget=Readonly<{workAllowance:number,leafUnits:number,caseUnits:number,full:boolean,lease?:LiftedLeasePlan}>
 export function liftedWorkBudget(workAllowance:number,full=completeWorkProfile.enabled):LiftedWorkBudget{
@@ -40,7 +42,8 @@ function withLiftedSlice<T>(kind:'case'|'leaf',key:string,allocation:WorkAmount,
  if(!completeWorkProfile.enabled||remainingAdmittedWork()===null)throw new Error('lifted work slice requires an inherited FULL endpoint')
  return workLedger.withBudget(allocation,()=>{
   const snapshot=workAdmissionSnapshot(),scope=snapshot.activeEndpoints.at(-1)!
-  observe?.({kind,key,caseKey,allocation,scopeId:scope.id,rootEpoch:snapshot.rootEpoch})
+  const slice={kind,key,caseKey,allocation,scopeId:scope.id,rootEpoch:snapshot.rootEpoch}
+  observe?.(slice);sliceObserver?.(slice)
   return run(Infinity)
  })
 }

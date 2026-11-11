@@ -1,4 +1,4 @@
-import {liftedLeafUntil} from './count-lifted-budget.ts'
+import {liftedLeafUntil,withLiftedLeaf} from './count-lifted-budget.ts'
 import {FrameFactPool} from './count-emitter-frame-pool.ts'
 // Generic stored-row replacement proposer. The strict path checks transports;
 // composition-only deferral leaves acceptance to the unchanged final checker.
@@ -115,7 +115,7 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
    const prefixFacts=new UnwrittenCountPrefix(step.decls,reads,[same(x(choice.name),n(choice.value)),m.pre,active],actor,bound,'cdcl',{deferCheck:deferred,leafUnits:options.leafUnits}),done=new Set<string>()
    const fact=(terms:Terms,when:C[],stage:string):boolean=>{
     const key=json([terms,when]);if(done.has(key))return true
-    const start=fullWork(),startWall=observe?traceNow():0,result=c2&&stage==='partition'?proveBooleanPartitionCut(counts,when,terms,liftedLeafUntil(until,options,500),observe):guardLinearFact(step.decls,reads,{name:'replacement '+stage,kind:'ordinary-replacement-definition',when,terms},liftedLeafUntil(until,options,100),event=>{if(c2){if(event.outcome!=='proof'&&event.outcome!=='proposal')observe?.({stage:'cut-refused',kind:'linear',label:stage,outcome:event.outcome,witness:event.witness,when,terms,counts:counts.filter(count=>terms.some(([,id])=>id===count.v))})}else{if(event.outcome!=='proof')observe?.({stage:stage+'-failure',outcome:event.outcome,witness:event.witness})}},'cdcl',{deferCheck:deferred})
+    const start=fullWork(),startWall=observe?traceNow():0,result=withLiftedLeaf(until,options,c2&&stage==='partition'?500:100,'leaf:replacement:fact:'+stage,end=>c2&&stage==='partition'?proveBooleanPartitionCut(counts,when,terms,end,observe):guardLinearFact(step.decls,reads,{name:'replacement '+stage,kind:'ordinary-replacement-definition',when,terms},end,event=>{if(c2){if(event.outcome!=='proof'&&event.outcome!=='proposal')observe?.({stage:'cut-refused',kind:'linear',label:stage,outcome:event.outcome,witness:event.witness,when,terms,counts:counts.filter(count=>terms.some(([,id])=>id===count.v))})}else{if(event.outcome!=='proof')observe?.({stage:stage+'-failure',outcome:event.outcome,witness:event.witness})}},'cdcl',{deferCheck:deferred}))
     observe?.({stage,checked:!deferred&&!!result,proposed:!!result,units:(fullWork()-start)/fullRate,wallMs:traceNow()-startWall});if(!result)return false
     lins.push(result.cut);done.add(key);return true
    }
@@ -128,7 +128,7 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
     for(const [post,pre,sign]of [[R(p,true),R(p),1],[R(p,true),R(p),-1],[V(p,true),V(p),1]] as [string,string,1|-1][]){
      const key=json([post,pre,sign]);if(done.has(key))continue
      if(post===V(p,true)&&sign===1){if(!fact([[1,post],[-1,pre]],[same(x(choice.name),n(choice.value)),m.pre!,domain,active,not(same(p,actor))],'unwritten-disabled'))return false;done.add(key);continue}
-     const start=fullWork(),startWall=observe?traceNow():0,cut=prefixFacts.prove(post,pre,[p],sign,until);observe?.({stage:'unwritten-prefix',checked:!deferred&&!!cut,proposed:!!cut,units:(fullWork()-start)/fullRate,wallMs:traceNow()-startWall});if(!cut)return false
+     const start=fullWork(),startWall=observe?traceNow():0,cut=options.leafWork?withLiftedLeaf(until,options,60,'leaf:replacement:unwritten',end=>prefixFacts.prove(post,pre,[p],sign,end)):prefixFacts.prove(post,pre,[p],sign,until);observe?.({stage:'unwritten-prefix',checked:!deferred&&!!cut,proposed:!!cut,units:(fullWork()-start)/fullRate,wallMs:traceNow()-startWall});if(!cut)return false
      lins.push(cut);done.add(key)
     }
     return true
@@ -137,13 +137,14 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
    const ask=(path:Path,stage:string,index?:number):Tree|undefined=>{
     let selectedLemma:LemmaCut|undefined
     if(late(until))return
-    const root=framePath(frames,[],path,[],lins),start=fullWork(),startWall=observe?traceNow():0,end=liftedLeafUntil(until,options,500),cacheKey=stage+':'+index+':'+truth(same(a,actor),path)+':'+truth(same(b,actor),path)
+    const root=framePath(frames,[],path,[],lins),start=fullWork(),startWall=observe?traceNow():0,cacheKey=stage+':'+index+':'+truth(same(a,actor),path)+':'+truth(same(b,actor),path)
+    return withLiftedLeaf(until,options,500,'leaf:replacement:'+stage+(index===undefined?'':':'+index),end=>{
     if(c2&&stage==='older-transport'&&index!==undefined){
      const cut=add(...insts[index]!.terms.map(([c,id])=>({[id]:c}))),known=lemmas.find(l=>canon(l.cut)===canon(cut)&&lemmaPath([l],root).size>root.size)
      if(known){const close=(p:Path):Tree|undefined=>{const r=framePath(frames,lemmas,p,[],lins),out=solve(rowsAt(goal,r),500);if(out.kind!=='refuted')return;const leaf:Tree={leaf:out.steps};roots.set(leaf,new Map(r));return leaf};const main=split.rows(known.when,path,close,close);observe?.({stage:'older-lemma-reuse',index,checked:!!main});return main}
     }
     for(const cached of remembered.get(cacheKey)??[]){
-     const tree=rebasePath(goal,cached.tree,cached.root,root,liftedLeafUntil(end,options,25),goal)
+     const tree=rebasePath(goal,cached.tree,cached.root,root,options.leafWork?end:liftedLeafUntil(end,options,25),goal)
      if(tree&&accepts(goal,tree,root)){roots.set(tree,new Map(root));observe?.({stage,index,checked:!deferred,proposed:true,reused:true,units:(fullWork()-start)/fullRate,wallMs:traceNow()-startWall});return tree}
     }
     const older=c2&&stage==='older-transport',postIds=c2?new Set(reads.filter(r=>r[1].endsWith('#')).map(r=>r[0])):undefined,isPost=(value:unknown)=>{let out=false;walkOnce(value,(node:any)=>{if(node.op==='get'&&node.map.endsWith('#')||node.op==='var'&&postIds!.has(node.name))out=true});return out},preRoot:Path=c2?new Map([...root].filter(([,a])=>!Object.keys(a.lin).some(k=>postIds!.has(k)||k.includes('#[')))):root,preGoal=c2?{...goal,hyps:goal.hyps.filter(h=>!isPost(h))}:goal
@@ -189,6 +190,7 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
      const main=split.rows(selectedLemma.when,path,close,close);observe?.({stage:'older-lemma-main',index,checked:!!main,lemmas:lemmas.length});return main
     }
     roots.set(tree,new Map(root));const previous=remembered.get(cacheKey)??[];if(previous.length<8)remembered.set(cacheKey,[...previous,{tree,root:new Map(root)}]);return tree
+    })
    }
    const quick=(path:Path):Tree|undefined=>{
     const root=framePath(frames,[],path,[],lins),view=mcGoal(copyQueryContext(step.goal.hyps,root,counts,insts,[]),step.decls,{reads,insts:[],picks:[]})
@@ -220,7 +222,7 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
       const root=framePath(frames,[],at,[],lins),needed=new Set([X,Q,V(actor),V(plan.other),R(actor),R(plan.other),D(actor,plan.other),D(plan.other,actor),H(actor,plan.other)])
       const minimal=mcGoal([m.pre!,domain,oldLaw],step.decls,{reads:reads.filter(([id])=>needed.has(id)),insts:[],picks:[]})
       if(!minimal)return
-      const start=fullWork(),startWall=observe?traceNow():0,tree=proveQuorumCountLeaf(goal,minimal,root,oldLaw,{first:Q,second:V(plan.other)},[sourceHalf,left?rightHalf!:leftHalf!],until,observe,{deferCheck:deferred,leafUnits:options.leafUnits})
+      const start=fullWork(),startWall=observe?traceNow():0,run=(end:number)=>proveQuorumCountLeaf(goal,minimal,root,oldLaw,{first:Q,second:V(plan.other)},[sourceHalf,left?rightHalf!:leftHalf!],end,observe,{deferCheck:deferred,leafUnits:options.leafUnits}),tree=options.leafWork?withLiftedLeaf(until,options,500,'leaf:replacement:quorum:'+olderStage,run):run(until)
       observe?.({stage:olderStage,checked:!deferred&&!!tree,proposed:!!tree,units:(fullWork()-start)/fullRate,wallMs:traceNow()-startWall})
       if(tree)roots.set(tree,new Map(root));return tree
      }
@@ -240,7 +242,7 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
    }
    const neither=(path:Path)=>{
     if(!unwritten(a)||!unwritten(b))return
-    for(const [p,q]of [[a,b],[b,a]])for(const [post,pre]of [[D(p!,q!,true),D(p!,q!)],[H(a,b,true),H(a,b)]])for(const sign of [1,-1] as const){const key=json([post,pre,sign]);if(done.has(key))continue;const cut=prefixFacts.prove(post!,pre!,[a,b],sign,until);if(!cut)return;lins.push(cut);done.add(key)}
+    for(const [p,q]of [[a,b],[b,a]])for(const [post,pre]of [[D(p!,q!,true),D(p!,q!)],[H(a,b,true),H(a,b)]])for(const sign of [1,-1] as const){const key=json([post,pre,sign]);if(done.has(key))continue;const cut=options.leafWork?withLiftedLeaf(until,options,60,'leaf:replacement:neither-prefix',end=>prefixFacts.prove(post!,pre!,[a,b],sign,end)):prefixFacts.prove(post!,pre!,[a,b],sign,until);if(!cut)return;lins.push(cut);done.add(key)}
     return ask(path,'neither-actor')
    }
    const diagonal=(path:Path)=>{

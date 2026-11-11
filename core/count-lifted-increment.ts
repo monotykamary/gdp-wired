@@ -1,4 +1,4 @@
-import {liftedLeafUntil} from './count-lifted-budget.ts'
+import {withLiftedLeaf} from './count-lifted-budget.ts'
 import {FrameFactPool} from './count-emitter-frame-pool.ts'
 // Conditional threshold-increment STEP proposal. Role discovery and the
 // family's no-quorum premise select witnesses; only the native checker accepts.
@@ -65,13 +65,15 @@ export function proveLiftedCountIncrement(m:Machine,family:Law[],law:Law,until:n
    observe?.({stage:'increment-premise',premise:premise.law.name,rowAlias:aliases[0],instances:insts.length})
    const ask=(path:Path,stage:string,index?:number):Tree|undefined=>{
     if(late(until))return
-    const root=framePath(frames,[],path),started=fullWork(),end=liftedLeafUntil(until,options,500)
+    const root=framePath(frames,[],path),started=fullWork()
+    return withLiftedLeaf(until,options,500,'leaf:increment:'+stage+(index===undefined?'':':'+index),end=>{
     const minimal=index===undefined?{goal:mcGoal(copyQueryContext(step.goal.hyps,root,counts,insts,[]),step.decls,{reads,insts:[],picks:[]}),path:root}:minimalTransportView(step.goal.hyps,step.decls,reads,insts,[insts[index]!],root)
     if(!minimal?.goal)return
     const result=minimalViewFirst(goal,minimal.goal,root,end,growCdcl,minimal.path,{deferCheck:deferred}),tree=result.tree
     observe?.({stage,index,checked:!!tree,hyps:minimal.goal.hyps.length,leafCap:late(end),units:(fullWork()-started)/fullRate,minimal:result.minimalKind,fullFallback:result.fallback,minimalUnits:result.minimalUnits,fallbackUnits:result.fallbackUnits,...(result.witness?{witness:result.witness}:{})})
     if(!tree||late(end))return
     roots.set(tree,new Map(root));return tree
+    })
    }
    const frame=(path:Path,every=false)=>{for(const read of reads.filter(read=>read[1].endsWith('#')&&(every||read[1]!==vote+'#'))){const before=reads.find(old=>old[1]===read[1].slice(0,-1)&&json(old[2])===json(read[2]));if(!before)continue;const cut={post:read[0],pre:before[0],when:[...path.values()].map(atom=>atom.holds?atom.lin:add(scale(atom.lin,-1),k(1)))};if(options.emitterFramePool){(framePool??=new FrameFactPool(counts,frames,until)).offer(cut)}else if(frameOk(counts,cut))frames.push(cut)}}
    const split=countGuardTree(until,{yesFirst:true}),factRow=(index:number)=>add(...insts[index]!.terms.map(([coefficient,id])=>({[id]:coefficient})))

@@ -10,7 +10,7 @@ import * as facts from './count-guard-facts.ts'
 import {UnwrittenCountPrefix} from './count-unwritten-prefix.ts'
 import {proveQuorumCountLeaf} from './count-quorum-leaf.ts'
 import {proveCountFrameGoal} from './count-frames.ts'
-import {liftedLeafUntil} from './count-lifted-budget.ts'
+import {liftedLeafUntil,withLiftedLeaf} from './count-lifted-budget.ts'
 const L=7000,stop={}
 function expressions(file:string,name:string,construct=false){
  const text=readFileSync(new URL(file,import.meta.url),'utf8'),source=ts.createSourceFile(file,text,ts.ScriptTarget.Latest,true),out:ts.Expression[][]=[]
@@ -58,16 +58,17 @@ test('frame per-key helper receives the frame emitter leaf allowance',()=>{
  intercepted(()=>{proveCountFrameGoal(goal,decls,request,{name:'action',value:4,values:[0,1,4]},new Set(['C']),prover.clock()+50000,undefined,options)},capture=>spyOn(prover,'grow').mockImplementation((_g,_p,opts)=>capture(opts!.until!)),100)
 })
 for(const [name,file]of [['copy','./count-lifted-copy.ts'],['replacement','./count-lifted-replacement.ts'],['increment','./count-lifted-increment.ts'],['load','./count-lifted-load.ts']]as const)test(name+' short/query helper expressions reuse W/120 and their absolute parent',()=>{
- const calls=expressions(file,'liftedLeafUntil');expect(calls.length).toBeGreaterThan(0)
- prover.withBudget(1e9,()=>{for(const args of calls){
-  expect(args[1]).toBe('options');const legacy=Number(args[2]);expect(Number.isFinite(legacy)).toBe(true)
+ const calls=[...expressions(file,'liftedLeafUntil').map(args=>({args,scoped:false})),...expressions(file,'withLiftedLeaf').map(args=>({args,scoped:true}))];expect(calls.length).toBeGreaterThan(0)
+ prover.withBudget(1e9,()=>{for(const {args,scoped} of calls){
+  expect(args[1]).toBe('options');const alternatives=args[2]==="c2&&stage==='partition'?500:100"?[500,100]:[Number(args[2])]
+  for(const legacy of alternatives){expect(Number.isFinite(legacy)).toBe(true)
   const parentName=args[0];if(parentName!=='until'&&parentName!=='deadline'&&parentName!=='end')throw Error('unsupported leaf parent')
-  const evaluate=(leafUntil:typeof liftedLeafUntil,until:number,deadline:number,end:number,options:Parameters<typeof liftedLeafUntil>[1])=>leafUntil({until,deadline,end}[parentName],options,legacy)
+  const evaluate=(leafUntil:typeof liftedLeafUntil,until:number,deadline:number,end:number,options:Parameters<typeof liftedLeafUntil>[1])=>scoped?withLiftedLeaf({until,deadline,end}[parentName],options,legacy,'test:static-routing',value=>value):leafUntil({until,deadline,end}[parentName],options,legacy)
   const now=prover.clock(),parent=now+50000,value=evaluate(liftedLeafUntil,parent,parent,parent,{leafUnits:L})
   expect(value-now).toBeCloseTo(completeWorkProfile.enabled?L:legacy,4)
   expect(evaluate(liftedLeafUntil,now+1,now+1,now+1,{leafUnits:L})).toBe(now+1)
   expect(evaluate(liftedLeafUntil,parent,parent,parent,{} )-now).toBeCloseTo(legacy,4)
- }})
+ }}})
 })
 test('direct prefix with no leaf option keeps legacy60 even in FULL1',()=>{
  const decls=[{map:'C',j:'j',key:'k',below:n(2),body:get('Cells',x('k'))},{map:'C#',j:'j',key:'k',below:n(2),body:get('Cells',x('k'))}],reads:[string,string,ReturnType<typeof x>][]=[['pre','C',x('a')],['post','C#',x('a')]]

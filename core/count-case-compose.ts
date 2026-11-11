@@ -14,10 +14,11 @@ import {dedupeCountInstances, minimizeCountCertificate} from './count-certificat
 import {countRowReindexer, operationRefutation} from './count-row-reindex.ts'
 import {type CountCert, type Goal, type Instances, type Path, type Tree, boundOf, substC, canon, canonFlip, checkMC, countedObligations, framePath, mcGoal} from '../kernel/kernel.ts'
 import {fullRate, fullWork, late, rowsAt, withDeadline} from '../kernel/prove.ts'
+import {BudgetExpired} from './work-admission.ts'
 import {proverRowsReusingFacts} from '../kernel/prover-rows.ts'
 import {type Lin, type Step, add, k} from './solver.ts'
 export type FixedOperationProof = {value: number, proof: CountStrategyProof}
-export function composeCountOperationProofs(context: GuardCountContext, family: Law[], law: Law, cases: FixedOperationProof[], until: number, requestFor: CountRequestBuilder, observe?: (stage: string, value?: number) => void, options: {familyProposal?: FamilyStepProposal, reindexMode?: 'offset' | 'exact', initial?: CountCert, trace?: CountStageObserver, minimize?: boolean, slicedLemmas?: boolean, reindexFactsOnly?: boolean} = {}): CountStrategyProof | undefined {
+export function composeCountOperationProofs(context: GuardCountContext, family: Law[], law: Law, cases: FixedOperationProof[], until: number, requestFor: CountRequestBuilder, observe?: (stage: string, value?: number) => void, options: {propagateBudgetExpiry?: boolean, familyProposal?: FamilyStepProposal, reindexMode?: 'offset' | 'exact', initial?: CountCert, trace?: CountStageObserver, minimize?: boolean, slicedLemmas?: boolean, reindexFactsOnly?: boolean} = {}): CountStrategyProof | undefined {
   return withDeadline(until, () => {
     const trace = countStageTrace(options.trace, 'composition-total')
     try {
@@ -202,7 +203,7 @@ export function composeCountOperationProofs(context: GuardCountContext, family: 
         return composeCountOperationProofs(context, family, law, cases, until, requestFor, observe, {...options, reindexMode: 'exact'})
       }
       return result && recordCountStrategyPremises(family, result)
-    } catch (error) {observe?.('compose-error:' + (error instanceof Error ? error.message : String(error))); return}
+    } catch (error) {if(options.propagateBudgetExpiry&&error instanceof BudgetExpired)throw error;observe?.('compose-error:' + (error instanceof Error ? error.message : String(error))); return}
     finally {trace.finish()}
   })
 }

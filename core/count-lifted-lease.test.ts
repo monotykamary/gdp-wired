@@ -1,5 +1,5 @@
 import {expect,test} from 'bun:test'
-import {liftedLeaseOptions,liftedWorkLeaseBudget,withLiftedCase,withLiftedLeaf,type LiftedWorkSlice} from './count-lifted-budget.ts'
+import {liftedLeaseOptions,liftedWorkLeaseBudget,withLiftedCase,withLiftedLeaf,withLiftedWorkSliceObservation,type LiftedWorkSlice} from './count-lifted-budget.ts'
 import {BudgetExpired,startWork,withWorkAdmissionTrace,workAdmissionSnapshot,workLedger} from './work-admission.ts'
 import {compareWork,workAdd,workAmount,workFromExact,workShare} from './work-amount.ts'
 import {completeWorkProfile} from './work-profile.ts'
@@ -57,6 +57,15 @@ full('invalid exact grants and overrides are refused before a scope starts',()=>
  for(const value of [workAmount(-1n),{num:1n,den:0n}])expect(()=>liftedWorkLeaseBudget(value)).toThrow(RangeError)
  expect(()=>liftedWorkLeaseBudget(workAmount(1n),{leaf:workAmount(-1n)})).toThrow(RangeError)
  expect(()=>liftedWorkLeaseBudget(workAmount(1n),{cases:{'op:1':workAmount(-1n)}})).toThrow(RangeError)
+})
+full('passive slice observers restore nested scope on refusal and do not stay installed',()=>{
+ const outer:LiftedWorkSlice[]=[],inner:LiftedWorkSlice[]=[],budget=liftedWorkLeaseBudget(workAmount(12000n)),failure={}
+ withLiftedWorkSliceObservation(s=>outer.push(s),()=>workLedger.withBudget(workAmount(100000n),()=>{
+  try{withLiftedWorkSliceObservation(s=>inner.push(s),()=>withLiftedCase(Infinity,budget,false,'op:1',()=>{throw failure}))}catch(error){expect(error).toBe(failure)}
+  withLiftedCase(Infinity,budget,false,'op:2',()=>true)
+ }))
+ workLedger.withBudget(workAmount(100000n),()=>withLiftedCase(Infinity,budget,false,'op:3',()=>true))
+ expect(inner.map(s=>s.key)).toEqual(['op:1']);expect(outer.map(s=>s.key)).toEqual(['op:2'])
 })
 test('without an exact option the historical helper path remains available',()=>{
  let called=false

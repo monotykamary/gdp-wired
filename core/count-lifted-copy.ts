@@ -1,4 +1,4 @@
-import {liftedLeafUntil} from './count-lifted-budget.ts'
+import {liftedLeafUntil,withLiftedLeaf} from './count-lifted-budget.ts'
 import {FrameFactPool} from './count-emitter-frame-pool.ts'
 // A row-copy STEP proposal from discovered source/target roles and the lifted
 // law's own tuples. All transports are ordinary checked per-key linear facts.
@@ -59,11 +59,12 @@ export function proveLiftedCountCopy(m:Machine,family:Law[],law:Law,until:number
    const ask=(path:Path,index:number,frame=false,stage='case'):Tree|undefined=>{
     if(late(until))return
     if(frame)for(const [post,map,key]of postReads){const cut={post,pre:read(map.slice(0,-1),key),when:[...path.values()].map(atom=>atom.holds?atom.lin:add(scale(atom.lin,-1),k(1)))};if(options.emitterFramePool){(framePool??=new FrameFactPool(counts,frames,until)).offer(cut)}else if(frameOk(counts,cut))frames.push(cut)}
-    const root=framePath(frames,[],path,[],lins),view=mcGoal(stage==='fact'?scalarHyps:caseHyps[index]!,step.decls,request),deadline=liftedLeafUntil(until,options,500),before=fullWork(),remember=(tree:Tree)=>{roots.set(tree,new Map(root));return tree}
+    const root=framePath(frames,[],path,[],lins),view=mcGoal(stage==='fact'?scalarHyps:caseHyps[index]!,step.decls,request),before=fullWork(),remember=(tree:Tree)=>{roots.set(tree,new Map(root));return tree}
+    return withLiftedLeaf(until,options,500,'leaf:copy:'+stage+':'+index,deadline=>{
     if(!view)return
     const cached=composed.get(index)
     if(cached&&stage==='linear-composed'){
-     const end=liftedLeafUntil(deadline,options,25),tree=rebasePath(goal,cached.tree,cached.path,root,end,goal)??replayLinearSkeleton(goal,cached.tree,root,end,{deferCheck:deferred})
+     const end=options.leafWork?deadline:liftedLeafUntil(deadline,options,25),tree=rebasePath(goal,cached.tree,cached.path,root,end,goal)??replayLinearSkeleton(goal,cached.tree,root,end,{deferCheck:deferred})
      if(tree&&accepts(goal,tree,root)){observe?.({stage,index,reused:true,units:(fullWork()-before)/fullRate});return remember(tree)}
     }
     const direct=solve(rowsAt(view,root),1000)
@@ -76,6 +77,7 @@ export function proveLiftedCountCopy(m:Machine,family:Law[],law:Law,until:number
     if(!tree||late(until))return
     if(stage==='linear-composed'&&accepts(goal,tree,root))composed.set(index,{tree,path:root})
     return remember(tree)
+    })
    }
    const transport=(path:Path,index:number):Tree|undefined=>{
     if(!linearCases.has(index)){
@@ -86,8 +88,8 @@ export function proveLiftedCountCopy(m:Machine,family:Law[],law:Law,until:number
       if(dependencies.has(law.forall!+'#'))when.push(index>=2?same(a,to):not(same(a,to)))
       if(dependencies.has(law.keys![0]!))when.push(index%2?same(b,to):not(same(b,to)))
       const key=json([inst.terms,when]);if(facts.has(key))continue
-      const before=fullWork(),fact=guardLinearFact(step.decls,reads,{name:'row copy transport',kind:'ordinary-copy',when,terms:inst.terms},liftedLeafUntil(until,options,100),event=>{if(event.outcome!=='proof')observe?.({stage:'copy-transport-failure',index,witness:event.witness,outcome:event.outcome})})
-      observe?.({stage:'copy-transport',index,checked:!!fact,units:(fullWork()-before)/fullRate})
+      const before=fullWork(),fact=withLiftedLeaf(until,options,100,'leaf:copy:transport:'+index,end=>guardLinearFact(step.decls,reads,{name:'row copy transport',kind:'ordinary-copy',when,terms:inst.terms},end,event=>{if(event.outcome!=='proof'&&event.outcome!=='proposal')observe?.({stage:'copy-transport-failure',index,witness:event.witness,outcome:event.outcome})},'grow',{deferCheck:deferred}))
+      observe?.({stage:'copy-transport',index,constructed:!!fact,checked:!!fact&&fact.status!=='unchecked',deferred:fact?.status==='unchecked',units:(fullWork()-before)/fullRate})
       if(!fact)return
       facts.set(key,fact.cut);lins.push(fact.cut)
      }

@@ -9,6 +9,29 @@ import {certFor} from './counts.ts'
 import {check,checkMC,countedObligations,mcGoal} from '../kernel/kernel.ts'
 import {clock,counted,fullRate,grow,inBudget,withBudget} from '../kernel/prove.ts'
 import {coreMeter} from './meter.ts'
+import {completeWorkProfile} from './work-profile.ts'
+import {liftedWorkLeaseBudget,type LiftedWorkSlice} from './count-lifted-budget.ts'
+import {workAmount,workShare,compareWork} from './work-amount.ts'
+import {workAdmissionSnapshot,workLedger} from './work-admission.ts'
+(completeWorkProfile.enabled?test:test.skip)('explicit exact lease plan composes and natively checks frame cases with no numeric deadline fallback',()=>{
+ const original=workAmount(1_000_000_000n),slices:LiftedWorkSlice[]=[],budget=liftedWorkLeaseBudget(original,{observe:s=>slices.push(s)})
+ workLedger.withBudget(original,()=>{
+  const {m,g,law}=generated()
+  m.pre=all(atMost(n(1),x('size')),atMost(x('size'),n(8)))
+  m.inputs.push('operation');m.assume=all(m.assume!,any(...[11,12,13].map(value=>same(x('operation'),n(value)))));m.step={...m.step,maps:{}}
+  const proof=proveLiftedCountComposition(m,g.laws,law,0,(goal,decls)=>certFor(goal,decls,false,0,()=>true),undefined,budget)
+  expect(proof).toBeDefined();if(!proof)return
+  expect(slices.filter(s=>s.kind==='case').map(s=>s.key)).toEqual(['op:11','op:12','op:13'])
+  expect(slices.some(s=>s.kind==='leaf')).toBe(true)
+  expect(new Set(slices.map(s=>s.scopeId)).size).toBe(slices.length)
+  for(const slice of slices)expect(compareWork(slice.allocation,workShare(original,1n,slice.kind==='case'?30n:120n))).toBe(0)
+  expect(workAdmissionSnapshot().activeEndpoints).toHaveLength(1)
+  const packets=countedObligations(m,g.laws,{[law.name]:proof.instances},g.laws.indexOf(law))
+  expect(packets).toHaveLength(2)
+  for(const packet of packets)expect(checkMC(packet.goal.hyps,packet.decls,proof.certs[packet.goal.name]!)).toBe(true)
+  expect(packets.some(packet=>!checkMC(packet.goal.hyps,packet.decls,{...proof.certs[packet.goal.name]!,tree:{leaf:[]}}))).toBe(true)
+ })
+})
 const bit = (c: C) => ite(c, n(1), n(0))
 const fixture = (base = 8): Machine => {
   const cell = (r: E, k: E) => same(get('Rows', plus(times(base, r), k)), n(1)), member = (k: E) => atMost(n(1), get('Proposal', k))

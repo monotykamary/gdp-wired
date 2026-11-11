@@ -1,4 +1,4 @@
-import {liftedLeafUntil} from './count-lifted-budget.ts'
+import {liftedLeafUntil,withLiftedLeaf} from './count-lifted-budget.ts'
 import {FrameFactPool} from './count-emitter-frame-pool.ts'
 // Generic marked-load STEP proposer. Every premise comes from structural
 // discovery in the caller's family; no saved certificate or named law is used.
@@ -62,7 +62,8 @@ export function proveLiftedCountLoad(m:Machine,family:Law[],law:Law,until:number
    const prefixFact=(postId:string,preId:string,rows:E[],sign:1|-1)=>{
     if(late(until))return
     const positive=sign===1?postId:preId,negative=sign===1?preId:postId,opposite=lins.find(cut=>cut.pos.length===1&&cut.neg.length===1&&cut.pos[0]![0]===1&&cut.neg[0]![0]===1&&cut.pos[0]![1]===negative&&cut.neg[0]![1]===positive)
-    return opposite&&checkedReversePrefix(counts,opposite)||prefix.prove(postId,preId,rows,sign,until)
+    const run=(end:number)=>opposite&&checkedReversePrefix(counts,opposite)||prefix.prove(postId,preId,rows,sign,end)
+    return options.leafWork?withLiftedLeaf(until,options,60,'leaf:load:prefix',run):run(until)
    }
    for(const endpoint of [a,b])for(const sign of [1,-1] as const){const cut=prefixFact(find(rowName+'#',endpoint),find(rowName,endpoint),[endpoint],sign);if(cut)lins.push(cut)}
    for(const endpoint of [a,b]){const cut=prefixFact(find(voteName+'#',endpoint),find(voteName,endpoint),[endpoint],1);if(cut)lins.push(cut)}
@@ -78,11 +79,12 @@ export function proveLiftedCountLoad(m:Machine,family:Law[],law:Law,until:number
      const pre=reads.find(read=>read[1]===map.slice(0,-1)&&json(read[2])===json(key))
      if(pre){const cut={post:postId,pre:pre[0],when:[...path.values()].map(atom=>atom.holds?atom.lin:add(scale(atom.lin,-1),k(1)))};if(options.emitterFramePool){(framePool??=new FrameFactPool(counts,frames,until)).offer(cut)}else if(frameOk(counts,cut))frames.push(cut)}
     }
-    const root=framePath(frames,[],path,[],lins),before=fullWork(),deadline=liftedLeafUntil(until,options,500),remember=(tree:Tree)=>{roots.set(tree,new Map(root));return tree}
+    const root=framePath(frames,[],path,[],lins),before=fullWork(),remember=(tree:Tree)=>{roots.set(tree,new Map(root));return tree}
+    return withLiftedLeaf(until,options,500,'leaf:load:'+stage,deadline=>{
     const direct=solve(rowsAt(goal,root),500)
     if(direct.kind==='refuted')return remember({leaf:direct.steps})
     const cached=reused.get(stage)
-    if(cached){const end=liftedLeafUntil(deadline,options,25),tree=rebasePath(cached.goal,cached.tree,cached.path,root,end,goal)??replayLinearSkeleton(goal,cached.tree,root,end,{deferCheck:deferred});if(tree&&accepts(goal,tree,root))return remember(tree)}
+    if(cached){const end=options.leafWork?deadline:liftedLeafUntil(deadline,options,25),tree=rebasePath(cached.goal,cached.tree,cached.path,root,end,goal)??replayLinearSkeleton(goal,cached.tree,root,end,{deferCheck:deferred});if(tree&&accepts(goal,tree,root))return remember(tree)}
     const selected=stage==='both-written'||stage.endsWith('-loaded')?insts.filter(inst=>inst.terms.length===1):stage.endsWith('-empty')?insts.filter(inst=>inst.terms.length===2&&inst.terms[0]![1]===find(voteName+'#',stage.startsWith('a-written')?b:a)):[]
     let searchRoot=root
     if(stage.endsWith('-loaded')){
@@ -96,6 +98,7 @@ export function proveLiftedCountLoad(m:Machine,family:Law[],law:Law,until:number
     observe?.({stage,checked:!!lift,units:(fullWork()-before)/fullRate,...(!('tree'in result)?{outcome:result.stuck,witness:result.witness}:{})})
     if(general&&!reused.has(stage))reused.set(stage,{tree:general,path:searchRoot,goal})
     return lift&&accepts(goal,lift,root)&&!late(until)?remember(lift):undefined
+    })
    }
    const split=countGuardTree(until,{yesFirst:true}),marked=(row:E,path:Path,stage:string)=>split.condition(atMost(n(load.marker.value),get(load.marker.map,row)),path,p=>ask(p,stage+'-loaded'),p=>ask(p,stage+'-empty',true))
    const regions=(path:Path)=>split.condition(same(a,written),path,p=>split.condition(same(b,written),p,q=>ask(q,'both-written'),q=>marked(b,q,'a-written')),p=>split.condition(same(b,written),p,q=>marked(a,q,'b-written'),q=>ask(q,'neither-written',true)))
