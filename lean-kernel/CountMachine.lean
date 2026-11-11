@@ -662,6 +662,300 @@ theorem mc_sound (hyps : List C) (ds : List CDecl) (k : CCert) (hck : checkMC hy
         · exact (hag j (fun i hi he => by have := (hwf c hcm i hi).2.2; rw [he, hj] at this; cases this)).symm))
     · cases hph
 
+/-! Frames (Count.lean's FrameCuts) at the machine's counted goals: the same checks with frames over the certificate's reads. -/
+
+-- The witness-generalized counted check with frames over the goal's own counts.
+def checkCountedWF (hyps : List C) (cs : List Count) (is : List CInst) (tab : List VDef) (t : Tree) (frames : List FrameCut) (lemmas : List CutLemma := []) (monos : List MonoCut := []) (lins : List LinCut := []) : Bool :=
+  countedOkW cs is && match countHyps cs is with
+    | some hs => checkGoalFrames ⟨tab, hyps ++ hs⟩ cs t lemmas frames monos lins
+    | none => false
+
+/-- With no frames the witness-generalized check is unchanged. -/
+theorem checkCountedWF_nil (hyps : List C) (cs : List Count) (is : List CInst) (tab : List VDef) (t : Tree) (lemmas : List CutLemma) :
+    checkCountedWF hyps cs is tab t [] lemmas = checkCountedW hyps cs is tab t lemmas := by
+  cases h : countHyps cs is <;> simp [checkCountedWF, checkCountedW, h]
+
+theorem countedWF_sound (hyps : List C) (cs : List Count) (is : List CInst) (tab : List VDef) (t : Tree) (frames : List FrameCut) {lemmas : List CutLemma} {monos : List MonoCut} {lins : List LinCut}
+    (hck : checkCountedWF hyps cs is tab t frames lemmas monos lins = true)
+    (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hc : ∀ c ∈ cs, c.Holds ρ M)
+    (hH : ∀ ρw : Nat → Nat, (∀ j, (∀ i ∈ is, i.wit ≠ j) → ρw j = ρ j) → ∀ h ∈ hyps, evalC ρw M h = true) : False := by
+  simp only [checkCountedWF, Bool.and_eq_true] at hck
+  obtain ⟨hok, hgoal⟩ := hck
+  simp only [countedOkW, Bool.and_eq_true, List.all_eq_true] at hok
+  obtain ⟨hdist, hfresh⟩ := hok
+  have hfr : ∀ i ∈ is, (∀ c ∈ cs, c.v ≠ i.wit ∧ occE i.wit c.below = false ∧ occE i.wit c.body = false) ∧ (∀ j ∈ is, occE i.wit j.below = false) := by
+    intro i hi
+    have := hfresh i hi
+    simp only [witFreshW, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq] at this
+    exact ⟨fun c hc => ⟨(this.1 c hc).1.1, (this.1 c hc).1.2, (this.1 c hc).2⟩, this.2⟩
+  cases hhs : countHyps cs is with
+  | none => simp [hhs] at hgoal
+  | some hs =>
+  simp only [hhs] at hgoal
+  have hx : ∀ i : CInst, ∃ x : Nat, ∀ rs, resolve cs i.below i.terms = some rs →
+      sumBelow (fun k => ptSide posP ρ M rs k + posP i.unit) (evalE ρ M i.below) ≤ sumBelow (fun k => ptSide negP ρ M rs k + negP i.unit) (evalE ρ M i.below)
+      ∨ (x < evalE ρ M i.below ∧ ptSide negP ρ M rs x + negP i.unit < ptSide posP ρ M rs x + posP i.unit) := by
+    intro i
+    cases hr : resolve cs i.below i.terms with
+    | none => exact ⟨0, fun rs h => by simp at h⟩
+    | some rs =>
+      by_cases hlt : sumBelow (fun k => ptSide negP ρ M rs k + negP i.unit) (evalE ρ M i.below) < sumBelow (fun k => ptSide posP ρ M rs k + posP i.unit) (evalE ρ M i.below)
+      · obtain ⟨k, hk, hk'⟩ := exists_lt_of_sumBelow_lt hlt
+        exact ⟨k, fun rs' h => by simp only [Option.some.injEq] at h; subst h; exact Or.inr ⟨hk, hk'⟩⟩
+      · exact ⟨0, fun rs' h => by simp only [Option.some.injEq] at h; subst h; exact Or.inl (Nat.le_of_not_lt hlt)⟩
+  obtain ⟨xs, hxs⟩ : ∃ xs : CInst → Nat, ∀ i rs, resolve cs i.below i.terms = some rs →
+      sumBelow (fun k => ptSide posP ρ M rs k + posP i.unit) (evalE ρ M i.below) ≤ sumBelow (fun k => ptSide negP ρ M rs k + negP i.unit) (evalE ρ M i.below)
+      ∨ (xs i < evalE ρ M i.below ∧ ptSide negP ρ M rs (xs i) + negP i.unit < ptSide posP ρ M rs (xs i) + posP i.unit) :=
+    ⟨fun i => Classical.choose (hx i), fun i => Classical.choose_spec (hx i)⟩
+  obtain ⟨ρs, hother, hat⟩ : ∃ ρs : Nat → Nat, (∀ j, (∀ i ∈ is, i.wit ≠ j) → ρs j = ρ j) ∧ (∀ i ∈ is, ρs i.wit = xs i) := by
+    have hws : (is.map fun i => (i.wit, xs i)).map (·.1) = is.map (·.wit) := by induction is <;> simp_all
+    refine ⟨setWits ρ (is.map fun i => (i.wit, xs i)), fun j hj => setWits_other ?_, fun i hi => ?_⟩
+    · rw [hws]; intro hm; obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hm; exact hj i hi rfl
+    · exact setWits_at (ρ := ρ) (ws := is.map fun i => (i.wit, xs i)) (by rw [hws]; exact hdist) (p := (i.wit, xs i)) (List.mem_map.mpr ⟨i, hi, rfl⟩)
+  have hvar : ∀ c ∈ cs, ρs c.v = ρ c.v := fun c hc => hother c.v (fun i hi he => ((hfr i hi).1 c hc).1 he.symm)
+  have hbound : ∀ e : E, (∀ i ∈ is, occE i.wit e = false) → evalE ρs M e = evalE ρ M e := fun e he =>
+    congrE ρs ρ M e (fun j hj => hother j (fun i hi hij => by have := he i hi; rw [hij] at this; simp [this] at hj))
+  have hbody : ∀ c ∈ cs, ∀ k, evalE (upd ρs c.key k) M c.body = evalE (upd ρ c.key k) M c.body := fun c hc k =>
+    congrE _ _ M c.body (fun j hj => by
+      simp only [upd]; split
+      · rfl
+      · exact hother j (fun i hi hij => by
+          have := ((hfr i hi).1 c hc).2.2; rw [hij] at this; simp [this] at hj))
+  have hpt : ∀ (part : Int → Nat) (rs : List (Int × Count)), (∀ r ∈ rs, r.2 ∈ cs) → ∀ k, ptSide part ρs M rs k = ptSide part ρ M rs k := by
+    intro part rs hrs k
+    induction rs with
+    | nil => rfl
+    | cons r rs ih =>
+      simp only [ptSide, hbody r.2 (hrs r List.mem_cons_self) k, ih (fun r' hr' => hrs r' (List.mem_cons_of_mem _ hr'))]
+  have hinst : ∀ i ∈ is, ∀ h, countHyp cs i = some h → evalC ρs M h = true := by
+    intro i hi h hh
+    simp only [countHyp, Option.map_eq_some_iff] at hh
+    obtain ⟨rs, hr, rfl⟩ := hh
+    have hrm := resolve_mem hr
+    have hB : evalE ρs M i.below = evalE ρ M i.below := hbound i.below (fun j hj => (hfr j hj).2 i hi)
+    have hcnt : ∀ r ∈ rs, ρs r.2.v = sumBelow (fun k => evalE (upd ρs r.2.key k) M r.2.body) (evalE ρ M i.below) := by
+      intro r hr'
+      obtain ⟨hcm, hcb⟩ := hrm r hr'
+      have h1 : ρ r.2.v = sumBelow (fun k => evalE (upd ρ r.2.key k) M r.2.body) (evalE ρ M r.2.below) := hc r.2 hcm
+      rw [hvar r.2 hcm, h1, hcb]
+      exact sumBelow_congr _ (fun k _ => (hbody r.2 hcm k).symm)
+    have hS : ∀ part, evalE ρs M (side part atCount i.below i.unit rs)
+        = sumBelow (fun k => ptSide part ρ M rs k + part i.unit) (evalE ρ M i.below) := by
+      intro part
+      have e1 : evalE ρs M (side part atCount i.below i.unit rs) = sumSide part ρs rs + part i.unit * evalE ρ M i.below := by
+        simp only [side, evalE, eval_sumE_count, hB]
+      have e2 : sumBelow (fun k => ptSide part ρ M rs k + part i.unit) (evalE ρ M i.below)
+          = sumBelow (ptSide part ρ M rs) (evalE ρ M i.below) + part i.unit * evalE ρ M i.below := by
+        rw [sumBelow_add (ptSide part ρ M rs) (fun _ => part i.unit), sumBelow_const]
+      have e3 : sumSide part ρs rs = sumBelow (ptSide part ρ M rs) (evalE ρ M i.below) := by
+        rw [sumSide_eq part ρs M _ rs hcnt]
+        exact sumBelow_congr _ (fun k _ => hpt part rs (fun r hr' => (hrm r hr').1) k)
+      rw [e1, e2, e3]
+    have hW : ∀ part, evalE ρs M (side part (atWit i.wit) (.const 1) i.unit rs) = ptSide part ρ M rs (xs i) + part i.unit := by
+      intro part
+      simp only [side, evalE, eval_sumE_wit, hat i hi, hpt part rs (fun r hr' => (hrm r hr').1), Nat.mul_one]
+    have hv := hxs i rs hr
+    simp only [evalC, hS, hW, evalE, hat i hi, hB, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    exact hv
+  have hholds' : ∀ c ∈ cs, c.Holds ρs M := by
+    intro c hcm
+    have h1 : ρ c.v = sumBelow (fun k => evalE (upd ρ c.key k) M c.body) (evalE ρ M c.below) := hc c hcm
+    simp only [Count.Holds]
+    rw [hvar c hcm, h1, hbound c.below (fun i hi => ((hfr i hi).1 c hcm).2.1)]
+    exact sumBelow_congr _ (fun k _ => (hbody c hcm k).symm)
+  exact goalFrames_sound ⟨tab, hyps ++ hs⟩ cs t lemmas frames monos lins hgoal ρs M hholds' (fun h hm => by
+    rcases List.mem_append.mp hm with hm | hm
+    · exact hH ρs hother h hm
+    · obtain ⟨i, hi, hh⟩ := countHyps_mem hhs h hm
+      exact hinst i hi h hh)
+
+
+-- checkMC with frames: the same conditions, the counted goal checked with the frames.
+def checkMCF (hyps : List C) (ds : List CDecl) (k : CCert) (frames : List FrameCut) (monos : List MonoCut := []) (lins : List LinCut := []) : Bool :=
+  namedIn hyps k.hyps hyps && ds.all (fun d => d.j != d.key && d.lo != d.key) && readsOk k.hyps ds k.reads
+    && k.reads.all (fun r => k.insts.all (fun i => i.wit != r.1 && !occE i.wit r.2.2))
+    && match toCounts ds k.reads with
+      | some cs => checkCountedWF (k.hyps ++ k.reads.map (readHyp ds) ++ pickHyps ds k.reads k.picks) cs k.insts k.tab k.tree frames k.lemmas monos lins
+      | none => false
+
+/-- With no frames checkMC is unchanged. -/
+theorem checkMCF_nil (hyps : List C) (ds : List CDecl) (k : CCert) : checkMCF hyps ds k [] = checkMC hyps ds k := by
+  cases h : toCounts ds k.reads <;> simp [checkMCF, checkMC, h, checkCountedWF_nil]
+
+theorem mcF_sound (hyps : List C) (ds : List CDecl) (k : CCert) (frames : List FrameCut) (monos : List MonoCut) (lins : List LinCut) (hck : checkMCF hyps ds k frames monos lins = true)
+    (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hd : GHolds ds ρ M)
+    (hH : ∀ ρw : Nat → Nat, (∀ j, (∀ i ∈ k.insts, i.wit ≠ j) → ρw j = ρ j) → ∀ h ∈ hyps, evalC ρw M h = true) : False := by
+  simp only [checkMCF, Bool.and_eq_true] at hck
+  obtain ⟨⟨⟨⟨hnamed, hjk⟩, hrok⟩, hrw⟩, hcc⟩ := hck
+  have hjk' : ∀ d ∈ ds, d.j ≠ d.key ∧ d.lo ≠ d.key := fun d hdm => by
+    have := List.all_eq_true.mp hjk d hdm; simpa using this
+  have hrw' : ∀ r ∈ k.reads, ∀ i ∈ k.insts, i.wit ≠ r.1 ∧ occE i.wit r.2.2 = false := by
+    intro r hr i hi
+    have := List.all_eq_true.mp (List.all_eq_true.mp hrw r hr) i hi
+    simp only [Bool.and_eq_true, bne_iff_ne, ne_eq, Bool.not_eq_true'] at this
+    exact this
+  cases hcs : toCounts ds k.reads with
+  | none => simp [hcs] at hcc
+  | some cs =>
+  simp only [hcs] at hcc
+  simp only [readsOk, Bool.and_eq_true, List.all_eq_true] at hrok
+  obtain ⟨hdist, hrs⟩ := hrok
+  have hmap : (k.reads.map fun r => (r.1, rval ds ρ M r)).map (·.1) = k.reads.map (·.1) := by
+    induction k.reads <;> simp_all
+  -- ρ' : ρ with each read's variable at its count.
+  let ρ' := setReads ds ρ M k.reads
+  have hother : ∀ i, (∀ r ∈ k.reads, r.1 ≠ i) → ρ' i = ρ i := fun i hi => setWits_other (by
+    rw [hmap]; intro hm; obtain ⟨r, hr, he⟩ := List.mem_map.mp hm; exact hi r hr he)
+  have hat : ∀ r ∈ k.reads, ρ' r.1 = rval ds ρ M r := by
+    intro r hr
+    have h := setWits_at (ρ := ρ) (ws := k.reads.map fun r => (r.1, rval ds ρ M r)) (by rw [hmap]; exact hdist)
+      (p := (r.1, rval ds ρ M r)) (List.mem_map.mpr ⟨r, hr, rfl⟩)
+    exact h
+  have hfr : ∀ r ∈ k.reads, readFresh k.hyps ds k.reads r.1 = true := fun r hr => (hrs r hr).1
+  have hfr' : ∀ r ∈ k.reads, (∀ h ∈ k.hyps, occC r.1 h = false)
+      ∧ (∀ d ∈ ds, occE r.1 d.below = false ∧ occE r.1 d.body = false ∧ d.j ≠ r.1 ∧ d.lo ≠ r.1 ∧ d.key ≠ r.1)
+      ∧ (∀ r' ∈ k.reads, occE r.1 r'.2.2 = false) := by
+    intro r hr
+    have := hfr r hr
+    simp only [readFresh, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq] at this
+    exact ⟨this.1.1, fun d hd => ⟨(this.1.2 d hd).1.1.1.1, (this.1.2 d hd).1.1.1.2, (this.1.2 d hd).1.1.2, (this.1.2 d hd).1.2,
+      (this.1.2 d hd).2⟩, this.2⟩
+  -- A term no read's variable occurs in reads alike at ρ' and ρ.
+  have hcong : ∀ e : E, (∀ r ∈ k.reads, occE r.1 e = false) → evalE ρ' M e = evalE ρ M e := fun e he =>
+    congrE ρ' ρ M e (fun i hi => hother i (fun r hr hri => by have := he r hr; rw [hri] at this; simp [this] at hi))
+  -- A read's parts: its declaration and the key term's parts.
+  have hparts : ∀ r ∈ k.reads, ∀ c, toCount ds r = some c → ∃ d ∈ ds, ∃ p, lookup (fun d => d.mp == r.2.1) ds = some d
+      ∧ d.mp = r.2.1 ∧ countKeyParts d r.2.2 = some p
+      ∧ c = ⟨r.1, d.key, substE [(d.lo, p.2), (d.j, p.1)] d.below, substE [(d.lo, p.2), (d.j, p.1)] d.body⟩ := by
+    intro r _ c hc
+    simp only [toCount] at hc
+    split at hc
+    · rename_i d hl
+      obtain ⟨hdm, hdq⟩ := lookup_some hl
+      simp only [beq_iff_eq] at hdq
+      cases hk : countKeyParts d r.2.2 with
+      | none => simp [hk] at hc
+      | some p =>
+        rw [hk] at hc
+        exact ⟨d, hdm, p, hl, hdq, hk, (Option.some.inj hc).symm⟩
+    · cases hc
+  -- The key term's parts read no read's variable, and a read's count reads none.
+  have hpr : ∀ r ∈ k.reads, ∀ d p, countKeyParts d r.2.2 = some p → ∀ r' ∈ k.reads, occE r'.1 p.1 = false ∧ occE r'.1 p.2 = false := by
+    intro r hr d p hp r' hr'
+    have h0 := (hfr' r' hr').2.2 r hr
+    refine ⟨?_, ?_⟩
+    · cases h1 : occE r'.1 p.1
+      · rfl
+      · rw [(keyParts_occ hp r'.1).1 h1] at h0; cases h0
+    · cases h1 : occE r'.1 p.2
+      · rfl
+      · rw [(keyParts_occ hp r'.1).2 h1] at h0; cases h0
+  -- every count is its sum at ρ'
+  have hholds : ∀ c ∈ cs, c.Holds ρ' M := by
+    intro c hc
+    obtain ⟨r, hr, hrc⟩ := toCounts_mem hcs c hc
+    obtain ⟨d, hdm, p, _, _, hp, rfl⟩ := hparts r hr c hrc
+    have hvr : ∀ t : E, (t = d.below ∨ t = d.body) → ∀ i, occE i t = true → (∀ r' ∈ k.reads, r'.1 ≠ i) := by
+      intro t ht i hi r' hr' he
+      have := (hfr' r' hr').2.1 d hdm
+      rcases ht with rfl | rfl
+      · rw [he, hi] at this; exact absurd this.1 (by simp)
+      · rw [he, hi] at this; exact absurd this.2.1 (by simp)
+    simp only [Count.Holds]
+    rw [hat r hr]
+    simp only [rval, hrc]
+    have hp1 : evalE ρ M p.1 = evalE ρ' M p.1 := (hcong p.1 (fun r' hr' => (hpr r hr d p hp r' hr').1)).symm
+    have hp2 : evalE ρ M p.2 = evalE ρ' M p.2 := (hcong p.2 (fun r' hr' => (hpr r hr d p hp r' hr').2)).symm
+    rw [subst2_congr d.below (fun i hi _ _ => (hother i (hvr d.below (Or.inl rfl) i hi)).symm) hp1 hp2]
+    refine sumBelow_congr _ (fun kk _ => ?_)
+    refine subst2_congr d.body (fun i hi _ _ => ?_) ?_ ?_
+    · simp only [upd]; split
+      · rfl
+      · exact (hother i (hvr d.body (Or.inr rfl) i hi)).symm
+    · exact congrE _ _ M p.1 (fun i hi => by
+        simp only [upd]; split
+        · rfl
+        · exact (hother i (fun r' hr' he => by have := (hpr r hr d p hp r' hr').1; rw [he, hi] at this; cases this)).symm)
+    · exact congrE _ _ M p.2 (fun i hi => by
+        simp only [upd]; split
+        · rfl
+        · exact (hother i (fun r' hr' he => by have := (hpr r hr d p hp r' hr').2; rw [he, hi] at this; cases this)).symm)
+  have hwf : ∀ c ∈ cs, ∀ i ∈ k.insts, c.v ≠ i.wit ∧ occE i.wit c.below = false ∧ occE i.wit c.body = false := by
+    have h1 := hcc
+    simp only [checkCountedWF, countedOkW, Bool.and_eq_true, List.all_eq_true] at h1
+    intro c hc i hi
+    have := h1.1.2 i hi
+    simp only [witFreshW, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq] at this
+    exact ⟨fun he => (this.1 c hc).1.1 he, (this.1 c hc).1.2, (this.1 c hc).2⟩
+  refine countedWF_sound _ _ _ _ _ _ hcc ρ' M hholds ?_
+  intro ρw hρw h hm
+  rcases List.mem_append.mp hm with hm | hm
+  · rcases List.mem_append.mp hm with hm | hm
+    · -- a named hypothesis: it reads no read variable, and holds where the witnesses are anything
+      let ρw2 : Nat → Nat := fun j => if (k.reads.map (·.1)).contains j then ρ j else ρw j
+      have h2 := hH ρw2 (fun j hj => by
+        simp only [ρw2]
+        split
+        · rfl
+        · rename_i hn
+          rw [hρw j hj]
+          exact hother j (fun r hr hrj => hn (List.contains_iff_mem.mpr (List.mem_map.mpr ⟨r, hr, hrj⟩))))
+        h (namedIn_sound hyps k.hyps hyps (fun _ hx => hx) hnamed h hm)
+      rw [congrC ρw ρw2 M h (fun i hi => by
+        simp only [ρw2]
+        split
+        · rename_i hc
+          obtain ⟨r, hr, hri⟩ := List.mem_map.mp (List.contains_iff_mem.mp hc)
+          have := (hfr' r hr).1 h hm; rw [hri] at this; simp [this] at hi
+        · rfl)]
+      exact h2
+    · obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hm
+      have hw1 : ρw r.1 = ρ' r.1 := hρw r.1 (fun i hi he => (hrw' r hr i hi).1 he)
+      -- a term inside the key term reads alike at ρw and ρ
+      have hwk : ∀ t : E, (∀ i, occE i t = true → occE i r.2.2 = true) → evalE ρw M t = evalE ρ M t := fun t ht => by
+        rw [← hcong t (fun r' hr' => by
+          cases h1 : occE r'.1 t
+          · rfl
+          · have := (hfr' r' hr').2.2 r hr; rw [ht _ h1] at this; cases this)]
+        exact congrE _ _ M t (fun j hj => hρw j (fun i hi he => by
+          have := (hrw' r hr i hi).2; rw [he, ht j hj] at this; cases this))
+      obtain ⟨c, hc⟩ := toCounts_some hcs r hr
+      obtain ⟨d, hdm, p, hl, hdq, hp, rfl⟩ := hparts r hr c hc
+      have hkey : occE d.key r.2.2 = false := by have := (hrs r hr).2 d hdm; simpa using this
+      have hval : ∀ hg : d.base = 0 ∨ evalE ρ M p.2 < d.base, ρw r.1 = M r.2.1 (evalE ρw M r.2.2) := fun hg => by
+        rw [hw1, hat r hr, hwk r.2.2 (fun _ h => h)]
+        simp only [rval, hc]
+        rw [cnt_read hp (hjk' d hdm).1 (hjk' d hdm).2 hkey ρ M hg, ← hd d hdm, hdq]
+      simp only [readHyp, hl]
+      by_cases hb : d.base = 0
+      · simp only [hb, beq_self_eq_true, ite_true, evalC, evalE]
+        exact decide_eq_true (hval (Or.inl hb))
+      · rw [if_neg (by simp [hb])]
+        simp only [hp, evalC, evalE, Bool.or_eq_true]
+        by_cases hlt : evalE ρ M p.2 < d.base
+        · exact Or.inr (decide_eq_true (hval (Or.inr hlt)))
+        · exact Or.inl (decide_eq_true (by rw [hwk p.2 (fun i => (keyParts_occ hp i).2)]; omega))
+  · -- a pick: its count at ρw is its sum, as at ρ' (it reads no witness)
+    obtain ⟨p, _, hph⟩ := List.mem_filterMap.mp hm
+    split at hph
+    · rename_i r hl
+      obtain ⟨c, hc, rfl⟩ := Option.map_eq_some_iff.mp hph
+      have hcm : c ∈ cs := toCounts_in hcs (lookup_some hl).1 hc
+      have hc' := hholds c hcm
+      have hag : ∀ j, (∀ i ∈ k.insts, i.wit ≠ j) → ρw j = ρ' j := hρw
+      refine pickHyp_true c p.2 ρw M ?_
+      simp only [Count.Holds] at hc' ⊢
+      rw [hag c.v (fun i hi he => (hwf c hcm i hi).1 he.symm), hc']
+      have hB : evalE ρ' M c.below = evalE ρw M c.below := congrE _ _ M c.below (fun j hj => (hag j (fun i hi he => by
+        have := (hwf c hcm i hi).2.1; rw [he, hj] at this; cases this)).symm)
+      rw [hB]
+      exact sumBelow_congr _ (fun kk _ => congrE _ _ M c.body (fun j hj => by
+        simp only [upd]; split
+        · rfl
+        · exact (hag j (fun i hi he => by have := (hwf c hcm i hi).2.2; rw [he, hj] at this; cases this)).symm))
+    · cases hph
+
+
 /-! Counts in a machine -/
 
 -- The maps with each count map at its count at ρ, M.
@@ -1943,3 +2237,5 @@ end Kern
 #print axioms Kern.cmachine_sound
 #print axioms Kern.counts_exist
 #print axioms Kern.pickHyp_true
+#print axioms Kern.countedWF_sound
+#print axioms Kern.mcF_sound

@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type CountCert, type CountedGoal, type CountInst, type LemmaCut, lemmaPath, checkCounted, checkCountedLaws, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, cellParts, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+import {type CountCert, type CountDecl, type CountedGoal, type CountInst, type FrameCut, type MonoCut, type LinCut, type LemmaCut, framePath, lemmaPath, checkMC, checkCounted, checkCountedLaws, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, cellParts, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {chooseLevels, clock, grow, minimal, proveBuilt, proveLaws, proveSetFast, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {exactNat, leanConnective, leanSurface, leanTerms} from './lean-terms.ts'
@@ -15,6 +15,7 @@ import type {Fact} from '../kernel/cyclic.ts'
 import {leanLibrary} from './library.ts'
 import {proveKInduction} from '../core/kind.ts'
 import {quantifiedRenames} from './qalpha.ts'
+import {countsForReads} from '../core/count-facts.ts'
 export {leanLibrary}
 
 export type Exported = {name: string, goal: Goal, tree: Tree}
@@ -87,7 +88,7 @@ function reachedChoices(goal: Goal, leafList: {leaf: Tree & {leaf: Step[], produ
   return out
 }
 
-export function encode(ex: Exported, tamper = false, dropStep = true, globalVars?: string[], globalMaps?: string[], slim = false, reach = false, context: {path?: Path, lemmas?: LemmaCut[], cols?: string[]} = {}) {
+export function encode(ex: Exported, tamper = false, dropStep = true, globalVars?: string[], globalMaps?: string[], slim = false, reach = false, context: {path?: Path, lemmas?: LemmaCut[], frames?: FrameCut[], monos?: MonoCut[], lins?: LinCut[], cols?: string[]} = {}) {
   const {goal, tree} = ex
   // `slim`: the table only has the columns Lean reads. Each row a leaf uses has a hint (where Lean looks for it first),
   // and Lean computes only the hinted hypotheses' linear forms (Kernel.lean's srcRows), so the columns are the
@@ -98,7 +99,7 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
   // Each leaf with its path and rows, found once (the passes below and the tree's text read them in the same order).
   const leafList: {leaf: Tree & {leaf: Step[], products?: [number, number][], squares?: Lin[]}, path: Path, base: ReturnType<typeof leafConstraints>}[] = []
   leaves(tree, context.path ?? new Map(), (leaf, path) => {
-    const visible = lemmaPath(context.lemmas ?? [], path)
+    const visible = context.frames?.length || context.monos?.length || context.lins?.length ? framePath(context.frames ?? [], context.lemmas ?? [], path, context.monos, context.lins) : lemmaPath(context.lemmas ?? [], path)
     leafList.push({leaf, path: visible, base: leafConstraints(goal, visible)})
   })
   const reads = new Set<number>(), hintTerms = new Set<string>()
@@ -112,11 +113,11 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
       else if ('term' in src) hintTerms.add(src.term)
     }
   }
-  const readHyps = whole ? goal.hyps : goal.hyps.filter((_, i) => reads.has(i))
+  const readHyps = [...(whole ? goal.hyps : goal.hyps.filter((_, i) => reads.has(i))), ...(context.monos ?? []).flatMap(m => m.when), ...(context.lins ?? []).flatMap(l => l.when)]
   const readTerms = whole ? [] : [...hintTerms].map(name => columnTerm(name)!)
   // Columns: every variable of the hypotheses, then every cell any leaf uses (and the cells inside their keys),
   // shallower cells first so a key reads only earlier columns.
-  const vars = globalVars ?? [...new Set(goal.hyps.flatMap(varsOf))]
+  const vars = globalVars ?? [...new Set([...goal.hyps.flatMap(varsOf), ...lemmaNames([], context.frames, context.monos, context.lins).vars])]
   const cells = new Set<string>(), terms = new Set<string>()
   // Monomials: every one a leaf's rows or products use, or that a product term has under the leaf's path, with the
   // cells among their factors.
@@ -160,6 +161,12 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
       if (e.op === 'prod') for (const key of Object.keys(linear(e, path) ?? {})) if (isMonomial(key)) addMono(key)
       if (e.op === 'get') for (const key of Object.keys(linear(e, path) ?? {})) if (isCell(key)) addCell(key)
     }
+  }
+  // Conditions can name columns a certificate never uses at a leaf; they still need encoding.
+  for (const f of context.frames ?? []) for (const r of f.when) for (const key of Object.keys(r)) {
+    if (isMonomial(key)) addMono(key)
+    else if (isCell(key)) addCell(key)
+    else if (key.startsWith('⟦')) terms.add(key)
   }
   const depth = (name: string) => name.split('[').length
   // Term columns (open choices, each standing for its term's value) before the cells, whose keys may read them; a
@@ -238,7 +245,7 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
     // Each row with where Lean finds it (a hint: missed, Lean looks among all of the leaf's rows).
     const hint = (src?: RowSrc): string => {
       if (!src) return '.any'
-      if ('atom' in src) return context.path || context.lemmas?.length ? '.any' : `.atom ${path.size - 1 - src.atom}` // Lean's path has the latest decision first
+      if ('atom' in src) return context.path || context.lemmas?.length || context.frames?.length || context.monos?.length || context.lins?.length ? '.any' : `.atom ${path.size - 1 - src.atom}` // Lean's path has the latest decision first
       if ('fact' in src) return `.fact ${src.fact}`
       const j = 'pair' in src ? pairs.indexOf([...src.pair].sort().join('\n')) : col.get('nat' in src ? src.nat : src.term) ?? -1
       return j < 0 ? '.any' : 'pair' in src ? `.eq ${eqAt.get(j)}` : 'nat' in src ? `.nat ${j}` : `.term ${j}`
@@ -277,7 +284,7 @@ theorem ${name} : ∀ env maps, ¬ ∀ c ∈ ${name}_goal.hyps, evalC env maps c
 const varsOfE = (t: E): string[] => [...JSON.stringify(t).matchAll(/"op":"var","name":"([^"]+)"/g)].map(m => m[1]!)
 const mapsOf = (t: E | C): string[] => [...JSON.stringify(t).matchAll(/"op":"get","map":"([^"]+)"/g)].map(m => m[1]!)
 // Extra row names may appear only in a lemma. Resolve their column dependencies with the same rules as encode.
-function lemmaNames(lemmas: LemmaCut[]): {vars: string[], maps: string[]} {
+function lemmaNames(lemmas: LemmaCut[], frames: FrameCut[] = [], monos: MonoCut[] = [], lins: LinCut[] = []): {vars: string[], maps: string[]} {
   const vars = new Set<string>(), maps = new Set<string>(), seen = new Set<string>()
   const name = (s: string): void => {
     if (s === '1' || seen.has(s)) return
@@ -294,12 +301,15 @@ function lemmaNames(lemmas: LemmaCut[]): {vars: string[], maps: string[]} {
     else t.squares?.forEach(row)
   }
   for (const l of lemmas) { l.when.forEach(row); row(l.cut); tree(l.tree) }
+  for (const f of frames) { f.when.forEach(row); name(f.post); name(f.pre) }
+  for (const m of monos) { m.when.flatMap(varsOf).forEach(name); m.when.flatMap(mapsOf).forEach(v => maps.add(v)); name(m.post); name(m.pre); tree(m.tree) }
+  for (const l of lins) { l.when.flatMap(varsOf).forEach(name); l.when.flatMap(mapsOf).forEach(v => maps.add(v)); [...l.pos, ...l.neg].forEach(([, v]) => name(v)); tree(l.tree) }
   return {vars: [...vars], maps: [...maps]}
 }
 
 // Every independent proof uses one common table, but its own exact slice and initial path. Two passes establish
 // the union of dependency-ordered columns before printing any rows. The old path stays unchanged for no lemmas.
-export function encodeCounted(id: string, goal: Goal, cert: {tree: Tree, lemmas?: LemmaCut[]}, vars: string[], maps: string[]) {
+export function encodeCounted(id: string, goal: Goal, cert: {tree: Tree, lemmas?: LemmaCut[], frames?: FrameCut[], monos?: MonoCut[], lins?: LinCut[]}, vars: string[], maps: string[]) {
   const ls = cert.lemmas ?? []
   const sources = ls.map((l, i) => {
     const path: Path = new Map()
@@ -315,14 +325,14 @@ export function encodeCounted(id: string, goal: Goal, cert: {tree: Tree, lemmas?
     return {ex: {name: `${id}: lemma ${i}`, goal: {...goal, hyps: selected}, tree: l.tree}, path}
   })
   const main = {name: id, goal, tree: cert.tree}
-  const first = encode(main, false, true, vars, maps, false, false, {lemmas: ls})
+  const first = encode(main, false, true, vars, maps, false, false, {lemmas: ls, frames: cert.frames, monos: cert.monos, lins: cert.lins})
   if (!ls.length) return {...first, lemmas: '[]', lemmaList: (entries: LemmaCut[]) => {
     if (entries.length) throw new Error(`${id}: no source contexts for added lemmas`)
     return '[]'
   }}
   const initial = sources.map(s => encode(s.ex, false, true, vars, maps, false, false, {path: s.path}))
   const cols = [...new Set([first, ...initial].flatMap(e => e.cols))]
-  const base = encode(main, false, true, vars, maps, false, false, {lemmas: ls, cols})
+  const base = encode(main, false, true, vars, maps, false, false, {lemmas: ls, frames: cert.frames, monos: cert.monos, lins: cert.lins, cols})
   const proofs = sources.map(s => encode(s.ex, false, true, vars, maps, false, false, {path: s.path, cols}))
   const lemmaList = (entries: LemmaCut[]) => list(entries.map((l, i) => {
     const source = sources[i]
@@ -332,6 +342,62 @@ export function encodeCounted(id: string, goal: Goal, cert: {tree: Tree, lemmas?
     return `⟨${list(l.when.map(base.row))}, ${base.row(l.cut)}, ${t}, ${l.slice === undefined ? 'none' : `some ${list(l.slice.map(String))}`}⟩`
   }))
   return {...base, lemmas: lemmaList(ls), lemmaList}
+}
+
+// A single counted obligation, including conditional frames. This is a conditional
+// goal theorem through mcF_sound, not a claim that the source machine's INIT or
+// its other operation goals have been proved.
+export function mcToLean(id: string, hyps: C[], decls: CountDecl[], cert: CountCert): string {
+  if (!checkMC(hyps, decls, cert)) throw new Error(`${id}: counted certificate does not check`)
+  const goal = mcGoal(hyps, decls, cert)!
+  const extra = lemmaNames(cert.lemmas ?? [], cert.frames, cert.monos, cert.lins)
+  const vars = [...new Set([...extra.vars, ...goal.hyps.flatMap(varsOf),
+    ...decls.flatMap(d => [d.j, d.lo ?? d.j, d.key, ...varsOfE(d.below), ...varsOfE(d.body)]),
+    ...cert.reads.flatMap(r => [r[0], ...varsOfE(r[2])]),
+    ...cert.insts.flatMap(i => [i.wit, ...varsOfE(i.below)]),
+    ...(cert.picks ?? []).flatMap(([v, ks]) => [v, ...ks.flatMap(varsOfE)])])]
+  const maps = [...new Set([...extra.maps, ...goal.hyps.flatMap(mapsOf), ...decls.flatMap(d => [d.map, ...mapsOf(d.below), ...mapsOf(d.body)])])]
+  const enc = encodeCounted(id, goal, cert, vars, maps), {e, c} = enc
+  const ix = (name: string) => { const i = vars.indexOf(name); if (i < 0) throw new Error(`${id}: unknown variable ${name}`); return i }
+  const mx = (name: string) => maps.indexOf(name)
+  const frames = list((cert.frames ?? []).map(f => `⟨${list(f.when.map(enc.row))}, ${ix(f.post)}, ${ix(f.pre)}⟩`))
+  const counts = countsForReads(decls, cert.reads)
+  if (!counts) throw new Error(`${id}: invalid count reads`)
+  const monos = list((cert.monos ?? []).map((m, i) => {
+    const post = counts.find(c => c.v === m.post)!, pre = counts.find(c => c.v === m.pre)!
+    const auxiliary: Goal = {name: `${id}: per-key cut ${i}`, hyps: [...m.when,
+      {op: '<', a: {op: 'var', name: post.key}, b: post.below}, {op: '<', a: pre.body, b: post.body}]}
+    const proof = encode({name: auxiliary.name, goal: auxiliary, tree: m.tree}, false, true, vars, maps)
+    return `⟨${list(m.when.map(c))}, ${ix(m.post)}, ${ix(m.pre)}, ${proof.tab}, ${proof.tree}⟩`
+  }))
+  const lins = list((cert.lins ?? []).map((l, i) => {
+    const first = counts.find(c => c.v === [...l.pos, ...l.neg][0]![1])!
+    const term = (side: [number, string][]): E => side.reduceRight<E>((rest, [k, v]) => ({op: 'add', a: {op: 'mul', k, a: counts.find(c => c.v === v)!.body}, b: rest}), {op: 'const', value: 0})
+    const auxiliary: Goal = {name: `${id}: linear cut ${i}`, hyps: [...l.when,
+      {op: '<', a: {op: 'var', name: first.key}, b: first.below}, {op: '<', a: term(l.neg), b: term(l.pos)}]}
+    const proof = encode({name: auxiliary.name, goal: auxiliary, tree: l.tree}, false, true, vars, maps)
+    const side = (xs: [number, string][]) => list(xs.map(([k, v]) => `(${k}, ${ix(v)})`))
+    return `⟨${list(l.when.map(c))}, ${side(l.pos)}, ${side(l.neg)}, ${proof.tab}, ${proof.tree}⟩`
+  }))
+  const linRef = cert.lins?.length ? `${id}_lins` : '[]'
+  const linDefinition = cert.lins?.length ? `def ${id}_lins : List LinCut := ${lins}\n` : ''
+  const monoRef = cert.monos?.length ? `${id}_monos` : '[]'
+  const monoDefinition = cert.monos?.length ? `def ${id}_monos : List MonoCut := ${monos}\n` : ''
+  return `-- Goal-local counted certificate; no whole-machine reachability claim.
+def ${id}_hyps : List C := ${list(hyps.map(c))}
+-- CDecl.post is unused by checkMCF/GHolds; this packet already contains PRE/POST declarations.
+def ${id}_decls : List CDecl := ${list(decls.map(d => `⟨${mx(d.map)}, ${mx(d.map)}, ${ix(d.j)}, ${ix(d.key)}, ${e(d.below)}, ${e(d.body)}, ${ix(d.lo ?? d.j)}, ${d.base ?? 0}⟩`))}
+def ${id}_cert : CCert := ⟨${id}_hyps,
+  ${list(cert.reads.map(r => `(${ix(r[0])}, ${mx(r[1])}, ${e(r[2])})`))},
+  ${list(cert.insts.map(i => `⟨${ix(i.wit)}, ${e(i.below)}, ${list(i.terms.map(([z, v]) => `(${int(z)}, ${ix(v)})`))}, ${int(i.unit)}⟩`))},
+  ${enc.tab}, ${enc.tree},
+  ${list((cert.picks ?? []).map(([v, ks]) => `(${ix(v)}, ${list(ks.map(e))})`))}, ${enc.lemmas}⟩
+def ${id}_frames : List FrameCut := ${frames}
+${monoDefinition}${linDefinition}theorem ${id}_check : checkMCF ${id}_hyps ${id}_decls ${id}_cert ${id}_frames ${monoRef}${cert.lins?.length ? ` ${linRef}` : ''} = true := by ${checkBy}
+theorem ${id} (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hd : GHolds ${id}_decls ρ M)
+    (hH : ∀ ρw : Nat → Nat, (∀ j, (∀ i ∈ ${id}_cert.insts, i.wit ≠ j) → ρw j = ρ j) →
+      ∀ h ∈ ${id}_hyps, evalC ρw M h = true) : False :=
+  mcF_sound ${id}_hyps ${id}_decls ${id}_cert ${id}_frames ${monoRef} ${linRef} ${id}_check ρ M hd hH`
 }
 
 export function countedToLean(id: string, g: CountedGoal, cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[]}, tampered: {what: string, insts: CountInst[]}[] = []): string {

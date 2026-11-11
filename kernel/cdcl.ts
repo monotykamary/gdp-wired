@@ -216,8 +216,10 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   // The root's own decisions are level 0, with no reason: they stay in every clause (the tree starts below them).
   const rootNames = new Set<string>(), stamps: number[] = []
   let stampN = 0
-  for (const [key, a] of root) {
-    const name = ensure(a.lin), x = vars.get(name)!, val = name === key ? a.holds : !a.holds
+  // Path keys may be @-aliases for duplicate cut rows; only the row itself
+  // determines orientation. An alias is not evidence that the atom was flipped.
+  for (const a of root.values()) {
+    const name = ensure(a.lin), x = vars.get(name)!, val = name === canon(a.lin) ? a.holds : !a.holds
     x.val = val; x.level = 0; x.at = trail.length; stamps[x.at] = ++stampN; trail.push(name); tv.push(x); rootNames.add(name)
     if (x.col) colsOn++
   }

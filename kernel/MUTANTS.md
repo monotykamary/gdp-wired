@@ -246,3 +246,8 @@ kernel/kernel.ts | sumMachine | "qflags: Record<string, C> = Object.create(null)
 core/check.ts | checkWitness | "Object.hasOwn(witness, key)" | "Object.hasOwn(" -> "Reflect.has(" | a value read through the prototype is a function or an object, never a safe integer: refused alike
 kernel/kernel.ts | times | "const out: Lin = Object.create(null)" | "Object.create(null)" -> "{}" | each product first reads out[key] into a safe-integer check, and an inherited value (a function, or {}'s prototype for __proto__) is none: no product, as with no prototype the row is right; never a row missing the name
 ```
+
+Frame cuts (Count.lean's FrameCuts, kernel.ts `frameOk`/`framePath`/`checkGoalLemmas` with frames, 2026-11-10): to be killed by
+`kernel/frame-cut.test.ts` — a frame cut without `when` accepted; a frame whose conditions do not decide the body's `if` accepted; a
+condition reading the key decided by `truth` instead of `truthK` (a guard true at key 0 but not everywhere); the frame's rows cited
+off the path that decides `when`; `simpC` dropping a conjunct decided false instead of collapsing the conjunction.

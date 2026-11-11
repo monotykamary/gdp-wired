@@ -1,0 +1,10 @@
+fix: integrate D-admitted B/F common kernel trees
+
+Apply the complete reconciled kernel and Lean subtrees, not a five-file
+hybrid. Preserve kernel db5bc38ac2e08e25d392d7a7daa748c7a6c8245a and Lean
+b9039b851d59b7621e322a797096fcd724019f68 exactly as admitted.
+
+Gate: 723773616f222d68db21414a5dcbc7cbaa11b05d.
+Clock gate 565ecd01 applies only to 353713c9 on A's 5aa76818 parent;
+it does not authorize retaining A-only files in the common kernel tree.
+Full counted strategy integration is validated separately.

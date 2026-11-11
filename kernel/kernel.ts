@@ -538,10 +538,14 @@ export function lemmaPath(lemmas: LemmaCut[], path: Path): Path {
   return active.length ? prependAtoms(active.map(l => ({lin: l.cut, holds: true})), path) : path
 }
 
-export function checkGoalLemmas(goal: Goal, tree: Tree, lemmas: LemmaCut[] = []): boolean {
-  if (!Array.isArray(lemmas)) return false
-  if (!lemmas.length) return check(goal, tree) // Exact legacy path, including all old refusal checks.
+// checkGoalLemmas (Lean's checkGoalFrames with frames, checkGoalLemmas without): the lemma checks unchanged; each frame
+// validated once by frameOk over the counted goal's counts; a leaf sees the active frames' rows in front of its lemma path.
+export function checkGoalLemmas(goal: Goal, tree: Tree, lemmas: LemmaCut[] = [], frames: FrameCut[] = [], counts: Count[] = [], monos: MonoCut[] = [], lins: LinCut[] = []): boolean {
+  if (!Array.isArray(lemmas) || !Array.isArray(frames) || !Array.isArray(monos) || !Array.isArray(lins)) return false
+  if (!lemmas.length && !frames.length && !monos.length && !lins.length) return check(goal, tree) // Exact legacy path, including all old refusal checks.
   try {
+    if (!Array.from(frames).every(frameShape) || !Array.from(monos).every(monoShape) || !Array.from(lins).every(linShape)) return false
+    if (!frames.every(f => frameOk(counts, f)) || !monos.every(m => monoOk(counts, m)) || !lins.every(l => linOk(counts, l))) return false
     if (!Array.from(lemmas).every(l => !!l && typeof l === 'object' && Array.isArray(l.when)
       && Array.from(l.when).every(lemmaLin) && lemmaLin(l.cut) && !!l.tree && typeof l.tree === 'object'
       && (l.slice === undefined || Array.isArray(l.slice) && Array.from(l.slice).every(i => Number.isSafeInteger(i) && i >= 0 && i < goal.hyps.length)))) return false
@@ -551,7 +555,7 @@ export function checkGoalLemmas(goal: Goal, tree: Tree, lemmas: LemmaCut[] = [])
       if (!check({...goal, hyps}, l.tree, path)) return false
     }
     const visit = (t: Tree, path: Path): boolean => {
-      if ('leaf' in t) return check(goal, t, lemmaPath(lemmas, path))
+      if ('leaf' in t) return check(goal, t, framePath(frames, lemmas, path, monos, lins))
       const id = canon(t.split)
       if (path.has(id) || Object.keys(t.split).every(key => key === '1')) return false
       return visit(t.yes, new Map(path).set(id, {lin: t.split, holds: true}))
@@ -560,6 +564,184 @@ export function checkGoalLemmas(goal: Goal, tree: Tree, lemmas: LemmaCut[] = [])
     return visit(tree, new Map())
   } catch { return false } // Malformed new payloads, including non-tree lemma references, are refusals.
 }
+
+
+// --- conditional count frames (Count.lean's FrameCuts, MLDR-DESIGN.md 15.7 and 17; Lean-first, checked there) -----------
+// A frame cut names a post count and its pre count by their variables and linear conditions `when` over the goal's
+// table. It is accepted (frameOk) when the two counts share their key and, with every `if` whose condition is decided
+// for every value of the key under `when` resolved (simpE/simpC), their bounds and bodies are the same terms. Where a
+// leaf's original path decides `when`, the rows post − pre ≤ 0 and pre − post ≤ 0 are available to it (framePath, in
+// front of the lemma-cut path). Every function mirrors a Lean definition of the same name.
+export type FrameCut = {when: Lin[], post: string, pre: string}
+const mentionsKey = (t: E | C, name: string): boolean => {
+  switch (t.op) {
+    case 'var': return t.name === name
+    case 'const': case 'flag': return false
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return mentionsKey(t.a, name) || mentionsKey(t.b, name)
+    case 'mul': case 'proj': return mentionsKey(t.a, name)
+    case 'if': return mentionsKey(t.c, name) || mentionsKey(t.then, name) || mentionsKey(t.else, name)
+    case 'get': return mentionsKey(t.key, name)
+    case '<': case '<=': case '=': return mentionsKey(t.a, name) || mentionsKey(t.b, name)
+    case 'and': case 'or': return t.xs.some(x => mentionsKey(x, name))
+    case 'not': return mentionsKey(t.x, name)
+    case 'all': return mentionsKey(t.c, name)
+    default: return unreachable(t)
+  }
+}
+// Lean's monoE: a term that only rises with any variable (variables, constants, sums, scalings, products, minima, maxima).
+const monoE = (e: E): boolean => e.op === 'var' || e.op === 'const' || ((e.op === 'add' || e.op === 'min' || e.op === 'max' || e.op === 'prod') && monoE(e.a) && monoE(e.b)) || (e.op === 'mul' && monoE(e.a))
+// Lean's zeroK: the key replaced by 0.
+const zeroK = (e: E, key: string): E => {
+  switch (e.op) {
+    case 'var': return e.name === key ? {op: 'const', value: 0} : e
+    case 'const': return e
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {op: e.op, a: zeroK(e.a, key), b: zeroK(e.b, key)} as E
+    case 'mul': return {op: 'mul', k: e.k, a: zeroK(e.a, key)}
+    case 'proj': return {op: 'proj', k: e.k, a: zeroK(e.a, key)}
+    case 'get': return {op: 'get', map: e.map, key: zeroK(e.key, key)}
+    case 'if': return {op: 'if', c: e.c, then: zeroK(e.then, key), else: zeroK(e.else, key)}
+    default: return unreachable(e)
+  }
+}
+// Lean's atomK: an atom reading the key, decided for every value of the key from its key-free instance at 0 — the key
+// only on the left and the left rising with it, false at 0 is false everywhere; only on the right, true at 0 is true
+// everywhere.
+const atomK = (op: '<' | '<=', a: E, b: E, path: Path, key: string): boolean | undefined => {
+  if (mentionsKey(a, key) && !mentionsKey(b, key) && monoE(a)) return truth({op, a: zeroK(a, key), b} as C, path) === false ? false : undefined
+  if (!mentionsKey(a, key) && mentionsKey(b, key) && monoE(b)) return truth({op, a, b: zeroK(b, key)} as C, path) === true ? true : undefined
+  return undefined
+}
+// Lean's truthK: atoms reading no key by truth, atoms reading it by atomK, equalities through their inequalities,
+// and / or / not three-valued.
+export function truthK(c: C, path: Path, key: string): boolean | undefined {
+  switch (c.op) {
+    case 'and': { let open = false; for (const x of c.xs) { const t = truthK(x, path, key); if (t === false) return false; if (t === undefined) open = true } return open ? undefined : true }
+    case 'or': { let open = false; for (const x of c.xs) { const t = truthK(x, path, key); if (t === true) return true; if (t === undefined) open = true } return open ? undefined : false }
+    case 'not': { const t = truthK(c.x, path, key); return t === undefined ? undefined : !t }
+    case 'flag': case 'all': return undefined
+    case '<': case '<=': return mentionsKey(c, key) ? atomK(c.op, c.a, c.b, path, key) : truth(c, path)
+    case '=': return !mentionsKey(c, key) ? truth(c, path)
+      : atomK('<=', c.a, c.b, path, key) === false || atomK('<=', c.b, c.a, path, key) === false ? false : undefined
+    default: return unreachable(c)
+  }
+}
+// Lean's cTrue (0 ≤ 0) and cFalse (0 < 0), as the kernel's n-ary conditions: the empty conjunction and disjunction.
+const cTrue: C = {op: 'and', xs: []}, cFalse: C = {op: 'or', xs: []}
+const isTrueC = (c: C) => c.op === 'and' && c.xs.length === 0, isFalseC = (c: C) => c.op === 'or' && c.xs.length === 0
+const zeroOneIf = (e: E): C | undefined => e.op === 'if' && e.then.op === 'const' && e.then.value === 1 && e.else.op === 'const' && e.else.value === 0 ? e.c : undefined
+// Lean's simpC: the terms inside a condition simplified; a conjunct decided true dropped, one decided false collapsing
+// the conjunction, dually for a disjunction and a negation; `(if C then 1 else 0) = 1` is C and `= 0` is ¬C; an atom
+// decided for every value of the key by truthK becomes cTrue or cFalse.
+export function simpC(c: C, path: Path, key: string): C {
+  switch (c.op) {
+    case '<': case '<=': case '=': {
+      const a = simpE(c.a, path, key), b = simpE(c.b, path, key)
+      if (c.op === '=') {
+        const ca = zeroOneIf(a), cb = zeroOneIf(b)
+        if (ca && b.op === 'const' && (b.value === 1 || b.value === 0)) return b.value === 1 ? ca : notC(ca)
+        if (cb && a.op === 'const' && (a.value === 1 || a.value === 0)) return a.value === 1 ? cb : notC(cb)
+      }
+      const out: C = {op: c.op, a, b}, t = truthK(out, path, key)
+      return t === true ? cTrue : t === false ? cFalse : out
+    }
+    case 'and': {
+      const xs: C[] = []
+      for (const x of c.xs) { const y = simpC(x, path, key); if (isFalseC(y)) return cFalse; if (!isTrueC(y)) xs.push(...(y.op === 'and' ? y.xs : [y])) }
+      return xs.length === 1 ? xs[0]! : {op: 'and', xs}
+    }
+    case 'or': {
+      const xs: C[] = []
+      for (const x of c.xs) { const y = simpC(x, path, key); if (isTrueC(y)) return cTrue; if (!isFalseC(y)) xs.push(...(y.op === 'or' ? y.xs : [y])) }
+      return xs.length === 1 ? xs[0]! : {op: 'or', xs}
+    }
+    case 'not': return notC(simpC(c.x, path, key))
+    case 'flag': case 'all': return c
+    default: return unreachable(c)
+  }
+}
+const notC = (y: C): C => isTrueC(y) ? cFalse : isFalseC(y) ? cTrue : y.op === 'not' ? y.x : {op: 'not', x: y}
+// Lean's simpE: each `if` whose condition is decided for every value of the key under the path, resolved; nothing else.
+export function simpE(e: E, path: Path, key: string): E {
+  switch (e.op) {
+    case 'var': case 'const': return e
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {op: e.op, a: simpE(e.a, path, key), b: simpE(e.b, path, key)} as E
+    case 'mul': return {op: 'mul', k: e.k, a: simpE(e.a, path, key)}
+    case 'proj': return {op: 'proj', k: e.k, a: simpE(e.a, path, key)}
+    case 'get': return {op: 'get', map: e.map, key: simpE(e.key, path, key)}
+    case 'if': {
+      const t = simpE(e.then, path, key), f = simpE(e.else, path, key), c = simpC(e.c, path, key)
+      return isTrueC(c) ? t : isFalseC(c) ? f : {op: 'if', c, then: t, else: f}
+    }
+    default: return unreachable(e)
+  }
+}
+export const whenPath = (f: FrameCut): Path => new Map(f.when.map(w => [canon(w), {lin: w, holds: true}]))
+const sameTerm = (a: E, b: E): boolean => JSON.stringify(a) === JSON.stringify(b)
+// Lean's frameOk: the two counts share their key, and under `when` their bounds and bodies are the same terms.
+export function frameOk(counts: Count[], f: FrameCut): boolean {
+  const post = counts.find(c => c.v === f.post), pre = counts.find(c => c.v === f.pre)
+  if (!post || !pre || post.key !== pre.key) return false
+  const path = whenPath(f)
+  return sameTerm(simpE(post.below, path, post.key), simpE(pre.below, path, post.key)) && sameTerm(simpE(post.body, path, post.key), simpE(pre.body, path, post.key))
+}
+// Lean's frameRows: post − pre ≤ 0 and pre − post ≤ 0.
+export const frameRows = (f: FrameCut): Lin[] => [{[f.post]: 1, [f.pre]: -1}, {[f.pre]: 1, [f.post]: -1}]
+// Lean's frameActive: eligibility from the original split path only.
+export const frameActive = (f: FrameCut, path: Path): boolean => f.when.every(w => decide(w, path) === true)
+// Lean's framePath: the active frames' rows in front of the lemma-cut path, both read off the original path.
+export function framePath(frames: FrameCut[], lemmas: LemmaCut[], path: Path, monos: MonoCut[] = [], lins: LinCut[] = []): Path {
+  const active = frames.filter(f => frameActive(f, path)), cuts = monos.filter(m => monoActive(m, path)), linear = lins.filter(l => linActive(l, path))
+  return prependAtoms([...linear.flatMap(l => linRows(l).map(lin => ({lin, holds: true}))), ...cuts.flatMap(m => monoRows(m).map(lin => ({lin, holds: true}))), ...active.flatMap(f => frameRows(f).map(lin => ({lin, holds: true})))], lemmaPath(lemmas, path))
+}
+// --- per-key cuts (Count.lean's MonoCut, MLDR-DESIGN.md 17.4; Lean-first, checked there) ----------------------------------
+// A per-key cut claims post ≤ pre for two counts of the same key and bound, proved for every value of the key by this
+// kernel's own `check` on an auxiliary goal: the cut's conditions (reading no key), the key below the bound, and the pre
+// body below the post body at the key. Where a leaf's original path decides every condition (`truth`), the row
+// post − pre ≤ 0 is available to it, in front of the frames' rows. Every function mirrors a Lean definition of the same name.
+export type MonoCut = {when: C[], post: string, pre: string, tree: Tree}
+const monoHyps = (m: MonoCut, post: Count, pre: Count): C[] => [...m.when, {op: '<', a: {op: 'var', name: post.key}, b: post.below}, {op: '<', a: pre.body, b: post.body}]
+export function monoOk(counts: Count[], m: MonoCut): boolean {
+  const post = counts.find(c => c.v === m.post), pre = counts.find(c => c.v === m.pre)
+  if (!post || !pre || post.key !== pre.key || !sameTerm(post.below, pre.below) || mentionsKey(post.below, post.key) || m.when.some(c => mentionsKey(c, post.key))) return false
+  return check({name: 'per-key cut', hyps: monoHyps(m, post, pre)}, m.tree)
+}
+export const monoRows = (m: MonoCut): Lin[] => [{[m.post]: 1, [m.pre]: -1}]
+export const monoActive = (m: MonoCut, path: Path): boolean => m.when.every(c => truth(c, path) === true)
+const monoShape = (m: unknown): m is MonoCut => !!m && typeof m === 'object' && Array.isArray((m as MonoCut).when) && typeof (m as MonoCut).post === 'string'
+  && typeof (m as MonoCut).pre === 'string' && !!(m as MonoCut).tree && typeof (m as MonoCut).tree === 'object'
+// --- linear per-key cuts (Count.lean's LinCut, MLDR-DESIGN.md 17.5; Lean-first, checked there) -----------------------------
+// A linear cut claims Σ pos m·x_v ≤ Σ neg m·x_v over counts of one key and bound, proved for every value of the key by this
+// kernel's own `check` on the auxiliary goal: the cut's conditions (reading no key), the key below the bound, and Σ neg m·body(k)
+// < Σ pos m·body(k). Where a leaf's original path decides every condition (`truth`), its row is available, in front of the per-key
+// cuts' and the frames' rows. The per-key cut is its one-term-a-side case. Every function mirrors a Lean definition of the same name.
+export type LinCut = {when: C[], pos: [number, string][], neg: [number, string][], tree: Tree}
+const linCounts = (counts: Count[], side: [number, string][]): [number, Count][] | undefined => {
+  const out: [number, Count][] = []
+  let total = 0
+  for (const [m, v] of side) {
+    const c = counts.find(k => k.v === v)
+    // A stricter native refusal than Lean: row accumulation must stay exact in JS.
+    if (!c || !Number.isSafeInteger(m) || m < 0 || m > Number.MAX_SAFE_INTEGER - total) return undefined
+    total += m; out.push([m, c])
+  }
+  return out
+}
+const linTerm = (xs: [number, Count][]): E => xs.reduceRight<E>((rest, [m, c]) => ({op: 'add', a: {op: 'mul', k: m, a: c.body}, b: rest}), {op: 'const', value: 0})
+const linSide = (side: [number, string][], sign: number): Lin => { const out: Lin = Object.create(null); for (const [m, v] of side) out[v] = (out[v] ?? 0) + sign * m; return out }
+export function linOk(counts: Count[], l: LinCut): boolean {
+  const ps = linCounts(counts, l.pos), ns = linCounts(counts, l.neg)
+  if (!ps || !ns || !ps.length && !ns.length) return false
+  const c0 = (ps[0] ?? ns[0])![1]
+  const shape = (xs: [number, Count][]) => xs.every(([, c]) => c.key === c0.key && sameTerm(c.below, c0.below))
+  if (!shape(ps) || !shape(ns) || mentionsKey(c0.below, c0.key) || l.when.some(c => mentionsKey(c, c0.key))) return false
+  return check({name: 'linear cut', hyps: [...l.when, {op: '<', a: {op: 'var', name: c0.key}, b: c0.below}, {op: '<', a: linTerm(ns), b: linTerm(ps)}]}, l.tree)
+}
+export const linRows = (l: LinCut): Lin[] => { const row = linSide(l.pos, 1); for (const [k, v] of Object.entries(linSide(l.neg, -1))) row[k] = (row[k] ?? 0) + v; for (const k of Object.keys(row)) if (row[k] === 0) delete row[k]; return [row] }
+export const linActive = (l: LinCut, path: Path): boolean => l.when.every(c => truth(c, path) === true)
+const linShape = (l: unknown): l is LinCut => !!l && typeof l === 'object' && Array.isArray((l as LinCut).when) && Array.isArray((l as LinCut).pos) && Array.isArray((l as LinCut).neg)
+  && [...(l as LinCut).pos, ...(l as LinCut).neg].every(p => Array.isArray(p) && Number.isSafeInteger(p[0]) && p[0] >= 0 && typeof p[1] === 'string') && !!(l as LinCut).tree && typeof (l as LinCut).tree === 'object'
+const frameShape = (f: unknown): f is FrameCut => !!f && typeof f === 'object' && Array.isArray((f as FrameCut).when) && Array.from((f as FrameCut).when).every(lemmaLin)
+  && typeof (f as FrameCut).post === 'string' && typeof (f as FrameCut).pre === 'string'
 
 // --- machines ----------------------------------------------------------------------------------------------------------
 
@@ -1903,10 +2085,10 @@ export function countedOk(hyps: C[], cs: Count[], is: CountInst[]): boolean {
 // is a variable; a number 5 would pass `reads` yet be read as the variable "5") and every coefficient a safe integer
 // (Lean's are Int).
 const typed = (is: CountInst[]): boolean => is.every(i => typeof i.wit === 'string' && Number.isSafeInteger(i.unit) && i.terms.every(([z]) => Number.isSafeInteger(z)))
-export function checkCounted(g: CountedGoal, cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[]}): boolean {
+export function checkCounted(g: CountedGoal, cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[], frames?: FrameCut[], monos?: MonoCut[], lins?: LinCut[]}): boolean {
   if (!(countedOk(g.hyps, g.counts, cert.insts) && typed(cert.insts))) return false
   const goal = countedGoal(g, cert.insts)
-  return goal !== undefined && checkGoalLemmas(goal, cert.tree, cert.lemmas)
+  return goal !== undefined && checkGoalLemmas(goal, cert.tree, cert.lemmas, cert.frames, g.counts, cert.monos, cert.lins)
 }
 // The goal a certificate's tree refutes: the goal's hypotheses, then the instances' (also what the search and the
 // exporter read), or none.
@@ -1927,7 +2109,7 @@ export function countedGoal(g: CountedGoal, insts: CountInst[]): Goal | undefine
 // split refusals remain intentional (lean-kernel/README.md has the counted-certificate mirror contract).
 export type CountDecl = {map: string, j: string, key: string, below: E, body: E, lo?: string, base?: number}
 export type MapRead = [string, string, E]
-export type CountCert = {reads: MapRead[], insts: CountInst[], tree: Tree, picks?: [string, E[]][], lemmas?: LemmaCut[]}
+export type CountCert = {reads: MapRead[], insts: CountInst[], tree: Tree, picks?: [string, E[]][], lemmas?: LemmaCut[], frames?: FrameCut[], monos?: MonoCut[], lins?: LinCut[]}
 export const postName = (map: string) => `${map}#`
 const declsOf = (m: Machine): CountDecl[] => Object.entries(m.counts ?? {}).map(([map, c]) => ({map, j: c.j, key: c.key, below: c.below, body: c.body, ...(c.base ? {lo: c.lo, base: c.base} : {})}))
 // A declaration's second parameter (Lean's CDecl.lo, base): one parameter is lo = j, base 0.
@@ -2036,10 +2218,10 @@ const readsTyped = (rs: MapRead[]): boolean => Array.isArray(rs) && rs.every(r =
 const witFreshW = (cs: Count[], is: CountInst[], w: string): boolean =>
   cs.every(c => c.v !== w && !readsVar(c.below, w) && !readsVar(c.body, w)) && is.every(j => !readsVar(j.below, w))
 const countedOkW = (cs: Count[], is: CountInst[]): boolean => { const ws = is.map(i => i.wit); return new Set(ws).size === ws.length && is.every(i => witFreshW(cs, is, i.wit)) }
-function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[]}): boolean {
+function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[], frames?: FrameCut[], monos?: MonoCut[], lins?: LinCut[]}): boolean {
   if (!(countedOkW(cs, cert.insts) && typed(cert.insts))) return false
   const hs = countHyps(cs, cert.insts)
-  return hs !== undefined && checkGoalLemmas({name: 'counted', hyps: [...hyps, ...hs]}, cert.tree, cert.lemmas)
+  return hs !== undefined && checkGoalLemmas({name: 'counted', hyps: [...hyps, ...hs]}, cert.tree, cert.lemmas, cert.frames, cs, cert.monos, cert.lins)
 }
 // checkMC: each declaration's j and lo differ from its key, the reads are fresh, no read is a witness or reads one in
 // its key term, and checkCountedW accepts the counted goal they make (the goal's hypotheses, each read variable equal to
@@ -2048,7 +2230,7 @@ export function checkMC(hyps: C[], ds: CountDecl[], k: CountCert): boolean {
   if (!(ds.every(d => d.j !== d.key && loOf(d) !== d.key) && picksTyped(k.picks) && readsTyped(k.reads) && Array.isArray(k.insts) && k.insts.every(i => !!i && safeTerm(i.below)) && readsOk(hyps, ds, k.reads))) return false
   if (!k.reads.every(r => k.insts.every(i => i.wit !== r[0] && !readsVar(r[2], i.wit)))) return false
   const cs = toCounts(ds, k.reads)
-  return cs !== undefined && checkCountedW([...hyps, ...k.reads.map(r => readHyp(ds, r)), ...pickHyps(ds, k.reads, k.picks ?? [])], cs, {insts: k.insts, tree: k.tree, lemmas: k.lemmas})
+  return cs !== undefined && checkCountedW([...hyps, ...k.reads.map(r => readHyp(ds, r)), ...pickHyps(ds, k.reads, k.picks ?? [])], cs, {insts: k.insts, tree: k.tree, lemmas: k.lemmas, frames: k.frames, monos: k.monos, lins: k.lins})
 }
 // The goal a certificate's tree refutes (what the search and the exporter read), or none.
 export function mcGoal(hyps: C[], ds: CountDecl[], k: Pick<CountCert, 'reads' | 'insts' | 'picks'>): Goal | undefined {

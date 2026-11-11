@@ -4,6 +4,19 @@ The optional Lean path for the kernel, as `Cert.lean` is for `core/check.ts`: a 
 (its tree check, all four of its induction rules, step flags, progress laws, step laws and k-step laws), proven sound, and an exporter that
 sends the kernel's real trees to it. `Sets.lean` adds kernel.ts's sets, and `History.lean`, on top of it, the history rule.
 
+## Conditional count frames (Section 15.7; Lean and TypeScript)
+
+`Count.lean`'s `FrameCuts` section and `CountMachine.lean`'s `checkCountedWF` / `checkMCF`: a frame cut names a post count
+and its pre count by their variables and linear conditions `when`; it is accepted (`frameOk`) when the two counts share
+their key and, with every `if` whose condition reads no count key and is decided under `when` resolved (`simpE`, through
+`truth`), their bounds and bodies are the same terms. At a leaf whose original path decides `when`, the rows `post − pre ≤ 0`
+and `pre − post ≤ 0` are available (`framePath`, in front of `lemmaPath`). No tree is checked for a frame (`sumBelow_congr`);
+`simpE_eval` is why a condition reading the key is never decided. With no frames every checker is the lemma-cut checker
+(`checkGoalFrames_nil`, `checkCountedF_nil`, `checkCountedWF_nil`, `checkMCF_nil`). Soundness: `frame_sound`,
+`goalFrames_sound`, `countedF_sound`, `countedWF_sound`, `mcF_sound`. Executable examples: `research/track-fable/FrameCuts.lean`;
+the TypeScript checker and exporter are wired in `kernel/kernel.ts` and `lean-kernel/emit.ts`.
+The original research implementation and plan remain in `research/track-fable/{frame-cut.ts, FRAME-CUTS.md}`.
+
 ## Conditional counted lemma cuts
 
 The counted certificate optionally carries `lemmas: {when, cut, tree, slice?}[]`. The containing table and witness namespace are shared. Each lemma is checked independently, without access to any lemma, against the exact selected hypotheses under its conditions and the negation of its cut. Only leaves whose original split path decides all conditions may use the cut. An absent/empty list follows the original checker; no prover cache is trusted.
