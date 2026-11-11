@@ -1,0 +1,20 @@
+{
+ "cpu-large": {
+  "vm": "bx_y4fnjbmr",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 2,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "cpu-small": {
+  "vm": "bx_ncxu6yrz",
+  "type": "small",
+  "cpu": "",
+  "vcpus": 2,
+  "vm_vcpus": 2,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}

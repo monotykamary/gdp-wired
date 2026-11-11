@@ -1,0 +1,47 @@
+{
+ "candidate-tiny-small": {
+  "vm": "bx_q7gtk7eh",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "candidate-reach-finite": {
+  "vm": "bx_b4jstcxp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "candidate-reach-compiled": {
+  "vm": "bx_d5bzbnge",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "candidate-tiny-boundary-round": {
+  "vm": "bx_8cgfdm3x",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "candidate-pruned-cap": {
+  "vm": "bx_58s5cmyd",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}

@@ -1,0 +1,143 @@
+FROZEN_CHECKING {"preserved":134,"proverBody":"exact below cancellation header"}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [641.00ms]
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/common-counted.test.ts:
+(pass) nested work scopes cannot extend parent and restore after an exception [0.39ms]
+(pass) full profile proves and refuses unchanged rules without any clock read [87.21ms]
+(pass) legacy counted clock and telemetry do not read the wall [0.20ms]
+
+core/work-observe.test.ts:
+37 | if(profile.enabled){for(const k of ['tinyNodes','tinyTerms','reachStates','reachEdges','reachEvals','reachCompiledEvals'])a(last[k]>before[k],k)}
+38 | else for(const k of ['tinyNodes','tinyTerms','reachStates','reachEdges','reachEvals','reachCompiledEvals'])a.equal(last[k],0,k);
+39 | tripwireGate.active=false;console.log('NATIVE_RESULT '+JSON.stringify({candidates,stats:{...stats,ms:0},coverage:Object.fromEntries(workKeys.map(k=>[k,last[k]-before[k]]))}));`
+40 | function child(full: boolean) {
+41 |  const r=spawnSync(process.execPath,['--preload','./core/clock-tripwire-preload.ts','--eval',program],{env:{...process.env,GDP_WORK_FULL:full?'1':'0',GDP_WORK_STEPS:'0'},encoding:'utf8',timeout:60000})
+42 |  expect(r.status,r.stderr).toBe(0)
+                                ^
+error: 23 | }
+24 | const m={name:'native tiny',params:[],inputs:['op'],state:{x:0},maps:{},step:{state:{x:{op:'var',name:'op'}}}};
+25 | const law={name:'zero',holds:{op:'=',a:{op:'var',name:'x'},b:{op:'const',value:0}}};
+26 | const node0=rawWork().tinyNodes,term0=rawWork().tinyTerms,candidates=[];
+27 | const stats=withBudget(10000000,()=>tinyFiniteCandidates(m,m,[law],{},(pre,request,laws)=>{candidates.push([pre.scalars,request,laws.map(l=>l.name)]);return true},{valueDomain:[0,1],postTargetPruning:true,postTargetIntervals:true}));
+28 | a(stats.completed);a(stats.nodes>0);
+     ^
+AssertionError: false == true
+ generatedMessage: true,
+     actual: false,
+   expected: true,
+   operator: "==",
+       diff: "simple",
+       code: "ERR_ASSERTION"
+
+      at /tmp/hard-cap-l4FneZ/[eval]:28:1
+
+Bun v1.4.3 (Linux x64)
+
+
+Expected: 0
+Received: 1
+
+      at child (/tmp/hard-cap-l4FneZ/core/work-observe.test.ts:42:28)
+      at <anonymous> (/tmp/hard-cap-l4FneZ/core/work-observe.test.ts:47:103)
+(fail) successor raw counters admit before work, meter native pruning, and restore nested scopes [31.27ms]
+37 | if(profile.enabled){for(const k of ['tinyNodes','tinyTerms','reachStates','reachEdges','reachEvals','reachCompiledEvals'])a(last[k]>before[k],k)}
+38 | else for(const k of ['tinyNodes','tinyTerms','reachStates','reachEdges','reachEvals','reachCompiledEvals'])a.equal(last[k],0,k);
+39 | tripwireGate.active=false;console.log('NATIVE_RESULT '+JSON.stringify({candidates,stats:{...stats,ms:0},coverage:Object.fromEntries(workKeys.map(k=>[k,last[k]-before[k]]))}));`
+40 | function child(full: boolean) {
+41 |  const r=spawnSync(process.execPath,['--preload','./core/clock-tripwire-preload.ts','--eval',program],{env:{...process.env,GDP_WORK_FULL:full?'1':'0',GDP_WORK_STEPS:'0'},encoding:'utf8',timeout:60000})
+42 |  expect(r.status,r.stderr).toBe(0)
+                                ^
+error: 23 | }
+24 | const m={name:'native tiny',params:[],inputs:['op'],state:{x:0},maps:{},step:{state:{x:{op:'var',name:'op'}}}};
+25 | const law={name:'zero',holds:{op:'=',a:{op:'var',name:'x'},b:{op:'const',value:0}}};
+26 | const node0=rawWork().tinyNodes,term0=rawWork().tinyTerms,candidates=[];
+27 | const stats=withBudget(10000000,()=>tinyFiniteCandidates(m,m,[law],{},(pre,request,laws)=>{candidates.push([pre.scalars,request,laws.map(l=>l.name)]);return true},{valueDomain:[0,1],postTargetPruning:true,postTargetIntervals:true}));
+28 | a(stats.completed);a(stats.nodes>0);
+     ^
+AssertionError: false == true
+ generatedMessage: true,
+     actual: false,
+   expected: true,
+   operator: "==",
+       diff: "simple",
+       code: "ERR_ASSERTION"
+
+      at /tmp/hard-cap-l4FneZ/[eval]:28:1
+
+Bun v1.4.3 (Linux x64)
+
+
+Expected: 0
+Received: 1
+
+      at child (/tmp/hard-cap-l4FneZ/core/work-observe.test.ts:42:28)
+      at <anonymous> (/tmp/hard-cap-l4FneZ/core/work-observe.test.ts:49:10)
+(fail) finite result stays exact with flags off and all successor fields zero [26.04ms]
+
+core/hard-cap.test.ts:
+cyclic: {"kind":"machine","name":"bounded polling","cert":true,"usual":true,"cyclic":true,"ms":14,"usualMs":6,"route":"translated","leaves":7,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) bounded polling protocol proves its slack and rejects the always-spend mutant [26.98ms]
+(pass) counted binding loops and public stops preserve a 1024-unit slack [55.57ms]
+
+kernel/cdcl-root.test.ts:
+(pass) duplicate root aliases retain positive orientation [3.25ms]
+(pass) duplicate root aliases retain negative orientation [0.36ms]
+(pass) duplicate frame-cut rows remain checked at their original root [0.58ms]
+
+kernel/frame-cut.test.ts:
+(pass) simpE resolves only conditions decided under the path and free of the key [0.27ms]
+(pass) frameOk accepts the op = 4 frame and refuses the variants Lean refuses [0.19ms]
+(pass) the frame row closes the op = 4 leaf and nowhere else [0.33ms]
+(pass) framePath keeps every original atom and prepends the active frames' rows [0.04ms]
+(pass) the write tree under the condition collapses to the pre body once the path refutes the writing operation [0.23ms]
+(pass) a guard reading the key through the stride is decided at every key from the row bound, and not otherwise [0.11ms]
+(pass) a per-key cut: the auxiliary goal proved by the CDCL gives post ≤ pre at the leaf, with the refusals Lean lists [1.69ms]
+(pass) a linear cut: Σ pos ≤ Σ neg proved per key by the CDCL gives its row at the leaf, with the refusals Lean lists [1.01ms]
+
+lean-kernel/frame-export.test.ts:
+(pass) framed leaves encode against the same rows the native checker sees [1.22ms]
+(pass) empty frames preserve the legacy encoder byte for byte [0.31ms]
+(pass) goal-local monotone export includes its independent auxiliary table and proof [6.55ms]
+(pass) goal-local export uses mcF_sound and refuses an invalid frame [0.15ms]
+
+lean-kernel/linear-export.test.ts:
+(pass) a checked linear count cut exports its auxiliary proof and refuses mutation [1.96ms]
+(pass) empty linear-cut context preserves the legacy encoding [0.06ms]
+
+2 tests failed:
+(fail) successor raw counters admit before work, meter native pruning, and restore nested scopes [31.27ms]
+(fail) finite result stays exact with flags off and all successor fields zero [26.04ms]
+
+ 22 pass
+ 2 fail
+ 102 expect() calls
+Ran 24 tests across 7 files. [317.00ms]
+2 | import {mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs'
+3 | import {createHash} from 'node:crypto'
+4 | import {join,resolve} from 'node:path'
+5 | import {spawnSync} from 'node:child_process'
+6 | const input=resolve('port-input'),root=mkdtempSync('/tmp/hard-cap-'),mode=process.argv[2]
+7 | function run(cmd:string,args:string[]){const r=spawnSync(cmd,args,{cwd:root,encoding:'utf8',timeout:1100000,maxBuffer:32*1024*1024});process.stdout.write(r.stdout??'');process.stderr.write(r.stderr??'');if(r.error||r.status!==0)throw Error(`${cmd}: ${r.status} ${r.error??''}`)}
+                                                                                                                                                                                                                                              ^
+error: bun: 1 
+      at run (/work/gdp-wired/port-input/verify.ts:7:235)
+      at /work/gdp-wired/port-input/verify.ts:21:7
+
+Bun v1.4.3 (Linux x64)

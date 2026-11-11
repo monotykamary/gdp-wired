@@ -1,0 +1,83 @@
+{
+ "baseline-tiny-small": {
+  "vm": "bx_9q9ahevy",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "baseline-reach-finite": {
+  "vm": "bx_ugy2dffp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "baseline-reach-compiled": {
+  "vm": "bx_22zmq5qa",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "baseline-tiny-boundary-round": {
+  "vm": "bx_g443ydhq",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "candidate-tiny-small": {
+  "vm": "bx_58s5cmyd",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "candidate-reach-finite": {
+  "vm": "bx_9ta75m82",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "candidate-reach-compiled": {
+  "vm": "bx_y4fnjbmr",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "candidate-tiny-boundary-round": {
+  "vm": "bx_f96rfjuy",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "candidate-pruned-cap": {
+  "vm": "bx_5a54sztd",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}

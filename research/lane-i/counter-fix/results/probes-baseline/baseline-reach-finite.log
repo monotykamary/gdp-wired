@@ -1,0 +1,22 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [985.00ms]
+META {"mode":"reach","laws":49,"caller":[0,1,2,3],"profile":{"id":"raw-work-v0","enabled":true,"provisional":true,"weights":{"tableCells":1,"checkSteps":1,"astNodes":1,"evals":1,"cubeTests":1,"ticks":1,"cdclNodes":1,"epr":1},"defaultUnits":15000000},"argv":["reach","1","2"]}
+BROKEN {"native":6,"name":"CV at most 2","depth":8,"state":{"scalars":{"started":1,"picked":1},"defaults":{"CT":0,"CV":1,"CfgT":0,"C0":0,"Config":0,"St":0},"maps":{"C0":[[0,1]],"Copied":[[0,1],[1,1],[2,1]],"Config":[[0,1],[64,1],[128,1]],"CT":[[0,1]],"St":[[0,1]],"CV":[[0,3]],"CfgT":[[0,1]]}}}
+BROKEN {"native":14,"name":"every x with x < size: never C0[x] is 0 and 1 <= St[x]","depth":10,"state":{"scalars":{"started":1,"picked":1},"defaults":{"CT":0,"CV":1,"CfgT":0,"C0":0,"Config":0,"St":0},"maps":{"C0":[[0,1]],"Copied":[[0,1],[1,1],[2,1]],"Config":[[0,1],[1,1],[64,1],[65,1],[128,1]],"CT":[[0,2],[1,2]],"St":[[1,1]],"CV":[[0,2],[1,2]],"CfgT":[[0,1],[1,2]]}}}
+BROKEN {"native":34,"name":"inX: stored guard reconfigs/inS","depth":10,"state":{"scalars":{"started":1,"picked":1},"defaults":{"CT":0,"CV":1,"CfgT":0,"C0":0,"Config":0,"St":0},"maps":{"C0":[[0,1]],"Copied":[[0,1],[1,1],[2,1]],"Config":[[0,1],[1,1],[2,1],[64,1],[65,1],[128,1]],"CT":[[0,1],[1,1]],"St":[[0,1]],"CV":[[0,3],[1,2]],"CfgT":[[0,1],[1,1]]}}}
+BROKEN {"native":37,"name":"inX: stored guard reconfigs/inS or disabled/2","depth":10,"state":{"scalars":{"started":1,"picked":1},"defaults":{"CT":0,"CV":1,"CfgT":0,"C0":0,"Config":0,"St":0},"maps":{"C0":[[0,1],[2,1],[1,1]],"Copied":[[0,1],[1,1],[2,1]],"Config":[[0,1],[64,1],[65,1],[66,1],[128,1],[130,1]],"CT":[[0,1],[1,1],[2,1]],"St":[[0,1]],"CV":[[0,3],[2,2]],"CfgT":[[0,1],[1,1],[2,1]]}}}
+RESULT {"T":1,"V":2,"states":3286,"beyond":2298,"steps":75118,"depth":12,"ms":17015,"fullWork":249229203,"units":996916.812,"raw":{"evals":249229203},"broken":[6,14,34,37],"unknownEvaluations":[13]}
+COUNTER_PROBE {"source":"efd702761f03c320939679912e6d0f2579696010","argv":["reach","1","2"],"allowance":1000000000000,"outcome":"complete","profile":{"id":"raw-work-v0","enabled":true,"provisional":true,"weights":{"tableCells":1,"checkSteps":1,"astNodes":1,"evals":1,"cubeTests":1,"ticks":1,"cdclNodes":1,"epr":1},"defaultUnits":15000000},"raw":{"evals":249229203},"units":249229203,"wallMs":17019.828563,"phases":[{"id":1,"parentId":null,"name":"counter-probe","depth":0,"completed":true,"raw":{"fm":0,"fcells":0,"plainRows":0,"values":0,"copies":0,"edges":0,"scan":0,"pivotRows":0,"unitRows":0,"unfoldRows":0,"goalNodes":0,"translateRows":0,"tableCells":0,"checkSteps":0,"astNodes":0,"evals":249229203,"cubeTests":0,"ticks":0,"cdclNodes":0,"epr":0},"exclusiveRaw":{"fm":0,"fcells":0,"plainRows":0,"values":0,"copies":0,"edges":0,"scan":0,"pivotRows":0,"unitRows":0,"unfoldRows":0,"goalNodes":0,"translateRows":0,"tableCells":0,"checkSteps":0,"astNodes":0,"evals":249229203,"cubeTests":0,"ticks":0,"cdclNodes":0,"epr":0},"units":249229203,"exclusiveUnits":249229203,"wallMs":0,"exclusiveWallMs":0,"unitModel":"explicit-complete","weights":{"tableCells":1,"checkSteps":1,"astNodes":1,"evals":1,"cubeTests":1,"ticks":1,"cdclNodes":1,"epr":1}}]}

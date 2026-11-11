@@ -1,0 +1,11 @@
+{
+ "counter-census-audit": {
+  "vm": "bx_48zyya99",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 2,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ }
+}

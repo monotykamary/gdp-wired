@@ -1,0 +1,1 @@
+[{"name":"counter-census-audit","cmd":"bun audit-input/audit.ts audit-input/final audit-input/before audit-input/before 00b58ee54b4e5b8c4967fdbde35d1ff0f38d91e7","cpu":2,"memory":4096,"timeout":120,"vm_type":"large"}]

@@ -1,3 +1,28 @@
+# LATEST — combined counter/hard-cap candidate ready for D review
+
+**Exact source00b58ee54b4e5b8c4967fdbde35d1ff0f38d91e7** on
+claude/mldr-integ; D pin is **PLUMBING ONLY**, not calibrated/accepted.
+raw-work-v1 adds six explicit positive-weight counters, native tiny work and
+exclusive reach evaluation buckets, with pre-admission and inherited refusal.
+
+All on supercomputer: **25tests/111assertions**, **1,783-file type/lint**,
+**134 protected identities exact**.28strict+28flagsoff audited: **12 checked
+proofs,16unknown**, no loss of10prior proofs; new client_server_ae and
+simple_election. **Max15,000,385.9024 <=15M+1024**. Strict wall reads0;
+old20-field flags-off projection exact and6newfieldszero. Entire raw schema
+is intentionally additive, not a claim of unchanged JSON shape.
+
+E1/E2 audited native statistics and drop/broken sets preserved; tiny nodes
+and term/interval work are observed. **Prices remain provisional**: tiny
+clock/wall~59–80, reach~.06–.09; per-evaluation admission has material overhead.
+D must fit/bind weights and reconfirm the fitted-profile cap quantum.
+Guest small9700X evidence sent to D; native+guest hardware qualification
+still its gate. All owned batches terminal. No main merge/push.
+
+Details: `research/lane-i/counter-fix/{RESULT,SCHEMA,D-HANDOFF}.md` and
+`results/`. Original13 overrun cases/file:line/units-between-checks remain in
+`research/lane-i/hard-cap/LOOPS.md`. Final report does not claim MLDR proved.
+
 # ACTIVE — hard cap verified; counter correction required before calibration
 
 Hard-cap runtime **efd70276**, evidence `research/lane-i/hard-cap/`: all 28

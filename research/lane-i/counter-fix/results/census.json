@@ -1,0 +1,426 @@
+{
+  "source": "00b58ee54b4e5b8c4967fdbde35d1ff0f38d91e7",
+  "proved": 12,
+  "unknown": 16,
+  "maxUnits": 15000385.9024,
+  "slack": 385.90240000002086,
+  "coverage": {
+    "tinyNodes": 0,
+    "tinyTerms": 0,
+    "reachStates": 19987,
+    "reachEdges": 3545808,
+    "reachEvals": 164933248,
+    "reachCompiledEvals": 1003517274
+  },
+  "flagsOffIdentical": 28,
+  "rows": [
+    {
+      "id": "sharded_kv_no_lost_keys",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 15000082.2006,
+      "why": "work budget (refutation poll)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 0,
+        "reachEdges": 0,
+        "reachEvals": 0,
+        "reachCompiledEvals": 0
+      }
+    },
+    {
+      "id": "two_phase_commit",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 15000146.9145,
+      "why": "work budget (preflight law bindings)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 0,
+        "reachEdges": 0,
+        "reachEvals": 0,
+        "reachCompiledEvals": 0
+      }
+    },
+    {
+      "id": "quorum_leader_election",
+      "before": "proven",
+      "after": "proven",
+      "units": 1687815.9903,
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 105,
+        "reachEdges": 22680,
+        "reachEvals": 310434,
+        "reachCompiledEvals": 1861380
+      }
+    },
+    {
+      "id": "sharded_kv",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 15000385.9024,
+      "why": "work budget (preflight law bindings)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 0,
+        "reachEdges": 0,
+        "reachEvals": 0,
+        "reachCompiledEvals": 0
+      }
+    },
+    {
+      "id": "lock_server",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 15000127.686,
+      "why": "work budget (preflight law bindings)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 0,
+        "reachEdges": 0,
+        "reachEvals": 0,
+        "reachCompiledEvals": 0
+      }
+    },
+    {
+      "id": "lockserv",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 15000070.2075,
+      "why": "work budget (preflight law bindings)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 0,
+        "reachEdges": 0,
+        "reachEvals": 0,
+        "reachCompiledEvals": 0
+      }
+    },
+    {
+      "id": "naive_consensus",
+      "before": "proven",
+      "after": "proven",
+      "units": 3107127.4877000004,
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 146,
+        "reachEdges": 31536,
+        "reachEvals": 850976,
+        "reachCompiledEvals": 4401162
+      }
+    },
+    {
+      "id": "majorityset_leader_election",
+      "before": "proven",
+      "after": "proven",
+      "units": 3420623.1581,
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 427,
+        "reachEdges": 11529,
+        "reachEvals": 2815123,
+        "reachCompiledEvals": 1225125
+      }
+    },
+    {
+      "id": "paxos_epr",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 15000276.18,
+      "why": "work budget (inference sample)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 687,
+        "reachEdges": 800064,
+        "reachEvals": 5602797,
+        "reachCompiledEvals": 404619462
+      }
+    },
+    {
+      "id": "simple_decentralized_lock",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 15000073.554,
+      "why": "work budget (preflight law bindings)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 0,
+        "reachEdges": 0,
+        "reachEvals": 0,
+        "reachCompiledEvals": 0
+      }
+    },
+    {
+      "id": "lockserv_automaton",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 15000101.0997,
+      "why": "work budget (preflight law bindings)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 0,
+        "reachEdges": 0,
+        "reachEvals": 0,
+        "reachCompiledEvals": 0
+      }
+    },
+    {
+      "id": "toy_consensus",
+      "before": "proven",
+      "after": "proven",
+      "units": 2636822.3943,
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 113,
+        "reachEdges": 24408,
+        "reachEvals": 315276,
+        "reachCompiledEvals": 2016900
+      }
+    },
+    {
+      "id": "learning_switch_i4",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 15000007.014,
+      "why": "work budget (preflight law bindings)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 0,
+        "reachEdges": 0,
+        "reachEvals": 0,
+        "reachCompiledEvals": 0
+      }
+    },
+    {
+      "id": "consensus_wo_decide",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 13288325.0055,
+      "why": "work budget (part)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 3849,
+        "reachEdges": 466128,
+        "reachEvals": 29759957,
+        "reachCompiledEvals": 121602060
+      }
+    },
+    {
+      "id": "twophase",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 15000048.8476,
+      "why": "work budget (refutation poll)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 0,
+        "reachEdges": 0,
+        "reachEvals": 0,
+        "reachCompiledEvals": 0
+      }
+    },
+    {
+      "id": "consensus_forall",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 15000012.1,
+      "why": "work budget (inference failure)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 2488,
+        "reachEdges": 667656,
+        "reachEvals": 10647243,
+        "reachCompiledEvals": 209016612
+      }
+    },
+    {
+      "id": "simple_regular",
+      "before": "proven",
+      "after": "proven",
+      "units": 6724019.6814,
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 131,
+        "reachEdges": 3537,
+        "reachEvals": 154725,
+        "reachCompiledEvals": 188568
+      }
+    },
+    {
+      "id": "toy_consensus_epr",
+      "before": "proven",
+      "after": "proven",
+      "units": 2957779.1618,
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 113,
+        "reachEdges": 24408,
+        "reachEvals": 590730,
+        "reachCompiledEvals": 2778840
+      }
+    },
+    {
+      "id": "consensus",
+      "before": "proven",
+      "after": "proven",
+      "units": 219557.9687,
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 0,
+        "reachEdges": 0,
+        "reachEvals": 0,
+        "reachCompiledEvals": 0
+      }
+    },
+    {
+      "id": "learning_switch",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 15000169.177,
+      "why": "work budget (preflight law bindings)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 0,
+        "reachEdges": 0,
+        "reachEvals": 0,
+        "reachCompiledEvals": 0
+      }
+    },
+    {
+      "id": "simple",
+      "before": "proven",
+      "after": "proven",
+      "units": 5756055.367899999,
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 64,
+        "reachEdges": 1728,
+        "reachEvals": 73467,
+        "reachCompiledEvals": 25326
+      }
+    },
+    {
+      "id": "tcommit",
+      "before": "proven",
+      "after": "proven",
+      "units": 305163.0489,
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 0,
+        "reachEdges": 0,
+        "reachEvals": 0,
+        "reachCompiledEvals": 0
+      }
+    },
+    {
+      "id": "toy_consensus_forall",
+      "before": "proven",
+      "after": "proven",
+      "units": 2694529.6047000005,
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 113,
+        "reachEdges": 24408,
+        "reachEvals": 343285,
+        "reachCompiledEvals": 2420280
+      }
+    },
+    {
+      "id": "client_server_ae",
+      "before": "unknown",
+      "after": "proven",
+      "units": 2355979.8243,
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 4538,
+        "reachEdges": 195342,
+        "reachEvals": 7202066,
+        "reachCompiledEvals": 32455281
+      }
+    },
+    {
+      "id": "client_server_db_ae",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 15000151.9333,
+      "why": "work budget (preflight law bindings)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 4481,
+        "reachEdges": 400032,
+        "reachEvals": 94959093,
+        "reachCompiledEvals": 0
+      }
+    },
+    {
+      "id": "consensus_epr",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 15000028.52,
+      "why": "work budget (inference failure)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 2334,
+        "reachEdges": 800064,
+        "reachEvals": 9691302,
+        "reachCompiledEvals": 210689424
+      }
+    },
+    {
+      "id": "simple_election",
+      "before": "unknown",
+      "after": "proven",
+      "units": 3924296.2794,
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 322,
+        "reachEdges": 69552,
+        "reachEvals": 1404484,
+        "reachCompiledEvals": 9997992
+      }
+    },
+    {
+      "id": "firewall",
+      "before": "unknown",
+      "after": "unknown",
+      "units": 15000068.984000001,
+      "why": "work budget (preflight law bindings)",
+      "native": {
+        "tinyNodes": 0,
+        "tinyTerms": 0,
+        "reachStates": 76,
+        "reachEdges": 2736,
+        "reachEvals": 212290,
+        "reachCompiledEvals": 218862
+      }
+    }
+  ]
+}

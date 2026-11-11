@@ -1,0 +1,18 @@
+[
+  {
+    "name": "cpu-large",
+    "cmd": "bun --eval 'import {cpus,hostname,arch,platform} from \"node:os\"; import {readFileSync} from \"node:fs\"; console.log(\"CPU_QUALIFICATION \"+JSON.stringify({hostname:hostname(),models:[...new Set(cpus().map(c=>c.model))],cpuCount:cpus().length,arch:arch(),platform:platform(),bootId:readFileSync(\"/proc/sys/kernel/random/boot_id\",\"utf8\").trim(),procModels:[...new Set(readFileSync(\"/proc/cpuinfo\",\"utf8\").split(\"\\n\").filter(l=>l.startsWith(\"model name\")))]}));'",
+    "cpu": 2,
+    "memory": 1024,
+    "timeout": 60,
+    "vm_type": "large"
+  },
+  {
+    "name": "cpu-small",
+    "cmd": "bun --eval 'import {cpus,hostname,arch,platform} from \"node:os\"; import {readFileSync} from \"node:fs\"; console.log(\"CPU_QUALIFICATION \"+JSON.stringify({hostname:hostname(),models:[...new Set(cpus().map(c=>c.model))],cpuCount:cpus().length,arch:arch(),platform:platform(),bootId:readFileSync(\"/proc/sys/kernel/random/boot_id\",\"utf8\").trim(),procModels:[...new Set(readFileSync(\"/proc/cpuinfo\",\"utf8\").split(\"\\n\").filter(l=>l.startsWith(\"model name\")))]}));'",
+    "cpu": 2,
+    "memory": 1024,
+    "timeout": 60,
+    "vm_type": "small"
+  }
+]

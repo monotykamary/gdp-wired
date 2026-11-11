@@ -1,0 +1,53 @@
+FROZEN_CHECKING {"preserved":134,"proverBody":"exact below cancellation header"}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [450.00ms]
+
+  x typescript(restrict-plus-operands): Invalid operand of type 'Error | undefined' for a '+' operation.
+   ,-[research/lane-i/counter-fix/probe-run.ts:8:274]
+ 7 | const root=mkdtempSync('/tmp/counter-probe-')
+ 8 | function command(cmd:string,argv:string[],timeout=120000){const r=spawnSync(cmd,argv,{cwd:root,encoding:'utf8',timeout,maxBuffer:32*1024*1024});process.stdout.write(r.stdout??'');process.stderr.write(r.stderr??'');if(r.status!==0||r.error)throw Error(cmd+': '+r.status+' '+r.error)}
+   :                                                                                                                                                                                                                                                                                  ^^^^^^^
+ 9 | try {
+   `----
+  help: Operands must each be a number or string, allowing a string + any of: `any`, `boolean`, `null`, `RegExp`, `undefined`.
+
+  x typescript(restrict-plus-operands): Invalid operand of type 'Error | undefined' for a '+' operation.
+    ,-[research/lane-i/counter-fix/probe-run.ts:18:138]
+ 17 |  const r=spawnSync('bun',[join(at,'engine-tiny.ts'),...args],{cwd:root,env,encoding:'utf8',timeout:2100000,maxBuffer:32*1024*1024})
+ 18 |  process.stdout.write(r.stdout??'');process.stderr.write(r.stderr??'');if(r.status!==0||r.error)throw Error('probe failed '+r.status+' '+r.error)
+    :                                                                                                                                          ^^^^^^^
+ 19 |  if(!(r.stdout??'').includes('COUNTER_PROBE '))throw Error('missing terminal receipt')
+    `----
+  help: Operands must each be a number or string, allowing a string + any of: `any`, `boolean`, `null`, `RegExp`, `undefined`.
+
+Found 0 warnings and 2 errors.
+Finished in 47.0s on 1782 files with 100 rules using 8 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+error: script "check" exited with code 1
+2 | import {mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs'
+3 | import {createHash} from 'node:crypto'
+4 | import {join,resolve} from 'node:path'
+5 | import {spawnSync} from 'node:child_process'
+6 | const input=resolve('port-input'),root=mkdtempSync('/tmp/hard-cap-'),mode=process.argv[2]
+7 | function run(cmd:string,args:string[]){const r=spawnSync(cmd,args,{cwd:root,encoding:'utf8',timeout:1100000,maxBuffer:32*1024*1024});process.stdout.write(r.stdout??'');process.stderr.write(r.stderr??'');if(r.error||r.status!==0)throw Error(`${cmd}: ${r.status} ${r.error??''}`)}
+                                                                                                                                                                                                                                              ^
+error: bun: 1 
+      at run (/work/gdp-wired/port-input/verify.ts:7:235)
+      at /work/gdp-wired/port-input/verify.ts:20:26
+
+Bun v1.4.3 (Linux x64)
