@@ -1,0 +1,6 @@
+[
+ {"name":"phase-contract-fixtures","cmd":"bun test calibration-input/contract.test.ts","cpu":2,"memory":8192,"timeout":120,"vm_type":"large"},
+ {"name":"mini-phase-contract-1","cmd":"bun calibration-input/validate-mini.ts 1 bounded","cpu":4,"memory":14336,"timeout":1200,"vm_type":"large"},
+ {"name":"mini-phase-contract-2","cmd":"bun calibration-input/validate-mini.ts 2 bounded","cpu":4,"memory":14336,"timeout":1200,"vm_type":"large"},
+ {"name":"mini-phase-contract-3","cmd":"bun calibration-input/validate-mini.ts 3 bounded","cpu":4,"memory":14336,"timeout":1200,"vm_type":"large"}
+]

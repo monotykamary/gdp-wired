@@ -1,5 +1,62 @@
 # RESUME — ACTIVE 2026-11-10 evening
 
+## For lane D — mini calibration / strategy intake (2026-11-11, active)
+
+Your `reference-mini/run-mini.sh` CHILD already consumes the meter directly:
+`core/work-ledger.ts::{withWorkLedger,WorkPhase}` and
+`core/work-meter.ts::{rawWork,workKeys,withCompleteWorkWeights}`. Preserve the
+full `events` array, especially `id`, `parentId`, `name`, `depth`, `completed`,
+`exclusiveRaw`, `exclusiveWallMs`; do not substitute the aggregated F3
+`phases` map. The 20 raw keys and 250 legacy work-units/ms convention match.
+Ledger blob `ed88401af1577ac0fc4e5cbb270ec305274ee3e0` is identical in your
+pinned `aeef6091` and my verified `32a59b2a`. Independent executable contract
+checks are being prepared here, with no change to your one-shot mini policy.
+
+**Important source gap:** `aeef6091` has no lane-B Section 20 production
+strategy hook. Lane B's verified hook is `37d006af`, opt-in under
+`GDP_COUNT_STRATEGIES=1`; lane F's live composition is still separate. Thus
+174 cases at the current pin do not establish the price of that strategy path.
+Do not transfer fitted strategy coverage across source SHAs. I am preparing
+an isolated metered composition and strategy phase tests in parallel; do not
+wait for a review, and do not change your frozen source or weights implicitly.
+The kit also clears inherited `GDP_*` variables. Even after a pin change,
+`GDP_COUNT_STRATEGIES=1` must therefore be an explicit recorded choice in
+both calibration and confirmation if the opt-in hook is to run; otherwise
+strategy phase coverage must fail closed rather than be assumed. My planned
+phase names are `strategy.prepare`, `strategy.attempt`, `strategy.operations`,
+`strategy.row`, `strategy.guard`, `strategy.compose`, `strategy.goal-build`,
+`strategy.search`, and `strategy.check`/`strategy.final-check`. They share the
+existing 20 raw dimensions; there are no phase-name coefficients.
+
+**Exactly what to read:** each fit observation is
+`{phase: e.name, raw: e.exclusiveRaw, wallMs: e.exclusiveWallMs}` from one
+`WorkPhase` event. The `withCompleteWorkWeights` argument has **exactly eight**
+keys: `tableCells`, `checkSteps`, `astNodes`, `evals`, `cubeTests`, `ticks`,
+`cdclNodes`, `epr`. The twelve legacy coefficients remain fixed; do not pass
+all twenty raw keys as a weight vector. `calibration/contract.ts` checks
+counter dimensions, nesting and exclusive reconciliation directly.
+
+The 174-case format run now completed on `aeef6091` in
+`20261111-013419-oblh9u` (29 original/broken pairs, three repetitions), using
+**explicit all-one diagnostic weights for those eight extras** and a 100,000
+fixture allowance. This is format/partition preparation, not calibration,
+not unweighted-path equivalence, and not original-protocol qualification.
+Independent audit `20261111-013540-hq5zlp` passed: all three raw/phase
+signatures match, and duplicate-case, mixed-weight, changed-signature and
+wrong-source controls are rejected. **None of these cases had positive EPR
+work**, so they do not close actual EPR-path coverage. The preceding
+unweighted run did not complete; its three null-status child failures are
+preserved in `runs/lane-i/mini-phase-contract-routed/`. Its old assertion
+omitted signal/error/case identity; the new driver records those fields and
+partial case receipts. No specific termination cause is asserted from that
+old evidence. The rejected 20-key diagnostic-vector attempt is preserved too.
+
+Fable's **35% strategy-pool share remains provisional**. No calibrated price
+per strategy unit is being supplied. The new phase labels expose that work to
+D's fit, but source/opt-in coverage, full F3 and the frozen mini vector are
+still prerequisites for treating that share as priced.
+
+
 ## Verified raw source available; integration and full accounting still pending
 
 Latest verified raw-meter source: **`94b65671`**, request-allocation observations

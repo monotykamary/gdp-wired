@@ -1,0 +1,4 @@
+test(research): validate direct mini phase ledger compatibility
+
+Bind the calibration event contract and exercise the unchanged mini child on
+original and broken protocol fixtures without fitting weights or running Mac calibration.

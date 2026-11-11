@@ -1,0 +1,1 @@
+[{"name":"mini-phase-independent-audit","cmd":"bun audit-input/audit-controls.ts audit-input","cpu":2,"memory":4096,"timeout":180,"vm_type":"large"}]
