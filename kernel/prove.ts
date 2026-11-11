@@ -264,7 +264,7 @@ export function checkWorkAdmission(units: number, phase: string): void {
   if (!Number.isFinite(units) || units < 0) throw new RangeError('work charge must be finite and nonnegative')
   if (budgetUnitsEnd !== undefined && fullWork() + units > budgetUnitsEnd) throw new BudgetExpired(phase)
 }
-export const remainingWork = (): number => budgetUnitsEnd === undefined ? Infinity : Math.max(0, budgetUnitsEnd - fullWork())
+export function remainingWork(): number { return budgetUnitsEnd === undefined ? Infinity : Math.max(0, budgetUnitsEnd - fullWork()) }
 export function checkBudget(phase: string): void {
   if (budgetUnitsEnd !== undefined && (fullWork() > budgetUnitsEnd
     || completeWorkProfile.enabled && clock() > withinDeadline(budgetEnd()))) throw new BudgetExpired(phase)
