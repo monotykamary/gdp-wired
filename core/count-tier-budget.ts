@@ -5,6 +5,7 @@ import {attemptShare} from './support-budget.ts'
 import {BudgetExpired,budgetEnd,clock,withDeadline} from '../kernel/prove.ts'
 export type CountTierBudget = Readonly<{
  active:boolean,
+ workAllowance:number,
  generationUntil:number,
  strategyFloor:number,
  ordinaryFloor:number,
@@ -14,10 +15,10 @@ export type CountTierBudget = Readonly<{
 export function countTierBudget(start:number,until:number,selectedStrategies:number):CountTierBudget{
  if(!Number.isSafeInteger(selectedStrategies)||selectedStrategies<0)throw new RangeError('invalid strategy count')
  // No dispatcher hit: no reservation and precisely the existing split.
- if(!selectedStrategies)return Object.freeze({active:false,generationUntil:until,strategyFloor:0,ordinaryFloor:0,strategyUntil:undefined,until})
+ if(!selectedStrategies)return Object.freeze({active:false,workAllowance:Math.max(0,until-start),generationUntil:until,strategyFloor:0,ordinaryFloor:0,strategyUntil:undefined,until})
  if(!Number.isFinite(start)||!Number.isFinite(until))throw new RangeError('tiered work requires finite counted endpoints')
  const width=Math.max(0,until-start),ordinaryFloor=width*3/10
- return Object.freeze({active:true,generationUntil:Math.min(until,start+width/4),strategyFloor:width*7/20,ordinaryFloor,strategyUntil:until-ordinaryFloor,until})
+ return Object.freeze({active:true,workAllowance:width,generationUntil:Math.min(until,start+width/4),strategyFloor:width*7/20,ordinaryFloor,strategyUntil:until-ordinaryFloor,until})
 }
 // The public caller has already spent work on normalization and preflight.
 // Never regrant its original duration after that work.

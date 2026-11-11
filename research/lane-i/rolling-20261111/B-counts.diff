@@ -1,0 +1,164 @@
+diff --git a/core/counts.ts b/core/counts.ts
+index 515a4087..8842adcc 100644
+--- a/core/counts.ts
++++ b/core/counts.ts
+@@ -45,7 +45,7 @@ import {smallOf, trueSmall} from './exists.ts'
+ import {WallExpired, checkWall, searchWall} from './wall.ts'
+ import {env} from './solver.ts'
+ import {proofOrigins, proposeLemmaCuts} from './lemma-cuts.ts'
+-import {transportCountCertificate} from './count-cert-transport.ts'
++import {countedCertificateHyps,transportCountCertificate} from './count-cert-transport.ts'
+ import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, scopeCountProof, replayScopedCountProof} from './count-proof-scope.ts'
+ import {prepareCountStrategyMachine, proveCountStrategies, selectedCountStrategies} from './count-strategies.ts'
+ import {type CountTierBudget, countTierBudget, ordinaryTierShare} from './count-tier-budget.ts'
+@@ -570,6 +570,7 @@ function admitCountedFamilyOnce(m:Machine,caller:Law[],initial:Law[],support:Set
+ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<Law>,until:number,structured:boolean,budget:CountTierBudget|undefined,selected:Set<Law>,workAllowance:number):Counted {
+   if(!caller.every(l=>initial.includes(l)))return {proven:false,laws:initial,m,why:'missing caller'}
+   let set=initial.slice()
++  const scopeEnabled = env.GDP_COUNT_STRATEGIES === '1'
+   const attempts = countedAttempts(m, caller, support, until, structured, selected, workAllowance), traced = attempts.traced
+   const isCount = (mp: string) => !!m.counts?.[mp]
+   // Prove the proposed set together. A preliminary cone reproved many helpers in
+@@ -594,6 +595,8 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
+     if (proposed !== proof && ptime('kernel', () => checkCountedLaws(m, ls, proposed))) {
+       // Sharing may retain a wider independent-cut source slice. Never attach
+       // pre-sharing premise metadata to a different final certificate.
++      if (!scopeEnabled) proof = proposed
++      else {
+       const premises = {...proof.premises}
+       for (const law of ls) if ([' @start', ' @step'].some(suffix => proposed.certs[law.name + suffix] !== proof.certs[law.name + suffix])) {
+         const scoped = ptime('premise-scope', () => scopeCountProof(m, law, ls, {instances: proposed.instances[law.name] ?? {}, certs: proposed.certs}, until))
+@@ -601,13 +604,14 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
+         else delete premises[law.name]
+       }
+       proof = {...proposed, premises}
++      }
+     } else if (!ptime('kernel', () => checkCountedLaws(m, ls, proof))) return {proven: false, laws: ls, m, why: 'the kernel refused the set'}
+     // Output-only observation, after the unchanged checker accepts every obligation.
+     countsDump.on?.({phase: 'closed-family', machine: m, laws: ls, proof, checked: true})
+     return {proven: true, laws: ls, m, proof}
+   }
+   const join = (kept = new Map<string, Proof>()): Counted => {
+-    const keptProof = (): CountFamilyProof & {premises:Record<string,readonly string[]>} => ({instances: Object.fromEntries([...kept].map(([n, pr]) => [n, pr.instances])), certs: Object.assign({}, ...[...kept.values()].map(pr => pr.certs)), premises:Object.fromEntries([...kept].flatMap(([name,pr])=>pr.premises?[[name,pr.premises]]:[]))})
++    const keptProof = (): CountFamilyProof => ({instances: Object.fromEntries([...kept].map(([n, pr]) => [n, pr.instances])), certs: Object.assign({}, ...[...kept.values()].map(pr => pr.certs)), ...(scopeEnabled ? {premises:Object.fromEntries([...kept].flatMap(([name,pr])=>pr.premises?[[name,pr.premises]]:[]))} : {})})
+     if (caller.every(l => kept.has(l.name))) return finish(set.filter(l => kept.has(l.name)), keptProof())
+     // Each untried law gets an even share of what remains now, not what
+     // remained at round entry. Cheap proofs return their underspend to the pool.
+@@ -615,7 +619,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
+     const scopes = new Map<string, ScopedCountProof>()
+     attempts.houdini = true
+     for (let round = 0; clock() < until; round++) {
+-      const {instances, certs, premises} = keptProof()
++      const {instances, certs, premises = {}} = keptProof()
+       const failed = new Set<string>(), proofs = new Map<string, Proof>()
+       const pending = new Set(set.filter(l => !selected.has(l) && !kept.has(l.name) && !carried.has(l.name)).map(l => l.name))
+       // Count readers first, then explicit supports and callers; unrelated
+@@ -634,7 +638,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
+         const supportUntil = strategy ? budget!.strategyUntil! : Math.min(until, clock() + (boundedSupport ? Math.min(allotted, 5_000) : allotted))
+         const ask = (pass: 0 | 1): Tried<Proof> => {
+           const ms = Math.min(allotted, Math.max(0, (boundedSupport ? supportUntil : until) - clock()))
+-          countsDump.on?.({phase: 'houdini-attempt', law: law.name, round, pass})
++          if (scopeEnabled) countsDump.on?.({phase: 'houdini-attempt', law: law.name, round, pass})
+           if (budget) countsDump.on?.({phase: 'count-tier-attempt', law: law.name, tier: strategy ? 'strategy' : 'ordinary', end: supportUntil, allotted})
+           return boundedSupport || strategy ? withDeadline(supportUntil, () => traced(law, set, pass, ms)) : traced(law, set, pass, ms)
+         }
+@@ -642,7 +646,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
+         let r: Tried<Proof> = was ? {proof: was} : ask(countFirst ? 1 : 0)
+         if (!('proof' in r) && !r.refuted && !strategy && (countFirst || attempts.counted)) r = ask(countFirst ? 0 : 1)
+         if (!('proof' in r)) { failed.add(law.name); continue }
+-        if (!was) {
++        if (!was && scopeEnabled) {
+           const scoped = ptime('premise-scope', () => scopeCountProof(m, law, set, r.proof, until))
+           if (scoped) { scopes.set(law.name, scoped); r.proof = {...r.proof, premises: scoped.premises.map(p => p.name)} }
+           else scopes.delete(law.name)
+@@ -653,7 +657,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
+         Object.assign(certs, r.proof.certs)
+       }
+       if (env.GDP_COUNTS_TRACE) console.error(`counts: round ${round}: ${set.length} laws, ${kept.size} kept, ${carried.size} carried, failed ${[...failed].join('; ').slice(0, 600)}`)
+-      if (!failed.size) return finish(set, {instances, certs, premises})
++      if (!failed.size) return finish(set, {instances, certs, ...(scopeEnabled ? {premises} : {})})
+       const next = set.filter(l => !failed.has(l.name) || caller.includes(l))
+       // (only callers fail: drop nothing more, give up)
+       if (next.length === set.length) return {proven: false, laws: set, m, why: `not proven: ${[...failed].join(', ')}`}
+@@ -661,7 +665,10 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
+       // recorded premise scope, against the exact reduced row layout, without
+       // solving again. Missing premises and failed checks reopen the attempt.
+       carried = new Map()
+-      for (const name of proofs.keys()) {
++      if (!scopeEnabled) {
++        const dropped = set.filter(l => !next.includes(l))
++        carried = new Map([...proofs].filter(([, pr]) => dropped.every(d => d.forall && !pr.instances[d.name]?.length)))
++      } else for (const name of proofs.keys()) {
+         const scoped = scopes.get(name)
+         const replayed = scoped && ptime('premise-replay', () => replayScopedCountProof(m, next, scoped, until))
+         countsDump.on?.({phase: 'premise-replay', law: name, round, retained: !!replayed, premises: scoped?.premises.map(p => p.name)})
+@@ -672,6 +679,60 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
+     }
+     return {proven: false, laws: set, m, why: 'time'}
+   }
++  // Flags off retain the exact pre-scoping dependency/carry algorithm.
++  const dependencies=(owner:Law,proof:Proof,context:Law[]):Set<string>=>{
++    const conservative=()=>new Set(context.filter(l=>!l.forall||proof.instances[l.name]?.length).map(l=>l.name)),used=new Set<string>()
++    for(const {goal,decls}of countedObligations(m,context,{[owner.name]:proof.instances},context.indexOf(owner))){
++      const cert=proof.certs[goal.name]
++      if(!cert)return conservative()
++      const expanded=mcGoal(goal.hyps,decls,cert),refs=expanded&&countedCertificateHyps(expanded,cert)
++      if(!refs)return conservative()
++      for(const index of refs)if(index<goal.hyps.length)used.add(json(goal.hyps[index]))
++    }
++    return new Set(context.filter(l=>assumed([l],proof.instances).some(h=>used.has(json(h)))).map(l=>l.name))
++  }
++  const legacyDemand=():Counted=>{
++    const known=new Map<string,{proof:Proof,context:Law[],deps:Set<string>}>()
++    attempts.houdini=true
++    while(clock()<until){
++      if(!activeSupport(set,support))return join()
++      const required=new Set(caller.map(l=>l.name)),available=new Set(set.map(l=>l.name))
++      for(const name of required){const saved=known.get(name);if(saved)for(const dep of saved.deps)if(available.has(dep))required.add(dep)}
++      const law=supportOrder(set,caller,support,false,m).find(l=>required.has(l.name)&&!known.has(l.name))
++      if(!law){
++        const kept=set.filter(l=>required.has(l.name)),instances:Record<string,Instances>={},certs:Record<string,CountCert>={}
++        for(const l of kept){
++          const saved=known.get(l.name)!
++          instances[l.name]=saved.proof.instances
++          const src=countedObligations(m,saved.context,{[l.name]:saved.proof.instances},saved.context.indexOf(l)),dst=countedObligations(m,kept,{[l.name]:saved.proof.instances},kept.indexOf(l))
++          for(let i=0;i<dst.length;i++){
++            const cert=saved.proof.certs[src[i]!.goal.name]
++            if(!cert)return join()
++            const a=mcGoal(src[i]!.goal.hyps,src[i]!.decls,cert),b=mcGoal(dst[i]!.goal.hyps,dst[i]!.decls,cert),lifted=a&&b&&transportCountCertificate(a,b,cert,wallAt())
++            if(!lifted)return join()
++            certs[dst[i]!.goal.name]=lifted
++          }
++        }
++        return finish(kept,{instances,certs})
++      }
++      const remaining=until-clock(),share=remaining/Math.max(1,set.length-known.size),allotted=supportBudget(remaining,share,caller.includes(law),support.has(law)&&!caller.includes(law)),stop=Math.min(until,clock()+Math.min(allotted,5000))
++      const countFirst=firstCountPass(m,law,env.GDP_COUNTS_COUNT_FIRST!=='0'&&(reads(law.holds,isCount).size>0||!!law.keys?.length))===1
++      const ask=(context:Law[]):Tried<Proof>=>withDeadline(stop,()=>{
++        const pass:0|1=countFirst?1:0
++        let result=traced(law,context,pass,Math.min(allotted,Math.max(0,stop-clock())))
++        if(!('proof'in result)&&!result.refuted&&(countFirst||attempts.counted)&&clock()<stop)result=traced(law,context,pass?0:1,Math.min(allotted,Math.max(0,stop-clock())))
++        return result
++      })
++      let context=coarseContext(m,set,[...caller,law],support),result=ask(context)
++      if(!('proof'in result)&&context.length<set.length&&clock()<stop){context=set;result=ask(context)}
++      countsDump.on?.({phase:'demand-attempt',law:law.name,context:context.length,required:required.size,known:known.size,outcome:'proof'in result?'proof':result.stuck})
++      if('proof'in result){known.set(law.name,{proof:result.proof,context:context.slice(),deps:dependencies(law,result.proof,context)});continue}
++      if(caller.includes(law))return join()
++      set=set.filter(l=>l!==law)
++      for(const [name,saved]of known)if(saved.deps.has(law.name))known.delete(name)
++    }
++    return {proven:false,laws:set,m,why:'time'}
++  }
+   const demand=():Counted=>{
+     const known=new Map<string,ScopedCountProof>()
+     attempts.houdini=true
+@@ -713,7 +774,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
+     }
+     return {proven:false,laws:set,m,why:'time'}
+   }
+-  return budget ? join() : activeSupport(set,support) ? demand() : join()
++  return budget ? join() : activeSupport(set,support) ? scopeEnabled ? demand() : legacyDemand() : join()
+ }
+ 
+ type Proof = CountLawProof

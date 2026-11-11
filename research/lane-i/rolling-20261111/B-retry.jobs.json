@@ -1,0 +1,18 @@
+[
+  {
+    "name": "b-port-transport",
+    "cmd": "bun port-input/run.ts test core/count-cert-rename.test.ts core/count-cert-transport.test.ts core/count-proof-scope.test.ts core/count-guard-tree.test.ts core/count-query.test.ts core/count-recovery/reframe-tree.test.ts core/solver-deadline.test.ts",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "rolling-component-messages",
+    "cmd": "set -euo pipefail; temp=$(mktemp -d); trap 'rm -rf \"$temp\"' EXIT; printf '{\"private\":true}\\n' > \"$temp/package.json\"; (cd \"$temp\" && bun add --dev @commitlint/cli @commitlint/config-conventional >/dev/null); printf \"module.exports={extends:['@commitlint/config-conventional']};\\n\" > \"$temp/commitlint.config.cjs\"; for file in message-input/*.txt; do sha256sum \"$file\"; \"$temp/node_modules/.bin/commitlint\" --cwd \"$temp\" < \"$file\"; done",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 180,
+    "vm_type": "large"
+  }
+]

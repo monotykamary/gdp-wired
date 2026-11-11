@@ -1,0 +1,10 @@
+[
+  {
+    "name": "b-port-transport",
+    "cmd": "bun port-input/run.ts test core/count-cert-rename.test.ts core/count-cert-transport.test.ts core/count-proof-scope.test.ts core/count-guard-tree.test.ts core/count-query.test.ts core/count-recovery/reframe-tree.test.ts core/solver-deadline.test.ts",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

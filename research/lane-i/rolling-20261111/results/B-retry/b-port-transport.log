@@ -1,0 +1,76 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [561.00ms]
+bun test v1.4.3 (c6da4a4d3)
+ROLLING_GATE {"sourceTree":"3653d54eaa5c58f4f7bfaff6975fbd6072b030af","mode":"test","files":["core/count-cert-rename.test.ts","core/count-cert-transport.test.ts","core/count-proof-scope.test.ts","core/count-guard-tree.test.ts","core/count-query.test.ts","core/count-recovery/reframe-tree.test.ts","core/solver-deadline.test.ts"],"protected":181}
+
+--- stderr ---
+
+core/count-query.test.ts:
+(pass) minimal count queries reindex ordinary trees to the complete goal [5.40ms]
+(pass) only a satisfiable minimal view falls back to the full query [0.93ms]
+(pass) a reduced proof requiring an unavailable premise is refused [0.35ms]
+(pass) a zero leaf allowance cannot be renewed by minimal/full fallback [0.17ms]
+(pass) a direct linear proof cannot outlive a small positive leaf allowance [0.16ms]
+(pass) expired count query does not search or record a fabricated result [0.13ms]
+(pass) minimal projections retain domain conjuncts under a negated disjunction [0.06ms]
+
+core/count-guard-tree.test.ts:
+(pass) scalar guard splits cover both equality outcomes [0.57ms]
+(pass) disjoint rows are proved once above a case split [0.35ms]
+(pass) two-sided aliases prevent an apparently disjoint hoist [0.09ms]
+(pass) an unproved complement never becomes a hoisted assumption [0.06ms]
+(pass) expired and unsupported guards do not silently select an arm [0.03ms]
+
+core/solver-deadline.test.ts:
+(pass) an expired optional stop reads and charges no input rows [0.02ms]
+(pass) an optional stop is consulted again after input admission [0.01ms]
+(pass) an unexhausted optional stop preserves every verdict, step and work charge [0.31ms]
+
+core/count-cert-rename.test.ts:
+(pass) certificate renaming preserves map names, nested cells, products, and term expressions [0.58ms]
+(pass) renamed ordinary proof checks on the correspondingly renamed goal [1.19ms]
+(pass) renaming preserves explicit zeros used by source path identities [0.04ms]
+(pass) an expired certificate rename does no work [0.06ms]
+
+core/count-proof-scope.test.ts:
+(pass) record referenced laws, not every available scalar or instantiated law [4.84ms]
+(pass) premise matching ignores AST property insertion order [0.98ms]
+(pass) independent cut source slices remain premises even if the main tree does not cite the cut [1.53ms]
+(pass) reordering and adding unused laws reindexes but never searches [0.77ms]
+(pass) removing an actual premise or changing its body invalidates retention [0.99ms]
+(pass) declared strategy scopes cannot omit used premises or invent names [0.58ms]
+(pass) mutated original laws do not mutate recorded premise identities [0.42ms]
+(pass) changed machine or damaged certificate still requires the current kernel check [0.62ms]
+(pass) a mutual induction cycle survives unrelated drops with checks only in round one [11.75ms]
+(pass) a helper that falls cannot authorize the caller in the following round [4.03ms]
+(pass) flags off retain legacy carry without premise metadata or replay phases [4.37ms]
+(pass) scope capture and replay consume complete work with both control clocks forbidden [45.95ms]
+
+core/count-cert-transport.test.ts:
+(pass) counted support includes independent lemma source slices [0.64ms]
+(pass) complete counted certificates retain cuts across reordered and enlarged contexts [0.66ms]
+(pass) strict replay keeps cut slices but cannot search around a missing premise [0.35ms]
+(pass) counted certificate transport does not extend expired deadlines [0.12ms]
+
+core/count-recovery/reframe-tree.test.ts:
+(pass) reindex every leaf when a conditional frame activates below the root [0.27ms]
+(pass) missing source assumptions and corrupted leaf proofs are refused [0.06ms]
+(pass) expired or repeated-split transports do not produce a certificate [0.02ms]
+
+ 38 pass
+ 0 fail
+ 115 expect() calls
+Ran 38 tests across 7 files. [538.00ms]

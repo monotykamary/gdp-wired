@@ -1,0 +1,265 @@
+diff --git a/core/field-laws.test.ts b/core/field-laws.test.ts
+index 845e5263f..89f8341e5 100644
+--- a/core/field-laws.test.ts
++++ b/core/field-laws.test.ts
+@@ -1,5 +1,5 @@
+ import {expect, test} from 'bun:test'
+-import {fieldLaws} from './field-laws.ts'
++import {fieldLaws, weakensField} from './field-laws.ts'
+ import {type Machine, all, get, less, n, same, times, plus, tuple, x} from './machine.ts'
+ import {trueSmall} from './exists.ts'
+ import {proveLaws} from '../kernel/prove.ts'
+@@ -79,3 +79,27 @@ test('generated binders do not capture state, request or flag variables', () =>
+   expect(law.forall).not.toBe('a$field')
+   expect(() => scope(m, fieldLaws(m))).not.toThrow()
+ })
++
++test('a row loaded from a plain-key map under a marker proposes the load law and the marker-guarded row agreement', () => {
++  const base = machine(), row = (r: ReturnType<typeof x>, k: ReturnType<typeof x>) => plus(times(8, r), k), z = x('z$w')
++  const inRow = all({op: '<=', a: times(8, x('i')), b: z}, less(z, plus(times(8, x('i')), n(8))))
++  const m: Machine = {...base, inputs: [...base.inputs, 'k'], state: {open: n(1)}, maps: {...base.maps, Contents: 0, Source: 0, Loaded: 0}, step: {...base.step,
++    flags: {...base.step.flags, read: same(get('Contents', row(x('i'), x('k'))), n(1)), loads: all(same(x('value'), n(7)), same(x('open'), n(1)))},
++    maps: {...base.step.maps,
++      Contents: {each: 'z$w', value: {op: 'if', c: {op: 'and', xs: [{op: 'and', xs: [{op: 'flag', name: 'loads'}, inRow]}, same(get('Source', {op: 'sub', a: z, b: times(8, x('i'))}), n(1))]}, then: n(1), else: get('Contents', z)}},
++      Loaded: {key: x('i'), value: {op: 'if', c: {op: 'flag', name: 'loads'}, then: n(1), else: get('Loaded', x('i'))}}}}}
++  const laws = fieldLaws(m), names = laws.map(l => l.name)
++  const whole = laws.find(l => l.name === 'fields: Loaded[a]=1 -> Contents row is Source')!, phased = laws.find(l => l.name === 'fields: Loaded[a]=1 and open=1 -> Contents row is Source')!
++  expect(whole).toBeDefined()
++  expect(phased).toBeDefined()
++  expect(weakensField.get(phased)).toBe(whole)
++  const guarded = laws.filter(l => l.name.includes('and Loaded[a]=Loaded[b]=1 -> Contents rows agree'))
++  expect(guarded.length).toBeGreaterThan(0)
++  for (const l of guarded) expect(weakensField.get(l)?.name).toBe(l.name.replace(' and Loaded[a]=Loaded[b]=1', ''))
++  expect(() => scope(m, laws)).not.toThrow()
++  expect(new Set(names).size).toBe(names.length)
++  // Without the marker write nothing of the family is proposed; the earlier candidates keep their order.
++  const plain: Machine = {...m, step: {...m.step, maps: {...m.step.maps, Loaded: {key: x('i'), value: n(0)}}}}
++  expect(fieldLaws(plain).some(l => l.name.includes('row is Source') || l.name.includes('Loaded[a]=Loaded[b]'))).toBe(false)
++  expect(laws.slice(0, fieldLaws(plain).length).map(l => l.name)).toEqual(fieldLaws(plain).map(l => l.name))
++})
+diff --git a/core/field-laws.ts b/core/field-laws.ts
+index 91c4c2c1d..c3a6e9452 100644
+--- a/core/field-laws.ts
++++ b/core/field-laws.ts
+@@ -4,6 +4,22 @@
+ // ordinary counted induction/checker must prove every surviving candidate.
+ import {type C, type E, type Law, type Machine, all, any, atMost, get, less, n, not, same, times, plus, tuple, walk, x} from './machine.ts'
+ 
++// A guarded form and the stronger candidate it weakens; the guarded one is admitted only when the stronger is not.
++export const weakensField = new WeakMap<Law, Law>()
++const loadFieldFamily = new WeakMap<Law, Law>()
++// Prefer the unguarded load, otherwise the first admitted singleton guard.
++// Older field families retain their order and admission behavior.
++export function selectFieldLaws(laws: Law[], admit: (law: Law) => boolean): Law[] {
++  const kept = new Set<Law>(), selectedLoads = new Set<Law>()
++  return laws.filter(law => {
++    const stronger = weakensField.get(law), load = loadFieldFamily.get(law)
++    if ((stronger && kept.has(stronger)) || (load && selectedLoads.has(load)) || !admit(law)) return false
++    kept.add(law)
++    if (load) selectedLoads.add(load)
++    return true
++  })
++}
++
+ export function fieldLaws(m: Machine, composed = true): Law[] {
+   const fields = new Set<string>(), roles = new Map<string, {map: string, value: number}>(), bounds = new Map<string, E>()
+   const maps = m.maps ?? {}, source = [m.assume, m.step.flags]
+@@ -70,10 +86,107 @@ export function fieldLaws(m: Machine, composed = true): Law[] {
+       const old = rows.get(o.map as string)
+       rows.set(o.map as string, old === undefined || old === key.a.k ? key.a.k : 0)
+     })
++    const agrees: {map: string, f: string, g: string, law: Law}[] = []
+     for (const [map, base] of rows) if (base) for (let i = 0; i < fs.length; i++) for (let j = i + 1; j < fs.length; j++) {
+       const f = fs[i]!, g = fs[j]!, cell = (row: E) => get(map, plus(times(base, row), c))
+       const guard = all(da, db, less(c, bound), same(get(f, a), get(f, b)), same(get(g, a), get(g, b)))
+-      out.push({name: `fields: ${f}[a]=${f}[b] and ${g}[a]=${g}[b] -> ${map} rows agree`, forall: ka, keys: [kb, kc], holds: any(not(guard), same(cell(a), cell(b)))})
++      const law: Law = {name: `fields: ${f}[a]=${f}[b] and ${g}[a]=${g}[b] -> ${map} rows agree`, forall: ka, keys: [kb, kc], holds: any(not(guard), same(cell(a), cell(b)))}
++      out.push(law); agrees.push({map, f, g, law})
++    }
++    // Loaded rows: an every-key write that, in a flag's branch and inside the row of an input, reads ANOTHER plain-key
++    // map at the column fills that row from the map. A cell the same branch sets at the input marks the rows so
++    // filled. Proposed: a marked row is the source, outright and under each scalar literal of the flag (the phase in
++    // which the load happens); and each versioned-rows law above restricted to marked rows. The guarded forms are
++    // weakenings (`weakensField`): the caller admits one only when its stronger form failed the samples.
++    type Node = {op?: string, [k: string]: unknown}
++    const node = (t: unknown): t is Node => !!t && typeof t === 'object' && !Array.isArray(t)
++    const atoms = (t: Node | undefined): Node[] => !t ? [] : t.op === 'and' ? (t.xs as Node[]).flatMap(atoms) : [t]
++    const sameTerm = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
++    const restrictCondition = (condition: C, flag: string, value: boolean): C | boolean => {
++      if (condition.op === 'flag') return condition.name === flag ? value : condition
++      if (condition.op === 'not') {
++        const inner = restrictCondition(condition.x, flag, value)
++        return typeof inner === 'boolean' ? !inner : not(inner)
++      }
++      if (condition.op === 'and' || condition.op === 'or') {
++        const parts = condition.xs.map(c => restrictCondition(c, flag, value)), conjunction = condition.op === 'and'
++        if (parts.includes(!conjunction)) return !conjunction
++        const rest = parts.filter((c): c is C => typeof c !== 'boolean')
++        return !rest.length ? conjunction : rest.length === 1 ? rest[0]! : conjunction ? all(...rest) : any(...rest)
++      }
++      if ((condition.op === '=' || condition.op === '<' || condition.op === '<=') && condition.a.op === 'const' && condition.b.op === 'const') {
++        return condition.op === '=' ? condition.a.value === condition.b.value : condition.op === '<' ? condition.a.value < condition.b.value : condition.a.value <= condition.b.value
++      }
++      return condition
++    }
++    const restrictValue = (value: E, flag: string, active: boolean): E => {
++      if (value.op !== 'if') return value
++      const condition = restrictCondition(value.c, flag, active)
++      if (typeof condition === 'boolean') return restrictValue(condition ? value.then : value.else, flag, active)
++      return {...value, c: condition, then: restrictValue(value.then, flag, active), else: restrictValue(value.else, flag, active)}
++    }
++    const markerValue = (value: E, map: string, key: E, flag: string): number | undefined => {
++      const active = restrictValue(value, flag, true), inactive = restrictValue(value, flag, false)
++      if (active.op !== 'const' || !Number.isSafeInteger(active.value) || active.value < 1) return undefined
++      const old = get(map, key), v = active.value
++      if (sameTerm(inactive, old) || inactive.op === 'const' && inactive.value !== v) return v
++      // Boolean maps compile a preserved cell as if old=1 then 1 else 0.
++      // This cannot manufacture a marker outside the load branch.
++      if (inactive.op === 'if' && inactive.c.op === '=' && inactive.then.op === 'const' && inactive.then.value === v
++        && inactive.else.op === 'const' && inactive.else.value !== v
++        && (sameTerm(inactive.c, same(old, n(v))) || sameTerm(inactive.c, same(n(v), old)))) return v
++      return undefined
++    }
++    const emitted = new Map<string, Law>()
++    const add = (law: Law): Law => {
++      const key = JSON.stringify(law.holds), old = emitted.get(key)
++      if (old) return old
++      emitted.set(key, law); out.push(law); return law
++    }
++    for (const [map, base] of rows) {
++      const w = m.step.maps?.[map]
++      if (!base || !w || !('each' in w)) continue
++      const loads = new Map<string, {src: string, input: string, flag: string}>()
++      const visit = (t: unknown, positive: Node[]): void => {
++        if (Array.isArray(t)) { for (const u of t) visit(u, positive); return }
++        if (!node(t) || t.op === 'not') return
++        if (t.op === 'if') {
++          const branch = [...positive, ...atoms(t.c as Node)]
++          visit(t.c, branch); visit(t.then, branch); visit(t.else, positive)
++          return
++        }
++        const here = t.op === 'and' ? [...positive, ...atoms(t)] : positive
++        const key = t.key as Node | undefined, row = key?.b as Node | undefined, input = (row?.a as Node | undefined)?.name as string | undefined, src = t.map as string
++        if (t.op === 'get' && src !== map && src in maps && !rows.has(src) && key?.op === 'sub' && (key.a as Node).op === 'var' && (key.a as Node).name === w.each
++          && row?.op === 'mul' && row.k === base && (row.a as Node).op === 'var' && input !== undefined && m.inputs.includes(input)
++          && here.some(q => sameTerm(q, atMost(times(base, x(input)), x(w.each))))
++          && here.some(q => sameTerm(q, less(x(w.each), plus(times(base, x(input)), n(base))))))
++          for (const q of here) if (q.op === 'flag') { const flag = q.name as string; loads.set(`${src}:${input}:${flag}`, {src, input, flag}) }
++        for (const u of Object.values(t)) visit(u, here)
++      }
++      visit(w.value, [])
++      const cell = (r: E) => get(map, plus(times(base, r), c))
++      for (const {src, input, flag} of loads.values()) for (const [mk, mw] of Object.entries(m.step.maps ?? {})) {
++        if ('each' in mw || mw.key.op !== 'var' || mw.key.name !== input || !(mk in maps) || rows.has(mk) || mk === src) continue
++        const v = markerValue(mw.value, mk, mw.key, flag)
++        if (v === undefined) continue
++        const marked = (r: E) => same(get(mk, r), n(v)), def = m.step.flags?.[flag] as Node | undefined
++        const literals = atoms(def).filter(q => q.op === '=' && (q.a as Node).op === 'var' && ((q.a as Node).name as string) in m.state && (q.b as Node).op === 'const') as unknown as C[]
++        const load = (guards: C[], label: string): Law => ({name: `fields: ${mk}[a]=${v}${label} -> ${map} row is ${src}`, forall: ka, keys: [kc],
++          holds: any(not(all(da, less(c, bound), marked(a), ...guards)), same(cell(a), get(src, c)))})
++        const whole = add(load([], ''))
++        loadFieldFamily.set(whole, whole)
++        for (const lit of literals) {
++          const q = lit as unknown as {a: {name: string}, b: {value: number}}, weaker = load([lit], ` and ${q.a.name}=${q.b.value}`)
++          const choice = add(weaker)
++          weakensField.set(choice, whole); loadFieldFamily.set(choice, whole)
++        }
++        for (const {f, g, law} of agrees.filter(r => r.map === map)) {
++          const guard = all(da, db, less(c, bound), same(get(f, a), get(f, b)), same(get(g, a), get(g, b)), marked(a), marked(b))
++          const weaker: Law = {name: `fields: ${f}[a]=${f}[b] and ${g}[a]=${g}[b] and ${mk}[a]=${mk}[b]=${v} -> ${map} rows agree`, forall: ka, keys: [kb, kc], holds: any(not(guard), same(cell(a), cell(b)))}
++          weakensField.set(add(weaker), law)
++        }
++      }
+     }
+   }
+   return out
+diff --git a/core/finite-houdini.ts b/core/finite-houdini.ts
+index 21dbf4a70..b687c0094 100644
+--- a/core/finite-houdini.ts
++++ b/core/finite-houdini.ts
+@@ -98,23 +98,40 @@ export function finiteEvaluator(m: Machine, stop: () => boolean = () => false):
+ }
+ export type FiniteDrop = {round: number, law: Law, params: Env, pre: State, request: Request, post: State}
+ export const finiteDump: {onStart?: (value: {machine: Machine, caller: Law[], candidates: Law[]}) => void, onDrop?: (drop: FiniteDrop) => void} = {}
+-export type FiniteOptions = {randomStates?: number, requests?: number, seed?: number, targeted?: boolean, wallMs?: number, onFinish?: (row: {timedOut: boolean, ms: number, dropped: number}) => void, onDrop?: (drop: FiniteDrop) => void, onRound?: (row: {round: number, alive: number, dropped: number, randomStates: number, steps: number}) => void}
++class FiniteWorkExpired extends Error {}
++export type FiniteOptions = {randomStates?: number, requests?: number, seed?: number, targeted?: boolean, wallMs?: number, workLimit?: number, onFinish?: (row: {timedOut: boolean, ms: number, dropped: number, work?: {used: number, limit: number, exhausted: boolean}}) => void, onDrop?: (drop: FiniteDrop) => void, onRound?: (row: {round: number, alive: number, dropped: number, randomStates: number, steps: number}) => void}
+ export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions = {}): Law[] {
+-  const start = performance.now(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
++  const limit = options.workLimit
++  if (limit !== undefined && (!Number.isSafeInteger(limit) || limit < 0)) throw new Error('finite work limit must be a nonnegative safe integer')
++  const work = limit === undefined ? undefined : {used: 0, limit, exhausted: false}
++  // Preserve upstream read-set and rejected-state reuse under one deterministic prefix.
++  const start = performance.now(), end = work ? wallAt() : Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
++  const tick = () => {
++    checkWall('finite sampling work')
++    if (!work) return
++    if (work.used >= work.limit) { work.exhausted = true; throw new FiniteWorkExpired() }
++    work.used++
++  }
+   let survivors = candidates.slice(), timedOut = false
+   try {
+-    return withWall(end, () => finiteHoudiniWithin(source, m, caller, candidates, samples, {...options, onDrop: drop => {
+-      survivors = survivors.filter(law => law !== drop.law)
+-      options.onDrop?.(drop)
+-    }}))
++    return withWall(end, () => {
++      checkWall('finite sampling start')
++      if (work?.limit === 0) { work.exhausted = true; return survivors }
++      return finiteHoudiniWithin(source, m, caller, candidates, samples, {...options, onDrop: drop => {
++        survivors = survivors.filter(law => law !== drop.law)
++        options.onDrop?.(drop)
++      }}, tick)
++    })
+   } catch (error) {
++    if (error instanceof FiniteWorkExpired) return survivors
+     if (!(error instanceof WallExpired)) throw error
++    if (work) { timedOut = true; throw error }
+     // An enclosing deadline must still cancel the caller. Only expiration of
+     // this local sampling allowance returns the already-certified survivors.
+     checkWall('finite sampling completion')
+     timedOut = true
+     return survivors
+-  } finally { options.onFinish?.({timedOut, ms: performance.now() - start, dropped: candidates.length - survivors.length}) }
++  } finally { options.onFinish?.({timedOut, ms: performance.now() - start, dropped: candidates.length - survivors.length, ...(work ? {work} : {})}) }
+ }
+ // What a law reads: its scalars and maps, a count map read as the scalars and maps of its body and bound. A law
+ // reading nothing a step changed keeps its truth across that step (the pre-state satisfied it), so it is not evaluated
+@@ -198,7 +215,7 @@ export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], ca
+   } finally { options.onFinish?.({timedOut, ms: performance.now() - start, dropped: candidates.length - survivors.length}) }
+ }
+ 
+-function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions): Law[] {
++function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions, tick: () => void): Law[] {
+   finiteDump.onStart?.({machine: m, caller, candidates})
+   // Derived sum-state consistency is not reconstructed by this finite backend.
+   if (Object.keys(m.sums ?? {}).length) return candidates
+@@ -237,10 +254,12 @@ function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candida
+     let accepted = 0, steps = 0
+     const rejecting = (p: Env, st: State): Law | undefined => { for (const law of family) if (evaluate(law, p, st) !== true) { failures.set(law, (failures.get(law) ?? 0) + 1); return law } return undefined }
+     const visit = (p: Env, pre: State): boolean => {
++      tick()
+       const by = rejecting(p, pre)
+       if (by) { rejected.push({p, st: pre, by}); return false }
+       const bound = Math.max(3, ...Object.values(p))
+       for (let trial = 0; trial < (options.requests ?? 25); trial++) {
++        tick()
+         checkWall('finite transitions')
+         const request: Request = Object.fromEntries(numericInputs.map(({name, bound: b}) => [name, rng(b)]))
+         for (const mp of source.inputMaps ?? []) request[mp] = new Map(Array.from({length: bound}, (_, i) => [i, 1] as [number, number]).filter(() => rng(2)))
+@@ -276,6 +295,7 @@ function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candida
+     // one-sided boundary, a guard enabled, or a bounded field at its limit.
+     const frontiers = options.targeted === false ? [] : alive.flatMap(law => lawFrontiers(law).map(conditions => ({law, conditions})))
+     for (let i = 0; frontiers.length && i < Math.min(requested, frontiers.length * 8); i++) {
++      tick()
+       checkWall('finite frontiers')
+       const {p, st: old} = base[rng(base.length)]!, {law, conditions} = frontiers[i % frontiers.length]!
+       const bound = Math.max(1, ...Object.values(p)), keys = Object.fromEntries([law.forall, ...law.keys ?? []].filter((k): k is string => !!k).map(k => [k, rng(bound)]))
+@@ -284,6 +304,7 @@ function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candida
+     }
+     for (const {p, st} of base) visit(p, st)
+     for (let tries = 0; accepted < requested && tries < Math.max(requested * 8, requested); tries++) {
++      tick()
+       checkWall('finite neighbors')
+       const {p, st: old} = base[rng(base.length)]!, st: State = {...old, scalars: {...old.scalars}, maps: {...old.maps}}
+       const bound = Math.max(3, ...Object.values(p))

@@ -1,0 +1,95 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [592.00ms]
+bun test v1.4.3 (c6da4a4d3)
+ROLLING_GATE {"sourceTree":"821c2cf25955ae1e6f0acd61bdc77b13b38c283f","mode":"test","files":["core/row-agreement-shape.test.ts","core/count-guard-shape.test.ts","core/count-row-agreement.test.ts","core/count-row-copy-linear.test.ts","core/count-row-symmetry.test.ts","core/field-laws.test.ts","core/field-loaded.test.ts","core/finite-work.test.ts"],"protected":181}
+
+--- stderr ---
+
+core/field-loaded.test.ts:
+(pass) loaded row families are structural under renaming and multiple strides [6.96ms]
+(pass) a minimal admitted singleton suppresses later load guards, not prior families [0.66ms]
+(pass) compiled Boolean marker muxes retain the direct load shape [2.77ms]
+(pass) negated or merely disjunctive marker flags do not establish a load marker [0.36ms]
+(pass) the load read must share a positive flag and both exact row-window bounds [1.72ms]
+(pass) mismatched marker keys and source strides are not guessed [0.19ms]
+(pass) nested conjunctions expose singleton guards without capturing binder names [0.28ms]
+
+core/row-agreement-shape.test.ts:
+(pass) versioned row agreement is selected by syntax, not names [0.83ms]
+(pass) a sibling field not moved with the row is not the versioned-row strategy [0.14ms]
+(pass) wrong stride, unmatched marker and count-valued rows decline [0.10ms]
+
+core/count-row-copy-linear.test.ts:
+(pass) pointwise row-copy cuts yield an ordinarily checked INIT/STEP proof [211.07ms]
+(pass) inactive copy frames exclude writes guarded by other operation values [142.49ms]
+(pass) copy proof refuses a membership-clock update that invalidates inclusion [20.04ms]
+
+core/count-row-agreement.test.ts:
+(pass) written-row discovery sees inlined operation guards and excludes inactive writes [0.79ms]
+(pass) written-row discovery expands raw flags before consulting the kernel [0.32ms]
+(pass) written-row discovery includes active point writes, not unrelated operations [0.20ms]
+(pass) written-row discovery retains a row equality outside its operation guard [0.13ms]
+(pass) the row proposer checks plain frame INIT and STEP [9.20ms]
+(pass) deferred row cases omit INIT and a separate original INIT proposal checks [9.09ms]
+(pass) a fixed frame can propose only its own demanded tuple [12.17ms]
+(pass) sparse own-law proposals keep requested source rows but not destination rows [16.78ms]
+(pass) optional linear closure is checked and never authorizes a broken row [5.12ms]
+(pass) mirrored no-op written-row cases reuse only checked trees [93.76ms]
+(pass) written-row diagonal aliases are only ordinary checked splits [99.82ms]
+(pass) explicit fixed-operation paths retain checked excluded branches [95.37ms]
+(pass) an anchored own-law pool keeps only the demanded pair for a plain frame [7.49ms]
+(pass) an optional premise pool keeps target rows and explicit seeds, not incidental reads [25.18ms]
+(pass) explicit premise mode does not silently seed unrelated family laws [12.62ms]
+(pass) explicit PRE instances are recorded without mutating the seed [6.97ms]
+(pass) an unchecked shape cannot make a broken row write inductive [3.20ms]
+
+core/count-guard-shape.test.ts:
+(pass) guard shape discovery is independent of protocol and field names [0.44ms]
+(pass) a different coefficient or missing row predicate is outside this strategy [0.15ms]
+(pass) row-copy discovery follows renamed writes and rejects the wrong operation [0.26ms]
+(pass) threshold-write discovery identifies renamed input and committed sets [1.94ms]
+(pass) guard context is a fresh conservative extension and rejects ambiguous carried counts [0.34ms]
+(pass) guard context does not allocate a count over a declared parameter name [0.10ms]
+(pass) ambiguous zero phases are resolved only by a unique common write guard [0.29ms]
+(pass) discovery does not invent a phase premise [0.18ms]
+
+core/count-row-symmetry.test.ts:
+(pass) symmetry derives a bijection of variables, count reads and witnesses [0.26ms]
+(pass) a mirrored linear proof remaps input rows and is checked in its target path [0.30ms]
+(pass) an asymmetric goal or expired allowance cannot reuse a verdict [0.22ms]
+
+core/field-laws.test.ts:
+cyclic: {"kind":"machine","name":"replicated fields","cert":true,"usual":true,"cyclic":true,"ms":24,"usualMs":10,"route":"translated","leaves":29,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+(pass) field equality is proposed from structure and proven by the ordinary kernel [41.53ms]
+(pass) the same candidate on a broken write is filtered and not proven [13.30ms]
+(pass) cross-record field equality can guard an ordering, without input leakage [0.41ms]
+(pass) ambiguous domains and a single numeric field are not guessed [0.08ms]
+(pass) two equal fields can identify a tuple-keyed row, with an independent member [26.56ms]
+(pass) composed-key rows use their encoded base and still require induction [21.41ms]
+(pass) generated binders do not capture state, request or flag variables [0.43ms]
+(pass) a row loaded from a plain-key map under a marker proposes the load law and the marker-guarded row agreement [1.18ms]
+
+core/finite-work.test.ts:
+(pass) work prefixes are deterministic and spend no more than their shared limit [11.15ms]
+(pass) frontiers and rejected neighbors consume the same invocation-wide allowance [0.59ms]
+(pass) work exhaustion preserves only fully certified drops and protects callers [0.36ms]
+(pass) work mode never converts enclosing wall cancellation into a partial family [0.22ms]
+(pass) invalid work limits are refused instead of silently becoming unbounded [0.05ms]
+
+ 54 pass
+ 0 fail
+ 827 expect() calls
+Ran 54 tests across 8 files. [970.00ms]

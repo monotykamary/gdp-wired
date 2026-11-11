@@ -1,0 +1,42 @@
+[
+  {
+    "name": "b-port-types",
+    "cmd": "bun port-input/run.ts types",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "b-port-shapes",
+    "cmd": "bun port-input/run.ts test core/row-agreement-shape.test.ts core/count-guard-shape.test.ts core/count-row-agreement.test.ts core/count-row-copy-linear.test.ts core/count-row-symmetry.test.ts core/field-laws.test.ts core/field-loaded.test.ts core/finite-work.test.ts",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "b-port-transport",
+    "cmd": "bun port-input/run.ts test core/count-cert-rename.test.ts core/count-cert-transport.test.ts core/count-proof-scope.test.ts core/count-guard-tree.test.ts core/count-query.test.ts core/count-recovery/reframe-tree.test.ts core/solver-deadline.test.ts",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "b-port-dispatch",
+    "cmd": "bun port-input/run.ts test core/count-strategy.test.ts core/count-strategies.test.ts core/count-strategy-clock.test.ts core/count-tier-budget.test.ts core/count-tier-integration.test.ts core/count-row-composition.test.ts core/count-case-compose.test.ts core/count-frames.test.ts core/count-phase.test.ts",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "b-port-preservation",
+    "cmd": "bun port-input/run.ts test core/count-attempt-expiration.test.ts core/prover-row-budget.test.ts core/i6-meter.test.ts core/work-admission-perf.test.ts core/work-observe.test.ts core/hard-cap.test.ts core/common-counted.test.ts core/request-quotient.test.ts",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

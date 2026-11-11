@@ -3,10 +3,11 @@
 // against the original obligation; no inferred frame is accepted as an axiom.
 import {type C,type E,type Law,type Machine,n,same,x} from './machine.ts'
 import {type CountCert,type CountDecl,type FrameCut,type MonoCut,type Goal,type Instances,type Path,type Tree,canon,checkMC,frameOk,framePath,mcGoal,monoOk} from '../kernel/kernel.ts'
-import {clock,grow,pastWall} from '../kernel/prove.ts'
+import {clock,fullRate,fullWork,grow,pastWall} from '../kernel/prove.ts'
 import {growCdcl} from '../kernel/cdcl.ts'
 import {countsForReads} from './count-facts.ts'
 import {finiteCountChoice} from './count-cases.ts'
+import {countSearchView, proveCountQuery} from './count-query.ts'
 import type {Lin} from './solver.ts'
 
 export type FixedCountFrameCase={name:string,value:number,values:number[]}
@@ -38,7 +39,7 @@ export function countFrameConditions(choice:FixedCountFrameCase):Lin[]{
  return [...new Map(rows.map(r=>[canon(r),r])).values()]
 }
 export type CountCutTrace={kind:'frame'|'mono',post:string,pre:string,checked:boolean,why?:string}
-export function proveCountFrameGoal(raw:Goal,decls:CountDecl[],request:Pick<CountCert,'reads'|'insts'|'picks'|'lemmas'>,choice:FixedCountFrameCase,targets:ReadonlySet<string>,until:number,trace?:(cut:CountCutTrace)=>void,options:{deferCheck?:boolean}={}):CountCert|undefined{
+export function proveCountFrameGoal(raw:Goal,decls:CountDecl[],request:Pick<CountCert,'reads'|'insts'|'picks'|'lemmas'>,choice:FixedCountFrameCase,targets:ReadonlySet<string>,until:number,trace?:(cut:CountCutTrace)=>void,options:{deferCheck?:boolean,minimalView?:boolean,leafUnits?:number,trace?:(event:Record<string,unknown>)=>void}={}):CountCert|undefined{
  if(clock()>=until||pastWall())return
  const goal=mcGoal(raw.hyps,decls,request),counts=countsForReads(decls,request.reads)
  if(!goal||!counts)return
@@ -62,9 +63,13 @@ export function proveCountFrameGoal(raw:Goal,decls:CountDecl[],request:Pick<Coun
   if(cut&&checked)monos.push(cut)
  }
  if(!frames.length&&!monos.length)return
+ const minimal=options.minimalView?countSearchView(raw,decls,request):undefined
  const ask=(path:Path):Tree|undefined=>{
   if(clock()>=until||pastWall())return
-  const out=growCdcl(goal,framePath(frames,request.lemmas??[],path,monos),{nodes:0,until})
+  if(minimal)return proveCountQuery(goal,framePath(frames,request.lemmas??[],path,monos),until,{query:'frame-leaf',minimal,leafUnits:options.leafUnits,trace:options.trace,deferCheck:options.deferCheck})
+  const start=fullWork(),at=framePath(frames,request.lemmas??[],path,monos)
+  const out=growCdcl(goal,at,{nodes:0,until:Math.min(until,clock()+(options.leafUnits??Infinity))})
+  options.trace?.({query:'frame-leaf',outcome:'tree'in out?'proposed':out.stuck,units:(fullWork()-start)/fullRate,remaining:until-clock(),hyps:goal.hyps.length,path:[...at.values()],...(!('tree'in out)?{goal}: {})})
   return 'tree'in out?out.tree:undefined
  }
  const search=(i:number,path:Path):Tree|undefined=>{

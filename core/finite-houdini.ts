@@ -100,23 +100,39 @@ export function finiteEvaluator(m: Machine, stop: () => boolean = () => false): 
 }
 export type FiniteDrop = {round: number, law: Law, params: Env, pre: State, request: Request, post: State}
 export const finiteDump: {onStart?: (value: {machine: Machine, caller: Law[], candidates: Law[]}) => void, onDrop?: (drop: FiniteDrop) => void} = {}
-export type FiniteOptions = {randomStates?: number, requests?: number, seed?: number, targeted?: boolean, wallMs?: number, onFinish?: (row: {timedOut: boolean, ms: number, dropped: number}) => void, onDrop?: (drop: FiniteDrop) => void, onRound?: (row: {round: number, alive: number, dropped: number, randomStates: number, steps: number}) => void}
+class FiniteWorkExpired extends Error {}
+export type FiniteOptions = {randomStates?: number, requests?: number, seed?: number, targeted?: boolean, wallMs?: number, workLimit?: number, onFinish?: (row: {timedOut: boolean, ms: number, dropped: number, work?: {used: number, limit: number, exhausted: boolean}}) => void, onDrop?: (drop: FiniteDrop) => void, onRound?: (row: {round: number, alive: number, dropped: number, randomStates: number, steps: number}) => void}
 export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions = {}): Law[] {
-  const start = countedTraceNow(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
+  const limit = options.workLimit
+  if (limit !== undefined && (!Number.isSafeInteger(limit) || limit < 0)) throw new Error('finite work limit must be a nonnegative safe integer')
+  const work = limit === undefined ? undefined : {used: 0, limit, exhausted: false}
+  const start = countedTraceNow(), end = work ? wallAt() : Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
+  const tick = () => {
+    if (!work) return
+    checkWall('finite sampling work')
+    if (work.used >= work.limit) { work.exhausted = true; throw new FiniteWorkExpired() }
+    work.used++
+  }
   let survivors = candidates.slice(), timedOut = false
   try {
-    return withWall(end, () => withReachabilityWork(() => finiteHoudiniWithin(source, m, caller, candidates, samples, {...options, onDrop: drop => {
-      survivors = survivors.filter(law => law !== drop.law)
-      options.onDrop?.(drop)
-    }})))
+    return withWall(end, () => withReachabilityWork(() => {
+      if (work) checkWall('finite sampling start')
+      if (work?.limit === 0) { work.exhausted = true; return survivors }
+      return finiteHoudiniWithin(source, m, caller, candidates, samples, {...options, onDrop: drop => {
+        survivors = survivors.filter(law => law !== drop.law)
+        options.onDrop?.(drop)
+      }}, tick)
+    }))
   } catch (error) {
+    if (error instanceof FiniteWorkExpired) return survivors
     if (!(error instanceof WallExpired)) throw error
+    if (work) { timedOut = true; throw error }
     // An enclosing deadline must still cancel the caller. Only expiration of
     // this local sampling allowance returns the already-certified survivors.
     checkWall('finite sampling completion')
     timedOut = true
     return survivors
-  } finally { options.onFinish?.({timedOut, ms: countedTraceNow() - start, dropped: candidates.length - survivors.length}) }
+  } finally { options.onFinish?.({timedOut, ms: countedTraceNow() - start, dropped: candidates.length - survivors.length, ...(work ? {work} : {})}) }
 }
 // What a law reads: its scalars and maps, a count map read as the scalars and maps of its body and bound. A law
 // reading nothing a step changed keeps its truth across that step (the pre-state satisfied it), so it is not evaluated
@@ -200,7 +216,7 @@ export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], ca
   } finally { options.onFinish?.({timedOut, ms: countedTraceNow() - start, dropped: candidates.length - survivors.length}) }
 }
 
-function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions): Law[] {
+function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions, tick: () => void): Law[] {
   finiteDump.onStart?.({machine: m, caller, candidates})
   // Derived sum-state consistency is not reconstructed by this finite backend.
   if (Object.keys(m.sums ?? {}).length) return candidates
@@ -240,10 +256,12 @@ function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candida
     const rejecting = (p: Env, st: State): Law | undefined => { for (const law of family) if (evaluate(law, p, st) !== true) { failures.set(law, (failures.get(law) ?? 0) + 1); return law } return undefined }
     const visit = (p: Env, pre: State): boolean => {
       reachState()
+      tick()
       const by = rejecting(p, pre)
       if (by) { rejected.push({p, st: pre, by}); return false }
       const bound = Math.max(3, ...Object.values(p))
       for (let trial = 0; trial < (options.requests ?? 25); trial++) {
+        tick()
         checkWall('finite transitions')
         const request: Request = Object.fromEntries(numericInputs.map(({name, bound: b}) => [name, rng(b)]))
         for (const mp of source.inputMaps ?? []) request[mp] = new Map(Array.from({length: bound}, (_, i) => [i, 1] as [number, number]).filter(() => rng(2)))
@@ -279,6 +297,7 @@ function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candida
     // one-sided boundary, a guard enabled, or a bounded field at its limit.
     const frontiers = options.targeted === false ? [] : alive.flatMap(law => lawFrontiers(law).map(conditions => ({law, conditions})))
     for (let i = 0; frontiers.length && i < Math.min(requested, frontiers.length * 8); i++) {
+      tick()
       checkWall('finite frontiers')
       const {p, st: old} = base[rng(base.length)]!, {law, conditions} = frontiers[i % frontiers.length]!
       const bound = Math.max(1, ...Object.values(p)), keys = Object.fromEntries([law.forall, ...law.keys ?? []].filter((k): k is string => !!k).map(k => [k, rng(bound)]))
@@ -287,6 +306,7 @@ function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candida
     }
     for (const {p, st} of base) visit(p, st)
     for (let tries = 0; accepted < requested && tries < Math.max(requested * 8, requested); tries++) {
+      tick()
       checkWall('finite neighbors')
       const {p, st: old} = base[rng(base.length)]!, st: State = {...old, scalars: {...old.scalars}, maps: {...old.maps}}
       const bound = Math.max(3, ...Object.values(p))

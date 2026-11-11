@@ -12,6 +12,28 @@ test('support ordering preserves no-support model traversal and original helper 
  expect(supportOrder(set,[caller],new Set([support]),true)).toEqual([support,caller,noise])
  expect(set).toEqual([caller,noise,support])
 })
+test('count admission precedes unrelated scalar helpers without changing model order',()=>{
+ const caller=law('caller'),noise=law('noise'),support=law('support')
+ const m:Machine={name:'renamed count priority',params:[],inputs:[],state:{flag:n(0)},maps:{cells:0},counts:{amount:{j:'row',key:'key',below:n(3),body:get('cells',x('key'))}},step:{}}
+ const reader:Law={name:'reader',forall:'k',holds:{op:'<=',a:get('amount',x('k')),b:n(2)}}
+ const other:Law={name:'other reader',holds:{op:'=',a:get('amount',n(0)),b:n(0)}}
+ const set=[caller,noise,support,reader,other],explicit=new Set([support])
+ expect(supportOrder(set,[caller],explicit,false,m)).toEqual([reader,other,support,caller,noise])
+ expect(supportOrder(set,[caller],new Set(),false,m)).toEqual([reader,other,caller,noise,support])
+ expect(supportOrder(set,[caller],explicit,true,m)).toEqual(supportOrder(set,[caller],explicit,true))
+ expect(supportOrder(set,[caller],new Set(),true,m)).toBe(set)
+ expect(supportOrder(set,[caller],explicit,false,{...m,counts:{}})).toEqual(supportOrder(set,[caller],explicit))
+ expect(explicit).toEqual(new Set([support]))
+ expect(set).toEqual([caller,noise,support,reader,other])
+})
+test('a caller that reads a count keeps its identity and appears exactly once',()=>{
+ const m:Machine={name:'count caller',params:[],inputs:[],state:{},counts:{total:{j:'row',key:'key',below:n(1),body:n(1)}},step:{}}
+ const caller:Law={name:'caller',holds:{op:'=',a:get('total',n(0)),b:n(1)}},noise=law('noise'),set=[noise,caller]
+ const ordered=supportOrder(set,[caller],new Set(),false,m)
+ expect(ordered).toEqual([caller,noise]);expect(ordered[0]).toBe(caller)
+ expect(ordered).toHaveLength(set.length)
+})
+
 test('per-attempt shares redistribute cheap proofs without reviving tried or carried laws',()=>{
  const pending=new Set(['cheap-a','cheap-b','costly','caller'])
  expect(attemptShare(100,pending)).toBe(25)

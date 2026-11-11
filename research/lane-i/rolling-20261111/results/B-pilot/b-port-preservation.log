@@ -1,0 +1,83 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [3.87s]
+bun test v1.4.3 (c6da4a4d3)
+EPR_CLASSIFICATION {"full":false,"saved":10,"before":0,"now":0,"current":-2,"rawDelta":0,"throws":false,"helper":null,"syntheticHelper":true}
+ROLLING_GATE {"sourceTree":"821c2cf25955ae1e6f0acd61bdc77b13b38c283f","mode":"test","files":["core/count-attempt-expiration.test.ts","core/prover-row-budget.test.ts","core/i6-meter.test.ts","core/work-admission-perf.test.ts","core/work-observe.test.ts","core/hard-cap.test.ts","core/common-counted.test.ts","core/request-quotient.test.ts"],"protected":181}
+
+--- stderr ---
+
+core/common-counted.test.ts:
+(pass) nested work scopes cannot extend parent and restore after an exception [0.81ms]
+(pass) full profile proves and refuses unchanged rules without any clock read [180.03ms]
+(pass) legacy counted clock and telemetry do not read the wall [0.28ms]
+
+core/count-attempt-expiration.test.ts:
+(pass) independent query local expiry active=true [5.97ms]
+(pass) independent query local expiry active=false [0.45ms]
+(pass) independent public exhaustion propagates and restores deadline [0.76ms]
+(skip) independent shorter phase captured before factory propagates
+(pass) independent unrelated exception identity preserved [0.34ms]
+(pass) nested per-law/subset local deadline restores pass=0 [0.67ms]
+(pass) nested per-law/subset local deadline restores pass=1 [2.66ms]
+(pass) EPR drift helper classification with actual profile and actual checkBudget [0.15ms]
+(skip) later external shorter scope diagnostic (not production call shape)
+
+core/prover-row-budget.test.ts:
+(pass) checkpointed row proposals preserve reference order through all path polarities [5.94ms]
+(pass) checkpointed shared facts retain indices and do not alias reordered hypotheses [0.77ms]
+(pass) checkpointed mixed conditional and tuple-key proposals equal reference rows [52.60ms]
+(pass) wide row construction stops inside 1024 slack; uninterrupted reference exposes the gap [241.89ms]
+
+core/request-quotient.test.ts:
+(pass) specializes every selector value, including absent tags [12.65ms]
+(pass) does not generalize refusals; finite prefixes and seeded walks stay identical [51.68ms]
+(pass) count dependencies include bounds and bodies [14.89ms]
+(pass) flags expand at definition scope, not an enclosing binder [0.69ms]
+(pass) unread carried support cannot change a plain-key past representative [10.27ms]
+(pass) unsupported functions, leasts, namespaces and forward flags retain the old sampler [0.26ms]
+(pass) does not treat memoized count keys as complete quantified support [0.30ms]
+(pass) arithmetic and Boolean branch dependencies agree with every concrete successful member [19.58ms]
+(pass) one-cell and bulk map updates retain all concrete successor components [12.05ms]
+(skip) quotient setup checks the endpoint within 256 provisional tick units
+(pass) logical prefixes remain equal across the native compiled-step threshold [53.61ms]
+
+core/i6-meter.test.ts:
+(pass) I6 records executed certificate/table work, cache misses and real candidate tests only in full mode [2095.62ms]
+
+core/work-observe.test.ts:
+cyclic: {"kind":"machine","name":"native pre-admission","cert":true,"usual":true,"cyclic":true,"ms":27,"usualMs":10,"route":"translated","leaves":7,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) pre-admission policy is checked and the always-spend mutation is rejected [66.65ms]
+(pass) successor raw counters admit before work, meter native pruning, and restore nested scopes [53.49ms]
+(pass) finite result stays exact with flags off and all successor fields zero [90.76ms]
+
+core/work-admission-perf.test.ts:
+(pass) hot aggregation is bit-identical to the ordered reference for every column and mixed vectors [289.06ms]
+
+core/hard-cap.test.ts:
+cyclic: {"kind":"machine","name":"bounded polling","cert":true,"usual":true,"cyclic":true,"ms":18,"usualMs":14,"route":"translated","leaves":7,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) bounded polling protocol proves its slack and rejects the always-spend mutant [43.42ms]
+(pass) counted binding loops and public stops preserve a 1024-unit slack [130.12ms]
+
+3 tests skipped:
+(skip) independent shorter phase captured before factory propagates
+(skip) later external shorter scope diagnostic (not production call shape)
+(skip) quotient setup checks the endpoint within 256 provisional tick units
+
+ 31 pass
+ 3 skip
+ 0 fail
+ 4481 expect() calls
+Ran 34 tests across 8 files. [3.57s]

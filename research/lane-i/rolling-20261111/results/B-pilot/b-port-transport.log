@@ -1,0 +1,117 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [454.00ms]
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/count-query.test.ts:
+(pass) minimal count queries reindex ordinary trees to the complete goal [8.49ms]
+(pass) only a satisfiable minimal view falls back to the full query [1.84ms]
+(pass) a reduced proof requiring an unavailable premise is refused [0.94ms]
+(pass) a zero leaf allowance cannot be renewed by minimal/full fallback [0.25ms]
+(pass) a direct linear proof cannot outlive a small positive leaf allowance [0.40ms]
+(pass) expired count query does not search or record a fabricated result [0.20ms]
+(pass) minimal projections retain domain conjuncts under a negated disjunction [0.19ms]
+
+core/count-guard-tree.test.ts:
+(pass) scalar guard splits cover both equality outcomes [1.04ms]
+(pass) disjoint rows are proved once above a case split [0.64ms]
+(pass) two-sided aliases prevent an apparently disjoint hoist [0.16ms]
+(pass) an unproved complement never becomes a hoisted assumption [0.07ms]
+(pass) expired and unsupported guards do not silently select an arm [0.05ms]
+
+core/solver-deadline.test.ts:
+(pass) an expired optional stop reads and charges no input rows [0.04ms]
+(pass) an optional stop is consulted again after input admission [0.03ms]
+(pass) an unexhausted optional stop preserves every verdict, step and work charge [0.55ms]
+
+core/count-cert-rename.test.ts:
+(pass) certificate renaming preserves map names, nested cells, products, and term expressions [1.03ms]
+(pass) renamed ordinary proof checks on the correspondingly renamed goal [2.21ms]
+(pass) renaming preserves explicit zeros used by source path identities [0.08ms]
+(pass) an expired certificate rename does no work [0.39ms]
+
+core/count-proof-scope.test.ts:
+(pass) record referenced laws, not every available scalar or instantiated law [18.06ms]
+(pass) premise matching ignores AST property insertion order [2.86ms]
+(pass) independent cut source slices remain premises even if the main tree does not cite the cut [3.41ms]
+(pass) reordering and adding unused laws reindexes but never searches [2.01ms]
+(pass) removing an actual premise or changing its body invalidates retention [1.77ms]
+(pass) declared strategy scopes cannot omit used premises or invent names [1.21ms]
+(pass) mutated original laws do not mutate recorded premise identities [0.77ms]
+(pass) changed machine or damaged certificate still requires the current kernel check [1.62ms]
+(pass) a mutual induction cycle survives unrelated drops with checks only in round one [34.43ms]
+(pass) a helper that falls cannot authorize the caller in the following round [14.15ms]
+(pass) flags off retain legacy carry without premise metadata or replay phases [15.81ms]
+175 |    assert(replayScopedCountProof(m,[law],scoped,until));
+176 |   });
+177 |   assert(fullWork()>start);assert.equal(reads,0);
+178 |   assert.throws(()=>withBudget(0,()=>replayScopedCountProof(m,[law],scoped,Infinity)),BudgetExpired);
+179 |  `],{cwd:new URL('../',import.meta.url).pathname,env:{...env,GDP_WORK_FULL:'1'},encoding:'utf8',timeout:20000})
+180 |  if(child.status!==0)throw Error(child.stderr)
+                                                   ^
+error: 13 |    const until=clock()+2000,result=countedAttempts(m,[law],new Set(),until).traced(law,[law],0,2000);
+14 |    assert('proof' in result);scoped=scopeCountProof(m,law,[law],result.proof,until);assert(scoped);
+15 |    assert(replayScopedCountProof(m,[law],scoped,until));
+16 |   });
+17 |   assert(fullWork()>start);assert.equal(reads,0);
+18 |   assert.throws(()=>withBudget(0,()=>replayScopedCountProof(m,[law],scoped,Infinity)),BudgetExpired);
+              ^
+AssertionError: Missing expected exception (BudgetExpired).
+ generatedMessage: false,
+     actual: undefined,
+   expected: [class BudgetExpired extends Error],
+   operator: "throws",
+       diff: "simple",
+       code: "ERR_ASSERTION"
+
+      at /tmp/rolling-integration-vwfGJs/[eval]:18:10
+
+Bun v1.4.3 (Linux x64)
+
+      at <anonymous> (/tmp/rolling-integration-vwfGJs/core/count-proof-scope.test.ts:180:46)
+(fail) scope capture and replay consume complete work with both control clocks forbidden [102.46ms]
+
+core/count-cert-transport.test.ts:
+(pass) counted support includes independent lemma source slices [1.89ms]
+(pass) complete counted certificates retain cuts across reordered and enlarged contexts [2.62ms]
+(pass) strict replay keeps cut slices but cannot search around a missing premise [0.92ms]
+(pass) counted certificate transport does not extend expired deadlines [0.30ms]
+
+core/count-recovery/reframe-tree.test.ts:
+(pass) reindex every leaf when a conditional frame activates below the root [0.68ms]
+(pass) missing source assumptions and corrupted leaf proofs are refused [0.13ms]
+(pass) expired or repeated-split transports do not produce a certificate [0.05ms]
+
+1 tests failed:
+(fail) scope capture and replay consume complete work with both control clocks forbidden [102.46ms]
+
+ 37 pass
+ 1 fail
+ 114 expect() calls
+Ran 38 tests across 7 files. [311.00ms]
+2 | import {createHash} from 'node:crypto'
+3 | import {readFileSync,mkdtempSync,rmSync} from 'node:fs'
+4 | import {join,resolve} from 'node:path'
+5 | import {spawnSync} from 'node:child_process'
+6 | const input=resolve('port-input'),root=mkdtempSync('/tmp/rolling-integration-'),[mode,...files]=process.argv.slice(2)
+7 | function run(command:string,args:string[]){const p=spawnSync(command,args,{cwd:root,env:process.env,encoding:'utf8',timeout:800000,maxBuffer:64*1024*1024});process.stdout.write(p.stdout??'');process.stderr.write(p.stderr??'');if(p.error||p.status!==0)throw Error(`${command} failed (${p.status}): ${p.error??''}`)}
+                                                                                                                                                                                                                                                                     ^
+error: bun failed (1): 
+      at run (/work/gdp-wired/port-input/run.ts:7:258)
+      at /work/gdp-wired/port-input/run.ts:12:69
+
+Bun v1.4.3 (Linux x64)

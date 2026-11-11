@@ -13,6 +13,16 @@ export function transportCountCertificate(from:Goal,to:Goal,cert:CountCert,until
  return combined?{...cert,...combined}:undefined
 }
 
+// Across-round retention must never repair a missing premise by searching.
+// The exact conditional transporter also handles ordinary trees with no cuts.
+export function replayCountCertificate(from:Goal,to:Goal,cert:CountCert,until:number):CountCert|undefined{
+ if(countedSearchNow()>=until)return undefined
+ const marked=markConditionalProof(from,cert.tree,cert.lemmas??[])
+ const tree=transportConditionalProof(from,to,marked,new Map(),new Map(),until)
+ const combined=tree&&collectConditionalCertificate(to,tree,until)
+ return combined?{...cert,...combined}:undefined
+}
+
 export function countedCertificateHyps(goal:Goal,cert:CountCert):Set<number>|undefined{
  if(!cert.lemmas?.length)return usedHyps(goal,cert.tree)
  try{

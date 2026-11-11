@@ -6,7 +6,7 @@ import {costs} from './solver.ts'
 
 test('generation has a 25 percent ceiling, strategies a 35 percent floor, ordinary a 30 percent floor',()=>{
  const p=countTierBudget(100,60100,4)
- expect(p).toEqual({active:true,generationUntil:15100,strategyFloor:21000,ordinaryFloor:18000,strategyUntil:42100,until:60100})
+ expect(p).toEqual({active:true,workAllowance:60000,generationUntil:15100,strategyFloor:21000,ordinaryFloor:18000,strategyUntil:42100,until:60100})
  expect(p.generationUntil-100).toBe(15000)
  expect(p.strategyUntil!-p.generationUntil).toBe(27000)
  expect(p.until-p.strategyUntil!).toBe(18000)
@@ -37,7 +37,7 @@ test('all selected laws share one borrowing endpoint, not one reservation per la
 test('no dispatch is exactly the existing split and does not cap generation',()=>{
  for(const remaining of [0,1,29,60000,Infinity]){
   const p=countTierBudget(0,remaining,0)
-  expect(p).toEqual({active:false,generationUntil:remaining,strategyFloor:0,ordinaryFloor:0,strategyUntil:undefined,until:remaining})
+  expect(p).toEqual({active:false,workAllowance:remaining,generationUntil:remaining,strategyFloor:0,ordinaryFloor:0,strategyUntil:undefined,until:remaining})
   for(let n=0;n<=29;n++){
    const pending=new Set(Array.from({length:n},(_,i)=>String(i)))
    for(const used of [0,1,19])expect(ordinaryTierShare(p,used,pending)).toBe(attemptShare(remaining-used,pending))
@@ -54,7 +54,7 @@ test('ordinary shares recompute after cheap attempts and never create work',()=>
 test('invalid counts and unbounded active tiers are refused; expired work grants nothing',()=>{
  for(const count of [-1,.5,Infinity,NaN])expect(()=>countTierBudget(0,1,count)).toThrow(RangeError)
  expect(()=>countTierBudget(0,Infinity,1)).toThrow(RangeError)
- expect(countTierBudget(2,1,1)).toEqual({active:true,generationUntil:1,strategyFloor:0,ordinaryFloor:0,strategyUntil:1,until:1})
+ expect(countTierBudget(2,1,1)).toEqual({active:true,workAllowance:0,generationUntil:1,strategyFloor:0,ordinaryFloor:0,strategyUntil:1,until:1})
 })
 test('the production tier basis cannot restart W after preflight',()=>{
  const old=costs.fm

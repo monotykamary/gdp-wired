@@ -1,0 +1,93 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [3.81s]
+bun test v1.4.3 (c6da4a4d3)
+ROLLING_GATE {"sourceTree":"821c2cf25955ae1e6f0acd61bdc77b13b38c283f","mode":"test","files":["core/count-strategy.test.ts","core/count-strategies.test.ts","core/count-strategy-clock.test.ts","core/count-tier-budget.test.ts","core/count-tier-integration.test.ts","core/count-row-composition.test.ts","core/count-case-compose.test.ts","core/count-frames.test.ts","core/count-phase.test.ts"],"protected":181}
+
+--- stderr ---
+
+core/count-case-compose.test.ts:
+(pass) all fixed cases compose onto one original operation-domain goal [329.10ms]
+(pass) operation zero preserves source path identities through transport [192.40ms]
+(pass) unchecked case proposals need the final assembled checker [77.87ms]
+(pass) case composition respects an expired shared allowance [0.27ms]
+
+core/count-strategies.test.ts:
+(pass) optional strategies share the attempt end and return an original-machine proof [141.85ms]
+(pass) shape-only ordering puts row helpers after count helpers and before safety [0.83ms]
+(pass) join and demand schedule a selected row before count-first fallback [3.43ms]
+(pass) a guard strategy cannot silently admit fresh count definitions [0.71ms]
+(pass) admission installs exact conservative definitions so a generic guard composition can run [64.90ms]
+(pass) an empty or expired strategy pool cannot allocate or renew an attempt [0.45ms]
+(pass) unsupported laws fall through and a broken row is never accepted [18.04ms]
+
+core/count-frames.test.ts:
+(pass) fixed-operation detection reads only mandatory equalities, not disjuncts [0.35ms]
+(pass) own-key seeding is tuple preserving and idempotent [0.07ms]
+(pass) the opt-in attempt retains frames and still checks a false INIT [15.31ms]
+(pass) a non-equal count uses a checked per-key cut, never an assumed inequality [4.89ms]
+(pass) a returned frame-first tree is checked and fails without its frames [2.56ms]
+
+core/count-strategy.test.ts:
+(pass) a search leaf is one one-hundred-twentieth of the original work allowance [0.18ms]
+(pass) standalone INIT uses the pool even when search leaves have no allowance [1.84ms]
+
+core/count-strategy-clock.test.ts:
+(pass) row and guard composers use the shared trace boundary with both control clocks forbidden [375.10ms]
+
+core/count-tier-budget.test.ts:
+(pass) generation has a 25 percent ceiling, strategies a 35 percent floor, ordinary a 30 percent floor [1.34ms]
+(pass) strategies may borrow the unreserved remainder beyond their minimum reservation [0.06ms]
+(pass) unused generation and strategy allowance flows down without moving deadlines [0.05ms]
+(pass) all selected laws share one borrowing endpoint, not one reservation per law [0.05ms]
+(pass) no dispatch is exactly the existing split and does not cap generation [6.24ms]
+(pass) ordinary shares recompute after cheap attempts and never create work [0.06ms]
+(pass) invalid counts and unbounded active tiers are refused; expired work grants nothing [0.18ms]
+(pass) the production tier basis cannot restart W after preflight [0.34ms]
+(pass) one expired strategy endpoint hands off its reserve and cannot refresh on fallback [10.35ms]
+(pass) exact strategy endpoint unknown hands back the ordinary reserve [0.24ms]
+(pass) exact strategy endpoint preserves {"stuck":"sat","refuted":true} [0.05ms]
+(pass) exact strategy endpoint preserves {"stuck":"unknown","refuted":true} [0.02ms]
+(pass) exact strategy endpoint preserves {"proof":{"checked":true}} [0.02ms]
+(pass) exact strategy endpoint preserves {"stuck":"sat"} [0.02ms]
+(pass) unknown before the strategy endpoint keeps its ordinary result [0.03ms]
+(pass) no-dispatch unknown retains legacy behavior at the same clock [0.25ms]
+(pass) strategy handoff does not hide a smaller outer budget [0.17ms]
+
+core/count-phase.test.ts:
+(pass) phase strategy returns checked INIT and STEP without mutating seeds [61.61ms]
+(pass) composition-only phase proposals omit INIT and are not standalone proofs [59.89ms]
+(pass) a threshold update that can violate the count bound is not proved [13.51ms]
+(pass) unchanged target counts need no phase premise [28.44ms]
+(pass) minimal-view-first frame and phase proposals still check on original obligations [79.88ms]
+(pass) expired phase strategy does not build a count request [0.18ms]
+(pass) an unbounded operation choice is not silently treated as fixed [0.20ms]
+
+core/count-row-composition.test.ts:
+(pass) a renamed row portfolio accepts only one assembled original-goal proof [70.03ms]
+(pass) a broken row write declines at its first attempted case [12.74ms]
+(pass) unsupported and expired row portfolios leave ordinary search available [0.17ms]
+
+core/count-tier-integration.test.ts:
+(pass) empty structural dispatch reserves no pool and preserves the legacy result [3.46ms]
+(pass) structurally selected laws share the original absolute strategy deadline [184.31ms]
+(pass) a selected strategy decline cannot spend the ordinary-law remainder [0.23ms]
+(pass) structured fallback cannot recreate a strategy reservation [580.95ms]
+(pass) an external tier reservation cannot change the enclosing deadline [0.60ms]
+
+ 51 pass
+ 0 fail
+ 702 expect() calls
+Ran 51 tests across 9 files. [2.48s]

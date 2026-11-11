@@ -94,9 +94,13 @@ export const work = {n: 0}
 // What the searches did, by kind, beside work.n (research/query reads them: the cost of each query's parts).
 export const costs = {solves: 0, solveRows: 0, fm: 0, fpivots: 0, fcells: 0, cdclNodes: 0, cdclRows: 0, scan: 0, pivots: 0, pivotRows: 0, plainNodes: 0, plainRows: 0,
   values: 0, copies: 0, edges: 0, unitRows: 0, unfoldRows: 0, goalNodes: 0, translateRows: 0}
-export function solve(constraints: Constraint[], maxRows = 20_000, integral = true): Verdict {
+// `more` is opt-in. Normal callers retain the exact charge/order path; bounded
+// callers may stop before an elimination round or between generated rows.
+export function solve(constraints: Constraint[], maxRows = 20_000, integral = true, more?: () => boolean): Verdict {
+  if (more && !more()) return {kind: 'unknown'}
   work.n += constraints.length
   costs.solves++; costs.solveRows += constraints.length
+  if (more && !more()) return {kind: 'unknown'}
   const steps: Step[] = []
   const lins: Lin[] = [], stricts: boolean[] = []
   const push = (step: Step, lin: Lin, strict = false) => (steps.push(step), lins.push(lin), stricts.push(strict), lins.length - 1)
@@ -131,6 +135,7 @@ export function solve(constraints: Constraint[], maxRows = 20_000, integral = tr
   const keys: string[] = [], negKeys: string[] = []
   const key = (r: number) => (keys[r] ??= keyOf(lins[r]!)), negKey = (r: number) => (negKeys[r] ??= keyOf(scale(lins[r]!, -1)))
   for (let changed = true; changed && contradiction() === undefined;) {
+    if (more && !more()) return {kind: 'unknown'}
     changed = false
     const byKey = new Map(rows.map(r => [key(r), r]))
     for (const r of rows) {
@@ -167,6 +172,7 @@ export function solve(constraints: Constraint[], maxRows = 20_000, integral = tr
     return sig
   }
   for (let found = contradiction(); found === undefined; found = contradiction()) {
+    if (more && !more()) return {kind: 'unknown'}
     // Each variable's rows by sign, in one pass (variables in the order they first appear).
     const index = new Map<string, {pos: number[], neg: number[], posUnit: boolean, negUnit: boolean}>()
     for (const r of rows) for (const x in lins[r]!) {
@@ -185,12 +191,18 @@ export function solve(constraints: Constraint[], maxRows = 20_000, integral = tr
     }
     if (!choice) break
     if (choice.pos.length * choice.neg.length > 5 * maxRows) return {kind: 'unknown'}
-    work.n += choice.pos.length * choice.neg.length
-    costs.fm += choice.pos.length * choice.neg.length
+    if (!more) {
+      work.n += choice.pos.length * choice.neg.length
+      costs.fm += choice.pos.length * choice.neg.length
+    }
     exact &&= choice.isExact
     eliminated.push({x: choice.x, rows: [...choice.pos, ...choice.neg]})
     const next = rows.filter(r => (lins[r]![choice.x] ?? 0) === 0)
     for (const p of choice.pos) for (const n of choice.neg) {
+      if (more) {
+        if (!more()) return {kind: 'unknown'}
+        work.n++; costs.fm++
+      }
       const a = lins[p]![choice.x]!, b = -lins[n]![choice.x]!
       const combined = pushExact({kind: 'combine', a: p, b: n, ma: b / gcd(a, b), mb: a / gcd(a, b)}, add(scale(lins[p]!, b / gcd(a, b)), scale(lins[n]!, a / gcd(a, b))), stricts[p]! || stricts[n]!)
       next.push(tighten(combined))
@@ -207,6 +219,7 @@ export function solve(constraints: Constraint[], maxRows = 20_000, integral = tr
     rows = [...best.values()]
     if (rows.length > maxRows || inexact) return {kind: 'unknown'}
   }
+  if (more && !more()) return {kind: 'unknown'}
   const found = contradiction()
   if (found !== undefined) return inexact ? {kind: 'unknown'} : {kind: 'refuted', steps: prune(steps, found)}
   if (!integral) return inexact ? {kind: 'unknown'} : satOverQ(constraints, eliminated, lins, stricts)
