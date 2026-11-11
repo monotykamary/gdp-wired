@@ -34,13 +34,38 @@ export function weightedWork(raw: RawWork, extra: ExtraWorkWeights | undefined =
 }
 export function fullWork(): number {
   let n = 0
-  for (const [key, weight] of legacyWeights) n += weight * costs[key]
-  // Preserve the legacy fast path exactly; no implicit provisional coefficients.
-  if (!extraWeights) return n
-  for (const key of ['tableCells', 'checkSteps', 'astNodes', 'evals', 'cubeTests', 'ticks'] as const) n += extraWeights[key] * coreMeter[key]
+  // Keep flags-off on the historical path. In full mode the same ordered
+  // additions are explicit: admission calls this once per expression node.
+  if (!extraWeights) {
+    for (const [key, weight] of legacyWeights) n += weight * costs[key]
+    return n
+  }
+  n += 2.33 * costs.fm
+  n += 0.0123 * costs.fcells
+  n += 7.93 * costs.plainRows
+  n += 0.672 * costs.values
+  n += 0.735 * costs.copies
+  n += 0.0435 * costs.edges
+  n += 0.0765 * costs.scan
+  n += 0.599 * costs.pivotRows
+  n += 15.6 * costs.unitRows
+  n += 0.735 * costs.unfoldRows
+  n += 0.492 * costs.goalNodes
+  n += 7.93 * costs.translateRows
+  n += extraWeights.tableCells * coreMeter.tableCells
+  n += extraWeights.checkSteps * coreMeter.checkSteps
+  n += extraWeights.astNodes * coreMeter.astNodes
+  n += extraWeights.evals * coreMeter.evals
+  n += extraWeights.cubeTests * coreMeter.cubeTests
+  n += extraWeights.ticks * coreMeter.ticks
   n += extraWeights.cdclNodes * costs.cdclNodes
   n += extraWeights.epr * eprMeter.n
-  for (const key of ['tinyNodes', 'tinyTerms', 'reachStates', 'reachEdges', 'reachEvals', 'reachCompiledEvals'] as const) n += extraWeights[key] * coreMeter[key]
+  n += extraWeights.tinyNodes * coreMeter.tinyNodes
+  n += extraWeights.tinyTerms * coreMeter.tinyTerms
+  n += extraWeights.reachStates * coreMeter.reachStates
+  n += extraWeights.reachEdges * coreMeter.reachEdges
+  n += extraWeights.reachEvals * coreMeter.reachEvals
+  n += extraWeights.reachCompiledEvals * coreMeter.reachCompiledEvals
   return n
 }
 export const completeWorkWeights = (): ExtraWorkWeights | undefined => extraWeights

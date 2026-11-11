@@ -36,8 +36,13 @@ export function reachEdge(): void { charge('reachEdges', 1) }
 // Static compiled-step charges remain a separate bucket: their documented
 // contract is one syntactic step-body node per invocation, not executed nodes.
 export function observeEval(count = 1, compiled = false): void {
-  if (completeWorkProfile.enabled && reachDepth) charge(compiled ? 'reachCompiledEvals' : 'reachEvals', count)
-  else coreMeter.evals += count
+  if (!completeWorkProfile.enabled || !reachDepth) { coreMeter.evals += count; return }
+  // The overwhelmingly common path is one actual expression-node visit.
+  // Its count and coefficient are already validated; still admit every node.
+  if (count === 1 && !compiled) {
+    runtimeWall.admit?.(completeWorkProfile.weights.reachEvals, 'reachEvals')
+    coreMeter.reachEvals += 1
+  } else charge(compiled ? 'reachCompiledEvals' : 'reachEvals', count)
 }
 // Synchronous and nestable, with try/finally restoration; never a fresh budget.
 export function withReachabilityWork<T>(run: () => T): T {
