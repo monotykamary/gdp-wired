@@ -1,5 +1,5 @@
-// Execute the actual shipped call-site expressions, then observe the real
-// helper's deadline. A dropped option (d773's load bug) reaches legacy60.
+// Read the actual shipped routing expressions, then call the static helper
+// and observe its deadline. A dropped option (d773's load bug) reaches legacy60.
 import {expect,spyOn,test} from 'bun:test'
 import {readFileSync} from 'node:fs'
 import ts from 'typescript'
@@ -19,7 +19,20 @@ function expressions(file:string,name:string,construct=false){
 }
 const routedOptions=(file:string,name:string,index:number,construct=false,leaf=L)=>{
  const args=expressions(file,name,construct)[0];expect(args).toBeDefined()
- return new Function('options','deferred','extraWhen','return ('+(args?.[index]??'{}')+')')({leafUnits:leaf},true,[]) as {leafUnits?:number}
+ // The probe supplies only these data bindings. Reject unsupported AST forms
+ // instead of evaluating source text as JavaScript.
+ const source=ts.createSourceFile('routed-options.ts','('+(args?.[index]??'{}')+')',ts.ScriptTarget.Latest,true),statement=source.statements[0]
+ if(!statement||!ts.isExpressionStatement(statement)||!ts.isParenthesizedExpression(statement.expression)||!ts.isObjectLiteralExpression(statement.expression.expression))throw Error('expected routing options object')
+ const bindings:Record<string,unknown>={options:{leafUnits:leaf},deferred:true,extraWhen:[]},routed:Record<string,unknown>={}
+ for(const property of statement.expression.expression.properties){
+  if(!ts.isPropertyAssignment(property)&&!ts.isShorthandPropertyAssignment(property))throw Error('unsupported routing option')
+  if(!ts.isIdentifier(property.name)&&!ts.isStringLiteral(property.name))throw Error('unsupported routing option name')
+  const value=ts.isPropertyAssignment(property)?property.initializer:property.name
+  if(ts.isIdentifier(value)&&Object.hasOwn(bindings,value.text))routed[property.name.text]=bindings[value.text]
+  else if(ts.isPropertyAccessExpression(value)&&ts.isIdentifier(value.expression)&&value.expression.text==='options'&&value.name.text==='leafUnits')routed[property.name.text]=leaf
+  else throw Error('unsupported routing option value')
+ }
+ return routed as {leafUnits?:number}
 }
 function intercepted(run:()=>void,install:(capture:(end:number)=>never)=>{mockRestore:()=>void},legacy:number){
  prover.withBudget(1e9,()=>{let delta:number|undefined;const spy=install(end=>{delta=end-prover.clock();throw stop})
@@ -48,7 +61,9 @@ for(const [name,file]of [['copy','./count-lifted-copy.ts'],['replacement','./cou
  const calls=expressions(file,'liftedLeafUntil');expect(calls.length).toBeGreaterThan(0)
  prover.withBudget(1e9,()=>{for(const args of calls){
   expect(args[1]).toBe('options');const legacy=Number(args[2]);expect(Number.isFinite(legacy)).toBe(true)
-  const evaluate=new Function('liftedLeafUntil','until','deadline','end','options','return liftedLeafUntil('+args.join(',')+')'),now=prover.clock(),parent=now+50000,value=evaluate(liftedLeafUntil,parent,parent,parent,{leafUnits:L})
+  const parentName=args[0];if(parentName!=='until'&&parentName!=='deadline'&&parentName!=='end')throw Error('unsupported leaf parent')
+  const evaluate=(leafUntil:typeof liftedLeafUntil,until:number,deadline:number,end:number,options:Parameters<typeof liftedLeafUntil>[1])=>leafUntil({until,deadline,end}[parentName],options,legacy)
+  const now=prover.clock(),parent=now+50000,value=evaluate(liftedLeafUntil,parent,parent,parent,{leafUnits:L})
   expect(value-now).toBeCloseTo(completeWorkProfile.enabled?L:legacy,4)
   expect(evaluate(liftedLeafUntil,now+1,now+1,now+1,{leafUnits:L})).toBe(now+1)
   expect(evaluate(liftedLeafUntil,parent,parent,parent,{} )-now).toBeCloseTo(legacy,4)
