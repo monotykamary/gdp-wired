@@ -1,6 +1,6 @@
 import {expect,test} from 'bun:test'
 import {spawnSync} from 'node:child_process'
-import {type C,atMost,get,ite,min,n,not,plus,same,x} from './machine.ts'
+import {type C,atMost,get,ite,less,min,n,not,plus,same,x} from './machine.ts'
 import {type Goal,type Path,canon,leafConstraints} from '../kernel/kernel.ts'
 import {budgetedLeafRows} from './prover-row-budget.ts'
 import {withBudget} from '../kernel/prove.ts'
@@ -21,6 +21,19 @@ test('checkpointed shared facts retain indices and do not alias reordered hypoth
   withBudget(1e9,()=>expect(budgetedLeafRows(goal,path)).toEqual(leafConstraints(goal,path)))
  }
 })
+test('checkpointed mixed conditional and tuple-key proposals equal reference rows',()=>{
+ let state=12345
+ const next=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state}
+ const vars=[x('a'),x('b'),x('c')]
+ for(let i=0;i<160;i++){
+  const a=vars[next()%3]!,b=vars[next()%3]!,value=ite(atMost(a,b),min(a,b),plus(a,n(next()%5)))
+  const goal:Goal={name:'mixed rows',hyps:[atMost(get('M',{op:'tup',a,b}),value),same(x('z'),value),not(less(a,n(next()%5)))]}
+  const path:Path=new Map()
+  for(let j=0;j<3;j++){const lin={['abc'[j]!]:1,'1':-Number(next()%5)};if(next()%2)path.set(canon(lin),{lin,holds:!!(next()%2)})}
+  for(const p of [path,new Map([...path].toReversed()),new Map()])withBudget(1e9,()=>expect(budgetedLeafRows(goal,p)).toEqual(leafConstraints(goal,p)))
+ }
+})
+
 test('wide row construction stops inside 1024 slack; uninterrupted reference exposes the gap',()=>{
  const code=`
  import {strict as a} from 'node:assert';
@@ -30,7 +43,7 @@ test('wide row construction stops inside 1024 slack; uninterrupted reference exp
  import {budgetedLeafRows} from './core/prover-row-budget.ts';
  import {BudgetExpired,withBudget,fullWork} from './kernel/prove.ts';
  const goal={name:'wide',hyps:Array.from({length:256},(_,i)=>atMost(get('M',n(i)),n(1)))};
- const tableBefore=coreMeter.tableCells;const path=new Map([['x:1',{lin:{x:1},holds:true}]]);a.throws(()=>withBudget(0,()=>budgetedLeafRows({name:'path row',hyps:[]},path)),BudgetExpired);a.equal(coreMeter.tableCells-tableBefore,2);
+ const tableBefore=coreMeter.tableCells;const path=new Map([['x:1',{lin:{x:1},holds:true}]]);a.throws(()=>withBudget(0,()=>budgetedLeafRows({name:'path row',hyps:[]},path)),BudgetExpired);a.equal(coreMeter.tableCells-tableBefore,1);
  const start=fullWork();a.throws(()=>withBudget(128,()=>budgetedLeafRows(goal,new Map())),BudgetExpired);const stopped=fullWork()-start;a(stopped<=1152,String(stopped));
  const before=fullWork();a.throws(()=>withBudget(128,()=>leafConstraints(goal,new Map())),BudgetExpired);const uninterrupted=fullWork()-before;a(uninterrupted>1152,String(uninterrupted));
  withBudget(1e9,()=>a.deepEqual(budgetedLeafRows(goal,new Map()),leafConstraints(goal,new Map())));
