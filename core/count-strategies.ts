@@ -79,7 +79,7 @@ function countStrategies(m: Machine, family: Law[], law: Law, until: number, req
     }
     if (liftedSelected(m, family, law)) {
       observe?.({strategy:'lifted',stage:'selected'})
-      return proveLiftedCountComposition(m,family,law,until,request,event=>observe?.({strategy:'lifted',...event}))
+      return proveLiftedCountComposition(m,family,law,until,request,event=>observe?.({strategy:'lifted',...event}),workAllowance)
     }
     const context = prepareGuardCountContext(m, law, family)
     if (!context) return

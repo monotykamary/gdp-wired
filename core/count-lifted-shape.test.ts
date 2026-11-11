@@ -181,6 +181,19 @@ test('F15 guarded factors replay natively but are not unconditional count identi
  expect(evalE(match.disabled.body,vars,state,m)).toBe(1);expect(evalE(match.votes.body,vars,state,m)).toBe(0)
 },true))
 
+test('W-relative frame composition preserves its smaller absolute parent and native acceptance',()=>withBudget(1_000_000_000,()=>{
+ const {m,g,law}=generated(),W=4_000_000
+ m.pre=all(atMost(n(1),x('size')),atMost(x('size'),n(8)))
+ m.inputs.push('operation');m.assume=all(m.assume!,any(...[11,12,13].map(value=>same(x('operation'),n(value)))));m.step={...m.step,maps:{}}
+ const until=clock()+50_000,proof=proveLiftedCountComposition(m,g.laws,law,until,(goal,decls)=>certFor(goal,decls,false,0,()=>true),undefined,W)
+ expect(proof).toBeDefined();if(!proof)return
+ expect(clock()).toBeLessThan(until)
+ const packets=countedObligations(m,g.laws,{[law.name]:proof.instances},g.laws.indexOf(law))
+ expect(packets).toHaveLength(2)
+ for(const packet of packets){const cert=proof.certs[packet.goal.name]!;expect(checkMC(packet.goal.hyps,packet.decls,cert)).toBe(true)}
+ expect(packets.some(packet=>!checkMC(packet.goal.hyps,packet.decls,{...proof.certs[packet.goal.name]!,tree:{leaf:[]}}))).toBe(true)
+}))
+
 test('frame composition records implicit scalar family assumptions',()=>counted(fullRate,()=>{
  const {m,g,law}=generated(),scalar={name:'scalar premise',holds:same(n(0),n(0))},family=[...g.laws,scalar]
  m.pre=all(atMost(n(1),x('size')),atMost(x('size'),n(8)))

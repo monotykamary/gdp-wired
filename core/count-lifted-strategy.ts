@@ -2,10 +2,11 @@
 // machine. Other operation kinds decline; no saved proof or supplied transport
 // can fill a missing case. The shared composer runs only for an exhaustive set.
 import {traceNow} from './trace-clock.ts'
+import {liftedCaseUntil,liftedLeafUntil,liftedWorkBudget} from './count-lifted-budget.ts'
 import {type Law, type Machine, all, n, same, x} from './machine.ts'
 import {countsForReads} from './count-facts.ts'
 import {countFrameConditions, fixedCountFrameCase, ownCountLawInstance, proveCountFrameGoal} from './count-frames.ts'
-import {type CountStrategyProof, type CountRequestBuilder} from './count-strategy.ts'
+import {type CountStrategyProof, type CountRequestBuilder, type CountStrategyOptions} from './count-strategy.ts'
 import {composeCountOperationProofs, type FixedOperationProof} from './count-case-compose.ts'
 import {discoverLiftedCountGuard, discoverLiftedCountOperations} from './count-lifted-shape.ts'
 import {type CountCert, type Instances, checkMC, countedObligations, frameOk, linear, mcGoal} from '../kernel/kernel.ts'
@@ -18,7 +19,7 @@ import {proveLiftedCountIncrement} from './count-lifted-increment.ts'
 import {proveLiftedCountReplacement} from './count-lifted-replacement.ts'
 import {recordCountStrategyPremises} from './count-strategy-premises.ts'
 // A checked fixed-operation STEP fragment, not a standalone INIT/STEP proof.
-export function proveLiftedCountFrame(m: Machine, family: Law[], law: Law, until: number, requestFor: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void): CountStrategyProof | undefined {
+export function proveLiftedCountFrame(m: Machine, family: Law[], law: Law, until: number, requestFor: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, options: CountStrategyOptions = {}): CountStrategyProof | undefined {
  return withDeadline(until, () => {
   const shape = discoverLiftedCountGuard(m, law, family, observe), choice = fixedCountFrameCase(m)
   if (!shape || !choice || !family.includes(law) || late(until)) {observe?.({stage: 'frame-decline', reason: !shape ? 'shape' : !choice ? 'operation' : 'scope-or-time'}); return}
@@ -29,7 +30,7 @@ export function proveLiftedCountFrame(m: Machine, family: Law[], law: Law, until
   // An unchanged post formula can reuse the pre count directly, leaving no
   // post-labelled read at all. Refute that actual goal; do not invent a frame.
   if (!post.length) {
-   const goal = mcGoal(step.goal.hyps, step.decls, request), result = goal && growCdcl(goal, new Map(), {nodes: 0, until})
+   const goal = mcGoal(step.goal.hyps, step.decls, request), result = goal && growCdcl(goal, new Map(), {nodes: 0, until:liftedLeafUntil(until,options,Infinity)})
    if (!result || !('tree' in result)) {observe?.({stage: 'frame-decline', reason: 'direct-search', outcome: result && 'stuck' in result ? result.stuck : 'encoding'}); return}
    const cert = {...request, tree: result.tree}
    return checkMC(step.goal.hyps, step.decls, cert) && !late(until) ? {instances, certs: {[step.goal.name]: cert}} : undefined
@@ -48,7 +49,7 @@ export function proveLiftedCountFrame(m: Machine, family: Law[], law: Law, until
    return !pre || !frameOk(counts, {post: name, pre: pre[0], when:framedWhen})
   })
   if (missing.length) {observe?.({stage: 'frame-decline', reason: 'unframed-count', reads: missing.map(read => read[1])}); return}
-  const cert = proveCountFrameGoal(step.goal, step.decls, request, choice, targets, until, undefined, {extraWhen})
+  const cert = proveCountFrameGoal(step.goal, step.decls, request, choice, targets, until, undefined, {extraWhen,leafUnits:options.leafUnits})
   observe?.({stage: 'frame-search', checked: !!cert})
   return cert ? {instances, certs: {[step.goal.name]: cert}} : undefined
  })
@@ -69,19 +70,19 @@ export function proveLiftedCountInitial(m: Machine, family: Law[], law: Law, ins
  const cert = {...request, tree: result.tree}
  return checkMC(initial.goal.hyps, initial.decls, cert) && !late(until) ? cert : undefined
 }
-export function proveLiftedCountComposition(m: Machine, family: Law[], law: Law, until: number, requestFor: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void): CountStrategyProof | undefined {
+export function proveLiftedCountComposition(m: Machine, family: Law[], law: Law, until: number, requestFor: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, workAllowance = Math.max(0,until-clock())): CountStrategyProof | undefined {
  return withDeadline(until, () => {
   if(!family.includes(law))return
   const shape = discoverLiftedCountGuard(m, law, family, observe), plan = shape && discoverLiftedCountOperations(m, shape)
   if (!shape || !plan || late(until)) return
-  const cases: FixedOperationProof[] = []
+  const cases: FixedOperationProof[] = [], budget=liftedWorkBudget(workAllowance)
   const rank:Record<string,number>={'frame-or-phase':0,load:1,copy:2,'threshold-increment':3,'threshold-replace':4,replacement:4}
   for (const operation of [...plan].sort((a,b)=>rank[a.kind]!-rank[b.kind]!||a.value-b.value)) {
    if (late(until)) return
    if(operation.kind==='replacement'||operation.kind==='threshold-replace'&&env.GDP_COUNT_LIFTED_REPLACEMENT!=='1'){observe?.({stage:'lifted-operation',value:operation.value,kind:operation.kind,proposed:false,reason:'replacement emitter unavailable'});return}
    const fixed = {...m, assume: all(...(m.assume ? [m.assume] : []), same(x(operation.name), n(operation.value)))}, emit = operation.kind==='load'?proveLiftedCountLoad:operation.kind==='copy'?proveLiftedCountCopy:operation.kind==='threshold-replace'?proveLiftedCountReplacement:proveLiftedCountIncrement
-   const before=fullWork(),wall=observe?traceNow():0,end=Math.min(until,clock()+(operation.kind==='frame-or-phase'?500:2000)),report=observe?(event:Record<string,unknown>)=>observe({value:operation.value,...event}):undefined
-   const proof=operation.kind==='frame-or-phase'?proveLiftedCountFrame(fixed,family,law,end,requestFor,report):emit(fixed,family,law,end,requestFor,report,{deferToComposition:env.GDP_COUNT_LIFTED_REPLACEMENT==='1',deferIntermediateChecks:env.GDP_COUNT_DEFER_CHECKS==='1',slicedLemmas:env.GDP_COUNT_C2_LEMMAS==='1',emitterFramePool:env.GDP_COUNT_EMITTER_FRAME_POOL==='1'})
+   const before=fullWork(),wall=observe?traceNow():0,end=liftedCaseUntil(until,budget,operation.kind==='frame-or-phase'),report=observe?(event:Record<string,unknown>)=>observe({value:operation.value,...event}):undefined
+   const proof=operation.kind==='frame-or-phase'?proveLiftedCountFrame(fixed,family,law,end,requestFor,report,{leafUnits:budget.leafUnits}):emit(fixed,family,law,end,requestFor,report,{leafUnits:budget.leafUnits,deferToComposition:env.GDP_COUNT_LIFTED_REPLACEMENT==='1',deferIntermediateChecks:env.GDP_COUNT_DEFER_CHECKS==='1',slicedLemmas:env.GDP_COUNT_C2_LEMMAS==='1',emitterFramePool:env.GDP_COUNT_EMITTER_FRAME_POOL==='1'})
    observe?.({stage: 'lifted-operation', value: operation.value, kind: operation.kind, proposed: !!proof, units: (fullWork()-before)/fullRate, wallMs: traceNow()-wall})
    if (!proof) return
    cases.push({value: operation.value, proof})

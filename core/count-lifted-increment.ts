@@ -1,3 +1,4 @@
+import {liftedLeafUntil} from './count-lifted-budget.ts'
 import {FrameFactPool} from './count-emitter-frame-pool.ts'
 // Conditional threshold-increment STEP proposal. Role discovery and the
 // family's no-quorum premise select witnesses; only the native checker accepts.
@@ -10,7 +11,7 @@ import {discoverLiftedCountPrerequisites} from './count-lifted-prerequisite.ts'
 import {countFrameConditions,fixedCountFrameCase,ownCountLawInstance} from './count-frames.ts'
 import {countsForReads} from './count-facts.ts'
 import {matchLiftedCountBodies} from './count-lifted-transports.ts'
-import {clock,fullRate,fullWork,late,withDeadline} from '../kernel/prove.ts'
+import {fullRate,fullWork,late,withDeadline} from '../kernel/prove.ts'
 import {growCdcl} from '../kernel/cdcl.ts'
 import {add,k,scale} from './solver.ts'
 import {countGuardTree} from './count-guard-tree.ts'
@@ -64,7 +65,7 @@ export function proveLiftedCountIncrement(m:Machine,family:Law[],law:Law,until:n
    observe?.({stage:'increment-premise',premise:premise.law.name,rowAlias:aliases[0],instances:insts.length})
    const ask=(path:Path,stage:string,index?:number):Tree|undefined=>{
     if(late(until))return
-    const root=framePath(frames,[],path),started=fullWork(),end=Math.min(until,clock()+500)
+    const root=framePath(frames,[],path),started=fullWork(),end=liftedLeafUntil(until,options,500)
     const minimal=index===undefined?{goal:mcGoal(copyQueryContext(step.goal.hyps,root,counts,insts,[]),step.decls,{reads,insts:[],picks:[]}),path:root}:minimalTransportView(step.goal.hyps,step.decls,reads,insts,[insts[index]!],root)
     if(!minimal?.goal)return
     const result=minimalViewFirst(goal,minimal.goal,root,end,growCdcl,minimal.path,{deferCheck:deferred}),tree=result.tree

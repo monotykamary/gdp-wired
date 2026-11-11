@@ -5,6 +5,7 @@ import {countCertificateRenamer} from './count-cert-rename.ts'
 import {countsForReads} from './count-facts.ts'
 import {type Count,type CountDecl,type LinCut,type MapRead,linOk,substE} from '../kernel/kernel.ts'
 import {clock} from '../kernel/prove.ts'
+import {countPrimitiveUnits} from './count-primitive-budget.ts'
 import {guardLinearFact} from './count-guard-facts.ts'
 import {replayLinearSkeleton} from './count-replay-skeleton.ts'
 // A hint, never an equality assumption: alpha-renaming can change which
@@ -28,7 +29,7 @@ export function replayReversePrefix(counts:Count[],cut:LinCut,until:number):LinC
 export class UnwrittenCountPrefix {
  private cache=new Map<string,LinCut>()
  readonly stats={proofs:0,hits:0,refusals:0}
- constructor(private decls:CountDecl[],private reads:MapRead[],private guards:C[],private written:E,private rowBound:E,private search:'grow'|'cdcl'='grow',private options:{deferCheck?:boolean}={}){}
+ constructor(private decls:CountDecl[],private reads:MapRead[],private guards:C[],private written:E,private rowBound:E,private search:'grow'|'cdcl'='grow',private options:{deferCheck?:boolean,leafUnits?:number}={}){}
  prove(post:string,pre:string,rows:E[],sign:1|-1,until:number):LinCut|undefined{
   const p=this.reads.find(r=>r[0]===post),q=this.reads.find(r=>r[0]===pre)
   if(!p||!q||p[1]!==q[1]+'#'||JSON.stringify(p[2])!==JSON.stringify(q[2]))return
@@ -45,7 +46,7 @@ export class UnwrittenCountPrefix {
   if(cut)this.stats.hits++
   else{
    this.stats.proofs++
-   const fact=guardLinearFact(this.decls,generic,{name:'unwritten count prefix',kind:'ordinary-unwritten-count',when,terms},Math.min(until,clock()+60),undefined,this.search,this.options)
+   const fact=guardLinearFact(this.decls,generic,{name:'unwritten count prefix',kind:'ordinary-unwritten-count',when,terms},Math.min(until,clock()+countPrimitiveUnits(60,this.options.leafUnits)),undefined,this.search,this.options)
    if(!fact){this.stats.refusals++;return}
    cut=fact.cut;this.cache.set(cacheKey,cut)
   }

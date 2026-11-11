@@ -1,3 +1,4 @@
+import {liftedLeafUntil} from './count-lifted-budget.ts'
 import {FrameFactPool} from './count-emitter-frame-pool.ts'
 // Generic marked-load STEP proposer. Every premise comes from structural
 // discovery in the caller's family; no saved certificate or named law is used.
@@ -11,7 +12,7 @@ import {proposeLiftedTransports} from './count-lifted-transports.ts'
 import {type CountCert,type CountInst,type FrameCut,type Goal,type Instances,type LinCut,type Path,type Tree,canon,check,checkMC,countedObligations,frameOk,framePath,linear,mcGoal} from '../kernel/kernel.ts'
 import {add,k,scale,solve,sub} from './solver.ts'
 import {growCdcl} from '../kernel/cdcl.ts'
-import {clock,fullRate,fullWork,late,rowsAt,withDeadline} from '../kernel/prove.ts'
+import {fullRate,fullWork,late,rowsAt,withDeadline} from '../kernel/prove.ts'
 import {countGuardTree} from './count-guard-tree.ts'
 import {inlineFrozenGuard} from './count-frozen-guard.ts'
 import {rebasePath} from './count-rebase-path.ts'
@@ -77,11 +78,11 @@ export function proveLiftedCountLoad(m:Machine,family:Law[],law:Law,until:number
      const pre=reads.find(read=>read[1]===map.slice(0,-1)&&json(read[2])===json(key))
      if(pre){const cut={post:postId,pre:pre[0],when:[...path.values()].map(atom=>atom.holds?atom.lin:add(scale(atom.lin,-1),k(1)))};if(options.emitterFramePool){(framePool??=new FrameFactPool(counts,frames,until)).offer(cut)}else if(frameOk(counts,cut))frames.push(cut)}
     }
-    const root=framePath(frames,[],path,[],lins),before=fullWork(),deadline=Math.min(until,clock()+500),remember=(tree:Tree)=>{roots.set(tree,new Map(root));return tree}
+    const root=framePath(frames,[],path,[],lins),before=fullWork(),deadline=liftedLeafUntil(until,options,500),remember=(tree:Tree)=>{roots.set(tree,new Map(root));return tree}
     const direct=solve(rowsAt(goal,root),500)
     if(direct.kind==='refuted')return remember({leaf:direct.steps})
     const cached=reused.get(stage)
-    if(cached){const end=Math.min(deadline,clock()+25),tree=rebasePath(cached.goal,cached.tree,cached.path,root,end,goal)??replayLinearSkeleton(goal,cached.tree,root,end,{deferCheck:deferred});if(tree&&accepts(goal,tree,root))return remember(tree)}
+    if(cached){const end=liftedLeafUntil(deadline,options,25),tree=rebasePath(cached.goal,cached.tree,cached.path,root,end,goal)??replayLinearSkeleton(goal,cached.tree,root,end,{deferCheck:deferred});if(tree&&accepts(goal,tree,root))return remember(tree)}
     const selected=stage==='both-written'||stage.endsWith('-loaded')?insts.filter(inst=>inst.terms.length===1):stage.endsWith('-empty')?insts.filter(inst=>inst.terms.length===2&&inst.terms[0]![1]===find(voteName+'#',stage.startsWith('a-written')?b:a)):[]
     let searchRoot=root
     if(stage.endsWith('-loaded')){

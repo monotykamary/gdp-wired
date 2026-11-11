@@ -1,3 +1,4 @@
+import {liftedLeafUntil} from './count-lifted-budget.ts'
 import {FrameFactPool} from './count-emitter-frame-pool.ts'
 // Generic stored-row replacement proposer. The strict path checks transports;
 // composition-only deferral leaves acceptance to the unchanged final checker.
@@ -106,10 +107,10 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
    if(!goal||!counts)return decline('encoding')
    const active=inlineFrozenGuard(m.step.flags??{},write.guard),domain=all(...[a,b,actor].flatMap(p=>[less(p,bound),less(p,n(shape.origin.width))])),frames:FrameCut[]=[],lins:LinCut[]=[],lemmas:LemmaCut[]=[],roots=new Map<Tree,Path>()
    observe?.({stage:'replacement-plan',transports:insts.length,reads:reads.length,scalarPremises:scalarLaws.length,rowAgreement:agreement.law.name,quorumPremise:prerequisites[0]!.law.name})
-   const prefixFacts=new UnwrittenCountPrefix(step.decls,reads,[same(x(choice.name),n(choice.value)),m.pre,active],actor,bound,'cdcl',{deferCheck:deferred}),done=new Set<string>()
+   const prefixFacts=new UnwrittenCountPrefix(step.decls,reads,[same(x(choice.name),n(choice.value)),m.pre,active],actor,bound,'cdcl',{deferCheck:deferred,leafUnits:options.leafUnits}),done=new Set<string>()
    const fact=(terms:Terms,when:C[],stage:string):boolean=>{
     const key=json([terms,when]);if(done.has(key))return true
-    const start=fullWork(),startWall=observe?traceNow():0,result=c2&&stage==='partition'?proveBooleanPartitionCut(counts,when,terms,Math.min(until,clock()+500),observe):guardLinearFact(step.decls,reads,{name:'replacement '+stage,kind:'ordinary-replacement-definition',when,terms},Math.min(until,clock()+100),event=>{if(c2){if(event.outcome!=='proof'&&event.outcome!=='proposal')observe?.({stage:'cut-refused',kind:'linear',label:stage,outcome:event.outcome,witness:event.witness,when,terms,counts:counts.filter(count=>terms.some(([,id])=>id===count.v))})}else{if(event.outcome!=='proof')observe?.({stage:stage+'-failure',outcome:event.outcome,witness:event.witness})}},'cdcl',{deferCheck:deferred})
+    const start=fullWork(),startWall=observe?traceNow():0,result=c2&&stage==='partition'?proveBooleanPartitionCut(counts,when,terms,liftedLeafUntil(until,options,500),observe):guardLinearFact(step.decls,reads,{name:'replacement '+stage,kind:'ordinary-replacement-definition',when,terms},liftedLeafUntil(until,options,100),event=>{if(c2){if(event.outcome!=='proof'&&event.outcome!=='proposal')observe?.({stage:'cut-refused',kind:'linear',label:stage,outcome:event.outcome,witness:event.witness,when,terms,counts:counts.filter(count=>terms.some(([,id])=>id===count.v))})}else{if(event.outcome!=='proof')observe?.({stage:stage+'-failure',outcome:event.outcome,witness:event.witness})}},'cdcl',{deferCheck:deferred})
     observe?.({stage,checked:!deferred&&!!result,proposed:!!result,units:(fullWork()-start)/fullRate,wallMs:traceNow()-startWall});if(!result)return false
     lins.push(result.cut);done.add(key);return true
    }
@@ -131,13 +132,13 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
    const ask=(path:Path,stage:string,index?:number):Tree|undefined=>{
     let selectedLemma:LemmaCut|undefined
     if(late(until))return
-    const root=framePath(frames,[],path,[],lins),start=fullWork(),startWall=observe?traceNow():0,end=Math.min(until,clock()+500),cacheKey=stage+':'+index+':'+truth(same(a,actor),path)+':'+truth(same(b,actor),path)
+    const root=framePath(frames,[],path,[],lins),start=fullWork(),startWall=observe?traceNow():0,end=liftedLeafUntil(until,options,500),cacheKey=stage+':'+index+':'+truth(same(a,actor),path)+':'+truth(same(b,actor),path)
     if(c2&&stage==='older-transport'&&index!==undefined){
      const cut=add(...insts[index]!.terms.map(([c,id])=>({[id]:c}))),known=lemmas.find(l=>canon(l.cut)===canon(cut)&&lemmaPath([l],root).size>root.size)
      if(known){const close=(p:Path):Tree|undefined=>{const r=framePath(frames,lemmas,p,[],lins),out=solve(rowsAt(goal,r),500);if(out.kind!=='refuted')return;const leaf:Tree={leaf:out.steps};roots.set(leaf,new Map(r));return leaf};const main=split.rows(known.when,path,close,close);observe?.({stage:'older-lemma-reuse',index,checked:!!main});return main}
     }
     for(const cached of remembered.get(cacheKey)??[]){
-     const tree=rebasePath(goal,cached.tree,cached.root,root,Math.min(end,clock()+25),goal)
+     const tree=rebasePath(goal,cached.tree,cached.root,root,liftedLeafUntil(end,options,25),goal)
      if(tree&&accepts(goal,tree,root)){roots.set(tree,new Map(root));observe?.({stage,index,checked:!deferred,proposed:true,reused:true,units:(fullWork()-start)/fullRate,wallMs:traceNow()-startWall});return tree}
     }
     const older=c2&&stage==='older-transport',postIds=c2?new Set(reads.filter(r=>r[1].endsWith('#')).map(r=>r[0])):undefined,isPost=(value:unknown)=>{let out=false;walkOnce(value,(node:any)=>{if(node.op==='get'&&node.map.endsWith('#')||node.op==='var'&&postIds!.has(node.name))out=true});return out},preRoot:Path=c2?new Map([...root].filter(([,a])=>!Object.keys(a.lin).some(k=>postIds!.has(k)||k.includes('#[')))):root,preGoal=c2?{...goal,hyps:goal.hyps.filter(h=>!isPost(h))}:goal
@@ -209,7 +210,7 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
       const root=framePath(frames,[],at,[],lins),needed=new Set([X,Q,V(actor),V(plan.other),R(actor),R(plan.other),D(actor,plan.other),D(plan.other,actor),H(actor,plan.other)])
       const minimal=mcGoal([m.pre!,domain,oldLaw],step.decls,{reads:reads.filter(([id])=>needed.has(id)),insts:[],picks:[]})
       if(!minimal)return
-      const start=fullWork(),startWall=observe?traceNow():0,tree=proveQuorumCountLeaf(goal,minimal,root,oldLaw,{first:Q,second:V(plan.other)},[sourceHalf,left?rightHalf!:leftHalf!],until,observe,{deferCheck:deferred})
+      const start=fullWork(),startWall=observe?traceNow():0,tree=proveQuorumCountLeaf(goal,minimal,root,oldLaw,{first:Q,second:V(plan.other)},[sourceHalf,left?rightHalf!:leftHalf!],until,observe,{deferCheck:deferred,leafUnits:options.leafUnits})
       observe?.({stage:olderStage,checked:!deferred&&!!tree,proposed:!!tree,units:(fullWork()-start)/fullRate,wallMs:traceNow()-startWall})
       if(tree)roots.set(tree,new Map(root));return tree
      }

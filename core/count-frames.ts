@@ -5,6 +5,7 @@ import {type C,type E,type Law,type Machine,n,same,x} from './machine.ts'
 import {type CountCert,type CountDecl,type FrameCut,type MonoCut,type Goal,type Instances,type Path,type Tree,canon,checkMC,frameOk,framePath,mcGoal,monoOk} from '../kernel/kernel.ts'
 import {clock,fullRate,fullWork,grow,pastWall} from '../kernel/prove.ts'
 import {growCdcl} from '../kernel/cdcl.ts'
+import {countPrimitiveUnits} from './count-primitive-budget.ts'
 import {countsForReads} from './count-facts.ts'
 import {finiteCountChoice} from './count-cases.ts'
 import {countSearchView, proveCountQuery} from './count-query.ts'
@@ -57,7 +58,7 @@ export function proveCountFrameGoal(raw:Goal,decls:CountDecl[],request:Pick<Coun
   const postCount=counts.find(c=>c.v===post)!,preCount=counts.find(c=>c.v===pre[0])!
   if(postCount.key!==preCount.key||clock()>=until||pastWall())continue
   const auxiliary:Goal={name:'per-key cut',hyps:[...conditions,{op:'<',a:x(postCount.key),b:postCount.below},{op:'<',a:preCount.body,b:postCount.body}]}
-  const out=grow(auxiliary,new Map(),{nodes:0,until:Math.min(until,clock()+100)})
+  const out=grow(auxiliary,new Map(),{nodes:0,until:Math.min(until,clock()+countPrimitiveUnits(100,options.leafUnits))})
   const cut='tree'in out?{when:conditions,post,pre:pre[0],tree:out.tree}:undefined
   const checked=!!cut&&monoOk(counts,cut)
   trace?.({kind:'mono',post,pre:pre[0],checked,...('stuck'in out?{why:out.stuck}:{})})
