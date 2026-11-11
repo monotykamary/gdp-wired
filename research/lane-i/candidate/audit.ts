@@ -1,7 +1,7 @@
 import {strict as assert} from 'node:assert'
 import {createHash} from 'node:crypto'
 import {readdirSync,readFileSync,writeFileSync,mkdirSync} from 'node:fs'
-import {join,resolve} from 'node:path'
+import {join} from 'node:path'
 import {gunzipSync} from 'node:zlib'
 const keys=['fm','fcells','plainRows','values','copies','edges','scan','pivotRows','unitRows','unfoldRows','goalNodes','translateRows','tableCells','checkSteps','astNodes','evals','cubeTests','ticks','cdclNodes','epr']
 const weights=[2.33,0.0123,7.93,0.672,0.735,0.0435,0.0765,0.599,15.6,0.735,0.492,7.93,1,1,1,1,1,1,1,1]

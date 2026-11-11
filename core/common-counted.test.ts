@@ -45,7 +45,7 @@ test('full profile proves and refuses unchanged rules without any clock read',()
 })
 
 test('legacy counted clock and telemetry do not read the wall',()=>{
- const p=performance.now,d=Date.now
+ const p=Object.getOwnPropertyDescriptor(performance,'now'),d=Object.getOwnPropertyDescriptor(Date,'now')!
  Object.defineProperty(performance,'now',{configurable:true,value:()=>{throw Error('wall read')}});Date.now=()=>{throw Error('date read')}
- try{counted(fullRate,()=>{expect(searchNow()).toBe(clock());expect(traceNow()).toBe(0);expect(searchDateNow()).toBe(clock())},true)}finally{Object.defineProperty(performance,'now',{configurable:true,value:p});Date.now=d}
+ try{counted(fullRate,()=>{expect(searchNow()).toBe(clock());expect(traceNow()).toBe(0);expect(searchDateNow()).toBe(clock())},true)}finally{if(p)Object.defineProperty(performance,'now',p);else Reflect.deleteProperty(performance,'now');Object.defineProperty(Date,'now',d)}
 })

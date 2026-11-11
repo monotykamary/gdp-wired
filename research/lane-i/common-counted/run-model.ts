@@ -15,7 +15,7 @@ try{
  for(const module of ['gdp-ts','handwired'])command('tar',['-xf',join(input,`${module}.tar`),'-C',root])
  command('bun',['install','--frozen-lockfile'])
  const file=join(root,'measurement.json.gz')
- const run=spawnSync('bun',[join(input,'measure.ts'),root,id!,amount!,file,source,target!],{cwd:root,env,encoding:'utf8',timeout:480000,maxBuffer:32*1024*1024})
+ const run=spawnSync('bun',[...(process.env.GDP_CENSUS_TRIPWIRE==='1'?['--preload',join(input,'census-preload.ts')]:[]),join(input,'measure.ts'),root,id!,amount!,file,source,target!],{cwd:root,env,encoding:'utf8',timeout:480000,maxBuffer:32*1024*1024})
  if(run.stdout)process.stdout.write(run.stdout)
  if(run.stderr)process.stderr.write(run.stderr)
  if(run.error||run.status!==0||!existsSync(file)){console.log('CANDIDATE_CASE '+JSON.stringify({target,id,source,allowance:Number(amount),status:run.error?'driver-timeout':'driver-error',exit:run.status,signal:run.signal,error:run.error?.message}));process.exitCode=1}

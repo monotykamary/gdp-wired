@@ -1,0 +1,13 @@
+{
+  "base": "be661632458d95aaf638f632282041efbdf1f744",
+  "source": "9a5a80e4c32def7393f5df7b5d2c24eea5e05816",
+  "status": "clock-port-staged-for-D",
+  "admittedFilesChanged": ["kernel/prove.ts", "kernel/cdcl.ts", "kernel/epr.ts"],
+  "admittedPatchSha256": "e6cc5f9028a8d77bb3206b565555017dbc0b9282d26c7155423fa0f526474bb5",
+  "checker": "6f6c9526003afcfc3ea1e48106ee44b4bf8649fd",
+  "linearChecker": "12531ca33d390f29d4bf64366a2f6734d8c950b2",
+  "leanTree": "b9039b851d59b7621e322a797096fcd724019f68",
+  "originalModels": "0541fa9436e307a6fb716aa5064637b30b893b79",
+  "proverBody": "exact after erasing telemetry clock names",
+  "rawMeterScope": "API plus machine AST/evaluations; not complete native/checker coverage or calibrated W"
+}

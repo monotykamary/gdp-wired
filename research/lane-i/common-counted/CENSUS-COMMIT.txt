@@ -1,0 +1,6 @@
+test: close clock lint and census tripwire gaps
+
+Restore clock descriptors safely and remove an unused historical audit import.
+Add a pre-import wall-read counter for every original-model census case,
+including swallowed exceptions; compare normal and tripwire receipts.
+Runtime port and admitted clock-only diff remain unchanged.

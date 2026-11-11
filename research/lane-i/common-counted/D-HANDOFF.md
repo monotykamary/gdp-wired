@@ -28,5 +28,8 @@ The two exact D-tested exporter fixtures are supplied with their minimal
 untrusted count-frame helper from the admitted B source, not a strategy merge.
 A and F/B continue to own generation termination and lifted route registration.
 
-Validation and final source/patch identities will be recorded after native
-receipts arrive. No new D GREEN, main merge, push or W claim.
+Frozen validation/census source: 9a5a80e4c32def7393f5df7b5d2c24eea5e05816.
+Minimal admitted-clock.patch SHA-256:
+`e6cc5f9028a8d77bb3206b565555017dbc0b9282d26c7155423fa0f526474bb5`.
+Native tests and machine erasure now pass; full type/lint and the gated census
+are still running. No new D GREEN, main merge, push or W claim.
