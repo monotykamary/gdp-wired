@@ -1,12 +1,12 @@
 {
-  "status": "Request-allocation raw source verified and frozen separately; new-source F3 and path coverage remain unqualified",
+  "status": "Valid timestamped original-model Node diagnostic and independent evidence audit complete; stable canonicalization windows remain, full F3 and accounting pending",
   "privateIndex": "/private/tmp/lane-i-ledger.index",
   "task": "4575fac2-7dbb-4fcf-859f-63aba9e3e9c5",
   "waiterPid": 90266,
   "batch": "20261110-123336-6maehh",
   "resultDirectory": "runs/lane-i/complete-structural",
   "includesGeneratedConstructors": false,
-  "next": "Run source-pinned original-MLDR Node observation off/on; continue ordinary/EPR coverage without fitting weights from refusal controls.",
+  "next": "Add bounded before/after attribution around native canonicalization operations on exact source; keep original invalid-delta failure and strict rejection. Do not calibrate W before ordinary/EPR coverage.",
   "productionChanged": false,
   "weightsCalibrated": false,
   "f3Implemented": false,
@@ -39,20 +39,7 @@
       "subagents": 0
     }
   },
-  "activeTasks": [
-    {
-      "task": "7e953a2b-e52f-4925-9399-6c4053e9f6eb",
-      "pid": 918750,
-      "results": "runs/lane-i/resume-timed-diagnostic-routed",
-      "purpose": "same immutable diagnostic source, explicit per-directory data routing; prior dispatch ran no solver"
-    },
-    {
-      "task": "af8721ee-2350-4e42-97c5-d1856d3cd265",
-      "pid": 912632,
-      "results": "runs/lane-i/resume-profile-archive-tooling",
-      "purpose": "full tooling and independent archive negative controls"
-    }
-  ],
+  "activeTasks": [],
   "rerunFirst": [],
   "verified": {
     "gateBatch": "20261110-123003-1cvbpa",
@@ -635,9 +622,9 @@
       "errors": 0
     }
   },
-  "remainingF3Attribution": "Timestamp filtering implemented; actual profiler returned an invalid sample delta. Preserve raw evidence and keep strict rejection until cause understood. No F3 qualification.",
+  "remainingF3Attribution": "Three timestamp-bounded stable windows are mapped to canon/canonFlip on unchanged 32a59b2a. Function-level samples do not identify the exact native operation. Original invalid-delta failure is unreproduced and still rejected; no normalization fix, Bun F3, or calibrated W.",
   "f3TimedAttribution": {
-    "status": "original timed pilot failed strict audit on invalid sample delta; diagnostic retry in flight",
+    "status": "valid timed Node diagnostic independently audited and source-mapped; no full F3 qualification",
     "selection": "profile.startTime plus cumulative timeDeltas; only samples inside the quiet interval",
     "missingSamples": "retain the raw quiet window with an empty, unattributed stack",
     "originalModelRerun": "runs/lane-i/resume-timed-f3: exact raw/verdict/phase equality, invalid timing, not qualified",
@@ -671,6 +658,53 @@
       "commitlint": true,
       "warnings": 0,
       "errors": 0
-    }
+    },
+    "archiveTooling": {
+      "batch": "20261111-005857-ih08mm",
+      "files": 1708,
+      "typeLint": true,
+      "commitlint": true,
+      "positive": 1,
+      "negative": 6,
+      "timestampsNormalized": false
+    },
+    "validDiagnostic": {
+      "batch": "20261111-010216-e0ogvi",
+      "results": "runs/lane-i/resume-timed-diagnostic-routed",
+      "sameRawAndVerdict": true,
+      "sameExclusivePhaseRaw": true,
+      "sourceUnchanged": true,
+      "stableWindows": 3,
+      "changedWindows": 12,
+      "topFunctions": [
+        "canon2",
+        "canonFlip"
+      ],
+      "validTimestamps": true,
+      "invalidProfilesRetained": 0,
+      "unitTests": 9,
+      "detectedBeforeRelease": true,
+      "capabilitySamples": 30,
+      "cpuLabel": "unavailable",
+      "fullF3": false
+    },
+    "evidenceAudit": {
+      "batch": "20261111-011036-rhom40",
+      "results": "runs/lane-i/resume-timed-evidence",
+      "positiveAudit": true,
+      "originalInvalidTimestampsRejected": true,
+      "sourceMapping": true,
+      "sourceUnchanged": true,
+      "typeLint": true,
+      "files": 1732,
+      "warnings": 0,
+      "errors": 0,
+      "commitlint": true
+    },
+    "callChains": [
+      "kernel/kernel.ts:canon via kernel/reader.ts:form/addCopy/sync",
+      "kernel/kernel.ts:canonFlip via kernel/reader.ts:dec/equal",
+      "kernel/kernel.ts:canonFlip via kernel/reader.ts:dec/truth0"
+    ]
   }
 }

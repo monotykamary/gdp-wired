@@ -1,0 +1,4 @@
+[
+  {"name":"invalid-profile-inspection","cmd":"bun f3-input/inspect-profile.ts pilot-input/f3-timed-numeric-mldr.log","cpu":1,"memory":2048,"timeout":120,"vm_type":"large"},
+  {"name":"strict-timing-rejection-control","cmd":"set -euo pipefail; if bun f3-input/audit-pilot.ts rejected-input/f3-timed-numeric-mldr.log --strict-window --require-timed-window > rejected-audit.log 2>&1; then printf 'unexpected acceptance of invalid original timestamps\\n'; exit 1; fi; grep -F 'valid sample timestamps are required' rejected-audit.log; printf 'F3_INVALID_TIMING_REJECTED\\n'","cpu":1,"memory":2048,"timeout":120,"vm_type":"large"}
+]

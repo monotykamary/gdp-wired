@@ -194,15 +194,16 @@ chain when integrating whole-entry clock changes.
 branch, parent `94b65671`, not the integration production tree. It has 169
 selected tests, three 267-test mutation runs on identical complete source, and
 three genuine old-source negative controls. The latest Node original-model
-raw/verdict/phase comparison is equal, but two stable canonicalization captures
-remain; their profiler samples are not yet filtered by timestamps. No new
+raw/verdict/phase comparison at that point was equal, but two stable
+canonicalization captures remained without timestamp filtering. The later
+timestamp-bounded diagnostic is recorded below. No new
 all-29 census, final W, Bun F3 or GATE GREEN claim is made.
 
 Timestamp-bounded stack selection now passes eight adversarial fixtures and a
 real before-release blocking-loop probe (`20261110-222458-ek322b`), plus
 1,703-file type/lint and commitlint (`20261110-222458-r9py84`). A quiet interval
 with no recent samples stays explicitly unattributed. The original-model timed
-run is pending, using the recorded same-source off baseline; it is not an
+runs below use the recorded same-source off baseline; they are not an
 overhead comparison or a complete F3 claim. Its source-pinned on-only driver
 passes type/lint and commitlint in `20261110-222705-ud08x7` (1,704 files,
 zero warnings/errors). The original timed result is now collected in
@@ -212,7 +213,7 @@ delta**. It is not a qualified timed result. A single bounded diagnostic retry
 in `runs/lane-i/resume-timed-diagnostic` retains the invalid sample's index and
 delta plus at most two hash-bound raw profiles. Negative/non-finite deltas remain
 rejected; no audit relaxation or timestamp normalization is used. Its unit and
-blocking controls and parallel tooling check are in flight. The first diagnostic
+blocking controls and parallel tooling results are recorded below. The first diagnostic
 dispatch (`20261111-005922-mew7r5`) ran no solver: the default data destination
 nested inputs under `data/`, while the commands expected top-level aliases.
 Its three missing-file failures remain in `resume-timed-diagnostic`; the same
@@ -221,8 +222,33 @@ immutable inputs are resubmitted with explicit per-directory destinations as
 positive fixture and six rejection controls; no invalid timestamp is repaired.
 The diagnostic observer's type/lint and commitlint pass in
 `20261111-005947-ht6lpo` (1,710 files, zero warnings/errors). The explicitly
-routed diagnostic is batch `20261111-010216-e0ogvi`; its timestamp unit controls
-have passed, while the original-model result remains in flight.
+routed diagnostic, **`20261111-010216-e0ogvi`**, now passes all three jobs.
+The original `mldr` Node run preserves the raw vector, verdict and exclusive
+phase vectors on exact `32a59b2a`, with all selected timestamps valid. It retains
+**three stable application windows** (`canon2`, `canonFlip`) and twelve changed
+windows; no invalid-profile archive was emitted. The nine timestamp controls
+and blocking-loop capability also pass (30 recent samples, before release).
+The earlier invalid-delta failure is unreproduced, **not fixed or erased**.
+Independent positive/negative log audit, exact-source stack mapping and final
+tooling **pass** in **`20261111-011036-rhom40`**, all five jobs in
+`runs/lane-i/resume-timed-evidence`; no solver was rerun there. The negative
+control still rejects the original invalid-timestamp receipt. Type/lint reports
+1,732 files, zero warnings/errors; commitlint passes. Source-bound call chains:
+`kernel/kernel.ts:canon` via `kernel/reader.ts:form/addCopy/sync`, and `canonFlip`
+via `dec/equal` and `dec/truth0`. Source blobs remain unchanged before/after
+reconstruction. These function-level samples do not identify an exact native
+operation. No owned batch is left running.
+
+**Next:** distinguish native key enumeration/sort, memo lookup, serialization
+and GC using bounded before/after attribution on the same frozen source;
+retain strict invalid-timestamp rejection. Ordinary/EPR coverage, full F3,
+weights and W remain unqualified.
+
+**For lane D:** timestamp-bounded application captures remain on `32a59b2a`.
+This is raw-progress Node evidence with a reused off baseline, not a paired
+latency comparison, complete F3, Bun qualification, calibrated W or GATE GREEN.
+The scheduler supplied no CPU label for this placement; no host or timing
+qualification is claimed.
 
 Original MLDR Node pilot `20261110-202238-v6auwd` retained **identical raw vectors
 and verdicts** with observation off/on. Both were `unknown`, reason

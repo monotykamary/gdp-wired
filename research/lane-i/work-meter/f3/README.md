@@ -75,7 +75,7 @@ exact native instruction. All eight adversarial fixtures and the real blocking-
 loop capability check pass in `20261110-222458-ek322b`; the stack is captured
 before the loop releases with 40 valid in-window samples. Type/lint and
 commitlint pass in `20261110-222458-r9py84` (1,703 files, no warnings/errors).
-An original-model timed-selection run is now pending, reusing the recorded
+The original-model timed-selection runs below reuse the recorded
 same-source off baseline rather than making an overhead comparison. New pilot
 inputs must include `profile-window.mjs` beside the observer.
 
@@ -100,4 +100,27 @@ For a multi-directory frozen input tree, pass each child explicitly as
 `--data "$dir:$(basename "$dir")"`; `--data .../data` deliberately ships it
 under `data/`, not at the runner root. These are distinct destinations.
 The diagnostic observer's type/lint and commitlint pass in
-`20261111-005947-ht6lpo` (1,710 files, zero warnings/errors).
+`20261111-005947-ht6lpo` (1,710 files, zero warnings/errors). The independent
+archive controls and full type/lint/commitlint also pass in
+`20261111-005857-ih08mm` (1,708 files): one positive and six negative archive
+fixtures, with timestamp normalization explicitly false. The routed run (`20261111-010216-e0ogvi`) passes all three jobs: nine
+sample-window controls, real blocking-loop capability (30 recent samples,
+received before release), and original `mldr` timed diagnostic. All fifteen
+capture windows have valid timestamps; three stable windows remain in
+`canon2`/`canonFlip` and twelve change during capture. Raw counters, verdict,
+exclusive-phase counters and source identity match the archived off baseline.
+No invalid profile was emitted on this run. The prior invalid-delta failure
+is unreproduced, not fixed or erased. Independent audit and exact-source
+mapping **pass** in `20261111-011036-rhom40`
+(`runs/lane-i/resume-timed-evidence`). The original invalid-timestamp receipt
+still fails the strict audit, as required by a negative control. Full type/lint
+passes on 1,732 files with zero warnings/errors; commitlint also passes.
+
+The three source-bound stacks are `kernel/kernel.ts:canon` via
+`kernel/reader.ts:form/addCopy/sync`, and `canonFlip` via `dec/equal` and
+`dec/truth0`. Source blobs are unchanged before and after reconstruction.
+These are function-level anchors, not exact native instruction locations.
+The next attribution step must distinguish key enumeration/sorting, memo lookup,
+serialization and GC with bounded before/after observations, not infer one
+from a function name. CPU placement labels are empty, so no hardware or
+wall-time claim is made. Full F3 and calibrated W remain open.
