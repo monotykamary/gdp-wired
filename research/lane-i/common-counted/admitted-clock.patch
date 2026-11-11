@@ -1,0 +1,391 @@
+diff --git a/kernel/cdcl.ts b/kernel/cdcl.ts
+index 0477e174..9aa46fce 100644
+--- a/kernel/cdcl.ts
++++ b/kernel/cdcl.ts
+@@ -1,3 +1,5 @@
++import {traceNow as countedTraceNow} from '../core/trace-clock.ts'
++import {searchNow as countedSearchNow} from '../core/wall.ts'
+ // Untrusted, like prove.ts: a second search for a goal's tree, CDCL over the goal's atoms with the kernel's reading as
+ // the theory. Its refutation is a resolution DAG of refuted cases, unfolded into a kernel tree at the end, so the
+ // certificate is the kernel's as it is (kernel.ts's check); nothing here is trusted.
+@@ -100,13 +102,13 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+   // brings it down to its own; each assumption's index by name)
+   // (and on each assumption's variable, `aq`, its index this run: the undo's lookup by variable, not by name)
+   let aq = 0, aqOf = new Map<string, number>(), aqVars: Var[] = []
+-  const st = cdclStats, timing = st.on, setupStarted = timing ? performance.now() : 0
++  const st = cdclStats, timing = st.on, setupStarted = timing ? countedTraceNow() : 0
+   let runStarted = 0, sawDecision = false
+   const noteDecision = () => {
+     st.decisions++
+-    if (timing && !sawDecision) { sawDecision = true; st.firstDecisions++; st.firstDecisionMs += performance.now() - runStarted }
++    if (timing && !sawDecision) { sawDecision = true; st.firstDecisions++; st.firstDecisionMs += countedTraceNow() - runStarted }
+   }
+-  const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = performance.now(); try { return f() } finally { add(performance.now() - t0) } }
++  const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = countedTraceNow(); try { return f() } finally { add(countedTraceNow() - t0) } }
+   st.runs++
+   // (`tv`: the trail's variables, beside their names)
+   const vars = new Map<string, Var>(), trail: string[] = [], tv: Var[] = [], levels: number[] = []
+@@ -553,7 +555,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+   const stuck = (kind: 'sat' | 'unknown', why: string, extra: {witness?: Record<string, number>} = {}): Outcome => ({stuck: kind, path: clausal ? new Map() : pathOf(), why, ...extra})
+   const run = (b: {nodes: number, until?: number}, w?: number, assume?: Lin | Lin[]): Outcome => {
+     budget = b; until = b.until ?? Infinity; wall = w; last = goal.hyps.length - 1
+-    if (timing) { runStarted = performance.now(); sawDecision = false }
++    if (timing) { runStarted = countedTraceNow(); sawDecision = false }
+     restartAt = 32; nRestart = 0; sinceRestart = 0
+     listed = Array.isArray(assume)
+     assumed = (assume === undefined ? [] : Array.isArray(assume) ? assume : [assume]).map(lin => { const name = ensure(lin); return [name, name === canon(lin)] as [string, boolean] })
+@@ -608,7 +610,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+   }
+   const search = (): Outcome => {
+     for (;;) {
+-      if (++budget.nodes > 200_000 || late(until) || (wall !== undefined && performance.now() > wall)) return stuck('unknown', budget.nodes > 200_000 ? 'nodes' : 'time')
++      if (++budget.nodes > 200_000 || late(until) || (wall !== undefined && countedSearchNow() > wall)) return stuck('unknown', budget.nodes > 200_000 ? 'nodes' : 'time')
+       let conflict: Clause | undefined
+       const ci = t(propagate, ms => { st.propagationMs += ms })
+       let open = -1, wrong = -1
+@@ -673,7 +675,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+         }, ms => { st.orderMs += ms })
+         const open = cands.length > 0
+         // Bound propagation: an open atom its variables' bounds (the single-variable rows) decide.
+-        const tb = timing ? performance.now() : 0
++        const tb = timing ? countedTraceNow() : 0
+         if (open) {
+           let forced = 0
+           for (const x of cands) {
+@@ -718,7 +720,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+             }
+             x.bsig = hit ? undefined : sig; x.bver = hit ? undefined : bx.changes
+           }
+-          if (timing) st.boundMs += performance.now() - tb
++          if (timing) st.boundMs += countedTraceNow() - tb
+           if (forced) { st.boundRounds++; continue }
+         }
+         let steps: Step[] | undefined, lpSat = false, judged = false
+@@ -727,7 +729,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+           // The simplex first (warm from the node before): a conflict's rows, refuted exactly, are the leaf. With a case
+           // still open, a node it finds feasible is split; with none, the exact elimination below decides it (integers).
+           if (sx) {
+-            const t0 = timing ? performance.now() : 0
++            const t0 = timing ? countedTraceNow() : 0
+             // (a tableau that has gathered many more forms than a node reads is begun again: every pivot updates them all)
+             const over = sx.size > (clausal ? lpGrow : 4) * full.length + (clausal ? lpBase : 500) || sx.nnz > lpFill * full.length
+             if (over) { sx = new Simplex(); if (clausal) sx.greedy = lpGreedy; st.lpRebuilds++ }
+@@ -740,10 +742,10 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+             if (lp.kind === 'sat') lp = sx.check()
+             if (lp.kind === 'conflict') lp = {kind: 'conflict', rows: lp.rows.map(id => reader.slotOf(id))}
+             costs.pivots += sx.pivots - p0
+-            if (timing) { st.lpMs += performance.now() - t0; st.pivots += sx.pivots - p0; st.lpRows = sx.size; st.lpNnz = sx.nnz; st.lpVars = sx.vars; st.lpLoad = full.length; if (lp.kind === 'unknown') st.lpUnknown++ }
++            if (timing) { st.lpMs += countedTraceNow() - t0; st.pivots += sx.pivots - p0; st.lpRows = sx.size; st.lpNnz = sx.nnz; st.lpVars = sx.vars; st.lpLoad = full.length; if (lp.kind === 'unknown') st.lpUnknown++ }
+             if (lp.kind === 'conflict') {
+-              const tm = timing ? performance.now() : 0, support = lp.rows.sort((x, y) => x - y), out = solve(support.map(i => full[i]!))
+-              if (timing) st.missMs += performance.now() - tm
++              const tm = timing ? countedTraceNow() : 0, support = lp.rows.sort((x, y) => x - y), out = solve(support.map(i => full[i]!))
++              if (timing) st.missMs += countedTraceNow() - tm
+               if (out.kind === 'refuted') steps = out.steps.map(s => (s.kind === 'input' ? {...s, index: support[s.index]!} : s))
+               else st.lpMisses++
+             }
+@@ -765,15 +767,15 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+             }
+           }
+           st.fmCalls++
+-          const rows = plain(), tf = timing ? performance.now() : 0
++          const rows = plain(), tf = timing ? countedTraceNow() : 0
+           if (open && rows.length > 60) { const fast = refuteFast(rows); if (fast?.kind === 'refuted') steps = fast.steps.map(s => (s.kind === 'input' ? {...s, index: at(s.index)} : s)) }
+-          const tf2 = timing ? performance.now() : 0
++          const tf2 = timing ? countedTraceNow() : 0
+           if (timing) st.fastMs += tf2 - tf
+           if (!steps) {
+             verdict = open && rows.length > 60 ? solve(rows, 2 * rows.length) : solve(rows)
+             if (verdict.kind === 'refuted') steps = verdict.steps.map(s => (s.kind === 'input' ? {...s, index: at(s.index)} : s))
+           }
+-          if (timing) { if (open) st.fmOpenMs += performance.now() - tf2; else st.fmLeafMs += performance.now() - tf2 }
++          if (timing) { if (open) st.fmOpenMs += countedTraceNow() - tf2; else st.fmLeafMs += countedTraceNow() - tf2 }
+           if (!steps && open && !columns && full.length > rows.length) { const k = korder(), fast = refuteFast(k.map(i => full[i]!)); if (fast?.kind === 'refuted') steps = fast.steps.map(s => (s.kind === 'input' ? {...s, index: k[s.index]!} : s)) }
+         }, ms => { st.solveMs += ms })
+         if (judged && verdict?.kind === 'sat') return stuck('sat', 'a model', {witness: verdict.witness})
+@@ -855,7 +857,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+   // the clauses learned from it stay consequences of the goal with its gates' definitions, which any model of the rest
+   // extends to (a gate its formula's value).
+   const retire = (hyp: number) => { for (const ci of byHyp[hyp] ?? []) retired[ci] = true }
+-  if (timing) st.setupMs += performance.now() - setupStarted
++  if (timing) st.setupMs += countedTraceNow() - setupStarted
+   return {run, retire}
+ }
+ 
+diff --git a/kernel/epr.ts b/kernel/epr.ts
+index dfc0a20e..9eebff6e 100644
+--- a/kernel/epr.ts
++++ b/kernel/epr.ts
+@@ -1,3 +1,4 @@
++import {traceNow as countedTraceNow} from '../core/trace-clock.ts'
+ // Untrusted: a fast decision of EPR-shaped goals (research/protocols/epr/DESIGN.md). The hypotheses read as a
+ // propositional abstraction: a composed key (a·N² + b·N + c) the tuple of its parts, compared by the parts' order and
+ // equality, never by arithmetic; a few-valued cell a finite variable; an ordered value (an epoch) a term of a total order;
+@@ -97,8 +98,8 @@ const projectedMemo = new WeakMap<Goal, Goal>()
+ const projectedOf = (g: Goal): Goal => { let o = projectedMemo.get(g); if (!o) projectedMemo.set(g, (o = {...g, hyps: g.hyps.map(projectedC)})); return o }
+ export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
+   if (!decideHook.on) return decide1(goal, patterns, opts)
+-  const t0 = performance.now(), d = decide1(goal, patterns, opts)
+-  decideHook.on(goal, d, performance.now() - t0, lastShaped)
++  const t0 = countedTraceNow(), d = decide1(goal, patterns, opts)
++  decideHook.on(goal, d, countedTraceNow() - t0, lastShaped)
+   return d
+ }
+ function decide1(goal0: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
+diff --git a/kernel/prove.ts b/kernel/prove.ts
+index 7d8728b9..91779db5 100644
+--- a/kernel/prove.ts
++++ b/kernel/prove.ts
+@@ -11,6 +11,10 @@
+ import {type C, type E, type Law, type Machine, cpair, evalC, evalE, walkOnce} from '../core/machine.ts'
+ import {type Lin, type Step, add, costs, env, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
+ import {checkRefutation} from '../core/check.ts'
++import {fullWork as rawFullWork} from '../core/work-meter.ts'
++import {stepWork, stepWorkProfile} from '../core/step-work.ts'
++import {completeWorkProfile} from '../core/work-profile.ts'
++import {traceNow, withTraceWorkScope} from '../core/trace-clock.ts'
+ import {allowNode, allowTranslated, certCyclic, certOn, certSearch, stepCertFloor, translateMs, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, loopNodes, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
+ import type {TStats} from '../core/translate.ts'
+ import type {Cyclic} from './cyclic.ts'
+@@ -184,11 +188,11 @@ export function parseKey(text: string): Lin {
+ // the time in the solver and in building rows. Off unless `profile.on`; the counters cost nothing then.
+ export const profile: {on: boolean, goals: {name: string, ms: number, nodes: number, solves: number, solveMs: number, rowsMs: number, proven: boolean}[], solves: number, solveMs: number, rowsMs: number, nodes: number} =
+   {on: false, goals: [], solves: 0, solveMs: 0, rowsMs: 0, nodes: 0}
+-const timed = <T>(f: () => T, add: (ms: number) => void): T => { if (!profile.on) return f(); const t = performance.now(); try { return f() } finally { add(performance.now() - t) } }
++const timed = <T>(f: () => T, add: (ms: number) => void): T => { if (!profile.on) return f(); const t = traceNow(); try { return f() } finally { add(traceNow() - t) } }
+ export const solveKinds: Record<string, {n: number, ms: number, rows: number}> = {}
+ const solveP = (rows: Parameters<typeof solve>[0], maxRows?: number): ReturnType<typeof solve> => {
+   if (!profile.on) return solve(rows, maxRows)
+-  const t = performance.now(), out = solve(rows, maxRows), ms = performance.now() - t
++  const t = traceNow(), out = solve(rows, maxRows), ms = traceNow() - t
+   profile.solves++; profile.solveMs += ms
+   const s = (solveKinds[out.kind] ??= {n: 0, ms: 0, rows: 0}); s.n++; s.ms += ms; s.rows += rows.length
+   return out
+@@ -219,12 +223,14 @@ const eprTimeSince = (start: number): number => rate ? (eprMeter.n - start) / ra
+ // speed. A counted search inside another reads the outer's clock.
+ // With `full`, the clock reads the cost model below in place of work.n.
+ let rate = 0, meter = (): number => work.n
+-export const clock = (): number => (rate ? meter() / rate : performance.now())
++export const clock = (): number => stepWorkProfile.enabled ? fullWork() / fullRate : (rate ? meter() / rate : performance.now())
+ export function counted<T>(perMs: number, f: () => T, full = false): T {
+-  if (rate) return f()
+-  const outer = deadline
+-  rate = perMs; deadline = Infinity; meter = full ? fullWork : () => work.n
+-  try { return f() } finally { rate = 0; deadline = outer }
++  return withTraceWorkScope(() => {
++    if (rate || completeWorkProfile.enabled) return f()
++    const outer = deadline
++    rate = perMs; deadline = Infinity; meter = full ? fullWork : () => work.n
++    try { return f() } finally { rate = 0; deadline = outer }
++  })
+ }
+ // The cost model: what a query does, by kind (core/solver.ts's costs), each weighed to the milliseconds a Modal 2-vCPU
+ // container takes for it, `fullRate` units a millisecond at the median query: elimination's pairs and the float
+@@ -234,10 +240,42 @@ export function counted<T>(perMs: number, f: () => T, full = false): T {
+ // the solver and each node read, which the incremental search reads whole no more: on 7,027 root queries of 20 ms or
+ // more (research/query/fit.py on runs/query/cal2: the 332 step goals, CHC sat and unsat, ITS, the false step goals and
+ // the real-world corpus), work.n did 28 to 377 units a ms (p10, p90), the model 120 to 401.
+-const model: [keyof typeof costs, number][] = [['fm', 2.33], ['fcells', 0.0123], ['plainRows', 7.93], ['values', 0.672], ['copies', 0.735], ['edges', 0.0435],
+-  ['scan', 0.0765], ['pivotRows', 0.599], ['unitRows', 15.6], ['unfoldRows', 0.735], ['goalNodes', 0.492], ['translateRows', 7.93]]
+ export const fullRate = 250
+-export const fullWork = (): number => { let n = 0; for (const [k, w] of model) n += w * costs[k]; return n }
++export const fullWork = (): number => stepWork() + rawFullWork()
++
++// Explicit synchronous work scopes. The default paths do not enter one yet:
++// count/plain migrations and legacy deadline-reset semantics are separate steps.
++let budgetUnitsEnd: number | undefined
++export const inBudget = (): boolean => budgetUnitsEnd !== undefined
++export const inWorkScope = (): boolean => inBudget() || rate !== 0 || stepWorkProfile.enabled
++// An inherited counted scope has no wall-clock control path.
++export const searchNow = (): number => inWorkScope() ? clock() : performance.now()
++export const budgetEnd = (): number => (budgetUnitsEnd ?? Infinity) / fullRate
++export class BudgetExpired extends Error {
++  constructor(readonly phase: string) { super(`work budget (${phase})`); this.name = 'BudgetExpired' }
++}
++export function checkBudget(phase: string): void {
++  if (budgetUnitsEnd !== undefined && (fullWork() > budgetUnitsEnd
++    || completeWorkProfile.enabled && clock() > withinDeadline(budgetEnd()))) throw new BudgetExpired(phase)
++}
++export function withBudget<T>(units: number, f: () => T): T {
++  if (!Number.isFinite(units) || units < 0) throw new RangeError('work budget must be finite and nonnegative')
++  // Never silently interpret units using a legacy work.n/count-rate island.
++  if (rate && meter !== fullWork) throw new Error('work budget requires the outer full-work clock')
++  return counted(fullRate, () => {
++    const previous = budgetUnitsEnd
++    budgetUnitsEnd = Math.min(previous ?? Infinity, workCap, fullWork() + units)
++    try {
++      return withWork(budgetUnitsEnd, () => withDeadline(budgetEnd(), () => {
++        checkBudget('entry')
++        const result = f()
++        // The final checker is inside the allowance, not free completion work.
++        checkBudget('completion')
++        return result
++      }))
++    } finally { budgetUnitsEnd = previous }
++  }, true)
++}
+ // A goal's own budget where its caller gives none, outside a counted search: the cost model's work, groundRate units a
+ // millisecond of the budget (below fullRate: the queries of 10 s or more did 163 to 271 units a ms at their median, by
+ // group of the run above, so a long goal's budget takes about the wall time it had), so a goal left unknown is left so
+@@ -250,8 +288,11 @@ export const withWork = <T>(cap: number, f: () => T): T => { const outer = workC
+ // (the EPR path's propositional search, a node's propagation, building a large goal's rows) stops there too, and past it
+ // every goal is left unknown, whatever its own budget. Untrusted: it only stops a search.
+ let wallEnd = Infinity
+-export const pastWall = (): boolean => wallEnd !== Infinity && performance.now() > wallEnd
++export const pastWall = (): boolean => inWorkScope() ? clock() > withinDeadline(budgetEnd()) : wallEnd !== Infinity && searchNow() > wallEnd
+ export function withWall<T>(end: number, f: () => T): T {
++  // Scoped callers supply searchWall()/clock() endpoints in counted units.
++  // Keep A's inherited deadline semantics without consulting the wall clock.
++  if (inWorkScope()) return withDeadline(Math.min(budgetEnd(), end), f)
+   const outer = wallEnd
+   wallEnd = Math.min(outer, end)
+   try { return f() } finally { wallEnd = outer }
+@@ -259,7 +300,7 @@ export function withWall<T>(end: number, f: () => T): T {
+ // Past the wall or the deadline in force: a goal grown now is left unknown at once.
+ const ranOut = (): boolean => pastWall() || withinDeadline(Infinity) <= clock()
+ // (the wall's end in force, Infinity where none: a search inside that stops itself there)
+-export const wallAt = (): number => wallEnd
++export const wallAt = (): number => inWorkScope() ? withinDeadline(budgetEnd()) : wallEnd
+ export const late = (until: number): boolean => clock() > until || (workCap !== Infinity && fullWork() > workCap) || pastWall()
+ // A budget's end, within the deadline (a translation's own bound, core/cyclic.ts's, kept by the export's GDP_CERT_MS).
+ export const withinDeadline = (until: number): number => Math.min(until, deadline - eprTimeSince(deadlineEpr))
+@@ -282,8 +323,8 @@ export function grow(goal: Goal, path: Path = new Map(), budget?: {nodes: number
+   if (budget.units === false && unitsNow) { unitsNow = false; try { return grow(goal, path, budget) } finally { unitsNow = true } }
+   if (proveDump && !path.size && !budget.nodes) { proveDump(goal); }
+   if (proveTrace && !path.size && !budget.nodes) {
+-    const t = performance.now(), out = growRoot(goal, path, budget)
+-    console.error(`[grow] ${goal.name}: ${goal.hyps.length} hyps, ${budget.nodes} nodes, ${Math.round(performance.now() - t)} ms, ${'tree' in out ? 'proven' : `${out.stuck}${out.why ? ` (${out.why})` : ''}`}`)
++    const t = traceNow(), out = growRoot(goal, path, budget)
++    console.error(`[grow] ${goal.name}: ${goal.hyps.length} hyps, ${budget.nodes} nodes, ${Math.round(traceNow() - t)} ms, ${'tree' in out ? 'proven' : `${out.stuck}${out.why ? ` (${out.why})` : ''}`}`)
+     return out
+   }
+   // (a root goal grown before within `withTrees`: its tree again; a tree is the kernel's to check wherever it goes)
+@@ -309,9 +350,9 @@ export function withTrees<T>(f: () => T): T {
+ // its wall time and counted work, its outcome, and how many queries it is inside.
+ export const queryHook: {on?: (q: {kind: string, goal: Goal, ms: number, work: number, out: Outcome, depth: number}) => void, depth: number} = {depth: 0}
+ export function logged(kind: string, goal: Goal, f: () => Outcome): Outcome {
+-  const t0 = performance.now(), w0 = work.n
++  const t0 = traceNow(), w0 = work.n
+   queryHook.depth++
+-  try { const out = f(); queryHook.on?.({kind, goal, ms: performance.now() - t0, work: work.n - w0, out, depth: queryHook.depth - 1}); return out } finally { queryHook.depth-- }
++  try { const out = f(); queryHook.on?.({kind, goal, ms: traceNow() - t0, work: work.n - w0, out, depth: queryHook.depth - 1}); return out } finally { queryHook.depth-- }
+ }
+ function growKept(goal: Goal, path: Path, budget: {nodes: number, until?: number, units?: boolean}): Outcome {
+   if (queryHook.on && !path.size && !budget.nodes && !queryHook.depth) return logged('grow', goal, () => growKept0(goal, path, budget))
+@@ -319,9 +360,9 @@ function growKept(goal: Goal, path: Path, budget: {nodes: number, until?: number
+ }
+ function growKept0(goal: Goal, path: Path, budget: {nodes: number, until?: number, units?: boolean}): Outcome {
+   if (!profile.on || path.size || budget.nodes) return growRoot(goal, path, budget)
+-  const t = performance.now(), s0 = profile.solves, m0 = profile.solveMs, r0 = profile.rowsMs, n0 = profile.nodes
++  const t = traceNow(), s0 = profile.solves, m0 = profile.solveMs, r0 = profile.rowsMs, n0 = profile.nodes
+   const out = growRoot(goal, path, budget)
+-  profile.goals.push({name: goal.name, ms: performance.now() - t, nodes: profile.nodes - n0, solves: profile.solves - s0, solveMs: profile.solveMs - m0, rowsMs: profile.rowsMs - r0, proven: 'tree' in out})
++  profile.goals.push({name: goal.name, ms: traceNow() - t, nodes: profile.nodes - n0, solves: profile.solves - s0, solveMs: profile.solveMs - m0, rowsMs: profile.rowsMs - r0, proven: 'tree' in out})
+   return out
+ }
+ // The share of a root goal's budget the CDCL search gets (GDP_CDCL_SHARE; 0 turns it off), and the quick search's nodes
+@@ -435,12 +476,12 @@ export function growWide(goal: Goal, budget: {nodes: number, until?: number}, as
+       // (a part's own budget: what the whole's search spends on as many nodes, four times over (a node of the part reads
+       // that much less), at least a sixteenth of the share: a part that a small budget doesn't settle leaves the goal)
+       const ids = [...part].sort((a, b) => a - b), g: Goal = {name: goal.name, hyps: ids.map(i => hyps[i]!)}, f = Math.max(1 / 16, Math.min(1, 4 * part.size / hyps.length))
+-      const t0 = performance.now(), at = clock()
++      const t0 = traceNow(), at = clock()
+       wideScope.judge = w => !broken(w, ids, true).length
+       let out: Outcome & {core?: number[]}
+       try { out = withWork(Math.min(w + room, fullWork() + f * room), () => ask(g, Math.min(until, at + f * span))) } finally { wideScope.judge = undefined }
+       wideHook.on?.(g, out)
+-      if (wideTrace) console.error(`[wide] ${goal.name.slice(0, 40)}: part ${g.hyps.length} of ${hyps.length}, ${'tree' in out ? 'tree' : out.stuck} in ${Math.round(performance.now() - t0)} ms${'tree' in out ? '' : ` ${out.why?.slice(0, 50) ?? ''}`}`)
++      if (wideTrace) console.error(`[wide] ${goal.name.slice(0, 40)}: part ${g.hyps.length} of ${hyps.length}, ${'tree' in out ? 'tree' : out.stuck} in ${Math.round(traceNow() - t0)} ms${'tree' in out ? '' : ` ${out.why?.slice(0, 50) ?? ''}`}`)
+       if ('tree' in out && keep) { wideStats.trees++; return {tree: out.tree, nodes: out.nodes, part: g, core: ids} }
+       if ('tree' in out) { const tree = withWork(w + room, () => withDeadline(until, () => widen(g, goal, out.tree))); if (tree) wideStats.trees++; return tree && {tree, nodes: out.nodes} }
+       if (out.why === REFUTED) return {...out, ...(out.core ? {core: out.core.map(i => ids[i]!)} : {})}
+@@ -1730,8 +1771,8 @@ type Decided = {proven: true, uses: string[]} | {proven: false, goal: string, st
+ export const decideLawHook: {on?: (m: Machine, laws: Law[], i: number, out: Decided, ms: number) => void} = {}
+ export function decideLaw(m: Machine, laws: Law[], i: number, rounds = modelRounds): Decided {
+   if (!decideLawHook.on) return decideLaw0(m, laws, i, rounds)
+-  const t0 = performance.now(), out = decideLaw0(m, laws, i, rounds)
+-  decideLawHook.on(m, laws, i, out, performance.now() - t0)
++  const t0 = traceNow(), out = decideLaw0(m, laws, i, rounds)
++  decideLawHook.on(m, laws, i, out, traceNow() - t0)
+   return out
+ }
+ // (why decideLaw last answered nothing: `refuted`, the abstraction refuted a goal whose core's proof didn't finish, a
+@@ -2164,7 +2205,7 @@ function proveLawsAsGiven(m: Machine, laws: Law[], defer?: (finish: () => void)
+   const modes = cyclicOn() || certOn(), hist = modes && m.history ? historyMachine(m) : undefined, mc = hist ? hist.machine : m
+   const why = modes ? (sumsWhy(m) ?? uncoveredWhy(mc, laws)) : undefined, cert = certOn() && !why
+   usualCheck.on = !cert && !defer
+-  const t0 = performance.now(), out = fast ?? (() => { try { return proveThinned(m, laws, {...instances}) } finally { usualCheck.on = true } })(), usualMs = performance.now() - t0
++  const t0 = traceNow(), out = fast ?? (() => { try { return proveThinned(m, laws, {...instances}) } finally { usualCheck.on = true } })(), usualMs = traceNow() - t0
+   if (out.proof) usualProof.last = {m, laws, proof: out.proof}
+   const inst = out.proof?.instances ?? instances
+   const searched = () => { const {facts, specs} = machineNodes(mc, laws, inst); return proveCyclic(facts, specs) }
+@@ -2297,7 +2338,7 @@ export function stepLawInstances(m: Machine, laws: Law[]): (sl: StepLaw) => Inst
+ }
+ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base: Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}}, ready: () => void = () => {}): Report & {proof?: StepProof, uncovered?: string[]} {
+   if (!base.proof) return {proven: false, nodes: base.nodes, leaves: base.leaves, checked: false}
+-  const t0 = performance.now()
++  const t0 = traceNow()
+   const plain = plainOf(m)
+   // Each step law its own instances, from its own goal: the keys the step and the laws read, and its own (a k-step
+   // law's later frames read keys no other step law has); where positions shift or a law is about several keys, the
+@@ -2312,7 +2353,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
+   // (each step law's own time, its share of the usual proof: what its certificate alone may take, stepCertFloor)
+   const ownMs: Record<string, number> = {}
+   for (const sl of stepLaws) for (const goal of stepLawObligations(m, laws, perStep[sl.name] ?? instances, sl)) {
+-    const g0 = performance.now()
++    const g0 = traceNow()
+     const full = perStep[sl.name] ?? instances, few = triggered(plain, laws, full, inst => stepLawObligations(m, laws, inst, sl), [sl.forall, ...(sl.keys ?? [])].flatMap(k => (k ? [k] : [])))
+     let out = sameInstances(few, full) ? grow(goal) : grow(stepLawObligations(m, laws, few, sl).find(g => g.name === goal.name) ?? goal)
+     if ('tree' in out && !sameInstances(few, full)) perStep[sl.name] = few
+@@ -2335,12 +2376,12 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
+     trees[goal.name] = out.tree
+     nodes += out.nodes
+     leaves += countLeaves(out.tree)
+-    ownMs[sl.name] = (ownMs[sl.name] ?? 0) + performance.now() - g0
++    ownMs[sl.name] = (ownMs[sl.name] ?? 0) + traceNow() - g0
+   }
+   // (every step law proven: the laws' certificate, or their check, as proveLaws makes it; its time not the step laws')
+-  const r0 = performance.now()
++  const r0 = traceNow()
+   ready()
+-  const usual0 = t0 + performance.now() - r0
++  const usual0 = t0 + traceNow() - r0
+   const proof = {laws: base.proof, instances, ...(Object.keys(perStep).length ? {perStep} : {}), trees}
+   // Step laws of a machine the cyclic instances cover (one step, or several over no map) are translated with the laws
+   // (core/cyclic.ts); the rest are counted as no instance's.
+@@ -2360,7 +2401,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
+     const all = one.map(sl => { const inst = perStep[sl.name] ?? instances, goal = stepLawObligations(m, laws, inst, sl)[0]!; return {sl, inst, goal, tree: trees[goal.name]!} })
+     const translatedOf = (steps: typeof all) => (st: TStats) => translatedProof(() => JSON.stringify(['steps', plain, laws, base.proof!.instances, steps.map(x => [x.sl, x.inst])]), reused => timedKind('instance', 0, () => machineNodes(plain, laws, base.proof!.instances, {trees: base.proof!.trees, steps, lawsMade: reused}, st)), st,
+       () => JSON.stringify(['machine', plain, laws, base.proof!.instances]))
+-    const usualMs = performance.now() - usual0
++    const usualMs = traceNow() - usual0
+     if (cyclicOn()) crossCyclic('step law', m.name, true, undefined, usualMs, translatedOf(all))
+     // (where the step laws' proof together isn't made, each step law's alone: one the translation misses leaves the
+     // others theirs; and the usual trees, unchecked where the certificate was to be the verdict, are checked)
+@@ -2388,7 +2429,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
+       const b = machineNodes(plain, laws, base.proof!.instances)
+       return proveCyclic(b.facts, [...b.specs, ...searchedStepNodes(plain, laws, rest.map(sl => ({law: sl, instances: perStep[sl.name] ?? instances})), b.facts, b.specs)])
+     }
+-    const c = certCyclic('step law', m.name, undefined, searchedSteps, performance.now() - usual0)
++    const c = certCyclic('step law', m.name, undefined, searchedSteps, traceNow() - usual0)
+     for (const sl of c.checked ? [] : rest) miss(sl, `${restWhy(sl)}: ${c.why}`)
+   } else if (cyclicOn() || certOn()) for (const sl of rest) miss(sl, restWhy(sl))
+   return out
+@@ -2396,7 +2437,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
+ // Progress (kernel.ts's progressObligations): the laws proven first, then each goal, the every-key laws assumed at every
+ // key the goals read a map at.
+ export function proveProgress(m: Machine, laws: Law[], p: {name: string, when: C, then: C, request: Record<string, E>}): Report & {instances?: Instances, trees?: Record<string, Tree>, uncovered?: string} {
+-  const t0 = performance.now(), base = proveLaws(m, laws)
++  const t0 = traceNow(), base = proveLaws(m, laws)
+   if (!base.proven || !base.checked) return {proven: false, nodes: base.nodes, leaves: base.leaves, ...(base.failed ? {failed: base.failed} : {}), checked: false}
+   const ls = base.laws ?? laws
+   const instances = instancesFor(plainOf(m), ls, inst => progressObligations(m, ls, inst, p))
+@@ -2436,7 +2477,7 @@ export function proveProgress(m: Machine, laws: Law[], p: {name: string, when: C
+       })
+       return found?.out ?? last
+     }
+-    const c = certCyclic('progress', m.name, translated, certSearch() ? allowed : undefined, performance.now() - t0)
++    const c = certCyclic('progress', m.name, translated, certSearch() ? allowed : undefined, traceNow() - t0)
+     if (!c.checked) { const why = `a request allowed: ${c.why}`; uncovered('progress', m.name, why); return {proven: true, nodes, leaves, checked, instances, trees, uncovered: why} }
+   } else if (cyclicOn() || certOn()) {
+     const why = alone ? 'a request allowed' : 'a request allowed and a claim after it'

@@ -1,0 +1,5 @@
+test: tighten common counted port identity controls
+
+Use an always-priced legacy counter for the budget control and correct the
+verifier assertion type. Add machine observation erasure and retain all
+clock-only admitted-file differences for D. No runtime source change.

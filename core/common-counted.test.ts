@@ -1,17 +1,17 @@
 import {expect,test} from 'bun:test'
 import {spawnSync} from 'node:child_process'
-import {counted,fullRate,withBudget,budgetEnd,inBudget,clock,BudgetExpired,checkBudget,withDeadline,wallAt,searchNow,withWall} from '../kernel/prove.ts'
-import {coreMeter} from './meter.ts'
+import {counted,fullRate,withBudget,budgetEnd,inBudget,clock,BudgetExpired,checkBudget,withDeadline,wallAt,searchNow} from '../kernel/prove.ts'
+import {costs} from './solver.ts'
 import {traceNow} from './trace-clock.ts'
-import {searchDateNow,transportEnd} from './wall.ts'
+import {searchDateNow} from './wall.ts'
 
 test('nested work scopes cannot extend parent and restore after an exception',()=>{
- const was=coreMeter.evals
+ const was=costs.fm
  try{counted(fullRate,()=>withBudget(100,()=>{
   const end=budgetEnd();withBudget(10000,()=>expect(budgetEnd()).toBe(end))
   withDeadline(clock()+0.1,()=>expect(wallAt()).toBeLessThanOrEqual(clock()+0.1))
-  coreMeter.evals+=1000;expect(()=>checkBudget('control')).toThrow(BudgetExpired)
- }),true)}catch(e){expect(e).toBeInstanceOf(BudgetExpired)}finally{coreMeter.evals=was}
+  costs.fm+=1000;expect(()=>checkBudget('control')).toThrow(BudgetExpired)
+ }),true)}catch(e){expect(e).toBeInstanceOf(BudgetExpired)}finally{costs.fm=was}
  expect(inBudget()).toBe(false)
 })
 

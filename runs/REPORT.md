@@ -1,5 +1,26 @@
 # RESUME — ACTIVE 2026-11-10 evening
 
+## ACTIVE — common-tree counted port (new coordinator assignment)
+
+Port onto be661632 without A's prover or checking changes; fill B exporter
+fixture chain; rerun native validation and 28 originals at 15M on a new exact
+source. Current first source: **4e13e5f9**, on claude/mldr-integ. Added A raw
+meter/profile/ledger, clock-budget header, scoped core clocks and public
+admission. The common prover tail is untouched except telemetry calls. Only
+admitted files changed: kernel/prove.ts, kernel/cdcl.ts, kernel/epr.ts.
+`kernel/kernel.ts`, all Lean files and core/check.ts remain exact. Minimal
+D diff: `research/lane-i/common-counted/admitted-clock.patch`.
+
+Validation currently running: task `560ea210-0c64-4d0d-8246-ac58372bf39d`, batch
+`20261111-030117-c26nzc`, output `runs/lane-i/common-counted-4e13/`. Test job
+reported exit 1; complete logs await the full check. A test-only fix is
+uncommitted: use the universally priced fm counter rather than zero-priced
+extra evals for the legacy-profile budget control. Do not duplicate the run.
+D handoff, reproducible native verifier and scripts: research/lane-i/common-counted/.
+No new D approval, census result, or calibration claim. Prior candidate results
+below remain historical. .reflex-saved/ untouched.
+
+
 ## CURRENT — D-admitted trees integrated; counted composition blocked
 
 Older sections below are historical checkpoints; this section supersedes their
