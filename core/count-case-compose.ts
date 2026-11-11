@@ -1,8 +1,9 @@
 // Compose fixed-operation proposals onto one unrestricted counted STEP goal.
 // Every leaf is reindexed; the complete certificate is checked at the end.
-import {type Law, all, n, same, x} from './machine.ts'
+import {type C, type Law, all, n, same, x} from './machine.ts'
 import {deferFinalCountStep, type FamilyStepProposal} from './count-final-step.ts'
 import {traceNow} from './trace-clock.ts'
+import {transportCountLemmas} from './count-lemma-transport.ts'
 import {recordCountStrategyPremises} from './count-strategy-premises.ts'
 import {type GuardCountContext} from './count-guard-context.ts'
 import {type CountRequestBuilder, type CountStrategyProof, finishCountStrategy} from './count-strategy.ts'
@@ -11,11 +12,11 @@ import {countCertificateRenamer} from './count-cert-rename.ts'
 import {countStageTrace, type CountStageObserver} from './count-stage-trace.ts'
 import {dedupeCountInstances, minimizeCountCertificate} from './count-certificate-minimize.ts'
 import {countRowReindexer, operationRefutation} from './count-row-reindex.ts'
-import {type CountCert, type Goal, type Instances, type Path, type Tree, boundOf, canon, canonFlip, checkMC, countedObligations, framePath, mcGoal} from '../kernel/kernel.ts'
+import {type CountCert, type Goal, type Instances, type Path, type Tree, boundOf, substC, canon, canonFlip, checkMC, countedObligations, framePath, mcGoal} from '../kernel/kernel.ts'
 import {fullRate, fullWork, late, rowsAt, withDeadline} from '../kernel/prove.ts'
 import {type Lin, type Step, add, k} from './solver.ts'
 export type FixedOperationProof = {value: number, proof: CountStrategyProof}
-export function composeCountOperationProofs(context: GuardCountContext, family: Law[], law: Law, cases: FixedOperationProof[], until: number, requestFor: CountRequestBuilder, observe?: (stage: string, value?: number) => void, options: {familyProposal?: FamilyStepProposal, reindexMode?: 'offset' | 'exact', initial?: CountCert, trace?: CountStageObserver, minimize?: boolean} = {}): CountStrategyProof | undefined {
+export function composeCountOperationProofs(context: GuardCountContext, family: Law[], law: Law, cases: FixedOperationProof[], until: number, requestFor: CountRequestBuilder, observe?: (stage: string, value?: number) => void, options: {familyProposal?: FamilyStepProposal, reindexMode?: 'offset' | 'exact', initial?: CountCert, trace?: CountStageObserver, minimize?: boolean, slicedLemmas?: boolean} = {}): CountStrategyProof | undefined {
   return withDeadline(until, () => {
     const trace = countStageTrace(options.trace, 'composition-total')
     try {
@@ -35,7 +36,7 @@ export function composeCountOperationProofs(context: GuardCountContext, family: 
       const scope = JSON.stringify([m, family, cases])
       while (scope.includes('"' + prefix)) prefix = '$' + prefix
       trace.mark('merge-setup', 'untrusted-assembly')
-      const common: CountCert = {reads: [], insts: [], picks: [], frames: [], monos: [], lins: [], tree: {leaf: []}}
+      const common: CountCert = {reads: [], insts: [], picks: [], frames: [], monos: [], lins: [], ...(options.slicedLemmas?{lemmas: []}:{}), tree: {leaf: []}}
       const readNames = new Map<string, string>(), instanceNames = new Map<string, string>(), tuples = new Map<string, Set<string>>()
       let instances: Instances = {}
       const sources: {value: number, cert: CountCert, instances: Instances}[] = []
@@ -50,7 +51,7 @@ export function composeCountOperationProofs(context: GuardCountContext, family: 
         trace.mark('merge-case', 'untrusted-assembly', value)
         if (late(until)) return
         const source = cases.find(c => c.value === value)!, raw = source.proof.certs[`${law.name} @step`]
-        if (!raw || raw.lemmas?.length || raw.picks?.length) return
+        if (!raw || (!options.slicedLemmas&&raw.lemmas?.length) || raw.picks?.length) return
         const renamed = new Map<string, string>()
         for (const [id, map, key] of raw.reads) {
           const signature = JSON.stringify([map, key]); let name = readNames.get(signature)
@@ -90,10 +91,27 @@ export function composeCountOperationProofs(context: GuardCountContext, family: 
       const packet = countedObligations(m, family, {[law.name]: instances}, target).at(-1)!, goal = mcGoal(packet.goal.hyps, packet.decls, common)
       if (!goal) return
       trace.mark('reindex-setup', 'untrusted-assembly')
+      let sourceGoals: Map<number,Goal> | undefined
+      if(options.slicedLemmas){
+        sourceGoals=new Map<number,Goal>()
+        const flagSubs:Record<string,C>=Object.create(null)
+      for(const [name,c] of Object.entries(m.step.flags??{}))flagSubs[name]=c.op==='all'?same(x('?'+name),n(1)):substC(c,{vars:{},maps:{},flags:flagSubs})
+      const normalized=(c:C)=>substC(c,{vars:{},maps:{},flags:flagSubs})
+      for(const source of sources){
+        if(!source.cert.lemmas?.length)continue
+        const fixed={...m,assume:all(...(m.assume?[m.assume]:[]),same(x(operation),n(source.value)))},packet=countedObligations(fixed,family,{[law.name]:source.instances},target).at(-1)!,from=mcGoal(packet.goal.hyps,packet.decls,source.cert)
+        if(!from)return
+        sourceGoals.set(source.value,from)
+        const lemmas=transportCountLemmas(from,goal,source.cert.lemmas,{assumed:normalized(fixed.assume),retained:m.assume?normalized(m.assume):undefined,when:[add({[operation]:1},k(-source.value)),add({[operation]:-1},k(source.value))]},until)
+        if(!lemmas){observe?.('lemma-transport-declined',source.value);return}
+        common.lemmas!.push(...lemmas)
+        observe?.('lemma-transport:'+lemmas.length,source.value)
+      }
+      }
       const stats = {hits: 0, layouts: 0}, offsets = options.reindexMode !== 'exact'
       const reindex = countRowReindexer(goal, {offsets, stats})
       const fallback = (path: Path): Tree | undefined => late(until) ? undefined :
-        operationRefutation(rowsAt(goal, framePath(common.frames!, [], path, common.monos!, common.lins!)), operation)
+        operationRefutation(rowsAt(goal, framePath(common.frames!, common.lemmas??[], path, common.monos!, common.lins!)), operation)
       const transport = (sourceGoal: Goal, source: CountCert, tree: Tree, before: Path, after: Path): Tree | undefined => {
         if (late(until)) return
         if ('split' in tree) {
@@ -103,7 +121,7 @@ export function composeCountOperationProofs(context: GuardCountContext, family: 
           const yes = transport(sourceGoal, source, tree.yes, add(before, true), add(after, true)), no = yes && transport(sourceGoal, source, tree.no, add(before, false), add(after, false))
           return yes && no ? {split: tree.split, yes, no} : undefined
         }
-        const old = rowsAt(sourceGoal, framePath(source.frames ?? [], [], before, source.monos ?? [], source.lins ?? [])), current = rowsAt(goal, framePath(common.frames!, [], after, common.monos!, common.lins!)), index = reindex(sourceGoal, old, current)
+        const old = rowsAt(sourceGoal, framePath(source.frames ?? [], source.lemmas??[], before, source.monos ?? [], source.lins ?? [])), current = rowsAt(goal, framePath(common.frames!, common.lemmas??[], after, common.monos!, common.lins!)), index = reindex(sourceGoal, old, current)
         const leaf: Step[] = []
         for (const step of tree.leaf) {if (step.kind !== 'input') leaf.push(step); else {const i = index(step.index); if (i === undefined) {
           const impossible = fallback(after)
@@ -120,7 +138,7 @@ export function composeCountOperationProofs(context: GuardCountContext, family: 
         const value = ordered[i]!, source = sources.find(c => c.value === value)!, upper: Lin = add({[operation]: 1}, k(-value)), lower: Lin = add({[operation]: -1}, k(value))
         const yesUpper = new Map(path).set(canon(upper), {lin: upper, holds: true}), exact = new Map(yesUpper).set(canon(lower), {lin: lower, holds: true})
         trace.mark('source-obligation-build', 'untrusted-assembly', value)
-        const fixed = {...m, assume: all(...(m.assume ? [m.assume] : []), same(x(operation), n(value)))}, original = countedObligations(fixed, family, {[law.name]: source.instances}, target).at(-1)!, from = mcGoal(original.goal.hyps, original.decls, source.cert)
+        const fixed = {...m, assume: all(...(m.assume ? [m.assume] : []), same(x(operation), n(value)))}, original = countedObligations(fixed, family, {[law.name]: source.instances}, target).at(-1)!, from = sourceGoals?.get(value)??mcGoal(original.goal.hyps, original.decls, source.cert)
         if (!from) return
         trace.mark('reindex-case', 'untrusted-assembly', value)
         transferring = value; observe?.('reindex', value)

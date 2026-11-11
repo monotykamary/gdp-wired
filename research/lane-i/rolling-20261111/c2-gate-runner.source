@@ -1,0 +1,86 @@
+import {strict as a} from 'node:assert'
+import {createHash} from 'node:crypto'
+import {readFileSync,writeFileSync,mkdtempSync,rmSync,existsSync} from 'node:fs'
+import {join,resolve} from 'node:path'
+import {gzipSync} from 'node:zlib'
+import {spawnSync} from 'node:child_process'
+const input=resolve('port-input'),root=mkdtempSync('/tmp/rolling-integration-'),[mode,...files]=process.argv.slice(2)
+function run(command:string,args:string[]){const p=spawnSync(command,args,{cwd:root,env:process.env,encoding:'utf8',timeout:800000,maxBuffer:64*1024*1024});process.stdout.write(p.stdout??'');process.stderr.write(p.stderr??'');if(p.error||p.status!==0)throw Error(`${command} failed (${p.status}): ${p.error??''}`);return p.stdout??''}
+function identities(){
+ const blob=(bytes:Buffer)=>createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex')
+ const file=join(input,'READER-EXCEPTION.json'),exception=existsSync(file)?JSON.parse(readFileSync(file,'utf8')):undefined
+ let checked=0,excepted=false
+ for(const line of readFileSync(join(input,'PROTECTED.tree'),'utf8').trim().split('\n')){
+  const m=/^\d+ blob ([a-f0-9]+)\t(.+)$/.exec(line);a(m);const bytes=readFileSync(join(root,m[2]!)),actual=blob(bytes)
+  if(exception&&m[2]==='kernel/reader.ts'){
+   a.equal(exception.path,m[2]);a.equal(exception.originalBlob,m[1]);a.equal(exception.patchedBlob,actual);a.equal(exception.hooks,7)
+   const text=bytes.toString(),hooks=text.match(/^    if \(completeWorkProfile\.enabled\) checkWorkEndpoint\('reader (?:value|decision|expression|condition|fact|form|sync)'\)\n/gm)??[]
+   a.equal(hooks.length,7)
+   const restored=text.replace("import {completeWorkProfile} from '../core/work-profile.ts'\n",'').replace("import {checkWorkEndpoint} from './prove.ts'\n",'').replace(/^    if \(completeWorkProfile\.enabled\) checkWorkEndpoint\('reader (?:value|decision|expression|condition|fact|form|sync)'\)\n/gm,'')
+   a.equal(blob(Buffer.from(restored)),m[1],'reader decoding changed');excepted=true
+  }else a.equal(actual,m[1],m[2]!)
+  checked++
+ }
+ if(exception)a(excepted,'reader exception not checked')
+ return checked
+}
+try{
+ for(const name of ['source','gdp-ts','handwired'])run('tar',['-xf',join(input,name+'.tar'),'-C',root])
+ const before=identities();run('bun',['install','--frozen-lockfile'])
+ if(mode==='c2-pair-audit')run('bun',['research/lane-i/rolling-20261111/c2-audit-pair.ts',join(input,'pair.json')])
+ else if(mode==='types')run('bun',['run','check'])
+ else if(mode==='test')run('bun',['test',...files])
+ else if(mode==='family')run('bun',['research/lane-i/rolling-20261111/family-replay.ts','research/lane-i/rolling-20261111/closed-family-proof.json.gz','--mutations'])
+ else if(mode==='c2-native')run('bun',['research/lane-i/rolling-20261111/family-replay.ts','research/lane-i/rolling-20261111/C2-native-proof.json.gz','--mutations'])
+ else if(mode==='c2-recapture'||mode==='c2-recapture-input'){
+  run('bun',['test','research/lane-i/rolling-20261111/c2-alpha-audit.test.ts'])
+  run('bun',['research/lane-i/rolling-20261111/c2-audit-pair.ts',join(input,'pair.json')])
+  process.env.F17_CLOSED_FAMILY=join(root,'research/lane-i/rolling-20261111/C2-native-proof.json.gz')
+  process.env.F17_RECAPTURE='1'
+  const output=join(root,'c2-recapture')
+  run('bun',['research/lane-i/rolling-20261111/c2-reconstruct.ts',output])
+  const candidate=join(output,'recapture-candidate.json')
+  if(mode==='c2-recapture'){
+  run('bun',['research/lane-i/rolling-20261111/family-replay.ts',candidate,'--mutations'])
+  const bytes=readFileSync(candidate),sha256=createHash('sha256').update(bytes.toString().trim()).digest('hex')
+  console.log('C2_RECAPTURE_NATIVE '+JSON.stringify({sha256,researchNativeOnly:true,leanClearance:false}))
+  const fixture=join(output,'recaptured-native.json.gz');writeFileSync(fixture,gzipSync(bytes))
+  process.env.F17_CLOSED_FAMILY=fixture;delete process.env.F17_RECAPTURE
+  run('bun',['research/lane-i/rolling-20261111/c2-reconstruct.ts',output])
+  const file=join(output,'closed-family.json')
+  console.log('C2_RECONSTRUCTION_IDENTITY '+JSON.stringify({sha256:createHash('sha256').update(readFileSync(file,'utf8').trim()).digest('hex'),referenceSha256:sha256,researchNativeOnly:true,leanClearance:false}))
+  run('bun',['research/lane-i/rolling-20261111/family-replay.ts',file,'--mutations'])
+ }
+ }
+ else if(mode==='c2-reconstruct'){
+  process.env.F17_CLOSED_FAMILY=join(root,'research/lane-i/rolling-20261111/C2-native-proof.json.gz')
+  const output=join(root,'c2-proposal')
+  run('bun',['research/lane-i/rolling-20261111/c2-reconstruct.ts',output])
+  const file=join(output,'closed-family.json'),digest=createHash('sha256').update(readFileSync(file,'utf8').trim()).digest('hex')
+  console.log('C2_RECONSTRUCTION_IDENTITY '+JSON.stringify({sha256:digest,matchesReference:digest==='71ce7c0325be32108eaaf0433b470a61ebc076b2769c44d8ede69765b34fc815',researchNativeOnly:true,leanClearance:false}))
+  run('bun',['research/lane-i/rolling-20261111/family-replay.ts',file,'--mutations'])
+ }
+ else if(mode==='source')run('bun',['research/lane-i/rolling-20261111/family-source-audit.ts','research/lane-i/rolling-20261111/closed-family-proof.json.gz'])
+ else if(mode==='script')run('bun',files)
+ else if(mode==='evaluation-benchmark'){writeFileSync(join(root,'research/evaluation-benchmark.ts'),readFileSync(join(input,'evaluation-benchmark.source')));run('bun',['--preload','./core/clock-tripwire-preload.ts','research/evaluation-benchmark.ts'])}
+ else if((mode==='dispatch'||mode==='dispatch-report')){writeFileSync(join(root,'research/dispatch-probe.ts'),readFileSync(join(input,'dispatch-probe.source')));const out=run('bun',['--preload',join(root,'research/dispatch-probe.ts'),'research/protocols/ic3syn/run.ts','--ms','900000','--only','mldr','--skip','broken']);const events=out.split('\n').filter(line=>line.startsWith('DISPATCH_EVENT ')).map(line=>JSON.parse(line.slice(15)));const proposals=events.filter(e=>e.phase==='count-strategy-result'&&e.law==='inX: no quorum canVote/3'&&e.proposed===true&&e.checked===false&&e.status==='unchecked');if(mode==='dispatch')a(proposals.length>0,'Inv* unchecked strategy proposal did not return');a(!events.some(e=>e.phase==='count-strategy'&&e.law==='inX: no quorum canVote/3'&&e.stage==='step-check:true'),'early Inv* STEP check ran');console.log('FINAL_STEP_PROPOSAL '+JSON.stringify({returned:proposals.length,checked:false,status:'unchecked'}))}
+ else if(mode==='reader-cap'){
+  writeFileSync(join(root,'core/reader-cap-probe.ts'),readFileSync(join(root,'research/lane-i/rolling-20261111/reader-cap-probe.source')))
+  for(const allowance of ['500000','5000000']){
+   const records=[false,true].map(observed=>run('bun',['core/reader-cap-probe.ts',String(observed),allowance]).split('\n').find(line=>line.startsWith('READER_CAP ')))
+   a(records[0]);a.deepEqual(records[1],records[0]);console.log('READER_CAP_IDENTITY '+JSON.stringify({allowance:Number(allowance),proofAndRawEqual:true}))
+  }
+ }
+ else if(mode==='clock'){
+  const dir=join(root,'research/lane-i/rolling-20261111'),old=readFileSync(join(dir,'old-clock-reference.source'))
+  a.equal(createHash('sha256').update(old).digest('hex'),'3d8aca2fccdb344e51155501435841e22043eed974b417b627b2530a8b8a2a7e')
+  writeFileSync(join(root,'core/f-old-clock-reference.test.ts'),old)
+  run('bun',['test','core/f-old-clock-reference.test.ts','-t','lifted discovery, exhaustive composition and native replay inherit a clock-free scope'])
+  const probe=readFileSync(join(dir,'counter-probe.source'),'utf8')+"\nimport {rawWork} from './work-meter.ts'\nconsole.log('COMPLETE_RAW '+JSON.stringify(rawWork()))\n"
+  writeFileSync(join(root,'core/f-counter-probe.ts'),probe)
+  const records=[false,true].map(observed=>run('bun',['core/f-counter-probe.ts',String(observed)]).split('\n').filter(line=>line.startsWith('COUNTER_PROBE ')||line.startsWith('COMPLETE_RAW ')))
+  a.equal(records[0]!.length,2);a.deepEqual(records[1],records[0]);console.log('INTEGRATED_CLOCK_IDENTITY '+JSON.stringify({oldTestSHA256:createHash('sha256').update(old).digest('hex'),proofAndCompleteRawEqual:true}))
+ }else throw Error('unknown mode '+mode)
+ a.equal(identities(),before)
+ console.log('ROLLING_GATE '+JSON.stringify({sourceTree:readFileSync(join(input,'source.txt'),'utf8').trim(),mode,files,protected:before}))
+}finally{rmSync(root,{recursive:true,force:true})}

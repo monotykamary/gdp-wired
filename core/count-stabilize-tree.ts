@@ -1,15 +1,15 @@
 // A proposer only: late-added guarded facts can change input-row indices.
 // Reindex complete branch proofs against the final facts, then check them.
-import {type FrameCut,type Goal,type LinCut,type Path,type Tree,canon,check,framePath} from '../kernel/kernel.ts'
+import {type FrameCut,type Goal,type LinCut,type LemmaCut,type Path,type Tree,canon,check,framePath} from '../kernel/kernel.ts'
 import {late} from '../kernel/prove.ts'
 import {rebasePath} from './count-rebase-path.ts'
-export function stabilizeGuardedTree(goal:Goal,tree:Tree,frames:FrameCut[],lins:LinCut[],roots:ReadonlyMap<Tree,Path>,until:number,options:{deferCheck?:boolean}={}):{tree?:Tree,rebased:number,failed:boolean}{
+export function stabilizeGuardedTree(goal:Goal,tree:Tree,frames:FrameCut[],lins:LinCut[],roots:ReadonlyMap<Tree,Path>,until:number,options:{deferCheck?:boolean,lemmas?:LemmaCut[]}={}):{tree?:Tree,rebased:number,failed:boolean}{
  let rebased=0,failed=false
  const visit=(t:Tree,path:Path):Tree|undefined=>{
   if(late(until)){failed=true;return}
   const before=roots.get(t)
   if(before){
-   const after=framePath(frames,[],path,[],lins)
+   const after=framePath(frames,options.lemmas??[],path,[],lins)
    if(!options.deferCheck&&check(goal,t,after))return t
    const fixed=rebasePath(goal,t,before,after,until)
    if(fixed&&(options.deferCheck||check(goal,fixed,after))){rebased++;return fixed}

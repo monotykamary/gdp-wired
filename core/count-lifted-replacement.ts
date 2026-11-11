@@ -2,8 +2,9 @@
 // composition-only deferral leaves acceptance to the unchanged final checker.
 // Discovery supplies roles, never axioms.
 import {traceNow} from './trace-clock.ts'
+import {proveBooleanPartitionCut} from './count-boolean-partition.ts'
 import {type C,type E,type Law,type Machine,all,atMost,get,less,n,not,plus,same,times,walkOnce,x} from './machine.ts'
-import {type CountCert,type CountInst,type FrameCut,type Goal,type Instances,type LinCut,type Path,type Tree,check,checkMC,countedObligations,frameOk,framePath,linActive,mcGoal,substC,truth} from '../kernel/kernel.ts'
+import {type CountCert,type CountInst,type FrameCut,type Goal,type Instances,type LinCut,type LemmaCut,type Path,type Tree,check,checkMC,countedObligations,frameOk,framePath,lemmaPath,canon,linActive,mcGoal,substC,truth} from '../kernel/kernel.ts'
 import {type CountRequestBuilder,type CountStrategyOptions,type CountStrategyProof,deferIntermediateCountChecks} from './count-strategy.ts'
 import {discoverLiftedCountGuard,discoverLiftedCountOperation} from './count-lifted-shape.ts'
 import {discoverLiftedCountPrerequisites} from './count-lifted-prerequisite.ts'
@@ -12,9 +13,9 @@ import {countFrameConditions,fixedCountFrameCase,ownCountLawInstance} from './co
 import {matchLiftedCountBodies} from './count-lifted-transports.ts'
 import {countGuardTree} from './count-guard-tree.ts'
 import {inlineFrozenGuard} from './count-frozen-guard.ts'
-import {clock,fullRate,fullWork,late,pastWall,rowsAt,withDeadline} from '../kernel/prove.ts'
+import {clock,fullRate,fullWork,late,pastWall,rowsAt,usedHyps,withDeadline} from '../kernel/prove.ts'
 import {growCdcl} from '../kernel/cdcl.ts'
-import {add,k,scale,solve} from './solver.ts'
+import {type Lin,add,k,scale,solve} from './solver.ts'
 import {rebasePath} from './count-rebase-path.ts'
 import {minimalTransportView,minimalViewFirst} from './count-minimal-view.ts'
 import {copyQueryContext} from './count-query-context.ts'
@@ -28,11 +29,13 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
  if(!family.includes(law))return
  return withDeadline(until,()=>{
   const deferred=deferIntermediateCountChecks(options),accepts=(goal:Goal,tree:Tree,path?:Path)=>deferred||check(goal,tree,path)
+  const c2=options.slicedLemmas===true
   const shape=discoverLiftedCountGuard(m,law,family),choice=fixedCountFrameCase(m),operation=shape&&choice&&discoverLiftedCountOperation(m,shape,choice.value)
   if(!shape||!choice||operation?.kind!=='threshold-replace'||!('write'in operation)||!operation.write||!m.pre||late(until))return
   const write=operation.write,agreement=shape.rowAgreements[0],prerequisites=discoverLiftedCountPrerequisites(m,law,family)
   const stopped={},decline=(reason:string):never=>{observe?.({stage:'replacement-decline',reason,remaining:until-clock(),pastWall:pastWall()});throw stopped}
   try{
+   const profileStart=c2?fullWork():0
    if(write.increment!==0||!write.committedInput||!write.committedCount||!agreement||prerequisites.length!==1)return decline('replacement-prerequisites')
    const fields=[shape.countShape.thresholdField,...agreement.shape.fields.filter(field=>field!==shape.countShape.thresholdField)]
    if(fields.length!==2)return decline('version-order')
@@ -83,7 +86,7 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
    const plans=[true,false].map(left=>{
     const written=left?a:b,other=left?b:a,preOverlap=H(actor,other),preActor=D(actor,other),preOther=D(other,actor)
     const equal=[...both([[1,R(other)],[-1,R(actor)]]),...both([[1,D(other,written,true)],[-1,dx]])]
-    const older=[...both([[1,X],[-1,dx],[-1,mid]]),...both([[1,D(other,written,true)],[1,H(a,b,true)],[-1,preOther],[-1,preOverlap]]),...both([[1,preActor],[1,preOverlap],[-1,X]]),put([[1,R(actor)],[-1,X]]),put([[1,R(other)],[-1,preOther],[-1,preOverlap]]),put([[1,D(other,written,true)],[1,H(a,b,true)],[-1,R(other,true)]]),put([[1,Q],[-1,V(actor)]]),put([[1,Q],[1,V(other)],[-1,preActor],[-1,preOther],[-1,preOverlap]]),put([[1,V(other)],[-1,preOther],[-1,preOverlap]]),put([[1,Q],[-1,preActor],[-1,preOverlap]])]
+    const older=c2?[put([[1,Q],[1,V(other)],[-1,preActor],[-1,preOther],[-1,preOverlap]]),put([[1,V(other)],[-1,preOther],[-1,preOverlap]]),put([[1,Q],[-1,preActor],[-1,preOverlap]])]:[...both([[1,X],[-1,dx],[-1,mid]]),...both([[1,D(other,written,true)],[1,H(a,b,true)],[-1,preOther],[-1,preOverlap]]),...both([[1,preActor],[1,preOverlap],[-1,X]]),put([[1,R(actor)],[-1,X]]),put([[1,R(other)],[-1,preOther],[-1,preOverlap]]),put([[1,D(other,written,true)],[1,H(a,b,true)],[-1,R(other,true)]]),put([[1,Q],[-1,V(actor)]]),put([[1,Q],[1,V(other)],[-1,preActor],[-1,preOther],[-1,preOverlap]]),put([[1,V(other)],[-1,preOther],[-1,preOverlap]]),put([[1,Q],[-1,preActor],[-1,preOverlap]])]
     const newer=[put([[1,Q],[-1,bind(prerequisites[0]!.voteMap,pair(actor,other))]]),put([[1,R(actor)],[-1,X]])]
     return {left,written,other,equal,older,newer,writtenRow:both([[1,R(written,true)],[-1,Y]])}
    })
@@ -91,20 +94,25 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
    const committedEligible=put([[1,Q],[-1,V(actor)]])
    const witnesses=insts.map(inst=>x(inst.wit))
    instances[agreement.law.name]=plans.flatMap(plan=>plan.equal.flatMap(index=>[actor,plan.other,x(insts[index]!.wit)]))
-   for(const [name,flag]of Object.entries(m.step.flags??{}))if(flag.op==='all')instances['?'+name]=[a,b,actor,...witnesses]
+   const ownFlags=c2?(()=>{
+   const ownFlags=new Set<string>(),flagQueue=[write.guard];walkOnce([m.pre,m.assume],(node:any)=>{if(node.op==='flag')flagQueue.push(node.name)});while(flagQueue.length){const name=flagQueue.pop()!;if(ownFlags.has(name))continue;ownFlags.add(name);walkOnce(m.step.flags?.[name],(node:any)=>{if(node.op==='flag')flagQueue.push(node.name)})}
+   observe?.({stage:'own-operation-flags',names:[...ownFlags].filter(name=>m.step.flags?.[name]?.op==='all').sort()})
+    return ownFlags
+   })():undefined
+   for(const [name,flag]of Object.entries(m.step.flags??{}))if(flag.op==='all'&&(!ownFlags||ownFlags.has(name)))instances['?'+name]=[a,b,actor,...witnesses]
    const arithmeticHyps=new Map<string,C[]>(),step=packet(),request={reads,insts,picks:[]},goal=mcGoal(step.goal.hyps,step.decls,request),counts=countsForReads(step.decls,reads)
    if(!goal||!counts)return decline('encoding')
-   const active=inlineFrozenGuard(m.step.flags??{},write.guard),domain=all(...[a,b,actor].flatMap(p=>[less(p,bound),less(p,n(shape.origin.width))])),frames:FrameCut[]=[],lins:LinCut[]=[],roots=new Map<Tree,Path>()
+   const active=inlineFrozenGuard(m.step.flags??{},write.guard),domain=all(...[a,b,actor].flatMap(p=>[less(p,bound),less(p,n(shape.origin.width))])),frames:FrameCut[]=[],lins:LinCut[]=[],lemmas:LemmaCut[]=[],roots=new Map<Tree,Path>()
    observe?.({stage:'replacement-plan',transports:insts.length,reads:reads.length,scalarPremises:scalarLaws.length,rowAgreement:agreement.law.name,quorumPremise:prerequisites[0]!.law.name})
    const prefixFacts=new UnwrittenCountPrefix(step.decls,reads,[same(x(choice.name),n(choice.value)),m.pre,active],actor,bound,'cdcl',{deferCheck:deferred}),done=new Set<string>()
    const fact=(terms:Terms,when:C[],stage:string):boolean=>{
     const key=json([terms,when]);if(done.has(key))return true
-    const start=fullWork(),startWall=observe?traceNow():0,result=guardLinearFact(step.decls,reads,{name:'replacement '+stage,kind:'ordinary-replacement-definition',when,terms},Math.min(until,clock()+100),event=>{if(event.outcome!=='proof')observe?.({stage:stage+'-failure',outcome:event.outcome,witness:event.witness})},'cdcl',{deferCheck:deferred})
+    const start=fullWork(),startWall=observe?traceNow():0,result=c2&&stage==='partition'?proveBooleanPartitionCut(counts,when,terms,Math.min(until,clock()+500),observe):guardLinearFact(step.decls,reads,{name:'replacement '+stage,kind:'ordinary-replacement-definition',when,terms},Math.min(until,clock()+100),event=>{if(c2){if(event.outcome!=='proof'&&event.outcome!=='proposal')observe?.({stage:'cut-refused',kind:'linear',label:stage,outcome:event.outcome,witness:event.witness,when,terms,counts:counts.filter(count=>terms.some(([,id])=>id===count.v))})}else{if(event.outcome!=='proof')observe?.({stage:stage+'-failure',outcome:event.outcome,witness:event.witness})}},'cdcl',{deferCheck:deferred})
     observe?.({stage,checked:!deferred&&!!result,proposed:!!result,units:(fullWork()-start)/fullRate,wallMs:traceNow()-startWall});if(!result)return false
     lins.push(result.cut);done.add(key);return true
    }
    const prepare=(post:boolean,region:C[])=>{
-    const when:C[]=[same(x(choice.name),n(choice.value)),m.pre!,domain,active,...region]
+    const when:C[]=c2?[]:[same(x(choice.name),n(choice.value)),m.pre!,domain,active,...region]
     for(const p of [a,b])for(const sign of [1,-1])if(!fact([[sign,D(p,json(p)===json(a)?b:a,post)],[sign,H(a,b,post)],[-sign,R(p,post)]],when,'partition'))return false
     return true
    }
@@ -119,23 +127,54 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
    }
    const remembered=new Map<string,{tree:Tree,root:Path}[]>()
    const ask=(path:Path,stage:string,index?:number):Tree|undefined=>{
+    let selectedLemma:LemmaCut|undefined
     if(late(until))return
     const root=framePath(frames,[],path,[],lins),start=fullWork(),startWall=observe?traceNow():0,end=Math.min(until,clock()+500),cacheKey=stage+':'+index+':'+truth(same(a,actor),path)+':'+truth(same(b,actor),path)
+    if(c2&&stage==='older-transport'&&index!==undefined){
+     const cut=add(...insts[index]!.terms.map(([c,id])=>({[id]:c}))),known=lemmas.find(l=>canon(l.cut)===canon(cut)&&lemmaPath([l],root).size>root.size)
+     if(known){const close=(p:Path):Tree|undefined=>{const r=framePath(frames,lemmas,p,[],lins),out=solve(rowsAt(goal,r),500);if(out.kind!=='refuted')return;const leaf:Tree={leaf:out.steps};roots.set(leaf,new Map(r));return leaf};const main=split.rows(known.when,path,close,close);observe?.({stage:'older-lemma-reuse',index,checked:!!main});return main}
+    }
     for(const cached of remembered.get(cacheKey)??[]){
      const tree=rebasePath(goal,cached.tree,cached.root,root,Math.min(end,clock()+25),goal)
      if(tree&&accepts(goal,tree,root)){roots.set(tree,new Map(root));observe?.({stage,index,checked:!deferred,proposed:true,reused:true,units:(fullWork()-start)/fullRate,wallMs:traceNow()-startWall});return tree}
     }
-    const hyps=arithmeticHyps.get(stage)??(stage.startsWith('equal-')?arithmeticHyps.get('equal-region')!:step.goal.hyps)
-    const view=index===undefined?{goal:mcGoal(copyQueryContext(hyps,root,counts,insts,[]),step.decls,{reads,insts:[],picks:[]}),path:root}:minimalTransportView(hyps,step.decls,reads,insts,[insts[index]!],root)
+    const older=c2&&stage==='older-transport',postIds=c2?new Set(reads.filter(r=>r[1].endsWith('#')).map(r=>r[0])):undefined,isPost=(value:unknown)=>{let out=false;walkOnce(value,(node:any)=>{if(node.op==='get'&&node.map.endsWith('#')||node.op==='var'&&postIds!.has(node.name))out=true});return out},preRoot:Path=c2?new Map([...root].filter(([,a])=>!Object.keys(a.lin).some(k=>postIds!.has(k)||k.includes('#[')))):root,preGoal=c2?{...goal,hyps:goal.hyps.filter(h=>!isPost(h))}:goal
+    const hyps=older?step.goal.hyps.filter(h=>!isPost(h)):arithmeticHyps.get(stage)??(stage.startsWith('equal-')?arithmeticHyps.get('equal-region')!:step.goal.hyps)
+    const view=index===undefined?{goal:mcGoal(copyQueryContext(hyps,root,counts,insts,[]),step.decls,{reads,insts:[],picks:[]}),path:root}:minimalTransportView(hyps,step.decls,reads,insts,[insts[index]!],older?preRoot:root)
     if(!view?.goal)return
     const result=stage.startsWith('older-composed')?(()=>{
      const candidate=growCdcl(view.goal!,view.path,{nodes:0,until:end})
      if(!('tree'in candidate)){observe?.({stage:'older-query-decline',outcome:candidate.stuck,why:candidate.why,query:view.goal,path:[...view.path],witness:candidate.witness});return {tree:undefined,minimalKind:candidate.stuck,fallback:false,witness:candidate.witness}}
      const tree=rebasePath(view.goal!,candidate.tree,view.path,root,end,goal)
      return {tree:tree&&accepts(goal,tree,root)?tree:undefined,minimalKind:'proof',fallback:false}
-    })():minimalViewFirst(goal,view.goal,root,end,growCdcl,view.path,{deferCheck:deferred}),tree=result.tree
+    })():minimalViewFirst(older?preGoal:goal,view.goal,older?preRoot:root,end,growCdcl,view.path,{deferCheck:deferred}),tree=older&&result.tree?rebasePath(preGoal,result.tree,preRoot,root,end,goal):result.tree
     observe?.({stage,index,checked:!deferred&&!!tree,proposed:!!tree,units:(fullWork()-start)/fullRate,wallMs:traceNow()-startWall,minimal:result.minimalKind,fullFallback:result.fallback,leafCap:late(end),activeLins:lins.map(cut=>linActive(cut,root)),...(result.witness?{witness:result.witness}:{})})
     if(!tree||late(end))return
+    if(c2&&stage==='older-transport'&&index!==undefined){const plan=plans.find(plan=>plan.older.includes(index));if(!plan)return;
+      if(tree){
+       const cut=add(...insts[index]!.terms.map(([c,id])=>({[id]:c}))),postIds=new Set(reads.filter(read=>read[1].endsWith('#')).map(read=>read[0]))
+       const isPosition=(lin:import('./solver.ts').Lin)=>{const keys=Object.keys(lin).filter(key=>key!=='1');return plan.other.op==='var'&&keys.length===2&&keys.includes(plan.other.name)&&keys.includes(write.source)}
+       const isPost=(value:unknown)=>{let found=false;walkOnce(value,(node:any)=>{if(node.op==='get'&&node.map.endsWith('#')||node.op==='var'&&postIds.has(node.name))found=true});return found}
+       const filtered=[...root.values()].filter(atom=>!isPosition(atom.lin)&&canon(atom.lin)!==canon(cut))
+       const rootFor=(atoms:typeof filtered)=>{const p:Path=new Map();let duplicate=0;for(const atom of [{lin:cut,holds:false},...atoms]){const id=canon(atom.lin);p.set(p.has(id)?'@'+duplicate++:id,atom)}return p}
+       const noPosition=rootFor(filtered),positionFree=rebasePath(goal,tree,root,noPosition,until,goal),preAtoms=filtered.filter(atom=>!Object.keys(atom.lin).some(key=>postIds.has(key)||key.includes('#['))),preRoot=rootFor(preAtoms),slice=goal.hyps.map((hyp,i)=>!isPost(hyp)?i:-1).filter(i=>i>=0),preGoal={...goal,hyps:slice.map(i=>goal.hyps[i]!)},preTree=rebasePath(goal,tree,root,preRoot,until,preGoal)
+       if(preTree){
+        const used=[...usedHyps(preGoal,preTree,preRoot)].sort((a,b)=>a-b),smallSlice=used.map(index=>slice[index]!),smallGoal={...preGoal,hyps:used.map(index=>preGoal.hyps[index]!)},nativeAtoms=preAtoms.map(atom=>({lin:atom.holds?atom.lin:add(scale(atom.lin,-1),k(1)),holds:true}))
+        let kept=nativeAtoms,atRoot=rootFor(kept),candidate=rebasePath(preGoal,preTree,preRoot,atRoot,until,smallGoal)
+        if(candidate&&check(smallGoal,candidate,atRoot)){
+         for(let at=0;at<kept.length&&!late(until);){const short=kept.filter((_,i)=>i!==at),nextRoot=rootFor(short),next=rebasePath(smallGoal,candidate,atRoot,nextRoot,until,smallGoal);if(next&&check(smallGoal,next,nextRoot)){kept=short;atRoot=nextRoot;candidate=next}else at++}
+         const lemma={cut,when:kept.map(atom=>atom.lin),slice:smallSlice,tree:candidate};const key=json([lemma.cut,lemma.when,lemma.slice]);selectedLemma=lemmas.find(l=>json([l.cut,l.when,l.slice])===key)??lemma;if(selectedLemma===lemma)lemmas.push(lemma)
+         observe?.({stage:'older-inclusion-lemma',left:plan.left,index,before:preAtoms.length,after:kept.length,hyps:smallSlice.length,nativeWhen:true,lemma})
+        }else observe?.({stage:'older-inclusion-lemma',left:plan.left,index,nativeWhen:false,before:preAtoms.length})
+       }
+       observe?.({stage:'older-inclusion-audit',left:plan.left,index,positionFree:!!positionFree&&check(goal,positionFree,noPosition),preOnly:!!preTree&&check(preGoal,preTree,preRoot),when:preAtoms.map(atom=>atom.holds?atom.lin:add(scale(atom.lin,-1),k(1))),cut,slice,removedPositions:[...root.values()].filter(atom=>isPosition(atom.lin)),removedPost:filtered.filter(atom=>!preAtoms.includes(atom))})
+      }
+    }
+    if(c2&&stage==='older-transport'){
+     if(!selectedLemma)return decline('older-inclusion-lemma')
+     const close=(p:Path):Tree|undefined=>{const r=framePath(frames,lemmas,p,[],lins),out=solve(rowsAt(goal,r),500);if(out.kind!=='refuted'){observe?.({stage:'older-lemma-main-open',index,when:selectedLemma!.when,path:[...p],result:out});return}const leaf:Tree={leaf:out.steps};roots.set(leaf,new Map(r));return leaf}
+     const main=split.rows(selectedLemma.when,path,close,close);observe?.({stage:'older-lemma-main',index,checked:!!main,lemmas:lemmas.length});return main
+    }
     roots.set(tree,new Map(root));const previous=remembered.get(cacheKey)??[];if(previous.length<8)remembered.set(cacheKey,[...previous,{tree,root:new Map(root)}]);return tree
    }
    const quick=(path:Path):Tree|undefined=>{
@@ -152,6 +191,12 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
    const targetTruncations=truncations(step.goal.hyps.at(-1)!),compose=(path:Path,stage:string,guards:C[]=targetTruncations,at=0):Tree|undefined=>at===guards.length?ask(path,stage):split.condition(guards[at]!,path,p=>compose(p,stage,guards,at+1),p=>compose(p,stage,guards,at+1))
    const branch=(path:Path,left:boolean):Tree|undefined=>{
     const plan=plans.find(plan=>plan.left===left)!
+    if(c2){
+    for(const [p,q]of [[actor,plan.other],[plan.other,actor]]){
+     for(const sign of [1,-1])if(!fact([[sign,D(p!,q!)],[sign,H(actor,plan.other)],[-sign,R(p!)]],[],'partition'))return
+     if(!fact([[1,V(p!)],[-1,R(p!)]],[],'partition'))return
+    }
+    }
     const olderStage='older-composed-'+(left?'left':'right'),tuple=[actor,plan.other,sourceHalf,left?rightHalf!:leftHalf!]
     if(!arithmeticHyps.has(olderStage))arithmeticHyps.set(olderStage,countedObligations(m,family,{[law.name]:{[law.name]:tuple}},family.indexOf(law)).at(-1)!.goal.hyps)
     const oldLaw=substC(law.holds,{vars:Object.fromEntries([law.forall!,...law.keys!].map((name,index)=>[name,tuple[index]!])),maps:{},flags:{}})
@@ -166,7 +211,7 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
       observe?.({stage:olderStage,checked:!deferred&&!!tree,proposed:!!tree,units:(fullWork()-start)/fullRate,wallMs:traceNow()-startWall})
       if(tree)roots.set(tree,new Map(root));return tree
      }
-     return split.condition(disabled,path,p=>ask(p,'older-disabled'),p=>chain(plan.older,p,'older-transport',q=>split.condition(guard,q,quorum,r=>ask(r,olderStage))))
+     return split.condition(disabled,path,p=>c2?(quick(p)??ask(p,'older-disabled')):ask(p,'older-disabled'),p=>chain(plan.older,p,'older-transport',q=>split.condition(guard,q,quorum,r=>c2?(quick(r)??ask(r,olderStage)):ask(r,olderStage))))
     }
     if(!unwritten(plan.other)||!prepare(true,[same(plan.written,actor),not(same(plan.other,actor))]))return
     const equal=(equalPath:Path)=>chain(plan.writtenRow,equalPath,'written-row',writtenPath=>{
@@ -200,14 +245,41 @@ export function proveLiftedCountReplacement(m:Machine,family:Law[],law:Law,until
    const regions=(path:Path)=>chain([committedEligible],path,'committed-eligible',p=>split.condition(less(get(aliases[0]!,n(0)),times(2,get(write.committedCount!,n(0)))),p,q=>split.condition(postGuard.x,q,positions,r=>ask(r,'outside-target-half')),q=>ask(q,'commit-majority')))
    const activeTruncations=truncations(active),activate=(path:Path):Tree|undefined=>split.condition(active,path,regions,frame)
    const run=(path:Path)=>split.rows(countFrameConditions(choice),path,p=>split.condition(domain,p,q=>chain(common,q,'input-partition',activate),p=>ask(p,'outside-domain')),p=>ask(p,'outside-operation'))
+   const profileTree=c2?fullWork():0
    const tree=split.condition(m.pre,new Map(),run,path=>ask(path,'outside-pre'))
    if(!tree)return decline('tree')
-   let nodes=0,leaves=0;const measure=(part:Tree):void=>{nodes++;if('leaf'in part)leaves++;else{measure(part.yes);measure(part.no)}};measure(tree)
+   let nodes=0,leaves=0;
+   if(c2){
+   const regionCounts:Record<string,number>={},multipliers:Record<string,Record<string,{atom:Lin,yes:number,no:number,occurrences:number,maxMin:number,branchingOccurrences:number}>>={}
+   const region=(p:Path):string=>{
+    if(truth(m.pre!,p)!==true)return 'outside-pre'
+    if(truth(same(x(choice.name),n(choice.value)),p)!==true)return 'outside-operation'
+    if(truth(domain,p)!==true)return 'outside-domain'
+    if(truth(active,p)!==true)return 'inactive'
+    const ai=truth(same(a,actor),p),bi=truth(same(b,actor),p)
+    if(ai===false&&bi===false)return 'A'
+    if(ai===true&&bi===true)return 'B'
+    if(ai===bi||ai===undefined||bi===undefined)return 'before-position'
+    const o=ai?b:a,first=fields[0]!,second=fields[1]!,sameFirst=truth(same(get(first,o),get(first,actor)),p)
+    if(truth(less(get(first,o),get(first,actor)),p)===true)return 'C2'
+    if(truth(less(get(first,actor),get(first,o)),p)===true)return 'C3b'
+    if(sameFirst===true){
+     if(truth(same(get(second,o),get(second,actor)),p)===true)return 'C1'
+     if(truth(less(get(second,o),get(second,actor)),p)===true)return 'C2'
+     if(truth(less(get(second,actor),get(second,o)),p)===true)return 'C3a'
+    }
+    return 'before-version'
+   }
+   const measure=(part:Tree,p:Path):Record<string,number>=>{nodes++;if('leaf'in part){leaves++;const name=region(p);regionCounts[name]=(regionCounts[name]??0)+1;return {[name]:1}}const key=canon(part.split),yes=new Map(p),no=new Map(p);yes.set(key,{lin:part.split,holds:true});no.set(key,{lin:part.split,holds:false});const y=measure(part.yes,yes),n=measure(part.no,no),all:Record<string,number>={};for(const name of new Set([...Object.keys(y),...Object.keys(n)])){const a=y[name]??0,b=n[name]??0;all[name]=a+b;const table=multipliers[name]??={};const row=table[key]??={atom:part.split,yes:0,no:0,occurrences:0,maxMin:0,branchingOccurrences:0};row.yes+=a;row.no+=b;row.occurrences++;row.maxMin=Math.max(row.maxMin,Math.min(a,b));if(a>1&&b>1)row.branchingOccurrences++}return all};measure(tree,new Map());observe?.({stage:'replacement-regions',regions:regionCounts,nodes,leaves});observe?.({stage:'replacement-multipliers',regions:Object.fromEntries(['C1','C2','inactive'].map(name=>[name,Object.values(multipliers[name]??{}).filter(row=>row.yes>1&&row.no>1).sort((a,b)=>Math.min(b.yes,b.no)-Math.min(a.yes,a.no))]))})
+   }else{const measure=(part:Tree):void=>{nodes++;if('leaf'in part)leaves++;else{measure(part.yes);measure(part.no)}};measure(tree)}
+
    observe?.({stage:'replacement-tree',nodes,leaves,frames:frames.length,lins:lins.length})
-   const stable=stabilizeGuardedTree(goal,tree,frames,lins,roots,until,{deferCheck:deferred})
+   const profileStable=c2?fullWork():0
+   const stable=stabilizeGuardedTree(goal,tree,frames,lins,roots,until,{deferCheck:deferred,...(c2?{lemmas}:{})})
+   if(c2)observe?.({stage:'replacement-profile',prepareUnits:(profileTree-profileStart)/fullRate,treeUnits:(profileStable-profileTree)/fullRate,stabilizeUnits:(fullWork()-profileStable)/fullRate,reads})
    observe?.({stage:'replacement-stabilize',checked:!deferred&&!!stable.tree,proposed:!!stable.tree,rebased:stable.rebased,failed:stable.failed})
    if(!stable.tree||late(until))return decline('stabilization')
-   const cert:CountCert={...request,frames,lins,tree:stable.tree}
+   const cert:CountCert={...request,frames,lins,...(c2?{lemmas}:{}),tree:stable.tree}
    return (options.deferToComposition||checkMC(step.goal.hyps,step.decls,cert))&&!late(until)?{instances,certs:{[step.goal.name]:cert},...(deferred?{status:'unchecked' as const}:{})}:undefined
   }catch(error){if(error===stopped)return;throw error}
  })

@@ -8,7 +8,7 @@ import {countStageTrace, type CountStageObserver} from './count-stage-trace.ts'
 import {type CountCert, type CountDecl, type Goal, type Instances, checkMC, countedObligations, mcGoal} from '../kernel/kernel.ts'
 import {clock, grow, pastWall} from '../kernel/prove.ts'
 // Composition-only proposals intentionally omit INIT and must pass the enclosing final checker.
-export type CountStrategyOptions = {familyProposal?: FamilyStepProposal, deferToComposition?: boolean, deferIntermediateChecks?: boolean, deferRowChecks?: boolean, minimize?: boolean, minimalView?: boolean, leafUnits?: number, trace?: (event: Record<string, unknown>) => void, tailTrace?: CountStageObserver}
+export type CountStrategyOptions = {familyProposal?: FamilyStepProposal, deferToComposition?: boolean, deferIntermediateChecks?: boolean, slicedLemmas?: boolean, deferRowChecks?: boolean, minimize?: boolean, minimalView?: boolean, leafUnits?: number, trace?: (event: Record<string, unknown>) => void, tailTrace?: CountStageObserver}
 // Calibration-independent: W is the original enclosing work allowance, not
 // a case's remaining share. INIT and final checking do not use this cap.
 export function strategyLeafUnits(workAllowance: number): number {

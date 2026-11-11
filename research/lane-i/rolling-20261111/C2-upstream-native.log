@@ -1,0 +1,12 @@
+HALF_CERT_SIZE {"label":"operation-5","mainLeaves":800,"totalLeaves":1544,"hypotheses":217,"frames":70,"linearCuts":29}
+HALF_CERT_SIZE {"label":"operation-0","mainLeaves":26,"totalLeaves":26,"hypotheses":36,"frames":7,"linearCuts":0}
+HALF_CERT_SIZE {"label":"operation-2","mainLeaves":25,"totalLeaves":25,"hypotheses":36,"frames":7,"linearCuts":0}
+HALF_CERT_SIZE {"label":"operation-3","mainLeaves":25,"totalLeaves":25,"hypotheses":36,"frames":7,"linearCuts":0}
+HALF_CERT_SIZE {"label":"operation-1","mainLeaves":490,"totalLeaves":764,"hypotheses":51,"frames":313,"linearCuts":15}
+HALF_CERT_SIZE {"label":"operation-6","mainLeaves":540,"totalLeaves":1828,"hypotheses":49,"frames":42,"linearCuts":36}
+HALF_CERT_SIZE {"label":"operation-4","mainLeaves":352,"totalLeaves":352,"hypotheses":77,"frames":54,"linearCuts":0}
+HALF_CERT_SIZE {"label":"composed-initial","mainLeaves":1,"totalLeaves":1,"hypotheses":10,"frames":0,"linearCuts":0}
+HALF_CERT_SIZE {"label":"composed-step","mainLeaves":2120,"totalLeaves":4426,"hypotheses":258,"frames":500,"linearCuts":80}
+CLOSED_FAMILY_REPLAY {"checked":true,"laws":19,"goals":38,"sha256":"71ce7c0325be32108eaaf0433b470a61ebc076b2769c44d8ede69765b34fc815","rejected":[],"skippedPackets":false}
+CLOSED_FAMILY_NATIVE {"checked":true,"checker":"checkCountedLaws","laws":19,"goals":38,"sha256":"71ce7c0325be32108eaaf0433b470a61ebc076b2769c44d8ede69765b34fc815"}
+CLOSED_FAMILY_MUTATIONS {"emptyTree":{"rejected":true,"tested":1,"goal":"every C0 cell is a value of its kind @step"},"missingWitnesses":{"rejected":true,"tested":1,"goal":"one primary per term @step"},"missingCuts":{"rejected":true,"tested":1,"goal":"inX: no quorum canVote/3 @step"},"witnessFreshness":{"rejected":true,"tested":1}}

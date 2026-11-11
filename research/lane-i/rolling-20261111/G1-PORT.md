@@ -1,11 +1,26 @@
 # G1 scoped port — research source/native controls, closure HOLD
 
-D is auditing a native/Lean disagreement on the older c87 e02 artifact.
+D is auditing a native/Lean disagreement. Identity correction from F/D: the
+actual failed case000 is raw config c0a2, input gzip da5d908e, argument graph
+651eb9 (80 lins); it is NOT established as the older e02 or09f artifact.
 This source checkpoint is NOT formal-soundness clearance, closure, promotion,
 or a D-gated combination. Source/native research remains explicitly permitted.
 
 Coordinator explicitly approved G1/C2 prerequisites ahead of reserve step1.
 This does not approve the P5 cap adapter, which remains removed and archived.
+
+## Completed F timing evidence (not a new I whole-pipeline benchmark)
+
+F committed `b39041beec8e400a20988ce015de5967cab01e0b`: G1-DEFERRAL.md and
+raw three-ABBA-block /12-process summary. All12 retain exact71ce family,
+b019 STEP and3305.29009 legacy units, with actual unchecked-marker controls.
+Median B/A: load0.287956, lead0.425578 (both improve all three blocks);
+copy0.800517 (mixed). Whole-wall median0.951319, but three of six adjacent
+pairs regress and untouched replacement drifts to median1.411840.
+This supports targeted constructor savings, NOT a robust unconditional
+whole-wall win, fewer work units, a new I integrated-tree measurement, a W
+recalibration, or Lean/promotion clearance. All raw samples remain available
+at F `runs/lane-f-c2-deferred-3abba-v1/summary.json`; no duplicated benchmark.
 
 ## Source identity and scope
 

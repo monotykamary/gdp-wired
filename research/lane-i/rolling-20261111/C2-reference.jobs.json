@@ -1,0 +1,9 @@
+[
+  {
+    "name": "c2-reference",
+    "cmd": "set -euo pipefail\nroot=$(mktemp -d)\ntrap 'rm -rf \"$root\"' EXIT\ntar -xf port-input/base.tar -C \"$root\"\n(cd port-input/bundle && sha256sum -c SHA256SUMS)\nbash port-input/bundle/materialize-reference.sh \"$root\"\nprintf 'C2_REFERENCE_TAR '\ntar -czf - -C \"$root\" core/count-lifted-replacement.ts core/count-lifted-increment.ts core/count-stabilize-tree.ts core/count-case-compose.ts research/track-m/prove-boolean-partition-cut.ts research/track-m/transport-count-lemmas.ts | base64 -w0\nprintf '\\n'\nprintf 'C2_REFERENCE_MATERIALIZED\\n'\n",
+    "cpu": 1,
+    "memory": 2048,
+    "timeout": 120
+  }
+]

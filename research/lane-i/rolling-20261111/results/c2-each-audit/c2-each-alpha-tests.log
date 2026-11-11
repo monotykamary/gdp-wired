@@ -1,0 +1,35 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [7.14s]
+bun test v1.4.3 (c6da4a4d3)
+ROLLING_GATE {"sourceTree":"688a7d63ae4c3207af7bb3fbe71750036ebae59e","mode":"test","files":["research/lane-i/rolling-20261111/c2-alpha-audit.test.ts"],"protected":181}
+
+--- stderr ---
+
+research/lane-i/rolling-20261111/c2-alpha-audit.test.ts:
+(pass) alpha audit renames lexical bound occurrences only [21.97ms]
+(pass) alpha audit preserves extra metadata and outer bounds [0.70ms]
+(pass) alpha audit preserves shadowing and multiple-binder order [4.04ms]
+(pass) alpha audit preserves variable metadata and entire AST structure [0.43ms]
+(pass) count audit preserves literal declaration binders, aliases and order [0.28ms]
+(pass) nested all renaming in a count cannot capture the literal count key [1.49ms]
+(pass) step maps each binds only its value and preserves every other field [1.52ms]
+(pass) step-map each scope interacts lexically with nested all, not global names [1.49ms]
+(pass) alpha audit refuses non-JSON literals rather than erasing them [0.09ms]
+
+ 9 pass
+ 0 fail
+ 31 expect() calls
+Ran 9 tests across 1 file. [266.00ms]

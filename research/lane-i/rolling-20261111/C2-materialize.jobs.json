@@ -1,0 +1,10 @@
+[
+  {
+    "name": "c2-materialize-identical",
+    "cmd": "bun port-input/materialize.ts",
+    "cpu": 2,
+    "memory": 2048,
+    "timeout": 120,
+    "vm_type": "large"
+  }
+]

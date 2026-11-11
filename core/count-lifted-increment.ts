@@ -39,7 +39,12 @@ export function proveLiftedCountIncrement(m:Machine,family:Law[],law:Law,until:n
    const vote=votes[0]!,a=x(law.forall!+'#'),b=x(law.keys![0]!),actor=x(write.source),rowMap=shape.origin.rowCount
    let prefix='increment$';const scope=json([m,family]);while(scope.includes(prefix))prefix='$'+prefix
    const labels=Array.from({length:7},(_,index)=>prefix+'w'+index),instances=ownCountLawInstance(law,{[premise.law.name]:[actor,a,actor,b]})
-   for(const [name,flag]of Object.entries(m.step.flags??{}))if(flag.op==='all')instances['?'+name]=labels.map(x)
+   const ownFlags=options.slicedLemmas?(()=>{
+   const ownFlags=new Set<string>(),flagQueue=[write.guard];walkOnce([m.pre,m.assume],(node:any)=>{if(node.op==='flag')flagQueue.push(node.name)});while(flagQueue.length){const name=flagQueue.pop()!;if(ownFlags.has(name))continue;ownFlags.add(name);walkOnce(m.step.flags?.[name],(node:any)=>{if(node.op==='flag')flagQueue.push(node.name)})}
+   observe?.({stage:'own-operation-flags',names:[...ownFlags].filter(name=>m.step.flags?.[name]?.op==='all').sort()})
+    return ownFlags
+   })():undefined
+   for(const [name,flag]of Object.entries(m.step.flags??{}))if(flag.op==='all'&&(!ownFlags||ownFlags.has(name)))instances['?'+name]=labels.map(x)
    const step=countedObligations(m,family,{[law.name]:instances},family.indexOf(law)).at(-1)!,reads=[...requestFor(step.goal,step.decls).reads]
    const bind=(map:string,key:E)=>{const old=reads.find(read=>read[1]===map&&json(read[2])===json(key));if(old)return old[0];const id=prefix+'r'+reads.length;reads.push([id,map,key]);return id}
    const pair=(left:E,right:E)=>plus(times(shape.origin.width,left),right)

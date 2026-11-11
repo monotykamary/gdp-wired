@@ -81,7 +81,7 @@ export function proveLiftedCountComposition(m: Machine, family: Law[], law: Law,
    if(operation.kind==='replacement'||operation.kind==='threshold-replace'&&env.GDP_COUNT_LIFTED_REPLACEMENT!=='1'){observe?.({stage:'lifted-operation',value:operation.value,kind:operation.kind,proposed:false,reason:'replacement emitter unavailable'});return}
    const fixed = {...m, assume: all(...(m.assume ? [m.assume] : []), same(x(operation.name), n(operation.value)))}, emit = operation.kind==='load'?proveLiftedCountLoad:operation.kind==='copy'?proveLiftedCountCopy:operation.kind==='threshold-replace'?proveLiftedCountReplacement:proveLiftedCountIncrement
    const before=fullWork(),wall=observe?traceNow():0,end=Math.min(until,clock()+(operation.kind==='frame-or-phase'?500:2000)),report=observe?(event:Record<string,unknown>)=>observe({value:operation.value,...event}):undefined
-   const proof=operation.kind==='frame-or-phase'?proveLiftedCountFrame(fixed,family,law,end,requestFor,report):emit(fixed,family,law,end,requestFor,report,{deferToComposition:env.GDP_COUNT_LIFTED_REPLACEMENT==='1',deferIntermediateChecks:env.GDP_COUNT_DEFER_CHECKS==='1'})
+   const proof=operation.kind==='frame-or-phase'?proveLiftedCountFrame(fixed,family,law,end,requestFor,report):emit(fixed,family,law,end,requestFor,report,{deferToComposition:env.GDP_COUNT_LIFTED_REPLACEMENT==='1',deferIntermediateChecks:env.GDP_COUNT_DEFER_CHECKS==='1',slicedLemmas:env.GDP_COUNT_C2_LEMMAS==='1'})
    observe?.({stage: 'lifted-operation', value: operation.value, kind: operation.kind, proposed: !!proof, units: (fullWork()-before)/fullRate, wallMs: traceNow()-wall})
    if (!proof) return
    cases.push({value: operation.value, proof})
@@ -90,7 +90,7 @@ export function proveLiftedCountComposition(m: Machine, family: Law[], law: Law,
   const initialBefore=fullWork(),initialWall=observe?traceNow():0,initial = proveLiftedCountInitial(m, family, law, cases[0]!.proof.instances, until, requestFor)
   observe?.({stage: 'lifted-initial', checked: !!initial, units: (fullWork()-initialBefore)/fullRate, wallMs: traceNow()-initialWall})
   if (!initial) return
-  const compositionBefore=fullWork(),compositionWall=observe?traceNow():0,result=composeCountOperationProofs({original: m, machine: m, shape: shape.countShape, restrictions: [], inputCounts: {}}, family, law, cases, until, requestFor, observe?(stage, value) => observe({stage, value}):undefined, {initial})
+  const compositionBefore=fullWork(),compositionWall=observe?traceNow():0,result=composeCountOperationProofs({original: m, machine: m, shape: shape.countShape, restrictions: [], inputCounts: {}}, family, law, cases, until, requestFor, observe?(stage, value) => observe({stage, value}):undefined, {initial,...(env.GDP_COUNT_C2_LEMMAS==='1'?{slicedLemmas:true}:{})})
   observe?.({stage:'lifted-composition',checked:!!result,units:(fullWork()-compositionBefore)/fullRate,wallMs:traceNow()-compositionWall})
   return result&&recordCountStrategyPremises(family,result)
  })

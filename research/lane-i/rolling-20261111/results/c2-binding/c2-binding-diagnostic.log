@@ -1,0 +1,50 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [683.00ms]
+C2_MACHINE_MISMATCH {"originalName":"mongo logless dynamic raft","closedName":"mongo logless dynamic raft","changed":[{"key":"step","original":"{\"flags\":{\"allCopied\":{\"op\":\"all\",\"key\":\"k$253\",\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"op\":\"<\",\"a\":{\"op\":\"var\",\"name\":\"k$253\"},\"b\":{\"op\":\"var\",\"name\":\"size\"}}},{\"op\":\"=\",\"a\":{\"op\":\"get\",\"map\":\"Copied\",\"key\":{\"op\":\"var\",\"name\":\"k$253\"}},\"b\":{\"op\":\"const\",\"value\":1}}]}},\"canVote\":{\"op\":\"all\",\"key\":\"k$254\",\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"op\":\"<=\",\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"op\":\"get\",\"map\":\"S\",\"key\":{\"op\":\"var\",\"name\":\"k$254\"}}}},{\"op\":\"and\",\"xs\":[{\"op\":\"<\",\"a\":{\"op\":\"get\",\"map\":\"CT\",\"key\":{\"op\":\"var\",\"name\":\"k$254\"}},\"b\":{\"op\":\"add\",\"a\":{\"op\":\"get\",\"map\":\"CT\",\"key\":{\"op\":\"var\",\"name\":\"i\"}},\"b\":{\"op\":\"const\",\"value\":1}}},{\"op\":\"or\",\"xs\":[{\"op\":\"<\",\"a\":{\"op\":\"get\",\"map\":\"CfgT\",\"key\":{\"op\":\"var\",\"name\":\"k$254\"}},\"b\":{\"op\":\"get\",\"map\":\"CfgT\",\"key\":{\"op\":\"var\",\"name\":\"i\"}}},{\"op\":\"and\",\"xs\":[{\"op\":\"=\",\"a\":{\"op\":\"get\",\"map\":\"CfgT\",\"key\":{\"op\":\"var\",\"name\":\"i\"}},\"b\":{\"op\":\"get\",\"map\":\"CfgT\",\"key\":{\"op\":\"var\",\"name\":\"k$254\"}}},{\"op\":\"<=\",\"a\":{\"op\":\"get\",\"map\":\"CV\",\"key\":{\"op\":\"var\",\"name\":\"k$254\"}},\"b\":{\"op\":\"get\",\"map\":\"CV\",\"key\":{\"op\":\"var\",\"name\":\"i\"}}}]}]}]}]}},\"committedQuorum\":{\"op\":\"all\",\"key\":\"k$255\",\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"op\":\"<=\",\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"op\":\"get\",\"map\":\"Q2\",\"key\":{\"op\":\"var\",\"name\":\"k$255\"}}}},{\"op\":\"and\",\"xs\":[{\"op\":\"=\",\"a\":{\"op\":\"get\",\"map\":\"CV\",\"key\":{\"op\":\"var\",\"name\":\"i\"}},\"b\":{\"op\":\"get\",\"map\":\"CV\",\"key\":{\"op\":\"var\",\"name\":\"k$255\"}}},{\"op\":\"=\",\"a\":{\"op\":\"get\",\"map\":\"CfgT\",\"key\":{\"op\":\"var\",\"name\":\"i\"}},\"b\":{\"op\":\"get\",\"map\":\"CfgT\",\"key\":{\"op\":\"var\",\"name\":\"k$255\"}}},{\"op\":\"=\",\"a\":{\"op\":\"get\",\"map\":\"CT\",\"key\":{\"op\":\"var\",\"name\":\"k$255\"}},\"b\":{\"op\":\"get\",\"map\":\"CT\",\"key\":{\"op\":\"var\",\"name\":\"i\"}}}]}]}},\"picks\":{\"op\":\"and\",\"xs\":[{\"op\":\"=\",\"a\":{\"op\":\"var\",\"name\":\"op\"},\"b\":{\"op\":\"const\",\"value\":0}},{\"op\":\"=\",\"a\":{\"op\":\"var\",\"name\":\"started\"},\"b\":{\"op\":\"const\",\"value\":0}},{\"op\":\"=\",\"a\":{\"op\":\"var\",\"name\":\"picked\"},\"b\":{\"op\":\"const\",\"value\":0}}]},\"copies\":{\"op\":\"and\",\"xs\":[{\"op\":\"=\",\"a\":{\"op\":\"var\",\"name\":\"op\"}","closed":"{\"flags\":{\"allCopied\":{\"op\":\"all\",\"key\":\"k$241\",\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"op\":\"<\",\"a\":{\"op\":\"var\",\"name\":\"k$241\"},\"b\":{\"op\":\"var\",\"name\":\"size\"}}},{\"op\":\"=\",\"a\":{\"op\":\"get\",\"map\":\"Copied\",\"key\":{\"op\":\"var\",\"name\":\"k$241\"}},\"b\":{\"op\":\"const\",\"value\":1}}]}},\"canVote\":{\"op\":\"all\",\"key\":\"k$242\",\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"op\":\"<=\",\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"op\":\"get\",\"map\":\"S\",\"key\":{\"op\":\"var\",\"name\":\"k$242\"}}}},{\"op\":\"and\",\"xs\":[{\"op\":\"<\",\"a\":{\"op\":\"get\",\"map\":\"CT\",\"key\":{\"op\":\"var\",\"name\":\"k$242\"}},\"b\":{\"op\":\"add\",\"a\":{\"op\":\"get\",\"map\":\"CT\",\"key\":{\"op\":\"var\",\"name\":\"i\"}},\"b\":{\"op\":\"const\",\"value\":1}}},{\"op\":\"or\",\"xs\":[{\"op\":\"<\",\"a\":{\"op\":\"get\",\"map\":\"CfgT\",\"key\":{\"op\":\"var\",\"name\":\"k$242\"}},\"b\":{\"op\":\"get\",\"map\":\"CfgT\",\"key\":{\"op\":\"var\",\"name\":\"i\"}}},{\"op\":\"and\",\"xs\":[{\"op\":\"=\",\"a\":{\"op\":\"get\",\"map\":\"CfgT\",\"key\":{\"op\":\"var\",\"name\":\"i\"}},\"b\":{\"op\":\"get\",\"map\":\"CfgT\",\"key\":{\"op\":\"var\",\"name\":\"k$242\"}}},{\"op\":\"<=\",\"a\":{\"op\":\"get\",\"map\":\"CV\",\"key\":{\"op\":\"var\",\"name\":\"k$242\"}},\"b\":{\"op\":\"get\",\"map\":\"CV\",\"key\":{\"op\":\"var\",\"name\":\"i\"}}}]}]}]}]}},\"committedQuorum\":{\"op\":\"all\",\"key\":\"k$243\",\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"op\":\"<=\",\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"op\":\"get\",\"map\":\"Q2\",\"key\":{\"op\":\"var\",\"name\":\"k$243\"}}}},{\"op\":\"and\",\"xs\":[{\"op\":\"=\",\"a\":{\"op\":\"get\",\"map\":\"CV\",\"key\":{\"op\":\"var\",\"name\":\"i\"}},\"b\":{\"op\":\"get\",\"map\":\"CV\",\"key\":{\"op\":\"var\",\"name\":\"k$243\"}}},{\"op\":\"=\",\"a\":{\"op\":\"get\",\"map\":\"CfgT\",\"key\":{\"op\":\"var\",\"name\":\"i\"}},\"b\":{\"op\":\"get\",\"map\":\"CfgT\",\"key\":{\"op\":\"var\",\"name\":\"k$243\"}}},{\"op\":\"=\",\"a\":{\"op\":\"get\",\"map\":\"CT\",\"key\":{\"op\":\"var\",\"name\":\"k$243\"}},\"b\":{\"op\":\"get\",\"map\":\"CT\",\"key\":{\"op\":\"var\",\"name\":\"i\"}}}]}]}},\"picks\":{\"op\":\"and\",\"xs\":[{\"op\":\"=\",\"a\":{\"op\":\"var\",\"name\":\"op\"},\"b\":{\"op\":\"const\",\"value\":0}},{\"op\":\"=\",\"a\":{\"op\":\"var\",\"name\":\"started\"},\"b\":{\"op\":\"const\",\"value\":0}},{\"op\":\"=\",\"a\":{\"op\":\"var\",\"name\":\"picked\"},\"b\":{\"op\":\"const\",\"value\":0}}]},\"copies\":{\"op\":\"and\",\"xs\":[{\"op\":\"=\",\"a\":{\"op\":\"var\",\"name\":\"op\"}"}]}
+
+--- stderr ---
+13 |  if(!closed.family.length||new Set(closed.family.map(law=>law.name)).size!==closed.family.length)throw Error('invalid closed family')
+14 |  if(stable(withoutCounts(original))!==stable(withoutCounts(closed.machine))){
+15 |   const before=withoutCounts(original) as Record<string,unknown>,after=withoutCounts(closed.machine) as Record<string,unknown>
+16 |   const changed=Object.keys({...before,...after}).filter(key=>stable(before[key])!==stable(after[key])).map(key=>({key,original:JSON.stringify(before[key])?.slice(0,2000),closed:JSON.stringify(after[key])?.slice(0,2000)}))
+17 |   console.log('C2_MACHINE_MISMATCH '+JSON.stringify({originalName:original.name,closedName:closed.machine.name,changed}))
+18 |   throw Error('original machine semantics changed')
+             ^
+error: original machine semantics changed
+      at bindClosedFamily (/tmp/rolling-integration-XfWC1H/research/lane-i/rolling-20261111/c2-closed-family.ts:18:9)
+      at <anonymous> (/tmp/rolling-integration-XfWC1H/research/lane-i/rolling-20261111/c2-reconstruct.ts:33:27)
+      at withTraceWorkScope (/tmp/rolling-integration-XfWC1H/core/trace-clock.ts:8:16)
+      at withDeadline (/tmp/rolling-integration-XfWC1H/kernel/prove.ts:341:16)
+      at <anonymous> (/tmp/rolling-integration-XfWC1H/research/lane-i/rolling-20261111/c2-reconstruct.ts:32:3)
+      at searchCounted0 (/tmp/rolling-integration-XfWC1H/core/counts.ts:547:14)
+      at <anonymous> (/tmp/rolling-integration-XfWC1H/kernel/prove.ts:236:18)
+      at withTraceWorkScope (/tmp/rolling-integration-XfWC1H/core/trace-clock.ts:8:16)
+      at <anonymous> (/tmp/rolling-integration-XfWC1H/core/counts.ts:528:14)
+      at withWall (/tmp/rolling-integration-XfWC1H/kernel/prove.ts:326:16)
+
+Bun v1.4.3 (Linux x64)
+2 | import {createHash} from 'node:crypto'
+3 | import {readFileSync,writeFileSync,mkdtempSync,rmSync,existsSync} from 'node:fs'
+4 | import {join,resolve} from 'node:path'
+5 | import {spawnSync} from 'node:child_process'
+6 | const input=resolve('port-input'),root=mkdtempSync('/tmp/rolling-integration-'),[mode,...files]=process.argv.slice(2)
+7 | function run(command:string,args:string[]){const p=spawnSync(command,args,{cwd:root,env:process.env,encoding:'utf8',timeout:800000,maxBuffer:64*1024*1024});process.stdout.write(p.stdout??'');process.stderr.write(p.stderr??'');if(p.error||p.status!==0)throw Error(`${command} failed (${p.status}): ${p.error??''}`);return p.stdout??''}
+                                                                                                                                                                                                                                                                     ^
+error: bun failed (1): 
+      at run (/work/gdp-wired/port-input/run.ts:7:258)
+      at /work/gdp-wired/port-input/run.ts:36:3
+
+Bun v1.4.3 (Linux x64)

@@ -1,0 +1,44 @@
+[
+  {
+    "name": "c2-each-alpha-tests",
+    "cmd": "bun port-input/run.ts test research/lane-i/rolling-20261111/c2-alpha-audit.test.ts",
+    "env": {
+      "GDP_WORK_FULL": "0",
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_STRATEGIES": "1",
+      "GDP_COUNT_LIFTED": "1",
+      "GDP_COUNT_LIFTED_PREREQUISITES": "1",
+      "GDP_COUNT_LIFTED_REPLACEMENT": "1",
+      "GDP_COUNT_DEFER_CHECKS": "1",
+      "GDP_COUNT_ROW_DEFER_CHECKS": "1",
+      "GDP_COUNT_C2_LEMMAS": "1",
+      "F17_CONTEXTS": "0",
+      "GDP_COUNT_DEFER": "1"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "c2-each-readonly-pair",
+    "cmd": "bun port-input/run.ts c2-pair-audit",
+    "env": {
+      "GDP_WORK_FULL": "0",
+      "GDP_WORK_STEPS": "0",
+      "GDP_COUNT_STRATEGIES": "1",
+      "GDP_COUNT_LIFTED": "1",
+      "GDP_COUNT_LIFTED_PREREQUISITES": "1",
+      "GDP_COUNT_LIFTED_REPLACEMENT": "1",
+      "GDP_COUNT_DEFER_CHECKS": "1",
+      "GDP_COUNT_ROW_DEFER_CHECKS": "1",
+      "GDP_COUNT_C2_LEMMAS": "1",
+      "F17_CONTEXTS": "0",
+      "GDP_COUNT_DEFER": "1"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  }
+]

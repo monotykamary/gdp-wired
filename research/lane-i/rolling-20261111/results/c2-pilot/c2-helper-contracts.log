@@ -1,0 +1,58 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [2.20s]
+bun test v1.4.3 (c6da4a4d3)
+LEMMA_TRANSPORT_DECLINE {"stage":"tree-reindex","original":[0],"slice":[],"when":2}
+LEMMA_TRANSPORT_DECLINE {"stage":"hyp-map","index":0,"matches":0,"hyp":"{\"op\":\"<=\",\"a\":{\"op\":\"var\",\"name\":\"q\"},\"b\":{\"op\":\"const\",\"value\":3}}","assumed":"{\"op\":\"=\",\"a\":{\"op\":\"var\",\"name\":\"op\"},\"b\":{\"op\":\"const\",\"value\":5}}"}
+LEMMA_TRANSPORT_DECLINE {"stage":"hyp-map","index":0,"matches":2,"hyp":"{\"op\":\"<=\",\"a\":{\"op\":\"var\",\"name\":\"q\"},\"b\":{\"op\":\"const\",\"value\":3}}","assumed":"{\"op\":\"=\",\"a\":{\"op\":\"var\",\"name\":\"op\"},\"b\":{\"op\":\"const\",\"value\":5}}"}
+ROLLING_GATE {"sourceTree":"c6b5ade16cccd22722d0176504999f64d884a9fd","mode":"test","files":["core/count-lemma-transport.test.ts","core/count-boolean-partition.test.ts","core/count-case-compose.test.ts","core/count-deferred-checks.test.ts","core/count-row-composition.test.ts"],"protected":181}
+
+--- stderr ---
+
+core/count-lemma-transport.test.ts:
+(pass) reorders a sliced premise, rebases its proof, and leaves the input untouched [14.90ms]
+(pass) discharges only the fixed operation assumption into exact scope rows [4.20ms]
+(pass) does not discharge the operation assumption under a wrong scope [0.88ms]
+(pass) rejects a missing non-operation premise [0.56ms]
+(pass) rejects an ambiguous destination and merged source occurrences [0.30ms]
+(pass) does not extend an expired deadline [0.20ms]
+
+core/count-case-compose.test.ts:
+(pass) all fixed cases compose onto one original operation-domain goal [760.82ms]
+(pass) operation zero preserves source path identities through transport [406.28ms]
+(pass) unchecked case proposals need the final assembled checker [128.18ms]
+(pass) case composition respects an expired shared allowance [0.56ms]
+
+core/count-boolean-partition.test.ts:
+(pass) indicator splits prove both condition-free partition orientations [12.88ms]
+(pass) an incorrect indicator partition is not returned as a cut [1.19ms]
+
+core/count-deferred-checks.test.ts:
+(pass) deferred intermediate checking requires both composition-only options [0.12ms]
+(pass) an unchecked minimal proposal still fails the unchanged checker [2.30ms]
+(pass) deferred stabilization reindexes but does not certify an invalid leaf [0.29ms]
+(pass) deferred stabilization still repairs changed row layouts [0.62ms]
+(pass) standalone finishing does not honor the intermediate-only option [0.65ms]
+
+core/count-row-composition.test.ts:
+(pass) a renamed row portfolio accepts only one assembled original-goal proof [210.64ms]
+(pass) a broken row write declines at its first attempted case [69.54ms]
+(pass) deferred row leaves remain explicit proposals and final native checks remain mandatory [254.46ms]
+(pass) unsupported and expired row portfolios leave ordinary search available [0.46ms]
+
+ 21 pass
+ 0 fail
+ 97 expect() calls
+Ran 21 tests across 5 files. [2.02s]

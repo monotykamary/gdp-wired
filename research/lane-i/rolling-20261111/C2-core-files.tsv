@@ -1,0 +1,10 @@
+52fcff181444d3fcf3ab721ff04acd3d7821b26b	core/count-boolean-partition.test.ts
+9c16955edd3c8de47554f0f7de6a8fe1191703ce	core/count-boolean-partition.ts
+320e7ceba8c17999190cbc34a6a11a754d831e4f	core/count-case-compose.ts
+b2cf6570373908cf1ed3e438f62373df3d5af492	core/count-lemma-transport.test.ts
+5592a76166aae847d124942f0e0141a8acf79e24	core/count-lemma-transport.ts
+d48b7218521b1427fa2152911cddff3c817a187a	core/count-lifted-increment.ts
+aa47bf611fd988397820bb4315ac4daed88a01eb	core/count-lifted-replacement.ts
+dde8076aa66f79b07b79229799f569dcc652f21c	core/count-lifted-strategy.ts
+a9e0bcfea262e4826e7b3fe8415891933b224621	core/count-stabilize-tree.ts
+634caa0ef1fb20e2ad64ba16eb3afa400701d7fa	core/count-strategy.ts
