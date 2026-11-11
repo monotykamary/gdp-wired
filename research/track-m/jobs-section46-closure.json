@@ -1,0 +1,10 @@
+[
+  {
+    "name": "section46-closure",
+    "cpu": 2,
+    "memory": 12288,
+    "timeout": 300,
+    "required_agent_capabilities": {"output_files_protocol": 1, "result_files_protocol": 1},
+    "cmd": "set -euo pipefail; out=${SUPERCOMPUTER_OUTPUT_DIR:?}; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile > \"$out/install.log\" 2>&1; sha256sum kernel/kernel.ts core/counts.ts core/count-proof-scope.ts core/count-proof-rescope.ts core/count-closed-family.ts core/count-closed-family.test.ts > \"$out/source-before.sha256\"; bunx tsc -p . --noEmit > \"$out/typecheck.log\" 2>&1; bunx oxlint --type-aware --deny-warnings --disable-nested-config core/count-closed-family.ts core/count-closed-family.test.ts > \"$out/lint.log\" 2>&1; bun test core/count-closed-family.test.ts > \"$out/tests.log\" 2>&1; git init -q; bunx --bun commitlint --default-config --edit research/track-m/section46-closure-message.txt > \"$out/commitlint.log\" 2>&1; bunx --bun commitlint --config research/egraph/historical/commitlint.config.cjs --edit research/track-m/section46-closure-message.txt > \"$out/historical-commitlint.log\" 2>&1; sha256sum kernel/kernel.ts core/counts.ts core/count-proof-scope.ts core/count-proof-rescope.ts core/count-closed-family.ts core/count-closed-family.test.ts > \"$out/source-after.sha256\"; cmp \"$out/source-before.sha256\" \"$out/source-after.sha256\"; echo SECTION46_CLOSURE_PASS"
+  }
+]

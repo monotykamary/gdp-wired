@@ -1,0 +1,4 @@
+feat(counts): compute greatest closed held family
+
+Preserve the legacy target close path and expose blocked subset evidence.
+Keep native validation mandatory for every selected family.
