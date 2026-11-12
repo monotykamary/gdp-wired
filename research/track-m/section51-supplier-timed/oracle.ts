@@ -17,6 +17,7 @@ type Q={n:bigint;d:bigint}
 export class PrefixViolation extends Error {constructor(message:string){super(message);this.name='PrefixViolation'}}
 const need=(ok:boolean,message:string):void=>{if(!ok)throw new PrefixViolation(message)}
 function integer(value:unknown):bigint {need(typeof value==='string'&&/^(0|[1-9][0-9]*)$/.test(value),'noncanonical nonnegative integer');return BigInt(value as string)}
+function requiredWeight(value:ExactRaw|undefined):ExactRaw {if(value===undefined)throw new PrefixViolation('missing weight');return value}
 function q(value:ExactRaw):Q {need(value!==null&&typeof value==='object','missing exact value');const n=integer(value.numerator),d=integer(value.denominator);need(d>0n,'zero denominator');return {n,d}}
 const add=(a:Q,b:Q):Q=>({n:a.n*b.d+b.n*a.d,d:a.d*b.d})
 const sub=(a:Q,b:Q):Q=>({n:a.n*b.d-b.n*a.d,d:a.d*b.d})
@@ -52,9 +53,7 @@ export class PrefixOracle {
   need(JSON.stringify(Object.keys(snapshot.weights).sort())===JSON.stringify(keys),'weight vector mismatch')
   let weighted=zero
   for(const key of keys){
-   const frozenWeight=prices[key],observedWeight=snapshot.weights[key]
-   if(frozenWeight===undefined||observedWeight===undefined)throw new PrefixViolation('missing weight: '+key)
-   const price=q(frozenWeight);need(price.n>0n&&cmp(price,q(observedWeight))===0n,'frozen positive weight changed')
+   const price=q(requiredWeight(prices[key]));need(price.n>0n&&cmp(price,q(requiredWeight(snapshot.weights[key])))===0n,'frozen positive weight changed')
    const count=integer(snapshot.counters[key]),initial=integer(base!.counters[key]),previous=integer(this.previous.counters[key])
    need(integer(snapshot.rootBaseline!.counters[key])===initial,'root counter baseline changed')
    need(count>=previous&&count>=initial,'counter rollback: '+key);weighted=add(weighted,{n:(count-initial)*price.n,d:price.d})
