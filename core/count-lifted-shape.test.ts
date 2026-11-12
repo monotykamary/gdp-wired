@@ -10,9 +10,15 @@ import {check,checkMC,countedObligations,mcGoal} from '../kernel/kernel.ts'
 import {clock,counted,fullRate,grow,inBudget,withBudget} from '../kernel/prove.ts'
 import {coreMeter} from './meter.ts'
 import {completeWorkProfile} from './work-profile.ts'
-import {liftedWorkLeaseBudget,type LiftedWorkSlice} from './count-lifted-budget.ts'
+import {liftedLeaseOptions,liftedWorkLeaseBudget,withLiftedCase,type LiftedWorkBudget,type LiftedWorkSlice} from './count-lifted-budget.ts'
 import {workAmount,workShare,compareWork} from './work-amount.ts'
 import {workAdmissionSnapshot,workLedger} from './work-admission.ts'
+// Fixture-only FULL grant, matching the existing explicit-lease frame test.
+// Legacy runs retain their original numeric deadlines; no production cap changes.
+const frameFixtureWork=workAmount(1_000_000_000n)
+const withFrameFixture=<T>(run:(budget?:LiftedWorkBudget)=>T):T=>completeWorkProfile.enabled
+ ?workLedger.withBudget(frameFixtureWork,()=>run(liftedWorkLeaseBudget(frameFixtureWork)))
+ :run()
 (completeWorkProfile.enabled?test:test.skip)('explicit exact lease plan composes and natively checks frame cases with no numeric deadline fallback',()=>{
  const original=workAmount(1_000_000_000n),slices:LiftedWorkSlice[]=[],budget=liftedWorkLeaseBudget(original,{observe:s=>slices.push(s)})
  workLedger.withBudget(original,()=>{
@@ -82,14 +88,14 @@ test('changed count definitions cannot reuse stale lifted provenance',()=>{
  m.counts![origin.rowCount]={...m.counts![origin.rowCount]!,body:n(1)}
  expect(discoverLiftedCountGuard(m,law,g.laws)).toBeUndefined()
 })
-test('frame-only lifted cases compose and check the original INIT and STEP',()=>counted(fullRate,()=>{
+test('frame-only lifted cases compose and check the original INIT and STEP',()=>withFrameFixture(budget=>counted(fullRate,()=>{
  const {m,g,law}=generated();m.inputs.push('operation')
  m.pre=all(atMost(n(1),x('size')),atMost(x('size'),n(8)))
  m.assume=all(m.assume!,atMost(n(11),x('operation')),less(x('operation'),n(14)),any(...[11,12,13].map(value=>same(x('operation'),n(value)))))
  m.step={...m.step,maps:{}}
  const request:Parameters<typeof proveLiftedCountComposition>[4]=(goal,decls)=>certFor(goal,decls,false,0,()=>true)
  const events:Record<string,unknown>[]=[]
- const proof=proveLiftedCountComposition(m,g.laws,law,clock()+2000,request,event=>events.push(event))
+ const proof=proveLiftedCountComposition(m,g.laws,law,clock()+2000,request,event=>events.push(event),budget)
  if(!proof)console.error('LIFTED_CASE_EVENTS '+JSON.stringify(events))
  expect(proof).toBeDefined()
  if(!proof)return
@@ -98,24 +104,24 @@ test('frame-only lifted cases compose and check the original INIT and STEP',()=>
   expect(proof.certs[packet.goal.name]).toBeDefined()
   expect(checkMC(packet.goal.hyps,packet.decls,proof.certs[packet.goal.name]!)).toBe(true)
  }
- const again=proveLiftedCountComposition(m,g.laws,law,clock()+2000,request)
+ const again=proveLiftedCountComposition(m,g.laws,law,clock()+2000,request,undefined,budget)
  expect(again).toEqual(proof)
-},true))
+},true)))
 test('lifted discovery, exhaustive composition and native replay inherit a clock-free scope',()=>{
  const mock=spyOn(performance,'now').mockImplementation(()=>{throw Error('lifted path read raw wall clock')})
  try{
-  for(const observed of [false,true])withBudget(2000*fullRate,()=>{
+  for(const observed of [false,true])withFrameFixture(budget=>withBudget(budget?1_000_000_000:2000*fullRate,()=>{
    const {m,g,law}=generated();m.inputs.push('operation')
    m.pre=all(atMost(n(1),x('size')),atMost(x('size'),n(8)))
    m.assume=all(m.assume!,atMost(n(11),x('operation')),less(x('operation'),n(14)),any(...[11,12,13].map(value=>same(x('operation'),n(value)))))
    m.step={...m.step,maps:{}}
    const events:Record<string,unknown>[]=[]
-   const proof=proveLiftedCountComposition(m,g.laws,law,clock()+2000,(goal,decls)=>certFor(goal,decls,false,0,()=>true),observed?event=>events.push(event):undefined)
+   const proof=proveLiftedCountComposition(m,g.laws,law,clock()+2000,(goal,decls)=>certFor(goal,decls,false,0,()=>true),observed?event=>events.push(event):undefined,budget)
    expect(proof).toBeDefined();if(!proof)return
    if(observed)expect(events.filter(event=>'wallMs'in event).every(event=>event.wallMs===0)).toBe(true)
    expect(proof.premises).toEqual([law.name])
    for(const packet of countedObligations(m,g.laws,{[law.name]:proof.instances},g.laws.indexOf(law)))expect(checkMC(packet.goal.hyps,packet.decls,proof.certs[packet.goal.name]!)).toBe(true)
-  })
+  }))
   expect(inBudget()).toBe(false)
  }finally{mock.mockRestore()}
 })
@@ -217,24 +223,28 @@ test('W-relative frame composition preserves its smaller absolute parent and nat
  expect(packets.some(packet=>!checkMC(packet.goal.hyps,packet.decls,{...proof.certs[packet.goal.name]!,tree:{leaf:[]}}))).toBe(true)
 }))
 
-test('frame composition records implicit scalar family assumptions',()=>counted(fullRate,()=>{
+test('frame composition records implicit scalar family assumptions',()=>withFrameFixture(budget=>counted(fullRate,()=>{
  const {m,g,law}=generated(),scalar={name:'scalar premise',holds:same(n(0),n(0))},family=[...g.laws,scalar]
  m.pre=all(atMost(n(1),x('size')),atMost(x('size'),n(8)))
  m.inputs.push('operation');m.assume=all(m.assume!,any(...[11,12,13].map(value=>same(x('operation'),n(value)))));m.step={...m.step,maps:{}}
- const proof=proveLiftedCountComposition(m,family,law,clock()+2000,(goal,decls)=>certFor(goal,decls,false,0,()=>true))
+ const proof=proveLiftedCountComposition(m,family,law,clock()+2000,(goal,decls)=>certFor(goal,decls,false,0,()=>true),undefined,budget)
  expect(proof).toBeDefined();if(!proof)return
  expect(proof.instances[scalar.name]).toBeUndefined();expect(proof.premises).toContain(scalar.name)
  for(const packet of countedObligations(m,family,{[law.name]:proof.instances},family.indexOf(law)))expect(checkMC(packet.goal.hyps,packet.decls,proof.certs[packet.goal.name]!)).toBe(true)
-},true))
-test('composition refutes an excluded case and does not certify the unrestricted machine',()=>counted(fullRate,()=>{
+},true)))
+test('composition refutes an excluded case and does not certify the unrestricted machine',()=>withFrameFixture(budget=>counted(fullRate,()=>{
  const {m,g,law}=generated();m.inputs.push('operation')
  m.pre=all(atMost(n(1),x('size')),atMost(x('size'),n(8)))
  m.assume=all(m.assume!,any(...[11,12,13].map(value=>same(x('operation'),n(value)))));m.step={...m.step,maps:{}}
- const restricted={...m,assume:all(m.assume,not(same(x('operation'),n(12))))},until=clock()+2000,shape=discoverLiftedCountGuard(restricted,law,g.laws)!
+ const restricted={...m,assume:all(m.assume,not(same(x('operation'),n(12))))},until=budget?Infinity:clock()+2000,shape=discoverLiftedCountGuard(restricted,law,g.laws)!
  const request:Parameters<typeof proveLiftedCountFrame>[4]=(goal,decls)=>certFor(goal,decls,false,0,()=>true),cases:FixedOperationProof[]=[]
  for(const value of [11,12,13]){
   const fixed={...restricted,assume:all(restricted.assume,same(x('operation'),n(value)))}
-  if(value!==12){const proof=proveLiftedCountFrame(fixed,g.laws,law,until,request);expect(proof).toBeDefined();if(!proof)return;cases.push({value,proof});continue}
+  if(value!==12){
+   const key=`op:${value}`,frame=(end:number)=>proveLiftedCountFrame(fixed,g.laws,law,end,request,undefined,budget?liftedLeaseOptions(budget,key):{})
+   const proof=budget?withLiftedCase(until,budget,true,key,frame):frame(until)
+   expect(proof).toBeDefined();if(!proof)return;cases.push({value,proof});continue
+  }
   const packet=countedObligations(fixed,g.laws,{[law.name]:{}},g.laws.indexOf(law)).at(-1)!,base={reads:[],insts:[],picks:[]},goal=mcGoal(packet.goal.hyps,packet.decls,base)!
   const result=grow(goal,new Map(),{nodes:0,until});expect('tree'in result).toBe(true);if(!('tree'in result))return
   const cert={...base,tree:result.tree};expect(checkMC(packet.goal.hyps,packet.decls,cert)).toBe(true)
@@ -245,7 +255,7 @@ test('composition refutes an excluded case and does not certify the unrestricted
  const control=composeCountOperationProofs(context,g.laws,law,cases,until,request,undefined,{initial})
  const mock=spyOn(performance,'now').mockImplementation(()=>{throw Error('composer trace read raw wall clock')})
  let proof:ReturnType<typeof composeCountOperationProofs>
- try{proof=withBudget(2000*fullRate,()=>composeCountOperationProofs(context,g.laws,law,cases,until,request,undefined,{initial,trace:event=>events.push(event)}))}finally{mock.mockRestore()}
+ try{proof=withBudget(budget?1_000_000_000:2000*fullRate,()=>composeCountOperationProofs(context,g.laws,law,cases,until,request,undefined,{initial,trace:event=>events.push(event)}))}finally{mock.mockRestore()}
  expect(proof).toEqual(control)
  // K3 also emits tail-ledger records; preserve F's exact native-stage projection.
  const nativeEvents=events.filter(event=>String(event.stage).startsWith('compose-'))
@@ -256,4 +266,4 @@ test('composition refutes an excluded case and does not certify the unrestricted
  for(const packet of countedObligations(restricted,g.laws,{[law.name]:proof.instances},g.laws.indexOf(law)))expect(checkMC(packet.goal.hyps,packet.decls,proof.certs[packet.goal.name]!)).toBe(true)
  const originalStep=countedObligations(m,g.laws,{[law.name]:proof.instances},g.laws.indexOf(law)).at(-1)!
  expect(checkMC(originalStep.goal.hyps,originalStep.decls,proof.certs[originalStep.goal.name]!)).toBe(false)
-},true))
+},true)))
