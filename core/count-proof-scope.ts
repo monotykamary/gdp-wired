@@ -1,7 +1,7 @@
 // Untrusted premise scopes for counted induction. No verdict is cached: every
 // reuse reindexes without search and checks the current machine/family's goals.
 import {type C,type Law,type Machine} from './machine.ts'
-import {type CountCert,type Goal,type Instances,assumed,checkMC,countedObligations,mcGoal} from '../kernel/kernel.ts'
+import {type CountCert,type Goal,type Instances,type CountDecl,assumed,checkMC,countedObligations,mcGoal} from '../kernel/kernel.ts'
 import {clock,wallAt,withDeadline} from '../kernel/prove.ts'
 import {countedCertificateHyps,replayCountCertificate} from './count-cert-transport.ts'
 import {countedScopeHyps} from './count-scope-hyps.ts'
@@ -11,6 +11,8 @@ import {startWork,workLedger} from './work-admission.ts'
 import {type WorkAmount,workSub} from './work-amount.ts'
 import {workEntries,workJoin,workJSON,workMap,workStrings} from './work-collections.ts'
 import {finalCountStepDeferralEnabled} from './count-final-step.ts'
+import {countsForReads} from './count-facts.ts'
+import {countReplayDiagnostic,emitReplayDiagnostic,replayCertificateId,withReplayDiagnosticContext,type ReplayDiagnosticContext} from './count-replay-diagnostic.ts'
 
 export type CountLawProof = {status?: 'unchecked', instances:Instances,certs:Record<string,CountCert>,premises?:readonly string[]}
 export type CountFamilyProof = {instances:Record<string,Instances>,certs:Record<string,CountCert>,premises?:Record<string,readonly string[]>}
@@ -43,7 +45,7 @@ function receiptStamp(value:unknown):string{
  const before=scopeIdentityObserver&&workLedger.actual()
  try{return visit(value)}finally{if(before)scopeIdentityObserver?.(workSub(workLedger.actual(),before))}
 }
-const proofStamp=(owner:Premise,premises:readonly Premise[],proof:CountLawProof,sources:readonly Goal[])=>receiptStamp({owner,premises,instances:proof.instances,certs:proof.certs,sources})
+const proofStamp=(owner:Premise,premises:readonly Premise[],proof:CountLawProof,sources:readonly Goal[],sourceDecls?:readonly CountDecl[][])=>receiptStamp({owner,premises,instances:proof.instances,certs:proof.certs,sources,sourceDecls})
 // A metered ordinary-data key, not a receipt or authority to accept a proof.
 // Scalar workJSON deliberately refuses objects in FULL mode; reuse the exact
 // recursive encoder instead of bypassing its start-before-work accounting.
@@ -53,6 +55,11 @@ export type ScopedCountProof = Readonly<{
  premises:readonly Premise[],
  proof:CountLawProof,
  sources:readonly Goal[],
+ // Original obligation declarations, retained without recomputation. Cut counts
+ // are reconstructed lazily only when a cut-bearing payload is replayed. These
+ // references ARE traversed eagerly by the metered receipt stamp at mint/check;
+ // retaining references does not claim zero hashing or accounting overhead.
+ sourceDecls?:readonly CountDecl[][],
  unused:readonly string[],
  // Dependency metadata only. Unresolved captures retain the original instances;
  // resolved means a native reduced receipt or one full supplier reconstruction.
@@ -71,7 +78,7 @@ export function isCheckedReducedScope(scoped:ScopedCountProof,machine:Machine,cu
  try{
   for(let i=0;i<binding.laws.length;i++){startWork('ticks',1,'checked-scope:current-law');if(identity(binding.laws[i]!).key!==binding.context[i]!.key)return false}
   if(currentLaws){const now=new Map<string,string>();for(const law of currentLaws){startWork('ticks',1,'checked-scope:provided-law');if(now.has(law.name))return false;now.set(law.name,identity(law).key)}for(const p of binding.context){startWork('ticks',1,'checked-scope:provided-context');if(now.get(p.name)!==p.key)return false}}
-  return receiptStamp(machine)===binding.problem&&proofStamp(scoped.owner,scoped.premises,scoped.proof,scoped.sources)===binding.scope
+  return receiptStamp(machine)===binding.problem&&proofStamp(scoped.owner,scoped.premises,scoped.proof,scoped.sources,scoped.sourceDecls)===binding.scope
  }catch(error){if(error instanceof TypeError)return false;throw error}
 }
 const live=(until:number):boolean=>{checkWall('counted premise replay');return clock()<until}
@@ -96,13 +103,13 @@ export function scopeCountProofPair(m:Machine,owner:Law,family:Law[],proof:Count
 }
 function captureScope(m:Machine,owner:Law,family:Law[],proof:CountLawProof,until:number,refsOf:typeof countedCertificateHyps,onInferred?:(scope:ScopedCountProof)=>void):ScopedCountProof|undefined{
  if(!live(until)||!family.includes(owner)||new Set(family.map(l=>l.name)).size!==family.length)return undefined
- const sources:Goal[]=[],used=new Set<string>()
+ const sources:Goal[]=[],sourceDecls:CountDecl[][]=[],used=new Set<string>()
  for(const {goal,decls}of countedObligations(m,family,{[owner.name]:proof.instances},family.indexOf(owner))){
   if(!live(until))return undefined
   const cert=proof.certs[goal.name],expanded=cert&&mcGoal(goal.hyps,decls,cert)
   const refs=expanded&&refsOf(expanded,cert!)
   if(!expanded||!refs)return undefined
-  sources.push(expanded)
+  sources.push(expanded);sourceDecls.push(decls)
   for(const index of refs){
    if(!Number.isSafeInteger(index)||index<0||index>=expanded.hyps.length)return undefined
    if(index<goal.hyps.length)used.add(formulaKey(goal.hyps[index]!))
@@ -114,7 +121,7 @@ function captureScope(m:Machine,owner:Law,family:Law[],proof:CountLawProof,until
  if(names.size!==declared.length||declared.some(name=>!available.has(name))||actual.some(l=>!names.has(l.name)))return undefined
  const premises=family.filter(l=>names.has(l.name)).map(identity)
  if(!live(until))return undefined
- const result:ScopedCountProof={owner:identity(owner),premises,proof:{...proof,premises:premises.map(p=>p.name)},sources,unused:family.filter(l=>!names.has(l.name)).map(l=>l.name),suppliers:'unresolved'}
+ const result:ScopedCountProof={owner:identity(owner),premises,proof:{...proof,premises:premises.map(p=>p.name)},sources,sourceDecls,unused:family.filter(l=>!names.has(l.name)).map(l=>l.name),suppliers:'unresolved'}
  if(onInferred)onInferred({...result,premises:actual.map(identity),proof:{instances:proof.instances,certs:proof.certs,premises:actual.map(l=>l.name)},unused:family.filter(l=>!actual.includes(l)).map(l=>l.name)})
  const binding=checkedProofs.get(proof)
  return binding&&isCheckedReducedScope({...result,checkedReduced:binding.token},m)?{...result,checkedReduced:binding.token,suppliers:'resolved'}:result
@@ -155,12 +162,13 @@ export type CountReplayDecline=Readonly<{
  expected?:number,
  actual?:number,
 }>
-export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCountProof,until:number,options:{deferToClosing?:boolean,onDecline?:(decline:CountReplayDecline)=>void,onTransportDecline?:(obligation:string)=>void}={}):CountLawProof|undefined{
+export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCountProof,until:number,options:{deferToClosing?:boolean,onDecline?:(decline:CountReplayDecline)=>void,onTransportDecline?:(obligation:string)=>void,diagnostic?:ReplayDiagnosticContext}={}):CountLawProof|undefined{
  const decline=(which:CountReplayDecline['case'],reason:string,detail:Partial<Pick<CountReplayDecline,'obligation'|'premise'|'expected'|'actual'>>={}):undefined=>{
   options.onDecline?.({case:which,reason,member:scoped.owner.name,...detail})
+  if(countReplayDiagnostic.on){const certificate=detail.obligation?scoped.proof.certs[detail.obligation]:undefined;emitReplayDiagnostic({kind:'scope-decline',context:{...options.diagnostic,member:scoped.owner.name,obligation:detail.obligation},case:which,reason,certificateId:certificate&&replayCertificateId(certificate),certificate,owner:scoped.owner,premises:scoped.premises,suppliers:scoped.suppliers,targetFamily:family.map(law=>law.name)})}
   return undefined
  }
- return withDeadline(until,()=>{
+ return withReplayDiagnosticContext({...options.diagnostic,member:scoped.owner.name},()=>withDeadline(until,()=>{
   if(!live(until))return decline(7,'deadline')
   if(new Set(family.map(l=>l.name)).size!==family.length)return decline(1,'duplicate-family-name')
   const byName=new Map(family.map(l=>[l.name,l]))
@@ -184,7 +192,11 @@ export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCount
    if(!cert)return decline(4,'missing-certificate',{obligation})
    const to=mcGoal(goal.hyps,decls,cert),from=scoped.sources[i]!
    if(!to)return decline(4,'goal-expansion-declined',{obligation})
-   const next=replayCountCertificate(from,to,cert,wallAt(),{rethrowBudgetExpired:true})
+   const cutBearing=!!(cert.frames?.length||cert.monos?.length||cert.lins?.length)
+   const fromCounts=cutBearing&&scoped.sourceDecls?.[i]?countsForReads(scoped.sourceDecls[i]!,cert.reads):undefined
+   const toCounts=cutBearing?countsForReads(decls,cert.reads):undefined
+   const native=cutBearing&&fromCounts&&toCounts?{from:{counts:fromCounts},to:{counts:toCounts}}:undefined
+   const next=replayCountCertificate(from,to,cert,wallAt(),{rethrowBudgetExpired:true,native,diagnostic:{...options.diagnostic,member:scoped.owner.name,obligation}})
    if(!next){
     // Only an actual transport refusal can request K's lazy supplier repair.
     // Missing expansions and original hard stops retain their distinct paths.
@@ -199,9 +211,9 @@ export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCount
   const used=new Set([owner.name,...names])
   if(!deferred&&used.size===context.length&&context.every(p=>used.has(p.name))){
    if(receiptStamp(m)!==problem)return decline(2,'machine-identity-changed')
-   const token=Object.freeze({kind:'checked-reduced' as const}),binding:CheckedBinding={token,problem:problem!,context,laws:workMap(family,law=>law,'checked-scope:retain-laws'),scope:proofStamp(identity(owner),scoped.premises,result,sources)}
+   const token=Object.freeze({kind:'checked-reduced' as const}),binding:CheckedBinding={token,problem:problem!,context,laws:workMap(family,law=>law,'checked-scope:retain-laws'),scope:proofStamp(identity(owner),scoped.premises,result,sources,goals.map(({decls})=>decls))}
    checkedTokens.set(token,binding);checkedProofs.set(result,binding)
   }
   return result
- })
+ }))
 }

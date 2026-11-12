@@ -5,6 +5,7 @@ import {type CountRecipeMember,type CountRecipeGraph,countRecipeGraph,countRecip
 import {CountAttemptTickets,planCountRetry,countAttemptStop,type CountAttemptStop,type CountRetryKey,type CountRetryPlan} from './count-retry-budget.ts'
 import {runCountRetryRound} from './count-retry-round.ts'
 import {CountAttemptWork,countLeafSlot} from './count-attempt-work.ts'
+import {countReplayDiagnostic,emitReplayDiagnostic,replayPassId,withReplayDiagnosticContext} from './count-replay-diagnostic.ts'
 import {type LiftedWorkBudget,liftedWorkLeaseBudget} from './count-lifted-budget.ts'
 import {closeGreatestCountFamily,greatestClosedCountFamily,type HeldCountPayload} from './count-closed-family.ts'
 import {BudgetExpired,type WorkLedger,workLedger} from './work-admission.ts'
@@ -213,7 +214,8 @@ export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecip
   if(!(error instanceof BudgetExpired))throw error
   reason='phase-cap';bank.check('count recipe search continuation')
  }
- const attemptClosing=()=>{
+ let closingOrdinal=0
+ const attemptClosing=()=>withReplayDiagnosticContext({passId:replayPassId(pass),closingAttempt:++closingOrdinal,repairUsed:pass.supplierRepairUsed},()=>{
  const held=pass.held(),rows:HeldCountPayload<T>[]=[]
  for(const member of nodeRows()){tick();const payload=held.get(member.name);if(payload)rows.push({id:member.name,premises:map(countRecipeRequirements(member,tick),value=>value),payload:payload.payload})}
  // This is closing preparation, not search selection: traverse only the held
@@ -247,8 +249,9 @@ export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecip
   },
   submit:selected=>hooks.close(selected,false)
  },{basis:hooks.basis,tick})
+ emitReplayDiagnostic({kind:'closing-result',route:closing.route,submitted:closing.submitted,targetInFamily:closing.targetInFamily,members:closing.plan.members,blockers:closing.plan.blockers,repairUsed:pass.supplierRepairUsed})
  return closing
- }
+ })
  let closing=attemptClosing()
  const declined=closing.submitted&&!pass.supplierRepairUsed&&hooks.repairSuppliers?hooks.declinedMember?.():undefined
  if(declined!==undefined){
@@ -257,16 +260,21 @@ export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecip
    // Consume the one repair BEFORE entering it: cancellation/refusal cannot
    // renew this allowance on a later controller invocation. No recipe runs.
    pass.supplierRepairUsed=true
-   const repaired=hooks.repairSuppliers!(declined,state.held.payload as T)
+   const repairContext={passId:replayPassId(pass),member:declined,closingAttempt:closingOrdinal,repairUsed:true}
+   emitReplayDiagnostic({kind:'resolver-start',context:repairContext,premises:state.held.premises})
+   let repaired:ReturnType<NonNullable<typeof hooks.repairSuppliers>>
+   try{repaired=hooks.repairSuppliers!(declined,state.held.payload as T)}catch(error){emitReplayDiagnostic({kind:'resolver-result',context:repairContext,result:'threw',error:error instanceof Error?error.name:'non-error'});throw error}
    if(repaired){
+    const premisesBefore=state.held.premises
     const names=new Set(state.held.premises)
     for(const name of repaired.premises){tick();names.add(name)}
     state.held={...state.held,payload:repaired.payload,premises:map(names,name=>name),checkedReduced:false}
+    if(countReplayDiagnostic.on)emitReplayDiagnostic({kind:'resolver-result',context:repairContext,result:'repaired',premisesBefore,payloadPremisesAfter:repaired.premises,effectivePremisesAfter:state.held.premises,premisesAfterMeaning:'effective is the controller union; payload is the resolver return'})
     hooks.observe?.({phase:'count-recipe-supplier-repair',law:declined,premises:state.held.premises})
     // Rebuild H/S, the target closure, and G from ALL held payloads. A missing
     // supplier can remove the target, never be silently admitted or invented.
     closing=attemptClosing()
-   }
+   }else if(countReplayDiagnostic.on)emitReplayDiagnostic({kind:'resolver-result',context:repairContext,result:'declined',premisesBefore:state.held.premises,payloadPremisesAfter:null,effectivePremisesAfter:state.held.premises})
   }
  }
  hooks.observe?.({phase:'count-recipe-closing',reason,route:closing.route,targetInFamily:closing.targetInFamily,members:closing.plan.members,blockers:closing.plan.blockers,paths:[...closing.plan.paths],supplierRepairUsed:pass.supplierRepairUsed})

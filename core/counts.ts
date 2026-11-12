@@ -55,6 +55,7 @@ import {assertLiftedWorkLease, prepareCountStrategyMachine, proveCountStrategies
 import {type LiftedWorkBudget} from './count-lifted-budget.ts'
 import {countRecipeContextDecision} from './count-recipe-context.ts'
 import {CountRecipePass,runCountRecipeController,claimCountClosingFallback,type CountControllerMember} from './count-recipe-controller.ts'
+import {emitReplayDiagnostic} from './count-replay-diagnostic.ts'
 import {discoverLiftedCountGuard,discoverLiftedCountOperations} from './count-lifted-shape.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {workLedger} from './work-admission.ts'
@@ -807,7 +808,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
             tick()
             // Transport the original captured payload on the unchanged model;
             // never search, repair a certificate, or reuse a partial first try.
-            const proof=replayScopedCountProof(m,family,row.payload,Infinity,{deferToClosing:true,onDecline:decline=>declines.push(decline),onTransportDecline:()=>{transportDeclined=row.id}})
+            const proof=replayScopedCountProof(m,family,row.payload,Infinity,{deferToClosing:true,onDecline:decline=>declines.push(decline),onTransportDecline:()=>{transportDeclined=row.id},diagnostic:{route}})
             if(!proof){
               const decline=declines[declines.length-1]
               countsDump.on?.({phase:'count-recipe-closing-decline',family:route,member:row.id,obligation:decline?.obligation??null,case:decline?.case??null,reason:decline?.reason??'unclassified',detail:decline})
@@ -831,6 +832,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         if(whole.length<=rows.length)return first.result
         // K repair and this fallback share the SAME persistent retry bit.
         if(!claimCountClosingFallback(tierRun.recipePass!,transportDeclined!==undefined))return first.result
+        emitReplayDiagnostic({kind:'fallback-claimed',route:'whole-held',member:transportDeclined??null})
         countsDump.on?.({phase:'count-recipe-closing-fallback',from:workMap(rows,row=>row.id,'count closing fallback source'),to:workMap(whole,row=>row.id,'count closing fallback target'),attempt:1})
         const second=replay(whole,'whole-held').result
         if(second.proven||!second.why||second.why.includes('recipe closing replay declined'))return second
@@ -1139,7 +1141,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
           for(let i=0;i<dst.length;i++){
             const cert=saved.proof.certs[src[i]!.goal.name]
             if(!cert)return join()
-            const a=mcGoal(src[i]!.goal.hyps,src[i]!.decls,cert),b=mcGoal(dst[i]!.goal.hyps,dst[i]!.decls,cert),lifted=a&&b&&transportCountCertificate(a,b,cert,wallAt())
+            const a=mcGoal(src[i]!.goal.hyps,src[i]!.decls,cert),b=mcGoal(dst[i]!.goal.hyps,dst[i]!.decls,cert),lifted=a&&b&&transportCountCertificate(a,b,cert,wallAt(),{declarations:{from:src[i]!.decls,to:dst[i]!.decls},diagnostic:{member:l.name,obligation:dst[i]!.goal.name,route:'retained-family'}})
             if(!lifted)return join()
             certs[dst[i]!.goal.name]=lifted
           }
@@ -1651,7 +1653,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
               const part = localGoals[i]!, whole = wholeGoals[i]!, cert = proposed.proof.certs[part.goal.name]
               if (!cert || clock() >= localEnd) return
               const from = mcGoal(part.goal.hyps, part.decls, cert), to = mcGoal(whole.goal.hyps, whole.decls, cert)
-              const lifted = from && to && transportCountCertificate(from, to, cert, wallAt())
+              const lifted = from && to && transportCountCertificate(from,to,cert,wallAt(),{declarations:{from:part.decls,to:whole.decls},diagnostic:{member:law.name,obligation:whole.goal.name,route:'strategy-proposal'}})
               if (!lifted || (!(finalCountStepDeferralEnabled() && proposed.proof.status === 'unchecked') && !checkMC(whole.goal.hyps, whole.decls, lifted))) return
               certs[whole.goal.name] = lifted
             }
@@ -1682,7 +1684,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
           const part = localGoals[i]!, whole = wholeGoals[i]!, c = probe.proof.certs[part.goal.name]
           if (!c) { complete = false; break }
           const pg = mcGoal(part.goal.hyps, part.decls, c), wg = mcGoal(whole.goal.hyps, whole.decls, c)
-          const lifted = pg && wg && withDeadline(end, () => transportCountCertificate(pg,wg,c,wallAt()))
+          const lifted = pg && wg && withDeadline(end, () => transportCountCertificate(pg,wg,c,wallAt(),{declarations:{from:part.decls,to:whole.decls},diagnostic:{member:law.name,obligation:whole.goal.name,route:'strategy-probe'}}))
           if (!lifted) { complete = false; break }
           if(!checkMC(whole.goal.hyps,whole.decls,lifted)){complete=false;break}
           certs[whole.goal.name] = lifted
