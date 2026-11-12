@@ -21,6 +21,10 @@ import {checkedReversePrefix,UnwrittenCountPrefix} from './count-unwritten-prefi
 import {copyQueryContext} from './count-query-context.ts'
 import {stabilizeGuardedTree} from './count-stabilize-tree.ts'
 const json=(value:unknown)=>JSON.stringify(value)
+// Untrusted minimal-to-full transport; only composition may defer replay checks.
+export function rebaseLiftedLoadCandidate(view:Goal,tree:Tree,root:Path,until:number,goal:Goal,options:CountStrategyOptions={}):Tree|undefined{
+ return rebasePath(view,tree,root,root,until,goal)??replayLinearSkeleton(goal,tree,root,until,{deferCheck:deferIntermediateCountChecks(options)})
+}
 export function proveLiftedCountLoad(m:Machine,family:Law[],law:Law,until:number,requestFor:CountRequestBuilder,observe?:(event:Record<string,unknown>)=>void,options:CountStrategyOptions={}):CountStrategyProof|undefined{
  if(!family.includes(law))return
  return withDeadline(until,()=>{
@@ -93,7 +97,7 @@ export function proveLiftedCountLoad(m:Machine,family:Law[],law:Law,until:number
     }
     const hyps=copyQueryContext(step.goal.hyps,searchRoot,counts,insts,selected),view=mcGoal(hyps,step.decls,{...request,insts:selected})
     if(!view)return
-    const result=growCdcl(view,searchRoot,{nodes:0,until:deadline}),candidate='tree'in result?(rebasePath(view,result.tree,searchRoot,searchRoot,deadline,goal)??replayLinearSkeleton(goal,result.tree,searchRoot,deadline)):undefined
+    const result=growCdcl(view,searchRoot,{nodes:0,until:deadline}),candidate='tree'in result?rebaseLiftedLoadCandidate(view,result.tree,searchRoot,deadline,goal,options):undefined
     const general=candidate&&accepts(goal,candidate,searchRoot)?candidate:undefined,lift=general&&(searchRoot===root?general:rebasePath(goal,general,searchRoot,root,deadline,goal)??replayLinearSkeleton(goal,general,root,deadline,{deferCheck:deferred}))
     observe?.({stage,checked:!!lift,units:(fullWork()-before)/fullRate,...(!('tree'in result)?{outcome:result.stuck,witness:result.witness}:{})})
     if(general&&!reused.has(stage))reused.set(stage,{tree:general,path:searchRoot,goal})
