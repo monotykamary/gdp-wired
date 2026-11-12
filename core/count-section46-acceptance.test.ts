@@ -18,7 +18,7 @@ import {workLedger} from './work-admission.ts'
 import {workAmount} from './work-amount.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {type CountCert,canon,checkCountedLaws,checkMC,countedObligations,leafConstraintsReusing,lemmaPath,mcGoal} from '../kernel/kernel.ts'
-import {grow,withBudget,withWall} from '../kernel/prove.ts'
+import {grow,withBudget} from '../kernel/prove.ts'
 import {refuteFast} from './solver.ts'
 
 const a=(n:number)=>workAmount(BigInt(n))
@@ -32,7 +32,9 @@ beforeAll(()=>{
  expect(workLedger.weights.ticks).toEqual(a(1))
 })
 function bounded<T>(raw:number,run:()=>T):T{
- return withBudget(raw,()=>withWall(performance.now()+10_000,run))
+ // withWall takes counted endpoints inside a work scope, not wall time.
+ // The raw root bounds work; Bun/process timeouts bound wall time separately.
+ return withBudget(raw,run)
 }
 function independent(names:readonly string[]){
  const family=names.map((name,i):Law=>({name,holds:same(x('v'+i),n(0))}))

@@ -12,7 +12,7 @@ import {liftedWorkLeaseBudget,withLiftedCase,withLiftedLeaf,liftedLeaseOptions} 
 import {type Law,type Machine,n,same,x} from './machine.ts'
 import {type CountFamilyProof} from './count-proof-scope.ts'
 import {type CountCert,checkCountedLaws,countedObligations,mcGoal} from '../kernel/kernel.ts'
-import {grow,withBudget,withWall} from '../kernel/prove.ts'
+import {grow,withBudget} from '../kernel/prove.ts'
 const a=(n:number)=>workAmount(BigInt(n))
 // Runner-only settlement: owner entry + classification + ticket + receipt.
 // This tail stays INSIDE plan.body; direct CountFundingOwners reserves zero.
@@ -132,7 +132,8 @@ function nativeProof():{m:Machine,law:Law,proof:CountFamilyProof}{
 }
 test('46.17.5: real native callback propagates owners without double case scopes; exact sum includes native work',async()=>{
  const {planDisjointCountRound,runDisjointCountRound}=await ownersApi()
- withBudget(25_000_000,()=>withWall(performance.now()+10_000,()=>{
+ // Keep the native work root independent of Bun/process wall timeouts.
+ withBudget(25_000_000,()=>{
   const tickets=new CountAttemptTickets(),caps={cases:new Map([['op:0',a(4_000_000)],['op:1',a(4_000_000)]]),leaf:a(1_000_000)}
   const plan=planDisjointCountRound(caps,a(100_000),[],tickets);admitted(plan)
   const out=runDisjointCountRound(plan,tickets,owners=>{
@@ -155,7 +156,7 @@ test('46.17.5: real native callback propagates owners without double case scopes
   expect(receipt.sum).toEqual([...receipt.cases.values()].reduce(workAdd,receipt.body))
   expect(compareWork(receipt.cases.get('op:0')!,a(2))).toBeGreaterThan(0)
   expect(compareWork(receipt.body,a(2+RUNNER_TERMINAL_TICKS))).toBeGreaterThan(0)
- }))
+ })
 })
 
 test('46.17.6: body stop is hard even with unused case credit and round headroom',async()=>{

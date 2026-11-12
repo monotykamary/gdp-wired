@@ -69,7 +69,15 @@ The draft now adds seven regression definitions, plus a correction to existing f
 
 D1 plus six D3 tests add seven definitions; two more distinguish the runner's finalization reserve from direct-owner behavior (12 acceptance + 23 owner = 35). D2 updates existing fixtures. A's proposed API is `countDisjointContext(tickets, bank)` in each admitted plan and `runDisjointCountRound(plan,tickets,run,bank,eligible?)`. All synthetic fixed plans now use that helper with the exact tickets later passed to `run`. The context and eligibility API is now committed in A's candidate `0fc83661` and the draft matches it. This is a source pin, not software/native/qualification approval; no execution result is claimed. Read-only inspection confirms the one-unit-short planner fixture still accounts for its two paid metadata ticks.
 
-Both test files now use `performance.now() + 10_000` for wall deadlines, never deterministic `clock()` values.
+### Deadline-unit correction (source only)
+
+The initial B child `76c35b98` incorrectly nested `withWall(performance.now() + 10_000, ...)` under two FULL-work helpers. Inside a work scope `withWall` interprets its argument as a counted endpoint, not a wall-clock timestamp. The correction removes both nested wall wrappers and the unused imports: the existing raw `withBudget` roots and every case/leaf/body cap stay unchanged. Bun's test timeout and the authorized process timeout must bound wall time separately. No new compile or execution result follows.
+
+### Lane C follow-up gaps
+
+C's `6389f17d` review examines A's `0fc83661`, not this unadopted B test child. B N2 constructs/checks two native certificates; N5 exercises public stranded replacement; N8 exercises public unknown-only consideration. None has executed. N3 remains a synthetic T301-shaped public control, **not** a retained real T301 run. Actual real-model retry evidence remains open.
+
+G1 per-member allotment/used/hard-stop observations, G2 typed production context-refusal events and 29-protocol incidence, and G3 capture expiry after a proposal need follow-up controls and receipts. No new G1-G3 test definitions are claimed here; production touch points/policy remain for A/Main agreement.
 
 ## Terminal body reserve alignment
 
@@ -82,7 +90,7 @@ Exact unit controls include: stopped T301-shaped round body 6/sum 7; completed r
 After the coordinator authorizes the relevant gates:
 
 1. Use parent `0fc836616e98886046cc1c46399d1b071a2b2aaa` and the separate B test child; record any later repair/integration SHA without silently changing the test target.
-2. Type-check and run each test file in **separate fresh Bun processes**, with `GDP_WORK_FULL=1`, default fixture weights and the six strategy/prerequisite flags set by the public fixture. Do not run the module-mocking acceptance file beside other suites in one process.
+2. Type-check and run each test file in **separate fresh Bun processes**, with `GDP_WORK_FULL=1`, default fixture weights and the six strategy/prerequisite flags set by the public fixture. Do not run the module-mocking acceptance file beside other suites in one process. Use explicit Bun test and process wall timeouts, never a wall timestamp passed to a counted endpoint.
 3. Run the meaningful public-entry negatives against the unwired baseline plus test files. Record each actual assertion failure. Treat a missing new module separately from behavioral RED; do not call an import failure proof of correct sensitivity.
 4. Run the stable flat implementation and report N3 RED separately; never hide it behind `.skip`, `.todo`, `test.failing` or a catch returning success.
 5. If a disjoint production successor is explicitly authorized, repeat against that SHA and require N3 GREEN while all negative checks still hold.
