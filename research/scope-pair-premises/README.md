@@ -1,54 +1,41 @@
-# Scope extraction: premises for used equal-key rows
+# Scope extraction: complete native generated-row supplier closure
 
-Implementation child of exact `9eb09b8326fc2670fad6725f774ab1b252c4d343` on `k/scope-pair-premises-9eb`. Implements item 3 of Fable §51.5, commit `cbe9f611acf54f938118277498acff9d9dfc5fa2`. **Source packet only. No compiler, imports, tests or measurement job has run.** Existing sizing/grid packets and their holds are unrelated and unchanged.
+Generalized successor of pair-only `85a2a97a04b85e8ef133a18ab2653f66bf91bb57`, on `k/scope-pair-premises-9eb`, rooted at exact `9eb09b8326fc2670fad6725f774ab1b252c4d343`. Main explicitly requested this generalization after D's uncited min-term counterexample. Kernel and checker are unchanged.
 
-## Hypothesis and limits
+## Status and authority
 
-At a fixed native leaf path, `leafRows` creates equal-key rows from all map-cell names in initial path/fact rows. `usedHyps` reports direct fact citations (and product ancestry), but not facts whose only contribution is a cell name needed by a cited pair row. Removing those facts can therefore remove an input row required by exact transport. This is a source-level mechanism, not a diagnosis proven for T301 or R4.
+The immutable pair-only 85a run passed all nine tests (0 failed/skipped, 36 assertions) and one focused strict compiler check under FULL on boat, batch `20261112-125618-tzfvkf`, with verified one-attempt cleanup. Receipt `runs/scope-pair-85a2a97a-once/K-TERMINAL.json`, SHA `7f3ff8db6ef94d09ee08829ef6928d62f303126724e0488581b98608086cc41e`. **That result is not a test result for this generalized successor.**
 
-The pair-premise fix changes **scope capture**: `scopeCountProof` calls new `countedScopeHyps`, not the old fact-only helper. The R1 successor additionally corrects the legacy helper's cancellation catch in `core/count-cert-transport.ts`: original `BudgetExpired` and `WallExpired` objects now propagate; ordinary malformed metadata still declines. This previously protected module is explicitly removed from `UNCHANGED.sha256`. Kernel, checker, exact transport/replay function bodies, closure planner, `counts.ts` and `rescopeCountProof` remain byte-identical to 9eb. See `R1.md` for the enlarged, disclosed three-file production delta.
+Main separately authorized the generalized successor's retained nine tests plus new control and compiler ONCE on boat. The combined timed packet belongs to B and still needs D review/GO. Historical exact certificate replay remains optional and blocked on unavailable payloads, not a prerequisite for the new timed experiment.
 
-`IMPLEMENTATION.patch` is a zero-context patch (use `git apply --unidiff-zero` against exact 9eb); the complete source is alongside it.
+## Changed code
 
-## Algorithm
+- `core/count-proof-scope.ts`: use conservative native hypothesis closure before existing formula-to-law attribution.
+- `core/count-scope-hyps.ts`: preserve every legacy reference; track all initial atom/fact names and all fact owners, then propagate ownership through the native term-introduction graph. Used pair, term and naturality rows retain root provenance. Products retain their operands; squares are certificate-owned.
+- `core/count-cert-transport.ts`: inherited R1 correction rethrows the original BudgetExpired/WallExpired from legacy extraction. Ordinary malformed metadata still declines. Its exact transport/replay function bodies are unchanged.
 
-1. Retain every index returned by the existing `countedCertificateHyps`, including whole independent lemma source slices. Never replace that set with a smaller one.
-2. Walk the original main tree. At each leaf, construct the actual native `framePath` (linear, mono, frame and lemma prefixes) and its unchanged `leafConstraints` rows. No solver or checker invocation is added to extraction.
-3. From **only initial atom/fact rows**, record the pre-pair cells. Every fact-row owner of each cell is a supplier, including zero-valued stored coefficients. Atoms supply cells without adding a hypothesis. Pair/term/naturality rows do not invent an initial supplier.
-4. Follow every input step and recursively every cited product operand, accounting for square offsets. Also retain dependencies of explicit product operands that the current transporter reindexes even if not cited by the final arithmetic.
-5. Add direct fact origins on this actual path. For every reached pair row, add **all** fact suppliers of both cells. Duplicate suppliers are deliberately retained, not minimized.
-6. Existing formula-to-law attribution in `scopeCountProof` names all corresponding laws, preserving family order and duplicate-formula conservatism. Existing declared-premise checks remain strict: a contradictory explicit declaration is refused, not silently repaired.
+All kernel files, checker, exact transport algorithms, rescope, `counts.ts` and planner remain unchanged. The same 98 protected-file hashes apply. No diagnostic, fallback, family-widening or timing behavior from B is merged here.
 
-New loops use existing `checkWall`/`startWork` and `visitLinearCells`. Native row rebuilding has its existing charged cost. The extra extraction is not free, cached, calibrated or demonstrated to fit a production budget. The R1 correction rethrows original budget/wall cancellation even when it originates inside the legacy nonempty-lemma extraction catch; this is source-verified, not an executed test result. No catch-and-search, fresh headroom or fallback is added.
+## Native dependency model
 
-## Soundness argument (conditional, not a full transport theorem)
+At a fixed native path, the closed row-source union is atom, fact, pair, term, and nat. Initial atom/fact rows seed every nonconstant name; zero-valued stored entries still count. Each name retains **every** initial fact owner, including duplicates. Path/frame/lemma/mono/linear atoms create an available root without inventing a fact owner.
 
-Let H be a source goal and P one fixed native leaf path. Let F(h,P) be the initial fact rows emitted for h, and A(P) the atom rows. The pair loop uses exactly the cell names in A(P) union all F(h,P), before term closure. Consider a reached pair row with cells a,b.
+For each native term row with `src.term = t`, every nonconstant name `n` in its stored coefficients gets an introduction edge `n -> t`. This includes further term, map-cell, variable and monomial names. The collector walks those edges backwards from names required by used generated rows, taking the union of root owners. This is lazy transitive owner propagation, equivalent to the forward least fixed point but without repeatedly copying owner sets.
 
-For each cell occurring in a fact row, the collector retains every owning h. If it occurs only in an atom row, P itself retains it. Therefore after deleting hypotheses outside the collected set, both a and b still occur in the initial name set. The map names, parsed keys and P are unchanged, so the same native `sameKey` test is true and both orientations of that pair row are generated again. Row indices may move; the existing exact transporter handles indices and must still succeed and pass the unchanged checker.
+Dependencies are taken from the source tag, **not merely coefficients of the used row**: pair needs both initial cell roots; term needs its generating term even if its coefficient cancels; nat needs the name whose availability generated it. Every cited input and product ancestry is followed, with square offsets; explicit unused products that the transporter still reindexes retain their operands too. Unknown native row-source forms fail closed. All loops are charged/deadline checked; R1 errors propagate unchanged.
 
-The output is explicitly the union with the old reference set. Thus for successfully extracted ordinary valid metadata, old hypothesis dependencies are a subset of new dependencies. The existing formula matching maps this to a superset of law premises. Declared scopes omitting a newly required premise can now be refused; they never acquire a false checked receipt. Existing independent lemma slices are retained wholesale, so their local pair suppliers remain present without new lemma-tree analysis. Auxiliary mono/linear proofs are over their own goals, not parent hypothesis arrays.
+## Fixed-path preservation argument
 
-This proves preservation of **the identified fixed-path pair-row availability**, not completeness of every dependency mechanism or every transport. Used naturality/term rows, model/count-declaration changes, opaque metadata, changed paths, missing held suppliers, or other transporter limitations can still cause a decline. The new helper does not grant a checked verdict. A result is accepted only through the original replay/check path, and a missing row still fails closed. No theorem, law, machine or conclusion is weakened.
+Retaining a root fact owner preserves its fact rows at the same path; retaining all its duplicate suppliers is a conservative union. Atom roots survive with the fixed path. Induct over the native term-closure generation: if a term name is available, its same term rows are generated; each named output becomes available for subsequent closure. Walking all ancestor edges of a used term/nat name retains the root hypotheses that seed those chains. Cycles/self-edges terminate in the traversal's visited set and do not remove root owners.
 
-## Prepared regression tests (UNRUN)
+Thus each used fact remains; each pair has its two initial cells; each used term has its generator; each nat has its full-closure name. Certificate squares do not require a hypothesis to exist, and products are preserved from preserved operands. The legacy reference set and independent lemma source slices are unioned unchanged. Existing formula matching then conservatively names family premises.
 
-`core/count-scope-hyps.test.ts` constructs native row-indexed proofs without solver search:
+This establishes generated-row **availability** under unchanged fixed-path/source assumptions, not a complete transport theorem. Row indices can move; the existing exact transporter and native checker remain authoritative. Changed paths, instances, count declarations, explicit incompatible premise declarations, resource stops, or absent held suppliers can still decline. No checked verdict is minted by scope metadata.
 
-- a used pair row whose M[j] supplier fact is uncited (old refs [0], new [0,1]); exact old reduced-goal transport declines while retaining the supplier permits exact transport;
-- a generated but unread pair does not retain its otherwise-unused supplier;
-- duplicate cell suppliers are all retained;
-- products-of-products and square offsets preserve supplier ancestry;
-- frame-prefixed input indices use the actual native path.
+## Controls and real-case boundary
 
-`core/count-cert-transport-hard-stop.test.ts` additionally prepares one native-validity control, two FULL-only authenticated capacity-refusal cases (direct legacy and new-scope callers), and an ordinary malformed-metadata refusal control. The FULL cases must enter legacy `rowsAt` and refuse at `kernel facts`, after funding the scope entry where present; catching is observed inside the active allowance, not at scope completion. `workLedger.capacityRefusal` authenticates the identical original error. Required profile: `GDP_WORK_FULL=1 GDP_ROWS_SHARED=1`; skipped FULL cases are NOT coverage.
+The existing nine tests are retained. The tenth test builds D's exact H0 `x<0`, H1 `min(x,y)<=100` certificate using H0, generated `t-x<=0`, and `-t<=0`. It also tests an outer `min(t,z)` introducing the used inner term transitively. Both subcases require original native validity, old reduced-context transport decline, new retained supplier indices, exact new transport and unchanged native acceptance. There are no pairs/cuts in these controls, so 85a's pair-only set equals the tested legacy set. This is explicitly not an execution of a historical S51 certificate.
 
-These nine tests are synthetic source regressions, **not substitutes for T301 or R4**. They have not been executed. No mono/linear-cut, atom-only, stored-zero, or real wall-expiry test coverage is claimed. Existing scope, rescope and transport suites are required in the sealed comparison spec.
+`S51-FOCUSED-SPEC.json` targets exactly `inX: no quorum canVote/3 @step`, case 5. It records member-local `scoped.unused` deletion as well as family membership: widening the family alone cannot restore a deleted instance supplier. The named S51 decline identifies transport failure, **not the actual missing row or its supplier**. Its runtime certs/contexts were not exported. No guessed certificate or public-model reconstruction may be called the old replay.
 
-## Real-case comparison and current blocker
-
-`COMPARISON-SPEC.json` describes fresh old/new processes, the frozen 9eb modules `reference/count-proof-scope.ts.txt` and `reference/count-cert-transport.ts.txt` (data, not executable imports), unchanged checkers, exact input identity, native prechecks, canonical T301 replay, and fixed-context R4 closing transport. It distinguishes IMPROVED, SAME_DECLINE and REGRESSION; a false-to-false result is not a fix. The same original closing context may correctly decline sooner if new dependencies identify an absent law. No widening/retry of the production closing algorithm is implemented here.
-
-**Exact real-case payloads are required before any claim.** R4's owner confirms the timed artifact exported no held proofs, source contexts or failing member. Its public model/laws and 17-law name order are not the captured closing machine/scoped payload. T301's owner likewise confirms that only reference laws/machine and scope metadata survived; runtime instances, certificates, source goals and exact failing replay arguments are missing. Missing data means BLOCKED_MISSING_REPLAY_INPUT, never a synthetic stand-in or a passing comparison. See `INPUT-STATUS.json`.
-
-A fresh full search/capture, changed family, guessed source context or new runtime admission requires separate authority. This packet does not authorize any of those. No success for Inv* or R4 is claimed.
+See `R1.md` for historical cancellation correction, `GENERALIZED-SUPPLIERS.md` for the new boundary, and `INPUT-STATUS.json` for missing historical payloads.

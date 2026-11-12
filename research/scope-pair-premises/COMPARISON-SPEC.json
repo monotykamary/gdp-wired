@@ -3,7 +3,7 @@
   "status": "SEALED_SPEC_UNRUN_REQUIRED_REAL_FIXTURES_NOT_BOUND",
   "executionAuthorized": false,
   "baselineCommit": "9eb09b8326fc2670fad6725f774ab1b252c4d343",
-  "candidate": "this packet's committed scope-extraction and cancellation-only diff",
+  "candidate": "generalized generated-row supplier successor of 85a2a97a",
   "isolation": "Fresh old/new processes per exact fixture. Old loads BOTH frozen 9eb modules at core/count-proof-scope.ts and core/count-cert-transport.ts. All kernel/checker modules and exact transport/replay function bodies stay identical. New changes only scope premises and legacy-extraction cancellation propagation.",
   "requiredInputEnvelope": {
     "schema": "scope-pair-fixture/v1",
@@ -13,7 +13,8 @@
     "owners": "Each owner name, ordered source family, raw proof instances/certificates/status/declarations, captured source goals and prior scope metadata",
     "T301": "Exact Inv* owner and canonical-replay source payload, original known/recorded premises and reduced target context",
     "R4": "Exact held scoped proofs/source contexts for every transported member, closing machine and ordered 17-law context; exact first-decline identity when retained",
-    "binding": "Reject missing fields or source-goal identity mismatch. Freeze full input SHA before any native execution. No placeholder fixture satisfies this gate."
+    "binding": "Reject missing fields or source-goal identity mismatch. Freeze full input SHA before any native execution. No placeholder fixture satisfies this gate.",
+    "S51": "Exact inX: no quorum canVote/3 @step ordinary certificate/instances/term restoration, source goal and scoped payload, closing counted machine, ordered closing law ASTs, held-member pool and decline identity. Names/public model alone are insufficient."
   },
   "protocols": [
     {
@@ -24,7 +25,7 @@
     {
       "id": "S1",
       "name": "synthetic missing-pair and controls",
-      "require": "Run both prepared test files plus existing scope/rescope/transport suites in isolated processes. Require all candidate tests including FULL-only cases; skipped FULL tests are not coverage. Baseline expected missing-premise and R1 cancellation-contract failures are recorded, not mistaken for required baseline passes."
+      "require": "Run the retained nine tests plus the new min-term transport control (direct and transitive subcases), all ten tests with FULL-only cases enabled, and one strict focused compiler check under the new one-shot Main authority. Record exact passes/skips, not merely exit code."
     },
     {
       "id": "T301",
@@ -55,6 +56,11 @@
       "id": "M3",
       "name": "hard stop",
       "require": "Under GDP_WORK_FULL=1 GDP_ROWS_SHARED=1, fund legacy prelude and any scope entry tick, then refuse at kernel facts inside legacy rowsAt for a nonempty-lemma certificate. Catch before exiting the active budget; assert no normal return, BudgetExpired phase kernel facts, native refusal trace, and identity-bound workLedger.capacityRefusal receipt. Test direct legacy and scope callers. A mere entry/completion stop is insufficient. Ordinary malformed-metadata decline remains distinct. Baseline swallowing is an expected hard-stop-contract failure, not a same-decline proof result."
+    },
+    {
+      "id": "S51-named-step",
+      "name": "inX: no quorum canVote/3 @step",
+      "require": "Follow S51-FOCUSED-SPEC.json. Compare exact source hypotheses, generated-row root provenance, law premises AND member-local unused/instance projection. Transport using the unchanged API into the premise-closed held family; never silently undo unused pruning or widen with unheld laws. This optional exact replay is not a prerequisite for the separately authorized combined timed experiment."
     }
   ],
   "recordPerOwner": [
@@ -68,7 +74,9 @@
     "independent native result",
     "exception stage/class",
     "complete exact 26-counter deltas and weighted work",
-    "search counters before/after"
+    "search counters before/after",
+    "member-local unused list and exact instance keys/tuples before and after deletion",
+    "generated row source kind/name, term-introduction edges and retained root hypothesis indices"
   ],
   "comparisonRules": {
     "monotonicity": "Every old reference/law premise must remain in a successful new extraction; explicit incompatible declarations may refuse, not silently weaken",
@@ -81,17 +89,20 @@
     "resourceOrInfrastructureFailure": "INCOMPLETE_NO_VERDICT, not SAME_DECLINE",
     "familyWidening": "Not part of this patch or same-input comparison. A separate captured held pool and explicit authorization are needed to evaluate a different closing family."
   },
-  "launchGate": "D review plus separate Main runtime authority, sealed exact case input SHAs, current native readiness and one-shot custody. No execution or capture is authorized by this document.",
+  "launchGate": "Exact frozen-replay execution remains blocked until its payloads and separate authority exist. Main separately authorized generalized 9+new-control+compiler ONCE; after green checks and an accepted combined packet D may grant the one combined timed rerun. Missing historical replay data is NOT a prerequisite for that rerun.",
   "claimsNotMade": [
     "T301 fixed",
     "R4 fixed",
-    "complete dependency extraction for all row sources",
     "end-to-end proof",
     "performance improvement",
-    "grid cause result"
+    "grid cause result",
+    "unconditional end-to-end transport theorem or observed S51 repair"
   ],
   "frozenOldModules": [
     "reference/count-proof-scope.ts.txt",
     "reference/count-cert-transport.ts.txt"
-  ]
+  ],
+  "pairOnlyReferenceCommit": "85a2a97a04b85e8ef133a18ab2653f66bf91bb57",
+  "optionalReplayNotRerunPrerequisite": true,
+  "authorizationScope": "Only the optional exact frozen-certificate comparisons in this document. Separate Main authority permits one generalized 10-test plus compiler job; a combined timed rerun still needs its own D GO."
 }

@@ -1,6 +1,6 @@
 import {expect,test} from 'bun:test'
-import {atMost,get,less,n,x} from './machine.ts'
-import {type CountCert,type Count,type Goal,type Path,type Tree,canon,checkGoalLemmas,framePath,leafConstraints,linear} from '../kernel/kernel.ts'
+import {atMost,get,less,min,n,x} from './machine.ts'
+import {type CountCert,type Count,type Goal,type Path,type Tree,canon,checkGoalLemmas,framePath,leafConstraints,linear,termColumn} from '../kernel/kernel.ts'
 import {countedCertificateHyps,replayCountCertificate} from './count-cert-transport.ts'
 import {countedScopeHyps} from './count-scope-hyps.ts'
 import {searchNow} from './wall.ts'
@@ -60,6 +60,35 @@ test('product dependencies and square offsets retain pair suppliers',()=>{
  const f=fixture({products:true})
  expect(checkGoalLemmas(f.goal,f.cert.tree,[],[],f.counts)).toBe(true)
  expect(sorted(countedScopeHyps(f.goal,f.cert))).toEqual([0,1])
+})
+test('uncited min-term suppliers, including transitive introductions, preserve native transport',()=>{
+ for(const nested of [false,true]){
+  // D's exact control is nested=false: H0 x<0; H1 min(x,y)<=100.
+  // nested=true introduces t only through outer u=min(t,z), not a fact row.
+  const inner=min(x('x'),x('y')),outer=nested?min(inner,x('z')):inner,t=termColumn(inner)
+  const goal:Goal={name:'uncited term supplier',hyps:[less(x('x'),n(0)),atMost(outer,n(100))]}
+  const rows=leafConstraints(goal,new Map()),find=(test:(r:typeof rows[number])=>boolean)=>{
+   const i=rows.findIndex(test);if(i<0)throw Error('term supplier control row missing');return i
+  }
+  expect(rows.some(r=>r.src!==undefined&&'pair'in r.src)).toBe(false)
+  if(nested)expect(rows.some(r=>r.src!==undefined&&'fact'in r.src&&r.src.fact===1&&Object.hasOwn(r.lin,t))).toBe(false)
+  const fact=find(r=>r.src!==undefined&&'fact'in r.src&&r.src.fact===0&&r.lin.x===1&&r.lin['1']===1)
+  const term=find(r=>r.src!==undefined&&'term'in r.src&&r.src.term===t&&r.lin[t]===1&&r.lin.x===-1)
+  const nat=find(r=>r.src!==undefined&&'nat'in r.src&&r.src.nat===t)
+  const cert:CountCert={reads:[],insts:[],tree:{leaf:[{kind:'input',index:fact},{kind:'input',index:term},{kind:'combine',a:0,b:1,ma:1,mb:1},{kind:'input',index:nat},{kind:'combine',a:2,b:3,ma:1,mb:1}]}}
+  expect(checkGoalLemmas(goal,cert.tree)).toBe(true)
+  // With no pairs/cuts, 85's pair-only collector adds nothing to this set.
+  const old=countedCertificateHyps(goal,cert)!
+  expect(sorted(old)).toEqual([0])
+  const oldTarget={...goal,hyps:goal.hyps.filter((_h,i)=>old.has(i))}
+  expect(replayCountCertificate(goal,oldTarget,cert,searchNow()+30000)).toBeUndefined()
+  const retained=countedScopeHyps(goal,cert)!
+  expect(sorted(retained)).toEqual([0,1])
+  const target={...goal,hyps:goal.hyps.filter((_h,i)=>retained.has(i))}
+  const moved=replayCountCertificate(goal,target,cert,searchNow()+30000)
+  expect(moved).toBeDefined()
+  if(moved)expect(checkGoalLemmas(target,moved.tree,moved.lemmas)).toBe(true)
+ }
 })
 test('native frame prefix is used rather than legacy unframed row indices',()=>{
  const f=fixture({frames:true})

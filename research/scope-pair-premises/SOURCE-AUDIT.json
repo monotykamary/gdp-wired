@@ -25,16 +25,16 @@
   "frozenOldScopeSha256": "c68ecac40848f7d480dbb7ae6b65f9b2d8db457a41aba4ce3136ac91f5529561",
   "frozenOldScopeIsDataOnly": true,
   "gitDiffCheck": "PASS",
-  "compiler": "NOT_RUN",
-  "tests": "NOT_RUN",
-  "nativeImports": "NONE_EXECUTED",
+  "compiler": "GENERALIZED SUCCESSOR NOT_RUN",
+  "tests": "GENERALIZED SUCCESSOR NOT_RUN",
+  "nativeImports": "GENERALIZED SUCCESSOR NOT_RUN",
   "T301Comparison": "BLOCKED_MISSING_REPLAY_INPUT",
   "R4Comparison": "BLOCKED_MISSING_REPLAY_INPUT",
-  "controllerAdmission": "NONE_REQUESTED_OR_USED",
+  "controllerAdmission": "Main separately authorized ONE generalized 10-test plus focused compiler attempt; not yet consumed in this source packet",
   "diagnosticBranchCoordination": "B's track-m/recipe-close-fallback is independent; it changes diagnostics in count-proof-scope.ts and closing/controller behavior. No merge or item-2 fallback is included here.",
   "runtimeSuccessClaim": false,
-  "revisesCommit": "0dba5e23d6b5099fd575312b4347c7479b2da1c0",
-  "priorPacketSha256": "02282c092a0883a63995857e7d0eb48edf5f13a489213e7c247283cb0919ee87",
+  "revisesCommit": "85a2a97a04b85e8ef133a18ab2653f66bf91bb57",
+  "priorPacketSha256": "ba05e2960166e5e689116bd5876979b2a79a2e528694efacb97cc241da373c2d",
   "explicitProtectedModuleException": {
     "path": "core/count-cert-transport.ts",
     "change": "imports and legacy extraction catch only; propagate original BudgetExpired and WallExpired",
@@ -42,5 +42,14 @@
     "removedFromUnchangedManifest": true,
     "oldModuleFrozenAs": "reference/count-cert-transport.ts.txt"
   },
-  "review": "c41534f96, identity-text cleanup 603657b34; SOURCE-ONLY HOLD R1; not GO"
+  "review": "R1/pair-only source reviewed; generalized successor requires fresh narrow D review",
+  "generalization": "All native fact-name roots plus term-introduction graph; used pair/term/nat root closure and product ancestry",
+  "preparedTests": 10,
+  "previous85Validation": {
+    "tests": "9 PASS / 0 FAIL / 0 SKIP",
+    "compiler": "focused strict PASS",
+    "batch": "20261112-125618-tzfvkf",
+    "receiptSha256": "7f3ff8db6ef94d09ee08829ef6928d62f303126724e0488581b98608086cc41e",
+    "cleanupComplete": true
+  }
 }

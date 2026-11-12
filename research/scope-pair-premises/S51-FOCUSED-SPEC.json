@@ -1,0 +1,80 @@
+{
+  "schema": "scope-s51-named-step/v1",
+  "focus": {
+    "member": "inX: no quorum canVote/3",
+    "obligation": "inX: no quorum canVote/3 @step",
+    "case": 5,
+    "classification": "certificate-transport-declined"
+  },
+  "reference": {
+    "source": "3cb1f51359c4ff1b98486ba498ef1b49d02bc4b0",
+    "tree": "968a5de06e8ec0f30881f40d6718ac9d5d4117e8",
+    "batch": "20261112-111353-warl93",
+    "verdictSha256": "d19765430276ec3a521dcabf04316488612d8b9a73e86f1167e2c3de9688240a",
+    "terminalAuditSha256": "3a4aeedd6d486f5958291f7c655e265266a75b3465239aacc2dd75f68be74007",
+    "countedUnitsApprox": 6120023601.8017,
+    "why": "recipe closing replay declined [needed]: member=inX: no quorum canVote/3, obligation=inX: no quorum canVote/3 @step, case=5:certificate-transport-declined; recipe pass: target-held",
+    "closingNames": [
+      "every C0 cell is a value of its kind",
+      "every Copied cell is a value of its kind",
+      "every Config cell is a value of its kind",
+      "one primary per term",
+      "St at most 1",
+      "fields: St[a]=1 -> CT[a]=CfgT[a]",
+      "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+      "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+      "every x with x < size: never Copied[x] is 0 and 1 <= started",
+      "every x with x < size: never 1 <= Copied[x] and picked is 0",
+      "every x with x < size: never 1 <= St[x] and started is 0",
+      "every x with x < size: never 1 <= CfgT[x] and started is 0",
+      "inX: no quorum canVote/3",
+      "inX: stored guard reconfigs/inS or disabled/0",
+      "fields: Copied[a]=1 and started=0 -> Config row is C0",
+      "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] and Copied[a]=Copied[b]=1 -> Config rows agree",
+      "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never Copied[x] is 0 and 1 <= inX$row[x]"
+    ],
+    "namesAreNotLawASTs": true,
+    "trace": null,
+    "observerInstalled": false,
+    "verdictPath": "/home/user/VCS/working-remote/open-source/gdp-wired-trackM-recipe-close-hard-stop/runs/section51-hard-stop-timed-result/mldr-3g-timed.files/verdict.json",
+    "terminalAuditPath": "/home/user/.local/state/r4-launcher/s51-launch-20261112/TERMINAL-AUDIT.json"
+  },
+  "exactReplay": {
+    "status": "BLOCKED_MISSING_REPLAY_INPUT",
+    "required": [
+      "exact ordinary @step certificate and all auxiliary cuts",
+      "exact runtime instances and expression-backed term-column restoration",
+      "captured source Goal and ordered source law ASTs",
+      "full member ScopedCountProof including premises, unused, status and owner identities",
+      "actual closing counted machine, ordered closing law ASTs and held payload pool"
+    ],
+    "rowWitness": [
+      "source native path and used input/product ancestry",
+      "row src kind and generator term or pair cells",
+      "all initial fact-name owners including duplicates and zero entries",
+      "term-introduction edges and root-owner reachability",
+      "old/new scope premises and scoped.unused",
+      "instance keys/tuples before and after member-local deletion"
+    ],
+    "procedure": [
+      "Verify source certificate against its exact source goal with unchanged native checking.",
+      "Re-extract old/new metadata on the identical proof/source. Require legacy and 85a premise subsets in successful generalized extraction.",
+      "Record added root suppliers for all used pair/term/nat rows. Do not guess the actual missing row from case5 alone.",
+      "Run the unchanged member-local unused-instance deletion for each scope. A larger family must not silently restore deleted instances.",
+      "Replay first into the identical original closing context, reporting success or exact refusal.",
+      "If new dependencies change the needed family, compute it with the unchanged planner from the captured held pool. Include only actually held/closed suppliers; do not invent a wider family.",
+      "Replay this exact named @step member and every necessary held member into that premise-closed family; require unchanged native checks and final family check for any proof claim."
+    ],
+    "gatesCombinedTimedRerun": false
+  },
+  "combinedTimedExperiment": {
+    "owner": "B",
+    "source": "generalized K successor plus B named-decline/hard-stop code, independently sealed",
+    "sameEnvelopeRequired": true,
+    "authority": "Main permits preparation; D one-shot GO follows green generalized 10 tests/compiler and accepted combined packet.",
+    "historicalReplayIsPrerequisite": false,
+    "proofSuccess": "Only original-model/target native checked acceptance; a returned/held proposal is not proof.",
+    "failure": "Preserve named member/obligation/case. A negative result is not repaired by search, hidden instance reinsertion, added unheld laws or retry."
+  },
+  "noExecutionGrantedByThisSpec": true
+}

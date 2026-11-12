@@ -78,7 +78,7 @@ const formulaKey=(holds:C):string=>strategyLawKey({name:'',holds})
 
 // This is proposal metadata, not an authorization. The exact referenced base
 // hypotheses (including independent cut slices and the fact rows supplying
-// cells to used equal-key rows) identify the family premises. Duplicate
+// names to used generated rows) identify the family premises. Duplicate
 // formulas and duplicate cell suppliers conservatively name every owner.
 // Explicit strategy scopes may be supplied, but may not omit referenced laws.
 export function scopeCountProof(m:Machine,owner:Law,family:Law[],proof:CountLawProof,until:number):ScopedCountProof|undefined{

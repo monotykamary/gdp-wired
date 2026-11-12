@@ -28,5 +28,15 @@
     "exactTransportComparisonAvailable": false
   },
   "newSearchOrCaptureAuthorized": false,
-  "runtimeResults": null
+  "runtimeResults": null,
+  "S51": {
+    "status": "NAMED_DECLINE_BUT_REPLAY_PAYLOAD_NOT_EXPORTED",
+    "member": "inX: no quorum canVote/3",
+    "obligation": "inX: no quorum canVote/3 @step",
+    "case": 5,
+    "verdictSha256": "d19765430276ec3a521dcabf04316488612d8b9a73e86f1167e2c3de9688240a",
+    "terminalAuditSha256": "3a4aeedd6d486f5958291f7c655e265266a75b3465239aacc2dd75f68be74007",
+    "exactTransportComparisonAvailable": false,
+    "notPrerequisiteForAuthorizedCombinedExperiment": true
+  }
 }
