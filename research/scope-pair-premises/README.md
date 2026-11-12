@@ -6,7 +6,7 @@ Implementation child of exact `9eb09b8326fc2670fad6725f774ab1b252c4d343` on `k/s
 
 At a fixed native leaf path, `leafRows` creates equal-key rows from all map-cell names in initial path/fact rows. `usedHyps` reports direct fact citations (and product ancestry), but not facts whose only contribution is a cell name needed by a cited pair row. Removing those facts can therefore remove an input row required by exact transport. This is a source-level mechanism, not a diagnosis proven for T301 or R4.
 
-The proposed fix changes **scope capture only**: `scopeCountProof` calls new `countedScopeHyps`, not the old fact-only helper. Kernel, checker, exact transporter, closure planner and `rescopeCountProof` are byte-identical to 9eb. The legacy `countedCertificateHyps` function and its separate legacy caller in `counts.ts` are unchanged.
+The pair-premise fix changes **scope capture**: `scopeCountProof` calls new `countedScopeHyps`, not the old fact-only helper. The R1 successor additionally corrects the legacy helper's cancellation catch in `core/count-cert-transport.ts`: original `BudgetExpired` and `WallExpired` objects now propagate; ordinary malformed metadata still declines. This previously protected module is explicitly removed from `UNCHANGED.sha256`. Kernel, checker, exact transport/replay function bodies, closure planner, `counts.ts` and `rescopeCountProof` remain byte-identical to 9eb. See `R1.md` for the enlarged, disclosed three-file production delta.
 
 `IMPLEMENTATION.patch` is a zero-context patch (use `git apply --unidiff-zero` against exact 9eb); the complete source is alongside it.
 
@@ -19,7 +19,7 @@ The proposed fix changes **scope capture only**: `scopeCountProof` calls new `co
 5. Add direct fact origins on this actual path. For every reached pair row, add **all** fact suppliers of both cells. Duplicate suppliers are deliberately retained, not minimized.
 6. Existing formula-to-law attribution in `scopeCountProof` names all corresponding laws, preserving family order and duplicate-formula conservatism. Existing declared-premise checks remain strict: a contradictory explicit declaration is refused, not silently repaired.
 
-New loops use existing `checkWall`/`startWork` and `visitLinearCells`. Native row rebuilding has its existing charged cost. The extra extraction is not free, cached, calibrated or demonstrated to fit a production budget. A hard budget stop propagates; no catch-and-search, fresh headroom or fallback is added.
+New loops use existing `checkWall`/`startWork` and `visitLinearCells`. Native row rebuilding has its existing charged cost. The extra extraction is not free, cached, calibrated or demonstrated to fit a production budget. The R1 correction rethrows original budget/wall cancellation even when it originates inside the legacy nonempty-lemma extraction catch; this is source-verified, not an executed test result. No catch-and-search, fresh headroom or fallback is added.
 
 ## Soundness argument (conditional, not a full transport theorem)
 
@@ -41,11 +41,13 @@ This proves preservation of **the identified fixed-path pair-row availability**,
 - products-of-products and square offsets preserve supplier ancestry;
 - frame-prefixed input indices use the actual native path.
 
-These are synthetic source regressions, **not substitutes for T301 or R4**. They have not been executed. Existing scope, rescope and transport suites are required in the sealed comparison spec.
+`core/count-cert-transport-hard-stop.test.ts` additionally prepares one native-validity control, two FULL-only authenticated capacity-refusal cases (direct legacy and new-scope callers), and an ordinary malformed-metadata refusal control. The FULL cases must enter legacy `rowsAt` and refuse at `kernel facts`, after funding the scope entry where present; catching is observed inside the active allowance, not at scope completion. `workLedger.capacityRefusal` authenticates the identical original error. Required profile: `GDP_WORK_FULL=1 GDP_ROWS_SHARED=1`; skipped FULL cases are NOT coverage.
+
+These nine tests are synthetic source regressions, **not substitutes for T301 or R4**. They have not been executed. No mono/linear-cut, atom-only, stored-zero, or real wall-expiry test coverage is claimed. Existing scope, rescope and transport suites are required in the sealed comparison spec.
 
 ## Real-case comparison and current blocker
 
-`COMPARISON-SPEC.json` describes fresh old/new processes, the frozen 9eb scope module `reference/count-proof-scope.ts.txt` (data, not an executable import), unchanged checkers, exact input identity, native prechecks, canonical T301 replay, and fixed-context R4 closing transport. It distinguishes IMPROVED, SAME_DECLINE and REGRESSION; a false-to-false result is not a fix. The same original closing context may correctly decline sooner if new dependencies identify an absent law. No widening/retry of the production closing algorithm is implemented here.
+`COMPARISON-SPEC.json` describes fresh old/new processes, the frozen 9eb modules `reference/count-proof-scope.ts.txt` and `reference/count-cert-transport.ts.txt` (data, not executable imports), unchanged checkers, exact input identity, native prechecks, canonical T301 replay, and fixed-context R4 closing transport. It distinguishes IMPROVED, SAME_DECLINE and REGRESSION; a false-to-false result is not a fix. The same original closing context may correctly decline sooner if new dependencies identify an absent law. No widening/retry of the production closing algorithm is implemented here.
 
 **Exact real-case payloads are required before any claim.** R4's owner confirms the timed artifact exported no held proofs, source contexts or failing member. Its public model/laws and 17-law name order are not the captured closing machine/scoped payload. T301's owner likewise confirms that only reference laws/machine and scope metadata survived; runtime instances, certificates, source goals and exact failing replay arguments are missing. Missing data means BLOCKED_MISSING_REPLAY_INPUT, never a synthetic stand-in or a passing comparison. See `INPUT-STATUS.json`.
 

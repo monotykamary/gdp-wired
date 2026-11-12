@@ -1,42 +1,97 @@
 {
-  "format":"scope-pair-premises-old-new/v1",
-  "status":"SEALED_SPEC_UNRUN_REQUIRED_REAL_FIXTURES_NOT_BOUND",
-  "executionAuthorized":false,
-  "baselineCommit":"9eb09b8326fc2670fad6725f774ab1b252c4d343",
-  "candidate":"this packet's committed scope-only diff",
-  "isolation":"Fresh old and new processes per exact fixture. Old loads the frozen 9eb core/count-proof-scope.ts at its original module path. All kernel/checker/transport modules stay identical.",
-  "requiredInputEnvelope":{
-    "schema":"scope-pair-fixture/v1",
-    "origin":"T301 or R4, exact retained run identity, source revision, artifact manifests and full SHA256",
-    "representation":"Portable full payload plus expression-backed term-column table; no process-local IDs guessed",
-    "capturedMachine":"Exact counted source/closing machine, not merely public pre-counting model",
-    "owners":"Each owner name, ordered source family, raw proof instances/certificates/status/declarations, captured source goals and prior scope metadata",
-    "T301":"Exact Inv* owner and canonical-replay source payload, original known/recorded premises and reduced target context",
-    "R4":"Exact held scoped proofs/source contexts for every transported member, closing machine and ordered 17-law context; exact first-decline identity when retained",
-    "binding":"Reject missing fields or source-goal identity mismatch. Freeze full input SHA before any native execution. No placeholder fixture satisfies this gate."
+  "format": "scope-pair-premises-old-new/v1",
+  "status": "SEALED_SPEC_UNRUN_REQUIRED_REAL_FIXTURES_NOT_BOUND",
+  "executionAuthorized": false,
+  "baselineCommit": "9eb09b8326fc2670fad6725f774ab1b252c4d343",
+  "candidate": "this packet's committed scope-extraction and cancellation-only diff",
+  "isolation": "Fresh old/new processes per exact fixture. Old loads BOTH frozen 9eb modules at core/count-proof-scope.ts and core/count-cert-transport.ts. All kernel/checker modules and exact transport/replay function bodies stay identical. New changes only scope premises and legacy-extraction cancellation propagation.",
+  "requiredInputEnvelope": {
+    "schema": "scope-pair-fixture/v1",
+    "origin": "T301 or R4, exact retained run identity, source revision, artifact manifests and full SHA256",
+    "representation": "Portable full payload plus expression-backed term-column table; no process-local IDs guessed",
+    "capturedMachine": "Exact counted source/closing machine, not merely public pre-counting model",
+    "owners": "Each owner name, ordered source family, raw proof instances/certificates/status/declarations, captured source goals and prior scope metadata",
+    "T301": "Exact Inv* owner and canonical-replay source payload, original known/recorded premises and reduced target context",
+    "R4": "Exact held scoped proofs/source contexts for every transported member, closing machine and ordered 17-law context; exact first-decline identity when retained",
+    "binding": "Reject missing fields or source-goal identity mismatch. Freeze full input SHA before any native execution. No placeholder fixture satisfies this gate."
   },
-  "protocols":[
-    {"id":"S0","name":"source integrity","require":"Kernel, native checker, exact transport, rescope and planner equal 9eb; old reference bytes equal 9eb; only intended scope extraction differs"},
-    {"id":"S1","name":"synthetic missing-pair and controls","require":"Run new test file plus existing scope/rescope/transport suites in old/new isolated processes; old direct-fact behavior retained as reference; new required supplier case passes unchanged native checks"},
-    {"id":"T301","name":"real Inv* canonical replay","require":"Original source certificates pass unchanged 9eb checkMC first; match retained source goals; reproduce old canonical decline; compare actual rescopeCountProof canonical stage, with no fallback search or altered raw proof declarations"},
-    {"id":"R4-fixed","name":"real closing transport into original context","require":"Replay every exact held payload into the same captured ordered 17-law family with original deferToClosing setting; independently check every returned certificate and the complete family if all transports return"},
-    {"id":"R4-dependencies","name":"explain newly required suppliers","require":"Record old/new hypothesis and law premise sets and which new laws are absent from original 17; do not silently change closing family or claim that an earlier missing-premise refusal is success"},
-    {"id":"M1","name":"remove required supplier","require":"Remove a newly required supplier from a successful new canonical context: extraction/replay must refuse or unchanged native check reject; no repair by search"},
-    {"id":"M2","name":"identity/certificate mutants","require":"Changed owner/premise identity and empty/damaged tree must not yield a checked reduced receipt"},
-    {"id":"M3","name":"hard stop","require":"Expired/counted-exhausted extraction propagates the existing hard-stop class; no conversion to a successful scope or new allowance"}
+  "protocols": [
+    {
+      "id": "S0",
+      "name": "source integrity",
+      "require": "Kernel, native checker, exact transport/replay bodies, rescope and planner equal 9eb; both frozen old modules equal 9eb. Disclose the only additional change in previously protected count-cert-transport.ts: legacy extraction rethrows original BudgetExpired/WallExpired; malformed metadata remains undefined."
+    },
+    {
+      "id": "S1",
+      "name": "synthetic missing-pair and controls",
+      "require": "Run both prepared test files plus existing scope/rescope/transport suites in isolated processes. Require all candidate tests including FULL-only cases; skipped FULL tests are not coverage. Baseline expected missing-premise and R1 cancellation-contract failures are recorded, not mistaken for required baseline passes."
+    },
+    {
+      "id": "T301",
+      "name": "real Inv* canonical replay",
+      "require": "Original source certificates pass unchanged 9eb checkMC first; match retained source goals; reproduce old canonical decline; compare actual rescopeCountProof canonical stage, with no fallback search or altered raw proof declarations"
+    },
+    {
+      "id": "R4-fixed",
+      "name": "real closing transport into original context",
+      "require": "Replay every exact held payload into the same captured ordered 17-law family with original deferToClosing setting; independently check every returned certificate and the complete family if all transports return"
+    },
+    {
+      "id": "R4-dependencies",
+      "name": "explain newly required suppliers",
+      "require": "Record old/new hypothesis and law premise sets and which new laws are absent from original 17; do not silently change closing family or claim that an earlier missing-premise refusal is success"
+    },
+    {
+      "id": "M1",
+      "name": "remove required supplier",
+      "require": "Freeze a successful scoped payload and its target context. Remove a declared added-supplier law only from the target, retain the identical payload, and require replay to refuse on the missing declared premise. Do not re-extract a different scope; duplicate conservative suppliers need not each be logically indispensable. No search."
+    },
+    {
+      "id": "M2",
+      "name": "identity/certificate mutants",
+      "require": "Changed owner/premise identity and empty/damaged tree must not yield a checked reduced receipt"
+    },
+    {
+      "id": "M3",
+      "name": "hard stop",
+      "require": "Under GDP_WORK_FULL=1 GDP_ROWS_SHARED=1, fund legacy prelude and any scope entry tick, then refuse at kernel facts inside legacy rowsAt for a nonempty-lemma certificate. Catch before exiting the active budget; assert no normal return, BudgetExpired phase kernel facts, native refusal trace, and identity-bound workLedger.capacityRefusal receipt. Test direct legacy and scope callers. A mere entry/completion stop is insufficient. Ordinary malformed-metadata decline remains distinct. Baseline swallowing is an expected hard-stop-contract failure, not a same-decline proof result."
+    }
   ],
-  "recordPerOwner":["input/source-goal hashes","old and new direct/reference indices","old and new scope indices and law premises","added cell suppliers","native original verdict","canonical event sequence","transport return/decline per obligation","independent native result","exception stage/class","complete exact 26-counter deltas and weighted work","search counters before/after"],
-  "comparisonRules":{
-    "monotonicity":"Every old reference/law premise must remain in a successful new extraction; explicit incompatible declarations may refuse, not silently weaken",
-    "noSearch":"No solver/search counter increment during extraction/replay/transport; no fresh proof generation",
-    "newSuccess":"Only if actual original replay/transport returns and unchanged native checks accept the identical statement",
-    "oldFalseNewTrue":"IMPROVED, limited to this exact fixture and same statement",
-    "oldFalseNewFalse":"SAME_DECLINE / NOT_FIXED; preserve both decline/exception observations",
-    "oldTrueNewFalse":"REGRESSION; not accepted as same failure",
-    "missingInput":"BLOCKED_MISSING_REPLAY_INPUT; no result or replacement synthetic claim",
-    "resourceOrInfrastructureFailure":"INCOMPLETE_NO_VERDICT, not SAME_DECLINE",
-    "familyWidening":"Not part of this patch or same-input comparison. A separate captured held pool and explicit authorization are needed to evaluate a different closing family."
+  "recordPerOwner": [
+    "input/source-goal hashes",
+    "old and new direct/reference indices",
+    "old and new scope indices and law premises",
+    "added cell suppliers",
+    "native original verdict",
+    "canonical event sequence",
+    "transport return/decline per obligation",
+    "independent native result",
+    "exception stage/class",
+    "complete exact 26-counter deltas and weighted work",
+    "search counters before/after"
+  ],
+  "comparisonRules": {
+    "monotonicity": "Every old reference/law premise must remain in a successful new extraction; explicit incompatible declarations may refuse, not silently weaken",
+    "noSearch": "No solver/search counter increment during extraction/replay/transport; no fresh proof generation",
+    "newSuccess": "Only if actual original replay/transport returns and unchanged native checks accept the identical statement",
+    "oldFalseNewTrue": "IMPROVED, limited to this exact fixture and same statement",
+    "oldFalseNewFalse": "SAME_DECLINE / NOT_FIXED; preserve both decline/exception observations",
+    "oldTrueNewFalse": "REGRESSION; not accepted as same failure",
+    "missingInput": "BLOCKED_MISSING_REPLAY_INPUT; no result or replacement synthetic claim",
+    "resourceOrInfrastructureFailure": "INCOMPLETE_NO_VERDICT, not SAME_DECLINE",
+    "familyWidening": "Not part of this patch or same-input comparison. A separate captured held pool and explicit authorization are needed to evaluate a different closing family."
   },
-  "launchGate":"D review plus separate Main runtime authority, sealed exact case input SHAs, current native readiness and one-shot custody. No execution or capture is authorized by this document.",
-  "claimsNotMade":["T301 fixed","R4 fixed","complete dependency extraction for all row sources","end-to-end proof","performance improvement","grid cause result"]
+  "launchGate": "D review plus separate Main runtime authority, sealed exact case input SHAs, current native readiness and one-shot custody. No execution or capture is authorized by this document.",
+  "claimsNotMade": [
+    "T301 fixed",
+    "R4 fixed",
+    "complete dependency extraction for all row sources",
+    "end-to-end proof",
+    "performance improvement",
+    "grid cause result"
+  ],
+  "frozenOldModules": [
+    "reference/count-proof-scope.ts.txt",
+    "reference/count-cert-transport.ts.txt"
+  ]
 }

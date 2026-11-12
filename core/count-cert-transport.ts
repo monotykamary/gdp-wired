@@ -1,8 +1,8 @@
-import {searchNow as countedSearchNow} from './wall.ts'
+import {searchNow as countedSearchNow,WallExpired} from './wall.ts'
 // Untrusted integration helpers for complete counted certificates. The kernel
 // still checks the emitted ordinary tree and independent conditional cuts.
 import {type CountCert,type Goal,type Path,canon,lemmaPath} from '../kernel/kernel.ts'
-import {usedHyps,widen} from '../kernel/prove.ts'
+import {BudgetExpired,usedHyps,widen} from '../kernel/prove.ts'
 import {collectConditionalCertificate,markConditionalProof,transportConditionalProof} from './count-recovery/conditional-proof.ts'
 
 export function transportCountCertificate(from:Goal,to:Goal,cert:CountCert,until:number):CountCert|undefined{
@@ -45,5 +45,10 @@ export function countedCertificateHyps(goal:Goal,cert:CountCert):Set<number>|und
    for(const i of lemma.slice){if(!Number.isSafeInteger(i)||i<0||i>=goal.hyps.length)return undefined;found.add(i)}
   }
   return found
- }catch{return undefined}
+ }catch(error){
+  // Cancellation is not malformed metadata. Preserve the original error,
+  // including the allocator's identity-bound capacity-refusal provenance.
+  if(error instanceof BudgetExpired||error instanceof WallExpired)throw error
+  return undefined
+ }
 }

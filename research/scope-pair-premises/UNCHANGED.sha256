@@ -1,5 +1,4 @@
 b589579e4e516391d007b40447855d88a7ec08ebe954ed4c073c09e23ffc8157  core/check.ts
-4010a0ad15a666080c176a01de1e0a1af10ad36213c34f2e0ee58fa14a7726cf  core/count-cert-transport.ts
 fa1c1ba24a22dd9915c70e89cd9de1f5de9845e903ac32919405f27068b823f5  core/count-proof-rescope.ts
 683d7f304ccb0953e6bda7468af8f5dc2e7fea3fbb774de4def6608b3d10cdf8  core/count-recipe-controller.ts
 b3a3f6471a7b9c311ca14dbbbe11ef9bacc93db84f552fb4f5d3b458d7d18011  core/count-recovery/conditional-proof.ts
