@@ -71,6 +71,11 @@ const originals={...strategies},planner={...planning},shape={...liftedShape}
 void mock.module('./count-strategies.ts',()=>({...originals,
  prepareCountStrategyMachine:(m:Machine)=>m,
  selectedCountStrategies:()=>fixture?.family??[],
+ proposeCountStrategyKindForClosing:(_kind:'row'|'guard',m:Machine,family:Law[],law:Law)=>{
+  if(!fixture)throw Error('producer called outside a fixture')
+  fixture.calls.push(law.name)
+  return fixture.produce(m,family,law)
+ },
  proposeCountStrategiesForClosing:(m:Machine,family:Law[],law:Law,_until:number,_request:unknown,_observe:unknown,_allowance:unknown,_shape:unknown,budget?:LiftedWorkBudget)=>{
   if(!fixture)throw Error('producer called outside a fixture')
   fixture.calls.push(law.name)
@@ -151,8 +156,8 @@ test('N2: retry certificate bytes equal an independently rebuilt larger-first-al
 test('N3/46.17: public T301-shaped half retry funds body separately and closes dependents (expected RED while flat)',()=>{
  const {m,family}=independent(['half','Inv*','K3','safety']),[half,inv,k3,target]=family as [Law,Law,Law,Law]
  const rs=new Map<string,readonly CountComponentRecipe[]>([
-  [half.name,[recipe('lifted',[])]],[inv.name,[recipe('fixture',[half.name])]],
-  [k3.name,[recipe('fixture',[half.name,inv.name])]],[target.name,[recipe('fixture',[half.name,inv.name,k3.name])]]])
+  [half.name,[recipe('lifted',[])]],[inv.name,[recipe('row',[half.name])]],
+  [k3.name,[recipe('row',[half.name,inv.name])]],[target.name,[recipe('row',[half.name,inv.name,k3.name])]]])
  const out=publicRun({family,recipes:rs,lifted:new Set([half.name]),calls:[],produce:(machine,context,law,budget)=>{
   if(law===half){
    expect(budget?.lease).toBeDefined()
@@ -171,7 +176,7 @@ test('N3/46.17: public T301-shaped half retry funds body separately and closes d
 
 test('N4: once the only half route is blocked no dependent attempt or later producer starts',()=>{
  const {m,family}=independent(['half','Inv*','Inv3915','K3','safety']),[half,inv,other,k3,target]=family as [Law,Law,Law,Law,Law]
- const rs=new Map(family.map(law=>[law.name,[recipe('fixture',law===half?[]:law===target?[half.name,inv.name,other.name,k3.name]:[half.name])]]))
+ const rs=new Map(family.map(law=>[law.name,[recipe('row',law===half?[]:law===target?[half.name,inv.name,other.name,k3.name]:[half.name])]]))
  const out=publicRun({family,recipes:rs,calls:[],produce:(_m,_f,law)=>{if(law!==half)throw Error('blocked dependent producer started');return undefined}},m,[target])
  expect(out.result.proven).toBe(false);expect(out.calls).toEqual([half.name])
  expect(attempts(out.events).map(e=>e.law)).toEqual([half.name])
@@ -199,8 +204,8 @@ test('N5: stranded alternative replaces, rather than relabels, the old cut-beari
  const {m,family}=independent(['target','replaceable','missing']),[target,member,missing]=family as [Law,Law,Law]
  missing.holds=same(x('v2'),n(7));m.state.v2=n(7);m.step.state!.v2=n(7)
  let generation=0,oldScope:ScopedCountProof|undefined
- const rs=new Map<string,readonly CountComponentRecipe[]>([[target.name,[recipe('fixture',[member.name])]],
-  [member.name,[recipe('old',[]),recipe('alternative',[])]],[missing.name,[recipe('unavailable',[])]]])
+ const rs=new Map<string,readonly CountComponentRecipe[]>([[target.name,[recipe('row',[member.name])]],
+  [member.name,[recipe('row',[]),recipe('guard',[])]],[missing.name,[recipe('row',[])]]])
  const out=publicRun({family,recipes:rs,calls:[],produce:(machine,context,law)=>{
   if(law===missing)return undefined
   const proof=prove(machine,law,context)
@@ -243,7 +248,7 @@ test('N6: unchecked understated premises keep known requirements in S and cannot
 test('N7: refused reduction keeps funded full-only scope through the public prover and native closing',()=>{
  const {m,family}=independent(['left','right','extra valid scope']),[left,right,extra]=family as [Law,Law,Law]
  m.step.state!.v0=x('v1');m.step.state!.v1=x('v0')
- const rs=new Map(family.map(law=>[law.name,[recipe('fixture',law===left?[right.name]:law===right?[left.name]:[])]]))
+ const rs=new Map(family.map(law=>[law.name,[recipe('row',law===left?[right.name]:law===right?[left.name]:[])]]))
  const replay=spyOn(scope,'replayScopedCountProof');replay.mockImplementationOnce(()=>undefined)
  try{
   const out=publicRun({family,recipes:rs,calls:[],produce:(machine,context,law)=>prove(machine,law,context)},m,[left])
@@ -260,8 +265,8 @@ test('N7: refused reduction keeps funded full-only scope through the public prov
 
 test('N8/46.15: target with only unknown-set recipe considers inventory but invents no premise',()=>{
  const {m,family}=independent(['base','known user','target']),[base,user,target]=family as [Law,Law,Law]
- const rs=new Map<string,readonly CountComponentRecipe[]>([[base.name,[recipe('fixture',[])]],
-  [user.name,[recipe('fixture',[base.name])]],[target.name,[recipe('unknown',undefined)]]])
+ const rs=new Map<string,readonly CountComponentRecipe[]>([[base.name,[recipe('row',[])]],
+  [user.name,[recipe('row',[base.name])]],[target.name,[recipe('row',undefined)]]])
  const out=publicRun({family,recipes:rs,calls:[],produce:(machine,context,law)=>prove(machine,law,context)},m,[target])
  expect(out.result.proven).toBe(true);expect(out.calls).toEqual([base.name,user.name,target.name])
  expect(out.result.proof?.premises?.[target.name]).toEqual([])
