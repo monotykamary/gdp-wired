@@ -203,6 +203,9 @@ function addRequiredUnusedCut(m:Machine,owner:Law,context:Law[],dependency:Law,p
 test('N5: stranded alternative replaces, rather than relabels, the old cut-bearing proof',()=>{
  const {m,family}=independent(['target','replaceable','missing']),[target,member,missing]=family as [Law,Law,Law]
  missing.holds=same(x('v2'),n(7));m.state.v2=n(7);m.step.state!.v2=n(7)
+ // The target must really use the member's invariant at STEP. Otherwise a
+ // checked reduction can correctly omit this independent member at closing.
+ m.step.state!.v0=x('v1')
  let generation=0,oldScope:ScopedCountProof|undefined
  const rs=new Map<string,readonly CountComponentRecipe[]>([[target.name,[recipe('row',[member.name])]],
   [member.name,[recipe('row',[]),recipe('guard',[])]],[missing.name,[recipe('row',[])]]])
@@ -217,6 +220,7 @@ test('N5: stranded alternative replaces, rather than relabels, the old cut-beari
   return proof
  }},m,[target],PUBLIC_ROOT,result=>{
   expect(result.proven).toBe(true);expect(result.laws).not.toContain(missing)
+  expect(result.laws).toContain(member)
   expect(oldScope).toBeDefined()
   expect(scope.replayScopedCountProof(m,result.laws,oldScope!,Infinity)).toBeUndefined()
  })
@@ -226,6 +230,8 @@ test('N5: stranded alternative replaces, rather than relabels, the old cut-beari
  expect(proposals).toHaveLength(2)
  expect(proposals[0]!.premises).toContain(missing.name)
  expect(proposals[1]!.premises).not.toContain(missing.name)
+ expect(out.result.proof?.premises?.[target.name]).toContain(member.name)
+ expect(out.result.proof?.premises?.[member.name]).toEqual(proposals[1]!.premises)
  expect(out.result.proof?.premises?.[member.name]).not.toContain(missing.name)
 })
 

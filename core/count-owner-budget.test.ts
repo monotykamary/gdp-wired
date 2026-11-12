@@ -278,7 +278,9 @@ test('46.17: rescope/stamps/closing remain outside the callback receipt and prot
  b.withBudget(a(1000),()=>{
   b.withBudget(a(600),()=>{
    const tickets=new CountAttemptTickets(),plan=planDisjointCountRound({cases:new Map([['op:0',a(100)]]),leaf:a(5)},a(40),[],tickets,undefined,b);admitted(plan)
-   expect(plan.need).toEqual(b.available());expect(compareWork(plan.need,a(600))).toBeLessThan(0)
+   const available=b.available()
+   expect(available).not.toBeNull();if(available===null)throw Error('fixture requires a live finite scope')
+   expect(plan.need).toEqual(available);expect(compareWork(plan.need,a(600))).toBeLessThan(0)
    const out=runDisjointCountRound(plan,tickets,owners=>{
     owners.case('op:0',()=>b.start('ticks',5));owners.body(()=>b.start('ticks',10));return {kind:'proposal',value:0}
    },b)
@@ -316,7 +318,7 @@ test('46.17: native producer rejects a foreign owner bank before any body or req
   const law:Law={name:'foreign-bank target',holds:same(x('value'),n(0))}
   const m:Machine={name:'foreign-bank fixture',params:[],inputs:[],state:{value:n(0)},step:{state:{value:n(0)}}}
   const budget=liftedWorkLeaseBudget(a(1000),{owners}),calls={requests:0}
-  expect(()=>proposeCountStrategiesForClosing(m,[law],law,Infinity,()=>{calls.requests++;return undefined},undefined,Infinity,[law],budget)).toThrow('native work ledger')
+  expect(()=>proposeCountStrategiesForClosing(m,[law],law,Infinity,()=>{calls.requests++;throw Error('foreign-owner request must not run')},undefined,Infinity,[law],budget)).toThrow('native work ledger')
   expect(owners.ownsBank(workLedger)).toBe(false);expect(b.actual()).toEqual(before);expect(calls.requests).toBe(0)
  }))
 })

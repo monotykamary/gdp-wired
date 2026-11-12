@@ -7,7 +7,7 @@ import * as controller from './count-recipe-controller.ts'
 import {type CountControllerMember,type CountCaptured} from './count-recipe-controller.ts'
 import {countRecipeGraph,type CountRecipeGraph} from './count-recipe-graph.ts'
 import {BudgetExpired,workLedger} from './work-admission.ts'
-import {type ExactRaw,type WorkAmount,workAmount,workFromExact,workAdd,workSub,workShare,compareWork,minWork} from './work-amount.ts'
+import {type ExactRaw,type WorkAmount,workAmount,workFromExact,workSub,workShare,compareWork,minWork} from './work-amount.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {withBudget} from '../kernel/prove.ts'
 const ROOT=4_800_000,a=(n:number)=>workAmount(BigInt(n))
@@ -17,6 +17,8 @@ type Pass=controller.CountRecipePass<string>
 type Options={pad?:WorkAmount,construct?:(name:string,id:string,pass:Pass)=>CountCaptured<string>|undefined,observe?:(event:Event,pass:Pass)=>void}
 beforeAll(()=>{expect(completeWorkProfile.enabled).toBe(true);expect(workLedger.weights.ticks).toEqual(a(1))})
 const exact=(value:unknown):WorkAmount=>{expect(value).toBeDefined();return workFromExact(value as ExactRaw)}
+const graphNodes=(members:readonly CountControllerMember[])=>members.map(member=>({...member,
+ recipes:member.recipes.map(recipe=>({...recipe,terminal:false}))}))
 function family(wide:boolean,kind:Kind,extra=20):CountControllerMember[]{
  return [{name:'a',reference:0,recipes:[{id:'first',kind,required:[]}]},
   {name:'b',reference:1,recipes:[{id:'first',kind,required:[]}]},
@@ -76,7 +78,7 @@ test('46.18 B2: outside selected member counts itself with Q=3; empty Q gives p=
   if(kind==='ordinary')expect(compareWork(exact(event.allotted),a(ROOT/10))).toBeGreaterThan(0)
   formula(event,4,kind)
   withBudget(ROOT,()=>{
-   const graph=countRecipeGraph(members,['target']),empty={...graph,closure:new Set([...graph.closure,'not-a-member']),usable:new Set(graph.closure),blocked:new Set(['not-a-member'])}
+   const graph=countRecipeGraph(graphNodes(members),['target']),empty={...graph,closure:new Set([...graph.closure,'not-a-member']),usable:new Set(graph.closure),blocked:new Set(['not-a-member'])}
    const p=cohortApi.countRecipeAllocationCohort(members.map(m=>m.name),empty,'outside0',()=>workLedger.start('ticks',1))
    expect(p).toBe(1)
    const before=workLedger.available()!,result=cohortApi.countRecipeMemberAllotment(before,p,kind,workLedger.weights.ticks)
@@ -88,7 +90,7 @@ test('46.18 B2: outside selected member counts itself with Q=3; empty Q gives p=
 
 test('46.18 B3: twenty widened members affect scheduling, not either closure allocation formula',()=>{
  for(const kind of ['ordinary','strategy'] as const){
-  const members=family(true,kind),graph=countRecipeGraph(members,['target'],()=>{})
+  const members=family(true,kind),graph=countRecipeGraph(graphNodes(members),['target'],()=>{})
   expect(graph.candidates.size).toBe(23);expect([...graph.closure].sort()).toEqual(['a','b','target'])
   expect(graph.next?.name).toBe('a');expect([...graph.requirements.get('target')!]).toEqual(['a','b'])
   const out=execute(members),event=admission(out.events,'a')
