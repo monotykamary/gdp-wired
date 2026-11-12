@@ -1,0 +1,510 @@
+diff --git a/core/count-cert-transport.ts b/core/count-cert-transport.ts
+index 009e65305..96e2b864a 100644
+--- a/core/count-cert-transport.ts
++++ b/core/count-cert-transport.ts
+@@ -3,7 +3,8 @@ import {searchNow as countedSearchNow,WallExpired} from './wall.ts'
+ // still checks the emitted ordinary tree and independent conditional cuts.
+ import {type CountCert,type Goal,type Path,canon,lemmaPath} from '../kernel/kernel.ts'
+ import {BudgetExpired,usedHyps,widen} from '../kernel/prove.ts'
+-import {collectConditionalCertificate,markConditionalProof,transportConditionalProof} from './count-recovery/conditional-proof.ts'
++import {collectConditionalCertificate,markConditionalProof,transportConditionalProof,type ConditionalTransportOptions} from './count-recovery/conditional-proof.ts'
++import {workLedger} from './work-admission.ts'
+ 
+ export function transportCountCertificate(from:Goal,to:Goal,cert:CountCert,until:number):CountCert|undefined{
+  if(countedSearchNow()>=until)return undefined
+@@ -15,12 +16,17 @@ export function transportCountCertificate(from:Goal,to:Goal,cert:CountCert,until
+ 
+ // Across-round retention must never repair a missing premise by searching.
+ // The exact conditional transporter also handles ordinary trees with no cuts.
+-export function replayCountCertificate(from:Goal,to:Goal,cert:CountCert,until:number):CountCert|undefined{
+- if(countedSearchNow()>=until)return undefined
+- const marked=markConditionalProof(from,cert.tree,cert.lemmas??[])
+- const tree=transportConditionalProof(from,to,marked,new Map(),new Map(),until)
+- const combined=tree&&collectConditionalCertificate(to,tree,until)
+- return combined?{...cert,...combined}:undefined
++export function replayCountCertificate(from:Goal,to:Goal,cert:CountCert,until:number,options?:ConditionalTransportOptions):CountCert|undefined{
++ const replay=()=>{
++  if(countedSearchNow()>=until)return undefined
++  const marked=markConditionalProof(from,cert.tree,cert.lemmas??[])
++  const tree=transportConditionalProof(from,to,marked,new Map(),new Map(),until,options)
++  const combined=tree&&collectConditionalCertificate(to,tree,until,options)
++  return combined?{...cert,...combined}:undefined
++ }
++ // The original error and its ledger-authenticated endpoint provenance survive
++ // nested pre-check/kernel catches; legacy callers retain their old boundary.
++ return options?.rethrowBudgetExpired?workLedger.withCapacityRefusalBoundary(replay):replay()
+ }
+ 
+ export function countedCertificateHyps(goal:Goal,cert:CountCert):Set<number>|undefined{
+diff --git a/core/count-proof-rescope.ts b/core/count-proof-rescope.ts
+index addff8a56..5ce028abe 100644
+--- a/core/count-proof-rescope.ts
++++ b/core/count-proof-rescope.ts
+@@ -2,7 +2,7 @@
+ // original context is a fallback only after refusal and explicit permission
+ // to use an existing funded scope. A hard stop is never caught here.
+ import {type Law,type Machine} from './machine.ts'
+-import {type CountLawProof,type ScopedCountProof,scopeCountProof,replayScopedCountProof,isCheckedReducedScope} from './count-proof-scope.ts'
++import {type CountLawProof,type ScopedCountProof,scopeCountProof,scopeCountProofPair,replayScopedCountProof,isCheckedReducedScope} from './count-proof-scope.ts'
+ import {checkMC,countedObligations} from '../kernel/kernel.ts'
+ import {clock,withDeadline} from '../kernel/prove.ts'
+ import {checkWall} from './wall.ts'
+@@ -17,14 +17,14 @@ function uncheckedOffer(offered:ScopedCountProof,checkWork:number):ScopedCountPr
+  // Reuse the already captured full-scope payload. In particular, do not run
+  // scope capture, identity hashing, or checked-reduced stamping a second time.
+  const {checkedReduced,...scope}=offered;void checkedReduced
+- return {...scope,proof:{...offered.proof,status:'unchecked'},checkWork}
++ return {...scope,proof:{...offered.proof,status:'unchecked'},suppliers:'unresolved',checkWork}
+ }
+ export function rescopeCountProof(m:Machine,owner:Law,family:Law[],proof:CountLawProof,_held:ReadonlySet<string>,until:number,observe?:(event:CountRescopeEvent)=>void,options:CountRescopeOptions={}):ScopedCountProof|undefined{
+  return withDeadline(until,()=>{
+   checkWall('counted checked rescope');startWork('ticks',1,'counted checked rescope')
+-  const start=clock(),offered=scopeCountProof(m,owner,family,proof,until)
+-  // Validate declared metadata, but do not retain a declared unused superset.
+-  const inferred=offered&&scopeCountProof(m,owner,family,{instances:proof.instances,certs:proof.certs},until)
++  // Validate the offered declaration and infer the minimal legacy scope from
++  // the same row scan. Both keep the old proof/status/receipt behavior.
++  const start=clock(),{offered,inferred}=scopeCountProofPair(m,owner,family,proof,until)
+   if(inferred&&clock()<until){
+    const keep=new Set([owner.name]);for(const premise of inferred.premises){startWork('ticks',1,'reduced context premise');keep.add(premise.name)}
+    const context=workFilter(family,l=>keep.has(l.name),'reduced context family')
+diff --git a/core/count-proof-scope.ts b/core/count-proof-scope.ts
+index 1302fe087..3d0614e2a 100644
+--- a/core/count-proof-scope.ts
++++ b/core/count-proof-scope.ts
+@@ -3,7 +3,7 @@
+ import {type C,type Law,type Machine} from './machine.ts'
+ import {type CountCert,type Goal,type Instances,assumed,checkMC,countedObligations,mcGoal} from '../kernel/kernel.ts'
+ import {clock,wallAt,withDeadline} from '../kernel/prove.ts'
+-import {replayCountCertificate} from './count-cert-transport.ts'
++import {countedCertificateHyps,replayCountCertificate} from './count-cert-transport.ts'
+ import {countedScopeHyps} from './count-scope-hyps.ts'
+ import {strategyLawKey} from './strategy-premises.ts'
+ import {checkWall} from './wall.ts'
+@@ -54,6 +54,9 @@ export type ScopedCountProof = Readonly<{
+  proof:CountLawProof,
+  sources:readonly Goal[],
+  unused:readonly string[],
++ // Dependency metadata only. Unresolved captures retain the original instances;
++ // resolved means a native reduced receipt or one full supplier reconstruction.
++ suppliers?:'unresolved'|'resolved',
+  // Observed checking/replay cost in clock units; scheduling only, never authority.
+  checkWork?:number,
+  // Opaque provenance, not a serializable or caller-asserted checked flag.
+@@ -77,17 +80,27 @@ const identity=(law:Law):Premise=>({name:law.name,key:JSON.stringify([law.forall
+ const formulaKey=(holds:C):string=>strategyLawKey({name:'',holds})
+ 
+ // This is proposal metadata, not an authorization. The exact referenced base
+-// hypotheses (including independent cut slices and the fact rows supplying
+-// names to used generated rows) identify the family premises. Duplicate
+-// formulas and duplicate cell suppliers conservatively name every owner.
++// hypotheses (including every independent cut's source slice) identify the
++// family premises, exactly as at 9eb. Generated suppliers are resolved only
++// after an actual closing transport decline. Duplicate formulas name every owner.
+ // Explicit strategy scopes may be supplied, but may not omit referenced laws.
+ export function scopeCountProof(m:Machine,owner:Law,family:Law[],proof:CountLawProof,until:number):ScopedCountProof|undefined{
++ return captureScope(m,owner,family,proof,until,countedCertificateHyps)
++}
++// Offered and inferred scopes share one scan; the inferred proof still omits
++// the offered status/declaration and receives no borrowed checked receipt.
++export function scopeCountProofPair(m:Machine,owner:Law,family:Law[],proof:CountLawProof,until:number):{offered?:ScopedCountProof,inferred?:ScopedCountProof}{
++ let inferred:ScopedCountProof|undefined
++ const offered=captureScope(m,owner,family,proof,until,countedCertificateHyps,scope=>{inferred=scope})
++ return {offered,inferred}
++}
++function captureScope(m:Machine,owner:Law,family:Law[],proof:CountLawProof,until:number,refsOf:typeof countedCertificateHyps,onInferred?:(scope:ScopedCountProof)=>void):ScopedCountProof|undefined{
+  if(!live(until)||!family.includes(owner)||new Set(family.map(l=>l.name)).size!==family.length)return undefined
+  const sources:Goal[]=[],used=new Set<string>()
+  for(const {goal,decls}of countedObligations(m,family,{[owner.name]:proof.instances},family.indexOf(owner))){
+   if(!live(until))return undefined
+   const cert=proof.certs[goal.name],expanded=cert&&mcGoal(goal.hyps,decls,cert)
+-  const refs=expanded&&countedScopeHyps(expanded,cert!)
++  const refs=expanded&&refsOf(expanded,cert!)
+   if(!expanded||!refs)return undefined
+   sources.push(expanded)
+   for(const index of refs){
+@@ -101,15 +114,39 @@ export function scopeCountProof(m:Machine,owner:Law,family:Law[],proof:CountLawP
+  if(names.size!==declared.length||declared.some(name=>!available.has(name))||actual.some(l=>!names.has(l.name)))return undefined
+  const premises=family.filter(l=>names.has(l.name)).map(identity)
+  if(!live(until))return undefined
+- const result:ScopedCountProof={owner:identity(owner),premises,proof:{...proof,premises:premises.map(p=>p.name)},sources,unused:family.filter(l=>!names.has(l.name)).map(l=>l.name)}
++ const result:ScopedCountProof={owner:identity(owner),premises,proof:{...proof,premises:premises.map(p=>p.name)},sources,unused:family.filter(l=>!names.has(l.name)).map(l=>l.name),suppliers:'unresolved'}
++ if(onInferred)onInferred({...result,premises:actual.map(identity),proof:{instances:proof.instances,certs:proof.certs,premises:actual.map(l=>l.name)},unused:family.filter(l=>!actual.includes(l)).map(l=>l.name)})
+  const binding=checkedProofs.get(proof)
+- return binding&&isCheckedReducedScope({...result,checkedReduced:binding.token},m)?{...result,checkedReduced:binding.token}:result
++ return binding&&isCheckedReducedScope({...result,checkedReduced:binding.token},m)?{...result,checkedReduced:binding.token,suppliers:'resolved'}:result
++}
++
++// Cold path only: preserve every old premise and every original instance, add
++// the complete generalized supplier closure, and remove no source certificate.
++// Resolution is metadata, never a checked-reduced/native-success receipt.
++export function resolveCountScopeSuppliers(m:Machine,family:Law[],scoped:ScopedCountProof,until:number):ScopedCountProof|undefined{
++ if(scoped.suppliers==='resolved'||!live(until))return undefined
++ const owner=family.find(l=>l.name===scoped.owner.name)
++ if(!owner||identity(owner).key!==scoped.owner.key)return undefined
++ for(const premise of scoped.premises){
++  startWork('ticks',1,'count supplier old premise')
++  const law=family.find(l=>l.name===premise.name)
++  if(!law||identity(law).key!==premise.key)return undefined
++ }
++ const inferred=captureScope(m,owner,family,{instances:scoped.proof.instances,certs:scoped.proof.certs},until,countedScopeHyps)
++ if(!inferred||inferred.sources.length!==scoped.sources.length)return undefined
++ // A changed source context cannot reattribute rows of the retained proof.
++ for(let i=0;i<scoped.sources.length;i++){
++  if(!live(until)||receiptStamp(inferred.sources[i])!==receiptStamp(scoped.sources[i]))return undefined
++ }
++ const names=new Set([...scoped.premises,...inferred.premises].map(p=>p.name)),premises=family.filter(l=>names.has(l.name)).map(identity)
++ const {checkedReduced,...rest}=scoped;void checkedReduced
++ return {...rest,premises,proof:{...scoped.proof,status:'unchecked',premises:premises.map(p=>p.name)},unused:family.filter(l=>!names.has(l.name)).map(l=>l.name),suppliers:'resolved'}
+ }
+ 
+ // A changed premise is missing even if its label survives. Unused instantiated
+ // laws do not pin the proof: remove those tuples before reconstructing the
+ // target goals. Flag/fact instances outside the candidate family are retained.
+-export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCountProof,until:number,options:{deferToClosing?:boolean}={}):CountLawProof|undefined{
++export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCountProof,until:number,options:{deferToClosing?:boolean,onTransportDecline?:(obligation:string)=>void}={}):CountLawProof|undefined{
+  return withDeadline(until,()=>{
+   if(!live(until)||new Set(family.map(l=>l.name)).size!==family.length)return undefined
+   const byName=new Map(family.map(l=>[l.name,l]))
+@@ -130,8 +167,12 @@ export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCount
+    if(!live(until))return undefined
+    const {goal,decls}=goals[i]!,cert=scoped.proof.certs[goal.name]
+    const to=cert&&mcGoal(goal.hyps,decls,cert),from=scoped.sources[i]!
+-   const next=to&&replayCountCertificate(from,to,cert!,wallAt())
+-   if(!next)return undefined
++   const next=to&&replayCountCertificate(from,to,cert!,wallAt(),{rethrowBudgetExpired:true})
++   if(!next){
++    // Missing/invalid expansions and hard stops are not supplier declines.
++    if(to&&live(until))options.onTransportDecline?.(goal.name)
++    return undefined
++   }
+    if(!deferred){receiptStamp(next);if(!checkMC(goal.hyps,decls,next))return undefined}
+    if(!live(until))return undefined
+    certs[goal.name]=next;sources.push(to!)
+diff --git a/core/count-recipe-controller.ts b/core/count-recipe-controller.ts
+index 06095fa64..82ee401e3 100644
+--- a/core/count-recipe-controller.ts
++++ b/core/count-recipe-controller.ts
+@@ -37,6 +37,8 @@ export class CountRecipePass<T>{
+  readonly original:WorkAmount
+  readonly rootEnd:WorkAmount
+  readonly states:MemberState[]
++ // One cold repair at most for this fixed inventory, even across invocations.
++ supplierRepairUsed=false
+  context:string
+  constructor(members:readonly CountControllerMember[],context:string,readonly bank:WorkLedger=workLedger){
+   const tick=()=>bank.start('ticks',1,'count recipe pass setup')
+@@ -75,6 +77,9 @@ export type CountControllerHooks<T,R,P=CountCaptured<T>>=Readonly<{
+  capture?:(name:string,recipe:CountControllerRecipe,proposal:P)=>CountCaptured<T>|undefined,
+  preflight?:(name:string,recipe:CountControllerRecipe)=>boolean,
+  close:(rows:readonly HeldCountPayload<T>[],targetInFamily:boolean)=>R,
++ // Only the close adapter may identify an actual certificate transport decline.
++ declinedMember?:()=>string|undefined,
++ repairSuppliers?:(name:string,payload:T)=>Readonly<{payload:T,premises:readonly string[]}>|undefined,
+  observe?:(event:Record<string,unknown>)=>void,
+  active?:ReadonlySet<string>,basis?:ReadonlySet<string>
+ }>
+@@ -200,6 +205,7 @@ export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecip
+   if(!(error instanceof BudgetExpired))throw error
+   reason='phase-cap';bank.check('count recipe search continuation')
+  }
++ const attemptClosing=()=>{
+  const held=pass.held(),rows:HeldCountPayload<T>[]=[]
+  for(const member of nodeRows()){tick();const payload=held.get(member.name);if(payload)rows.push({id:member.name,premises:map(countRecipeRequirements(member,tick),value=>value),payload:payload.payload})}
+  // This is closing preparation, not search selection: traverse only the held
+@@ -223,6 +229,28 @@ export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecip
+   },
+   submit:selected=>hooks.close(selected,false)
+  },{basis:hooks.basis,tick})
+- hooks.observe?.({phase:'count-recipe-closing',reason,route:closing.route,targetInFamily:closing.targetInFamily,members:closing.plan.members,blockers:closing.plan.blockers,paths:[...closing.plan.paths]})
++ return closing
++ }
++ let closing=attemptClosing()
++ const declined=closing.submitted&&!pass.supplierRepairUsed&&hooks.repairSuppliers?hooks.declinedMember?.():undefined
++ if(declined!==undefined){
++  const state=find(pass.states,state=>state.member.name===declined)
++  if(state?.held){
++   // Consume the one repair BEFORE entering it: cancellation/refusal cannot
++   // renew this allowance on a later controller invocation. No recipe runs.
++   pass.supplierRepairUsed=true
++   const repaired=hooks.repairSuppliers!(declined,state.held.payload as T)
++   if(repaired){
++    const names=new Set(state.held.premises)
++    for(const name of repaired.premises){tick();names.add(name)}
++    state.held={...state.held,payload:repaired.payload,premises:map(names,name=>name),checkedReduced:false}
++    hooks.observe?.({phase:'count-recipe-supplier-repair',law:declined,premises:state.held.premises})
++    // Rebuild H/S, the target closure, and G from ALL held payloads. A missing
++    // supplier can remove the target, never be silently admitted or invented.
++    closing=attemptClosing()
++   }
++  }
++ }
++ hooks.observe?.({phase:'count-recipe-closing',reason,route:closing.route,targetInFamily:closing.targetInFamily,members:closing.plan.members,blockers:closing.plan.blockers,paths:[...closing.plan.paths],supplierRepairUsed:pass.supplierRepairUsed})
+  return {reason,...(failure?{failure}:{}),closingRoute:closing.route,...(closing.result!==undefined?{result:closing.result}:{})}
+ }
+diff --git a/core/count-recovery/conditional-proof.ts b/core/count-recovery/conditional-proof.ts
+index 96483db23..dd6aabb62 100644
+--- a/core/count-recovery/conditional-proof.ts
++++ b/core/count-recovery/conditional-proof.ts
+@@ -1,4 +1,6 @@
+ import {searchNow as countedSearchNow} from '../wall.ts'
++import {BudgetExpired} from '../work-admission.ts'
++export type ConditionalTransportOptions = Readonly<{rethrowBudgetExpired?:boolean}>
+ // Untrusted metadata and exact transport for conditional count proofs. The kernel
+ // never reads this WeakMap: only ordinary trees and independent LemmaCuts escape.
+ import {type Goal, type LemmaCut, type Path, type Tree, canon, canonFlip, check, checkGoalLemmas, facts, leafConstraintsReusing as rowsAt, lemmaPath} from '../../kernel/kernel.ts'
+@@ -192,7 +194,7 @@ function retarget(from: Goal, to: Goal, lemmas: LemmaCut[], scope: Path, until:
+ 
+ /** Retarget an annotated or mixed proof, without turning cuts into split trees.
+  * before/after are ordinary entry paths, not paths already augmented by cuts. */
+-export function transportConditionalProof(from: Goal, to: Goal, tree: Tree, before: Path, after: Path, until: number): Tree | undefined {
++export function transportConditionalProof(from: Goal, to: Goal, tree: Tree, before: Path, after: Path, until: number, options?: ConditionalTransportOptions): Tree | undefined {
+   try {
+     const visit = (t: Tree, a: Path, b: Path, source: Context, target: Context): Tree | undefined => {
+       if (!alive(until)) return undefined
+@@ -219,13 +221,16 @@ export function transportConditionalProof(from: Goal, to: Goal, tree: Tree, befo
+     }
+     const out = visit(tree, before, after, {goal: from, lemmas: []}, {goal: to, lemmas: []})
+     return out && checked(to, out, after, until) ? out : undefined
+-  } catch { return undefined }
++  } catch (error) {
++    if (options?.rethrowBudgetExpired && error instanceof BudgetExpired) throw error
++    return undefined
++  }
+ }
+ 
+ /** Finalize at the empty root. Each local list is guarded by its entry path so
+  * exporting it cannot add assumptions to unrelated ordinary siblings. Every
+  * leaf is then reindexed, even if it did not originally carry metadata. */
+-export function collectConditionalCertificate(goal: Goal, tree: Tree, until: number): {tree: Tree, lemmas: LemmaCut[]} | undefined {
++export function collectConditionalCertificate(goal: Goal, tree: Tree, until: number, options?: ConditionalTransportOptions): {tree: Tree, lemmas: LemmaCut[]} | undefined {
+   try {
+     const lemmas: LemmaCut[] = []
+     const collect = (t: Tree, path: Path): boolean => {
+@@ -249,5 +254,8 @@ export function collectConditionalCertificate(goal: Goal, tree: Tree, until: num
+     }
+     const out = finish(tree, new Map(), {goal, lemmas: []})
+     return out && alive(until) && checkGoalLemmas(goal, out, lemmas) && alive(until) ? {tree: out, lemmas} : undefined
+-  } catch { return undefined }
++  } catch (error) {
++    if (options?.rethrowBudgetExpired && error instanceof BudgetExpired) throw error
++    return undefined
++  }
+ }
+diff --git a/core/count-scope-lazy.test.ts b/core/count-scope-lazy.test.ts
+new file mode 100644
+index 000000000..f2c144d0d
+--- /dev/null
++++ b/core/count-scope-lazy.test.ts
+@@ -0,0 +1,128 @@
++import {expect,test} from 'bun:test'
++import {type Law,type Machine,atMost,less,min,n,x} from './machine.ts'
++import {type CountCert,type Instances,checkMC,countedObligations,leafConstraints,mcGoal,termColumn} from '../kernel/kernel.ts'
++import {withWall} from '../kernel/prove.ts'
++import {type CountLawProof,type ScopedCountProof,replayScopedCountProof,resolveCountScopeSuppliers,scopeCountProof,scopeCountProofPair} from './count-proof-scope.ts'
++import {rescopeCountProof} from './count-proof-rescope.ts'
++import {CountRecipePass,runCountRecipeController} from './count-recipe-controller.ts'
++import {BudgetExpired,WorkLedger,workLedger,withWorkAdmissionTrace} from './work-admission.ts'
++import {workAmount,workShare,zeroWork} from './work-amount.ts'
++import {type WorkKey,workKeys} from './work-kinds.ts'
++import {completeWorkProfile} from './work-profile.ts'
++
++function fixture(nested:boolean){
++ const m:Machine={name:'lazy H0 H1 t',params:[],inputs:[],state:{x:n(0),y:n(0),z:n(0)},step:{state:{x:x('x'),y:x('y'),z:x('z')}}}
++ const h0:Law={name:'H0',holds:less(x('x'),n(0))}
++ const t=min(x('x'),x('y')),supplierTerm=nested?min(min(x('x'),x('k')),x('z')):min(x('x'),x('k'))
++ const h1:Law={name:'H1',forall:'k',holds:atMost(supplierTerm,n(100))}
++ const owner:Law={name:'target',holds:atMost(x('z'),n(10))},family=[h0,h1,owner]
++ const instances:Instances={[h1.name]:[x('y')]},certs:Record<string,CountCert>={}
++ for(const {goal,decls}of countedObligations(m,family,{[owner.name]:instances},2)){
++  const base={reads:[],insts:[]},expanded=mcGoal(goal.hyps,decls,base)!,rows=leafConstraints(expanded,new Map())
++  const find=(pred:(row:typeof rows[number])=>boolean)=>{const at=rows.findIndex(pred);if(at<0)throw Error('missing lazy control row: '+goal.name);return at}
++  let cert:CountCert
++  if(goal.name.endsWith(' @start')){
++   const contradiction=find(row=>(row.lin['1']??0)>0&&Object.entries(row.lin).every(([key,value])=>key==='1'||value===0))
++   cert={...base,tree:{leaf:[{kind:'input',index:contradiction}]}}
++  }else{
++   const name=termColumn(t),fact=find(row=>row.src!==undefined&&'fact'in row.src&&row.lin.x===1&&row.lin['1']===1)
++   const term=find(row=>row.src!==undefined&&'term'in row.src&&row.src.term===name&&row.lin[name]===1&&row.lin.x===-1)
++   const nat=find(row=>row.src!==undefined&&'nat'in row.src&&row.src.nat===name)
++   cert={...base,tree:{leaf:[{kind:'input',index:fact},{kind:'input',index:term},{kind:'combine',a:0,b:1,ma:1,mb:1},{kind:'input',index:nat},{kind:'combine',a:2,b:3,ma:1,mb:1}]}}
++  }
++  expect(checkMC(goal.hyps,decls,cert)).toBe(true)
++  certs[goal.name]=cert
++ }
++ const proof:CountLawProof={status:'unchecked',instances,certs}
++ return {m,h0,h1,owner,family,proof}
++}
++
++// The original ten tests remain unchanged. This additional control runs the
++// real legacy capture, full on-demand supplier helper, exact transport/native
++// check, and the controller's bounded reclosure. H0's contradiction is a local
++// source hypothesis, NOT a claim that the H0/H1 family is an inductive theorem.
++test('lazy H0/H1/t: no eager supplier scan, retain instances, reclose once, fail closed',()=>withWall(performance.now()+30000,()=>{
++ expect(completeWorkProfile.enabled).toBe(true)
++ for(const nested of [false,true]){
++  const f=fixture(nested),entries:string[]=[]
++  const captured=withWorkAdmissionTrace(event=>{if(event.kind==='start'&&event.site==='pair-scope:entry')entries.push(event.site)},()=>
++   rescopeCountProof(f.m,f.owner,f.family,f.proof,new Set(),Infinity,undefined,{retainUncheckedOffer:true}))!
++  expect(captured).toBeDefined();expect(entries).toEqual([])
++  expect(captured.suppliers).toBe('unresolved');expect(captured.proof.status).toBe('unchecked')
++  expect(captured.premises.map(p=>p.name)).toEqual(['H0'])
++  expect(captured.unused).toContain('H1');expect(captured.proof.instances).toBe(f.proof.instances)
++  expect(captured.proof.certs).toBe(f.proof.certs);expect(captured.proof.instances.H1).toEqual([x('y')])
++  // One scan yields byte-equivalent offered/inferred metadata, including when
++  // a declared superset and unchecked status must be stripped from inference.
++  const declared={...f.proof,premises:f.family.map(l=>l.name)},pair=scopeCountProofPair(f.m,f.owner,f.family,declared,Infinity)
++  expect(JSON.stringify(pair.offered)).toBe(JSON.stringify(scopeCountProof(f.m,f.owner,f.family,declared,Infinity)))
++  expect(JSON.stringify(pair.inferred)).toBe(JSON.stringify(scopeCountProof(f.m,f.owner,f.family,{instances:f.proof.instances,certs:f.proof.certs},Infinity)))
++
++  for(const mode of ['success','missing-supplier','second-decline','repair-hard-stop'] as const){
++   const b=new WorkLedger(Object.fromEntries(workKeys.map(key=>[key,1])) as Record<WorkKey,number>)
++   b.withBudget(workAmount(1000000n),()=>{
++    const pass=new CountRecipePass<ScopedCountProof|undefined>(f.family.map((law,reference)=>({name:law.name,reference,recipes:[{id:'done',kind:'ordinary',required:[]}]})),'fixed H0 H1 t',b)
++    for(const state of pass.states){
++     state.recipes[0]!.terminal=true
++     if(state.member.name==='H1'&&mode==='missing-supplier')continue
++     // Helpers are opaque bookkeeping payloads, not forged native receipts.
++     state.held={recipeId:'done',payload:state.member.name==='target'?captured:undefined,premises:state.member.name==='target'?['H0']:[],checkedReduced:false,checkCost:zeroWork}
++    }
++    let pending:string|undefined,repairs=0,closes=0
++    const seen:string[][]=[],marker=new BudgetExpired('lazy repair original hard stop')
++    const hooks={
++     construct:()=>{throw Error('lazy closing must not run a recipe')},
++     declinedMember:()=>pending,
++     repairSuppliers:(name:string,payload:ScopedCountProof|undefined)=>{
++      repairs++;expect(name).toBe('target');expect(pass.supplierRepairUsed).toBe(true)
++      if(mode==='repair-hard-stop')throw marker
++      const repaired=resolveCountScopeSuppliers(f.m,f.family,payload!,Infinity)!
++      expect(repaired).toBeDefined();expect(repaired.suppliers).toBe('resolved');expect(repaired.checkedReduced).toBeUndefined()
++      expect(repaired.proof.status).toBe('unchecked');expect(repaired.proof.instances).toBe(f.proof.instances)
++      expect(repaired.proof.certs).toBe(f.proof.certs);expect(repaired.sources).toBe(captured.sources)
++      expect(repaired.premises.map(p=>p.name)).toEqual(['H0','H1']);expect(repaired.unused).not.toContain('H1')
++      expect(resolveCountScopeSuppliers(f.m,f.family,repaired,Infinity)).toBeUndefined()
++      return {payload:repaired,premises:repaired.premises.map(p=>p.name)}
++     },
++     close:(rows:readonly {id:string,payload:ScopedCountProof|undefined}[],targetInFamily:boolean)=>{
++      closes++;pending=undefined;seen.push(rows.map(row=>row.id))
++      const target=rows.find(row=>row.id==='target')
++      if(!target)return false
++      if(mode==='second-decline'&&closes>1){pending='target';return false}
++      const family=f.family.filter(l=>rows.some(row=>row.id===l.name))
++      const replayed=replayScopedCountProof(f.m,family,target.payload!,Infinity,{onTransportDecline:obligation=>{expect(obligation).toBe('target @step');pending='target'}})
++      if(!replayed)return false
++      expect(targetInFamily).toBe(true);expect(replayed.instances.H1).toEqual([x('y')])
++      for(const {goal,decls}of countedObligations(f.m,family,{target:replayed.instances},family.findIndex(l=>l.name==='target')))
++       expect(checkMC(goal.hyps,decls,replayed.certs[goal.name]!)).toBe(true)
++      return true
++     }
++    }
++    if(mode==='repair-hard-stop'){
++     let error:unknown
++     try{runCountRecipeController(pass,['target'],hooks)}catch(caught){error=caught}
++     expect(error).toBe(marker);expect(repairs).toBe(1);expect(closes).toBe(1)
++    }else{
++     const result=runCountRecipeController(pass,['target'],hooks)
++     expect(result.result).toBe(mode==='success');expect(repairs).toBe(1);expect(closes).toBe(2)
++     expect(seen[0]).toEqual(['H0','target'])
++     expect(seen[1]).toEqual(mode==='missing-supplier'?['H0']:['H0','H1','target'])
++     expect(pass.held().get('target')!.premises).toEqual(['H0','H1'])
++     if(mode==='second-decline'){
++      runCountRecipeController(pass,['target'],hooks)
++      expect(repairs).toBe(1) // a later invocation cannot renew the repair.
++     }
++    }
++    expect(pass.supplierRepairUsed).toBe(true)
++   })
++  }
++ }
++ // B's reused boundary must preserve the original authenticated refusal even
++ // when a nested native helper catches it; no new/fabricated BudgetExpired.
++ let original:unknown,propagated:unknown
++ workLedger.withBudget(workShare(workLedger.weights.ticks,1n,2n),()=>{
++  try{workLedger.withCapacityRefusalBoundary(()=>{try{workLedger.start('ticks',1,'lazy swallowed hard stop')}catch(error){original=error}})}catch(error){propagated=error}
++ })
++ expect(propagated).toBe(original);expect(propagated).toBeInstanceOf(BudgetExpired)
++ expect(workLedger.capacityRefusal(propagated)?.reason).toBe('quantum')
++}))
+diff --git a/core/counts.ts b/core/counts.ts
+index 2acae4042..3c99d376f 100644
+--- a/core/counts.ts
++++ b/core/counts.ts
+@@ -50,7 +50,7 @@ import {WallExpired, checkWall, searchWall, withBudget} from './wall.ts'
+ import {env} from './solver.ts'
+ import {proofOrigins, proposeLemmaCuts} from './lemma-cuts.ts'
+ import {countedCertificateHyps,transportCountCertificate} from './count-cert-transport.ts'
+-import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, scopeCountProof, replayScopedCountProof, isCheckedReducedScope, withCountScopeIdentityObservation, countScopeContextKey} from './count-proof-scope.ts'
++import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, scopeCountProof, replayScopedCountProof, isCheckedReducedScope, withCountScopeIdentityObservation, countScopeContextKey, resolveCountScopeSuppliers} from './count-proof-scope.ts'
+ import {assertLiftedWorkLease, prepareCountStrategyMachine, proveCountStrategies, proposeCountStrategiesForClosing, proveCountStrategyKind, proposeCountStrategyKindForClosing, selectedCountStrategies} from './count-strategies.ts'
+ import {type LiftedWorkBudget} from './count-lifted-budget.ts'
+ import {countRecipeContextDecision} from './count-recipe-context.ts'
+@@ -745,6 +745,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
+     }
+     if(beforeClosing(()=>{reconcile();return true})!==true)return {proven:false,laws:set,m,why:'recipe reconciliation budget'}
+     attempts.houdini=true
++    let transportDeclined:string|undefined
+     const outcome=runCountRecipeController(tierRun.recipePass!,targets,{
+       active,observe:event=>countsDump.on?.(event),
+       preflight:(name,recipe)=>{
+@@ -789,7 +790,13 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
+         for(const dependency of effective){tick();const premise=lawByName.get(dependency);if(premise&&!screen(premise,0,workAllowance))return}
+         return {...captured,checkCost:workSub(workLedger.actual(),before)}
+       },
++      declinedMember:()=>transportDeclined,
++      repairSuppliers:(_name,scoped)=>{
++        const repaired=resolveCountScopeSuppliers(m,set,scoped,Infinity)
++        return repaired&&{payload:repaired,premises:workMap(repaired.premises,p=>p.name,'count repaired supplier names')}
++      },
+       close:(rows,targetInFamily)=>{
++        transportDeclined=undefined
+         const names=new Set(workMap(rows,row=>row.id,'count closing inventory'))
+         const family=workFilter(set,law=>names.has(law.name),'count closing family'),instances:Record<string,Instances>={},certs:Record<string,CountCert>={},premises:Record<string,readonly string[]>={}
+         if(reach?.safety()==='broken')return {proven:false,laws:family,m,why:'reachable caller counterexample'}
+@@ -797,7 +804,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
+           tick()
+           // Use the graph's effective S for membership and published premises;
+           // replay the untouched scoped payload against exactly that family.
+-          const proof=replayScopedCountProof(m,family,row.payload,Infinity,{deferToClosing:true})
++          const proof=replayScopedCountProof(m,family,row.payload,Infinity,{deferToClosing:true,onTransportDecline:()=>{transportDeclined=row.id}})
+           if(!proof)return {proven:false,laws:family,m,why:'recipe closing replay declined'}
+           instances[row.id]=proof.instances
+           for(const [name,cert]of workEntries(proof.certs,'count closing certificates'))certs[name]=cert as CountCert
+diff --git a/core/work-admission.ts b/core/work-admission.ts
+index 043dbcd9f..770ee2e06 100644
+--- a/core/work-admission.ts
++++ b/core/work-admission.ts
+@@ -61,6 +61,7 @@ export class WorkLedger {
+   private eventSequence = 0
+   private notifying = false
+   private readonly capacityErrors = new WeakMap<object, WorkCapacityRefusal>()
++  private readonly capacityBoundaries: {error?: BudgetExpired}[] = []
+   constructor(weights: Readonly<Record<WorkKey, number>>) {
+     if (Object.keys(weights).length !== workKeys.length || workKeys.some(key => !Object.hasOwn(weights, key) || !Number.isFinite(weights[key]) || weights[key] < 0)) throw new RangeError('work ledger requires the exact frozen coefficient vector')
+     this.weights = Object.freeze(Object.fromEntries(workKeys.map(key => [key, workFromNumber(weights[key])]))) as Readonly<Record<WorkKey, WorkAmount>>
+@@ -88,6 +89,18 @@ export class WorkLedger {
+   capacityRefusal(error: unknown): WorkCapacityRefusal | undefined {
+     return typeof error === 'object' && error !== null ? this.capacityErrors.get(error) : undefined
+   }
++  // Opt-in observation only: no endpoint, allowance, counter or lease changes.
++  // Preserve the first genuine refusal even when a nested checker catches it.
++  withCapacityRefusalBoundary<T>(run: () => T): T {
++    const boundary: {error?: BudgetExpired} = {}
++    this.capacityBoundaries.push(boundary)
++    try {
++      const value = synchronous(run())
++      if (boundary.error) throw boundary.error
++      return value
++    } catch (error) { throw boundary.error ?? error }
++    finally { this.capacityBoundaries.pop() }
++  }
+   private capacityError(phase: string, reason: WorkCapacityRefusal['reason'], requested?: WorkAmount): BudgetExpired {
+     const error = new BudgetExpired(phase), end = this.endpoint()
+     const limiting = this.scopes.filter(scope => end !== null && compareWork(scope.end, end) === 0)
+@@ -95,6 +108,7 @@ export class WorkLedger {
+     this.capacityErrors.set(error, Object.freeze({reason, limiting: Object.freeze(limiting),
+       actual: exactRaw(this.actual()), reserved: exactRaw(this.reserved()),
+       ...(requested ? {requested: exactRaw(requested)} : {})}))
++    for (const boundary of this.capacityBoundaries) boundary.error ??= error
+     return error
+   }
+   endpoint(): WorkAmount | null {

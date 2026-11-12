@@ -1,0 +1,35 @@
+{
+  "schema": "k-lazy-suppliers-source/v1",
+  "status": "SOURCE_PREPARED_VALIDATION_NOT_YET_RUN",
+  "sourceCommit": "405b00adce54c7d7ed51139850ea5b0cbecde991",
+  "sourceTree": "6f2e6351f09eea280a138a307a0823c1c3809b2f",
+  "parent": "0e1758bb4141e325655d380d368b2e859dcd984b",
+  "legacyReference": "9eb09b8326fc2670fad6725f774ab1b252c4d343",
+  "branch": "k/scope-lazy-suppliers-9eb",
+  "changedProduction": ["core/count-proof-scope.ts", "core/count-proof-rescope.ts", "core/count-recipe-controller.ts", "core/counts.ts", "core/count-cert-transport.ts", "core/count-recovery/conditional-proof.ts", "core/work-admission.ts"],
+  "newTest": "core/count-scope-lazy.test.ts",
+  "unchangedGeneratedCollector": "core/count-scope-hyps.ts",
+  "unchangedOriginalTests": ["core/count-scope-hyps.test.ts", "core/count-cert-transport-hard-stop.test.ts"],
+  "unchangedKernel": true,
+  "hardStopPrerequisite": {
+    "identicalToCombinedCommit": "bf9640f31571af0eda98e5709b5c698c9f8f9e7e",
+    "files": {
+      "core/count-cert-transport.ts": "18f7b87f63d71d5dcdda0b42d18f0c296416168c8c509620722cf05a20c6cc3d",
+      "core/count-recovery/conditional-proof.ts": "9bee3507f6e3621d033a335116f55fa2d6f5169edd71bf0cc72f02584bc37995",
+      "core/work-admission.ts": "e77bd75ce5e68a31e0377ab203e5bcf9fbc73034cddeaf5fd057fd6354e6149a"
+    }
+  },
+  "eagerExtraction": "countedCertificateHyps as at 9eb; offered/inferred share one scan",
+  "retention": "unchecked original instances/certs/sources retained",
+  "repairTrigger": "actual closing certificate transport decline only",
+  "repairBound": "one persistent pass flag consumed before resolver; one reclosure/closing retry",
+  "supplierAlgorithm": "full unchanged 0e generalized closure; no truncation or initial-root cutoff",
+  "acceptance": "unchanged native closing; missing supplier removes target; no new search/fuel/deadline/reservation",
+  "authorizedValidation": {"testInvocations":1,"tests":11,"compilerInvocations":1,"boatPhysicalAttempts":1,"retries":0,"cpu":2,"memory":8192,"timeout":900},
+  "compilerScope": "all seven changed production modules plus unchanged collector, three test files and transitive imports",
+  "existingTenTestReceipt": "712047991a7d21695a48d636074085c6565e96f05ad3fc29caef3e2b99805958",
+  "performanceOrMemoryMeasurement": false,
+  "MLDRProofClaim": false,
+  "combinedExecutionAuthorized": false,
+  "BCompositionEnvelope": "original b036, memory28672; no held3817 reservation bump"
+}
