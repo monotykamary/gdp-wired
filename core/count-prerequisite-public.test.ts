@@ -10,6 +10,7 @@ import {checkCountedLaws} from '../kernel/kernel.ts'
 import {BudgetExpired,checkBudget,clock,counted,fullRate,withinDeadline,withBudget,withWall} from '../kernel/prove.ts'
 import {costs} from './solver.ts'
 import {scopeCountProof,replayScopedCountProof} from './count-proof-scope.ts'
+import {compareWork,type WorkAmount} from './work-amount.ts'
 let offeredScope=false
 let alternatives=new Set<string>(),priority=new Map<string,number>(),selected:Law[]|undefined,interrupt:((event:Record<string,unknown>)=>void)|undefined
 let decline:((target:Law)=>boolean)|undefined
@@ -115,8 +116,12 @@ test('proof-guided admission checks and shrinks offers before expansion, then cl
   expect(out.laws).not.toContain(noise)
   expect(events.some(e=>e.phase==='count-component-rescope'&&e.stage==='original'&&e.checked===true)).toBe(false)
   expect(events.some(e=>e.phase==='count-component-rescope'&&e.stage==='canonical'&&e.checked===true)).toBe(true)
-  expect(events.filter(e=>e.phase==='count-component-result'&&e.held===true).every(e=>!(e.premises as string[]).includes(noise.name))).toBe(true)
-  expect(events.some(e=>e.phase==='count-closing-reserve'&&Number(e.checkedPackets)>0&&Number(e.closingFloor)<37500)).toBe(true)
+  const held=events.filter(e=>e.phase==='count-recipe-result'&&e.outcome==='proposal')
+  expect(held).toHaveLength(2)
+  expect(held.every(e=>e.checkedReduced===true&&!(e.premises as string[]).includes(noise.name))).toBe(true)
+  const phases=events.filter(e=>e.phase==='count-recipe-admission').map(e=>(e.ancestors as {scope:string,remaining:WorkAmount}[]).at(-2)!.remaining)
+  expect(phases.length).toBeGreaterThanOrEqual(2)
+  expect(compareWork(phases[1]!,phases[0]!)).toBe(1)
   expect(events.some(e=>e.phase==='count-family-closing'&&e.stage==='end'&&e.checked===true)).toBe(true)
  }finally{
   offeredScope=false
