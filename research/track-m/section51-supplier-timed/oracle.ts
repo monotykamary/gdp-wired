@@ -52,7 +52,9 @@ export class PrefixOracle {
   need(JSON.stringify(Object.keys(snapshot.weights).sort())===JSON.stringify(keys),'weight vector mismatch')
   let weighted=zero
   for(const key of keys){
-   const price=q(prices[key]);need(price.n>0n&&cmp(price,q(snapshot.weights[key]))===0n,'frozen positive weight changed')
+   const frozenWeight=prices[key],observedWeight=snapshot.weights[key]
+   if(frozenWeight===undefined||observedWeight===undefined)throw new PrefixViolation('missing weight: '+key)
+   const price=q(frozenWeight);need(price.n>0n&&cmp(price,q(observedWeight))===0n,'frozen positive weight changed')
    const count=integer(snapshot.counters[key]),initial=integer(base!.counters[key]),previous=integer(this.previous.counters[key])
    need(integer(snapshot.rootBaseline!.counters[key])===initial,'root counter baseline changed')
    need(count>=previous&&count>=initial,'counter rollback: '+key);weighted=add(weighted,{n:(count-initial)*price.n,d:price.d})
