@@ -2,7 +2,7 @@
 // not proof acceptance. Every payload still goes through the caller's unchanged
 // replay/native-closing path. All allocations below are exact raw root work.
 import {type CountRecipeMember,type CountRecipeGraph,countRecipeGraph,countRecipeRequirements} from './count-recipe-graph.ts'
-import {CountAttemptTickets,planCountRetry,type CountAttemptStop,type CountRetryKey,type CountRetryPlan} from './count-retry-budget.ts'
+import {CountAttemptTickets,planCountRetry,countAttemptStop,type CountAttemptStop,type CountRetryKey,type CountRetryPlan} from './count-retry-budget.ts'
 import {runCountRetryRound} from './count-retry-round.ts'
 import {CountAttemptWork,countLeafSlot} from './count-attempt-work.ts'
 import {type LiftedWorkBudget,liftedWorkLeaseBudget} from './count-lifted-budget.ts'
@@ -13,12 +13,24 @@ export type CountControllerRecipe=Readonly<{id:string,kind:'ordinary'|'strategy'
 export type CountControllerMember=Readonly<{name:string,reference:number,recipes:readonly CountControllerRecipe[]}>
 export type CountCaptured<T>=Readonly<{payload:T,premises:readonly string[],checkedReduced:boolean,checkCost:WorkAmount}>
 type RecipeState={recipe:CountControllerRecipe,tickets:CountAttemptTickets,terminal:boolean,keys:readonly CountRetryKey[],stop?:CountAttemptStop}
-type MemberState={member:CountControllerMember,recipes:RecipeState[],allotted?:WorkAmount,used:WorkAmount,held?:CountCaptured<unknown>&{recipeId:string}}
+type MemberState={member:CountControllerMember,recipes:RecipeState[],allotted?:WorkAmount,allocationCohort?:number,allocationRemaining?:WorkAmount,used:WorkAmount,held?:CountCaptured<unknown>&{recipeId:string}}
 function countMap<A,B>(input:Iterable<A>,visit:(value:A)=>B,tick:()=>void):B[]{
  const out:B[]=[];for(const value of input){tick();out.push(visit(value))}return out
 }
 function countFind<A>(input:Iterable<A>,test:(value:A)=>boolean,tick:()=>void):A|undefined{
  for(const value of input){tick();if(test(value))return value}return undefined
+}
+// Untrusted allocation arithmetic only; returned amounts are caps, not grants.
+export function countRecipeAllocationCohort(members:Iterable<string>,graph:CountRecipeGraph,selected:string,tick:()=>void):number{
+ let size=graph.closure.has(selected)&&!graph.usable.has(selected)&&!graph.blocked.has(selected)?0:1
+ for(const name of members){tick();if(graph.closure.has(name)&&!graph.usable.has(name)&&!graph.blocked.has(name))size++}
+ return size
+}
+export function countRecipeMemberAllotment(remaining:WorkAmount,cohort:number,kind:'ordinary'|'strategy',tick:WorkAmount):WorkAmount{
+ if(!Number.isSafeInteger(cohort)||cohort<1)throw Error('invalid count allocation cohort')
+ if(kind==='ordinary')return workShare(remaining,1n,BigInt(cohort))
+ const reserved=workShare(tick,BigInt(cohort-1),1n)
+ return compareWork(remaining,reserved)>0?workSub(remaining,reserved):zeroWork
 }
 export class CountRecipePass<T>{
  readonly rootEpoch:number
@@ -66,7 +78,9 @@ export type CountControllerHooks<T,R,P=CountCaptured<T>>=Readonly<{
  observe?:(event:Record<string,unknown>)=>void,
  active?:ReadonlySet<string>,basis?:ReadonlySet<string>
 }>
-export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecipePass<T>,targets:readonly string[],hooks:CountControllerHooks<T,R,P>):Readonly<{result?:R,reason:string}>{
+export type CountControllerReason='stale-root'|'target-held'|'target-blocked'|'nothing-eligible'|'phase-cap'
+export type CountControllerFailure=Readonly<{law?:string,recipe?:string,outcome:'decline'|'not-started'|'hard-cap'|'unfinished',reason:string,stop?:CountAttemptStop}>
+export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecipePass<T>,targets:readonly string[],hooks:CountControllerHooks<T,R,P>):Readonly<{result?:R,reason:CountControllerReason,failure?:CountControllerFailure,closingRoute?:'legacy'|'subset'|'empty'|'unfunded'}>{
  const bank=pass.bank,tick=()=>bank.start('ticks',1,'count recipe controller')
  const map=<A,B>(input:Iterable<A>,visit:(value:A)=>B)=>countMap(input,visit,tick)
  const find=<A>(input:Iterable<A>,test:(value:A)=>boolean)=>countFind(input,test,tick)
@@ -79,7 +93,7 @@ export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecip
   }),...(held?{held:{premises:held.premises,recipeId:held.recipeId,checkedReduced:held.checkedReduced}}:{})}
  })
  const graph=()=>countRecipeGraph(nodeRows(),targets,tick,{basis:hooks.basis})
- let current:CountRecipeGraph,reason='nothing-eligible'
+ let current:CountRecipeGraph,reason:CountControllerReason='nothing-eligible',failure:CountControllerFailure|undefined
  let searchEnd=workSub(pass.rootEnd,workShare(pass.original,3n,8n))
  const search=<U>(run:()=>U):U=>bank.withEndpoint('scope',searchEnd,run)
  try{
@@ -108,17 +122,27 @@ export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecip
    const remaining=bank.available()
    if(remaining===null||compareWork(remaining,zeroWork)<=0){row.terminal=true;return}
    if(!state.allotted){
-    let pending=0
-    for(const member of pass.states){tick();if(current.candidates.has(member.member.name)&&!current.usable.has(member.member.name)&&!current.blocked.has(member.member.name))pending++}
-    const reserved=workShare(bank.weights.ticks,BigInt(Math.max(0,pending-1)),1n)
-    state.allotted=row.recipe.kind==='ordinary'?workShare(remaining,1n,BigInt(Math.max(1,pending))):compareWork(remaining,reserved)>0?workSub(remaining,reserved):zeroWork
+    // D6f60c382 / 46.18: widening changes consideration, never the cohort.
+    // Q contains only real, non-usable, non-blocked closure members; an
+    // outside selected member adds itself, not the other widened candidates.
+    const allocation=graph()
+    const pending=countRecipeAllocationCohort(map(pass.states,member=>member.member.name),allocation,choice.name,tick)
+    const remaining=bank.available()!
+    state.allocationCohort=pending;state.allocationRemaining=remaining
+    state.allotted=countRecipeMemberAllotment(remaining,pending,row.recipe.kind,bank.weights.ticks)
    }
    const left=workSub(state.allotted,state.used)
    if(compareWork(left,zeroWork)<=0){for(const recipe of state.recipes){tick();recipe.terminal=true}return}
    const before=bank.actual()
    try{bank.withBudget(left,()=>{
     entered=true
-    if(hooks.preflight&&!hooks.preflight(choice.name,row.recipe)){row.terminal=true;return}
+    // The leaf slot is the 64th key. Unsupported producer inventories are
+    // scheduling declines, never malformed-state exceptions or new attempts.
+    if(row.recipe.caseKeys!==undefined&&row.recipe.caseKeys.length>63){
+     row.terminal=true;failure={law:choice.name,recipe:row.recipe.id,outcome:'decline',reason:'unsupported-case-inventory'}
+     hooks.observe?.({phase:'count-recipe-result',...failure,cases:row.recipe.caseKeys.length,maximumCases:63,tickets:row.tickets.snapshot()});return
+    }
+    if(hooks.preflight&&!hooks.preflight(choice.name,row.recipe)){row.terminal=true;failure={law:choice.name,recipe:row.recipe.id,outcome:'decline',reason:'preflight-refused'};hooks.observe?.({phase:'count-recipe-result',...failure});return}
     if(!row.keys.length){
      const names=row.recipe.caseKeys
      row.keys=names?.length?[...map(names,key=>({key,allocation:workShare(pass.original,1n,30n),used:zeroWork})),{key:countLeafSlot,allocation:workShare(pass.original,1n,120n),used:zeroWork}]:[{key:'body',allocation:left,used:zeroWork}]
@@ -130,7 +154,7 @@ export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecip
     // Preparation is charged before the initial full-headroom round. A retry
     // keeps its fixed need and is revalidated atomically by the round helper.
     if(!row.stop&&plan.kind==='admitted')plan={...plan,need:minWork(left,bank.available()!)}
-    hooks.observe?.({phase:'count-recipe-admission',law:choice.name,recipe:row.recipe.id,plan,previousKeys:row.keys,original:exactRaw(pass.original),allotted:exactRaw(state.allotted!),used:exactRaw(state.used),ancestors:admissionAncestors,tickets:row.tickets.snapshot()})
+    hooks.observe?.({phase:'count-recipe-admission',law:choice.name,recipe:row.recipe.id,plan,previousKeys:row.keys,original:exactRaw(pass.original),allotted:exactRaw(state.allotted!),allocationCohort:state.allocationCohort,allocationRemaining:state.allocationRemaining&&exactRaw(state.allocationRemaining),used:exactRaw(state.used),ancestors:admissionAncestors,tickets:row.tickets.snapshot()})
     const result=runCountRetryRound(plan,row.tickets,()=>{
      hooks.observe?.({phase:'count-component-attempt',law:choice.name,recipe:row.recipe.id,mode:'recipe',purpose:'required',required:row.recipe.required,rootEpoch:pass.rootEpoch})
      let lease:LiftedWorkBudget|undefined
@@ -151,18 +175,22 @@ export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecip
     row.keys=attempt.keys()
     row.terminal=result.kind!=='unfinished'||row.tickets.snapshot().terminal
     row.stop=result.kind==='unfinished'?result.stop:undefined
+    if(result.kind!=='proposal')failure={law:choice.name,recipe:row.recipe.id,outcome:result.kind,reason:'reason'in result?result.reason:result.stop.kind==='hard-cap'?result.stop.reason:result.stop.kind,...('stop'in result?{stop:result.stop}:{})}
     if(result.kind==='proposal'){
      // The recipe is already terminal. Post-proposal capture/checks execute
      // outside the round but still inside this persistent member/ancestor cap.
      const captured=hooks.capture?hooks.capture(choice.name,row.recipe,result.value):result.value as unknown as CountCaptured<T>
      if(captured)state.held={...captured,recipeId:row.recipe.id}
+     else failure={law:choice.name,recipe:row.recipe.id,outcome:'decline',reason:'capture-declined'}
     }
-    hooks.observe?.({phase:'count-recipe-result',law:choice.name,recipe:row.recipe.id,outcome:result.kind,premises:state.held?.premises,checkedReduced:state.held?.checkedReduced,...('stop'in result?{stop:result.stop}:{}),tickets:row.tickets.snapshot(),inventory:attempt.inventory(),ancestors:headrooms()})
+    hooks.observe?.({phase:'count-recipe-result',law:choice.name,recipe:row.recipe.id,outcome:result.kind,...('reason'in result?{reason:result.reason}:{}),...(result.kind==='proposal'&&!state.held?{reason:'capture-declined'}:{}),premises:state.held?.premises,checkedReduced:state.held?.checkedReduced,...('stop'in result?{stop:result.stop}:{}),tickets:row.tickets.snapshot(),inventory:attempt.inventory(),ancestors:headrooms()})
    })}finally{state.used=workAdd(state.used,workSub(bank.actual(),before))}
   })}catch(error){
    if(!(error instanceof BudgetExpired))throw error
    row.terminal=true
-   hooks.observe?.({phase:'count-recipe-result',law:choice.name,recipe:row.recipe.id,outcome:'hard-cap',stop:{kind:'hard-cap',reason:'enclosing-limit'},tickets:row.tickets.snapshot()})
+   const stop=countAttemptStop(error,[],bank)
+   failure={law:choice.name,recipe:row.recipe.id,outcome:'hard-cap',reason:stop.kind==='hard-cap'?stop.reason:stop.kind,stop}
+   hooks.observe?.({phase:'count-recipe-result',...failure,capacity:bank.capacityRefusal(error),errorPhase:error.phase,tickets:row.tickets.snapshot()})
    // A root/ancestor failure is not repaired by another child allocation.
    bank.check('count recipe enclosing continuation')
   }
@@ -182,9 +210,19 @@ export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecip
  const target=find(targets,name=>find(plan.members,member=>member===name)===undefined)??targets[0]!
  const closing=closeGreatestCountFamily(target,rows,{
   legacy:()=>{const selected:HeldCountPayload<T>[]=[];for(const row of rows){tick();if(needed.has(row.id))selected.push(row)}return hooks.close(selected,true)},
-  reserve:()=>{const available=bank.available();return available!==null&&compareWork(available,zeroWork)>0},
+  reserve:selected=>{
+   let measured=zeroWork
+   for(const row of selected){tick();const captured=held.get(row.id);if(!captured)return false;measured=workAdd(measured,captured.checkCost)}
+   // Match the already declared 2*sum closing requirement, including its
+   // original-W clamp and zero-sum tick. Positive headroom alone is not enough.
+   const required=compareWork(measured,zeroWork)>0?minWork(pass.original,workShare(measured,2n,1n)):bank.weights.ticks
+   const available=bank.available(),admitted=available!==null&&compareWork(available,required)>=0
+   if(!admitted)failure={outcome:'not-started',reason:'closing-reserve'}
+   hooks.observe?.({phase:'count-recipe-closing-reserve',required:exactRaw(required),available:available&&exactRaw(available),admitted})
+   return admitted
+  },
   submit:selected=>hooks.close(selected,false)
  },{basis:hooks.basis,tick})
  hooks.observe?.({phase:'count-recipe-closing',reason,route:closing.route,targetInFamily:closing.targetInFamily,members:closing.plan.members,blockers:closing.plan.blockers,paths:[...closing.plan.paths]})
- return {reason,...(closing.result!==undefined?{result:closing.result}:{})}
+ return {reason,...(failure?{failure}:{}),closingRoute:closing.route,...(closing.result!==undefined?{result:closing.result}:{})}
 }

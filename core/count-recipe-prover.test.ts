@@ -14,11 +14,11 @@ const left:Law={name:'left',holds:same(x('left'),n(0))},right:Law={name:'right',
 const machine:Machine={name:'funded full fallback',params:[],inputs:[],state:{left:n(0),right:n(0),noise:n(0)},step:{state:{left:x('right'),right:x('left'),noise:x('noise')}}}
 const producer={...strategies},planner={...planning}
 void mock.module('./count-strategies.ts',()=>({...producer,prepareCountStrategyMachine:(m:Machine)=>m,selectedCountStrategies:()=>family,
- proposeCountStrategiesForClosing:(m:Machine,context:Law[],law:Law,end:number)=>{
+ proposeCountStrategyKindForClosing:(_kind:'row'|'guard',m:Machine,context:Law[],law:Law,end:number)=>{
   const result=countedAttempts(m,[law],new Set(),end).traced(law,context,0,Math.max(0,end-clock()),false)
   return 'proof'in result?{...result.proof,status:'unchecked' as const,premises:context.map(law=>law.name)}:undefined
  }}))
-void mock.module('./count-prerequisite-plan.ts',()=>({...planner,countPrerequisiteSchedule:()=>({requirements:new Map([[left.name,[right.name]],[right.name,[left.name]]]),recipes:new Map(family.map(law=>[law.name,[{id:'fixture',kind:'strategy' as const,required:law===left?[right.name]:law===right?[left.name]:[]}]])),costs:new Map(family.map((law,i)=>[law.name,i]))})}))
+void mock.module('./count-prerequisite-plan.ts',()=>({...planner,countPrerequisiteSchedule:()=>({requirements:new Map([[left.name,[right.name]],[right.name,[left.name]]]),recipes:new Map(family.map(law=>[law.name,[{id:'row',kind:'strategy' as const,required:law===left?[right.name]:law===right?[left.name]:[]}]])),costs:new Map(family.map((law,i)=>[law.name,i]))})}))
 fullTest('prover: reduced refusal retains funded full-only unchecked scope through native closing',()=>{
  const saved=new Map<string,string|undefined>(),flags=['GDP_COUNT_STRATEGIES','GDP_COUNT_TIERS','GDP_COUNT_FINAL_DEFER_CHECKS','GDP_COUNT_CLOSING_RESERVE','GDP_COUNT_PREREQUISITES','GDP_COUNT_PROOF_GUIDED_SCHEDULING']
  for(const flag of flags){saved.set(flag,process.env[flag]);process.env[flag]='1'}

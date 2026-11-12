@@ -16,8 +16,7 @@ let alternatives=new Set<string>(),priority=new Map<string,number>(),selected:La
 let decline:((target:Law)=>boolean)|undefined
 let family:Law[]=[],requirements=new Map<string,readonly string[]>(),chooseSource:((target:Law,context:Law[])=>Law[])|undefined
 const original={...strategies},planner={...planning},view={...views}
-void mock.module('./count-strategies.ts',()=>({...original,prepareCountStrategyMachine:(m:Machine)=>m,selectedCountStrategies:()=>selected??family,
- proposeCountStrategiesForClosing:(m:Machine,context:Law[],target:Law,end:number)=>{
+const proposeFixture=(m:Machine,context:Law[],target:Law,end:number)=>{
   if(decline?.(target))return undefined
   const source=chooseSource?.(target,context)??context
   const result=countedAttempts(m,[target],new Set(),end).traced(target,source,0,Math.max(0,end-clock()),false)
@@ -25,8 +24,10 @@ void mock.module('./count-strategies.ts',()=>({...original,prepareCountStrategyM
   if(source===context)return offeredScope?{...result.proof,status:'unchecked' as const,premises:context.map(law=>law.name)}:result.proof
   const scoped=scopeCountProof(m,target,source,result.proof,end)
   return scoped?replayScopedCountProof(m,context,scoped,end):undefined
- }}))
-void mock.module('./count-prerequisite-plan.ts',()=>({...planner,countPrerequisiteSchedule:()=>({requirements,recipes:new Map(family.map(law=>[law.name,[...(selected&&!selected.includes(law)?[{id:'ordinary',kind:'ordinary' as const}]:[{id:'fixture',kind:'strategy' as const,required:requirements.get(law.name)??[]}]),...(alternatives.has(law.name)?[{id:'independent',kind:'ordinary' as const,required:[]}]:[])]])),costs:new Map(family.map((law,index)=>[law.name,priority.get(law.name)??index]))})}))
+}
+void mock.module('./count-strategies.ts',()=>({...original,prepareCountStrategyMachine:(m:Machine)=>m,selectedCountStrategies:()=>selected??family,
+ proposeCountStrategiesForClosing:proposeFixture,proposeCountStrategyKindForClosing:(_kind:'row'|'guard',m:Machine,context:Law[],target:Law,end:number)=>proposeFixture(m,context,target,end)}))
+void mock.module('./count-prerequisite-plan.ts',()=>({...planner,countPrerequisiteSchedule:()=>({requirements,recipes:new Map(family.map(law=>[law.name,[...(selected&&!selected.includes(law)?[{id:'ordinary',kind:'ordinary' as const}]:[{id:'row',kind:'strategy' as const,required:requirements.get(law.name)??[]}]),...(alternatives.has(law.name)?[{id:'independent',kind:'ordinary' as const,required:[]}]:[])]])),costs:new Map(family.map((law,index)=>[law.name,priority.get(law.name)??index]))})}))
 // Hold context selection fixed in this test so the optional subset optimizer
 // cannot avoid the intentionally offered false outsider before it is exercised.
 void mock.module('./count-premise-view.ts',()=>({...view,countPremiseContext:()=>undefined}))

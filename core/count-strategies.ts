@@ -79,7 +79,16 @@ export function proposeCountStrategiesForClosing(m: Machine, family: Law[], law:
   if (arguments.length >= 9) assertLiftedWorkLease(liftedBudget)
   return countStrategies(m, family, law, until, request, observe, workAllowance, finalCountStepDeferralEnabled() ? familyStepProposal : undefined, shapeFamily, liftedBudget)
 }
-function countStrategies(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe: ((event: Record<string, unknown>) => void) | undefined, workAllowance: number, familyProposal?: FamilyStepProposal, shapeFamily?: readonly Law[], liftedBudget?: LiftedWorkBudget): CountStrategyProof | undefined {
+export type NonLiftedCountStrategyKind='row'|'guard'
+// The recipe ID is authority to select only this non-lifted constructor. These
+// entry points can never silently dispatch the numeric lifted legacy path.
+export function proveCountStrategyKind(kind:NonLiftedCountStrategyKind,m:Machine,family:Law[],law:Law,until:number,request:CountRequestBuilder,observe?:(event:Record<string,unknown>)=>void,workAllowance=Math.max(0,until-clock()),shapeFamily?:readonly Law[]):CountStrategyProof|undefined{
+ return countStrategies(m,family,law,until,request,observe,workAllowance,undefined,shapeFamily,undefined,kind)
+}
+export function proposeCountStrategyKindForClosing(kind:NonLiftedCountStrategyKind,m:Machine,family:Law[],law:Law,until:number,request:CountRequestBuilder,observe?:(event:Record<string,unknown>)=>void,workAllowance=Math.max(0,until-clock()),shapeFamily?:readonly Law[]):CountStrategyProof|undefined{
+ return countStrategies(m,family,law,until,request,observe,workAllowance,finalCountStepDeferralEnabled()?familyStepProposal:undefined,shapeFamily,undefined,kind)
+}
+function countStrategies(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe: ((event: Record<string, unknown>) => void) | undefined, workAllowance: number, familyProposal?: FamilyStepProposal, shapeFamily?: readonly Law[], liftedBudget?: LiftedWorkBudget,requestedKind?:NonLiftedCountStrategyKind): CountStrategyProof | undefined {
   // The segmented-owner path remains explicit/unactivated in the controller.
   // Discovery is non-case body work; do not wrap the lifted callback (and its
   // cases) in that body segment. Row/guard cannot enter a lifted owner plan.
@@ -102,12 +111,16 @@ function countStrategies(m: Machine, family: Law[], law: Law, until: number, req
   }
   return withDeadline(until, () => {
     if (late(until)) return
+    if(requestedKind!==undefined){
+      const actualKind=countStrategyKind(m,family,law)
+      if((requestedKind!=='row'&&requestedKind!=='guard')||actualKind!==requestedKind){observe?.({strategy:requestedKind,stage:'decline',reason:'strategy-kind-mismatch',actualKind:actualKind??'none'});return}
+    }
     const leafUnits = liftedBudget ? Infinity : strategyLeafUnits(workAllowance)
-    if (discoverRowAgreement(m, law)) {
+    if (requestedKind==='row'||requestedKind===undefined&&discoverRowAgreement(m, law)) {
       observe?.({strategy: 'row', stage: 'search-budget', workAllowance, leafUnits})
       return proveCountRowComposition(m, family, law, until, request, e => observe?.({strategy: 'row', ...e}), {framePremisesOnly: true, leafUnits, deferRowChecks: env.GDP_COUNT_ROW_DEFER_CHECKS === '1', reindexFactsOnly: env.GDP_COUNT_REINDEX_FACTS_ONLY === '1', familyProposal, shapeFamily})
     }
-    if (liftedSelected(m, family, law)) {
+    if (requestedKind===undefined&&liftedSelected(m, family, law)) {
       observe?.({strategy:'lifted',stage:'selected'})
       return proveLiftedCountComposition(m,family,law,until,request,event=>observe?.({strategy:'lifted',...event}),liftedBudget ?? workAllowance)
     }

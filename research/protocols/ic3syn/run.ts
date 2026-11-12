@@ -5,6 +5,7 @@ import {proveRule} from '../../../core/dsl.ts'
 import {protocols} from './models.ts'
 import {work as solverWork} from '../../../core/solver.ts'
 import {fullWork} from '../../../kernel/prove.ts'
+import {countRecipeContextSnapshot,countRecipeContextDifference} from '../../../core/count-recipe-context.ts'
 
 const arg = (name: string) => { const i = process.argv.indexOf(`--${name}`); return i < 0 ? undefined : process.argv[i + 1] }
 const ms = Number(arg('ms') ?? 60_000), only = arg('only')?.split(','), skip = new Set(arg('skip')?.split(',') ?? [])
@@ -15,11 +16,13 @@ const brief = (v: any) => ({verdict: verdictOf(v), ...(v.goal ? {goal: v.goal} :
   ...(v.run ? {run: v.run.trace?.length} : {}), ...(v.found?.laws?.length ? {found: v.found.laws.map((f: any) => f.source ?? f.text)} : {})})
 
 for (const p of protocols.filter(q => only ? only.includes(q.id) : true)) {
-  const out: Record<string, unknown> = {id: p.id, ic3syn: p.ic3syn}
+  const out: Record<string, unknown> = {id: p.id, ic3syn: p.ic3syn}, contextBefore=countRecipeContextSnapshot()
   try {
     const r = p.make(), laws = p.laws(r)
     if (!skip.has('search')) { const [v, t, c] = timed(() => proveRule(r, laws, {search: {ms}})); out.search = {...brief(v), ms: t, ...c} }
     if (!skip.has('broken')) { const bad = p.make(p.bug), [b, tb, cb] = timed(() => proveRule(bad, p.laws(bad), {search: {ms}})); out.broken = {bug: p.bug, ...brief(b), ms: tb, ...cb} }
   } catch (e) { out.error = String((e as Error).stack ?? e).slice(0, 600) }
+  // Includes every requested phase; with --skip broken these are search-only.
+  out.recipeContext=countRecipeContextDifference(countRecipeContextSnapshot(),contextBefore)
   console.log(JSON.stringify(out))
 }
