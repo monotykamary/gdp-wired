@@ -8,12 +8,23 @@ import {type CountLawProof,scopeCountProof,replayScopedCountProof} from './count
 import {admitCountedFamily,countsDump} from './counts.ts'
 import {cdclStats} from '../kernel/cdcl.ts'
 import {rescopeCountProof} from './count-proof-rescope.ts'
+import {completeWorkProfile} from './work-profile.ts'
+import {stepWorkProfile} from './step-work.ts'
+import {BudgetExpired} from './work-admission.ts'
+import {WallExpired} from './wall.ts'
 
 function fixture(){
  const m:Machine={name:'mutual cell preservation',params:[],inputs:[],state:{left:n(0),right:n(0),noise:n(0)},maps:{extra:0},step:{state:{left:x('right'),right:x('left')}}}
  const left:Law={name:'left remains zero',holds:same(x('left'),n(0))},right:Law={name:'right remains zero',holds:same(x('right'),n(0))}
  const scalar:Law={name:'unused scalar',holds:same(x('noise'),n(7))},indexed:Law={name:'unused indexed',forall:'k',holds:same(get('extra',x('k')),n(2))}
  return {m,left,right,scalar,indexed,family:[scalar,indexed,left,right]}
+}
+// A past requested deadline is a hard scope-entry/cancellation in counted
+// profiles. It must not be converted to a semantic proof refusal.
+const expectExpired=(run:()=>unknown):void=>{
+ if(completeWorkProfile.enabled)expect(run).toThrow(BudgetExpired)
+ else if(stepWorkProfile.enabled)expect(run).toThrow(WallExpired)
+ else expect(run()).toBeUndefined()
 }
 const bounded=<T>(run:(until:number)=>T):T=>withWall(performance.now()+5000,()=>{const until=clock()+2000;return withDeadline(until,()=>run(until))})
 const withScopes=<T>(run:(until:number)=>T,enabled='1'):T=>{
@@ -48,7 +59,7 @@ test('checked re-scope refuses a damaged unchecked packet and expired scope',()=
  const f=fixture(),proof=prove(f.m,f.left,f.family,until)
  const bad={...proof,status:'unchecked' as const,certs:{...proof.certs,[f.left.name+' @step']:{...proof.certs[f.left.name+' @step']!,tree:{leaf:[]}}}}
  expect(rescopeCountProof(f.m,f.left,f.family,bad,new Set(),until)).toBeUndefined()
- expect(rescopeCountProof(f.m,f.left,f.family,proof,new Set(),clock()-1)).toBeUndefined()
+ expectExpired(()=>rescopeCountProof(f.m,f.left,f.family,proof,new Set(),clock()-1))
  expect(rescopeCountProof({...f.m,step:{state:{left:n(1),right:x('left')}}},f.left,f.family,proof,new Set(),until)).toBeUndefined()
 }))
 
@@ -131,7 +142,7 @@ test('changed machine or damaged certificate still requires the current kernel c
  expect(replayScopedCountProof(changed,[f.left,f.right],scoped,until)).toBeUndefined()
  const key=f.left.name+' @step',bad={...scoped,proof:{...scoped.proof,certs:{...scoped.proof.certs,[key]:{...scoped.proof.certs[key]!,tree:{leaf:[]}}}}}
  expect(replayScopedCountProof(f.m,[f.left,f.right],bad,until)).toBeUndefined()
- expect(replayScopedCountProof(f.m,[f.left,f.right],scoped,clock()-1)).toBeUndefined()
+ expectExpired(()=>replayScopedCountProof(f.m,[f.left,f.right],scoped,clock()-1))
  expect(scopeCountProof(f.m,f.left,f.family,scoped.proof,clock()-1)).toBeUndefined()
 }))
 

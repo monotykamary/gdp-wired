@@ -154,7 +154,7 @@ export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecip
     if(result.kind==='proposal'){
      // The recipe is already terminal. Post-proposal capture/checks execute
      // outside the round but still inside this persistent member/ancestor cap.
-     const captured=hooks.capture?hooks.capture(choice.name,row.recipe,result.value):result.value as CountCaptured<T>
+     const captured=hooks.capture?hooks.capture(choice.name,row.recipe,result.value):result.value as unknown as CountCaptured<T>
      if(captured)state.held={...captured,recipeId:row.recipe.id}
     }
     hooks.observe?.({phase:'count-recipe-result',law:choice.name,recipe:row.recipe.id,outcome:result.kind,premises:state.held?.premises,checkedReduced:state.held?.checkedReduced,...('stop'in result?{stop:result.stop}:{}),tickets:row.tickets.snapshot(),inventory:attempt.inventory(),ancestors:headrooms()})
