@@ -1,0 +1,14 @@
+{
+  "schema": "section46-next-pin-source/v1",
+  "base": "b42a0d82441c6d7ec4db94f1ad9c763423fb5957",
+  "baseSoftwareReceipt": "T344/20261112-010112-v8nqmt:10-of-10",
+  "sourceReceiptTransfersToThisCandidate": false,
+  "FUpstreamOrder": ["e9b88c137fb9bea707e02616646579fd11ba5f83", "8f7baacdd1e2b725e5bcbd89548db17a36e8481c", "b295a74bcefce4afd8ede5f9fe750dc17af5381c", "3bd3aebef311ee75fff39e0c9568ebcbef295250"],
+  "FAppliedOrder": ["9169a28b0d77b616a5ed6bd044f38db490b6414e", "61611c03fcc045d883f8355f1294b57a16a26e30", "b80958410d418730615164949a4fd146569b47a3", "a58fd85807a8e332022c6911c4d0de8a5a9d59e9"],
+  "BUpstreamOrder": ["d5c37dc12d289a536d41afe11cc49a3306317683", "d49226b37f0e8afc8cc48b3717d018b1e6007c04", "3b68e671398ba36bd8026a1b54bce76ded4c1c02", "d75d418860b09ea8dd4410085a40e0aebfd3fb6b", "a8115f32c4360a43f5271ad065a6b392a8b8fc14"],
+  "BAppliedOrder": ["e1bbbaa18b1a8e1f5f8f9b2865de99c86884ba85", "6f1a622e2bdca294421d576b49a4fdb146a218f8", "116eb809576aeca66217838784596e956ff434b4", "eef719dfbf1491a96e5baf3e92167e04c7b25e92", "039d194b1aa108d57e6b460af37dd96c68f50e48"],
+  "profile": {"path": "research/next-pin/active-flags.json", "sha256": "a5f077dc8156a7bb550dc0ed279de96b20aa3a167c32fbaaaaad925fc9f8a272", "clearOtherGDPBeforeImports": true, "DReleaseIsExternalAndRequired": true},
+  "policy": {"retryFunding": "existing-flat", "disjointActivation": false, "G3PolicyChange": false, "alphaBindingIncluded": false, "G1OwnedDefer": false, "replayForward": false, "C2Lemmas": true, "C2Replay": true},
+  "software": {"status": "NOT_RUN", "preserveAllFailures": true, "N3": "known expectation/policy mismatch under flat; actual failure keeps matrix NOT_GREEN; no waiver"},
+  "qualificationOrClosureAuthority": false
+}
