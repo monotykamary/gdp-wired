@@ -1,0 +1,24 @@
+[
+  {
+    "name": "g1-replay-lease-source-v2",
+    "cpu": 1,
+    "memory": 4096,
+    "timeout": 600,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "runtime_pins_protocol": 1,
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "env": {
+      "GDP_WORK_FULL": "1",
+      "GDP_WORK_STEPS": "0"
+    },
+    "cmd": "set -euo pipefail; out=${SUPERCOMPUTER_OUTPUT_DIR:?}; /home/user/.bun/bin/bun install --frozen-lockfile > \"$out/install.log\" 2>&1; bash research/track-m/prepare-vendors.sh > \"$out/vendors.log\" 2>&1; /home/user/.bun/bin/bun test core/count-g1-lease.test.ts core/count-replay-forward-lease.test.ts core/count-deferred-checks.test.ts core/count-replay-forward.test.ts core/count-lifted-lease.test.ts > \"$out/tests.log\" 2>&1; /home/user/.bun/bin/bun x tsc -p . > \"$out/typecheck.log\" 2>&1; /home/user/.bun/bin/bun x oxlint --type-aware --deny-warnings --disable-nested-config core/count-lifted-load.ts core/count-g1-lease.test.ts core/count-replay-forward-lease.test.ts > \"$out/lint.log\" 2>&1; for message in research/track-m/g1-lease-port/COMMIT-G1.txt research/track-m/g1-lease-port/COMMIT-REPLAY.txt; do /home/user/.bun/bin/bun x --bun @commitlint/cli@19.8.1 --config research/egraph/historical/commitlint.config.cjs < \"$message\" >> \"$out/commitlint.log\" 2>&1; done; printf 'PASS: lease tests, typecheck, lint, commitlint\\n' > \"$out/result.txt\""
+  }
+]

@@ -1,0 +1,1 @@
+test(counts): verify owned replay forwarding under exact leases
