@@ -3,7 +3,7 @@
 // explicit composition-only construction may defer them to its final checker.
 import {type C} from './machine.ts'
 import {countsForReads} from './count-facts.ts'
-import {solve} from './solver.ts'
+import {env,solve} from './solver.ts'
 import {type CountDecl,type CountInst,type Goal,type MapRead,type Path,type Tree,check,mcGoal} from '../kernel/kernel.ts'
 import {growCdcl} from '../kernel/cdcl.ts'
 import {type Outcome,brokenOf,clock,fullRate,fullWork,rowsAt} from '../kernel/prove.ts'
@@ -31,7 +31,10 @@ export function minimalViewFirst(full:Goal,minimal:Goal,path:Path,until:number,f
  }
  const small=search(minimal,growCdcl,minimalPath)
  if('tree'in small){
-  const tree=minimal===full&&minimalPath===path?small.tree:(rebasePath(minimal,small.tree,minimalPath,path,until,full)??replayLinearSkeleton(full,small.tree,path,until,{deferCheck:options.deferCheck===true&&options.deferReplayCheck===true}))
+  // C2 ownership does not activate forwarding without its independent opt-in.
+  const tree=minimal===full&&minimalPath===path?small.tree:(rebasePath(minimal,small.tree,minimalPath,path,until,full)??(env.GDP_COUNT_REPLAY_FORWARD==='1'
+   ?replayLinearSkeleton(full,small.tree,path,until,{deferCheck:options.deferCheck===true&&options.deferReplayCheck===true})
+   :replayLinearSkeleton(full,small.tree,path,until)))
   const checked=!!tree&&(options.deferCheck||check(full,tree,path))&&clock()<until
   return {kind:checked?'proof':'rejected',minimalKind:checked?'proof':'rejected',fallback:false,minimalUnits:units(),fallbackUnits:0,...(checked?{tree}:{})}
  }

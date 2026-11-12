@@ -10,7 +10,7 @@ import {discoverLiftedCountGuard} from './count-lifted-shape.ts'
 import {discoverCountRowLoad} from './count-load-shape.ts'
 import {proposeLiftedTransports} from './count-lifted-transports.ts'
 import {type CountCert,type CountInst,type FrameCut,type Goal,type Instances,type LinCut,type Path,type Tree,canon,check,checkMC,countedObligations,frameOk,framePath,linear,mcGoal} from '../kernel/kernel.ts'
-import {add,k,scale,solve,sub} from './solver.ts'
+import {add,env,k,scale,solve,sub} from './solver.ts'
 import {growCdcl} from '../kernel/cdcl.ts'
 import {fullRate,fullWork,late,rowsAt,withDeadline} from '../kernel/prove.ts'
 import {countGuardTree} from './count-guard-tree.ts'
@@ -21,9 +21,12 @@ import {checkedReversePrefix,UnwrittenCountPrefix} from './count-unwritten-prefi
 import {copyQueryContext} from './count-query-context.ts'
 import {stabilizeGuardedTree} from './count-stabilize-tree.ts'
 const json=(value:unknown)=>JSON.stringify(value)
-// Untrusted minimal-to-full transport; only composition may defer replay checks.
+// Untrusted minimal-to-full transport. The independent opt-in is default off;
+// C2 and general deferral alone retain the pre-G1 checked replay call.
 export function rebaseLiftedLoadCandidate(view:Goal,tree:Tree,root:Path,until:number,goal:Goal,options:CountStrategyOptions={}):Tree|undefined{
- return rebasePath(view,tree,root,root,until,goal)??replayLinearSkeleton(goal,tree,root,until,{deferCheck:deferIntermediateCountChecks(options)})
+ return rebasePath(view,tree,root,root,until,goal)??(env.GDP_COUNT_G1_OWNED_DEFER==='1'
+  ?replayLinearSkeleton(goal,tree,root,until,{deferCheck:deferIntermediateCountChecks(options)})
+  :replayLinearSkeleton(goal,tree,root,until))
 }
 export function proveLiftedCountLoad(m:Machine,family:Law[],law:Law,until:number,requestFor:CountRequestBuilder,observe?:(event:Record<string,unknown>)=>void,options:CountStrategyOptions={}):CountStrategyProof|undefined{
  if(!family.includes(law))return
