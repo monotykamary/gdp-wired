@@ -7,13 +7,15 @@
     "e9b88c137fb9bea707e02616646579fd11ba5f83",
     "8f7baacdd1e2b725e5bcbd89548db17a36e8481c",
     "b295a74bcefce4afd8ede5f9fe750dc17af5381c",
-    "3bd3aebef311ee75fff39e0c9568ebcbef295250"
+    "3bd3aebef311ee75fff39e0c9568ebcbef295250",
+    "db9e71f390133f0af4d16bdeba6ed006a3b5bf15"
   ],
   "FAppliedOrder": [
     "9169a28b0d77b616a5ed6bd044f38db490b6414e",
     "61611c03fcc045d883f8355f1294b57a16a26e30",
     "b80958410d418730615164949a4fd146569b47a3",
-    "a58fd85807a8e332022c6911c4d0de8a5a9d59e9"
+    "a58fd85807a8e332022c6911c4d0de8a5a9d59e9",
+    "36fafed3b4b22d03d8f4d9de3dc77f6596814432"
   ],
   "BUpstreamOrder": [
     "d5c37dc12d289a536d41afe11cc49a3306317683",
@@ -21,7 +23,8 @@
     "3b68e671398ba36bd8026a1b54bce76ded4c1c02",
     "d75d418860b09ea8dd4410085a40e0aebfd3fb6b",
     "a8115f32c4360a43f5271ad065a6b392a8b8fc14",
-    "d503612635778975b8b02a4cc2bc6ad49cc484c9"
+    "d503612635778975b8b02a4cc2bc6ad49cc484c9",
+    "5af790a157ca49fab4599a13de49b18cf3688a6f"
   ],
   "BAppliedOrder": [
     "e1bbbaa18b1a8e1f5f8f9b2865de99c86884ba85",
@@ -29,7 +32,8 @@
     "116eb809576aeca66217838784596e956ff434b4",
     "eef719dfbf1491a96e5baf3e92167e04c7b25e92",
     "039d194b1aa108d57e6b460af37dd96c68f50e48",
-    "08768bf6040f76d382b4579396ffe54826d80dc7"
+    "08768bf6040f76d382b4579396ffe54826d80dc7",
+    "f64615a936f61773175cf43115d2daf654f08269"
   ],
   "profile": {
     "path": "research/next-pin/active-flags.json",
@@ -63,5 +67,15 @@
       "archive-safe message collector"
     ],
     "N3": "unchanged raw RED under flat"
+  },
+  "T351Repair": {
+    "baseline": "b946d0edadafcdf4ec2bfb3d3349729433507206",
+    "baselineStatus": "NOT_GREEN",
+    "scope": [
+      "F fixture ASI and report comparator",
+      "B erased assertion type"
+    ],
+    "supplementRequired": true,
+    "knownN3": "raw failure retained"
   }
 }
