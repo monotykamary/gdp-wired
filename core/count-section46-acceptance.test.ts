@@ -18,7 +18,7 @@ import {workLedger} from './work-admission.ts'
 import {workAmount} from './work-amount.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {type CountCert,canon,checkCountedLaws,checkMC,countedObligations,leafConstraintsReusing,lemmaPath,mcGoal} from '../kernel/kernel.ts'
-import {grow,withBudget} from '../kernel/prove.ts'
+import {clock,fullRate,grow,withBudget} from '../kernel/prove.ts'
 import {refuteFast} from './solver.ts'
 
 const a=(n:number)=>workAmount(BigInt(n))
@@ -102,7 +102,7 @@ function publicRun(f:Fixture,m:Machine,caller:Law[],root=PUBLIC_ROOT,after?:(res
  countsDump.on=event=>events.push(event as Record<string,unknown>)
  try{
   const result=bounded(root,()=>{
-   const out=admitCountedFamily(m,caller,f.family,new Set(),Infinity)
+   const out=admitCountedFamily(m,caller,f.family,new Set(),clock()+root/fullRate)
    if(out.proven)expect(checkCountedLaws(out.m,out.laws,out.proof!)).toBe(true)
    after?.(out);return out
   })
