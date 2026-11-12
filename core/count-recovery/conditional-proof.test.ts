@@ -1,4 +1,6 @@
-import {expect, test} from 'bun:test'
+import {expect, spyOn, test} from 'bun:test'
+import {BudgetExpired,workLedger} from '../work-admission.ts'
+import * as cache from './conditional-check-cache.ts'
 import {type C, ite, n, not, x} from '../machine.ts'
 import {type Lin, type Step, add, k, scale, sub, v} from '../solver.ts'
 import {type Goal, type LemmaCut, type Path, type Tree, canon, check, checkGoalLemmas, leafConstraintsReusing as rowsAt, lemmaPath} from '../../kernel/kernel.ts'
@@ -307,4 +309,16 @@ test('expired absolute wall deadlines never produce certificates', () => {
   expect(collectConditionalCertificate(f.goal, f.tree, expired)).toBeUndefined()
   expect(transportConditionalProof(f.goal, f.goal, f.tree, f.scope, f.scope, NaN)).toBeUndefined()
   expect(collectConditionalCertificate(f.goal, f.tree, NaN)).toBeUndefined()
+})
+for(const phase of ['transport','collect'] as const)test('opt-in '+phase+' preserves thrown budget errors without changing legacy catches',()=>{
+ const f=fixture(false),stop=new BudgetExpired('external transport cancellation')
+ const intercepted=spyOn(cache,'targetIndex').mockImplementation(()=>{throw stop})
+ const invoke=(options?:{rethrowBudgetExpired?:boolean})=>phase==='transport'
+  ?transportConditionalProof(f.goal,f.goal,f.tree,f.scope,f.scope,until(),options)
+  :collectConditionalCertificate(f.goal,f.tree,until(),options)
+ try{
+  expect(invoke()).toBeUndefined()
+  let caught:unknown;try{invoke({rethrowBudgetExpired:true})}catch(error){caught=error}
+  expect(caught).toBe(stop);expect(workLedger.capacityRefusal(caught)).toBeUndefined()
+ }finally{intercepted.mockRestore()}
 })

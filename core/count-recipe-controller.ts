@@ -72,11 +72,19 @@ export class CountRecipePass<T>{
   return held
  }
 }
+// B's whole-held fallback and K's supplier repair share one persistent bit.
+// An actual transport decline belongs to K; the fallback must not consume a
+// separate retry around it. Claim before the fallback so refusal cannot renew it.
+export function claimCountClosingFallback(pass:{supplierRepairUsed:boolean},actualTransportDecline:boolean):boolean{
+ if(actualTransportDecline||pass.supplierRepairUsed)return false
+ pass.supplierRepairUsed=true
+ return true
+}
 export type CountControllerHooks<T,R,P=CountCaptured<T>>=Readonly<{
  construct:(name:string,recipe:CountControllerRecipe,lease:LiftedWorkBudget|undefined)=>P|undefined,
  capture?:(name:string,recipe:CountControllerRecipe,proposal:P)=>CountCaptured<T>|undefined,
  preflight?:(name:string,recipe:CountControllerRecipe)=>boolean,
- close:(rows:readonly HeldCountPayload<T>[],targetInFamily:boolean)=>R,
+ close:(rows:readonly HeldCountPayload<T>[],targetInFamily:boolean,wholeClosed?:()=>readonly HeldCountPayload<T>[])=>R,
  // Only the close adapter may identify an actual certificate transport decline.
  declinedMember?:()=>string|undefined,
  repairSuppliers?:(name:string,payload:T)=>Readonly<{payload:T,premises:readonly string[]}>|undefined,
@@ -215,7 +223,17 @@ export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecip
  const plan=greatestClosedCountFamily(map(pass.states,state=>state.member.name),new Map(map(rows,row=>[row.id,row.premises] as const)),{basis:hooks.basis,tick})
  const target=find(targets,name=>find(plan.members,member=>member===name)===undefined)??targets[0]!
  const closing=closeGreatestCountFamily(target,rows,{
-  legacy:()=>{const selected:HeldCountPayload<T>[]=[];for(const row of rows){tick();if(needed.has(row.id))selected.push(row)}return hooks.close(selected,true)},
+  legacy:()=>{
+   const selected:HeldCountPayload<T>[]=[]
+   for(const row of rows){tick();if(needed.has(row.id))selected.push(row)}
+   // Lazy, fixed inventory only: no producer runs and no new work scope.
+   return hooks.close(selected,true,()=>{
+    const names=new Set<string>(),whole:HeldCountPayload<T>[]=[]
+    for(const name of plan.members){tick();names.add(name)}
+    for(const row of rows){tick();if(names.has(row.id))whole.push(row)}
+    return whole
+   })
+  },
   reserve:selected=>{
    let measured=zeroWork
    for(const row of selected){tick();const captured=held.get(row.id);if(!captured)return false;measured=workAdd(measured,captured.checkCost)}

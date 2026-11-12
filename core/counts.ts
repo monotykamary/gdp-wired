@@ -50,11 +50,11 @@ import {WallExpired, checkWall, searchWall, withBudget} from './wall.ts'
 import {env} from './solver.ts'
 import {proofOrigins, proposeLemmaCuts} from './lemma-cuts.ts'
 import {countedCertificateHyps,transportCountCertificate} from './count-cert-transport.ts'
-import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, scopeCountProof, replayScopedCountProof, isCheckedReducedScope, withCountScopeIdentityObservation, countScopeContextKey, resolveCountScopeSuppliers} from './count-proof-scope.ts'
+import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, type CountReplayDecline, scopeCountProof, replayScopedCountProof, isCheckedReducedScope, withCountScopeIdentityObservation, countScopeContextKey, resolveCountScopeSuppliers} from './count-proof-scope.ts'
 import {assertLiftedWorkLease, prepareCountStrategyMachine, proveCountStrategies, proposeCountStrategiesForClosing, proveCountStrategyKind, proposeCountStrategyKindForClosing, selectedCountStrategies} from './count-strategies.ts'
 import {type LiftedWorkBudget} from './count-lifted-budget.ts'
 import {countRecipeContextDecision} from './count-recipe-context.ts'
-import {CountRecipePass,runCountRecipeController,type CountControllerMember} from './count-recipe-controller.ts'
+import {CountRecipePass,runCountRecipeController,claimCountClosingFallback,type CountControllerMember} from './count-recipe-controller.ts'
 import {discoverLiftedCountGuard,discoverLiftedCountOperations} from './count-lifted-shape.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {workLedger} from './work-admission.ts'
@@ -795,25 +795,46 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         const repaired=resolveCountScopeSuppliers(m,set,scoped,Infinity)
         return repaired&&{payload:repaired,premises:workMap(repaired.premises,p=>p.name,'count repaired supplier names')}
       },
-      close:(rows,targetInFamily)=>{
-        transportDeclined=undefined
-        const names=new Set(workMap(rows,row=>row.id,'count closing inventory'))
-        const family=workFilter(set,law=>names.has(law.name),'count closing family'),instances:Record<string,Instances>={},certs:Record<string,CountCert>={},premises:Record<string,readonly string[]>={}
-        if(reach?.safety()==='broken')return {proven:false,laws:family,m,why:'reachable caller counterexample'}
-        for(const row of rows){
-          tick()
-          // Use the graph's effective S for membership and published premises;
-          // replay the untouched scoped payload against exactly that family.
-          const proof=replayScopedCountProof(m,family,row.payload,Infinity,{deferToClosing:true,onTransportDecline:()=>{transportDeclined=row.id}})
-          if(!proof)return {proven:false,laws:family,m,why:'recipe closing replay declined'}
-          instances[row.id]=proof.instances
-          for(const [name,cert]of workEntries(proof.certs,'count closing certificates'))certs[name]=cert as CountCert
-          premises[row.id]=row.premises
+      close:(rows,targetInFamily,wholeClosed)=>{
+        const replay=(selected:typeof rows,route:'needed'|'whole-held'):{result:Counted,replayDeclined:boolean}=>{
+          // Each invocation describes its own payload, never a stale decline.
+          transportDeclined=undefined
+          const declines:CountReplayDecline[]=[]
+          const names=new Set(workMap(selected,row=>row.id,'count closing inventory'))
+          const family=workFilter(set,law=>names.has(law.name),'count closing family'),instances:Record<string,Instances>={},certs:Record<string,CountCert>={},premises:Record<string,readonly string[]>={}
+          if(reach?.safety()==='broken')return {result:{proven:false,laws:family,m,why:'reachable caller counterexample'},replayDeclined:false}
+          for(const row of selected){
+            tick()
+            // Transport the original captured payload on the unchanged model;
+            // never search, repair a certificate, or reuse a partial first try.
+            const proof=replayScopedCountProof(m,family,row.payload,Infinity,{deferToClosing:true,onDecline:decline=>declines.push(decline),onTransportDecline:()=>{transportDeclined=row.id}})
+            if(!proof){
+              const decline=declines[declines.length-1]
+              countsDump.on?.({phase:'count-recipe-closing-decline',family:route,member:row.id,obligation:decline?.obligation??null,case:decline?.case??null,reason:decline?.reason??'unclassified',detail:decline})
+              const why=declines.map(d=>'member='+d.member+', obligation='+(d.obligation??'<family>')+', case='+d.case+':'+d.reason).join(' | ')
+              return {result:{proven:false,laws:family,m,why:'recipe closing replay declined ['+route+']: '+(why||'member='+row.id+', unclassified')},replayDeclined:true}
+            }
+            instances[row.id]=proof.instances
+            for(const [name,cert]of workEntries(proof.certs,'count closing certificates'))certs[name]=cert as CountCert
+            premises[row.id]=row.premises
+          }
+          if(reach)countsDump.on?.({phase:'count-reachability-summary',rows:reach.receipts(initial),replayEvidence:reach.evidence})
+          let hasCallers=targetInFamily
+          for(const law of caller){tick();if(!names.has(law.name))hasCallers=false}
+          return {result:finish(family,{instances,certs,premises},hasCallers),replayDeclined:false}
         }
-        if(reach)countsDump.on?.({phase:'count-reachability-summary',rows:reach.receipts(initial),replayEvidence:reach.evidence})
-        let hasCallers=targetInFamily
-        for(const law of caller){tick();if(!names.has(law.name))hasCallers=false}
-        return finish(family,{instances,certs,premises},hasCallers)
+        const first=replay(rows,'needed')
+        if(!first.replayDeclined||!wholeClosed||transportDeclined!==undefined||tierRun.recipePass!.supplierRepairUsed)return first.result
+        const whole=wholeClosed()
+        // A single larger greatest CLOSED HELD family, never arbitrary
+        // candidates or a budget reset. Equal inventory cannot repair replay.
+        if(whole.length<=rows.length)return first.result
+        // K repair and this fallback share the SAME persistent retry bit.
+        if(!claimCountClosingFallback(tierRun.recipePass!,transportDeclined!==undefined))return first.result
+        countsDump.on?.({phase:'count-recipe-closing-fallback',from:workMap(rows,row=>row.id,'count closing fallback source'),to:workMap(whole,row=>row.id,'count closing fallback target'),attempt:1})
+        const second=replay(whole,'whole-held').result
+        if(second.proven||!second.why||second.why.includes('recipe closing replay declined'))return second
+        return {...second,why:second.why+'; '+first.result.why}
       }
     })
     countsDump.on?.({phase:'count-recipe-summary',reason:outcome.reason,failure:outcome.failure,closingRoute:outcome.closingRoute,proven:outcome.result?.proven??false})

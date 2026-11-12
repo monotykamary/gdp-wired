@@ -14,7 +14,9 @@ import {type CountLawProof,type CountFamilyProof,type ScopedCountProof} from './
 import {type CountComponentRecipe} from './count-prerequisite-components.ts'
 import {type LiftedWorkBudget,liftedWorkLeaseBudget,withLiftedCase} from './count-lifted-budget.ts'
 import {countRecipeGraph,type CountRecipeMember} from './count-recipe-graph.ts'
-import {workLedger} from './work-admission.ts'
+import {BudgetExpired,workLedger,type WorkAdmissionSnapshot,type WorkCapacityRefusal} from './work-admission.ts'
+import * as conditional from './count-recovery/conditional-proof.ts'
+import * as conditionalCache from './count-recovery/conditional-check-cache.ts'
 import {workAmount} from './work-amount.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {type CountCert,canon,checkCountedLaws,checkMC,countedObligations,leafConstraintsReusing,lemmaPath,mcGoal} from '../kernel/kernel.ts'
@@ -96,10 +98,10 @@ void mock.module('./count-lifted-shape.ts',()=>({...shape,
    :shape.discoverLiftedCountOperations(m,guard)
 }))
 const flags=['GDP_COUNT_STRATEGIES','GDP_COUNT_TIERS','GDP_COUNT_FINAL_DEFER_CHECKS','GDP_COUNT_CLOSING_RESERVE','GDP_COUNT_PREREQUISITES','GDP_COUNT_PROOF_GUIDED_SCHEDULING']
-function publicRun(f:Fixture,m:Machine,caller:Law[],root=PUBLIC_ROOT,after?:(result:ReturnType<typeof admitCountedFamily>)=>void){
+function publicRun(f:Fixture,m:Machine,caller:Law[],root=PUBLIC_ROOT,after?:(result:ReturnType<typeof admitCountedFamily>)=>void,observe?:(event:Record<string,unknown>)=>void){
  const saved=new Map(flags.map(key=>[key,process.env[key]])),previous=countsDump.on,events:Record<string,unknown>[]=[]
  fixture=f;for(const key of flags)process.env[key]='1'
- countsDump.on=event=>events.push(event as Record<string,unknown>)
+ countsDump.on=event=>{const row=event as Record<string,unknown>;events.push(row);observe?.(row)}
  try{
   const result=bounded(root,()=>{
    const out=admitCountedFamily(m,caller,f.family,new Set(),clock()+root/fullRate)
@@ -341,4 +343,112 @@ test('46.15: known route blocked by half does not block an eligible unknown alte
  expect(blocked.stop).toBe('target-blocked')
  const open=countRecipeGraph([half,{name:'target',reference:1,recipes:[known,{id:'unknown',terminal:false}]}],['target'],()=>{})
  expect(open.blocked.has('target')).toBe(false);expect(open.next?.recipe.id).toBe('unknown')
+})
+
+test('S51 public closing retries once with the greatest closed held family and the native checker',()=>{
+ const {m,family}=independent(['extra held','target']),[extra,target]=family as [Law,Law]
+ const rs=new Map([[extra.name,[recipe('row',[])]],[target.name,[recipe('row',[extra.name])]]])
+ const original=scope.replayScopedCountProof,seen:string[][]=[]
+ const mock=spyOn(scope,'replayScopedCountProof').mockImplementation((machine,context,held,until,options)=>{
+  if(options?.deferToClosing){
+   seen.push(context.map(l=>l.name))
+   if(context.length===1){options.onDecline?.({case:5,reason:'certificate-transport-declined',member:held.owner.name,obligation:held.owner.name+' @step'});return undefined}
+  }
+  return original(machine,context,held,until,options)
+ })
+ try{
+  const out=publicRun({family,recipes:rs,calls:[],produce:(machine,context,law)=>prove(machine,law,context)},m,[target])
+  expect(out.result.proven).toBe(true)
+  expect(out.result.laws.map(l=>l.name)).toEqual([extra.name,target.name])
+  expect(out.events.filter(e=>e.phase==='count-recipe-closing-fallback')).toHaveLength(1)
+  expect(out.events.filter(e=>e.phase==='count-recipe-closing-decline')).toMatchObject([{member:target.name,obligation:target.name+' @step',case:5,family:'needed'}])
+  expect(seen).toEqual([[target.name],[extra.name,target.name],[extra.name,target.name]])
+  expect(out.calls).toEqual([extra.name,target.name])
+  expect(out.result.laws).toContain(target)
+ }finally{mock.mockRestore()}
+})
+
+test('S51 a second closing decline is named and cannot start a third closing or another producer',()=>{
+ const {m,family}=independent(['extra held','target']),[extra,target]=family as [Law,Law]
+ const rs=new Map([[extra.name,[recipe('row',[])]],[target.name,[recipe('row',[extra.name])]]])
+ const original=scope.replayScopedCountProof
+ const mock=spyOn(scope,'replayScopedCountProof').mockImplementation((machine,context,held,until,options)=>{
+  if(options?.deferToClosing){options.onDecline?.({case:5,reason:'certificate-transport-declined',member:held.owner.name,obligation:held.owner.name+' @step'});return undefined}
+  return original(machine,context,held,until,options)
+ })
+ try{
+  const out=publicRun({family,recipes:rs,calls:[],produce:(machine,context,law)=>prove(machine,law,context)},m,[target])
+  expect(out.result.proven).toBe(false)
+  // One fallback for this retained recipe pass, including the existing
+  // ordinary/structured wrapper. Its retries cannot mint a second fallback.
+  expect(out.events.filter(e=>e.phase==='count-recipe-closing-fallback')).toHaveLength(1)
+  expect(out.result.why).toContain('case=5:certificate-transport-declined')
+  expect(out.result.why).toContain('obligation=')
+  expect(out.calls).toEqual([extra.name,target.name])
+ }finally{mock.mockRestore()}
+})
+
+test('S51 an identical full-held family is not retried',()=>{
+ const {m,family}=independent(['target']),target=family[0]!,original=scope.replayScopedCountProof
+ const rs=new Map([[target.name,[recipe('row',[])]]])
+ const mock=spyOn(scope,'replayScopedCountProof').mockImplementation((machine,context,held,until,options)=>{
+  if(options?.deferToClosing){options.onDecline?.({case:2,reason:'premise-identity-changed',member:held.owner.name,premise:held.owner.name});return undefined}
+  return original(machine,context,held,until,options)
+ })
+ try{
+  const out=publicRun({family,recipes:rs,calls:[],produce:(machine,context,law)=>prove(machine,law,context)},m,[target])
+  expect(out.result.proven).toBe(false)
+  expect(out.events.filter(e=>e.phase==='count-recipe-closing-fallback')).toEqual([])
+  expect(out.result.why).toContain('member=target')
+  expect(out.result.why).toContain('case=2:premise-identity-changed')
+ }finally{mock.mockRestore()}
+})
+
+for(const phase of ['transport','collect'] as const)test('S51 genuine FULL hard stop inside '+phase+' preserves provenance and never retries',()=>{
+ const {m,family}=independent(['extra held','target']),[extra,target]=family as [Law,Law]
+ const recipes=new Map([[extra.name,[recipe('row',[])]],[target.name,[recipe('row',[extra.name])]]])
+ const fixture:Fixture={family,recipes,calls:[],produce:(machine,context,law)=>prove(machine,law,context)}
+ const replay=scope.replayScopedCountProof,transport=conditional.transportConditionalProof,collect=conditional.collectConditionalCertificate,index=conditionalCache.targetIndex
+ let closing=false,inside:'transport'|'collect'|undefined,closingCalls=0,completedTransports=0
+ let generated:unknown,caught:unknown,provenance:WorkCapacityRefusal|undefined,atRefusal:WorkAdmissionSnapshot|undefined
+ const events:Record<string,unknown>[]=[]
+ const replaySpy=spyOn(scope,'replayScopedCountProof').mockImplementation((...args)=>{
+  if(!args[4]?.onDecline)return replay(...args)
+  closingCalls++;closing=true
+  try{return replay(...args)}finally{closing=false}
+ })
+ const transportSpy=spyOn(conditional,'transportConditionalProof').mockImplementation((...args)=>{
+  const previous=inside;if(closing)inside='transport'
+  try{const out=transport(...args);if(closing&&out)completedTransports++;return out}finally{inside=previous}
+ })
+ const collectSpy=spyOn(conditional,'collectConditionalCertificate').mockImplementation((...args)=>{
+  const previous=inside;if(closing)inside='collect'
+  try{return collect(...args)}finally{inside=previous}
+ })
+ const indexSpy=spyOn(conditionalCache,'targetIndex').mockImplementation((...args)=>{
+  if(closing&&inside===phase&&!generated){
+   atRefusal=workLedger.snapshot()
+   const remaining=workLedger.available()!
+   // Real, indivisible ledger admission at the inherited endpoint. No fake
+   // BudgetExpired, counter mutation, new root or error-message classifier.
+   try{workLedger.start('ticks',Number(remaining.num/remaining.den)+1,'S51 '+phase+' hard-stop probe')}
+   catch(error){generated=error;provenance=workLedger.capacityRefusal(error);throw error}
+   throw Error('expected the inherited FULL endpoint to refuse admission')
+  }
+  return index(...args)
+ })
+ try{
+  try{publicRun(fixture,m,[target],PUBLIC_ROOT,undefined,event=>events.push(event))}catch(error){caught=error}
+  expect(generated).toBeInstanceOf(BudgetExpired)
+  expect(provenance).toBeDefined();expect(provenance!.reason).toBe('quantum')
+  expect(atRefusal!.activeEndpoints.some(endpoint=>endpoint.kind==='root')).toBe(true)
+  expect(provenance!.limiting.length).toBeGreaterThan(0)
+  expect(provenance!.limiting.every(endpoint=>atRefusal!.activeEndpoints.some(active=>active.id===endpoint.id))).toBe(true)
+  expect(caught).toBe(generated)
+  expect(workLedger.capacityRefusal(caught)).toBe(provenance)
+  expect(closingCalls).toBe(1)
+  expect(completedTransports).toBe(phase==='collect'?1:0)
+  expect(events.filter(event=>event.phase==='count-recipe-closing-decline'||event.phase==='count-recipe-closing-fallback')).toEqual([])
+  expect(fixture.calls).toEqual([extra.name,target.name])
+ }finally{indexSpy.mockRestore();collectSpy.mockRestore();transportSpy.mockRestore();replaySpy.mockRestore()}
 })

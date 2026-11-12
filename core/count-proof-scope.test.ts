@@ -1,10 +1,11 @@
-import {expect,test} from 'bun:test'
+import {expect,spyOn,test} from 'bun:test'
 import {spawnSync} from 'node:child_process'
 import {type Law,type Machine,get,n,same,x} from './machine.ts'
 import {type CountCert,type Instances,canon,checkCountedLaws,checkMC,countedObligations,leafConstraintsReusing,lemmaPath,mcGoal} from '../kernel/kernel.ts'
 import {refuteFast} from './solver.ts'
 import {clock,grow,withDeadline,withWall} from '../kernel/prove.ts'
-import {type CountLawProof,scopeCountProof,replayScopedCountProof} from './count-proof-scope.ts'
+import {type CountLawProof,type CountReplayDecline,scopeCountProof,replayScopedCountProof} from './count-proof-scope.ts'
+import * as transport from './count-cert-transport.ts'
 import {admitCountedFamily,countsDump} from './counts.ts'
 import {cdclStats} from '../kernel/cdcl.ts'
 import {rescopeCountProof} from './count-proof-rescope.ts'
@@ -217,3 +218,39 @@ test.skipIf(!('withBudget' in await import('../kernel/prove.ts')))('scope captur
  if(child.status!==0)throw Error(child.stderr)
  expect(child.status).toBe(0)
 })
+
+test('S51 diagnostics name duplicate, premise, obligation, certificate and transport refusals',()=>bounded(until=>{
+ const f=fixture(),scoped=scopeCountProof(f.m,f.left,f.family,prove(f.m,f.left,f.family,until),until)!
+ const declines:CountReplayDecline[]=[],onDecline=(d:CountReplayDecline)=>declines.push(d)
+ expect(replayScopedCountProof(f.m,[...f.family,f.left],scoped,until,{onDecline})).toBeUndefined()
+ expect(declines.pop()).toMatchObject({case:1,reason:'duplicate-family-name',member:f.left.name})
+ expect(replayScopedCountProof(f.m,[f.left],scoped,until,{onDecline})).toBeUndefined()
+ expect(declines.pop()).toMatchObject({case:2,reason:'missing-premise',member:f.left.name,premise:f.right.name})
+ expect(replayScopedCountProof(f.m,f.family,{...scoped,sources:scoped.sources.slice(1)},until,{onDecline})).toBeUndefined()
+ expect(declines.pop()).toMatchObject({case:3,reason:'obligation-count-mismatch',expected:1,actual:2})
+ expect(replayScopedCountProof(f.m,f.family,{...scoped,proof:{...scoped.proof,certs:{}}},until,{onDecline})).toBeUndefined()
+ expect(declines.pop()).toMatchObject({case:4,reason:'missing-certificate',member:f.left.name,obligation:f.left.name+' @start'})
+ const mock=spyOn(transport,'replayCountCertificate').mockImplementation(()=>undefined)
+ try{
+  expect(replayScopedCountProof(f.m,f.family,scoped,until,{onDecline})).toBeUndefined()
+  expect(declines.pop()).toMatchObject({case:5,reason:'certificate-transport-declined',member:f.left.name,obligation:f.left.name+' @start'})
+ }finally{mock.mockRestore()}
+ expect(replayScopedCountProof(f.m,f.family,scoped,until,{onDecline})).toBeDefined()
+ expect(declines).toEqual([])
+}))
+
+test('S51 diagnostics distinguish unchanged native rejection from a transport miss',()=>bounded(until=>{
+ const f=fixture(),scoped=scopeCountProof(f.m,f.left,f.family,prove(f.m,f.left,f.family,until),until)!,declines:CountReplayDecline[]=[]
+ const mock=spyOn(transport,'replayCountCertificate').mockImplementation((_from,_to,cert)=>({...cert,tree:{leaf:[]}}))
+ try{
+  expect(replayScopedCountProof(f.m,f.family,scoped,until,{onDecline:d=>declines.push(d)})).toBeUndefined()
+  expect(declines).toEqual([{case:6,reason:'native-check-failed',member:f.left.name,obligation:f.left.name+' @start'}])
+ }finally{mock.mockRestore()}
+}))
+
+test('S51 diagnostics do not convert hard budget expiry into a semantic decline',()=>bounded(until=>{
+ const f=fixture(),scoped=scopeCountProof(f.m,f.left,f.family,prove(f.m,f.left,f.family,until),until)!,declines:CountReplayDecline[]=[]
+ const run=()=>replayScopedCountProof(f.m,f.family,scoped,clock()-1,{onDecline:d=>declines.push(d)})
+ if(completeWorkProfile.enabled||stepWorkProfile.enabled){expectExpired(run);expect(declines).toEqual([])}
+ else{expect(run()).toBeUndefined();expect(declines).toEqual([{case:7,reason:'deadline',member:f.left.name}])}
+}))

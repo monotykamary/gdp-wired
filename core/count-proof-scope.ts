@@ -146,41 +146,59 @@ export function resolveCountScopeSuppliers(m:Machine,family:Law[],scoped:ScopedC
 // A changed premise is missing even if its label survives. Unused instantiated
 // laws do not pin the proof: remove those tuples before reconstructing the
 // target goals. Flag/fact instances outside the candidate family are retained.
-export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCountProof,until:number,options:{deferToClosing?:boolean,onTransportDecline?:(obligation:string)=>void}={}):CountLawProof|undefined{
+export type CountReplayDecline=Readonly<{
+ case:1|2|3|4|5|6|7,
+ reason:string,
+ member:string,
+ obligation?:string,
+ premise?:string,
+ expected?:number,
+ actual?:number,
+}>
+export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCountProof,until:number,options:{deferToClosing?:boolean,onDecline?:(decline:CountReplayDecline)=>void,onTransportDecline?:(obligation:string)=>void}={}):CountLawProof|undefined{
+ const decline=(which:CountReplayDecline['case'],reason:string,detail:Partial<Pick<CountReplayDecline,'obligation'|'premise'|'expected'|'actual'>>={}):undefined=>{
+  options.onDecline?.({case:which,reason,member:scoped.owner.name,...detail})
+  return undefined
+ }
  return withDeadline(until,()=>{
-  if(!live(until)||new Set(family.map(l=>l.name)).size!==family.length)return undefined
+  if(!live(until))return decline(7,'deadline')
+  if(new Set(family.map(l=>l.name)).size!==family.length)return decline(1,'duplicate-family-name')
   const byName=new Map(family.map(l=>[l.name,l]))
   for(const premise of [scoped.owner,...scoped.premises]){
    const law=byName.get(premise.name)
-   if(!law||identity(law).key!==premise.key)return undefined
+   if(!law)return decline(2,'missing-premise',{premise:premise.name})
+   if(identity(law).key!==premise.key)return decline(2,'premise-identity-changed',{premise:premise.name})
   }
   const owner=byName.get(scoped.owner.name)!,names=new Set(scoped.premises.map(p=>p.name))
   const deferred=options.deferToClosing===true&&finalCountStepDeferralEnabled()&&scoped.proof.status==='unchecked'
-  // The original family names are the source of pruning, not the new family:
-  // dropped unused instances must disappear too, while unrelated facts stay.
+  // Preserve the original source-context pruning and the native checker.
   const instances={...scoped.proof.instances}
   for(const name of scoped.unused)delete instances[name]
   const problem=deferred?undefined:receiptStamp(m),context=workMap(family,identity,'checked-scope:context-identity')
   const goals=countedObligations(m,family,{[owner.name]:instances},family.indexOf(owner)),certs:Record<string,CountCert>={},sources:Goal[]=[]
-  if(goals.length!==scoped.sources.length)return undefined
+  if(goals.length!==scoped.sources.length)return decline(3,'obligation-count-mismatch',{expected:scoped.sources.length,actual:goals.length})
   for(let i=0;i<goals.length;i++){
-   if(!live(until))return undefined
-   const {goal,decls}=goals[i]!,cert=scoped.proof.certs[goal.name]
-   const to=cert&&mcGoal(goal.hyps,decls,cert),from=scoped.sources[i]!
-   const next=to&&replayCountCertificate(from,to,cert!,wallAt(),{rethrowBudgetExpired:true})
+   const {goal,decls}=goals[i]!,obligation=goal.name
+   if(!live(until))return decline(7,'deadline',{obligation})
+   const cert=scoped.proof.certs[obligation]
+   if(!cert)return decline(4,'missing-certificate',{obligation})
+   const to=mcGoal(goal.hyps,decls,cert),from=scoped.sources[i]!
+   if(!to)return decline(4,'goal-expansion-declined',{obligation})
+   const next=replayCountCertificate(from,to,cert,wallAt(),{rethrowBudgetExpired:true})
    if(!next){
-    // Missing/invalid expansions and hard stops are not supplier declines.
-    if(to&&live(until))options.onTransportDecline?.(goal.name)
-    return undefined
+    // Only an actual transport refusal can request K's lazy supplier repair.
+    // Missing expansions and original hard stops retain their distinct paths.
+    if(live(until))options.onTransportDecline?.(obligation)
+    return decline(5,'certificate-transport-declined',{obligation})
    }
-   if(!deferred){receiptStamp(next);if(!checkMC(goal.hyps,decls,next))return undefined}
-   if(!live(until))return undefined
-   certs[goal.name]=next;sources.push(to!)
+   if(!deferred){receiptStamp(next);if(!workLedger.withCapacityRefusalBoundary(()=>checkMC(goal.hyps,decls,next)))return decline(6,'native-check-failed',{obligation})}
+   if(!live(until))return decline(7,'deadline',{obligation})
+   certs[obligation]=next;sources.push(to)
   }
   const result:CountLawProof={instances,certs,premises:[...names],...(deferred?{status:'unchecked' as const}:{})}
   const used=new Set([owner.name,...names])
   if(!deferred&&used.size===context.length&&context.every(p=>used.has(p.name))){
-   if(receiptStamp(m)!==problem)return undefined
+   if(receiptStamp(m)!==problem)return decline(2,'machine-identity-changed')
    const token=Object.freeze({kind:'checked-reduced' as const}),binding:CheckedBinding={token,problem:problem!,context,laws:workMap(family,law=>law,'checked-scope:retain-laws'),scope:proofStamp(identity(owner),scoped.premises,result,sources)}
    checkedTokens.set(token,binding);checkedProofs.set(result,binding)
   }
