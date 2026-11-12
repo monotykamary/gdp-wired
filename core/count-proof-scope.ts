@@ -6,7 +6,8 @@ import {clock,wallAt,withDeadline} from '../kernel/prove.ts'
 import {countedCertificateHyps,replayCountCertificate} from './count-cert-transport.ts'
 import {strategyLawKey} from './strategy-premises.ts'
 import {checkWall} from './wall.ts'
-import {startWork} from './work-admission.ts'
+import {startWork,workLedger} from './work-admission.ts'
+import {type WorkAmount,workSub} from './work-amount.ts'
 import {workEntries,workJoin,workJSON,workMap,workStrings} from './work-collections.ts'
 import {finalCountStepDeferralEnabled} from './count-final-step.ts'
 
@@ -16,6 +17,11 @@ type Premise = Readonly<{name:string,key:string}>
 export type CheckedReducedContext=Readonly<{kind:'checked-reduced'}>
 type CheckedBinding={token:CheckedReducedContext,problem:string,scope:string,context:readonly Premise[],laws:readonly Law[]}
 const checkedProofs=new WeakMap<CountLawProof,CheckedBinding>(),checkedTokens=new WeakMap<CheckedReducedContext,CheckedBinding>()
+let scopeIdentityObserver:((work:WorkAmount)=>void)|undefined
+export function withCountScopeIdentityObservation<T>(observe:(work:WorkAmount)=>void,run:()=>T):T{
+ const previous=scopeIdentityObserver;scopeIdentityObserver=observe
+ try{return run()}finally{scopeIdentityObserver=previous}
+}
 // Ordinary owned data only. All recursive reads and string materialization are
 // funded before work, and the stamp changes on certificate/context mutation.
 function receiptStamp(value:unknown):string{
@@ -33,9 +39,14 @@ function receiptStamp(value:unknown):string{
   for(const key of keys){startWork('ticks',1,'checked-scope:field');parts.push(workJoin([workJSON(key,'checked-scope:key')!,visit(fields.get(key))],':','checked-scope:pair'))}
   active.delete(v);return workJoin([Array.isArray(v)?'array[':'object{',workJoin(parts,',','checked-scope:members'),Array.isArray(v)?']':'}'],'','checked-scope:object')
  }
- return visit(value)
+ const before=scopeIdentityObserver&&workLedger.actual()
+ try{return visit(value)}finally{if(before)scopeIdentityObserver?.(workSub(workLedger.actual(),before))}
 }
 const proofStamp=(owner:Premise,premises:readonly Premise[],proof:CountLawProof,sources:readonly Goal[])=>receiptStamp({owner,premises,instances:proof.instances,certs:proof.certs,sources})
+// A metered ordinary-data key, not a receipt or authority to accept a proof.
+// Scalar workJSON deliberately refuses objects in FULL mode; reuse the exact
+// recursive encoder instead of bypassing its start-before-work accounting.
+export const countScopeContextKey=(machine:Machine,laws:readonly Law[]):string=>receiptStamp({machine,laws})
 export type ScopedCountProof = Readonly<{
  owner:Premise,
  premises:readonly Premise[],

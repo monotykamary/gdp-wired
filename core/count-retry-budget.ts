@@ -26,8 +26,8 @@ export class CountAttemptTickets {
   return Object.freeze({remaining:this.left,started:this.runs,active:this.active,terminal:this.ended})
  }
 }
-export type CountSlice=Readonly<{key:string,allocation:WorkAmount,scopeId:number,rootEpoch:number}>
-export type CountAttemptStop=Readonly<{kind:'soft-slice',key:string,allocation:WorkAmount,scopeId:number,rootEpoch:number}>|
+export type CountSlice=Readonly<{key:string,allocation:WorkAmount,scopeId:number,rootEpoch:number,caseKey?:string,physicalKey?:string}>
+export type CountAttemptStop=Readonly<{kind:'soft-slice',key:string,allocation:WorkAmount,scopeId:number,rootEpoch:number,caseKey?:string,physicalKey?:string}>|
  Readonly<{kind:'hard-cap',reason:'unclassified'|'enclosing-limit'|'scope-entry',error:unknown}>
 export function countAttemptStop(error:unknown,slices:readonly CountSlice[],bank:WorkLedger=workLedger):CountAttemptStop{
  if(slices.length>64||!bank.inBudget())return {kind:'hard-cap',reason:'unclassified',error}
@@ -40,14 +40,15 @@ export function countAttemptStop(error:unknown,slices:readonly CountSlice[],bank
   const rootEpoch=bank.snapshot().rootEpoch
   const matches=slices.filter(slice=>slice.scopeId===refusal.limiting[0]!.id&&slice.rootEpoch===rootEpoch)
   if(matches.length===1&&validAmount(matches[0]!.allocation,true)){
-   const slice=matches[0]!;return {kind:'soft-slice',key:slice.key,allocation:slice.allocation,scopeId:slice.scopeId,rootEpoch:slice.rootEpoch}
+   const slice=matches[0]!;return {kind:'soft-slice',key:slice.key,allocation:slice.allocation,scopeId:slice.scopeId,rootEpoch:slice.rootEpoch,...(slice.caseKey!==undefined?{caseKey:slice.caseKey}:{}),...(slice.physicalKey!==undefined?{physicalKey:slice.physicalKey}:{})}
   }
  }
  return {kind:'hard-cap',reason:'enclosing-limit',error}
 }
 export type CountRetryKey=Readonly<{key:string,allocation:WorkAmount,used:WorkAmount}>
 export type CountRetryHeadroom=Readonly<{scope:string,remaining:WorkAmount}>
-export type CountRetryPlan=Readonly<{kind:'admitted',need:WorkAmount,keys:readonly CountRetryKey[],rootEpoch:number}>|
+export type CountRetryFunding=Readonly<{key:string,amount:WorkAmount}>
+export type CountRetryPlan=Readonly<{kind:'admitted',need:WorkAmount,keys:readonly CountRetryKey[],funding?:readonly CountRetryFunding[],rootEpoch:number}>|
  Readonly<{kind:'refused',reason:'hard-cap'|'unknown-key'|'changed-slice'|'headroom'|'missing-root',scope?:string,need?:WorkAmount}>
 const numericLimit=1n<<4096n
 const validAmount=(a:WorkAmount,positive=false)=>a.den>0n&&a.den<=numericLimit&&a.num<=numericLimit&&(positive?a.num>0n:a.num>=0n)
@@ -71,11 +72,15 @@ export function planCountRetry(keys:readonly CountRetryKey[],stop:CountAttemptSt
  for(let i=0;i<keys.length;i++){bank.start('ticks',1,'count retry key selection');if(keys[i]!.key===stop.key)raised=keys[i]}
  if(!raised)return {kind:'refused',reason:'unknown-key'}
  if(compareWork(raised.allocation,stop.allocation)!==0)return {kind:'refused',reason:'changed-slice'}
- const next:CountRetryKey[]=[];let need=workAmount(0n)
+ const next:CountRetryKey[]=[],funding:CountRetryFunding[]=[];let need=workAmount(0n)
  for(let i=0;i<keys.length;i++){
   bank.start('ticks',1,'count retry allowance preparation');const key=keys[i]!
-  const allocation=key===raised?workShare(key.allocation,2n,1n):compareWork(key.allocation,key.used)<0?key.used:key.allocation
-  next.push(Object.freeze({key:key.key,allocation,used:workAmount(0n)}));need=workAdd(need,allocation)
+  const allocation=key===raised?workShare(key.allocation,2n,1n):key.allocation
+  // D F4(a): funding for repeated work is not a new per-key cap. In
+  // particular aggregate leaf use must not enlarge every individual leaf.
+  const contribution=key===raised?allocation:compareWork(key.allocation,key.used)<0?key.used:key.allocation
+  next.push(Object.freeze({key:key.key,allocation,used:workAmount(0n)}))
+  funding.push(Object.freeze({key:key.key,amount:contribution}));need=workAdd(need,contribution)
  }
  const live=bank.available()
  if(live===null||!bank.inBudget()||stop.rootEpoch!==bank.snapshot().rootEpoch)return {kind:'refused',reason:'missing-root',need}
@@ -85,5 +90,5 @@ export function planCountRetry(keys:readonly CountRetryKey[],stop:CountAttemptSt
  }
  const remaining=bank.available()!
  if(compareWork(need,remaining)>0)return {kind:'refused',reason:'headroom',scope:'effective-ledger',need}
- return Object.freeze({kind:'admitted',need,keys:Object.freeze(next),rootEpoch:stop.rootEpoch})
+ return Object.freeze({kind:'admitted',need,keys:Object.freeze(next),funding:Object.freeze(funding),rootEpoch:stop.rootEpoch})
 }

@@ -2,6 +2,7 @@ import {expect,spyOn,test} from 'bun:test'
 import {spawnSync} from 'node:child_process'
 import {type Law,type Machine,n,same,x} from './machine.ts'
 import * as kernel from '../kernel/kernel.ts'
+import * as scopes from './count-proof-scope.ts'
 import {clock,grow,withDeadline,withWall,BudgetExpired} from '../kernel/prove.ts'
 import {type CountLawProof,scopeCountProof,isCheckedReducedScope} from './count-proof-scope.ts'
 import {rescopeCountProof,type CountRescopeEvent} from './count-proof-rescope.ts'
@@ -34,6 +35,11 @@ test('opaque receipts bind certificate, machine, owner, context and sources',()=
  const f=fixture(),r=rescopeCountProof(f.m,f.a,f.family,prove(f,until),new Set(),until)!
  expect(isCheckedReducedScope(r,f.m)).toBe(true);expect(isCheckedReducedScope({...r,checkedReduced:{kind:'checked-reduced'}},f.m)).toBe(false);expect(isCheckedReducedScope({...r,checkedReduced:structuredClone(r.checkedReduced)},f.m)).toBe(false);expect(isCheckedReducedScope({...r,proof:{...r.proof,status:'unchecked'}},f.m)).toBe(false);expect(isCheckedReducedScope({...r,proof:{...r.proof,certs:{}}},f.m)).toBe(false);expect(isCheckedReducedScope({...r,owner:{...r.owner,name:'other'}},f.m)).toBe(false);expect(isCheckedReducedScope({...r,premises:[]},f.m)).toBe(false);expect(isCheckedReducedScope({...r,sources:[]},f.m)).toBe(false);expect(isCheckedReducedScope(r,{...f.m,state:{...f.m.state,a:n(1)}})).toBe(false);expect(isCheckedReducedScope(r,f.m,[f.a,{...f.b,holds:same(x('b'),n(1))}])).toBe(false);f.b.holds=same(x('b'),n(1));expect(isCheckedReducedScope(r,f.m)).toBe(false)
 }))
+test('FULL controller context uses the metered structural encoder, not scalar workJSON',()=>bounded(()=>{
+ const f=fixture(),first=scopes.countScopeContextKey(f.m,f.family)
+ expect(first).toBe(scopes.countScopeContextKey(structuredClone(f.m),structuredClone(f.family)))
+ expect(first).not.toBe(scopes.countScopeContextKey({...f.m,state:{...f.m.state,a:n(1)}},f.family))
+}))
 test('scope capture and forged flags are not native receipts',()=>bounded(until=>{const f=fixture(),r=scopeCountProof(f.m,f.a,f.family,prove(f,until),until)!;expect(isCheckedReducedScope(r,f.m)).toBe(false);expect(isCheckedReducedScope({...r,checkedReduced:{kind:'checked-reduced'}},f.m)).toBe(false)}))
 test('default/explicit denial starts no fallback; hard errors propagate',()=>bounded(until=>{
  const f=fixture(),proof={...prove(f,until),premises:[]},native=spyOn(kernel,'checkMC');let permits=0
@@ -44,6 +50,28 @@ test('native false INIT, false STEP and changed context are never accepted',()=>
  const f=fixture(),proof=prove(f,until)
  for(const [m,family]of [[{...f.m,state:{...f.m.state,a:n(1)}},f.family],[{...f.m,step:{state:{...f.m.step.state,a:n(1)}}},f.family],[f.m,[f.noise,f.a,{...f.b,holds:same(x('b'),n(1))}]]] as const){const events:CountRescopeEvent[]=[];expect(rescopeCountProof(m,f.a,[...family],proof,new Set(),until,e=>events.push(e),{allowFullFallback:()=>true})).toBeUndefined();expect(events.some(e=>e.checked)).toBe(false)}
 }))
+test('denied funded replay can retain only the captured unchecked offer without recapture',()=>bounded(until=>{
+ const f=fixture(),proof={...prove(f,until),premises:f.family.map(law=>law.name)},replay=spyOn(scopes,'replayScopedCountProof'),capture=spyOn(scopes,'scopeCountProof'),native=spyOn(kernel,'checkMC')
+ let offered:scopes.ScopedCountProof|undefined
+ replay.mockImplementationOnce(()=>undefined)
+ try{
+  const result=rescopeCountProof(f.m,f.a,f.family,proof,new Set(),until,undefined,{retainUncheckedOffer:true,allowFullFallback:value=>{offered=value;return false}})!
+  expect(result).toBeDefined();expect(result.proof.status).toBe('unchecked');expect(result.checkedReduced).toBeUndefined()
+  expect(result.premises).toBe(offered!.premises);expect(result.sources).toBe(offered!.sources);expect(result.proof.certs).toBe(offered!.proof.certs)
+  expect(capture).toHaveBeenCalledTimes(2);expect(native).not.toHaveBeenCalled()
+ }finally{replay.mockRestore();capture.mockRestore();native.mockRestore()}
+}))
+test('funded full-only success reuses offered scope without another capture or reduced stamp',()=>bounded(until=>{
+ const f=fixture(),proof={...prove(f,until),premises:f.family.map(law=>law.name)},replay=spyOn(scopes,'replayScopedCountProof'),capture=spyOn(scopes,'scopeCountProof')
+ let offered:scopes.ScopedCountProof|undefined
+ replay.mockImplementationOnce(()=>undefined)
+ try{
+  const result=rescopeCountProof(f.m,f.a,f.family,proof,new Set(),until,undefined,{allowFullFallback:value=>{offered=value;return true}})!
+  expect(result.proof.status).toBe('unchecked');expect(result.checkedReduced).toBeUndefined()
+  expect(result.premises).toBe(offered!.premises);expect(result.sources).toBe(offered!.sources);expect(capture).toHaveBeenCalledTimes(2)
+ }finally{replay.mockRestore();capture.mockRestore()}
+}))
+
 test('zero complete-work lease publishes no scope and starts no fallback',()=>bounded(until=>{
  const f=fixture(),proof=prove(f,until),env=Object.fromEntries(Object.entries(process.env).filter(([k])=>!k.startsWith('GDP_'))),child=spawnSync(process.execPath,['--eval',`import {strict as a} from 'node:assert';import {rescopeCountProof} from './core/count-proof-rescope.ts';import {withBudget,fullWork,BudgetExpired} from './kernel/prove.ts';const {m,owner:givenOwner,family,proof}=JSON.parse(process.env.S46_INPUT);const owner=family.find(l=>l.name===givenOwner.name);const before=fullWork();let permits=0,stopped=false,result;try{result=withBudget(0,()=>rescopeCountProof(m,owner,family,proof,new Set(),Infinity,undefined,{allowFullFallback:()=>{permits++;return true}}))}catch(e){a(e instanceof BudgetExpired);stopped=true}a(stopped);a.equal(result,undefined);a.equal(fullWork(),before);a.equal(permits,0)`],{cwd:new URL('../',import.meta.url).pathname,env:{...env,GDP_WORK_FULL:'1',S46_INPUT:JSON.stringify({m:f.m,owner:f.a,family:f.family,proof})},encoding:'utf8',timeout:10000});if(child.status!==0)throw Error(child.stderr);expect(child.status).toBe(0)
 }))

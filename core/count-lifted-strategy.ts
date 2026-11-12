@@ -5,6 +5,8 @@ import {traceNow} from './trace-clock.ts'
 import {type LiftedWorkBudget,liftedLeaseOptions,liftedWorkBudget,withLiftedCase,withLiftedLeaf} from './count-lifted-budget.ts'
 import {type Law, type Machine, all, n, same, x} from './machine.ts'
 import {countsForReads} from './count-facts.ts'
+import {startWork} from './work-admission.ts'
+import {workMap} from './work-collections.ts'
 import {countFrameConditions, fixedCountFrameCase, ownCountLawInstance, proveCountFrameGoal} from './count-frames.ts'
 import {type CountStrategyProof, type CountRequestBuilder, type CountStrategyOptions} from './count-strategy.ts'
 import {composeCountOperationProofs, type FixedOperationProof} from './count-case-compose.ts'
@@ -74,6 +76,7 @@ export function proveLiftedCountInitial(m: Machine, family: Law[], law: Law, ins
 }
 export function proveLiftedCountComposition(m: Machine, family: Law[], law: Law, until: number, requestFor: CountRequestBuilder, observe?: (event: Record<string, unknown>) => void, workAllowance: number | LiftedWorkBudget = Math.max(0,until-clock())): CountStrategyProof | undefined {
  const budget=typeof workAllowance==='number'?liftedWorkBudget(workAllowance):workAllowance
+ if(budget.lease?.owners)return proveOwnerFundedLiftedComposition(m,family,law,requestFor,observe,budget)
  if(budget.lease)until=Infinity
  return withDeadline(until, () => {
   if(!family.includes(law))return
@@ -97,6 +100,73 @@ export function proveLiftedCountComposition(m: Machine, family: Law[], law: Law,
   observe?.({stage: 'lifted-initial', checked: !!initial, units: (fullWork()-initialBefore)/fullRate, wallMs: traceNow()-initialWall})
   if (!initial) return
   const compositionBefore=fullWork(),compositionWall=observe?traceNow():0,result=composeCountOperationProofs({original: m, machine: m, shape: shape.countShape, restrictions: [], inputCounts: {}}, family, law, cases, until, requestFor, observe?(stage, value) => observe({stage, value}):undefined, {initial,...(budget.lease?{propagateBudgetExpiry:true}:{}),...(env.GDP_COUNT_C2_LEMMAS==='1'?{slicedLemmas:true}:{})})
+  observe?.({stage:'lifted-composition',checked:!!result,units:(fullWork()-compositionBefore)/fullRate,wallMs:traceNow()-compositionWall})
+  return result&&recordCountStrategyPremises(family,result)
+ })
+}
+// Explicit next-pin route only. Each non-case segment consumes the SAME
+// cumulative body budget; case and leaf helpers run outside those segments.
+// The ordinary lease path above is left unchanged until policy activation.
+function proveOwnerFundedLiftedComposition(m:Machine,family:Law[],law:Law,requestFor:CountRequestBuilder,
+ observe:((event:Record<string,unknown>)=>void)|undefined,budget:LiftedWorkBudget):CountStrategyProof|undefined{
+ const owners=budget.lease!.owners!,until=Infinity
+ const prepared=owners.body(()=>{
+  let present=false
+  for(const candidate of family){startWork('ticks',1,'owned lifted owner lookup');if(candidate===law){present=true;break}}
+  if(!present)return
+  const shape=discoverLiftedCountGuard(m,law,family,observe),plan=shape&&discoverLiftedCountOperations(m,shape)
+  if(!shape||!plan||late(until))return
+  const rank:Record<string,number>={'frame-or-phase':0,load:1,copy:2,'threshold-increment':3,'threshold-replace':4,replacement:4}
+  const ordered=workMap(plan,operation=>operation,'owned lifted operation copy')
+  // Stable insertion sorting is fully charged, unlike a native sort's opaque
+  // pre-comparator copies. This preserves the existing kind/value ordering.
+  for(let i=1;i<ordered.length;i++){
+   startWork('ticks',1,'owned lifted operation sort');const item=ordered[i]!;let j=i
+   while(j>0){
+    startWork('ticks',1,'owned lifted operation compare');const previous=ordered[j-1]!
+    if(rank[previous.kind]!<rank[item.kind]!||rank[previous.kind]===rank[item.kind]&&previous.value<=item.value)break
+    startWork('ticks',1,'owned lifted operation move');ordered[j]=previous;j--
+   }
+   startWork('ticks',1,'owned lifted operation insert');ordered[j]=item
+  }
+  return {shape,ordered,cases:[] as FixedOperationProof[]}
+ })
+ if(!prepared)return
+ for(const operation of prepared.ordered){
+  const setup=owners.body(()=>{
+   startWork('ticks',1,'owned lifted case setup')
+   if(late(until))return
+   if(operation.kind==='replacement'||operation.kind==='threshold-replace'&&env.GDP_COUNT_LIFTED_REPLACEMENT!=='1'){
+    observe?.({stage:'lifted-operation',value:operation.value,kind:operation.kind,proposed:false,reason:'replacement emitter unavailable'});return
+   }
+   const fixed={...m,assume:all(...(m.assume?[m.assume]:[]),same(x(operation.name),n(operation.value)))}
+   const emit=operation.kind==='load'?proveLiftedCountLoad:operation.kind==='copy'?proveLiftedCountCopy:operation.kind==='threshold-replace'?proveLiftedCountReplacement:proveLiftedCountIncrement
+   const key='op:'+operation.value,report=observe?(event:Record<string,unknown>)=>observe({value:operation.value,...event}):undefined
+   return {fixed,emit,key,report,before:fullWork(),wall:observe?traceNow():0,owned:env.GDP_COUNT_C2_REPLAY==='1',options:liftedLeaseOptions(budget,key)}
+  })
+  if(!setup)return
+  const proof=withLiftedCase(until,budget,operation.kind==='frame-or-phase',setup.key,end=>
+   observeCountOperation({owner:law.name,value:operation.value,kind:operation.kind},()=>operation.kind==='frame-or-phase'
+    ?proveLiftedCountFrame(setup.fixed,family,law,end,requestFor,setup.report,setup.options)
+    :setup.emit(setup.fixed,family,law,end,requestFor,setup.report,{...setup.options,deferToComposition:env.GDP_COUNT_LIFTED_REPLACEMENT==='1',deferIntermediateChecks:env.GDP_COUNT_DEFER_CHECKS==='1',deferOwnedReplacementLemmas:setup.owned,batchOwnedReplacementPruning:setup.owned,deferOwnedReplacementReplay:setup.owned,slicedLemmas:env.GDP_COUNT_C2_LEMMAS==='1',emitterFramePool:env.GDP_COUNT_EMITTER_FRAME_POOL==='1'})))
+  const retained=owners.body(()=>{
+   startWork('ticks',1,'owned lifted case result')
+   observe?.({stage:'lifted-operation',value:operation.value,kind:operation.kind,proposed:!!proof,units:(fullWork()-setup.before)/fullRate,wallMs:traceNow()-setup.wall})
+   if(!proof)return false
+   prepared.cases.push({value:operation.value,proof});return true
+  })
+  if(!retained)return
+ }
+ return owners.body(()=>{
+  startWork('ticks',1,'owned lifted final phases')
+  if(prepared.cases.length!==prepared.ordered.length||!prepared.cases.length)return
+  const initialBefore=fullWork(),initialWall=observe?traceNow():0
+  const initial=proveLiftedCountInitial(m,family,law,prepared.cases[0]!.proof.instances,until,requestFor)
+  observe?.({stage:'lifted-initial',checked:!!initial,units:(fullWork()-initialBefore)/fullRate,wallMs:traceNow()-initialWall})
+  if(!initial)return
+  const compositionBefore=fullWork(),compositionWall=observe?traceNow():0
+  const result=composeCountOperationProofs({original:m,machine:m,shape:prepared.shape.countShape,restrictions:[],inputCounts:{}},family,law,prepared.cases,until,requestFor,
+   observe?(stage,value)=>observe({stage,value}):undefined,{initial,propagateBudgetExpiry:true,...(env.GDP_COUNT_C2_LEMMAS==='1'?{slicedLemmas:true}:{})})
   observe?.({stage:'lifted-composition',checked:!!result,units:(fullWork()-compositionBefore)/fullRate,wallMs:traceNow()-compositionWall})
   return result&&recordCountStrategyPremises(family,result)
  })

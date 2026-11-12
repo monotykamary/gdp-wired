@@ -49,7 +49,7 @@ test('retry doubles only the raised key and funds all other previous use exactly
   const plan=planCountRetry(keys,{kind:'soft-slice',key:'a',allocation:amount(2),scopeId:1,rootEpoch:1},[{scope:'member',remaining:amount(20)}],b)
   expect(plan.kind).toBe('admitted')
   if(plan.kind!=='admitted')throw Error('missing retry plan')
-  expect(plan.need).toEqual(amount(9));expect(plan.keys.map(key=>key.allocation)).toEqual([amount(4),amount(4),amount(1)])
+  expect(plan.need).toEqual(amount(9));expect(plan.keys.map(key=>key.allocation)).toEqual([amount(4),amount(3),amount(1)]);expect(plan.funding?.map(key=>key.amount)).toEqual([amount(4),amount(4),amount(1)])
  })
 })
 test('prepared one-unit-short ancestor or live reservation starts no callback and spends nothing',()=>{

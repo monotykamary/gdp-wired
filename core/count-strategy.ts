@@ -6,11 +6,12 @@ import {countsForReads} from './count-facts.ts'
 import {deferFinalCountStep, type FamilyStepProposal} from './count-final-step.ts'
 import {countStageTrace, type CountStageObserver} from './count-stage-trace.ts'
 import {type WorkAmount} from './work-amount.ts'
-import {type LiftedWorkSliceObserver} from './count-lifted-budget.ts'
+import {type CountFundingOwners} from './count-disjoint-funding.ts'
+import {type LiftedWorkSliceObserver,type LiftedWorkTrace} from './count-lifted-budget.ts'
 import {type CountCert, type CountDecl, type Goal, type Instances, checkMC, countedObligations, mcGoal} from '../kernel/kernel.ts'
 import {clock, grow, pastWall} from '../kernel/prove.ts'
 // Composition-only proposals intentionally omit INIT and must pass the enclosing final checker.
-export type CountStrategyOptions = {familyProposal?: FamilyStepProposal, deferToComposition?: boolean, deferIntermediateChecks?: boolean, deferOwnedReplacementLemmas?: boolean, batchOwnedReplacementPruning?: boolean, deferOwnedReplacementReplay?: boolean, slicedLemmas?: boolean, deferRowChecks?: boolean, minimize?: boolean, reindexFactsOnly?: boolean, emitterFramePool?: boolean, minimalView?: boolean, leafUnits?: number, leafWork?: WorkAmount, workSliceObserver?: LiftedWorkSliceObserver, caseKey?: string, trace?: (event: Record<string, unknown>) => void, tailTrace?: CountStageObserver}
+export type CountStrategyOptions = {familyProposal?: FamilyStepProposal, deferToComposition?: boolean, deferIntermediateChecks?: boolean, deferOwnedReplacementLemmas?: boolean, batchOwnedReplacementPruning?: boolean, deferOwnedReplacementReplay?: boolean, slicedLemmas?: boolean, deferRowChecks?: boolean, minimize?: boolean, reindexFactsOnly?: boolean, emitterFramePool?: boolean, minimalView?: boolean, leafUnits?: number, leafWork?: WorkAmount, workSliceObserver?: LiftedWorkSliceObserver, workSliceTrace?: LiftedWorkTrace, workOwners?: CountFundingOwners, caseKey?: string, trace?: (event: Record<string, unknown>) => void, tailTrace?: CountStageObserver}
 // Calibration-independent: W is the original enclosing work allowance, not
 // a case's remaining share. INIT and final checking do not use this cap.
 export function strategyLeafUnits(workAllowance: number): number {

@@ -80,6 +80,19 @@ export function proposeCountStrategiesForClosing(m: Machine, family: Law[], law:
   return countStrategies(m, family, law, until, request, observe, workAllowance, finalCountStepDeferralEnabled() ? familyStepProposal : undefined, shapeFamily, liftedBudget)
 }
 function countStrategies(m: Machine, family: Law[], law: Law, until: number, request: CountRequestBuilder, observe: ((event: Record<string, unknown>) => void) | undefined, workAllowance: number, familyProposal?: FamilyStepProposal, shapeFamily?: readonly Law[], liftedBudget?: LiftedWorkBudget): CountStrategyProof | undefined {
+  // The segmented-owner path remains explicit/unactivated in the controller.
+  // Discovery is non-case body work; do not wrap the lifted callback (and its
+  // cases) in that body segment. Row/guard cannot enter a lifted owner plan.
+  if(liftedBudget?.lease?.owners){
+    if(!liftedBudget.lease.owners.ownsBank(workLedger))throw new Error('lifted owners require the native work ledger')
+    const selected=liftedBudget.lease.owners.body(()=>{
+      assertLiftedWorkLease(liftedBudget)
+      if(countStrategyKind(m,family,law)!=='lifted')return false
+      observe?.({strategy:'lifted',stage:'selected'})
+      return true
+    })
+    return selected?proveLiftedCountComposition(m,family,law,Infinity,request,event=>observe?.({strategy:'lifted',...event}),liftedBudget):undefined
+  }
   // The exact path is explicit and requires the caller's live inherited bank.
   // A missing/invalid plan never silently re-enters the numeric legacy path.
   if (liftedBudget) {

@@ -50,9 +50,15 @@ import {WallExpired, checkWall, searchWall, withBudget} from './wall.ts'
 import {env} from './solver.ts'
 import {proofOrigins, proposeLemmaCuts} from './lemma-cuts.ts'
 import {countedCertificateHyps,transportCountCertificate} from './count-cert-transport.ts'
-import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, scopeCountProof, replayScopedCountProof} from './count-proof-scope.ts'
+import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, scopeCountProof, replayScopedCountProof, isCheckedReducedScope, withCountScopeIdentityObservation, countScopeContextKey} from './count-proof-scope.ts'
 import {assertLiftedWorkLease, prepareCountStrategyMachine, proveCountStrategies, proposeCountStrategiesForClosing, selectedCountStrategies} from './count-strategies.ts'
 import {type LiftedWorkBudget} from './count-lifted-budget.ts'
+import {CountRecipePass,runCountRecipeController,type CountControllerMember} from './count-recipe-controller.ts'
+import {discoverLiftedCountGuard,discoverLiftedCountOperations} from './count-lifted-shape.ts'
+import {completeWorkProfile} from './work-profile.ts'
+import {workLedger} from './work-admission.ts'
+import {exactRaw,workAdd,workSub,zeroWork} from './work-amount.ts'
+import {workMap,workFilter,workEntries} from './work-collections.ts'
 import {type CountTierBudget,countTierBudget,remainingCountTierBudget,ordinaryTierShare} from './count-tier-budget.ts'
 import {countRejectionBudget,remainingRejectionAllowance} from './count-rejection-budget.ts'
 import {countGenerationPhase} from './count-generation-phase.ts'
@@ -62,6 +68,7 @@ import {rejectionStage} from './rejection-discovery.ts'
 import {type RejectionStage,rejectionFamily} from './rejection-stage.ts'
 import {reserveCountClosing,reserveCheckedCountClosing,countOrdinaryUntil,type CountClosingBudget} from './count-closing-budget.ts'
 import {rescopeCountProof} from './count-proof-rescope.ts'
+import {countRescopeFunding} from './count-rescope-funding.ts'
 import {countClosingNeeds} from './count-closing-needs.ts'
 import {countPrerequisiteComponents,type ComponentOutcome} from './count-prerequisite-components.ts'
 import {countPrerequisiteSchedule} from './count-prerequisite-plan.ts'
@@ -610,7 +617,7 @@ function searchCountedWithRejection(m0:Machine,g:ReturnType<typeof guardLaws>,m:
 }
 
 // One reservation survives context and structured fallbacks.
-type CountTierRun = {start: number, source?:Machine, budget?: CountTierBudget, prerequisites?:CountPrerequisiteMemory<ScopedCountProof>, reachability?:{key:string,screen:ReturnType<typeof countReachabilityScreen>},reachFunding?:CountReachabilityFunding}
+type CountTierRun = {start: number, source?:Machine, budget?: CountTierBudget, prerequisites?:CountPrerequisiteMemory<ScopedCountProof>, reachability?:{key:string,screen:ReturnType<typeof countReachabilityScreen>},reachFunding?:CountReachabilityFunding,recipePass?:CountRecipePass<ScopedCountProof>}
 // Candidate scheduling only. Every returned family still goes through finish.
 export function admitCountedFamily(m:Machine,caller:Law[],initial:Law[],support:Set<Law>,until:number,tiers?:CountTierBudget):Counted {
   if (tiers && tiers.until !== until) throw new RangeError('mismatched tier deadline')
@@ -658,7 +665,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
   // several smaller contexts before asking these same induction goals. Houdini
   // drops failed helpers and carries proofs whose instantiated support survives.
   // Every returned set still passes checkCountedLaws, including all caller laws.
-  const finish = (ls: Law[], proof: CountFamilyProof): Counted => {
+  const finish = (ls: Law[], proof: CountFamilyProof, targetFamily=true): Counted => {
     const close = (candidate: CountFamilyProof): boolean => {
       if (!closingBudget) return closingCountCheck(() => checkCountedLaws(m, ls, candidate))
       const start = clock()
@@ -696,8 +703,110 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       }
     } else if (!ptime('kernel', () => close(proof))) return {proven: false, laws: ls, m, why: 'the kernel refused the set'}
     // Output-only observation, after the unchanged checker accepts every obligation.
-    countsDump.on?.({phase: 'closed-family', machine: m, laws: ls, proof, checked: true})
+    countsDump.on?.({phase: targetFamily?'closed-family':'closed-subfamily', machine: m, laws: ls, proof, checked: true})
+    if(!targetFamily)return {proven:false,laws:ls,m,why:'closed subfamily excludes caller'}
     return {proven: true, laws: ls, m, proof}
+  }
+  const recipeJoint=():Counted=>{
+    const prepared=beforeClosing(()=>{
+      const context=countScopeContextKey(m,set)
+      if(tierRun.recipePass){
+        workLedger.start('tableCells',Math.min(context.length,tierRun.recipePass.context.length),'count recipe inventory context')
+        // Never reuse a fixed inventory for changed machine/law bytes. Keep
+        // the old instances and fuel; a different context gets no new pass.
+        if(context!==tierRun.recipePass.context)return {kind:'context-changed' as const}
+      }else{
+        const plan=countPrerequisiteSchedule(m,set,selected,until)
+        const members=workMap(set,(law,reference):CountControllerMember=>({name:law.name,reference,recipes:workMap(plan.recipes.get(law.name)??[],recipe=>{
+          const shape=recipe.id==='lifted'?discoverLiftedCountGuard(m,law,set):undefined
+          const operations=shape&&discoverLiftedCountOperations(m,shape)
+          return {...recipe,...(operations?{caseKeys:workMap(operations,operation=>'op:'+operation.value,'count recipe case inventory')}:{})}
+        },'count recipe inventory')}),'count member inventory')
+        tierRun.recipePass=new CountRecipePass<ScopedCountProof>(members,context)
+      }
+      return {kind:'ready' as const,
+        lawByName:new Map(workMap(set,law=>[law.name,law] as const,'count recipe law lookup')),
+        active:new Set(workMap(set,law=>law.name,'count active inventory')),
+        targets:workMap(caller,law=>law.name,'count recipe targets')}
+    })
+    if(!prepared||prepared.kind!=='ready')return {proven:false,laws:set,m,why:prepared?.kind==='context-changed'?'recipe fixed inventory context changed':'recipe planning budget'}
+    const {lawByName,active,targets}=prepared
+    const tick=()=>workLedger.start('ticks',1,'count recipe adapter')
+    const reconcile=()=>{if(reach)for(const name of reach.rejectedNames()){tick();active.delete(name)}}
+    const screen=(law:Law,ordinary:number,citing:number):boolean=>{
+      if(!reach)return true
+      try{
+        const row=reach.screen(law,ordinary,citing,Infinity,attempts.countermodel(law))
+        if(row)countsDump.on?.({phase:'count-reachability',...row})
+        return !!row&&row.outcome!=='rejected'&&reach.safety()!=='broken'
+      }finally{reconcile()}
+    }
+    if(beforeClosing(()=>{reconcile();return true})!==true)return {proven:false,laws:set,m,why:'recipe reconciliation budget'}
+    attempts.houdini=true
+    const outcome=runCountRecipeController(tierRun.recipePass!,targets,{
+      active,observe:event=>countsDump.on?.(event),
+      preflight:(name,recipe)=>{
+        const law=lawByName.get(name)
+        // The requested legacy screen allowance is clipped by the existing
+        // exact member/phase/root scopes; it never creates a new root.
+        return !!law&&active.has(name)&&(recipe.kind!=='ordinary'||screen(law,workAllowance,0))
+      },
+      construct:(name,recipe,lease)=>{
+        const law=lawByName.get(name)
+        if(!law||!active.has(name)||reach?.safety()==='broken')return
+        let proof:CountLawProof|undefined
+        if(recipe.kind==='strategy'){
+          if(recipe.caseKeys!==undefined)proof=lease&&attempts.exactStrategy(law,set,lease)
+          else if(recipe.id!=='lifted')proof=attempts.strategyProposal(law,set)
+        }
+        else{
+          let result=traced(law,set,0,Infinity,false)
+          if(!('proof'in result)&&!result.refuted&&attempts.counted)result=traced(law,set,1,Infinity,false)
+          if('proof'in result)proof=result.proof
+          else if(result.expired)throw new BudgetExpired('ordinary recipe cutoff')
+        }
+        return proof
+      },
+      capture:(name,recipe,proof)=>{
+        const law=lawByName.get(name)
+        if(!law)return
+        const before=workLedger.actual();let identity=zeroWork
+        const captured=withCountScopeIdentityObservation(amount=>{identity=workAdd(identity,amount)},()=>{
+          const scoped=rescopeCountProof(m,law,set,proof!,new Set(tierRun.recipePass!.held().keys()),Infinity,
+            event=>countsDump.on?.({phase:'count-component-rescope',law:name,...event}),countRescopeFunding())
+          if(!scoped)return
+          const checkedReduced=isCheckedReducedScope(scoped,m,set)
+          return {payload:scoped,premises:workMap(scoped.premises,p=>p.name,'count recipe scoped names'),checkedReduced}
+        })
+        countsDump.on?.({phase:'count-rescope-identity',law:name,rawWork:exactRaw(identity),rootEpoch:workLedger.snapshot().rootEpoch})
+        if(!captured)return
+        const effective=new Set<string>()
+        for(const dependency of captured.premises){tick();effective.add(dependency)}
+        if(!captured.checkedReduced)for(const dependency of recipe.required??[]){tick();effective.add(dependency)}
+        for(const dependency of effective){tick();const premise=lawByName.get(dependency);if(premise&&!screen(premise,0,workAllowance))return}
+        return {...captured,checkCost:workSub(workLedger.actual(),before)}
+      },
+      close:(rows,targetInFamily)=>{
+        const names=new Set(workMap(rows,row=>row.id,'count closing inventory'))
+        const family=workFilter(set,law=>names.has(law.name),'count closing family'),instances:Record<string,Instances>={},certs:Record<string,CountCert>={},premises:Record<string,readonly string[]>={}
+        if(reach?.safety()==='broken')return {proven:false,laws:family,m,why:'reachable caller counterexample'}
+        for(const row of rows){
+          tick()
+          // Use the graph's effective S for membership and published premises;
+          // replay the untouched scoped payload against exactly that family.
+          const proof=replayScopedCountProof(m,family,row.payload,Infinity,{deferToClosing:true})
+          if(!proof)return {proven:false,laws:family,m,why:'recipe closing replay declined'}
+          instances[row.id]=proof.instances
+          for(const [name,cert]of workEntries(proof.certs,'count closing certificates'))certs[name]=cert as CountCert
+          premises[row.id]=row.premises
+        }
+        if(reach)countsDump.on?.({phase:'count-reachability-summary',rows:reach.receipts(initial),replayEvidence:reach.evidence})
+        let hasCallers=targetInFamily
+        for(const law of caller){tick();if(!names.has(law.name))hasCallers=false}
+        return finish(family,{instances,certs,premises},hasCallers)
+      }
+    })
+    return outcome.result??{proven:false,laws:set,m,why:'recipe pass: '+outcome.reason}
   }
   const joint = (): Counted => {
     const planned=beforeClosing(()=>countPrerequisiteSchedule(m,set,selected,until))
@@ -816,7 +925,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       let scope:ScopedCountProof|undefined
       if('proof'in result)try{
         scope=withBudget(Math.max(0,end-clock())*fullRate,()=>beforeClosing(()=>proofGuided
-          ?ptime('premise-rescope',()=>rescopeCountProof(m,law,context,result.proof,new Set(scopes.keys()),end,event=>countsDump.on?.({phase:'count-component-rescope',law:law.name,...event})))
+          ?ptime('premise-rescope',()=>rescopeCountProof(m,law,context,result.proof,new Set(scopes.keys()),end,event=>countsDump.on?.({phase:'count-component-rescope',law:law.name,...event}),countRescopeFunding()))
           :ptime('premise-scope',()=>scopeCountProof(m,law,context,result.proof,end))))
       }catch(error){if(!isLocalCountExpiration(error,withinDeadline(closingBudget!.until)))throw error;expired=true}
       if('proof'in result&&!scope&&!expired&&clock()>=end){
@@ -1062,7 +1171,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
     }
     return {proven:false,laws:set,m,why:'time'}
   }
-  return prerequisiteFirst ? joint() : budget ? join() : activeSupport(set,support) ? scopeEnabled ? demand() : legacyDemand() : join()
+  return prerequisiteFirst ? proofGuided&&completeWorkProfile.enabled?recipeJoint():joint() : budget ? join() : activeSupport(set,support) ? scopeEnabled ? demand() : legacyDemand() : join()
 }
 
 type Proof = CountLawProof
@@ -1562,6 +1671,15 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     if (env.GDP_COUNTS_TRACE?.includes('3')) console.error(`counts: try ${law.name.slice(0, 50)} | ls ${ls.length} pass ${pass} ms ${Math.round(ms)} took ${Math.round(clock() - t0)} wall ${Math.round(countedSearchNow() - w0)} [${Object.entries(cprof).filter(([k2, x]) => x - (p0[k2] ?? 0) >= 1).map(([k2, x]) => `${k2} ${Math.round(x - (p0[k2] ?? 0))}`).join(' ')}] -> ${'proof' in r ? 'kept' : r.stuck}`)
     return r
   }
+  // One bounded non-lifted strategy recipe, without ordinary-search fallback.
+  // The explicit lifted lease dispatcher intentionally rejects row/guard kinds.
+  const strategyProposal = (law:Law,ls:Law[]) => {
+    if (env.GDP_COUNT_STRATEGIES !== '1' || strategyOnly.size && !strategyOnly.has(law)) return undefined
+    const end=withinDeadline(until)
+    return ptime('strategies',()=> (tiers?.active&&finalCountStepDeferralEnabled()?proposeCountStrategiesForClosing:proveCountStrategies)(m,ls,law,end,
+      (goal,decls)=>certFor(goal,decls,false,0,()=>clock()<end,structured),
+      event=>countsDump.on?.({phase:'count-strategy',law:law.name,pass:0,...event}),workAllowance,shapeFamily))
+  }
   // Explicit seam for the persistent section46 controller. The legacy traced
   // path remains unchanged; no plan is inferred from ms, clock or remaining work.
   const exactStrategy = (law:Law, ls:Law[], plan:LiftedWorkBudget) => {
@@ -1571,5 +1689,5 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       (goal, decls) => certFor(goal, decls, false, 0, () => true, structured),
       event => countsDump.on?.({phase:'count-strategy',law:law.name,pass:0,...event}), workAllowance, shapeFamily, plan))
   }
-  return {traced, exactStrategy, countermodel:(law:Law)=>models.get(`1 ${law.name}`)?.w??models.get(`0 ${law.name}`)?.w, get counted() { return counted }, set houdini(value: boolean) { houdini = value }}
+  return {traced, exactStrategy, strategyProposal, countermodel:(law:Law)=>models.get(`1 ${law.name}`)?.w??models.get(`0 ${law.name}`)?.w, get counted() { return counted }, set houdini(value: boolean) { houdini = value }}
 }
