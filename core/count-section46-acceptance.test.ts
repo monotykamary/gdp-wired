@@ -231,7 +231,7 @@ test('N5: stranded alternative replaces, rather than relabels, the old cut-beari
  expect(proposals[0]!.premises).toContain(missing.name)
  expect(proposals[1]!.premises).not.toContain(missing.name)
  expect(out.result.proof?.premises?.[target.name]).toContain(member.name)
- expect(out.result.proof?.premises?.[member.name]).toEqual(proposals[1]!.premises)
+ expect(out.result.proof?.premises?.[member.name] as unknown).toEqual(proposals[1]!.premises)
  expect(out.result.proof?.premises?.[member.name]).not.toContain(missing.name)
 })
 
