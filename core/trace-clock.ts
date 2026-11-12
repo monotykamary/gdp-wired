@@ -3,6 +3,7 @@
 // Do not capture/bind a clock: a tripwire must see every possible wall read.
 import {stepWorkProfile} from './step-work.ts'
 let depth = 0
+export const snapshotTraceClockDepth = (): number => depth
 export function withTraceWorkScope<T>(f: () => T): T {
   depth++
   try { return f() } finally { depth-- }

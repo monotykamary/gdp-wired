@@ -25,6 +25,15 @@ export type WorkAdmissionEvent = WorkAdmissionSnapshot & Readonly<{
   sequence: number, kind: 'trace-start' | 'trace-end' | 'reserve' | 'start' | 'release' | 'invalidate' | 'refuse' | 'scope-enter' | 'scope-exit',
   sink?: WorkKey, site?: string, requested?: string, granted?: string, leaseId?: number,
 }>
+export type WorkDiagnosticCheckpoint=Readonly<{
+ version:'work-diagnostic/v1',ledger:WorkAdmissionSnapshot,
+ lattice:Readonly<{denominator:bigint,units:Readonly<Record<WorkKey,bigint>>}>,
+ raw:Readonly<{consumed:bigint,held:bigint,counters:Readonly<Record<WorkKey,bigint>>}>,
+ scopes:readonly Readonly<Scope>[],leases:readonly Readonly<LeaseState>[],
+ sequences:Readonly<{lease:number,endpoint:number,event:number}>,
+ observerCount:number,observerNames:readonly string[],notifying:boolean,
+ capacityBoundaries:readonly Readonly<{error?:BudgetExpired}>[]
+}>
 export type WorkAdmissionObserver = (event: WorkAdmissionEvent) => void
 export type WorkLease = Readonly<{granted: number, remaining: number, start: (count?: number) => void}>
 type Scope = {id: number, kind: WorkEndpointKind, end: WorkAmount}
@@ -128,6 +137,17 @@ export class WorkLedger {
       activeEndpoints: Object.freeze(this.scopes.map(scope => Object.freeze({id: scope.id, kind: scope.kind, end: exactRaw(scope.end)}))),
       weights: Object.freeze(Object.fromEntries(workKeys.map(key => [key, exactRaw(this.weights[key])]))) as Readonly<Record<WorkKey, ExactRaw>>,
       rootBaseline: this.baseline, counters: this.vector()})
+  }
+  // Write-only diagnostic view; no restore/reset path or new allocation.
+  // Preserve private live state as data, including zero-weight lease identity.
+  diagnosticCheckpoint():WorkDiagnosticCheckpoint {
+    return {version:'work-diagnostic/v1',ledger:this.snapshot(),
+      lattice:{denominator:this.denominator,units:{...this.units}},
+      raw:{consumed:this.consumed,held:this.held,counters:{...this.counters}},
+      scopes:this.scopes.map(scope=>({...scope})),leases:[...this.leases].map(lease=>({...lease})),
+      sequences:{lease:this.leaseSequence,endpoint:this.endpointSequence,event:this.eventSequence},
+      observerCount:this.observers.length,observerNames:this.observers.map(observer=>observer.name),notifying:this.notifying,
+      capacityBoundaries:this.capacityBoundaries.map(boundary=>({...boundary}))}
   }
   private emit(kind: WorkAdmissionEvent['kind'], extra: Pick<WorkAdmissionEvent, 'sink' | 'site' | 'requested' | 'granted' | 'leaseId'> = {}): void {
     if (!this.observers.length) return

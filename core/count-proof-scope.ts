@@ -20,6 +20,16 @@ type Premise = Readonly<{name:string,key:string}>
 export type CheckedReducedContext=Readonly<{kind:'checked-reduced'}>
 type CheckedBinding={token:CheckedReducedContext,problem:string,scope:string,context:readonly Premise[],laws:readonly Law[]}
 const checkedProofs=new WeakMap<CountLawProof,CheckedBinding>(),checkedTokens=new WeakMap<CheckedReducedContext,CheckedBinding>()
+// Detached diagnostic containers, not a view of authoritative bookkeeping.
+// Public token/law graph associations remain references; the private binding,
+// context entries and law collection are never exposed or frozen by observing.
+export const snapshotCountScopeBinding = (object:object):Readonly<CheckedBinding>|undefined => {
+ const binding=checkedProofs.get(object as CountLawProof)??checkedTokens.get(object as CheckedReducedContext)
+ if(!binding)return undefined
+ return Object.freeze({token:binding.token,problem:binding.problem,scope:binding.scope,
+  context:Object.freeze(binding.context.map(p=>Object.freeze({name:p.name,key:p.key}))),
+  laws:Object.freeze(binding.laws.slice())})
+}
 let scopeIdentityObserver:((work:WorkAmount)=>void)|undefined
 export function withCountScopeIdentityObservation<T>(observe:(work:WorkAmount)=>void,run:()=>T):T{
  const previous=scopeIdentityObserver;scopeIdentityObserver=observe

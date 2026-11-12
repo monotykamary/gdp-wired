@@ -202,6 +202,10 @@ function termId(t: E | C): number {
   return id
 }
 export const termColumn = (e: E): string => `⟦${termId(e)}⟧`
+// Output-only state: certificate columns contain these process-local ordinals.
+// Copies protect the table; obtaining a snapshot never registers a new term.
+export const snapshotKernelTermState = () => ({terms:termTable.slice(),identities:[...termIds]})
+export const snapshotKernelTermMemo = (object:object):number|undefined => memo.get(object)
 export const columnTerm = (name: string): E | undefined => { const m = /^⟦(\d+)⟧$/.exec(name); return m ? termTable[Number(m[1])] as E : undefined }
 // Whether the path decides a choice's top (an if's condition, which side of min, max or ∸).
 export function decided(e: E, path: Path): boolean {

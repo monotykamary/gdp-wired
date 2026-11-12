@@ -37,6 +37,12 @@ function validNative(native:NativeCutContext|undefined):boolean{
   &&(native.lins??[]).every(cut=>linOk(native.counts,cut))
 }
 const marked = new WeakMap<Tree, Context>()
+// Proposer hints on subtrees are not certificate bytes. This getter grants no
+// native proof authority and does not install or alter a mark.
+export const snapshotConditionalProofMark = (tree:object):Readonly<Context>|undefined => {
+ const context=marked.get(tree as Tree)
+ return context&&Object.freeze({goal:context.goal,lemmas:context.lemmas.slice()})
+}
 const alive = (until: number): boolean => countedSearchNow() < until
 const flip = (lin: Lin): Lin => add(k(1), scale(lin, -1))
 const put = (path: Path, lin: Lin, holds: boolean): Path => new Map(path).set(canon(lin), {lin, holds})

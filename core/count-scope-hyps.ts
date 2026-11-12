@@ -3,6 +3,8 @@
 // to used native pair, term and naturality rows, including term-closure chains.
 import {type CountCert,type Goal,type Path,type Tree,canon,framePath,leafConstraints} from '../kernel/kernel.ts'
 import {countedCertificateHyps} from './count-cert-transport.ts'
+import {leafRowsOf,cachedRowsAt} from '../kernel/prove.ts'
+import {reuseNativeScopeRows} from './count-scope-row-reuse.ts'
 import {visitLinearCells} from './linear-admission.ts'
 import {startWork} from './work-admission.ts'
 import {checkWall} from './wall.ts'
@@ -24,7 +26,12 @@ export function countedScopeHyps(goal:Goal,cert:CountCert):Set<number>|undefined
  const leaf=(tree:Extract<Tree,{leaf:unknown}>,path:Path):boolean=>{
   // Reconstruct the actual native prefix; all cut kinds affect row indices.
   const actual=framePath(cert.frames??[],cert.lemmas??[],path,cert.monos??[],cert.lins??[])
-  const rows=leafConstraints(goal,actual)
+  // Legacy usedHyps either used sparse leaf metadata, or already built this
+  // exact table through rowsAt. Reuse only the latter, inside this capture;
+  // retain the native work pass and never inject rows into a checker/cache.
+  const sparse=!tree.products&&!tree.squares&&leafRowsOf.has(tree)
+  const cached=sparse?undefined:cachedRowsAt(goal,actual)
+  const rows=cached?reuseNativeScopeRows(goal,actual,cached):leafConstraints(goal,actual)
   const roots=new Map<string,Set<number>>(),parents=new Map<string,Set<string>>()
   // name -> introducing term. Walking these edges backwards lazily computes
   // the same union of root owners as forward propagation to a fixed point.

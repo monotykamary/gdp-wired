@@ -81,6 +81,23 @@ export function claimCountClosingFallback(pass:{supplierRepairUsed:boolean},actu
  pass.supplierRepairUsed=true
  return true
 }
+export type CountRecipePassSnapshot<T>=Readonly<{
+ rootEpoch:number,original:WorkAmount,rootEnd:WorkAmount,context:string,supplierRepairUsed:boolean,
+ states:readonly (Omit<MemberState,'recipes'|'held'>&{
+  recipes:readonly (Omit<RecipeState,'tickets'>&{tickets:ReturnType<CountAttemptTickets['snapshot']>})[],
+  held?:CountCaptured<T>&{recipeId:string}
+ })[]
+}>
+export type CountRecipeClosingEntry<T>=Readonly<{
+ pass:CountRecipePassSnapshot<T>,targets:readonly string[],reason:CountControllerReason,failure?:CountControllerFailure
+}>
+export const countRecipeCaptureObservation={failures:0}
+// Shallow data view: large proofs and their sharing are retained, never copied.
+// Ticket snapshots expose data only; the writer cannot start an attempt.
+export function snapshotCountRecipePass<T>(pass:CountRecipePass<T>):CountRecipePassSnapshot<T>{
+ return {rootEpoch:pass.rootEpoch,original:pass.original,rootEnd:pass.rootEnd,context:pass.context,supplierRepairUsed:pass.supplierRepairUsed,
+  states:pass.states.map(state=>({...state,recipes:state.recipes.map(row=>({...row,tickets:row.tickets.snapshot()}))}))} as CountRecipePassSnapshot<T>
+}
 export type CountControllerHooks<T,R,P=CountCaptured<T>>=Readonly<{
  construct:(name:string,recipe:CountControllerRecipe,lease:LiftedWorkBudget|undefined)=>P|undefined,
  capture?:(name:string,recipe:CountControllerRecipe,proposal:P)=>CountCaptured<T>|undefined,
@@ -90,7 +107,8 @@ export type CountControllerHooks<T,R,P=CountCaptured<T>>=Readonly<{
  declinedMember?:()=>string|undefined,
  repairSuppliers?:(name:string,payload:T)=>Readonly<{payload:T,premises:readonly string[]}>|undefined,
  observe?:(event:Record<string,unknown>)=>void,
- active?:ReadonlySet<string>,basis?:ReadonlySet<string>
+ active?:ReadonlySet<string>,basis?:ReadonlySet<string>,
+ beforeClosing?:(entry:CountRecipeClosingEntry<T>)=>void
 }>
 export type CountControllerReason='stale-root'|'target-held'|'target-blocked'|'nothing-eligible'|'phase-cap'
 export type CountControllerFailure=Readonly<{law?:string,recipe?:string,outcome:'decline'|'not-started'|'hard-cap'|'unfinished',reason:string,stop?:CountAttemptStop}>
@@ -214,6 +232,8 @@ export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecip
   if(!(error instanceof BudgetExpired))throw error
   reason='phase-cap';bank.check('count recipe search continuation')
  }
+ // Output-only observation: no new scope, tick, grant, or proof mutation.
+ if(hooks.beforeClosing)try{hooks.beforeClosing({pass:snapshotCountRecipePass(pass),targets,reason,failure})}catch{countRecipeCaptureObservation.failures++}
  let closingOrdinal=0
  const attemptClosing=()=>withReplayDiagnosticContext({passId:replayPassId(pass),closingAttempt:++closingOrdinal,repairUsed:pass.supplierRepairUsed},()=>{
  const held=pass.held(),rows:HeldCountPayload<T>[]=[]

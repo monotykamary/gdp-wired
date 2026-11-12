@@ -54,7 +54,7 @@ import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, type C
 import {assertLiftedWorkLease, prepareCountStrategyMachine, proveCountStrategies, proposeCountStrategiesForClosing, proveCountStrategyKind, proposeCountStrategyKindForClosing, selectedCountStrategies} from './count-strategies.ts'
 import {type LiftedWorkBudget} from './count-lifted-budget.ts'
 import {countRecipeContextDecision} from './count-recipe-context.ts'
-import {CountRecipePass,runCountRecipeController,claimCountClosingFallback,type CountControllerMember} from './count-recipe-controller.ts'
+import {CountRecipePass,runCountRecipeController,claimCountClosingFallback,type CountControllerMember,type CountRecipeClosingEntry} from './count-recipe-controller.ts'
 import {emitReplayDiagnostic} from './count-replay-diagnostic.ts'
 import {discoverLiftedCountGuard,discoverLiftedCountOperations} from './count-lifted-shape.ts'
 import {completeWorkProfile} from './work-profile.ts'
@@ -528,6 +528,15 @@ export function supportOrder(set: Law[], caller: Law[], support: Set<Law>, forMo
     ...ordered.filter(l => !countReaders.has(l) && !support.has(l) && !caller.includes(l))]
 }
 export type Counted = {proven: boolean, laws: Law[], m: Machine, proof?: CountFamilyProof, why?: string}
+export type CountedRecipeClosingSnapshot=Readonly<{
+ version:'counted-recipe-closing/v1',controller:CountRecipeClosingEntry<ScopedCountProof>,
+ m:Machine,set:Law[],caller:Law[],initial:Law[],selected:ReadonlySet<Law>,structured:boolean,
+ closingBudget:CountClosingBudget|undefined,until:number,workAllowance:number,scopeEnabled:boolean,
+ active:ReadonlySet<string>,reachAbsent:boolean,transportDeclined:string|undefined
+}>
+// Observation only. The controller catches observer failures; they never
+// replace the production native verdict or replenish its work allowance.
+export const countRecipeClosingCapture:{on?:(snapshot:CountedRecipeClosingSnapshot)=>void}={}
 // On the counted clock (kernel/prove.ts's `counted`, the cost model's work at fullRate a millisecond), as the engine's
 // search is: counted fuel and ordering are unchanged up to the wall cutoff. The
 // wall is an independent hard ceiling, including sampling and generation. A slow
@@ -749,6 +758,10 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
     let transportDeclined:string|undefined
     const outcome=runCountRecipeController(tierRun.recipePass!,targets,{
       active,observe:event=>countsDump.on?.(event),
+      beforeClosing:countRecipeClosingCapture.on?controller=>countRecipeClosingCapture.on!({
+        version:'counted-recipe-closing/v1',controller,m,set,caller,initial,selected,structured,
+        closingBudget,until,workAllowance,scopeEnabled,active,reachAbsent:reach===undefined,transportDeclined
+      }):undefined,
       preflight:(name,recipe)=>{
         const law=lawByName.get(name)
         // The requested legacy screen allowance is clipped by the existing

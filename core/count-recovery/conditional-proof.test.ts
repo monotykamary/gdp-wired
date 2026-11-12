@@ -1,5 +1,6 @@
 import {expect, spyOn, test} from 'bun:test'
 import {BudgetExpired,workLedger} from '../work-admission.ts'
+import {searchNow} from '../wall.ts'
 import * as cache from './conditional-check-cache.ts'
 import {type C, ite, n, not, x} from '../machine.ts'
 import {type Lin, type Step, add, k, scale, sub, v} from '../solver.ts'
@@ -278,7 +279,7 @@ test('retarget cache distinguishes slice vectors and never covers missing hypoth
   expect(conditionalProofStats().retargetHits-before.retargetHits).toBe(0)
   const missing:Goal={...f.goal,hyps:[f.goal.hyps[0]!,f.goal.hyps[2]!]}
   expect(transportConditionalProof(f.goal,missing,f.tree,f.scope,f.scope,until())).toBeUndefined()
-  expect(transportConditionalProof(f.goal,f.goal,f.tree,f.scope,f.scope,performance.now()-1)).toBeUndefined()
+  expect(transportConditionalProof(f.goal,f.goal,f.tree,f.scope,f.scope,searchNow()-1)).toBeUndefined()
 })
 
 test('retarget cache does not alias equal slice vectors with different source content', () => {
@@ -304,7 +305,7 @@ test('warm pre-check caches do not replace final kernel verification', () => {
 })
 
 test('expired absolute wall deadlines never produce certificates', () => {
-  const f = fixture(false), expired = performance.now() - 1
+  const f = fixture(false), expired = searchNow() - 1
   expect(transportConditionalProof(f.goal, f.goal, f.tree, f.scope, f.scope, expired)).toBeUndefined()
   expect(collectConditionalCertificate(f.goal, f.tree, expired)).toBeUndefined()
   expect(transportConditionalProof(f.goal, f.goal, f.tree, f.scope, f.scope, NaN)).toBeUndefined()

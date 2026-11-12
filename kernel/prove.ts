@@ -368,6 +368,9 @@ export function withDeadline<T>(until: number, f: () => T): T {
   deadline = withinDeadline(until); deadlineEpr = eprMeter.n
   try { return f() } finally { deadline = outer; deadlineEpr = outerEpr }
 }
+// Full-accounting closing snapshots keep absolute endpoints and the legacy
+// clock anchors as data. This observer never rebases deadlines or resets fuel.
+export const snapshotProofClock = () => ({rate,deadline,deadlineEpr,budgetUnitsEnd,admissionRefusedAt,workCap,wallEnd})
 // `units: false`: the goal's own order, no units first (a caller after a model, not a proof: a run guided by the
 // prover's witnesses, say, whose models units would steer).
 export function grow(goal: Goal, path: Path = new Map(), budget?: {nodes: number, until?: number, units?: boolean}): Outcome {
@@ -878,6 +881,17 @@ export function rowsAt(goal: Goal, path: Path): ReturnType<typeof leafConstraint
   if (!rows) { if (byPath.size >= 4096) byPath.clear(); byPath.set(id, (rows = env.GDP_ROWS_SHARED === '0' ? leafConstraintsReusing(goal, path) : proverRows(goal, path))) }
   return rows
 }
+// Untrusted capture may reuse an existing proposal without forcing a cache
+// miss to materialize another table. Same lookup as rowsAt; no cache mutation,
+// metering, checking, or authority to accept a certificate.
+export function cachedRowsAt(goal: Goal, path: Path): ReturnType<typeof leafConstraintsReusing> | undefined {
+  const byPath = rowsSeen.get(goal)
+  if (!byPath) return undefined
+  let id = ''
+  for (const [key, a] of path) id += `${a.holds ? '+' : '-'}${key}|`
+  return byPath.get(id)
+}
+
 function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {
   const own = to.size // the decision's row: the last of `from`'s path rows, below every later split's
   const reads = (t: Tree): boolean => ('leaf' in t ? t.leaf.some(st => st.kind === 'input' && st.index === own) || (t.products ?? []).some(([i, j]) => i === own || j === own) : reads(t.yes) || reads(t.no))
