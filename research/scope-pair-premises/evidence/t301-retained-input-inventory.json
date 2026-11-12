@@ -1,0 +1,906 @@
+{
+  "format": "t301-retained-input-inventory/v1",
+  "status": "PARTIAL_EXISTING_INPUTS_FOUND_REQUIRED_DYNAMIC_REPLAY_PAYLOAD_MISSING",
+  "sourceCommit": "20dabd39faa46221be003817198026e1cd7d50c2",
+  "sourceTree": "151d81b5a3ac7dd47494d1ff1d42a1130e42ae2f",
+  "sourceArchive": {
+    "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-launch-input/source.tar",
+    "sha256": "0424ef231ab00278916f48fac7ed07545e624bdf80e86f0dec9d4bb6035c7cdc",
+    "bytes": 61030400
+  },
+  "reference": {
+    "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-launch-input/reference49.json",
+    "sha256": "49a805953627fa2a5e55531f15c77147403cb86334e7054954a33a1c6cd5f190",
+    "bytes": 63998
+  },
+  "referenceContents": {
+    "originalMachine": "m",
+    "orderedLaws": "laws[0..48]",
+    "callerLawIndices": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "supportLength": 0,
+    "ownerIndex": 33,
+    "owner": {
+      "name": "inX: no quorum canVote/3",
+      "forall": "a$quorum",
+      "keys": [
+        "b$quorum"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "a$quorum"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "b$quorum"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "op": "<=",
+            "a": {
+              "op": "mul",
+              "k": 2,
+              "a": {
+                "op": "get",
+                "map": "inX$canVote$3",
+                "key": {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "a$quorum"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "b$quorum"
+                  }
+                }
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "inX$row",
+              "key": {
+                "op": "var",
+                "name": "a$quorum"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "referenceMachineSHA256": "cec7d1afd2ca120cbd0724d112ad32af20b57828988a73e85be48d6e27bb2d9b",
+    "runtimeMachineByteIdentityIndependentlyRecorded": false
+  },
+  "runs": [
+    {
+      "repeat": 1,
+      "files": {
+        "profiles.json": {
+          "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-2500m/diagnostic-original-mldr-20dabd39-2500m-1.files/profiles.json",
+          "sha256": "a3d28108cc23ed7fe527dbb032997cf09571787d03f161e2c7412ae3527a99a7",
+          "bytes": 2210570
+        },
+        "events.json": {
+          "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-2500m/diagnostic-original-mldr-20dabd39-2500m-1.files/events.json",
+          "sha256": "5ae0096bd6f2c457264cce1e8e15f41bbf91303407d63305ebca476f801ac385",
+          "bytes": 1822938
+        },
+        "attempts.json": {
+          "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-2500m/diagnostic-original-mldr-20dabd39-2500m-1.files/attempts.json",
+          "sha256": "4acb26f5b4714998f28d04b2c2b0421f64ace89aa494bcbe2a4ebc013334b4cf",
+          "bytes": 24462
+        },
+        "per-law.json": {
+          "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-2500m/diagnostic-original-mldr-20dabd39-2500m-1.files/per-law.json",
+          "sha256": "7787e5927802aed00d546ed6156692e3b2a798860483bf2d9632286b09635259",
+          "bytes": 69675
+        },
+        "diagnostic-summary.json": {
+          "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-2500m/diagnostic-original-mldr-20dabd39-2500m-1.files/diagnostic-summary.json",
+          "sha256": "7eb28e689b9afbcb8091a5faca04cc857b5f819b0fbe2fc74a7925a6a4d52c4d",
+          "bytes": 740611
+        },
+        "profile.log.gz": {
+          "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-2500m/diagnostic-original-mldr-20dabd39-2500m-1.files/profile.log.gz",
+          "sha256": "db2ce1c6a0031fe8caf0d3ee5e31688259f59636a2c26b6b7a5a6da544cd1abf",
+          "bytes": 125124
+        },
+        "ARTIFACTS.sha256": {
+          "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-2500m/diagnostic-original-mldr-20dabd39-2500m-1.files/ARTIFACTS.sha256",
+          "sha256": "9b8f9af654213fda3c2cbcc99a7e40fd68b26e1a12c13251568fbf80fb9ce236",
+          "bytes": 2195
+        }
+      },
+      "terminal": {
+        "proven": false,
+        "checked": false,
+        "why": "component replay declined"
+      },
+      "initialFamilyOrderMatchesReference": true,
+      "familyBindings": [
+        {
+          "phase": "candidates",
+          "count": 49,
+          "observedSHA256": "2c3643dcee3af5b1f696305e39f565ff7dae68af2d41a5435b517aca8c886dad",
+          "reconstructedFromRetainedReferenceSHA256": "2c3643dcee3af5b1f696305e39f565ff7dae68af2d41a5435b517aca8c886dad"
+        },
+        {
+          "phase": "post-rejection-candidates",
+          "count": 44,
+          "observedSHA256": "838bba3f74edaf526cf7d7301399c1405c9ecb0eda572d3b6bd87ac53128d7b3",
+          "reconstructedFromRetainedReferenceSHA256": "838bba3f74edaf526cf7d7301399c1405c9ecb0eda572d3b6bd87ac53128d7b3"
+        }
+      ],
+      "ownerMetadata": {
+        "name": "inX: no quorum canVote/3",
+        "formulaSha256": "1ad87c6a4d06675fb467f241a80b3e03a48959d3131580c9caa659760190912e"
+      },
+      "ownerScopeMetadata": [
+        {
+          "eventIndex": 1406,
+          "phase": "scope-return",
+          "law": "inX: no quorum canVote/3",
+          "owner": {
+            "name": "inX: no quorum canVote/3",
+            "formulaSha256": "1ad87c6a4d06675fb467f241a80b3e03a48959d3131580c9caa659760190912e"
+          },
+          "scoped": true,
+          "atMs": 75255.453848,
+          "rawUnits": 382225533.7686,
+          "context": [
+            "every C0 cell is a value of its kind",
+            "every Copied cell is a value of its kind",
+            "every Config cell is a value of its kind",
+            "one primary per term",
+            "CT at most 73",
+            "St at most 1",
+            "CV at most 2",
+            "CfgT at most 73",
+            "fields: St[a]=1 -> CT[a]=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+            "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+            "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+            "every x: never 1 <= Config[x] and picked is 0",
+            "every x with x < size: never 1 <= C0[x] and picked is 0",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= started",
+            "every x with x < size: never 1 <= Copied[x] and picked is 0",
+            "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never 1 <= CT[x] and started is 0",
+            "every x with x < size: never 1 <= CT[x] and picked is 0",
+            "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+            "every x with x < size: never 1 <= St[x] and started is 0",
+            "every x with x < size: never 1 <= St[x] and picked is 0",
+            "every x with x < size: never 1 <= CfgT[x] and started is 0",
+            "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]",
+            "inX: no quorum canVote/1",
+            "inX: no quorum canVote/3",
+            "inX: stored guard reconfigs/inS",
+            "inX: stored guard reconfigs/inS or disabled/0",
+            "inX: stored guard reconfigs/inS or disabled/1",
+            "inX: stored guard reconfigs/inS or disabled/2",
+            "inX: stored guard reconfigs/inS or disabled/3",
+            "fields: Copied[a]=1 and started=0 -> Config row is C0",
+            "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] and Copied[a]=Copied[b]=1 -> Config rows agree",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never picked is 0 and 1 <= inX$row[x]",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never Copied[x] is 0 and 1 <= inX$row[x]",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+          ],
+          "premises": [
+            {
+              "name": "every x with x < size: never 1 <= CfgT[x] and started is 0",
+              "nativeScopeKeySha256": "d1716d7292f3298f4808723a3b3301c2fbdafc6267cf43b6832401a2a43229c8",
+              "formulaSha256": "38da8f8c4a302b94c9e302579b3c0e551e0f57f6af21b3ab24c8975a5931ec80"
+            },
+            {
+              "name": "inX: no quorum canVote/3",
+              "nativeScopeKeySha256": "08065a31687a0c11af830329bcc3d2eb4878b60eda96d514cb247b5ff7f14898",
+              "formulaSha256": "1ad87c6a4d06675fb467f241a80b3e03a48959d3131580c9caa659760190912e"
+            },
+            {
+              "name": "inX: stored guard reconfigs/inS or disabled/0",
+              "nativeScopeKeySha256": "8277fa48eed3d491c4fa7628f2837b96cd7d29b5e01f67d1ff2b43b8f37240ef",
+              "formulaSha256": "59d5038fe4cf8d5e34f4529e303ba0d5fe911c1f7e07fc532668708a4e0facc7"
+            }
+          ]
+        },
+        {
+          "eventIndex": 1410,
+          "phase": "scope-return",
+          "law": "inX: no quorum canVote/3",
+          "owner": {
+            "name": "inX: no quorum canVote/3",
+            "formulaSha256": "1ad87c6a4d06675fb467f241a80b3e03a48959d3131580c9caa659760190912e"
+          },
+          "scoped": true,
+          "atMs": 79547.360532,
+          "rawUnits": 460636595.7686,
+          "context": [
+            "every C0 cell is a value of its kind",
+            "every Copied cell is a value of its kind",
+            "every Config cell is a value of its kind",
+            "one primary per term",
+            "CT at most 73",
+            "St at most 1",
+            "CV at most 2",
+            "CfgT at most 73",
+            "fields: St[a]=1 -> CT[a]=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+            "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+            "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+            "every x: never 1 <= Config[x] and picked is 0",
+            "every x with x < size: never 1 <= C0[x] and picked is 0",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= started",
+            "every x with x < size: never 1 <= Copied[x] and picked is 0",
+            "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never 1 <= CT[x] and started is 0",
+            "every x with x < size: never 1 <= CT[x] and picked is 0",
+            "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+            "every x with x < size: never 1 <= St[x] and started is 0",
+            "every x with x < size: never 1 <= St[x] and picked is 0",
+            "every x with x < size: never 1 <= CfgT[x] and started is 0",
+            "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]",
+            "inX: no quorum canVote/1",
+            "inX: no quorum canVote/3",
+            "inX: stored guard reconfigs/inS",
+            "inX: stored guard reconfigs/inS or disabled/0",
+            "inX: stored guard reconfigs/inS or disabled/1",
+            "inX: stored guard reconfigs/inS or disabled/2",
+            "inX: stored guard reconfigs/inS or disabled/3",
+            "fields: Copied[a]=1 and started=0 -> Config row is C0",
+            "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] and Copied[a]=Copied[b]=1 -> Config rows agree",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never picked is 0 and 1 <= inX$row[x]",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never Copied[x] is 0 and 1 <= inX$row[x]",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+          ],
+          "premises": [
+            {
+              "name": "inX: no quorum canVote/3",
+              "nativeScopeKeySha256": "08065a31687a0c11af830329bcc3d2eb4878b60eda96d514cb247b5ff7f14898",
+              "formulaSha256": "1ad87c6a4d06675fb467f241a80b3e03a48959d3131580c9caa659760190912e"
+            }
+          ]
+        }
+      ],
+      "lastRecordedScopeMetadata": [
+        {
+          "eventIndex": 2928,
+          "phase": "scope-return",
+          "law": "one primary per term",
+          "owner": {
+            "name": "one primary per term",
+            "formulaSha256": "aaa75ba295b0d2fbc732df47a72c2e7e635fbefc09ccb742f7b90578b9aced57"
+          },
+          "scoped": true,
+          "atMs": 389655.476516,
+          "rawUnits": 1285715939.724,
+          "context": [
+            "every C0 cell is a value of its kind",
+            "every Copied cell is a value of its kind",
+            "every Config cell is a value of its kind",
+            "one primary per term",
+            "CT at most 73",
+            "St at most 1",
+            "CV at most 2",
+            "CfgT at most 73",
+            "fields: St[a]=1 -> CT[a]=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+            "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+            "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+            "every x: never 1 <= Config[x] and picked is 0",
+            "every x with x < size: never 1 <= C0[x] and picked is 0",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= started",
+            "every x with x < size: never 1 <= Copied[x] and picked is 0",
+            "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never 1 <= CT[x] and started is 0",
+            "every x with x < size: never 1 <= CT[x] and picked is 0",
+            "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+            "every x with x < size: never 1 <= St[x] and started is 0",
+            "every x with x < size: never 1 <= St[x] and picked is 0",
+            "every x with x < size: never 1 <= CfgT[x] and started is 0",
+            "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]",
+            "inX: no quorum canVote/1",
+            "inX: no quorum canVote/3",
+            "inX: stored guard reconfigs/inS",
+            "inX: stored guard reconfigs/inS or disabled/0",
+            "inX: stored guard reconfigs/inS or disabled/1",
+            "inX: stored guard reconfigs/inS or disabled/2",
+            "inX: stored guard reconfigs/inS or disabled/3",
+            "fields: Copied[a]=1 and started=0 -> Config row is C0",
+            "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] and Copied[a]=Copied[b]=1 -> Config rows agree",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never picked is 0 and 1 <= inX$row[x]",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never Copied[x] is 0 and 1 <= inX$row[x]",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+          ],
+          "premises": [
+            {
+              "name": "one primary per term",
+              "nativeScopeKeySha256": "bf4176e78a94f030ee2fffd608e902ec95b6bae8d46bcfd117e6ca14094fc984",
+              "formulaSha256": "aaa75ba295b0d2fbc732df47a72c2e7e635fbefc09ccb742f7b90578b9aced57"
+            },
+            {
+              "name": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "nativeScopeKeySha256": "5332c995261d3012eb4cedff994d2ba49cb3dc447a6e7b7720ab25a75327d6c6",
+              "formulaSha256": "36bc4ab99af3a467f92c7303097973e81588e8e6955c09d58360f750de82c300"
+            },
+            {
+              "name": "every x with x < size: never 1 <= St[x] and started is 0",
+              "nativeScopeKeySha256": "c1df11873ec2526b7b0cfc11cdd4a2b841856b4d5fbdd576823b2bfa4d33a840",
+              "formulaSha256": "d847d1a29d5e5d58f7df82169c29f585374a1f3062d8eefea378edb66d30f6e9"
+            },
+            {
+              "name": "inX: no quorum canVote/3",
+              "nativeScopeKeySha256": "08065a31687a0c11af830329bcc3d2eb4878b60eda96d514cb247b5ff7f14898",
+              "formulaSha256": "1ad87c6a4d06675fb467f241a80b3e03a48959d3131580c9caa659760190912e"
+            }
+          ]
+        },
+        {
+          "eventIndex": 2932,
+          "phase": "scope-return",
+          "law": "one primary per term",
+          "owner": {
+            "name": "one primary per term",
+            "formulaSha256": "aaa75ba295b0d2fbc732df47a72c2e7e635fbefc09ccb742f7b90578b9aced57"
+          },
+          "scoped": true,
+          "atMs": 391405.874481,
+          "rawUnits": 1304789792.724,
+          "context": [
+            "every C0 cell is a value of its kind",
+            "every Copied cell is a value of its kind",
+            "every Config cell is a value of its kind",
+            "one primary per term",
+            "St at most 1",
+            "fields: St[a]=1 -> CT[a]=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+            "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+            "every x: never 1 <= Config[x] and picked is 0",
+            "every x with x < size: never 1 <= C0[x] and picked is 0",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= started",
+            "every x with x < size: never 1 <= Copied[x] and picked is 0",
+            "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never 1 <= CT[x] and started is 0",
+            "every x with x < size: never 1 <= CT[x] and picked is 0",
+            "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+            "every x with x < size: never 1 <= St[x] and started is 0",
+            "every x with x < size: never 1 <= St[x] and picked is 0",
+            "every x with x < size: never 1 <= CfgT[x] and started is 0",
+            "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]",
+            "inX: no quorum canVote/3",
+            "fields: Copied[a]=1 and started=0 -> Config row is C0",
+            "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] and Copied[a]=Copied[b]=1 -> Config rows agree"
+          ],
+          "premises": [
+            {
+              "name": "one primary per term",
+              "nativeScopeKeySha256": "bf4176e78a94f030ee2fffd608e902ec95b6bae8d46bcfd117e6ca14094fc984",
+              "formulaSha256": "aaa75ba295b0d2fbc732df47a72c2e7e635fbefc09ccb742f7b90578b9aced57"
+            },
+            {
+              "name": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "nativeScopeKeySha256": "5332c995261d3012eb4cedff994d2ba49cb3dc447a6e7b7720ab25a75327d6c6",
+              "formulaSha256": "36bc4ab99af3a467f92c7303097973e81588e8e6955c09d58360f750de82c300"
+            },
+            {
+              "name": "every x with x < size: never 1 <= St[x] and started is 0",
+              "nativeScopeKeySha256": "c1df11873ec2526b7b0cfc11cdd4a2b841856b4d5fbdd576823b2bfa4d33a840",
+              "formulaSha256": "d847d1a29d5e5d58f7df82169c29f585374a1f3062d8eefea378edb66d30f6e9"
+            },
+            {
+              "name": "inX: no quorum canVote/3",
+              "nativeScopeKeySha256": "08065a31687a0c11af830329bcc3d2eb4878b60eda96d514cb247b5ff7f14898",
+              "formulaSha256": "1ad87c6a4d06675fb467f241a80b3e03a48959d3131580c9caa659760190912e"
+            }
+          ]
+        }
+      ],
+      "lastNativePacketMetadata": [
+        {
+          "phase": "native-packet-check",
+          "goal": "inX: no quorum canVote/3 @start",
+          "context": [
+            "every C0 cell is a value of its kind",
+            "every Copied cell is a value of its kind",
+            "every Config cell is a value of its kind",
+            "one primary per term",
+            "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+            "every x with x < size: never 1 <= St[x] and started is 0",
+            "inX: no quorum canVote/3"
+          ],
+          "checked": true,
+          "atMs": 402444.67670899996,
+          "rawUnits": 1346737887.724
+        }
+      ],
+      "replayDeclines": [
+        {
+          "name": "inX: no quorum canVote/3",
+          "index": 33,
+          "replayDeclines": 3
+        },
+        {
+          "name": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] and Copied[a]=Copied[b]=1 -> Config rows agree",
+          "index": 41,
+          "replayDeclines": 1
+        }
+      ]
+    },
+    {
+      "repeat": 2,
+      "files": {
+        "profiles.json": {
+          "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-2500m/diagnostic-original-mldr-20dabd39-2500m-2.files/profiles.json",
+          "sha256": "22b6499d02ba379273318b73089c47f411c0adfe1c8b84a4fb8da063c91b5aa0",
+          "bytes": 2210896
+        },
+        "events.json": {
+          "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-2500m/diagnostic-original-mldr-20dabd39-2500m-2.files/events.json",
+          "sha256": "c5c3c3203619aa1b7ed8ba8d2ef6f611e4816a50e537e02c056b0edb20508e8d",
+          "bytes": 1823285
+        },
+        "attempts.json": {
+          "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-2500m/diagnostic-original-mldr-20dabd39-2500m-2.files/attempts.json",
+          "sha256": "a7a4764907d9695f48e3d6c0b97517747caf6db3f48da17c3bda41703104fa20",
+          "bytes": 24495
+        },
+        "per-law.json": {
+          "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-2500m/diagnostic-original-mldr-20dabd39-2500m-2.files/per-law.json",
+          "sha256": "94f5537e3ba490dabc72dea3b9eb83eab2ee4e630632f2d20514cf98f9ad7198",
+          "bytes": 69617
+        },
+        "diagnostic-summary.json": {
+          "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-2500m/diagnostic-original-mldr-20dabd39-2500m-2.files/diagnostic-summary.json",
+          "sha256": "a402d5f487b6bfc6807fe963e45cbcef3467936dae79aedcaf53b1955e9d8dc7",
+          "bytes": 740784
+        },
+        "profile.log.gz": {
+          "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-2500m/diagnostic-original-mldr-20dabd39-2500m-2.files/profile.log.gz",
+          "sha256": "552c96f0cbf1fac9bd33f56383525546ad2f34a1c41a698ba07bb977aa9d742d",
+          "bytes": 125844
+        },
+        "ARTIFACTS.sha256": {
+          "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-2500m/diagnostic-original-mldr-20dabd39-2500m-2.files/ARTIFACTS.sha256",
+          "sha256": "13902b4db16eae76d769ee47dfb2dded81055f2f52c80e1f18524738425b6d63",
+          "bytes": 2195
+        }
+      },
+      "terminal": {
+        "proven": false,
+        "checked": false,
+        "why": "component replay declined"
+      },
+      "initialFamilyOrderMatchesReference": true,
+      "familyBindings": [
+        {
+          "phase": "candidates",
+          "count": 49,
+          "observedSHA256": "2c3643dcee3af5b1f696305e39f565ff7dae68af2d41a5435b517aca8c886dad",
+          "reconstructedFromRetainedReferenceSHA256": "2c3643dcee3af5b1f696305e39f565ff7dae68af2d41a5435b517aca8c886dad"
+        },
+        {
+          "phase": "post-rejection-candidates",
+          "count": 44,
+          "observedSHA256": "838bba3f74edaf526cf7d7301399c1405c9ecb0eda572d3b6bd87ac53128d7b3",
+          "reconstructedFromRetainedReferenceSHA256": "838bba3f74edaf526cf7d7301399c1405c9ecb0eda572d3b6bd87ac53128d7b3"
+        }
+      ],
+      "ownerMetadata": {
+        "name": "inX: no quorum canVote/3",
+        "formulaSha256": "1ad87c6a4d06675fb467f241a80b3e03a48959d3131580c9caa659760190912e"
+      },
+      "ownerScopeMetadata": [
+        {
+          "eventIndex": 1406,
+          "phase": "scope-return",
+          "law": "inX: no quorum canVote/3",
+          "owner": {
+            "name": "inX: no quorum canVote/3",
+            "formulaSha256": "1ad87c6a4d06675fb467f241a80b3e03a48959d3131580c9caa659760190912e"
+          },
+          "scoped": true,
+          "atMs": 149976.941405,
+          "rawUnits": 382225533.7686,
+          "context": [
+            "every C0 cell is a value of its kind",
+            "every Copied cell is a value of its kind",
+            "every Config cell is a value of its kind",
+            "one primary per term",
+            "CT at most 73",
+            "St at most 1",
+            "CV at most 2",
+            "CfgT at most 73",
+            "fields: St[a]=1 -> CT[a]=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+            "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+            "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+            "every x: never 1 <= Config[x] and picked is 0",
+            "every x with x < size: never 1 <= C0[x] and picked is 0",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= started",
+            "every x with x < size: never 1 <= Copied[x] and picked is 0",
+            "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never 1 <= CT[x] and started is 0",
+            "every x with x < size: never 1 <= CT[x] and picked is 0",
+            "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+            "every x with x < size: never 1 <= St[x] and started is 0",
+            "every x with x < size: never 1 <= St[x] and picked is 0",
+            "every x with x < size: never 1 <= CfgT[x] and started is 0",
+            "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]",
+            "inX: no quorum canVote/1",
+            "inX: no quorum canVote/3",
+            "inX: stored guard reconfigs/inS",
+            "inX: stored guard reconfigs/inS or disabled/0",
+            "inX: stored guard reconfigs/inS or disabled/1",
+            "inX: stored guard reconfigs/inS or disabled/2",
+            "inX: stored guard reconfigs/inS or disabled/3",
+            "fields: Copied[a]=1 and started=0 -> Config row is C0",
+            "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] and Copied[a]=Copied[b]=1 -> Config rows agree",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never picked is 0 and 1 <= inX$row[x]",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never Copied[x] is 0 and 1 <= inX$row[x]",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+          ],
+          "premises": [
+            {
+              "name": "every x with x < size: never 1 <= CfgT[x] and started is 0",
+              "nativeScopeKeySha256": "d1716d7292f3298f4808723a3b3301c2fbdafc6267cf43b6832401a2a43229c8",
+              "formulaSha256": "38da8f8c4a302b94c9e302579b3c0e551e0f57f6af21b3ab24c8975a5931ec80"
+            },
+            {
+              "name": "inX: no quorum canVote/3",
+              "nativeScopeKeySha256": "08065a31687a0c11af830329bcc3d2eb4878b60eda96d514cb247b5ff7f14898",
+              "formulaSha256": "1ad87c6a4d06675fb467f241a80b3e03a48959d3131580c9caa659760190912e"
+            },
+            {
+              "name": "inX: stored guard reconfigs/inS or disabled/0",
+              "nativeScopeKeySha256": "8277fa48eed3d491c4fa7628f2837b96cd7d29b5e01f67d1ff2b43b8f37240ef",
+              "formulaSha256": "59d5038fe4cf8d5e34f4529e303ba0d5fe911c1f7e07fc532668708a4e0facc7"
+            }
+          ]
+        },
+        {
+          "eventIndex": 1410,
+          "phase": "scope-return",
+          "law": "inX: no quorum canVote/3",
+          "owner": {
+            "name": "inX: no quorum canVote/3",
+            "formulaSha256": "1ad87c6a4d06675fb467f241a80b3e03a48959d3131580c9caa659760190912e"
+          },
+          "scoped": true,
+          "atMs": 161446.069917,
+          "rawUnits": 460636595.7686,
+          "context": [
+            "every C0 cell is a value of its kind",
+            "every Copied cell is a value of its kind",
+            "every Config cell is a value of its kind",
+            "one primary per term",
+            "CT at most 73",
+            "St at most 1",
+            "CV at most 2",
+            "CfgT at most 73",
+            "fields: St[a]=1 -> CT[a]=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+            "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+            "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+            "every x: never 1 <= Config[x] and picked is 0",
+            "every x with x < size: never 1 <= C0[x] and picked is 0",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= started",
+            "every x with x < size: never 1 <= Copied[x] and picked is 0",
+            "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never 1 <= CT[x] and started is 0",
+            "every x with x < size: never 1 <= CT[x] and picked is 0",
+            "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+            "every x with x < size: never 1 <= St[x] and started is 0",
+            "every x with x < size: never 1 <= St[x] and picked is 0",
+            "every x with x < size: never 1 <= CfgT[x] and started is 0",
+            "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]",
+            "inX: no quorum canVote/1",
+            "inX: no quorum canVote/3",
+            "inX: stored guard reconfigs/inS",
+            "inX: stored guard reconfigs/inS or disabled/0",
+            "inX: stored guard reconfigs/inS or disabled/1",
+            "inX: stored guard reconfigs/inS or disabled/2",
+            "inX: stored guard reconfigs/inS or disabled/3",
+            "fields: Copied[a]=1 and started=0 -> Config row is C0",
+            "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] and Copied[a]=Copied[b]=1 -> Config rows agree",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never picked is 0 and 1 <= inX$row[x]",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never Copied[x] is 0 and 1 <= inX$row[x]",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+          ],
+          "premises": [
+            {
+              "name": "inX: no quorum canVote/3",
+              "nativeScopeKeySha256": "08065a31687a0c11af830329bcc3d2eb4878b60eda96d514cb247b5ff7f14898",
+              "formulaSha256": "1ad87c6a4d06675fb467f241a80b3e03a48959d3131580c9caa659760190912e"
+            }
+          ]
+        }
+      ],
+      "lastRecordedScopeMetadata": [
+        {
+          "eventIndex": 2928,
+          "phase": "scope-return",
+          "law": "one primary per term",
+          "owner": {
+            "name": "one primary per term",
+            "formulaSha256": "aaa75ba295b0d2fbc732df47a72c2e7e635fbefc09ccb742f7b90578b9aced57"
+          },
+          "scoped": true,
+          "atMs": 806097.467622,
+          "rawUnits": 1285715939.724,
+          "context": [
+            "every C0 cell is a value of its kind",
+            "every Copied cell is a value of its kind",
+            "every Config cell is a value of its kind",
+            "one primary per term",
+            "CT at most 73",
+            "St at most 1",
+            "CV at most 2",
+            "CfgT at most 73",
+            "fields: St[a]=1 -> CT[a]=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+            "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+            "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+            "every x: never 1 <= Config[x] and picked is 0",
+            "every x with x < size: never 1 <= C0[x] and picked is 0",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= started",
+            "every x with x < size: never 1 <= Copied[x] and picked is 0",
+            "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never 1 <= CT[x] and started is 0",
+            "every x with x < size: never 1 <= CT[x] and picked is 0",
+            "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+            "every x with x < size: never 1 <= St[x] and started is 0",
+            "every x with x < size: never 1 <= St[x] and picked is 0",
+            "every x with x < size: never 1 <= CfgT[x] and started is 0",
+            "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]",
+            "inX: no quorum canVote/1",
+            "inX: no quorum canVote/3",
+            "inX: stored guard reconfigs/inS",
+            "inX: stored guard reconfigs/inS or disabled/0",
+            "inX: stored guard reconfigs/inS or disabled/1",
+            "inX: stored guard reconfigs/inS or disabled/2",
+            "inX: stored guard reconfigs/inS or disabled/3",
+            "fields: Copied[a]=1 and started=0 -> Config row is C0",
+            "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] and Copied[a]=Copied[b]=1 -> Config rows agree",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never picked is 0 and 1 <= inX$row[x]",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never Copied[x] is 0 and 1 <= inX$row[x]",
+            "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+          ],
+          "premises": [
+            {
+              "name": "one primary per term",
+              "nativeScopeKeySha256": "bf4176e78a94f030ee2fffd608e902ec95b6bae8d46bcfd117e6ca14094fc984",
+              "formulaSha256": "aaa75ba295b0d2fbc732df47a72c2e7e635fbefc09ccb742f7b90578b9aced57"
+            },
+            {
+              "name": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "nativeScopeKeySha256": "5332c995261d3012eb4cedff994d2ba49cb3dc447a6e7b7720ab25a75327d6c6",
+              "formulaSha256": "36bc4ab99af3a467f92c7303097973e81588e8e6955c09d58360f750de82c300"
+            },
+            {
+              "name": "every x with x < size: never 1 <= St[x] and started is 0",
+              "nativeScopeKeySha256": "c1df11873ec2526b7b0cfc11cdd4a2b841856b4d5fbdd576823b2bfa4d33a840",
+              "formulaSha256": "d847d1a29d5e5d58f7df82169c29f585374a1f3062d8eefea378edb66d30f6e9"
+            },
+            {
+              "name": "inX: no quorum canVote/3",
+              "nativeScopeKeySha256": "08065a31687a0c11af830329bcc3d2eb4878b60eda96d514cb247b5ff7f14898",
+              "formulaSha256": "1ad87c6a4d06675fb467f241a80b3e03a48959d3131580c9caa659760190912e"
+            }
+          ]
+        },
+        {
+          "eventIndex": 2932,
+          "phase": "scope-return",
+          "law": "one primary per term",
+          "owner": {
+            "name": "one primary per term",
+            "formulaSha256": "aaa75ba295b0d2fbc732df47a72c2e7e635fbefc09ccb742f7b90578b9aced57"
+          },
+          "scoped": true,
+          "atMs": 817532.783048,
+          "rawUnits": 1304789792.724,
+          "context": [
+            "every C0 cell is a value of its kind",
+            "every Copied cell is a value of its kind",
+            "every Config cell is a value of its kind",
+            "one primary per term",
+            "St at most 1",
+            "fields: St[a]=1 -> CT[a]=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+            "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+            "every x: never 1 <= Config[x] and picked is 0",
+            "every x with x < size: never 1 <= C0[x] and picked is 0",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+            "every x with x < size: never Copied[x] is 0 and 1 <= started",
+            "every x with x < size: never 1 <= Copied[x] and picked is 0",
+            "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never 1 <= CT[x] and started is 0",
+            "every x with x < size: never 1 <= CT[x] and picked is 0",
+            "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+            "every x with x < size: never 1 <= St[x] and started is 0",
+            "every x with x < size: never 1 <= St[x] and picked is 0",
+            "every x with x < size: never 1 <= CfgT[x] and started is 0",
+            "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]",
+            "inX: no quorum canVote/3",
+            "fields: Copied[a]=1 and started=0 -> Config row is C0",
+            "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] and Copied[a]=Copied[b]=1 -> Config rows agree"
+          ],
+          "premises": [
+            {
+              "name": "one primary per term",
+              "nativeScopeKeySha256": "bf4176e78a94f030ee2fffd608e902ec95b6bae8d46bcfd117e6ca14094fc984",
+              "formulaSha256": "aaa75ba295b0d2fbc732df47a72c2e7e635fbefc09ccb742f7b90578b9aced57"
+            },
+            {
+              "name": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "nativeScopeKeySha256": "5332c995261d3012eb4cedff994d2ba49cb3dc447a6e7b7720ab25a75327d6c6",
+              "formulaSha256": "36bc4ab99af3a467f92c7303097973e81588e8e6955c09d58360f750de82c300"
+            },
+            {
+              "name": "every x with x < size: never 1 <= St[x] and started is 0",
+              "nativeScopeKeySha256": "c1df11873ec2526b7b0cfc11cdd4a2b841856b4d5fbdd576823b2bfa4d33a840",
+              "formulaSha256": "d847d1a29d5e5d58f7df82169c29f585374a1f3062d8eefea378edb66d30f6e9"
+            },
+            {
+              "name": "inX: no quorum canVote/3",
+              "nativeScopeKeySha256": "08065a31687a0c11af830329bcc3d2eb4878b60eda96d514cb247b5ff7f14898",
+              "formulaSha256": "1ad87c6a4d06675fb467f241a80b3e03a48959d3131580c9caa659760190912e"
+            }
+          ]
+        }
+      ],
+      "lastNativePacketMetadata": [
+        {
+          "phase": "native-packet-check",
+          "goal": "inX: no quorum canVote/3 @start",
+          "context": [
+            "every C0 cell is a value of its kind",
+            "every Copied cell is a value of its kind",
+            "every Config cell is a value of its kind",
+            "one primary per term",
+            "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+            "every x with x < size: never 1 <= St[x] and started is 0",
+            "inX: no quorum canVote/3"
+          ],
+          "checked": true,
+          "atMs": 848406.421529,
+          "rawUnits": 1346737887.724
+        }
+      ],
+      "replayDeclines": [
+        {
+          "name": "inX: no quorum canVote/3",
+          "index": 33,
+          "replayDeclines": 3
+        },
+        {
+          "name": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] and Copied[a]=Copied[b]=1 -> Config rows agree",
+          "index": 41,
+          "replayDeclines": 1
+        }
+      ]
+    }
+  ],
+  "observer": {
+    "profile": {
+      "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-launch-input/observer/t300-original-profile.ts",
+      "sha256": "b654259f6e5a52c253c0f331713d85368436a8d4601fbb86eccf81be2ec11fc6",
+      "bytes": 14856
+    },
+    "identities": {
+      "path": "/home/user/VCS/working-remote/open-source/gdp-wired-trackK/runs/t301-20dabd39-launch-input/observer/t275-formula-identity.ts",
+      "sha256": "cc20c2d25d6d5ec3b921419806722cc8e90f271dc3872b9f41760e05df118db2",
+      "bytes": 2345
+    },
+    "finding": "scope-return retains owner/formula hash, context names and premise name/key/formula hashes; replayScopedCountProof wrapper keeps result counters only; no argument/certificate/instance/term-restoration serialization"
+  },
+  "missing": {
+    "exactFailingReplayArguments": true,
+    "runtimeInstances": true,
+    "ordinaryCertificates": true,
+    "termRestoration": true,
+    "serializedScopedProof": true,
+    "fullScopeSourcePayloads": true,
+    "exactReturnVersusCaughtExceptionProvenance": true
+  },
+  "limitations": [
+    "Initial49 and post-rejection44 family bytes/order match their runtime hashes using the retained reference laws.",
+    "Reference m is retained but its runtime machine identity is not independently recorded by the observer.",
+    "Scope/context labels and key hashes are metadata, not ordinary certificates or term restoration.",
+    "Do not label last recorded scope events as the exact failed invocation without missing call provenance.",
+    "Search conclusion concerns the retained T301 input and both exported result directories, not every external worktree."
+  ],
+  "newRun": false,
+  "newCapture": false,
+  "nativeImports": false
+}

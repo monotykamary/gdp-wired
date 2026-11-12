@@ -1,0 +1,19 @@
+{
+  "status":"SOURCE_ONLY_UNRUN",
+  "parentCommit":"9eb09b8326fc2670fad6725f774ab1b252c4d343",
+  "branch":"k/scope-pair-premises-9eb",
+  "productionChanges":["core/count-proof-scope.ts","core/count-scope-hyps.ts"],
+  "newTests":["core/count-scope-hyps.test.ts"],
+  "unchangedFromParent":["kernel/**","core/count-cert-transport.ts","core/count-recovery/conditional-proof.ts","core/count-proof-rescope.ts","core/counts.ts","core/count-recipe-controller.ts","core/check.ts","core/work-admission.ts","core/linear-admission.ts","core/wall.ts"],
+  "frozenOldScopeSha256":"c68ecac40848f7d480dbb7ae6b65f9b2d8db457a41aba4ce3136ac91f5529561",
+  "frozenOldScopeIsDataOnly":true,
+  "gitDiffCheck":"PASS",
+  "compiler":"NOT_RUN",
+  "tests":"NOT_RUN",
+  "nativeImports":"NONE_EXECUTED",
+  "T301Comparison":"BLOCKED_MISSING_REPLAY_INPUT",
+  "R4Comparison":"BLOCKED_MISSING_REPLAY_INPUT",
+  "controllerAdmission":"NONE_REQUESTED_OR_USED",
+  "diagnosticBranchCoordination":"B's track-m/recipe-close-fallback is independent; it changes diagnostics in count-proof-scope.ts and closing/controller behavior. No merge or item-2 fallback is included here.",
+  "runtimeSuccessClaim":false
+}

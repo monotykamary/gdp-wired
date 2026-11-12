@@ -1,0 +1,174 @@
+diff --git a/core/count-proof-scope.ts b/core/count-proof-scope.ts
+index 953e3a402..3d3c3ad5d 100644
+--- a/core/count-proof-scope.ts
++++ b/core/count-proof-scope.ts
+@@ -6 +6,2 @@ import {clock,wallAt,withDeadline} from '../kernel/prove.ts'
+-import {countedCertificateHyps,replayCountCertificate} from './count-cert-transport.ts'
++import {replayCountCertificate} from './count-cert-transport.ts'
++import {countedScopeHyps} from './count-scope-hyps.ts'
+@@ -79,2 +80,3 @@ const formulaKey=(holds:C):string=>strategyLawKey({name:'',holds})
+-// hypotheses (including every independent cut's source slice) identify the
+-// family premises. Duplicate formulas conservatively name every owner.
++// hypotheses (including independent cut slices and the fact rows supplying
++// cells to used equal-key rows) identify the family premises. Duplicate
++// formulas and duplicate cell suppliers conservatively name every owner.
+@@ -88 +90 @@ export function scopeCountProof(m:Machine,owner:Law,family:Law[],proof:CountLawP
+-  const refs=expanded&&countedCertificateHyps(expanded,cert!)
++  const refs=expanded&&countedScopeHyps(expanded,cert!)
+diff --git a/core/count-scope-hyps.test.ts b/core/count-scope-hyps.test.ts
+new file mode 100644
+index 000000000..f3805a06a
+--- /dev/null
++++ b/core/count-scope-hyps.test.ts
+@@ -0,0 +1,70 @@
++import {expect,test} from 'bun:test'
++import {atMost,get,less,n,x} from './machine.ts'
++import {type CountCert,type Count,type Goal,type Path,type Tree,canon,checkGoalLemmas,framePath,leafConstraints,linear} from '../kernel/kernel.ts'
++import {countedCertificateHyps,replayCountCertificate} from './count-cert-transport.ts'
++import {countedScopeHyps} from './count-scope-hyps.ts'
++import {searchNow} from './wall.ts'
++
++// A deliberately nonminimal certificate: M[i] < 0 is already contradictory,
++// but this certificate proves it through M[j]'s naturality and an equal-key row.
++// The fact M[j] <= 99 is never cited; it only makes the M[j] cell available.
++// No search, re-solving, machine/law weakening or checker mock is used.
++function fixture(options:{pair?:boolean,duplicate?:boolean,products?:boolean,frames?:boolean}={}){
++ const mi=Object.keys(linear(get('M',x('i')),new Map())!)[0]!,mj=Object.keys(linear(get('M',x('j')),new Map())!)[0]!
++ const goal:Goal={name:'pair-row source',hyps:[less(get('M',x('i')),n(0)),atMost(get('M',x('j')),n(99))]}
++ if(options.duplicate)goal.hyps.push(atMost(get('M',x('j')),n(100)))
++ const frames=options.frames?[{when:[],post:'post',pre:'pre'}]:[]
++ const counts:Count[]=[{v:'post',key:'k',below:n(0),body:n(0)},{v:'pre',key:'k',below:n(0),body:n(0)}]
++ const edge=(path:Path,split:Record<string,number>,holds:boolean)=>new Map(path).set(canon(split),{lin:split,holds})
++ const make=(path:Path,pair:boolean):Tree=>{
++  const rows=leafConstraints(goal,framePath(frames,[],path)),find=(fn:(r:typeof rows[number])=>boolean)=>{const i=rows.findIndex(fn);if(i<0)throw Error('fixture row missing');return i}
++  const fact=find(r=>r.src!==undefined&&'fact'in r.src&&r.src.fact===0&&r.lin[mi]===1&&r.lin['1']===1)
++  const nat=find(r=>r.src!==undefined&&'nat'in r.src&&r.src.nat===(pair?mj:mi))
++  if(!pair)return {leaf:[{kind:'input',index:fact},{kind:'input',index:nat},{kind:'combine',a:0,b:1,ma:1,mb:1}]}
++  const eq=find(r=>r.src!==undefined&&'pair'in r.src&&r.lin[mj]===1&&r.lin[mi]===-1)
++  if(options.products){
++   const base=rows.length,squares=[{[mi]:1}]
++   return {squares,products:[[eq,eq],[base+1,base+1]],leaf:[{kind:'input',index:base+2},{kind:'input',index:fact},{kind:'input',index:eq},{kind:'combine',a:1,b:2,ma:1,mb:1},{kind:'input',index:nat},{kind:'combine',a:3,b:4,ma:1,mb:1}]}
++  }
++  return {leaf:[{kind:'input',index:fact},{kind:'input',index:eq},{kind:'combine',a:0,b:1,ma:1,mb:1},{kind:'input',index:nat},{kind:'combine',a:2,b:3,ma:1,mb:1}]}
++ }
++ const a={i:1,j:-1},b={j:1,i:-1},empty:Path=new Map(),yes=edge(empty,a,true)
++ const tree:Tree={split:a,yes:{split:b,yes:make(edge(yes,b,true),options.pair!==false),no:make(edge(yes,b,false),false)},no:make(edge(empty,a,false),false)}
++ const cert:CountCert={reads:[],insts:[],tree,...(frames.length?{frames}:{})}
++ return {goal,cert,counts}
++}
++const sorted=(value:Set<number>|undefined)=>value&&[...value].sort((a,b)=>a-b)
++
++test('used equal-key rows retain uncited cell suppliers as scope premises',()=>{
++ const f=fixture()
++ expect(checkGoalLemmas(f.goal,f.cert.tree,[],[],f.counts)).toBe(true)
++ expect(sorted(countedCertificateHyps(f.goal,f.cert))).toEqual([0])
++ expect(sorted(countedScopeHyps(f.goal,f.cert))).toEqual([0,1])
++ const reduced={...f.goal,hyps:[f.goal.hyps[0]!]}
++ expect(replayCountCertificate(f.goal,reduced,f.cert,searchNow()+30000)).toBeUndefined()
++ const replayed=replayCountCertificate(f.goal,f.goal,f.cert,searchNow()+30000)
++ expect(replayed).toBeDefined()
++ if(replayed)expect(checkGoalLemmas(f.goal,replayed.tree,replayed.lemmas)).toBe(true)
++})
++test('a generated but unread pair does not retain its cell supplier',()=>{
++ const f=fixture({pair:false})
++ expect(checkGoalLemmas(f.goal,f.cert.tree,[],[],f.counts)).toBe(true)
++ expect(sorted(countedScopeHyps(f.goal,f.cert))).toEqual([0])
++})
++test('every duplicate cell supplier is conservatively retained',()=>{
++ const f=fixture({duplicate:true})
++ expect(checkGoalLemmas(f.goal,f.cert.tree,[],[],f.counts)).toBe(true)
++ expect(sorted(countedScopeHyps(f.goal,f.cert))).toEqual([0,1,2])
++})
++test('product dependencies and square offsets retain pair suppliers',()=>{
++ const f=fixture({products:true})
++ expect(checkGoalLemmas(f.goal,f.cert.tree,[],[],f.counts)).toBe(true)
++ expect(sorted(countedScopeHyps(f.goal,f.cert))).toEqual([0,1])
++})
++test('native frame prefix is used rather than legacy unframed row indices',()=>{
++ const f=fixture({frames:true})
++ expect(checkGoalLemmas(f.goal,f.cert.tree,[],f.cert.frames,f.counts)).toBe(true)
++ const old=countedCertificateHyps(f.goal,f.cert)!,next=countedScopeHyps(f.goal,f.cert)!
++ expect([...old].every(i=>next.has(i))).toBe(true)
++ expect(next.has(0)&&next.has(1)).toBe(true)
++})
+diff --git a/core/count-scope-hyps.ts b/core/count-scope-hyps.ts
+new file mode 100644
+index 000000000..09dc1be7f
+--- /dev/null
++++ b/core/count-scope-hyps.ts
+@@ -0,0 +1,75 @@
++// Untrusted scope metadata, never a checker or a proof of successful transport.
++// Preserve every legacy reference, then add the hypotheses which make a used
++// equal-key pair row available in the native leaf's pre-closure name set.
++import {type CountCert,type Goal,type Path,type Tree,canon,framePath,isCell,leafConstraints} from '../kernel/kernel.ts'
++import {countedCertificateHyps} from './count-cert-transport.ts'
++import {visitLinearCells} from './linear-admission.ts'
++import {startWork} from './work-admission.ts'
++import {checkWall} from './wall.ts'
++
++const tick=(site:string):void=>{checkWall('counted scope pair premises');startWork('ticks',1,site)}
++function branch(path:Path,split:Extract<Tree,{split:unknown}>['split'],holds:boolean):Path{
++ const out:Path=new Map()
++ for(const [key,value]of path){tick('pair-scope:path-copy');out.set(key,value)}
++ tick('pair-scope:path-branch');out.set(canon(split),{lin:split,holds});return out
++}
++
++export function countedScopeHyps(goal:Goal,cert:CountCert):Set<number>|undefined{
++ tick('pair-scope:entry')
++ const legacy=countedCertificateHyps(goal,cert)
++ if(!legacy)return undefined
++ const found=new Set<number>()
++ for(const index of legacy){tick('pair-scope:legacy-reference');found.add(index)}
++ const active=new WeakSet<object>()
++ const leaf=(tree:Extract<Tree,{leaf:unknown}>,path:Path):boolean=>{
++  // Use the actual native prefix, not the legacy fact-only path. In particular
++  // frame/mono/linear rows precede lemma rows and affect every input-row index.
++  const actual=framePath(cert.frames??[],cert.lemmas??[],path,cert.monos??[],cert.lins??[])
++  const rows=leafConstraints(goal,actual),present=new Set<string>(),suppliers=new Map<string,Set<number>>()
++  for(let i=0;i<rows.length;i++){
++   tick('pair-scope:source-row');const row=rows[i]!,src=row.src
++   if(!src||!('atom'in src||'fact'in src))continue
++   if('fact'in src&&(!Number.isSafeInteger(src.fact)||src.fact<0||src.fact>=goal.hyps.length))return false
++   visitLinearCells(row.lin,name=>{
++    tick('pair-scope:source-cell');if(!isCell(name))return
++    // Include stored zero coefficients: the native name collector does too.
++    present.add(name)
++    if('fact'in src){let owners=suppliers.get(name);if(!owners)suppliers.set(name,(owners=new Set()));owners.add(src.fact)}
++   },'pair-scope:source-cells')
++  }
++  const todo:number[]=[],seen=new Set<number>(),n=rows.length,squares=tree.squares?.length??0,products=tree.products??[]
++  for(let i=0;i<tree.leaf.length;i++){tick('pair-scope:input-step');const step=tree.leaf[i]!;if(step.kind==='input')todo.push(step.index)}
++  // The exact transporter also reindexes all retained product operands, even
++  // products not cited by the final arithmetic. Keep their pair support too.
++  for(let i=0;i<products.length;i++){tick('pair-scope:product-operands');const pair=products[i]!;todo.push(pair[0],pair[1])}
++  while(todo.length){
++   tick('pair-scope:referenced-row');const index=todo.pop()!
++   if(!Number.isSafeInteger(index)||index<0||index>=n+squares+products.length)return false
++   if(seen.has(index))continue;seen.add(index)
++   if(index<n){
++    const src=rows[index]!.src
++    if(src&&'fact'in src)found.add(src.fact)
++    if(src&&'pair'in src)for(const cell of src.pair){
++     tick('pair-scope:pair-cell');if(!present.has(cell))return false
++     // A path atom alone can supply a cell. Otherwise retain every fact-row
++     // owner, not an arbitrary first match or only a nonzero coefficient.
++     for(const owner of suppliers.get(cell)??[]){tick('pair-scope:cell-owner');found.add(owner)}
++    }
++   }else if(index>=n+squares){
++    const pair=products[index-n-squares]!
++    // Normal products only refer backwards. Refuse malformed/cyclic metadata
++    // instead of guessing a smaller scope; never turn this into acceptance.
++    if(!pair||!Number.isSafeInteger(pair[0])||!Number.isSafeInteger(pair[1])||pair[0]<0||pair[1]<0||pair[0]>=index||pair[1]>=index)return false
++    todo.push(pair[0],pair[1])
++   }
++  }
++  return true
++ }
++ const visit=(tree:Tree,path:Path):boolean=>{
++  tick('pair-scope:tree');if(!tree||typeof tree!=='object'||active.has(tree))return false
++  active.add(tree)
++  try{return 'leaf'in tree?leaf(tree,path):visit(tree.yes,branch(path,tree.split,true))&&visit(tree.no,branch(path,tree.split,false))}
++  finally{active.delete(tree)}
++ }
++ return visit(cert.tree,new Map())?found:undefined
++}

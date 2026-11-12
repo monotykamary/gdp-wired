@@ -1,0 +1,32 @@
+{
+  "status": "BLOCKED_MISSING_REPLAY_INPUT",
+  "T301": {
+    "status": "OWNER_CONFIRMED_PARTIAL_METADATA_ONLY",
+    "inventory": "evidence/t301-retained-input-inventory.json",
+    "inventorySha256": "4f141c7141985fecf4a53639c1664f13fca1f114a619b754a37a76902ba6c90b",
+    "referencePath": "gdp-wired-trackK/runs/t301-20dabd39-launch-input/reference49.json",
+    "referenceSha256": "49a805953627fa2a5e55531f15c77147403cb86334e7054954a33a1c6cd5f190",
+    "ownerName": "inX: no quorum canVote/3",
+    "ownerIndex": 33,
+    "originalSource": "20dabd39faa46221be003817198026e1cd7d50c2",
+    "originalTree": "151d81b5a3ac7dd47494d1ff1d42a1130e42ae2f",
+    "required": "Runtime instances, ordinary certificates, expression-backed term restoration, serialized ScopedCountProof/full source goals, and exact failing replay arguments/return-vs-catch provenance",
+    "runtimeMachineBound": false,
+    "lastScopeIsKnownFailingCall": false,
+    "syntheticSubstitutionAllowed": false
+  },
+  "R4": {
+    "status": "OWNER_CONFIRMED_NOT_EXPORTED_BY_TIMED_ARM",
+    "ownerReport": "ic3-mldr: timed trace=null, observerInstalled=false; no held proof/source-context payloads or declining member/obligation; instrumented arm not a dedicated failed-close payload dump",
+    "artifacts": "gdp-wired-trackM-closure-9eb/runs/r4-cap64-20261112-081430/mldr-3g-timed.files",
+    "verdictSha256": "0394d86d90bea705a61e899da350941e4368cad31bae5e696964340f055fd369",
+    "publicModelSha256": "47ad1a599fd8db43e561b6c29bc339cffb6bc9bc43efbaca624bd26fd707417c",
+    "publicLawsSha256": "a7dae78abc333783704c50ee4a30caecb19282491a3193e2498da4b33ec385b7",
+    "readOnlyDiagnosis": "/home/user/.local/state/r4-launcher/control-20261112/READ-ONLY-DIAGNOSIS.md",
+    "readOnlyDiagnosisSha256": "0acffe29321863ab0bb05bb0def912c792faec49f138bee8a8d733fabf23107b",
+    "publicModelAndNamesAreNotCapturedReplayInputs": true,
+    "exactTransportComparisonAvailable": false
+  },
+  "newSearchOrCaptureAuthorized": false,
+  "runtimeResults": null
+}

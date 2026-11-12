@@ -3,7 +3,8 @@
 import {type C,type Law,type Machine} from './machine.ts'
 import {type CountCert,type Goal,type Instances,assumed,checkMC,countedObligations,mcGoal} from '../kernel/kernel.ts'
 import {clock,wallAt,withDeadline} from '../kernel/prove.ts'
-import {countedCertificateHyps,replayCountCertificate} from './count-cert-transport.ts'
+import {replayCountCertificate} from './count-cert-transport.ts'
+import {countedScopeHyps} from './count-scope-hyps.ts'
 import {strategyLawKey} from './strategy-premises.ts'
 import {checkWall} from './wall.ts'
 import {startWork,workLedger} from './work-admission.ts'
@@ -76,8 +77,9 @@ const identity=(law:Law):Premise=>({name:law.name,key:JSON.stringify([law.forall
 const formulaKey=(holds:C):string=>strategyLawKey({name:'',holds})
 
 // This is proposal metadata, not an authorization. The exact referenced base
-// hypotheses (including every independent cut's source slice) identify the
-// family premises. Duplicate formulas conservatively name every owner.
+// hypotheses (including independent cut slices and the fact rows supplying
+// cells to used equal-key rows) identify the family premises. Duplicate
+// formulas and duplicate cell suppliers conservatively name every owner.
 // Explicit strategy scopes may be supplied, but may not omit referenced laws.
 export function scopeCountProof(m:Machine,owner:Law,family:Law[],proof:CountLawProof,until:number):ScopedCountProof|undefined{
  if(!live(until)||!family.includes(owner)||new Set(family.map(l=>l.name)).size!==family.length)return undefined
@@ -85,7 +87,7 @@ export function scopeCountProof(m:Machine,owner:Law,family:Law[],proof:CountLawP
  for(const {goal,decls}of countedObligations(m,family,{[owner.name]:proof.instances},family.indexOf(owner))){
   if(!live(until))return undefined
   const cert=proof.certs[goal.name],expanded=cert&&mcGoal(goal.hyps,decls,cert)
-  const refs=expanded&&countedCertificateHyps(expanded,cert!)
+  const refs=expanded&&countedScopeHyps(expanded,cert!)
   if(!expanded||!refs)return undefined
   sources.push(expanded)
   for(const index of refs){
