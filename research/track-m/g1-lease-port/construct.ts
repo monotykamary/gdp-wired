@@ -21,7 +21,7 @@ mkdirSync(out,{recursive:true})
 const expected='95321d6ef8303cdef66dbb376e1ba9639cbf9c8b2f7768324570ab2133968a8e',input=readFileSync(file,'utf8').trim()
 if(createHash('sha256').update(input).digest('hex')!==expected)throw Error('input family hash mismatch')
 const closed=JSON.parse(input) as ClosedFamily,original=workAmount(3_000_000_000n),slices:LiftedWorkSlice[]=[],events:Record<string,unknown>[]=[]
-const report:Record<string,unknown>={format:'g1-replay-lease-pair-v1',qualification:false,expectedFamily:expected,original:{numerator:String(original.num),denominator:String(original.den)},flags:Object.fromEntries(Object.entries(process.env).filter(([k])=>k.startsWith('GDP_')).sort()),passed:false}
+const report:Record<string,unknown>={format:'g1-replay-lease-pair-v1',qualification:false,expectedFamily:expected,original:{numerator:String(original.num),denominator:String(original.den)},flags:Object.fromEntries(Object.entries(process.env).filter(([k])=>k.startsWith('GDP_')).sort(([a],[b])=>a.localeCompare(b))),passed:false}
 const budget=liftedWorkLeaseBudget(original,{observe:slice=>slices.push(slice)})
 try{workLedger.withBudget(original,()=>{
  const epoch=workAdmissionSnapshot().rootEpoch;let admission:{machine:Machine,laws:Law[]}|undefined

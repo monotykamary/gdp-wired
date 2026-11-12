@@ -18,7 +18,7 @@ import {workAdmissionSnapshot,workLedger} from './work-admission.ts'
 const frameFixtureWork=workAmount(1_000_000_000n)
 const withFrameFixture=<T>(run:(budget?:LiftedWorkBudget)=>T):T=>completeWorkProfile.enabled
  ?workLedger.withBudget(frameFixtureWork,()=>run(liftedWorkLeaseBudget(frameFixtureWork)))
- :run()
+ :run();
 (completeWorkProfile.enabled?test:test.skip)('explicit exact lease plan composes and natively checks frame cases with no numeric deadline fallback',()=>{
  const original=workAmount(1_000_000_000n),slices:LiftedWorkSlice[]=[],budget=liftedWorkLeaseBudget(original,{observe:s=>slices.push(s)})
  workLedger.withBudget(original,()=>{
