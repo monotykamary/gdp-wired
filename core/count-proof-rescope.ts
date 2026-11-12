@@ -2,7 +2,7 @@
 // original context is a fallback only after refusal and explicit permission
 // to use an existing funded scope. A hard stop is never caught here.
 import {type Law,type Machine} from './machine.ts'
-import {type CountLawProof,type ScopedCountProof,scopeCountProof,replayScopedCountProof,isCheckedReducedScope} from './count-proof-scope.ts'
+import {type CountLawProof,type ScopedCountProof,scopeCountProof,scopeCountProofPair,replayScopedCountProof,isCheckedReducedScope} from './count-proof-scope.ts'
 import {checkMC,countedObligations} from '../kernel/kernel.ts'
 import {clock,withDeadline} from '../kernel/prove.ts'
 import {checkWall} from './wall.ts'
@@ -17,14 +17,14 @@ function uncheckedOffer(offered:ScopedCountProof,checkWork:number):ScopedCountPr
  // Reuse the already captured full-scope payload. In particular, do not run
  // scope capture, identity hashing, or checked-reduced stamping a second time.
  const {checkedReduced,...scope}=offered;void checkedReduced
- return {...scope,proof:{...offered.proof,status:'unchecked'},checkWork}
+ return {...scope,proof:{...offered.proof,status:'unchecked'},suppliers:'unresolved',checkWork}
 }
 export function rescopeCountProof(m:Machine,owner:Law,family:Law[],proof:CountLawProof,_held:ReadonlySet<string>,until:number,observe?:(event:CountRescopeEvent)=>void,options:CountRescopeOptions={}):ScopedCountProof|undefined{
  return withDeadline(until,()=>{
   checkWall('counted checked rescope');startWork('ticks',1,'counted checked rescope')
-  const start=clock(),offered=scopeCountProof(m,owner,family,proof,until)
-  // Validate declared metadata, but do not retain a declared unused superset.
-  const inferred=offered&&scopeCountProof(m,owner,family,{instances:proof.instances,certs:proof.certs},until)
+  // Validate the offered declaration and infer the minimal legacy scope from
+  // the same row scan. Both keep the old proof/status/receipt behavior.
+  const start=clock(),{offered,inferred}=scopeCountProofPair(m,owner,family,proof,until)
   if(inferred&&clock()<until){
    const keep=new Set([owner.name]);for(const premise of inferred.premises){startWork('ticks',1,'reduced context premise');keep.add(premise.name)}
    const context=workFilter(family,l=>keep.has(l.name),'reduced context family')

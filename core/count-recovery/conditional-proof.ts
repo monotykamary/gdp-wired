@@ -1,4 +1,6 @@
 import {searchNow as countedSearchNow} from '../wall.ts'
+import {BudgetExpired} from '../work-admission.ts'
+export type ConditionalTransportOptions = Readonly<{rethrowBudgetExpired?:boolean}>
 // Untrusted metadata and exact transport for conditional count proofs. The kernel
 // never reads this WeakMap: only ordinary trees and independent LemmaCuts escape.
 import {type Goal, type LemmaCut, type Path, type Tree, canon, canonFlip, check, checkGoalLemmas, facts, leafConstraintsReusing as rowsAt, lemmaPath} from '../../kernel/kernel.ts'
@@ -192,7 +194,7 @@ function retarget(from: Goal, to: Goal, lemmas: LemmaCut[], scope: Path, until: 
 
 /** Retarget an annotated or mixed proof, without turning cuts into split trees.
  * before/after are ordinary entry paths, not paths already augmented by cuts. */
-export function transportConditionalProof(from: Goal, to: Goal, tree: Tree, before: Path, after: Path, until: number): Tree | undefined {
+export function transportConditionalProof(from: Goal, to: Goal, tree: Tree, before: Path, after: Path, until: number, options?: ConditionalTransportOptions): Tree | undefined {
   try {
     const visit = (t: Tree, a: Path, b: Path, source: Context, target: Context): Tree | undefined => {
       if (!alive(until)) return undefined
@@ -219,13 +221,16 @@ export function transportConditionalProof(from: Goal, to: Goal, tree: Tree, befo
     }
     const out = visit(tree, before, after, {goal: from, lemmas: []}, {goal: to, lemmas: []})
     return out && checked(to, out, after, until) ? out : undefined
-  } catch { return undefined }
+  } catch (error) {
+    if (options?.rethrowBudgetExpired && error instanceof BudgetExpired) throw error
+    return undefined
+  }
 }
 
 /** Finalize at the empty root. Each local list is guarded by its entry path so
  * exporting it cannot add assumptions to unrelated ordinary siblings. Every
  * leaf is then reindexed, even if it did not originally carry metadata. */
-export function collectConditionalCertificate(goal: Goal, tree: Tree, until: number): {tree: Tree, lemmas: LemmaCut[]} | undefined {
+export function collectConditionalCertificate(goal: Goal, tree: Tree, until: number, options?: ConditionalTransportOptions): {tree: Tree, lemmas: LemmaCut[]} | undefined {
   try {
     const lemmas: LemmaCut[] = []
     const collect = (t: Tree, path: Path): boolean => {
@@ -249,5 +254,8 @@ export function collectConditionalCertificate(goal: Goal, tree: Tree, until: num
     }
     const out = finish(tree, new Map(), {goal, lemmas: []})
     return out && alive(until) && checkGoalLemmas(goal, out, lemmas) && alive(until) ? {tree: out, lemmas} : undefined
-  } catch { return undefined }
+  } catch (error) {
+    if (options?.rethrowBudgetExpired && error instanceof BudgetExpired) throw error
+    return undefined
+  }
 }

@@ -61,6 +61,7 @@ export class WorkLedger {
   private eventSequence = 0
   private notifying = false
   private readonly capacityErrors = new WeakMap<object, WorkCapacityRefusal>()
+  private readonly capacityBoundaries: {error?: BudgetExpired}[] = []
   constructor(weights: Readonly<Record<WorkKey, number>>) {
     if (Object.keys(weights).length !== workKeys.length || workKeys.some(key => !Object.hasOwn(weights, key) || !Number.isFinite(weights[key]) || weights[key] < 0)) throw new RangeError('work ledger requires the exact frozen coefficient vector')
     this.weights = Object.freeze(Object.fromEntries(workKeys.map(key => [key, workFromNumber(weights[key])]))) as Readonly<Record<WorkKey, WorkAmount>>
@@ -88,6 +89,18 @@ export class WorkLedger {
   capacityRefusal(error: unknown): WorkCapacityRefusal | undefined {
     return typeof error === 'object' && error !== null ? this.capacityErrors.get(error) : undefined
   }
+  // Opt-in observation only: no endpoint, allowance, counter or lease changes.
+  // Preserve the first genuine refusal even when a nested checker catches it.
+  withCapacityRefusalBoundary<T>(run: () => T): T {
+    const boundary: {error?: BudgetExpired} = {}
+    this.capacityBoundaries.push(boundary)
+    try {
+      const value = synchronous(run())
+      if (boundary.error) throw boundary.error
+      return value
+    } catch (error) { throw boundary.error ?? error }
+    finally { this.capacityBoundaries.pop() }
+  }
   private capacityError(phase: string, reason: WorkCapacityRefusal['reason'], requested?: WorkAmount): BudgetExpired {
     const error = new BudgetExpired(phase), end = this.endpoint()
     const limiting = this.scopes.filter(scope => end !== null && compareWork(scope.end, end) === 0)
@@ -95,6 +108,7 @@ export class WorkLedger {
     this.capacityErrors.set(error, Object.freeze({reason, limiting: Object.freeze(limiting),
       actual: exactRaw(this.actual()), reserved: exactRaw(this.reserved()),
       ...(requested ? {requested: exactRaw(requested)} : {})}))
+    for (const boundary of this.capacityBoundaries) boundary.error ??= error
     return error
   }
   endpoint(): WorkAmount | null {

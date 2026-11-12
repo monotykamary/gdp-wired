@@ -3,7 +3,7 @@
 import {type C,type Law,type Machine} from './machine.ts'
 import {type CountCert,type Goal,type Instances,assumed,checkMC,countedObligations,mcGoal} from '../kernel/kernel.ts'
 import {clock,wallAt,withDeadline} from '../kernel/prove.ts'
-import {replayCountCertificate} from './count-cert-transport.ts'
+import {countedCertificateHyps,replayCountCertificate} from './count-cert-transport.ts'
 import {countedScopeHyps} from './count-scope-hyps.ts'
 import {strategyLawKey} from './strategy-premises.ts'
 import {checkWall} from './wall.ts'
@@ -54,6 +54,9 @@ export type ScopedCountProof = Readonly<{
  proof:CountLawProof,
  sources:readonly Goal[],
  unused:readonly string[],
+ // Dependency metadata only. Unresolved captures retain the original instances;
+ // resolved means a native reduced receipt or one full supplier reconstruction.
+ suppliers?:'unresolved'|'resolved',
  // Observed checking/replay cost in clock units; scheduling only, never authority.
  checkWork?:number,
  // Opaque provenance, not a serializable or caller-asserted checked flag.
@@ -77,17 +80,27 @@ const identity=(law:Law):Premise=>({name:law.name,key:JSON.stringify([law.forall
 const formulaKey=(holds:C):string=>strategyLawKey({name:'',holds})
 
 // This is proposal metadata, not an authorization. The exact referenced base
-// hypotheses (including independent cut slices and the fact rows supplying
-// names to used generated rows) identify the family premises. Duplicate
-// formulas and duplicate cell suppliers conservatively name every owner.
+// hypotheses (including every independent cut's source slice) identify the
+// family premises, exactly as at 9eb. Generated suppliers are resolved only
+// after an actual closing transport decline. Duplicate formulas name every owner.
 // Explicit strategy scopes may be supplied, but may not omit referenced laws.
 export function scopeCountProof(m:Machine,owner:Law,family:Law[],proof:CountLawProof,until:number):ScopedCountProof|undefined{
+ return captureScope(m,owner,family,proof,until,countedCertificateHyps)
+}
+// Offered and inferred scopes share one scan; the inferred proof still omits
+// the offered status/declaration and receives no borrowed checked receipt.
+export function scopeCountProofPair(m:Machine,owner:Law,family:Law[],proof:CountLawProof,until:number):{offered?:ScopedCountProof,inferred?:ScopedCountProof}{
+ let inferred:ScopedCountProof|undefined
+ const offered=captureScope(m,owner,family,proof,until,countedCertificateHyps,scope=>{inferred=scope})
+ return {offered,inferred}
+}
+function captureScope(m:Machine,owner:Law,family:Law[],proof:CountLawProof,until:number,refsOf:typeof countedCertificateHyps,onInferred?:(scope:ScopedCountProof)=>void):ScopedCountProof|undefined{
  if(!live(until)||!family.includes(owner)||new Set(family.map(l=>l.name)).size!==family.length)return undefined
  const sources:Goal[]=[],used=new Set<string>()
  for(const {goal,decls}of countedObligations(m,family,{[owner.name]:proof.instances},family.indexOf(owner))){
   if(!live(until))return undefined
   const cert=proof.certs[goal.name],expanded=cert&&mcGoal(goal.hyps,decls,cert)
-  const refs=expanded&&countedScopeHyps(expanded,cert!)
+  const refs=expanded&&refsOf(expanded,cert!)
   if(!expanded||!refs)return undefined
   sources.push(expanded)
   for(const index of refs){
@@ -101,15 +114,39 @@ export function scopeCountProof(m:Machine,owner:Law,family:Law[],proof:CountLawP
  if(names.size!==declared.length||declared.some(name=>!available.has(name))||actual.some(l=>!names.has(l.name)))return undefined
  const premises=family.filter(l=>names.has(l.name)).map(identity)
  if(!live(until))return undefined
- const result:ScopedCountProof={owner:identity(owner),premises,proof:{...proof,premises:premises.map(p=>p.name)},sources,unused:family.filter(l=>!names.has(l.name)).map(l=>l.name)}
+ const result:ScopedCountProof={owner:identity(owner),premises,proof:{...proof,premises:premises.map(p=>p.name)},sources,unused:family.filter(l=>!names.has(l.name)).map(l=>l.name),suppliers:'unresolved'}
+ if(onInferred)onInferred({...result,premises:actual.map(identity),proof:{instances:proof.instances,certs:proof.certs,premises:actual.map(l=>l.name)},unused:family.filter(l=>!actual.includes(l)).map(l=>l.name)})
  const binding=checkedProofs.get(proof)
- return binding&&isCheckedReducedScope({...result,checkedReduced:binding.token},m)?{...result,checkedReduced:binding.token}:result
+ return binding&&isCheckedReducedScope({...result,checkedReduced:binding.token},m)?{...result,checkedReduced:binding.token,suppliers:'resolved'}:result
+}
+
+// Cold path only: preserve every old premise and every original instance, add
+// the complete generalized supplier closure, and remove no source certificate.
+// Resolution is metadata, never a checked-reduced/native-success receipt.
+export function resolveCountScopeSuppliers(m:Machine,family:Law[],scoped:ScopedCountProof,until:number):ScopedCountProof|undefined{
+ if(scoped.suppliers==='resolved'||!live(until))return undefined
+ const owner=family.find(l=>l.name===scoped.owner.name)
+ if(!owner||identity(owner).key!==scoped.owner.key)return undefined
+ for(const premise of scoped.premises){
+  startWork('ticks',1,'count supplier old premise')
+  const law=family.find(l=>l.name===premise.name)
+  if(!law||identity(law).key!==premise.key)return undefined
+ }
+ const inferred=captureScope(m,owner,family,{instances:scoped.proof.instances,certs:scoped.proof.certs},until,countedScopeHyps)
+ if(!inferred||inferred.sources.length!==scoped.sources.length)return undefined
+ // A changed source context cannot reattribute rows of the retained proof.
+ for(let i=0;i<scoped.sources.length;i++){
+  if(!live(until)||receiptStamp(inferred.sources[i])!==receiptStamp(scoped.sources[i]))return undefined
+ }
+ const names=new Set([...scoped.premises,...inferred.premises].map(p=>p.name)),premises=family.filter(l=>names.has(l.name)).map(identity)
+ const {checkedReduced,...rest}=scoped;void checkedReduced
+ return {...rest,premises,proof:{...scoped.proof,status:'unchecked',premises:premises.map(p=>p.name)},unused:family.filter(l=>!names.has(l.name)).map(l=>l.name),suppliers:'resolved'}
 }
 
 // A changed premise is missing even if its label survives. Unused instantiated
 // laws do not pin the proof: remove those tuples before reconstructing the
 // target goals. Flag/fact instances outside the candidate family are retained.
-export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCountProof,until:number,options:{deferToClosing?:boolean}={}):CountLawProof|undefined{
+export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCountProof,until:number,options:{deferToClosing?:boolean,onTransportDecline?:(obligation:string)=>void}={}):CountLawProof|undefined{
  return withDeadline(until,()=>{
   if(!live(until)||new Set(family.map(l=>l.name)).size!==family.length)return undefined
   const byName=new Map(family.map(l=>[l.name,l]))
@@ -130,8 +167,12 @@ export function replayScopedCountProof(m:Machine,family:Law[],scoped:ScopedCount
    if(!live(until))return undefined
    const {goal,decls}=goals[i]!,cert=scoped.proof.certs[goal.name]
    const to=cert&&mcGoal(goal.hyps,decls,cert),from=scoped.sources[i]!
-   const next=to&&replayCountCertificate(from,to,cert!,wallAt())
-   if(!next)return undefined
+   const next=to&&replayCountCertificate(from,to,cert!,wallAt(),{rethrowBudgetExpired:true})
+   if(!next){
+    // Missing/invalid expansions and hard stops are not supplier declines.
+    if(to&&live(until))options.onTransportDecline?.(goal.name)
+    return undefined
+   }
    if(!deferred){receiptStamp(next);if(!checkMC(goal.hyps,decls,next))return undefined}
    if(!live(until))return undefined
    certs[goal.name]=next;sources.push(to!)

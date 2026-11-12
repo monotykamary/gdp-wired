@@ -50,7 +50,7 @@ import {WallExpired, checkWall, searchWall, withBudget} from './wall.ts'
 import {env} from './solver.ts'
 import {proofOrigins, proposeLemmaCuts} from './lemma-cuts.ts'
 import {countedCertificateHyps,transportCountCertificate} from './count-cert-transport.ts'
-import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, scopeCountProof, replayScopedCountProof, isCheckedReducedScope, withCountScopeIdentityObservation, countScopeContextKey} from './count-proof-scope.ts'
+import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, scopeCountProof, replayScopedCountProof, isCheckedReducedScope, withCountScopeIdentityObservation, countScopeContextKey, resolveCountScopeSuppliers} from './count-proof-scope.ts'
 import {assertLiftedWorkLease, prepareCountStrategyMachine, proveCountStrategies, proposeCountStrategiesForClosing, proveCountStrategyKind, proposeCountStrategyKindForClosing, selectedCountStrategies} from './count-strategies.ts'
 import {type LiftedWorkBudget} from './count-lifted-budget.ts'
 import {countRecipeContextDecision} from './count-recipe-context.ts'
@@ -745,6 +745,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
     }
     if(beforeClosing(()=>{reconcile();return true})!==true)return {proven:false,laws:set,m,why:'recipe reconciliation budget'}
     attempts.houdini=true
+    let transportDeclined:string|undefined
     const outcome=runCountRecipeController(tierRun.recipePass!,targets,{
       active,observe:event=>countsDump.on?.(event),
       preflight:(name,recipe)=>{
@@ -789,7 +790,13 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         for(const dependency of effective){tick();const premise=lawByName.get(dependency);if(premise&&!screen(premise,0,workAllowance))return}
         return {...captured,checkCost:workSub(workLedger.actual(),before)}
       },
+      declinedMember:()=>transportDeclined,
+      repairSuppliers:(_name,scoped)=>{
+        const repaired=resolveCountScopeSuppliers(m,set,scoped,Infinity)
+        return repaired&&{payload:repaired,premises:workMap(repaired.premises,p=>p.name,'count repaired supplier names')}
+      },
       close:(rows,targetInFamily)=>{
+        transportDeclined=undefined
         const names=new Set(workMap(rows,row=>row.id,'count closing inventory'))
         const family=workFilter(set,law=>names.has(law.name),'count closing family'),instances:Record<string,Instances>={},certs:Record<string,CountCert>={},premises:Record<string,readonly string[]>={}
         if(reach?.safety()==='broken')return {proven:false,laws:family,m,why:'reachable caller counterexample'}
@@ -797,7 +804,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
           tick()
           // Use the graph's effective S for membership and published premises;
           // replay the untouched scoped payload against exactly that family.
-          const proof=replayScopedCountProof(m,family,row.payload,Infinity,{deferToClosing:true})
+          const proof=replayScopedCountProof(m,family,row.payload,Infinity,{deferToClosing:true,onTransportDecline:()=>{transportDeclined=row.id}})
           if(!proof)return {proven:false,laws:family,m,why:'recipe closing replay declined'}
           instances[row.id]=proof.instances
           for(const [name,cert]of workEntries(proof.certs,'count closing certificates'))certs[name]=cert as CountCert

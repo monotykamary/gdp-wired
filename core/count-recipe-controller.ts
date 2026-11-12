@@ -37,6 +37,8 @@ export class CountRecipePass<T>{
  readonly original:WorkAmount
  readonly rootEnd:WorkAmount
  readonly states:MemberState[]
+ // One cold repair at most for this fixed inventory, even across invocations.
+ supplierRepairUsed=false
  context:string
  constructor(members:readonly CountControllerMember[],context:string,readonly bank:WorkLedger=workLedger){
   const tick=()=>bank.start('ticks',1,'count recipe pass setup')
@@ -75,6 +77,9 @@ export type CountControllerHooks<T,R,P=CountCaptured<T>>=Readonly<{
  capture?:(name:string,recipe:CountControllerRecipe,proposal:P)=>CountCaptured<T>|undefined,
  preflight?:(name:string,recipe:CountControllerRecipe)=>boolean,
  close:(rows:readonly HeldCountPayload<T>[],targetInFamily:boolean)=>R,
+ // Only the close adapter may identify an actual certificate transport decline.
+ declinedMember?:()=>string|undefined,
+ repairSuppliers?:(name:string,payload:T)=>Readonly<{payload:T,premises:readonly string[]}>|undefined,
  observe?:(event:Record<string,unknown>)=>void,
  active?:ReadonlySet<string>,basis?:ReadonlySet<string>
 }>
@@ -200,6 +205,7 @@ export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecip
   if(!(error instanceof BudgetExpired))throw error
   reason='phase-cap';bank.check('count recipe search continuation')
  }
+ const attemptClosing=()=>{
  const held=pass.held(),rows:HeldCountPayload<T>[]=[]
  for(const member of nodeRows()){tick();const payload=held.get(member.name);if(payload)rows.push({id:member.name,premises:map(countRecipeRequirements(member,tick),value=>value),payload:payload.payload})}
  // This is closing preparation, not search selection: traverse only the held
@@ -223,6 +229,28 @@ export function runCountRecipeController<T,R,P=CountCaptured<T>>(pass:CountRecip
   },
   submit:selected=>hooks.close(selected,false)
  },{basis:hooks.basis,tick})
- hooks.observe?.({phase:'count-recipe-closing',reason,route:closing.route,targetInFamily:closing.targetInFamily,members:closing.plan.members,blockers:closing.plan.blockers,paths:[...closing.plan.paths]})
+ return closing
+ }
+ let closing=attemptClosing()
+ const declined=closing.submitted&&!pass.supplierRepairUsed&&hooks.repairSuppliers?hooks.declinedMember?.():undefined
+ if(declined!==undefined){
+  const state=find(pass.states,state=>state.member.name===declined)
+  if(state?.held){
+   // Consume the one repair BEFORE entering it: cancellation/refusal cannot
+   // renew this allowance on a later controller invocation. No recipe runs.
+   pass.supplierRepairUsed=true
+   const repaired=hooks.repairSuppliers!(declined,state.held.payload as T)
+   if(repaired){
+    const names=new Set(state.held.premises)
+    for(const name of repaired.premises){tick();names.add(name)}
+    state.held={...state.held,payload:repaired.payload,premises:map(names,name=>name),checkedReduced:false}
+    hooks.observe?.({phase:'count-recipe-supplier-repair',law:declined,premises:state.held.premises})
+    // Rebuild H/S, the target closure, and G from ALL held payloads. A missing
+    // supplier can remove the target, never be silently admitted or invented.
+    closing=attemptClosing()
+   }
+  }
+ }
+ hooks.observe?.({phase:'count-recipe-closing',reason,route:closing.route,targetInFamily:closing.targetInFamily,members:closing.plan.members,blockers:closing.plan.blockers,paths:[...closing.plan.paths],supplierRepairUsed:pass.supplierRepairUsed})
  return {reason,...(failure?{failure}:{}),closingRoute:closing.route,...(closing.result!==undefined?{result:closing.result}:{})}
 }

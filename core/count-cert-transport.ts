@@ -3,7 +3,8 @@ import {searchNow as countedSearchNow,WallExpired} from './wall.ts'
 // still checks the emitted ordinary tree and independent conditional cuts.
 import {type CountCert,type Goal,type Path,canon,lemmaPath} from '../kernel/kernel.ts'
 import {BudgetExpired,usedHyps,widen} from '../kernel/prove.ts'
-import {collectConditionalCertificate,markConditionalProof,transportConditionalProof} from './count-recovery/conditional-proof.ts'
+import {collectConditionalCertificate,markConditionalProof,transportConditionalProof,type ConditionalTransportOptions} from './count-recovery/conditional-proof.ts'
+import {workLedger} from './work-admission.ts'
 
 export function transportCountCertificate(from:Goal,to:Goal,cert:CountCert,until:number):CountCert|undefined{
  if(countedSearchNow()>=until)return undefined
@@ -15,12 +16,17 @@ export function transportCountCertificate(from:Goal,to:Goal,cert:CountCert,until
 
 // Across-round retention must never repair a missing premise by searching.
 // The exact conditional transporter also handles ordinary trees with no cuts.
-export function replayCountCertificate(from:Goal,to:Goal,cert:CountCert,until:number):CountCert|undefined{
- if(countedSearchNow()>=until)return undefined
- const marked=markConditionalProof(from,cert.tree,cert.lemmas??[])
- const tree=transportConditionalProof(from,to,marked,new Map(),new Map(),until)
- const combined=tree&&collectConditionalCertificate(to,tree,until)
- return combined?{...cert,...combined}:undefined
+export function replayCountCertificate(from:Goal,to:Goal,cert:CountCert,until:number,options?:ConditionalTransportOptions):CountCert|undefined{
+ const replay=()=>{
+  if(countedSearchNow()>=until)return undefined
+  const marked=markConditionalProof(from,cert.tree,cert.lemmas??[])
+  const tree=transportConditionalProof(from,to,marked,new Map(),new Map(),until,options)
+  const combined=tree&&collectConditionalCertificate(to,tree,until,options)
+  return combined?{...cert,...combined}:undefined
+ }
+ // The original error and its ledger-authenticated endpoint provenance survive
+ // nested pre-check/kernel catches; legacy callers retain their old boundary.
+ return options?.rethrowBudgetExpired?workLedger.withCapacityRefusalBoundary(replay):replay()
 }
 
 export function countedCertificateHyps(goal:Goal,cert:CountCert):Set<number>|undefined{
