@@ -2,14 +2,11 @@ import {searchNow as countedSearchNow} from '../wall.ts'
 // Untrusted pre-check accelerators over immutable proof objects. No cached
 // answer replaces checkMC/checkCountedLaws on the final emitted certificate.
 import {type Goal, type LemmaCut, type Path, type Tree, canon, check, leafConstraintsReusing as rowsAt} from '../../kernel/kernel.ts'
-import {ExactPathIdentity} from './path-identity.ts'
 
 const stats = {leafChecks: 0, leafHits: 0, leafFallbacks: 0, fullHyps: 0, sliceHyps: 0, independentChecks: 0, independentHits: 0, retargetChecks: 0, retargetHits: 0}
 export const conditionalProofStats = (): Readonly<typeof stats> => ({...stats})
-// Goal lifetime owns the interner. A tree stores opaque exact terminal-node
-// identities, not a fresh serialized copy of hundreds of cut atoms per leaf.
-const pathIdentities = new WeakMap<Goal, ExactPathIdentity>()
-const leaves = new WeakMap<Goal, WeakMap<Tree, Map<object, boolean>>>()
+const pathKey = (path: Path): string => JSON.stringify([...path].map(([key, a]) => [key, a.holds, canon(a.lin)]))
+const leaves = new WeakMap<Goal, WeakMap<Tree, Map<string, boolean>>>()
 
 /** Keep exactly the hypotheses cited by base/product inputs, then relocate all
  * inputs including square/product offsets. The unchanged kernel checks the
@@ -20,9 +17,7 @@ export function slicedCheck(goal: Goal, tree: Tree, path: Path): boolean {
   if (!trees) leaves.set(goal, trees = new WeakMap())
   let paths = trees.get(tree)
   if (!paths) trees.set(tree, paths = new Map())
-  let identities = pathIdentities.get(goal)
-  if (!identities) pathIdentities.set(goal, identities = new ExactPathIdentity())
-  const key = identities.get(path), old = paths.get(key)
+  const key = pathKey(path), old = paths.get(key)
   if (old !== undefined) { stats.leafHits++; return old }
   stats.leafChecks++; stats.fullHyps += goal.hyps.length
   let ok = false
