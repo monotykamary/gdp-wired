@@ -7,6 +7,7 @@ import {readGraphCapsule} from './graph-reader.test-support.ts'
 import {installClosingCapture} from './capture.ts'
 import {countRecipeClosingCapture,type CountedRecipeClosingSnapshot} from '../../../core/counts.ts'
 import {completeWorkProfile} from '../../../core/work-profile.ts'
+import {atPoint} from '../../../kernel/prove.ts'
 const fullTest=completeWorkProfile.enabled?test:test.skip
 fullTest('late parent fsync failure retracts completion and records an incomplete capture',()=>{
  const out=mkdtempSync(join(tmpdir(),'closing-late-sync-')),synced:string[]=[];let markerBeforeFault=false
@@ -17,12 +18,25 @@ fullTest('late parent fsync failure retracts completion and records an incomplet
  }})
  try{
   // Only reachAbsent is consumed before graph serialization; no replay/native claim.
+  expect(atPoint.on).toBe(false)
   expect(()=>countRecipeClosingCapture.on!({reachAbsent:true} as CountedRecipeClosingSnapshot)).not.toThrow()
   expect(synced).toHaveLength(3);expect(markerBeforeFault).toBe(true)
   expect(existsSync(join(out,'closing-entry-0001','CAPTURE.json'))).toBe(false)
-  expect(JSON.parse(readFileSync(join(out,'closing-capture-errors.jsonl'),'utf8')).complete).toBe(false)
+  expect(JSON.parse(readFileSync(join(out,'closing-capture-errors.jsonl'),'utf8'))).toMatchObject({complete:false,error:'Error: late parent fsync fault'})
   expect(finish()).toEqual({attempted:1,completed:0,failures:1,writerOnly:true})
  }finally{if(countRecipeClosingCapture.on)finish();rmSync(out,{recursive:true,force:true})}
+})
+fullTest('active atPoint state still refuses capture without changing that state',()=>{
+ const out=mkdtempSync(join(tmpdir(),'closing-active-point-')),previous=atPoint.on
+ const finish=installClosingCapture(out,{fixture:'active-point'},()=>{})
+ try{
+  atPoint.on=true
+  countRecipeClosingCapture.on!({reachAbsent:true} as CountedRecipeClosingSnapshot)
+  expect(atPoint.on).toBe(true)
+  expect(finish()).toEqual({attempted:1,completed:0,failures:1,writerOnly:true})
+  expect(JSON.parse(readFileSync(join(out,'closing-capture-errors.jsonl'),'utf8')).error).toBe('Error: unsupported closing runtime')
+  expect(existsSync(join(out,'closing-entry-0001','CAPTURE.json'))).toBe(false)
+ }finally{atPoint.on=previous;if(countRecipeClosingCapture.on)finish();rmSync(out,{recursive:true,force:true})}
 })
 const temporary=(run:(directory:string)=>void)=>{const directory=mkdtempSync(join(tmpdir(),'closing-graph-test-'));try{run(directory)}finally{rmSync(directory,{recursive:true,force:true})}}
 test('graph capsule preserves aliases, cycles, key/Map order, holes and exact scalars',()=>temporary(dir=>{

@@ -31,7 +31,7 @@ export function installClosingCapture(out:string,identity:unknown,phase:(name:st
   try{
    phase('closing-capture')
    // Unsupported observations make this export incomplete, not the proof fail.
-   if(!completeWorkProfile.enabled||atPoint.on!==undefined||!snapshot.reachAbsent)throw Error('unsupported closing runtime')
+   if(!completeWorkProfile.enabled||atPoint.on!==false||!snapshot.reachAbsent)throw Error('unsupported closing runtime')
    const checkpoint=workLedger.diagnosticCheckpoint()
    if(checkpoint.leases.length||checkpoint.capacityBoundaries.length||checkpoint.notifying)throw Error('closing entry is not quiescent')
    const runtime={schema:'closing-runtime/v1',identity,
