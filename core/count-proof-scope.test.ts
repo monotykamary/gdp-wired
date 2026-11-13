@@ -232,8 +232,8 @@ test('S51 diagnostics name duplicate, premise, obligation, certificate and trans
  expect(declines.pop()).toMatchObject({case:4,reason:'missing-certificate',member:f.left.name,obligation:f.left.name+' @start'})
  const mock=spyOn(transport,'replayCountCertificate').mockImplementation(()=>undefined)
  try{
-  expect(replayScopedCountProof(f.m,f.family,scoped,until,{onDecline})).toBeUndefined()
-  expect(declines.pop()).toMatchObject({case:5,reason:'certificate-transport-declined',member:f.left.name,obligation:f.left.name+' @start'})
+  expect(replayScopedCountProof(f.m,[...f.family].reverse(),scoped,until,{onDecline})).toBeUndefined()
+  expect(declines.pop()).toMatchObject({case:5,reason:'certificate-transport-declined',member:f.left.name,obligation:f.left.name+' @step'})
  }finally{mock.mockRestore()}
  expect(replayScopedCountProof(f.m,f.family,scoped,until,{onDecline})).toBeDefined()
  expect(declines).toEqual([])
@@ -241,10 +241,12 @@ test('S51 diagnostics name duplicate, premise, obligation, certificate and trans
 
 test('S51 diagnostics distinguish unchanged native rejection from a transport miss',()=>bounded(until=>{
  const f=fixture(),scoped=scopeCountProof(f.m,f.left,f.family,prove(f.m,f.left,f.family,until),until)!,declines:CountReplayDecline[]=[]
- const mock=spyOn(transport,'replayCountCertificate').mockImplementation((_from,_to,cert)=>({...cert,tree:{leaf:[]}}))
+ const key=f.left.name+' @start',damaged={...scoped,proof:{...scoped.proof,certs:{...scoped.proof.certs,[key]:{...scoped.proof.certs[key]!,tree:{leaf:[]}}}}}
+ const mock=spyOn(transport,'replayCountCertificate').mockImplementation(()=>{throw Error('identity path must not transport')})
  try{
-  expect(replayScopedCountProof(f.m,f.family,scoped,until,{onDecline:d=>declines.push(d)})).toBeUndefined()
-  expect(declines).toEqual([{case:6,reason:'native-check-failed',member:f.left.name,obligation:f.left.name+' @start'}])
+  expect(replayScopedCountProof(f.m,f.family,damaged,until,{onDecline:d=>declines.push(d)})).toBeUndefined()
+  expect(declines).toEqual([{case:6,reason:'native-check-failed',member:f.left.name,obligation:key}])
+  expect(mock).not.toHaveBeenCalled()
  }finally{mock.mockRestore()}
 }))
 

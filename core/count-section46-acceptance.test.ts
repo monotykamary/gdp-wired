@@ -278,7 +278,7 @@ test('N8/46.15: target with only unknown-set recipe considers inventory but inve
  const out=publicRun({family,recipes:rs,calls:[],produce:(machine,context,law)=>prove(machine,law,context)},m,[target])
  expect(out.result.proven).toBe(true);expect(out.calls).toEqual([base.name,user.name,target.name])
  expect(out.result.proof?.premises?.[target.name]).toEqual([])
- expect(out.result.laws).toEqual([target])
+ expect(out.result.laws).toEqual(family)
 })
 
 test('D1: a selected known recipe becoming ineligible before start cannot borrow its unknown alternative',async()=>{
@@ -345,7 +345,7 @@ test('46.15: known route blocked by half does not block an eligible unknown alte
  expect(open.blocked.has('target')).toBe(false);expect(open.next?.recipe.id).toBe('unknown')
 })
 
-test('S51 public closing retries once with the greatest closed held family and the native checker',()=>{
+test('S58 public closing uses the greatest closed held family first with the native checker',()=>{
  const {m,family}=independent(['extra held','target']),[extra,target]=family as [Law,Law]
  const rs=new Map([[extra.name,[recipe('row',[])]],[target.name,[recipe('row',[extra.name])]]])
  const original=scope.replayScopedCountProof,seen:string[][]=[]
@@ -360,29 +360,30 @@ test('S51 public closing retries once with the greatest closed held family and t
   const out=publicRun({family,recipes:rs,calls:[],produce:(machine,context,law)=>prove(machine,law,context)},m,[target])
   expect(out.result.proven).toBe(true)
   expect(out.result.laws.map(l=>l.name)).toEqual([extra.name,target.name])
-  expect(out.events.filter(e=>e.phase==='count-recipe-closing-fallback')).toHaveLength(1)
-  expect(out.events.filter(e=>e.phase==='count-recipe-closing-decline')).toMatchObject([{member:target.name,obligation:target.name+' @step',case:5,family:'needed'}])
-  expect(seen).toEqual([[target.name],[extra.name,target.name],[extra.name,target.name]])
+  expect(out.events.filter(e=>e.phase==='count-recipe-closing-fallback'||e.phase==='count-recipe-supplier-repair')).toEqual([])
+  expect(out.events.filter(e=>e.phase==='count-recipe-closing-decline')).toEqual([])
+  expect(seen).toEqual([[extra.name,target.name],[extra.name,target.name]])
   expect(out.calls).toEqual([extra.name,target.name])
   expect(out.result.laws).toContain(target)
  }finally{mock.mockRestore()}
 })
 
-test('S51 a second closing decline is named and cannot start a third closing or another producer',()=>{
+test('S58 a named closing blocker does not request supplier repair or another producer',()=>{
  const {m,family}=independent(['extra held','target']),[extra,target]=family as [Law,Law]
  const rs=new Map([[extra.name,[recipe('row',[])]],[target.name,[recipe('row',[extra.name])]]])
  const original=scope.replayScopedCountProof
  const mock=spyOn(scope,'replayScopedCountProof').mockImplementation((machine,context,held,until,options)=>{
-  if(options?.deferToClosing){options.onDecline?.({case:5,reason:'certificate-transport-declined',member:held.owner.name,obligation:held.owner.name+' @step'});return undefined}
+  if(options?.deferToClosing){options.onDecline?.({case:5,reason:'unheld-law-dependency',member:held.owner.name,obligation:held.owner.name+' @step',premise:'not-held',blockers:['not-held']});return undefined}
   return original(machine,context,held,until,options)
  })
  try{
   const out=publicRun({family,recipes:rs,calls:[],produce:(machine,context,law)=>prove(machine,law,context)},m,[target])
   expect(out.result.proven).toBe(false)
-  // One fallback for this retained recipe pass, including the existing
-  // ordinary/structured wrapper. Its retries cannot mint a second fallback.
-  expect(out.events.filter(e=>e.phase==='count-recipe-closing-fallback')).toHaveLength(1)
-  expect(out.result.why).toContain('case=5:certificate-transport-declined')
+  expect(out.events.filter(e=>e.phase==='count-recipe-closing-fallback'||e.phase==='count-recipe-supplier-repair')).toEqual([])
+  expect(out.events.filter(e=>e.phase==='count-recipe-closing-blocker').length).toBeGreaterThan(0)
+  expect(out.result.why).toContain('BLOCKER')
+  expect(out.result.why).toContain('case=5:unheld-law-dependency')
+  expect(out.result.why).toContain('law=not-held')
   expect(out.result.why).toContain('obligation=')
   expect(out.calls).toEqual([extra.name,target.name])
  }finally{mock.mockRestore()}
@@ -415,7 +416,9 @@ for(const phase of ['transport','collect'] as const)test('S51 genuine FULL hard 
  const replaySpy=spyOn(scope,'replayScopedCountProof').mockImplementation((...args)=>{
   if(!args[4]?.onDecline)return replay(...args)
   closingCalls++;closing=true
-  try{return replay(...args)}finally{closing=false}
+  // Withhold the optional declaration-equality evidence to exercise the
+  // transport branch; the source goals/certificate and real ledger stay intact.
+  try{return replay(args[0],args[1],{...args[2],sourceDecls:undefined},args[3],args[4])}finally{closing=false}
  })
  const transportSpy=spyOn(conditional,'transportConditionalProof').mockImplementation((...args)=>{
   const previous=inside;if(closing)inside='transport'

@@ -50,12 +50,11 @@ import {WallExpired, checkWall, searchWall, withBudget} from './wall.ts'
 import {env} from './solver.ts'
 import {proofOrigins, proposeLemmaCuts} from './lemma-cuts.ts'
 import {countedCertificateHyps,transportCountCertificate} from './count-cert-transport.ts'
-import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, type CountReplayDecline, scopeCountProof, replayScopedCountProof, isCheckedReducedScope, withCountScopeIdentityObservation, countScopeContextKey, resolveCountScopeSuppliers} from './count-proof-scope.ts'
+import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, type CountReplayDecline, scopeCountProof, replayScopedCountProof, isCheckedReducedScope, withCountScopeIdentityObservation, countScopeContextKey} from './count-proof-scope.ts'
 import {assertLiftedWorkLease, prepareCountStrategyMachine, proveCountStrategies, proposeCountStrategiesForClosing, proveCountStrategyKind, proposeCountStrategyKindForClosing, selectedCountStrategies} from './count-strategies.ts'
 import {type LiftedWorkBudget} from './count-lifted-budget.ts'
 import {countRecipeContextDecision} from './count-recipe-context.ts'
-import {CountRecipePass,runCountRecipeController,claimCountClosingFallback,type CountControllerMember,type CountRecipeClosingEntry} from './count-recipe-controller.ts'
-import {emitReplayDiagnostic} from './count-replay-diagnostic.ts'
+import {CountRecipePass,runCountRecipeController,type CountControllerMember,type CountRecipeClosingEntry} from './count-recipe-controller.ts'
 import {discoverLiftedCountGuard,discoverLiftedCountOperations} from './count-lifted-shape.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {workLedger} from './work-admission.ts'
@@ -755,7 +754,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
     }
     if(beforeClosing(()=>{reconcile();return true})!==true)return {proven:false,laws:set,m,why:'recipe reconciliation budget'}
     attempts.houdini=true
-    let transportDeclined:string|undefined
+    const transportDeclined=undefined
     const outcome=runCountRecipeController(tierRun.recipePass!,targets,{
       active,observe:event=>countsDump.on?.(event),
       beforeClosing:countRecipeClosingCapture.on?controller=>countRecipeClosingCapture.on!({
@@ -804,15 +803,8 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         for(const dependency of effective){tick();const premise=lawByName.get(dependency);if(premise&&!screen(premise,0,workAllowance))return}
         return {...captured,checkCost:workSub(workLedger.actual(),before)}
       },
-      declinedMember:()=>transportDeclined,
-      repairSuppliers:(_name,scoped)=>{
-        const repaired=resolveCountScopeSuppliers(m,set,scoped,Infinity)
-        return repaired&&{payload:repaired,premises:workMap(repaired.premises,p=>p.name,'count repaired supplier names')}
-      },
       close:(rows,targetInFamily,wholeClosed)=>{
         const replay=(selected:typeof rows,route:'needed'|'whole-held'):{result:Counted,replayDeclined:boolean}=>{
-          // Each invocation describes its own payload, never a stale decline.
-          transportDeclined=undefined
           const declines:CountReplayDecline[]=[]
           const names=new Set(workMap(selected,row=>row.id,'count closing inventory'))
           const family=workFilter(set,law=>names.has(law.name),'count closing family'),instances:Record<string,Instances>={},certs:Record<string,CountCert>={},premises:Record<string,readonly string[]>={}
@@ -821,35 +813,28 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
             tick()
             // Transport the original captured payload on the unchanged model;
             // never search, repair a certificate, or reuse a partial first try.
-            const proof=replayScopedCountProof(m,family,row.payload,Infinity,{deferToClosing:true,onDecline:decline=>declines.push(decline),onTransportDecline:()=>{transportDeclined=row.id},diagnostic:{route}})
+            const proof=replayScopedCountProof(m,family,row.payload,Infinity,{deferToClosing:true,sourceFamily:set,onDecline:decline=>declines.push(decline),diagnostic:{route}})
             if(!proof){
               const decline=declines[declines.length-1]
               countsDump.on?.({phase:'count-recipe-closing-decline',family:route,member:row.id,obligation:decline?.obligation??null,case:decline?.case??null,reason:decline?.reason??'unclassified',detail:decline})
-              const why=declines.map(d=>'member='+d.member+', obligation='+(d.obligation??'<family>')+', case='+d.case+':'+d.reason).join(' | ')
-              return {result:{proven:false,laws:family,m,why:'recipe closing replay declined ['+route+']: '+(why||'member='+row.id+', unclassified')},replayDeclined:true}
+              const why=declines.map(d=>'member='+d.member+', obligation='+(d.obligation??'<family>')+', case='+d.case+':'+d.reason+(d.premise?', law='+d.premise:'')).join(' | ')
+              const blockers=decline?.blockers??(decline?.reason==='missing-premise'&&decline.premise?[decline.premise]:[])
+              if(blockers.length)countsDump.on?.({phase:'count-recipe-closing-blocker',family:route,member:row.id,laws:blockers,detail:decline})
+              const label=blockers.length?'BLOCKER outside-closing-family laws '+blockers.join(', '):'recipe closing replay declined'
+              return {result:{proven:false,laws:family,m,why:label+' ['+route+']: '+(why||'member='+row.id+', unclassified')},replayDeclined:true}
             }
             instances[row.id]=proof.instances
             for(const [name,cert]of workEntries(proof.certs,'count closing certificates'))certs[name]=cert as CountCert
-            premises[row.id]=row.premises
+            premises[row.id]=proof.premises??row.premises
           }
           if(reach)countsDump.on?.({phase:'count-reachability-summary',rows:reach.receipts(initial),replayEvidence:reach.evidence})
           let hasCallers=targetInFamily
           for(const law of caller){tick();if(!names.has(law.name))hasCallers=false}
           return {result:finish(family,{instances,certs,premises},hasCallers),replayDeclined:false}
         }
-        const first=replay(rows,'needed')
-        if(!first.replayDeclined||!wholeClosed||transportDeclined!==undefined||tierRun.recipePass!.supplierRepairUsed)return first.result
-        const whole=wholeClosed()
-        // A single larger greatest CLOSED HELD family, never arbitrary
-        // candidates or a budget reset. Equal inventory cannot repair replay.
-        if(whole.length<=rows.length)return first.result
-        // K repair and this fallback share the SAME persistent retry bit.
-        if(!claimCountClosingFallback(tierRun.recipePass!,transportDeclined!==undefined))return first.result
-        emitReplayDiagnostic({kind:'fallback-claimed',route:'whole-held',member:transportDeclined??null})
-        countsDump.on?.({phase:'count-recipe-closing-fallback',from:workMap(rows,row=>row.id,'count closing fallback source'),to:workMap(whole,row=>row.id,'count closing fallback target'),attempt:1})
-        const second=replay(whole,'whole-held').result
-        if(second.proven||!second.why||second.why.includes('recipe closing replay declined'))return second
-        return {...second,why:second.why+'; '+first.result.why}
+        // Choose the greatest already CLOSED HELD family before replay. No
+        // supplier reconstruction, retry, new recipe, scope or native fallback.
+        return replay(wholeClosed?.()??rows,wholeClosed?'whole-held':'needed').result
       }
     })
     countsDump.on?.({phase:'count-recipe-summary',reason:outcome.reason,failure:outcome.failure,closingRoute:outcome.closingRoute,proven:outcome.result?.proven??false})
@@ -906,7 +891,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       if(![...needed].every(name=>available.has(name)&&scopes.has(name)))return undefined
       const family=set.filter(l=>needed.has(l.name)),instances:Record<string,Instances>={},certs:Record<string,CountCert>={},premises:Record<string,readonly string[]>={}
       for(const member of family){
-        const proof=beforeClosing(()=>ptime('premise-replay',()=>replayScopedCountProof(m,family,scopes.get(member.name)!,until,{deferToClosing:true})))
+        const proof=beforeClosing(()=>ptime('premise-replay',()=>replayScopedCountProof(m,family,scopes.get(member.name)!,until,{deferToClosing:true,sourceFamily:set})))
         if(!proof)return {proven:false,laws:set,m,why:'component replay declined'}
         instances[member.name]=proof.instances;Object.assign(certs,proof.certs);premises[member.name]=proof.premises??[]
       }
@@ -1094,7 +1079,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
             const family=set.filter(l=>needed.has(l.name)),instances:Record<string,Instances>={},certs:Record<string,CountCert>={},premises:Record<string,readonly string[]>={}
             let ready=true
             for(const member of family){
-              const replayed=ptime('premise-replay',()=>replayScopedCountProof(m,family,scopes.get(member.name)!,until,{deferToClosing:true}))
+              const replayed=ptime('premise-replay',()=>replayScopedCountProof(m,family,scopes.get(member.name)!,until,{deferToClosing:true,sourceFamily:set}))
               if(!replayed){ready=false;break}
               instances[member.name]=replayed.instances;Object.assign(certs,replayed.certs);premises[member.name]=replayed.premises??[]
             }
@@ -1116,7 +1101,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         carried = new Map([...proofs].filter(([, pr]) => dropped.every(d => d.forall && !pr.instances[d.name]?.length)))
       } else for (const name of proofs.keys()) {
         const scoped = scopes.get(name)
-        const replayed = scoped && ptime('premise-replay', () => replayScopedCountProof(m, next, scoped, until, {deferToClosing: finalCountStepDeferralEnabled()}))
+        const replayed = scoped && ptime('premise-replay', () => replayScopedCountProof(m, next, scoped, until, {deferToClosing: finalCountStepDeferralEnabled(),sourceFamily:set}))
         countsDump.on?.({phase: 'premise-replay', law: name, round, retained: !!replayed, premises: scoped?.premises.map(p => p.name)})
         if (replayed) carried.set(name, replayed)
         else scopes.delete(name)
@@ -1190,7 +1175,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       if(!law){
         const kept=set.filter(l=>required.has(l.name)),instances:Record<string,Instances>={},certs:Record<string,CountCert>={},premises:Record<string,readonly string[]>={}
         for(const l of kept){
-          const replayed=ptime('premise-replay',()=>replayScopedCountProof(m,kept,known.get(l.name)!,until,{deferToClosing:finalCountStepDeferralEnabled()}))
+          const replayed=ptime('premise-replay',()=>replayScopedCountProof(m,kept,known.get(l.name)!,until,{deferToClosing:finalCountStepDeferralEnabled(),sourceFamily:set}))
           if(!replayed)return join()
           instances[l.name]=replayed.instances
           premises[l.name]=replayed.premises??[]
