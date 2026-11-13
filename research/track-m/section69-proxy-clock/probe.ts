@@ -5,7 +5,7 @@ import {pathToFileURL} from 'node:url'
 const root = resolve(process.argv[2]!), mode = process.argv[3]
 if (mode !== 'native' && mode !== 'plain') throw new Error('native or plain fixture required')
 const load = (path: string) => import(pathToFileURL(resolve(root, path)).href)
-const {rule, nat, proveRule} = await load('index.ts')
+const {rule, nat, proveRule} = await load('core/dsl.ts')
 const {workLedger} = await load('core/work-admission.ts')
 const {countsDump} = await load('core/counts.ts')
 const policy = existsSync(resolve(root, 'core/search-policy.ts')) ? await load('core/search-policy.ts') : undefined
