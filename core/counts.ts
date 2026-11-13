@@ -1073,7 +1073,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
           }
           if (!closingBudget) return run()
           return withSearchAllowance(Math.min(supportUntil,until),run,error=>{
-            if(!isLocalCountExpiration(error,closingBudget.until))throw error; return {stuck:'unknown'}
+            if(!isLocalCountExpiration(error,closingBudget!.until))throw error; return {stuck:'unknown'}
           })
         }
         const countFirst = !strategy && firstCountPass(m, law, (env.GDP_COUNTS_COUNT_FIRST === '1' || boundedSupport && env.GDP_COUNTS_COUNT_FIRST !== '0') && (reads(law.holds, isCount).size > 0 || boundedSupport && !!law.keys?.length)) === 1
