@@ -51,24 +51,24 @@ test('native false INIT, false STEP and changed context are never accepted',()=>
  for(const [m,family]of [[{...f.m,state:{...f.m.state,a:n(1)}},f.family],[{...f.m,step:{state:{...f.m.step.state,a:n(1)}}},f.family],[f.m,[f.noise,f.a,{...f.b,holds:same(x('b'),n(1))}]]] as const){const events:CountRescopeEvent[]=[];expect(rescopeCountProof(m,f.a,[...family],proof,new Set(),until,e=>events.push(e),{allowFullFallback:()=>true})).toBeUndefined();expect(events.some(e=>e.checked)).toBe(false)}
 }))
 test('denied funded replay can retain only the captured unchecked offer without recapture',()=>bounded(until=>{
- const f=fixture(),proof={...prove(f,until),premises:f.family.map(law=>law.name)},replay=spyOn(scopes,'replayScopedCountProof'),capture=spyOn(scopes,'scopeCountProof'),native=spyOn(kernel,'checkMC')
+ const f=fixture(),proof={...prove(f,until),premises:f.family.map(law=>law.name)},replay=spyOn(scopes,'replayScopedCountProof'),capture=spyOn(scopes,'scopeCountProofPair'),native=spyOn(kernel,'checkMC')
  let offered:scopes.ScopedCountProof|undefined
  replay.mockImplementationOnce(()=>undefined)
  try{
   const result=rescopeCountProof(f.m,f.a,f.family,proof,new Set(),until,undefined,{retainUncheckedOffer:true,allowFullFallback:value=>{offered=value;return false}})!
   expect(result).toBeDefined();expect(result.proof.status).toBe('unchecked');expect(result.checkedReduced).toBeUndefined()
   expect(result.premises).toBe(offered!.premises);expect(result.sources).toBe(offered!.sources);expect(result.proof.certs).toBe(offered!.proof.certs)
-  expect(capture).toHaveBeenCalledTimes(2);expect(native).not.toHaveBeenCalled()
+  expect(capture).toHaveBeenCalledTimes(1);expect(native).not.toHaveBeenCalled()
  }finally{replay.mockRestore();capture.mockRestore();native.mockRestore()}
 }))
 test('funded full-only success reuses offered scope without another capture or reduced stamp',()=>bounded(until=>{
- const f=fixture(),proof={...prove(f,until),premises:f.family.map(law=>law.name)},replay=spyOn(scopes,'replayScopedCountProof'),capture=spyOn(scopes,'scopeCountProof')
+ const f=fixture(),proof={...prove(f,until),premises:f.family.map(law=>law.name)},replay=spyOn(scopes,'replayScopedCountProof'),capture=spyOn(scopes,'scopeCountProofPair')
  let offered:scopes.ScopedCountProof|undefined
  replay.mockImplementationOnce(()=>undefined)
  try{
   const result=rescopeCountProof(f.m,f.a,f.family,proof,new Set(),until,undefined,{allowFullFallback:value=>{offered=value;return true}})!
   expect(result.proof.status).toBe('unchecked');expect(result.checkedReduced).toBeUndefined()
-  expect(result.premises).toBe(offered!.premises);expect(result.sources).toBe(offered!.sources);expect(capture).toHaveBeenCalledTimes(2)
+  expect(result.premises).toBe(offered!.premises);expect(result.sources).toBe(offered!.sources);expect(capture).toHaveBeenCalledTimes(1)
  }finally{replay.mockRestore();capture.mockRestore()}
 }))
 

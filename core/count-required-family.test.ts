@@ -11,7 +11,7 @@ const bounded=<T>(run:(until:number)=>T):T=>withWall(performance.now()+10000,()=
 function fixture(until:number){
  const m:Machine={name:'required family only',params:[],inputs:[],state:{left:n(0),right:n(0)},maps:{M:0},
   facts:[{name:'background',forall:'k',holds:same(x('k'),x('k'))}],
-  step:{state:{left:x('right'),right:x('left')},flags:{allZero:{op:'all',key:'k',c:same(get('M',x('k')),n(0))}}}
+  step:{state:{left:x('right'),right:x('left')},flags:{allZero:{op:'all',key:'k',c:same(get('M',x('k')),n(0))}}}}
  const left:Law={name:'left',holds:same(x('left'),n(0))},right:Law={name:'right',holds:same(x('right'),n(0))}
  const held:Law={name:'held indexed',forall:'k',holds:same(get('M',x('k')),n(0))}
  const outside:Law={name:'outside indexed',forall:'k',holds:atMost(get('M',x('k')),n(100))}
