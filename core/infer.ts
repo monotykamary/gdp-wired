@@ -41,7 +41,7 @@ import {sampleStep} from './sample-step.ts'
 import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, compileC, compileE, cpair, fastStep, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, partsOf as tupleOf, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, type proveRule, bool, refuteModelByRuns, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
-import {clock, counted, fullWork, decideLaw, decideNote, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall, withWork} from '../kernel/prove.ts'
+import {clock, counted, fullWork, searchWork, decideLaw, decideNote, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall, withSearchWork} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, eachParts, obligations, plainOf, stepLawObligations, substC, tuple, tupleParts} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
@@ -700,8 +700,8 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   // of what is left of `ms` once the join's count is taken at 0.3 a millisecond (the join's rates count its work
   // 2 to 14 times faster than a Modal container does it), so the engine ends within the wall on a container somewhat
   // slower than Modal's usual; past `eUntil` it stops as it would past the wall, at the same place on any machine.
-  let eS = {now: 0, epr: eprMeter.n, erows: 0, etries: 0, full: fullWork()}, eUntil = ms
-  const vnow = (): number => (timed ? now() : (used.etries - eS.etries) / inferRates.etries + (eprMeter.n - eS.epr) / inferRates.epr + (used.erows - eS.erows) / inferRates.erows + (fullWork() - eS.full) / inferRates.efull)
+  let eS = {now: 0, epr: eprMeter.n, erows: 0, etries: 0, full: searchWork()}, eUntil = ms
+  const vnow = (): number => (timed ? now() : (used.etries - eS.etries) / inferRates.etries + (eprMeter.n - eS.epr) / inferRates.epr + (used.erows - eS.erows) / inferRates.erows + (searchWork() - eS.full) / inferRates.efull)
   const meters = () => ({real: Math.round(countedSearchNow() - t0), v: Math.round(vnow()), now: Math.round(now()), full: Math.round(fullWork()), epr: eprMeter.n - eS.epr, erows: used.erows, etries: used.etries, tries: used.tries, rows: used.rows, evals: used.evals, work: work.n - w0})
   const until = ms
   let tp = countedSearchNow(), cp = 0, wp = w0
@@ -1896,7 +1896,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
         // units and 1.6k), and an unknown one ran 13 s (wo's every k: Leader[k] <= VoteRequestMsg[k], 1.2M and 647k), the
         // engine's time; counted, where a 2 s wall used to end it, so the join ends where it ends on any machine)
         const follow = engineFollows()
-        const out = withEprCap(follow ? joinGrowEpr : Infinity, () => withWork(follow ? fullWork() + joinGrowWork : Infinity, () => budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2}))))
+        const out = withEprCap(follow ? joinGrowEpr : Infinity, () => withSearchWork(follow ? searchWork() + joinGrowWork : Infinity, () => budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2}))))
         if (!('tree' in out)) return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined, g: g!}
         for (const h of usedHyps(g!, out.tree)) read(h)
         return {used, g: g!}
@@ -2690,7 +2690,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     // decentralized lock's) while the caller's law fails from the set.
     const engine = () => {
     if (sorts && callerLaws.some(l => l.keys?.length) && now() < until && !stop()) {
-      if (!timed) { eS = {now: now(), epr: eprMeter.n, erows: used.erows, etries: used.etries, full: fullWork()}; eUntil = engineShare * (ms - 0.3 * eS.now) }
+      if (!timed) { eS = {now: now(), epr: eprMeter.n, erows: used.erows, etries: used.etries, full: searchWork()}; eUntil = engineShare * (ms - 0.3 * eS.now) }
       opts.progress?.('join engine', {wall: Math.round(vnow()), eUntil: Math.round(eUntil)})
       opts.progress?.('join meters', {at: 'engine', ...meters()})
       // (a sums pass's reserve where one follows: 10 s, or a quarter of what is left where less is)

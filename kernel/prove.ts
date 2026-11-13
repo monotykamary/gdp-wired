@@ -14,6 +14,7 @@ import {checkRefutation} from '../core/check.ts'
 import {fullWork as rawFullWork} from '../core/work-meter.ts'
 import {stepWork, stepWorkProfile} from '../core/step-work.ts'
 import {completeWorkProfile} from '../core/work-profile.ts'
+import {projectedSearchWork, proxySearchState} from '../core/search-policy.ts'
 import {BudgetExpired, admittedWork, startWork, workLedger} from '../core/work-admission.ts'
 import {type WorkAmount, workDivide, workFromNumber, workMultiply, workToNumber} from '../core/work-amount.ts'
 export {BudgetExpired} from '../core/work-admission.ts'
@@ -223,16 +224,28 @@ export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', w
 let deadline = Infinity, deadlineEpr = 0
 // EPR has its own work counter. Debit it from a counted deadline, not from clock(): the protocol engine already
 // accounts for EPR in its own clock. A scope's anchor charges all its queries, including nested and failed ones.
-const eprTimeSince = (start: number): number => rate ? (eprMeter.n - start) / rate : 0
+const searchRate = (): number => proxySearchState()?.rate ?? rate
+const eprTimeSince = (start: number): number => searchRate() ? (eprMeter.n - start) / searchRate() : 0
 // The clock every budget here reads (grow's `until`, withDeadline's; core/cyclic.ts's and core/data.ts's searches): wall
 // time, or within `counted` the work the prover has done (the solver's rows read and made, each node's rows), `perMs`
 // units a millisecond, so that what a search's budget lets it try, and so its verdict, doesn't depend on the machine's
 // speed. A counted search inside another reads the outer's clock.
 // With `full`, the clock reads the cost model below in place of work.n.
 let rate = 0, meter = (): number => work.n
-export const clock = (): number => completeWorkProfile.enabled ? workToNumber(workDivide(admittedWork(), workFromNumber(fullRate))) : stepWorkProfile.enabled ? fullWork() / fullRate : (rate ? meter() / rate : performance.now())
+export const clock = (): number => {
+  const proxy = proxySearchState()
+  if (proxy) return proxy.rate ? (proxy.model ? projectedSearchWork() : work.n) / proxy.rate : projectedSearchWork() / fullRate
+  return completeWorkProfile.enabled ? workToNumber(workDivide(admittedWork(), workFromNumber(fullRate))) : stepWorkProfile.enabled ? fullWork() / fullRate : (rate ? meter() / rate : performance.now())
+}
 export function counted<T>(perMs: number, f: () => T, full = false): T {
   return withTraceWorkScope(() => {
+    const proxy = proxySearchState()
+    if (proxy) {
+      if (proxy.rate) return f()
+      const outer = proxy.deadline, outerEpr = proxy.deadlineEpr, model = proxy.model
+      proxy.rate = perMs; proxy.model = full; proxy.deadline = Infinity
+      try { return f() } finally { proxy.rate = 0; proxy.model = model; proxy.deadline = outer; proxy.deadlineEpr = outerEpr }
+    }
     if (rate || completeWorkProfile.enabled) return f()
     const outer = deadline
     rate = perMs; deadline = Infinity; meter = full ? fullWork : () => work.n
@@ -249,6 +262,8 @@ export function counted<T>(perMs: number, f: () => T, full = false): T {
 // the real-world corpus), work.n did 28 to 377 units a ms (p10, p90), the model 120 to 401.
 export const fullRate = 250
 export const fullWork = (): number => stepWork() + rawFullWork()
+// Only heuristic readers use this. fullWork and every admission stay authoritative.
+export const searchWork = (): number => proxySearchState() ? projectedSearchWork() : fullWork()
 
 // Explicit synchronous work scopes. The default paths do not enter one yet:
 // count/plain migrations and legacy deadline-reset semantics are separate steps.
@@ -259,6 +274,7 @@ export const inWorkScope = (): boolean => inBudget() || rate !== 0 || stepWorkPr
 // An inherited counted scope has no wall-clock control path.
 export const searchNow = (): number => inWorkScope() ? clock() : performance.now()
 export const budgetEnd = (): number => {
+  if (proxySearchState()) return Infinity
   if (!completeWorkProfile.enabled) return (budgetUnitsEnd ?? Infinity) / fullRate
   const end = workLedger.endpoint()
   return end === null ? Infinity : workToNumber(workDivide(end, workFromNumber(fullRate)))
@@ -290,6 +306,10 @@ export function checkBudget(phase: string): void {
 export function withBudget<T>(units: number | WorkAmount, f: () => T): T {
   if (completeWorkProfile.enabled) {
     const grant = typeof units === 'number' ? workFromNumber(units) : units
+    // Opening a real quota must not introduce a heuristic counted region.
+    if (proxySearchState()) return withTraceWorkScope(() => workLedger.withBudget(grant, () => {
+      checkBudget('entry'); const result = f(); checkBudget('completion'); return result
+    }))
     return counted(fullRate, () => workLedger.withBudget(grant, () => {
       checkBudget('entry'); const result = f(); checkBudget('completion'); return result
     }), true)
@@ -332,6 +352,14 @@ export const withWork = <T>(cap: number | WorkAmount, f: () => T): T => {
   if (typeof cap !== 'number') throw new Error('exact work caps require the full-work profile')
   const outer = workCap; workCap = Math.min(outer, cap); try { return f() } finally { workCap = outer }
 }
+// Internal search caps are proxy state only; explicit withWork remains native.
+const searchWorkCap = (): number => proxySearchState()?.workCap ?? workCap
+export function withSearchWork<T>(cap: number, f: () => T): T {
+  const proxy = proxySearchState()
+  if (!proxy) return withWork(cap, f)
+  const outer = proxy.workCap; proxy.workCap = Math.min(outer, cap)
+  try { return f() } finally { proxy.workCap = outer }
+}
 // Past a budget's end on the clock, or past the work a goal's own budget allows.
 // A wall-clock end beside the clock's (withWall: the search's own end, core/dsl.ts): work the counted clock doesn't count
 // (the EPR path's propositional search, a node's propagation, building a large goal's rows) stops there too, and past it
@@ -339,9 +367,17 @@ export const withWork = <T>(cap: number | WorkAmount, f: () => T): T => {
 let wallEnd = Infinity
 export const pastWall = (): boolean => {
   checkWorkEndpoint('prover boundary')
+  const proxy = proxySearchState()
+  if (proxy) return clock() > withinDeadline(Infinity) || (!proxy.rate && proxy.wallEnd !== Infinity && clock() > proxy.wallEnd)
   return inWorkScope() ? clock() > withinDeadline(budgetEnd()) : wallEnd !== Infinity && searchNow() > wallEnd
 }
 export function withWall<T>(end: number, f: () => T): T {
+  const proxy = proxySearchState()
+  if (proxy) {
+    if (proxy.rate) return withDeadline(end, f)
+    const outer = proxy.wallEnd; proxy.wallEnd = Math.min(outer, end)
+    try { return f() } finally { proxy.wallEnd = outer }
+  }
   // Scoped callers supply searchWall()/clock() endpoints in counted units.
   // Keep A's inherited deadline semantics without consulting the wall clock.
   if (inWorkScope()) return withDeadline(Math.min(budgetEnd(), end), f)
@@ -352,14 +388,30 @@ export function withWall<T>(end: number, f: () => T): T {
 // Past the wall or the deadline in force: a goal grown now is left unknown at once.
 const ranOut = (): boolean => pastWall() || withinDeadline(Infinity) <= clock()
 // (the wall's end in force, Infinity where none: a search inside that stops itself there)
-export const wallAt = (): number => inWorkScope() ? withinDeadline(budgetEnd()) : wallEnd
+export const wallAt = (): number => {
+  const proxy = proxySearchState()
+  if (proxy) return proxy.rate ? withinDeadline(Infinity) : proxy.wallEnd
+  return inWorkScope() ? withinDeadline(budgetEnd()) : wallEnd
+}
 export const late = (until: number): boolean => {
   checkWorkEndpoint('prover poll')
+  const proxy = proxySearchState()
+  if (proxy) return clock() > until || (proxy.workCap !== Infinity && searchWork() > proxy.workCap) || pastWall()
   return clock() > until || (workCap !== Infinity && fullWork() > workCap) || pastWall()
 }
 // A budget's end, within the deadline (a translation's own bound, core/cyclic.ts's, kept by the export's GDP_CERT_MS).
-export const withinDeadline = (until: number): number => completeWorkProfile.enabled ? Math.min(until, budgetEnd()) : Math.min(until, deadline - eprTimeSince(deadlineEpr))
+export const withinDeadline = (until: number): number => {
+  const proxy = proxySearchState()
+  if (proxy) return Math.min(until, proxy.deadline - eprTimeSince(proxy.deadlineEpr))
+  return completeWorkProfile.enabled ? Math.min(until, budgetEnd()) : Math.min(until, deadline - eprTimeSince(deadlineEpr))
+}
 export function withDeadline<T>(until: number, f: () => T): T {
+  const proxy = proxySearchState()
+  if (proxy) {
+    const outer = proxy.deadline, outerEpr = proxy.deadlineEpr
+    proxy.deadline = withinDeadline(until); proxy.deadlineEpr = eprMeter.n
+    try { return f() } finally { proxy.deadline = outer; proxy.deadlineEpr = outerEpr }
+  }
   if (completeWorkProfile.enabled) {
     if (until === Infinity) return f()
     return workLedger.withEndpoint('deadline', workMultiply(workFromNumber(until), workFromNumber(fullRate)), f)
@@ -377,7 +429,7 @@ export function grow(goal: Goal, path: Path = new Map(), budget?: {nodes: number
   if (pastWall()) return {stuck: 'unknown', path, why: outOfBudget(goal, 'time', path.size)}
   if (!budget) {
     const ms = Math.max(20_000, 1_000 * goal.hyps.length)
-    if (!rate) return withWork(fullWork() + groundRate * ms, () => grow(goal, path, {nodes: 0}))
+    if (!searchRate()) return withSearchWork(searchWork() + groundRate * ms, () => grow(goal, path, {nodes: 0}))
     budget = {nodes: 0, until: clock() + ms}
   }
   const end = withinDeadline(budget.until ?? Infinity)
@@ -458,11 +510,11 @@ function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = t
   if ('unknown' in d) return undefined
   if (d.sat) return {stuck: 'sat', witness: d.witness, diagram: d.diagram, path: new Map(), why: 'a model'}
   const last = goal.hyps.length - 1, core = d.core.includes(last) ? d.core : [...d.core, last], part: Goal = {name: goal.name, hyps: core.map(i => goal.hyps[i]!)}
-  const now = clock(), end = withinDeadline(budget.until ?? Infinity), w = fullWork()
+  const now = clock(), end = withinDeadline(budget.until ?? Infinity), w = searchWork()
   eprScope.busy = true
   try {
     const share = whole ? 0.5 : 1
-    const out = withWork(workCap === Infinity ? Infinity : w + share * (workCap - w), () => grow(part, new Map(), {nodes: 0, until: end === Infinity ? end : now + share * (end - now)}))
+    const out = withSearchWork(searchWorkCap() === Infinity ? Infinity : w + share * (searchWorkCap() - w), () => grow(part, new Map(), {nodes: 0, until: end === Infinity ? end : now + share * (end - now)}))
     if (!('tree' in out)) { eprLast.refuted = true; return undefined }
     if (!whole) return {...out, part, core}
     const tree = widen(part, goal, out.tree)
@@ -525,8 +577,8 @@ export const wideFor = (goal: Goal): boolean => !wideBusy && goal.hyps.length >=
 // (`keep`: a part's tree kept as the part's, with the part and its hypotheses' indices in the whole as its core, not
 // widened: settle's, whose final proof is made over the instances its proofs read)
 export function growWide(goal: Goal, budget: {nodes: number, until?: number}, ask = (g: Goal, until: number): Outcome & {core?: number[]} => grow(g, new Map(), {nodes: 0, until}), keep = false): (Outcome & {core?: number[], part?: Goal}) | undefined {
-  const hyps = goal.hyps, last = hyps.length - 1, broken = brokenOf(goal), now = clock(), w = fullWork()
-  const end = withinDeadline(budget.until ?? Infinity), span = wideShare * (end - now), room = wideShare * (workCap - w), until = now + span
+  const hyps = goal.hyps, last = hyps.length - 1, broken = brokenOf(goal), now = clock(), w = searchWork()
+  const end = withinDeadline(budget.until ?? Infinity), span = wideShare * (end - now), room = wideShare * (searchWorkCap() - w), until = now + span
   const part = new Set<number>([last]), near = new Set(cellsIn(hyps[last])), cells = new Map<number, Set<string>>()
   const cellsAt = (i: number) => { let c = cells.get(i); if (!c) cells.set(i, (c = cellsIn(hyps[i]))); return c }
   const take = (i: number) => { part.add(i); for (const x of cellsAt(i)) near.add(x) }
@@ -541,11 +593,11 @@ export function growWide(goal: Goal, budget: {nodes: number, until?: number}, as
       const t0 = traceNow(), at = clock()
       wideScope.judge = w => !broken(w, ids, true).length
       let out: Outcome & {core?: number[]}
-      try { out = withWork(Math.min(w + room, fullWork() + f * room), () => ask(g, Math.min(until, at + f * span))) } finally { wideScope.judge = undefined }
+      try { out = withSearchWork(Math.min(w + room, searchWork() + f * room), () => ask(g, Math.min(until, at + f * span))) } finally { wideScope.judge = undefined }
       wideHook.on?.(g, out)
       if (wideTrace) console.error(`[wide] ${goal.name.slice(0, 40)}: part ${g.hyps.length} of ${hyps.length}, ${'tree' in out ? 'tree' : out.stuck} in ${Math.round(traceNow() - t0)} ms${'tree' in out ? '' : ` ${out.why?.slice(0, 50) ?? ''}`}`)
       if ('tree' in out && keep) { wideStats.trees++; return {tree: out.tree, nodes: out.nodes, part: g, core: ids} }
-      if ('tree' in out) { const tree = withWork(w + room, () => withDeadline(until, () => widen(g, goal, out.tree))); if (tree) wideStats.trees++; return tree && {tree, nodes: out.nodes} }
+      if ('tree' in out) { const tree = withSearchWork(w + room, () => withDeadline(until, () => widen(g, goal, out.tree))); if (tree) wideStats.trees++; return tree && {tree, nodes: out.nodes} }
       if (out.why === REFUTED) return {...out, ...(out.core ? {core: out.core.map(i => ids[i]!)} : {})}
       if (out.stuck !== 'sat' || !out.witness) return undefined
       const bad = broken(out.witness)
@@ -598,8 +650,8 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
   }
   if (root) {
     if (cdcl) {
-      const now = clock(), end = withinDeadline(budget.until ?? Infinity), w = fullWork()
-      const out = withWork(workCap === Infinity ? Infinity : w + cdclShare * (workCap - w), () => growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + cdclShare * (end - now)}))
+      const now = clock(), end = withinDeadline(budget.until ?? Infinity), w = searchWork()
+      const out = withSearchWork(searchWorkCap() === Infinity ? Infinity : w + cdclShare * (searchWorkCap() - w), () => growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + cdclShare * (end - now)}))
       // (with `realModels.on`, a model whose products don't multiply out is no model: the CDCL search reads a product as
       // a name of its own, where the plain search below multiplies rows; a goal whose products only its cases bring,
       // core/nonterm.ts's x' := x·y)
@@ -1386,8 +1438,8 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
 export const modelShare = 3
 // (GDP_MODELS_TRACE=1: each model round, its goal and the tuples a model adds, on stderr)
 const modelsTrace = !!env.GDP_MODELS_TRACE, modelFloor = Number(env.GDP_MODEL_FLOOR ?? 1_000)
-const costNow = (): number => (rate ? clock() : fullWork() / groundRate)
-const within = <T>(ms: number, f: () => T): T => (rate ? withDeadline(clock() + ms, f) : withWork(fullWork() + groundRate * ms, f))
+const costNow = (): number => (searchRate() ? clock() : searchWork() / groundRate)
+const within = <T>(ms: number, f: () => T): T => (searchRate() ? withDeadline(clock() + ms, f) : withSearchWork(searchWork() + groundRate * ms, f))
 export function withModels<T>(m: Machine, laws: Law[], inst: Instances, goalOf: (i: Instances) => Goal[], ask: (gs: Goal[]) => T,
   modelOf: (t: T) => {goal: Goal, w: Record<string, number>} | undefined, settled: (t: T) => boolean): {result: T, inst: Instances} {
   return withPatterns(m, laws, () => modelsLoop(m, laws, inst, goalOf, ask, modelOf, settled))
