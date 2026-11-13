@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto'
 import {gunzipSync,gzipSync} from 'node:zlib'
 import {createBankEventRecorder,MAX_BANK_BYTES} from './bank-event-recorder.ts'
 import {workLedger,type WorkAdmissionEvent} from '../../../core/work-admission.ts'
+import {workKeys} from '../../../core/work-kinds.ts'
 import {join,dirname} from 'node:path'
 import {tmpdir} from 'node:os'
 import {fileURLToPath} from 'node:url'
@@ -113,17 +114,25 @@ test('production native closing: writer off/on/failure has identical verdict, ex
    const row=JSON.parse(readFileSync(join(out,'control.json'),'utf8'));rows.set(mode,row)
    expect(row.error).toBeUndefined();expect(row.outcome.checked).toBe(true)
    expect(row.meterChanged).toBe(false);expect(row.termsChanged).toBe(false);expect(row.fixtureStillChecked).toBe(true)
-   expect(row.events.some((event:any)=>event.phase==='count-recipe-closing')).toBe(true)
+   expect(row.evidenceMode).toBe('streaming-digest/v1');expect(row.materializedEvidenceLimit).toBe(128*1024*1024)
+   expect(row.closingStages).toBeGreaterThan(0);expect(row.settledClean).toBe(true)
+   expect(Object.keys(row.counters)).toEqual([...workKeys]);expect(workKeys).toHaveLength(26)
+   expect(BigInt(row.countedUnits.numerator)).toBeGreaterThan(0n);expect(BigInt(row.countedUnits.denominator)).toBeGreaterThan(0n)
+   for(const certificates of [row.certificateSHA256s.admitted,row.certificateSHA256s.metadata]){
+    expect(Object.keys(certificates).length).toBeGreaterThan(0)
+    for(const hash of Object.values(certificates))expect(hash).toMatch(/^[a-f0-9]{64}$/)
+   }
    expect(row.bankStream.records).toBeGreaterThan(0);expect(row.expectedNative.context.length).toBeGreaterThan(0)
+   expect(row.bankStream.lastSequence-row.bankStream.firstSequence+1).toBe(row.bankStream.records)
+   expect(row.bankStream.materialized).toBe(false);expect(row.bankStream.retainedBytes).toBe(0)
+   for(const stream of [row.bankStream,row.stageSequence,row.replaySequence])expect(stream.sha256).toMatch(/^[a-f0-9]{64}$/)
+   expect(row.stageSequence.records).toBeGreaterThan(0)
+   expect(readdirSync(out).some(name=>/^bank-events\./.test(name))).toBe(false)
+   for(const field of ['events','replayEvents','final','privateFinal','settled','privateSettled'])expect(Object.hasOwn(row,field)).toBe(false)
   }
-  const pick=(row:any)=>({outcome:row.outcome,final:row.final,privateFinal:row.privateFinal,settled:row.settled,privateSettled:row.privateSettled,events:row.events,replayEvents:row.replayEvents,bankStream:row.bankStream,expectedNative:row.expectedNative,fixtureStillChecked:row.fixtureStillChecked})
+  const pick=(row:any)=>({outcome:row.outcome,counters:row.counters,countedUnits:row.countedUnits,certificateSHA256s:row.certificateSHA256s,stageSequence:row.stageSequence,replaySequence:row.replaySequence,bankStream:row.bankStream,closingStages:row.closingStages,settledClean:row.settledClean,expectedNative:row.expectedNative,fixtureStillChecked:row.fixtureStillChecked})
   expect(pick(rows.get('on'))).toEqual(pick(rows.get('off')))
   expect(pick(rows.get('failed-write'))).toEqual(pick(rows.get('off')))
-  for(const mode of ['on','failed-write']){
-   const compared=compareBankStreams(join(root,'off','bank-events.jsonl.gz'),join(root,mode,'bank-events.jsonl.gz'))
-   expect(compared).toEqual({bytes:rows.get(mode).bankStream.bytes,sha256:rows.get(mode).bankStream.sha256,records:rows.get(mode).bankStream.records,firstSequence:rows.get(mode).bankStream.firstSequence,lastSequence:rows.get(mode).bankStream.lastSequence})
-   expect(statSync(join(root,mode,'bank-events.jsonl.gz')).size).toBe(rows.get(mode).bankStream.storedBytes)
-  }
   expect(rows.get('on').captures).toBeGreaterThan(0)
   expect(rows.get('on').writer).toMatchObject({attempted:rows.get('on').captures,completed:rows.get('on').captures,failures:0,writerOnly:true})
   expect(rows.get('failed-write').writer.completed).toBe(0);expect(rows.get('failed-write').writer.failures).toBeGreaterThan(0)
