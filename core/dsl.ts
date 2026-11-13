@@ -27,7 +27,8 @@ import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWal
 import {WallExpired, checkWall, checkWorkEndpoint, searchWall, withBudget, BudgetExpired} from './wall.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {withStageAllowance, withStageDeadline, withStageWall} from './dsl-deadline.ts'
-import {withPlainSearchPolicy} from './search-policy.ts'
+import {withPublicSearchPolicy} from './search-policy.ts'
+import {workRefusalWhy} from './work-refusal.ts'
 import {type WorkAmount, workDivide, workFromNumber, workToNumber} from './work-amount.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
@@ -2931,12 +2932,12 @@ function workVerdict(opts: ProveOptions, supported: boolean, run: (opts: ProveOp
   try { return withBudget(plan.work, () => run(plan.opts)) }
   catch (error) {
     if (!(error instanceof BudgetExpired)) throw error
-    return {proven: false, checked: false, stuck: 'unknown', why: error.message}
+    return {proven: false, checked: false, stuck: 'unknown', why: workRefusalWhy(error)}
   }
 }
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
   const hasCounts = !!Object.keys(r.machine.counts ?? {}).length
-  return workVerdict(opts, hasCounts, plan => withPlainSearchPolicy(hasCounts, () => proveRuleWall(r, laws, plan)))
+  return workVerdict(opts, hasCounts, plan => withPublicSearchPolicy(hasCounts, () => proveRuleWall(r, laws, plan)))
 }
 function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions): Verdict {
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined

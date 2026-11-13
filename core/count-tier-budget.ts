@@ -3,6 +3,8 @@
 // to strategies, while an ordinary-work floor remains protected.
 import {attemptShare} from './support-budget.ts'
 import {BudgetExpired,budgetEnd,clock,withDeadline} from '../kernel/prove.ts'
+import {inProxySearch} from './search-policy.ts'
+import {workLedger} from './work-admission.ts'
 export type CountTierBudget = Readonly<{
  active:boolean,
  workAllowance:number,
@@ -44,6 +46,7 @@ export function strategyPhase<T>(budget:CountTierBudget|undefined,attemptEnd:num
      !('refuted'in result&&result.refuted))return undefined
   return result
  }catch(error){
+  if(inProxySearch()&&workLedger.capacityRefusal(error))throw error
   if(!(error instanceof BudgetExpired)||clock()<end||clock()>budgetEnd())throw error
   return undefined
  }
@@ -53,7 +56,8 @@ export function strategyPhase<T>(budget:CountTierBudget|undefined,attemptEnd:num
 // Only the former is an unknown attempt: preserve the enclosing phase's end,
 // captured before per-law/subset scopes, and never swallow outer cancellation.
 export function isLocalCountExpiration(error:unknown,enclosingEnd:number):boolean{
- return error instanceof BudgetExpired&&clock()<Math.min(enclosingEnd,budgetEnd())
+ return !(inProxySearch()&&workLedger.capacityRefusal(error))
+  &&error instanceof BudgetExpired&&clock()<Math.min(enclosingEnd,budgetEnd())
 }
 
 export function ordinaryTierShare(budget:CountTierBudget,now:number,pending:ReadonlySet<string>):number{

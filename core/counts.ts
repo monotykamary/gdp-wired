@@ -18,6 +18,9 @@ import {searchNow as countedSearchNow, traceNow as countedTraceNow} from './wall
 //      checks the final set. The ∃ search still uses `cone`: relative induction from already-kept candidates.
 import {type C, type E, type Law, type Machine} from './machine.ts'
 import {isLocalCountExpiration} from './count-tier-budget.ts'
+import {withSearchAllowance} from './count-search-allowance.ts'
+import {canUseCountedProxy,withCountedSearchPolicy} from './search-policy.ts'
+import {workRefusalWhy} from './work-refusal.ts'
 import {withEvaluationAdmission} from './work-observe.ts'
 import {finalCountStepDeferralEnabled, closingCountCheck} from './count-final-step.ts'
 import {type CountCert, type CountDecl, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, checkMC, countedObligations, mcGoal, scope, substC, substE} from '../kernel/kernel.ts'
@@ -46,7 +49,7 @@ import {independentCountInstances} from './count-focused.ts'
 import {admitMemberWitnesses,instantiateMemberPremises,memberHints,memberPremiseState,type MemberHint} from './count-recovery/member-premises.ts'
 
 import {smallOf, trueSmall} from './exists.ts'
-import {WallExpired, checkWall, searchWall, withBudget} from './wall.ts'
+import {WallExpired, checkWall, searchWall} from './wall.ts'
 import {env} from './solver.ts'
 import {proofOrigins, proposeLemmaCuts} from './lemma-cuts.ts'
 import {countedCertificateHyps,transportCountCertificate} from './count-cert-transport.ts'
@@ -557,19 +560,33 @@ function structuredFallback(until: number, attempt: (structured: boolean) => Cou
 export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted {
   const reject=env.GDP_COUNT_REJECTIONS==='1'&&env.GDP_COUNT_TIERS==='1'&&env.GDP_COUNT_STRATEGIES==='1'
   let m = m0,rejecting=false
-  const run = () => withWall(searchWall(ms), (): Counted => {
+  const run = ():Counted => {
+   const result=withWall(searchWall(ms), ():Counted|(()=>Counted) => {
     try {
       const start=reject?fullWork()/fullRate:0
       const g = ptime('guards', () => guardLaws(m0))
       m = {...m0, counts: {...m0.counts, ...g.counts}}
-      if(reject&&g.laws.some(law=>quorumCandidates.has(law))){rejecting=true;return counted(fullRate,()=>searchCounted0(m0,g,m,caller,ms,remainingCountTierBudget(start,ms,1)),true)}
+      if(reject&&g.laws.some(law=>quorumCandidates.has(law))){rejecting=true;return withCountedSearchPolicy(true,()=>counted(fullRate,()=>searchCounted0(m0,g,m,caller,ms,remainingCountTierBudget(start,ms,1)),true))}
+      // Leave the native preparation wall before selecting a legacy proxy.
+      // Locked rejecting ancestors and ordinary legacy mode keep the old path.
+      if(canUseCountedProxy())return ()=>withCountedSearchPolicy(false,()=>withWall(searchWall(ms),()=>{
+        try{
+          ptime('small',()=>smallOf(m,m0))
+          return counted(fullRate,()=>searchCounted0(m0,g,m,caller,ms),true)
+        }catch(error){
+          if(!(error instanceof WallExpired))throw error
+          return {proven:false,laws:caller,m,why:error.message}
+        }
+      }))
       ptime('small', () => smallOf(m, m0))
       return counted(fullRate, () => searchCounted0(m0, g, m, caller, ms), true)
     } catch (e) {
       if (!(e instanceof WallExpired)&&!(rejecting&&e instanceof BudgetExpired)) throw e
-      return {proven: false, laws: caller, m, why: e.message}
+      return {proven: false, laws: caller, m, why: e instanceof BudgetExpired?workRefusalWhy(e):e.message}
     }
-  })
+   })
+   return typeof result==='function'?result():result
+  }
   if (!env.GDP_COUNTS_PROF) return run()
   cdclStats.on = true
   const t = countedSearchNow(), out = run()
@@ -655,8 +672,9 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
   const proofGuided = prerequisiteFirst && env.GDP_COUNT_PROOF_GUIDED_SCHEDULING === '1'
   const beforeClosing = <T>(body:()=>T):T|undefined => {
     if (!prerequisiteFirst) return body()
-    try { return withBudget(Math.max(0,until-clock())*fullRate,body) }
-    catch(error) { if(!isLocalCountExpiration(error,closingBudget!.until))throw error; return undefined }
+    return withSearchAllowance<T|undefined>(until,body,error=>{
+      if(!isLocalCountExpiration(error,closingBudget!.until))throw error; return undefined
+    })
   }
   let set=rejections?rejectionFamily(rejections,initial):initial.slice()
   let reach:ReturnType<typeof countReachabilityScreen>|undefined
@@ -948,20 +966,19 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       countsDump.on?.({phase:'count-component-attempt',law:law.name,component:decision.component,mode:decision.phase,recipe:decision.recipe.id,context:decision.context,end,componentEnd,allotted,reserved,discovery:decision.discovery,purpose:decision.purpose,required:queue.required(),...(proofGuided?{pass:decision.pass??0}: {})})
       countsDump.on?.({phase:'count-tier-attempt',law:law.name,tier:selected.has(law)&&allowStrategy?'strategy':'ordinary',end,allotted})
       let result:Tried<Proof>={stuck:'unknown'},expired=allotted<=0
-      try{
-        if(allotted>0)result=withBudget(Math.max(0,end-clock())*fullRate,()=>{
+      if(allotted>0)result=withSearchAllowance(end,()=>{
           const invoke=(pass:0|1)=>traced(law,context,pass,Math.max(0,end-clock()),allowStrategy)
           const first=invoke(proofGuided?decision.pass??0:0)
           return !proofGuided&&!discoveryOnly&&!('proof'in first)&&!first.refuted&&(!selected.has(law)||!allowStrategy)&&attempts.counted&&clock()<end?invoke(1):first
-        })
-      }catch(error){if(!isLocalCountExpiration(error,closingBudget!.until))throw error;expired=true}
+        },error=>{if(!isLocalCountExpiration(error,closingBudget!.until))throw error;expired=true;return result})
       if(!('proof'in result)&&result.expired)expired=true
       let scope:ScopedCountProof|undefined
-      if('proof'in result)try{
-        scope=withBudget(Math.max(0,end-clock())*fullRate,()=>beforeClosing(()=>proofGuided
+      if('proof'in result){
+        scope=withSearchAllowance(end,()=>beforeClosing(()=>proofGuided
           ?ptime('premise-rescope',()=>rescopeCountProof(m,law,context,result.proof,new Set(scopes.keys()),end,event=>countsDump.on?.({phase:'count-component-rescope',law:law.name,...event}),countRescopeFunding()))
-          :ptime('premise-scope',()=>scopeCountProof(m,law,context,result.proof,end))))
-      }catch(error){if(!isLocalCountExpiration(error,withinDeadline(closingBudget!.until)))throw error;expired=true}
+          :ptime('premise-scope',()=>scopeCountProof(m,law,context,result.proof,end))),
+          error=>{if(!isLocalCountExpiration(error,withinDeadline(closingBudget!.until)))throw error;expired=true;return undefined})
+      }
       if('proof'in result&&!scope&&!expired&&clock()>=end){
         const error=new BudgetExpired('component premise scope')
         if(!isLocalCountExpiration(error,withinDeadline(closingBudget!.until)))throw error
@@ -1055,8 +1072,9 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
             return result
           }
           if (!closingBudget) return run()
-          try { return withBudget(Math.max(0,Math.min(supportUntil,until)-clock())*fullRate,run) }
-          catch(error) { if(!isLocalCountExpiration(error,closingBudget.until))throw error; return {stuck:'unknown'} }
+          return withSearchAllowance(Math.min(supportUntil,until),run,error=>{
+            if(!isLocalCountExpiration(error,closingBudget.until))throw error; return {stuck:'unknown'}
+          })
         }
         const countFirst = !strategy && firstCountPass(m, law, (env.GDP_COUNTS_COUNT_FIRST === '1' || boundedSupport && env.GDP_COUNTS_COUNT_FIRST !== '0') && (reads(law.holds, isCount).size > 0 || boundedSupport && !!law.keys?.length)) === 1
         let r: Tried<Proof> = was ? {proof: was} : ask(countFirst ? 1 : 0)
