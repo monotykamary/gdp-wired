@@ -34,7 +34,8 @@ if (completeWorkProfile.enabled) {
       counted(40, () => {
         const t = clock()
         work.n += 80
-        expect(clock() - t).toBe(2)
+        expect(clock()).toBe(work.n / 40)
+        expect(Math.abs((clock() - t) - 2)).toBeLessThanOrEqual(1e-9)
         counted(250, () => {
           expect(proxySearchState()?.rate).toBe(40)
           expect(proxySearchState()?.model).toBe(false)
