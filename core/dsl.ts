@@ -26,6 +26,7 @@ import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withWall} from '../kernel/prove.ts'
 import {WallExpired, checkWall, checkWorkEndpoint, searchWall, withBudget, BudgetExpired} from './wall.ts'
 import {completeWorkProfile} from './work-profile.ts'
+import {workLedger} from './work-admission.ts'
 import {withStageAllowance, withStageDeadline, withStageWall} from './dsl-deadline.ts'
 import {withPublicSearchPolicy} from './search-policy.ts'
 import {workRefusalWhy} from './work-refusal.ts'
@@ -2927,6 +2928,11 @@ function workPlan(opts: ProveOptions): {work: number | WorkAmount | undefined, o
 }
 function workVerdict(opts: ProveOptions, supported: boolean, run: (opts: ProveOptions) => Verdict): Verdict {
   const plan = workPlan(opts)
+  // An implicit child inherits the owner's hard allowance, not a fresh default.
+  // Keep workPlan's validation and scheduling hint; let the owner's refusal
+  // propagate to its handler rather than becoming this child's unknown verdict.
+  const implicit = typeof opts.search !== 'object' || (opts.search.work === undefined && opts.search.ms === undefined)
+  if (completeWorkProfile.enabled && workLedger.inBudget() && implicit) return run(plan.opts)
   if (plan.work === undefined) return run(plan.opts)
   if (!completeWorkProfile.enabled && !supported) return {proven: false, checked: false, stuck: 'unknown', why: 'work mode: plain-path migration pending'}
   try { return withBudget(plan.work, () => run(plan.opts)) }
