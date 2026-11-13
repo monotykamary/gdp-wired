@@ -32,11 +32,12 @@ export type WorkDiagnosticCheckpoint=Readonly<{
  scopes:readonly Readonly<Scope>[],leases:readonly Readonly<LeaseState>[],
  sequences:Readonly<{lease:number,endpoint:number,event:number}>,
  observerCount:number,observerNames:readonly string[],notifying:boolean,
- capacityBoundaries:readonly Readonly<{error?:BudgetExpired}>[]
+ capacityBoundaries:readonly Readonly<CapacityBoundary>[]
 }>
 export type WorkAdmissionObserver = (event: WorkAdmissionEvent) => void
 export type WorkLease = Readonly<{granted: number, remaining: number, start: (count?: number) => void}>
 type Scope = {id: number, kind: WorkEndpointKind, end: WorkAmount}
+type CapacityBoundary = {error?: BudgetExpired, fatal?: BudgetExpired, deadline?: Scope}
 type LeaseState = {id: number, sink: WorkKey, site?: string, remaining: bigint, granted: number, epoch: number, live: boolean}
 const nextEpoch = (n: number): number => {
   if (!Number.isSafeInteger(n) || n < 0 || n === Number.MAX_SAFE_INTEGER) throw new RangeError('work epoch exhausted')
@@ -70,7 +71,8 @@ export class WorkLedger {
   private eventSequence = 0
   private notifying = false
   private readonly capacityErrors = new WeakMap<object, WorkCapacityRefusal>()
-  private readonly capacityBoundaries: {error?: BudgetExpired}[] = []
+  private readonly capacityBoundaries: CapacityBoundary[] = []
+  private readonly deadlineRefusalOwners = new WeakMap<object, CapacityBoundary>()
   constructor(weights: Readonly<Record<WorkKey, number>>) {
     if (Object.keys(weights).length !== workKeys.length || workKeys.some(key => !Object.hasOwn(weights, key) || !Number.isFinite(weights[key]) || weights[key] < 0)) throw new RangeError('work ledger requires the exact frozen coefficient vector')
     this.weights = Object.freeze(Object.fromEntries(workKeys.map(key => [key, workFromNumber(weights[key])]))) as Readonly<Record<WorkKey, WorkAmount>>
@@ -110,14 +112,51 @@ export class WorkLedger {
     } catch (error) { throw boundary.error ?? error }
     finally { this.capacityBoundaries.pop() }
   }
-  private capacityError(phase: string, reason: WorkCapacityRefusal['reason'], requested?: WorkAmount): BudgetExpired {
-    const error = new BudgetExpired(phase), end = this.endpoint()
-    const limiting = this.scopes.filter(scope => end !== null && compareWork(scope.end, end) === 0)
+  // A stage can consume only its own deadline refusal. No allowance is reset:
+  // the existing endpoint machinery owns admission, leases and scope cleanup.
+  // Remember fatal refusals separately: native code may catch a soft refusal,
+  // keep running, and subsequently catch a root/ancestor refusal as well.
+  withDeadlineRefusalBoundary<T, F>(end: WorkAmount, run: () => T, refused: () => F): T | F {
+    const boundary: CapacityBoundary = {}
+    this.capacityBoundaries.push(boundary)
+    try {
+      return this.enterEndpoint('deadline', end, () => {
+        const value = synchronous(run())
+        if (boundary.fatal ?? boundary.error) throw boundary.fatal ?? boundary.error
+        return value
+      }, boundary)
+    } catch (error) {
+      const pending = boundary.fatal ?? error
+      if (typeof pending !== 'object' || pending === null || this.deadlineRefusalOwners.get(pending) !== boundary) throw pending
+    } finally { this.capacityBoundaries.pop() }
+    // Outside both the endpoint and its guard; fallback is not free work inside
+    // an expired allocation and cannot hide a new refusal raised by itself.
+    return synchronous(refused())
+  }
+  private capacityError(phase: string, reason: WorkCapacityRefusal['reason'], requested?: WorkAmount, entering?: Scope): BudgetExpired {
+    const error = new BudgetExpired(phase), active = entering ? [...this.scopes, entering] : this.scopes
+    let end: WorkAmount | null = null
+    for (const scope of active) end = end === null ? scope.end : minWork(end, scope.end)
+    const limiting = active.filter(scope => end !== null && compareWork(scope.end, end) === 0)
       .map(scope => Object.freeze({id: scope.id, kind: scope.kind, end: exactRaw(scope.end)}))
     this.capacityErrors.set(error, Object.freeze({reason, limiting: Object.freeze(limiting),
       actual: exactRaw(this.actual()), reserved: exactRaw(this.reserved()),
       ...(requested ? {requested: exactRaw(requested)} : {})}))
-    for (const boundary of this.capacityBoundaries) boundary.error ??= error
+    // Classify against the live ancestry now, not the unwound catch stack.
+    // Descendant DEADLINE mirrors may share the owned limit. An ancestor tie,
+    // a root/scope/work-cap, or a stricter descendant is not ours to consume.
+    for (let i = this.capacityBoundaries.length - 1; i >= 0; i--) {
+      const boundary = this.capacityBoundaries[i]!, owned = boundary.deadline
+      const ownerIndex = owned ? active.findIndex(scope => scope.id === owned.id) : -1
+      const owns = owned && ownerIndex >= 0 && limiting.some(scope => scope.id === owned.id)
+        && limiting.every(scope => scope.kind === 'deadline' && active.findIndex(at => at.id === scope.id) >= ownerIndex)
+      boundary.error ??= error
+      if (owns) {
+        this.deadlineRefusalOwners.set(error, boundary)
+        break // An accepted local stop must not poison enclosing sticky guards.
+      }
+      if (owned) boundary.fatal ??= error
+    }
     return error
   }
   endpoint(): WorkAmount | null {
@@ -147,7 +186,7 @@ export class WorkLedger {
       scopes:this.scopes.map(scope=>({...scope})),leases:[...this.leases].map(lease=>({...lease})),
       sequences:{lease:this.leaseSequence,endpoint:this.endpointSequence,event:this.eventSequence},
       observerCount:this.observers.length,observerNames:this.observers.map(observer=>observer.name),notifying:this.notifying,
-      capacityBoundaries:this.capacityBoundaries.map(boundary=>({...boundary}))}
+      capacityBoundaries:this.capacityBoundaries.map(boundary=>({...boundary,...(boundary.deadline?{deadline:{...boundary.deadline,end:{...boundary.deadline.end}}}:{})}))}
   }
   private emit(kind: WorkAdmissionEvent['kind'], extra: Pick<WorkAdmissionEvent, 'sink' | 'site' | 'requested' | 'granted' | 'leaseId'> = {}): void {
     if (!this.observers.length) return
@@ -176,12 +215,21 @@ export class WorkLedger {
     finally { try { this.emit('trace-end') } finally { this.observers.pop() } }
   }
   withEndpoint<T>(kind: WorkEndpointKind, end: WorkAmount, run: () => T): T {
+    return this.enterEndpoint(kind, end, run)
+  }
+  private enterEndpoint<T>(kind: WorkEndpointKind, end: WorkAmount, run: () => T, owner?: CapacityBoundary): T {
     this.checkEntry()
     if (end.den <= 0n || end.num < 0n) throw new RangeError('work endpoint must be nonnegative with a positive denominator')
     const nextRoot = kind === 'root' ? nextEpoch(this.rootEpoch) : this.rootEpoch
     const nextScope = nextEpoch(this.scopeEpoch), nextEndpoint = nextEpoch(this.endpointSequence)
+    if (owner) {
+      // Entry can refuse before the body opens. Reserve a unique identity and
+      // authenticate that prospective endpoint too; never reuse it on failure.
+      owner.deadline = {id: nextEndpoint, kind, end: workAmount(end.num, end.den)}
+      this.endpointSequence = nextEndpoint
+    }
     this.invalidate()
-    if (compareWork(this.actual(), end) > 0) { this.emit('refuse', {site: 'scope entry'}); throw this.capacityError('scope entry', 'scope-entry') }
+    if (compareWork(this.actual(), end) > 0) { this.emit('refuse', {site: 'scope entry'}); throw this.capacityError('scope entry', 'scope-entry', undefined, owner?.deadline) }
     const priorBaseline = this.baseline
     if (kind === 'root') {
       if (this.scopes.some(scope => scope.kind === 'root')) throw new Error('cannot replace an active work root')

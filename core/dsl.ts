@@ -23,9 +23,10 @@ import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type L
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
-import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
+import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withWall} from '../kernel/prove.ts'
 import {WallExpired, checkWall, checkWorkEndpoint, searchWall, withBudget, BudgetExpired} from './wall.ts'
 import {completeWorkProfile} from './work-profile.ts'
+import {withStageAllowance, withStageDeadline, withStageWall} from './dsl-deadline.ts'
 import {type WorkAmount, workDivide, workFromNumber, workToNumber} from './work-amount.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
@@ -2976,9 +2977,10 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   // Quantified witness preflight needs a counted allocation: a slow attempt must
   // not seed different memoized decisions. Other laws keep their existing budget;
   // inference's query rate is not calibrated for their whole-set preflight.
-  const out = ms === undefined ? given() : withWall(countedSearchNow() + ms / share, () =>
-    share === 1 ? given() : counted(inferRates.work, () => withDeadline(clock() + ms / share, given)))
-  const v: Verdict = {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
+  const out = ms === undefined ? given() : withStageWall(countedSearchNow() + ms / share, () =>
+    share === 1 ? given() : counted(inferRates.work, () => withStageDeadline(clock() + ms / share, given, () => undefined)), () => undefined)
+  const v: Verdict = out ? {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
+    : {proven: false, checked: false, stuck: 'unknown'}
   return searched(r, laws, [], v, opts)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
@@ -3050,7 +3052,7 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   if (pool.length) { const deeper = refuteByRuns(r, laws, stepLaws, {...deeperBudget, trials: 300, seed: 43, states: false, mixed: true, near: v.witness, pool, until: runsUntil}); if (deeper?.run) return refutedVerdict(deeper) }
   const until = clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
   // (the search's end on the wall too: kernel/prove.ts's withWall, past which every goal is unknown)
-  return withWall(countedSearchNow() + Math.max(0, until - clock()), () => searchedUntil(r, laws, stepLaws, v, opts, until))
+  return withStageWall(countedSearchNow() + Math.max(0, until - clock()), () => searchedUntil(r, laws, stepLaws, v, opts, until), () => v)
 }
 // Two machines alike up to the names of the keys their quantified flags and writes at every key bind (the rule builds
 // fresh ones each time it is read): each bound name by its place of first binding.
@@ -3074,7 +3076,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   const ghosted = stepGhosts(r.machine, stepLaws)
   // (with the step laws' ghosts, a wall stop too, at the budget: their goals cost the cost model more than its clock
   // counts, a wide rule's past twice its wall time; and the last runs always, the search's tail on the wall too)
-  const bounded = (ms: number, from: number, wall = !!ghosted) => counted(fullRate, () => findBoundedRun(ghosted?.machine ?? r.machine, [...laws, ...(ghosted?.laws ?? [])], {ms, from, steps: true, ...(wall ? {wall: countedSearchNow() + ms} : {}), progress: k => { reached = k }}), true)
+  const bounded = (ms: number, from: number, wall = !!ghosted) => counted(fullRate, () => withStageAllowance(ms, () => findBoundedRun(ghosted?.machine ?? r.machine, [...laws, ...(ghosted?.laws ?? [])], {ms, from, steps: true, ...(wall ? {wall: countedSearchNow() + ms} : {}), progress: k => { reached = k }}), () => undefined), true)
   const refutedBy = (b: NonNullable<ReturnType<typeof bounded>>): Verdict => refutedVerdict({goal: `${b.law} @step (a run of ${b.depth} steps from the start)`, witness: b.witness, run: {params: b.params, trace: b.trace.map(shownRequest)}})
   const shallow = bounded(Math.min(250, total / 40), 1)
   if (shallow) return refutedBy(shallow)
@@ -3082,21 +3084,21 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // within a twentieth of the budget (at most 500 ms, counted so too).
   if (!any && !stepLaws.length && laws.every(l => !l.forall && !l.keys?.length && !l.some?.length)) {
     const ms = Math.min(500, total / 20), kinds = withKinds(r, []).filter(k => !laws.some(l => l.name === k.name))
-    const kd = counted(fullRate, () => proveKInduction(r.machine, kinds, conjunction(laws), {ms}), true)
-    if (kd.proven && kd.checked) return {proven: true, checked: true, k: kd.k!, assumes: {states: 'reachable', laws: []}}
+    const kd = counted(fullRate, () => withStageAllowance(ms, () => proveKInduction(r.machine, kinds, conjunction(laws), {ms}), () => undefined), true)
+    if (kd?.proven && kd.checked) return {proven: true, checked: true, k: kd.k!, assumes: {states: 'reachable', laws: []}}
   }
   let rule = r, lemmas: Found['lemmas']
   const {fns, lists} = r.parts
   if (lists.length || fns.some(([, d]) => recurOf(d))) {
-    const d = withDeadline(until, () => discover(r, laws, stepLaws, v))
-    if (d.verdict.proven && d.verdict.checked) return {...d.verdict, found: {lemmas: d.found}}
-    if (Object.keys(d.found).length) (rule = d.rule, lemmas = d.found)
+    const d = withStageDeadline(until, () => discover(r, laws, stepLaws, v), () => undefined)
+    if (d?.verdict.proven && d.verdict.checked) return {...d.verdict, found: {lemmas: d.found}}
+    if (d && Object.keys(d.found).length) (rule = d.rule, lemmas = d.found)
   }
   // Functions known by their facts alone (not a recurrence): lemmas about them, fitted to their values and proven from
   // the facts as cyclic claims, the laws proven with them as facts.
   if ((typeof opts.search !== 'object' || opts.search.cycles !== false) && fns.some(([, d]) => !recurOf(d)) && rule.machine.facts?.length && until - clock() > 500) {
-    const c = withDeadline(until, () => cycleLemmas(rule.machine, withKinds(rule, laws), stepLaws, {ms: (until - clock()) / 2}))
-    if (c.proven && c.checked) return {proven: true, checked: true, found: {...(lemmas ? {lemmas} : {}), facts: c.found.map(f => f.text)}}
+    const c = withStageDeadline(until, () => cycleLemmas(rule.machine, withKinds(rule, laws), stepLaws, {ms: (until - clock()) / 2}), () => undefined)
+    if (c?.proven && c.checked) return {proven: true, checked: true, found: {...(lemmas ? {lemmas} : {}), facts: c.found.map(f => f.text)}}
   }
   // Laws about the ids a counter hands out (core/fresh.ts), within a tenth of what is left: the laws with them, then
   // the invariant search with them given.
@@ -3105,11 +3107,11 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   let fresh: FreshLaw[] = []
   if (Object.keys(rule.machine.maps ?? {}).length && until - clock() - tail > 1000) {
     const fm = rule.machine, share = (until - clock() - tail) / 10
-    fresh = withDeadline(clock() + share, () => freshLaws(fm, rule.kindLaws(), {params: (rand, bound) => rule.randomParams(rand, bound), input: (rand, bound, ps) => rule.randomInput(rand, bound, ps)}, {ms: share}))
+    fresh = withStageDeadline(clock() + share, () => freshLaws(fm, rule.kindLaws(), {params: (rand, bound) => rule.randomParams(rand, bound), input: (rand, bound, ps) => rule.randomInput(rand, bound, ps)}, {ms: share}), () => [])
     if (fresh.length) {
       // (counted, as the laws' own search: the same verdict on any machine)
-      const given = [...withKinds(rule, laws), ...fresh.map(f => f.law)], out = counted(fullRate, () => withDeadline(clock() + share, () => (stepLaws.length ? proveStepLaws(fm, given, stepLaws) : proveLaws(fm, given))), true)
-      if (out.proven && out.checked) return {proven: true, checked: true, found: {laws: fresh, ...(lemmas ? {lemmas} : {})}, assumes: reachableBy(fresh)}
+      const given = [...withKinds(rule, laws), ...fresh.map(f => f.law)], out = counted(fullRate, () => withStageDeadline(clock() + share, () => (stepLaws.length ? proveStepLaws(fm, given, stepLaws) : proveLaws(fm, given)), () => undefined), true)
+      if (out?.proven && out.checked) return {proven: true, checked: true, found: {laws: fresh, ...(lemmas ? {lemmas} : {})}, assumes: reachableBy(fresh)}
     }
   }
   let ms = until - clock() - tail
@@ -3117,7 +3119,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // (a law with "there exists" about no key: its ghost chosen with the engine's cubes kept, within half of it)
   if (!stepLaws.length && laws.some(l => l.some?.length) && laws.every(l => !l.some?.length || !l.forall)) {
     let c: Verdict | undefined
-    try { c = withWall(countedSearchNow() + ms / 2, () => withDeadline(clock() + ms / 2, () => someCone(rule, laws, ms / 2))) } catch (e) { if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: cone failed: ${String((e as Error).stack ?? e).slice(0, 600)}`) }
+    try { c = withStageWall(countedSearchNow() + ms / 2, () => withStageDeadline(clock() + ms / 2, () => someCone(rule, laws, ms / 2), () => undefined), () => undefined) } catch (e) { if (e instanceof BudgetExpired) throw e; if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: cone failed: ${String((e as Error).stack ?? e).slice(0, 600)}`) }
     if (c) return {...c, found: {...c.found, ...(lemmas ? {lemmas} : {})}}
     if ((ms = until - clock() - tail) < 500) return v
   }
@@ -3167,13 +3169,13 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
         // tuple supports. Nested counted searches retain their existing clock.
         return counted(fullRate, () => {
           const end = clock() + budget
-          if (!native) return !withDeadline(end, () => proveLaw(tm, ls, ls.indexOf(c))).proven
+          if (!native) return !withStageDeadline(end, () => proveLaw(tm, ls, ls.indexOf(c)), () => undefined)?.proven
           // Try local provenance before instantiating every witness. All three
           // attempts share the same existing support-query allocation.
-          if (round === 0 && withDeadline(Math.min(end, clock() + 500), () => proveSetFast(tm, [c])).proven) return false
+          if (round === 0 && withStageDeadline(Math.min(end, clock() + 500), () => proveSetFast(tm, [c]), () => undefined)?.proven) return false
           const local = witnessSupport(tm, helpers, c, Object.keys(sk.maps))
-          if (withDeadline(Math.min(end, clock() + 1_000), () => proveLaw(tm, local, local.indexOf(c))).proven) return false
-          return !withDeadline(end, () => proveLaw(tm, ls, ls.indexOf(c))).proven
+          if (withStageDeadline(Math.min(end, clock() + 1_000), () => proveLaw(tm, local, local.indexOf(c)), () => undefined)?.proven) return false
+          return !withStageDeadline(end, () => proveLaw(tm, ls, ls.indexOf(c)), () => undefined)?.proven
         }, true)
       })
       if (clock() >= hUntil) break
@@ -3181,7 +3183,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
       if (!drop.length) {
         for (const l of native ? sought : []) {
           const local = witnessSupport(tm, ls, l)
-          if (local.length < ls.length) withDeadline(Math.min(hUntil, clock() + 3_000), () => proveLaw(tm, local, local.indexOf(l)))
+          if (local.length < ls.length) withStageDeadline(Math.min(hUntil, clock() + 3_000), () => proveLaw(tm, local, local.indexOf(l)), () => undefined)
         }
         const b = back(target, keep.map(law => ({law})), native)
         if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: ghost supports set: ${b.proven ? 'proven' : `${b.goal} ${b.stuck} ${b.why ?? ''}`}`)
@@ -3191,19 +3193,19 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
       keep = keep.filter(c => !drop.includes(c))
     }
   }
-  const inf = withWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {join: 0} : {})}))
-  if (!(inf.proven && inf.checked)) {
+  const inf = withStageWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {join: 0} : {})}), () => undefined)
+  if (!(inf?.proven && inf.checked)) {
     // The sum of each map the step writes (withMapSums): the search again over the rule with them, within half of what
     // is left (at most 20 s), where a law of cells against a total needs one (no ERC20 balance past the supply).
     const summed = target.withMapSums()
     if (summed && until - clock() - tail > 1000) {
-      const inf2 = withWall(tailAt(), () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2)}))
-      if (inf2.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; const b = back(summed, found); if (!sk || (b.proven && b.checked)) return {...(sk ? {} : verdict), ...b, proven: true, checked: true, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])} }
+      const inf2 = withStageWall(tailAt(), () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2)}), () => undefined)
+      if (inf2?.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; const b = back(summed, found); if (!sk || (b.proven && b.checked)) return {...(sk ? {} : verdict), ...b, proven: true, checked: true, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])} }
     }
     // (a step law's ghost: at most 10 s of it, as its goals cost more than the laws')
     const deep = bounded(Math.max(0, Math.min(until - clock(), ghosted && !laws.length ? 10_000 : Infinity)), Math.max(1, reached), true)
     if (deep) return refutedBy(deep)
-    return {...v, why: [v.why, `the search found nothing that proves it in ${Math.round(inf.stats.ms)} ms`].filter(Boolean).join('; ')}
+    return {...v, why: [v.why, inf ? `the search found nothing that proves it in ${Math.round(inf.stats.ms)} ms` : 'the search reached its stage deadline'].filter(Boolean).join('; ')}
   }
   const {found, stats: _stats, ...verdict} = inf
   void _stats
@@ -3231,7 +3233,7 @@ function someCone(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws0: Law[],
   const set = [...withKinds(r, []), ...candidates(r, m, shapes, shapes, [], ms, until)]
   // (a cube the kernel refuses to state, one past its key rules, is never kept)
   const plain = (law: Law, ls: Law[], ms2: number): Tried<true> => {
-    try { const o = withDeadline(Math.min(until, clock() + ms2), () => proveLaw(m, ls, ls.indexOf(law))); return o.proven ? {proof: true} : {stuck: o.stuck} } catch { return {stuck: ''} }
+    try { const o = withStageDeadline(Math.min(until, clock() + ms2), () => proveLaw(m, ls, ls.indexOf(law)), () => undefined); return o ? o.proven ? {proof: true} : {stuck: o.stuck} : {stuck: 'unknown'} } catch (e) { if (e instanceof BudgetExpired) throw e; return {stuck: ''} }
   }
   const proven = cone(m, set, plain, until), kept = set.filter(c => proven.has(c.name))
   if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: cone ${kept.length} of ${set.length} kept: ${kept.map(l => l.name).join('; ').slice(0, 2000)}`)
@@ -3259,7 +3261,7 @@ function proveLeadsToIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: L
     const until = clock() + (opts.ms ?? 10_000), draws = {params: (rand: Rand, bound: number) => r.randomParams(rand, bound), input: (rand: Rand, bound: number, ps: Record<string, number>) => r.randomInput(rand, bound, ps)}
     // (the laws about the keys a counter hands out or a high-water mark bounds, core/fresh.ts, within a twentieth: given
     // to both searches, each proven again with the rank)
-    const share = (until - clock()) / 20, fresh = Object.keys(r.machine.maps ?? {}).length ? withDeadline(clock() + share, () => freshLaws(r.machine, r.kindLaws(), draws, {ms: share})) : []
+    const share = (until - clock()) / 20, fresh = Object.keys(r.machine.maps ?? {}).length ? withStageDeadline(clock() + share, () => freshLaws(r.machine, r.kindLaws(), draws, {ms: share}), () => []) : []
     laws = [...laws, ...fresh.map(x => x.law)]
     let f = findLeadsTo(r.machine, withKinds(r, laws), l, {...draws, rule: r}, {ms: until - clock()})
     // Where the rank fitted to the runs isn't the one: a rank of the rule's own terms (core/live.ts), in the time left.
@@ -3297,7 +3299,7 @@ export function refuteLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, l
 // prover reads (the counted one inside a counted search): past it the verdict is unknown.
 export const proveDecision = (d: Decision, opts: {ms?: number} = {}): Verdict => {
   const go = () => (d.steps ? proveSteps(d.steps.rule as never, [], [d.steps.law], {search: false}) : goalsVerdict([d.goal]))
-  return translationVerdict(d.rule, [d.goal], opts.ms === undefined ? go() : withDeadline(clock() + opts.ms, go))
+  return translationVerdict(d.rule, [d.goal], opts.ms === undefined ? go() : withStageDeadline(clock() + opts.ms, go, () => ({proven: false, checked: false, stuck: 'unknown'})))
 }
 // A decision's callbacks against its condition, on random params and requests: `given` and `then` each run with every
 // value known, against what the interpreter evaluates of the decision built from them.
