@@ -25,6 +25,7 @@ import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
 import {REFUTED, growCdcl} from './cdcl.ts'
 import {type Diagram, type Patterns, decide, eprMeter, pastEprCap, patternsOf, withEprCap} from './epr.ts'
+import {extendFunctionInstances, hasFunctionInstances} from './function-instances.ts'
 import {projected, tupleParts} from './kernel.ts'
 import {modelValueTerms} from './model-values.ts'
 import {proverRows} from './prover-rows.ts'
@@ -1688,7 +1689,7 @@ export function instancesFor(m: Machine, laws: Law[], build: (inst: Instances) =
   let inst: Instances = opts.start ?? (seed ? {...Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, l.keys?.length ? [] : seed!])), ...flagInstances(m, seed, opts.focus)} : {})
   const reads = opts.reads ?? (!opts.seed || shifts(m) || laws.some(l => l.keys?.length) || pairFlags(m))
   for (let round = 0; round < 2 && !pastWall(); round++) {
-    if (m.facts?.length) inst = withFacts(m, inst, fnKeys(m, build(inst)))
+    if (m.facts?.length) inst = hasFunctionInstances(m) ? extendFunctionInstances(m, inst, build(inst), (rest, prior, goals) => withFacts(rest, prior, fnKeys(rest, goals))) : withFacts(m, inst, fnKeys(m, build(inst)))
     if (reads) { const {keys, byMap} = mapReads(build(inst)); inst = union(withReads(laws, inst, keys, opts.focus ?? [], byMap, Object.keys(m.fns ?? {})), flagInstances(m, keys, opts.focus), m) }
   }
   return inst

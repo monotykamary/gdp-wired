@@ -1,0 +1,4 @@
+[
+ {"name":"function-instance-review","cmd":"bash scripts/bapa-function-review.sh","cpu":2,"memory":8192,"timeout":600,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}},
+ {"name":"unseeded-minimal-export","cmd":"bash scripts/bapa-function-lean.sh","cpu":2,"memory":4096,"timeout":600,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}
+]

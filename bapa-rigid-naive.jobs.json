@@ -1,0 +1,1 @@
+[{"name":"unseeded-naive-consensus","cmd":"bash scripts/bapa-rigid-naive.sh","cpu":2,"memory":8192,"timeout":600,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}]
