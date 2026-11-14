@@ -1944,13 +1944,14 @@ type Memo = {proven: Map<string, Settled>, models: Map<string, {text: string, mo
 const memoCap = Number(env.GDP_MEMO_CAP ?? 4)
 export const memoHits = {n: 0, miss: 0, setKey: '', setJson: ''}
 export const machineKey = (m: Machine): string => { const s = JSON.stringify(m); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return `${s.length}:${h}` }
-const memos = new Map<string, Memo>(), machineText = new WeakMap<Machine, string>(), lawText = new WeakMap<C, string>()
+const memos = new Map<string, Memo>(), machineText = new WeakMap<Machine, string>(), lawText = new WeakMap<Law, {exact: string, text: string}>()
 // Rollback base only: legacy reuse has a stale-binder false-negative; release is held until reuse is repaired.
 // (texts up to a renaming of fresh names, x$12: a rule's machine and kinds' laws are made again with
 // fresh binders, so the same machine had another text each time and no decision was found again; GDP_MEMO_ALPHA=0 off)
 const alpha = env.GDP_MEMO_ALPHA !== '0'
 const alphaText = (s: string): string => { if (!alpha) return s; const to = new Map<string, string>(); return s.replace(/([A-Za-z_?]+)\$(\d+)/g, (w, p: string) => { let r = to.get(w); if (!r) to.set(w, (r = `${p}$_${to.size}`)); return r }) }
-const textOfLaw = (l: Law): string => { let t = lawText.get(l.holds); if (t === undefined) lawText.set(l.holds, (t = alphaText(JSON.stringify([l.holds, l.forall ?? null, l.keys ?? null])))); return t }
+const textsOfLaw = (l: Law): {exact: string, text: string} => { let t = lawText.get(l); if (!t) { const exact = JSON.stringify([l.holds, l.forall ?? null, l.keys ?? null]); lawText.set(l, (t = {exact, text: alphaText(exact)})) } return t }
+const textOfLaw = (l: Law): string => textsOfLaw(l).text
 function memoOf(m: Machine): Memo {
   let key = machineText.get(m)
   if (key === undefined) machineText.set(m, (key = alphaText(JSON.stringify(m))))
@@ -2197,7 +2198,8 @@ let strictOn = false
 const strict = (usual: boolean) => !usual && (strictOn || env.GDP_STRICT !== '0')
 // (strict models for a caller's own decisions: the engine's top-down phase, whose drops an unconfirmed model would make wrong)
 export const withStrict = <T>(f: () => T): T => { const o = strictOn; strictOn = true; try { return f() } finally { strictOn = o } }
-// (by machine and by the law set's names: one machine is asked with many sets)
+// By immutable machine and ordered, exact law context, including all binding metadata.
+export const sortMemoStats = {hits: 0, misses: 0}
 const sortsMemo = new WeakMap<Machine, Map<string, {key: (law: string, k: string) => string, of: (e: E) => string | undefined, find: (a: string) => string, anchored: (a: string) => boolean}>>()
 const sortPlacesOn = env.GDP_SORT_PLACES !== '0'
 function sortsOf(m: Machine, laws: Law[]) {
@@ -2268,9 +2270,9 @@ function instanceSortGuard(m: Machine, laws: Law[]): (name: string, index: numbe
   if (!sortedOn) return () => true
   let byLaws = sortsMemo.get(m)
   if (!byLaws) sortsMemo.set(m, (byLaws = new Map()))
-  const lk = laws.map(l => l.name).join('\u0001')
+  const lk = JSON.stringify(laws.map(l => [l.name, textsOfLaw(l).exact]))
   let s = byLaws.get(lk)
-  if (!s) { if (byLaws.size >= 64) byLaws.clear(); byLaws.set(lk, (s = sortsOf(m, laws))) }
+  if (!s) { sortMemoStats.misses++; if (byLaws.size >= 64) byLaws.clear(); byLaws.set(lk, (s = sortsOf(m, laws))) } else sortMemoStats.hits++
   const S = s
   const keysOf = (n: string): string[] | undefined => {
     if (n.startsWith('?')) { const c = m.step.flags?.[n.slice(1)]; return c?.op === 'all' ? boundOf(c).map(k => `Q:${n.slice(1)}:${k}`) : undefined }
