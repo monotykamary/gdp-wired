@@ -3,8 +3,8 @@
 //   bun scripts/test-shards.ts --shard 2/7           shard 2 of 7
 //   bun scripts/test-shards.ts --list [--shard i/N]  the units (each shard's, with its estimate, given --shard i/N or N)
 //   bun scripts/test-shards.ts --measure out.json [--shard i/N]   each unit alone, its seconds written to out.json
-// A unit is a test file bun test runs in its directory, or a script bun runs from the root. Consecutive test files of one
-// directory run in one `bun test`, as the && chain did, and the first failure stops the run with its code. The shards
+// A unit is a test file or script, with explicit per-file process configuration where required. Consecutive compatible
+// test files share one `bun test`; isolated/profile-specific units never share its module cache. The shards
 // are balanced on test-shards.json's seconds (measured on boat, each unit alone: --measure), longest first onto the
 // least loaded shard; a unit not measured yet goes round-robin. Every unit is in exactly one shard (checked each run).
 import {spawnSync} from 'node:child_process'
@@ -12,7 +12,8 @@ import {readFileSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {assertTestRoster, coreKernelTests, longSuiteTests} from './test-roster.ts'
 
-type Unit = {name: string, dir: string, args: string[], test: boolean}
+type UnitConfig = {rootCwd?: boolean, isolated?: boolean, env?: Record<string, string | undefined>, timeoutMs?: number}
+type Unit = {name: string, dir: string, args: string[], test: boolean} & UnitConfig
 const root = join(import.meta.dir, '..')
 const tests = (dir: string, files: string) => files.split(/\s+/).filter(Boolean).map((f): Unit =>
   ({name: dir === '.' ? f : `${dir}/${f}`, dir, args: [f], test: true}))
@@ -68,7 +69,7 @@ const units: Unit[] = [
     linear-admission.test.ts prover-row-admission.test.ts public-closing-proposal.test.ts
     reader-endpoint.test.ts rejection-discovery.test.ts rejection-stage.test.ts
     rejection-transaction.test.ts request-quotient.test.ts row-agreement-shape.test.ts
-    search-policy.test.ts sized-sort.test.ts solver-deadline.test.ts strategy-premises.test.ts
+    search-policy.test.ts sized-sort.test.ts solver-deadline.test.ts strategy-premises.test.ts inherited-wall.test.ts
     table-admission.test.ts work-admission.test.ts work-amount.test.ts
     work-capacity-boundary.test.ts work-collections.test.ts work-deadline-boundary.test.ts
     work-public-exact.test.ts work-refusal.test.ts`),
@@ -93,6 +94,49 @@ const units: Unit[] = [
     examples/jev-fabric/run.ts`),
   ...tests('gates', 'bar-lib.test.ts'),
 ]
+
+// These files declare fresh-process/FULL or root-relative subprocess contracts.
+// Keep the default process environment unchanged for every other quick unit.
+const full: UnitConfig = {rootCwd: true, isolated: true, timeoutMs: 120000,
+  env: {GDP_WORK_FULL: '1', GDP_WORK_STEPS: '0', GDP_WORK_WEIGHTS: undefined, GDP_WORK_W: undefined}}
+const rootProcess: UnitConfig = {rootCwd: true, isolated: true}
+const unitConfig: Record<string, UnitConfig> = {
+  'core/count-owner-budget.test.ts': full,
+  'core/count-recipe-context-public.test.ts': full,
+  'core/count-recipe-cohort.test.ts': full,
+  'core/count-section46-acceptance.test.ts': full,
+  'core/work-capacity-boundary.test.ts': full,
+  'core/count-scope-lazy.test.ts': {...full, env: {...full.env, GDP_ROWS_SHARED: '1'}},
+  'core/count-strategy-lease.test.ts': full,
+  'core/work-public-exact.test.ts': full,
+  'core/count-prerequisite-expiration.test.ts': full,
+  'core/count-replay-forward-lease.test.ts': full,
+  'core/reader-endpoint.test.ts': full,
+  'core/count-g1-lease.test.ts': full,
+  'core/count-recipe-diagnostics.test.ts': full,
+  'core/count-reindex-budget.test.ts': full,
+  'core/count-structured-deadline.test.ts': full,
+  'core/count-recipe-prover.test.ts': full,
+  'core/count-prerequisite-public.test.ts': {...full, env: {...full.env, GDP_COUNT_STRATEGIES: '1', GDP_COUNT_TIERS: '1', GDP_COUNT_PREREQUISITES: '1', GDP_COUNT_CLOSING_RESERVE: '1', GDP_COUNT_FINAL_DEFER_CHECKS: '1'}},
+  'core/count-prerequisite-scope-expiry.test.ts': {...full, env: {...full.env, GDP_COUNT_STRATEGIES: '1', GDP_COUNT_TIERS: '1', GDP_COUNT_PREREQUISITES: '1', GDP_COUNT_CLOSING_RESERVE: '1', GDP_COUNT_FINAL_DEFER_CHECKS: '1'}},
+  'core/public-closing-proposal.test.ts': {...full, env: {...full.env, GDP_COUNT_STRATEGIES: '1', GDP_COUNT_TIERS: '1', GDP_COUNT_FINAL_DEFER_CHECKS: '1'}},
+  'core/inherited-wall.test.ts': rootProcess,
+  'core/common-counted.test.ts': rootProcess,
+  'core/i6-meter.test.ts': rootProcess,
+  'core/prover-row-budget.test.ts': rootProcess,
+  'core/hard-cap.test.ts': rootProcess,
+  'core/work-admission-perf.test.ts': rootProcess,
+  'core/work-observe.test.ts': rootProcess,
+  'core/count-lifted-budget-profile.test.ts': rootProcess,
+  'core/count-closed-family.test.ts': rootProcess,
+  'core/count-proof-rescope.test.ts': rootProcess,
+  'core/count-scope-row-reuse.test.ts': {...rootProcess, timeoutMs: 120000},
+}
+for (const [name, config] of Object.entries(unitConfig)) {
+  const unit = units.find(u => u.name === name)
+  if (!unit?.test) throw new Error(`configuration has no quick test unit: ${name}`)
+  Object.assign(unit, config)
+}
 
 assertTestRoster(coreKernelTests(root), units.filter(u => u.test).map(u => u.name),
   longSuiteTests(JSON.parse(readFileSync(join(root, 'supercomputer/suite.json'), 'utf8'))))
@@ -142,10 +186,14 @@ if (argv.includes('--list')) {
   process.exit(0)
 }
 
-const run = (dir: string, args: string[]) => {
-  console.error(`$ ${dir === '.' ? '' : `(cd ${dir}) `}bun ${args.join(' ')}`)
+const run = (unit: Unit, args: string[]) => {
+  const dir = unit.rootCwd ? '.' : unit.dir
+  const files = unit.test && unit.rootCwd ? args.slice(1).map(file => join(unit.dir, file)) : args.slice(1)
+  const command = unit.test ? ['test', ...(unit.timeoutMs ? ['--timeout', String(unit.timeoutMs)] : []), ...files] : args
+  const flags = Object.entries(unit.env ?? {}).map(([key, value]) => `${key}=${value ?? '<unset>'} `).join('')
+  console.error(`$ ${dir === '.' ? '' : `(cd ${dir}) `}${flags}bun ${command.join(' ')}`)
   const t0 = performance.now()
-  const r = spawnSync('bun', args, {cwd: join(root, dir), stdio: 'inherit'})
+  const r = spawnSync('bun', command, {cwd: join(root, dir), env: unit.env ? {...process.env, ...unit.env} : process.env, stdio: 'inherit'})
   return {code: r.status ?? 1, s: (performance.now() - t0) / 1000}
 }
 
@@ -155,7 +203,7 @@ if (out !== undefined) {
   const got: Record<string, number> = {}
   let failed = 0
   for (const u of mine) {
-    const {code, s} = run(u.dir, u.test ? ['test', ...u.args] : u.args)
+    const {code, s} = run(u, u.test ? ['test', ...u.args] : u.args)
     got[u.name] = Math.round(s * 10) / 10
     if (code !== 0) { failed++; console.error(`FAILED (${code}): ${u.name}`) }
   }
@@ -167,13 +215,13 @@ const took: string[] = []
 for (let k = 0; k < mine.length;) {
   const u = mine[k]!
   let batch = [u]
-  if (u.test) {
+  if (u.test && !u.isolated) {
     let j = k + 1
-    while (j < mine.length && mine[j]!.test && mine[j]!.dir === u.dir) j++
+    while (j < mine.length && mine[j]!.test && !mine[j]!.isolated && mine[j]!.dir === u.dir && mine[j]!.rootCwd === u.rootCwd && mine[j]!.env === u.env && mine[j]!.timeoutMs === u.timeoutMs) j++
     batch = mine.slice(k, j)
   }
   k += batch.length
-  const {code, s} = run(u.dir, u.test ? ['test', ...batch.flatMap(b => b.args)] : u.args)
+  const {code, s} = run(u, u.test ? ['test', ...batch.flatMap(b => b.args)] : u.args)
   took.push(`${s.toFixed(1).padStart(7)} s  ${batch.map(b => b.name).join(' ')}`)
   if (code !== 0) { console.error(took.join('\n')); process.exit(code) }
 }
