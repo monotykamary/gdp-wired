@@ -29,6 +29,49 @@ const units: Unit[] = [
     effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts effect-schema.test.ts calendar.test.ts count-facts.test.ts count-ranges.test.ts count-write-frames.test.ts counts-completion-order.test.ts count-completion.test.ts count-witness.test.ts count-unions.test.ts count-witness-flags.test.ts count-focused.test.ts count-cases.test.ts count-focus-proof.test.ts count-recovery-order.test.ts count-cert-grow.test.ts field-laws.test.ts count-cubes.test.ts finite-tiny.test.ts finite-tiny-houdini.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts carry.test.ts scan-prefix.test.ts
     runtime-keys.test.ts sample-step.test.ts small-counts.test.ts cube-rows.test.ts quorum-laws.test.ts wall.test.ts count-demand.test.ts count-cert-transport.test.ts count-tier-budget.test.ts work-admission-perf.test.ts i6-meter.test.ts prover-row-budget.test.ts count-attempt-expiration.test.ts common-counted.test.ts hard-cap.test.ts work-observe.test.ts
     lemma-cuts.test.ts count-support.test.ts count-admission.test.ts counts-preflight.test.ts counts-structured.test.ts relevance.test.ts support-order.test.ts`),
+  // Explicit quick coverage for tests absent from the legacy roster.
+  ...tests('core', `
+    count-attempt-tickets.test.ts count-boolean-partition.test.ts count-case-compose.test.ts
+    count-cert-rename.test.ts count-cert-transport-hard-stop.test.ts count-certificate-minimize.test.ts
+    count-closed-family.test.ts count-closing-budget.test.ts count-closing-envelope.test.ts
+    count-closing-needs.test.ts count-closing-retry.test.ts count-component-budget.test.ts
+    count-cut-transport.test.ts count-deferred-checks.test.ts count-disjoint-funding.test.ts
+    count-emitter-frame-pool.test.ts count-final-step.test.ts count-frames.test.ts
+    count-g1-lease.test.ts count-generation-parent-cap.test.ts count-generation-phase.test.ts
+    count-guard-shape.test.ts count-guard-tree.test.ts count-leader-facts.test.ts
+    count-lemma-transport.test.ts count-lifted-budget-profile.test.ts count-lifted-budget.test.ts
+    count-lifted-emitter-boundary.test.ts count-lifted-helper-budget.test.ts count-lifted-increment.test.ts
+    count-lifted-lease.test.ts count-lifted-shape.test.ts count-lifted-transports.test.ts
+    count-minimal-view.test.ts count-operation-order.test.ts count-owner-budget.test.ts
+    count-phase.test.ts count-premise-integration.test.ts count-premise-search.test.ts
+    count-premise-view.test.ts count-prerequisite-components.test.ts count-prerequisite-discovery.test.ts
+    count-prerequisite-expiration.test.ts count-prerequisite-memory.test.ts count-prerequisite-plan.test.ts
+    count-prerequisite-public.test.ts count-prerequisite-scope-expiry.test.ts count-prerequisite-unknown.test.ts
+    count-primitive-budget.test.ts count-proof-guided-scheduler.test.ts count-proof-rescope-identity.test.ts
+    count-proof-rescope.test.ts count-proof-scope.test.ts count-prune-owned-root.test.ts
+    count-query.test.ts count-quorum-leaf.test.ts count-reachability-gate.test.ts
+    count-reachability-queue.test.ts count-reachability-reconcile.test.ts count-reachability.test.ts
+    count-recipe-allocation.test.ts count-recipe-candidates.test.ts count-recipe-cohort.test.ts
+    count-recipe-context-public.test.ts count-recipe-context.test.ts count-recipe-controller.test.ts
+    count-recipe-diagnostics.test.ts count-recipe-graph.test.ts count-recipe-prover.test.ts
+    count-recovery/reframe-tree.test.ts count-reindex-budget.test.ts count-rejection-budget.test.ts
+    count-replay-forward-lease.test.ts count-replay-forward.test.ts count-replay-skeleton.test.ts
+    count-required-family.test.ts count-retry-budget.test.ts count-row-agreement.test.ts
+    count-row-composition.test.ts count-row-copy-linear.test.ts count-row-reindex.test.ts
+    count-row-symmetry.test.ts count-scope-hyps.test.ts count-scope-lazy.test.ts
+    count-scope-row-reuse.test.ts count-search-policy.test.ts count-section46-acceptance.test.ts
+    count-stage-trace.test.ts count-strategies.test.ts count-strategy-clock.test.ts
+    count-strategy-kind.test.ts count-strategy-lease.test.ts count-strategy-premises.test.ts
+    count-strategy.test.ts count-structured-deadline.test.ts count-tier-integration.test.ts
+    count-work.test.ts dsl-budget-inheritance.test.ts dsl-deadline.test.ts
+    evaluation-admission.test.ts field-loaded.test.ts finite-work.test.ts
+    linear-admission.test.ts prover-row-admission.test.ts public-closing-proposal.test.ts
+    reader-endpoint.test.ts rejection-discovery.test.ts rejection-stage.test.ts
+    rejection-transaction.test.ts request-quotient.test.ts row-agreement-shape.test.ts
+    search-policy.test.ts sized-sort.test.ts solver-deadline.test.ts strategy-premises.test.ts
+    table-admission.test.ts work-admission.test.ts work-amount.test.ts
+    work-capacity-boundary.test.ts work-collections.test.ts work-deadline-boundary.test.ts
+    work-public-exact.test.ts work-refusal.test.ts`),
   ...tests('core/count-recovery', 'conditional-check-cache.test.ts conditional-cuts.test.ts conditional-proof.test.ts derivability-closure.test.ts empty-count-source.test.ts field-bound-budget.test.ts leaf-allowance.test.ts member-inclusions.test.ts pre-state-source.test.ts rename-proof.test.ts row-demand.test.ts scalar-guards.test.ts source-witness-instances.test.ts member-premises.test.ts action-guard.test.ts row-cases.test.ts natural-cases.test.ts carried-case.test.ts live-dependencies.test.ts field-bound-lemmas.test.ts boolean-core.test.ts key-closure.test.ts lift-count-proxies.test.ts rebase-path.test.ts fold-path.test.ts frame-lemmas.test.ts guard-cases.test.ts field-only.test.ts source-memo.test.ts field-demand.test.ts'),
   ...tests('kernel', 'cdcl-root.test.ts frame-cut.test.ts lemma-cut.test.ts tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts epr-clock.test.ts epr-image.test.ts triggers.test.ts share.test.ts model-sequence.test.ts model-values.test.ts prove-paths.test.ts prover-rows.test.ts prover-row-cache.test.ts tree-reuse.test.ts'),
   ...tests('research/query', 'goal-pack.test.ts'),
