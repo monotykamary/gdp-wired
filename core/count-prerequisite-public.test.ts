@@ -137,23 +137,24 @@ test('proof-guided admission checks and shrinks offers before expansion, then cl
  }
 })
 
-// Known completeness-only gap, Main's 0.49.0 expected-RED decision; D evidence r0qxq5/4rbran.
-// Fixed-inventory context refusal rejects this true core with screening both off and on.
-// Keep every positive assertion: an unexpected pass must retire this 0.49.1 fix marker.
-test.failing('reachable screening precedes a required ordinary allowance and survives fallback',()=>{
+// Section 93: each changed context gets its own bounded pass; retain the true-core assertions.
+for(const screen of ['0','1'])test('reachable screening precedes a required ordinary allowance and survives fallback, screen='+screen,()=>{
  const bad:Law={name:'reachable ordinary',holds:same(x('noise'),n(0))},core:Law={name:'independent core',holds:same(x('core'),n(0))}
  const m:Machine={name:'generic required screen',params:[],inputs:[],state:{noise:n(0),core:n(0)},step:{state:{noise:n(1),core:x('core')}}}
  family=[bad,core];selected=[core];requirements=new Map([[core.name,[bad.name]]]);alternatives=new Set();priority=new Map([[bad.name,0],[core.name,1]])
  let calls=0;decline=target=>target===core&&++calls===1
- const previous=process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING;process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING='1'
+ const previous=process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING,previousScreen=process.env.GDP_COUNT_REACHABILITY_SCREEN
+ process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING='1';process.env.GDP_COUNT_REACHABILITY_SCREEN=screen
  try{
   const {out,events}=run(m,[core],25000000)
   expect(out.proven).toBe(true);expect(checkCountedLaws(out.m,out.laws,out.proof!)).toBe(true)
-  expect(events.some(e=>e.phase==='count-reachability'&&e.law===bad.name&&e.outcome==='rejected')).toBe(true)
-  expect(events.some(e=>e.phase==='count-reachability-invalidated'&&(e.rejected as string[]).includes(bad.name))).toBe(true)
-  expect(events.some(e=>e.phase==='count-component-attempt'&&e.law===bad.name&&e.purpose==='required')).toBe(false)
+  if(screen==='1'){
+   expect(events.some(e=>e.phase==='count-reachability'&&e.law===bad.name&&e.outcome==='rejected')).toBe(true)
+   expect(events.some(e=>e.phase==='count-reachability-invalidated'&&(e.rejected as string[]).includes(bad.name))).toBe(true)
+   expect(events.some(e=>e.phase==='count-component-attempt'&&e.law===bad.name&&e.purpose==='required')).toBe(false)
+  }
   expect(out.laws).not.toContain(bad)
- }finally{decline=undefined;if(previous===undefined)delete process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING;else process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING=previous}
+ }finally{decline=undefined;if(previous===undefined)delete process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING;else process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING=previous;if(previousScreen===undefined)delete process.env.GDP_COUNT_REACHABILITY_SCREEN;else process.env.GDP_COUNT_REACHABILITY_SCREEN=previousScreen}
 })
 
 test('a failed outsider invalidates the actual citing proposal and the survivor is rebuilt without it',()=>{

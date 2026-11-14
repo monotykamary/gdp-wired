@@ -56,7 +56,7 @@ import {countedCertificateHyps,transportCountCertificate} from './count-cert-tra
 import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, type CountReplayDecline, scopeCountProof, replayScopedCountProof, isCheckedReducedScope, withCountScopeIdentityObservation, countScopeContextKey} from './count-proof-scope.ts'
 import {assertLiftedWorkLease, prepareCountStrategyMachine, proveCountStrategies, proposeCountStrategiesForClosing, proveCountStrategyKind, proposeCountStrategyKindForClosing, selectedCountStrategies} from './count-strategies.ts'
 import {type LiftedWorkBudget} from './count-lifted-budget.ts'
-import {countRecipeContextDecision} from './count-recipe-context.ts'
+import {CountRecipeContexts} from './count-recipe-context.ts'
 import {CountRecipePass,runCountRecipeController,type CountControllerMember,type CountRecipeClosingEntry} from './count-recipe-controller.ts'
 import {discoverLiftedCountGuard,discoverLiftedCountOperations} from './count-lifted-shape.ts'
 import {completeWorkProfile} from './work-profile.ts'
@@ -644,7 +644,7 @@ function searchCountedWithRejection(m0:Machine,g:ReturnType<typeof guardLaws>,m:
 }
 
 // One reservation survives context and structured fallbacks.
-type CountTierRun = {start: number, source?:Machine, budget?: CountTierBudget, prerequisites?:CountPrerequisiteMemory<ScopedCountProof>, reachability?:{key:string,screen:ReturnType<typeof countReachabilityScreen>},reachFunding?:CountReachabilityFunding,recipePass?:CountRecipePass<ScopedCountProof>,recipeStructured?:boolean}
+type CountTierRun = {start: number, source?:Machine, budget?: CountTierBudget, prerequisites?:CountPrerequisiteMemory<ScopedCountProof>, reachability?:{key:string,screen:ReturnType<typeof countReachabilityScreen>},reachFunding?:CountReachabilityFunding,recipeContexts?:CountRecipeContexts<CountRecipePass<ScopedCountProof>>}
 // Candidate scheduling only. Every returned family still goes through finish.
 export function admitCountedFamily(m:Machine,caller:Law[],initial:Law[],support:Set<Law>,until:number,tiers?:CountTierBudget):Counted {
   if (tiers && tiers.until !== until) throw new RangeError('mismatched tier deadline')
@@ -739,28 +739,23 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
   const recipeJoint=():Counted=>{
     const prepared=beforeClosing(()=>{
       const context=countScopeContextKey(m,set)
-      if(tierRun.recipePass){
-        workLedger.start('tableCells',Math.min(context.length,tierRun.recipePass.context.length),'count recipe inventory context')
-        // Never reuse a fixed inventory for changed machine/law bytes. Keep
-        // the old instances and fuel; a different context gets no new pass.
-        if(!countRecipeContextDecision(tierRun.recipePass,context,tierRun.recipeStructured,structured,event=>countsDump.on?.(event)))return {kind:'context-changed' as const}
-      }else{
+      const pass=(tierRun.recipeContexts??=new CountRecipeContexts<CountRecipePass<ScopedCountProof>>()).acquire(context,structured,()=>{
         const plan=countPrerequisiteSchedule(m,set,selected,until)
         const members=workMap(set,(law,reference):CountControllerMember=>({name:law.name,reference,recipes:workMap(plan.recipes.get(law.name)??[],recipe=>{
           const shape=recipe.id==='lifted'?discoverLiftedCountGuard(m,law,set):undefined
           const operations=shape&&discoverLiftedCountOperations(m,shape)
           return {...recipe,...(operations?{caseKeys:workMap(operations,operation=>'op:'+operation.value,'count recipe case inventory')}:{})}
         },'count recipe inventory')}),'count member inventory')
-        tierRun.recipePass=new CountRecipePass<ScopedCountProof>(members,context)
-      }
-      tierRun.recipeStructured=structured
-      return {kind:'ready' as const,
+        return new CountRecipePass<ScopedCountProof>(members,context)
+      },event=>countsDump.on?.(event))
+      if(!pass)return {kind:'context-changed' as const}
+      return {kind:'ready' as const,pass,
         lawByName:new Map(workMap(set,law=>[law.name,law] as const,'count recipe law lookup')),
         active:new Set(workMap(set,law=>law.name,'count active inventory')),
         targets:workMap(caller,law=>law.name,'count recipe targets')}
     })
     if(!prepared||prepared.kind!=='ready')return {proven:false,laws:set,m,why:prepared?.kind==='context-changed'?'recipe fixed inventory context changed':'recipe planning budget'}
-    const {lawByName,active,targets}=prepared
+    const {lawByName,active,targets,pass}=prepared
     const tick=()=>workLedger.start('ticks',1,'count recipe adapter')
     const reconcile=()=>{if(reach)for(const name of reach.rejectedNames()){tick();active.delete(name)}}
     const screen=(law:Law,ordinary:number,citing:number):boolean=>{
@@ -774,7 +769,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
     if(beforeClosing(()=>{reconcile();return true})!==true)return {proven:false,laws:set,m,why:'recipe reconciliation budget'}
     attempts.houdini=true
     const transportDeclined=undefined
-    const outcome=runCountRecipeController(tierRun.recipePass!,targets,{
+    const outcome=runCountRecipeController(pass,targets,{
       active,observe:event=>countsDump.on?.(event),
       beforeClosing:countRecipeClosingCapture.on?controller=>countRecipeClosingCapture.on!({
         version:'counted-recipe-closing/v1',controller,m,set,caller,initial,selected,structured,
@@ -808,7 +803,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         if(!law)return
         const before=workLedger.actual();let identity=zeroWork
         const captured=withCountScopeIdentityObservation(amount=>{identity=workAdd(identity,amount)},()=>{
-          const scoped=rescopeCountProof(m,law,set,proof!,new Set(tierRun.recipePass!.held().keys()),Infinity,
+          const scoped=rescopeCountProof(m,law,set,proof!,new Set(pass.held().keys()),Infinity,
             event=>countsDump.on?.({phase:'count-component-rescope',law:name,...event}),countRescopeFunding())
           if(!scoped)return
           const checkedReduced=isCheckedReducedScope(scoped,m,set)
