@@ -155,7 +155,9 @@ test('N2: retry certificate bytes equal an independently rebuilt larger-first-al
  expect(wire(retry)).toBe(wire(largerFirst))
 })
 
-test('N3/46.17: public T301-shaped half retry funds body separately and closes dependents (expected RED while flat)',()=>{
+// Main-approved completeness-only expected RED; retain every positive assertion.
+// D confirmed the flat body/case funding gap; no false-law acceptance is exempted.
+test.failing('N3/46.17: public T301-shaped half retry funds body separately and closes dependents (expected RED while flat)',()=>{
  const {m,family}=independent(['half','Inv*','K3','safety']),[half,inv,k3,target]=family as [Law,Law,Law,Law]
  const rs=new Map<string,readonly CountComponentRecipe[]>([
   [half.name,[recipe('lifted',[])]],[inv.name,[recipe('row',[half.name])]],

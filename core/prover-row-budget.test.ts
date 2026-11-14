@@ -34,7 +34,8 @@ test('checkpointed mixed conditional and tuple-key proposals equal reference row
  }
 })
 
-test('wide row construction stops inside 1024 slack; uninterrupted reference exposes the gap',()=>{
+// 4bec30ad0 and f5851b032: both row paths admit before materialization, with no overshoot.
+test('wide row construction refuses before charging and both row paths honor the exact cap',()=>{
  const code=`
  import {strict as a} from 'node:assert';
  import {atMost,get,n} from './core/machine.ts';
@@ -43,11 +44,11 @@ test('wide row construction stops inside 1024 slack; uninterrupted reference exp
  import {budgetedLeafRows} from './core/prover-row-budget.ts';
  import {BudgetExpired,withBudget,fullWork} from './kernel/prove.ts';
  const goal={name:'wide',hyps:Array.from({length:256},(_,i)=>atMost(get('M',n(i)),n(1)))};
- const tableBefore=coreMeter.tableCells;const path=new Map([['x:1',{lin:{x:1},holds:true}]]);a.throws(()=>withBudget(0,()=>budgetedLeafRows({name:'path row',hyps:[]},path)),BudgetExpired);a.equal(coreMeter.tableCells-tableBefore,1);
- const start=fullWork();a.throws(()=>withBudget(128,()=>budgetedLeafRows(goal,new Map())),BudgetExpired);const stopped=fullWork()-start;a(stopped<=1152,String(stopped));
- const before=fullWork();a.throws(()=>withBudget(128,()=>leafConstraints(goal,new Map())),BudgetExpired);const uninterrupted=fullWork()-before;a(uninterrupted>1152,String(uninterrupted));
- withBudget(1e9,()=>a.deepEqual(budgetedLeafRows(goal,new Map()),leafConstraints(goal,new Map())));
- console.log('ROW_CAP_CONTROL '+JSON.stringify({stopped,uninterrupted}));`
+ const tableBefore=coreMeter.tableCells;const path=new Map([['x:1',{lin:{x:1},holds:true}]]);a.throws(()=>withBudget(0,()=>budgetedLeafRows({name:'path row',hyps:[]},path)),BudgetExpired);a.equal(coreMeter.tableCells-tableBefore,0);
+ const start=fullWork();a.throws(()=>withBudget(128,()=>budgetedLeafRows(goal,new Map())),BudgetExpired);const stopped=fullWork()-start;a(stopped<=128,String(stopped));
+ const before=fullWork();a.throws(()=>withBudget(128,()=>leafConstraints(goal,new Map())),BudgetExpired);const referenceStopped=fullWork()-before;a(referenceStopped<=128,String(referenceStopped));
+ const completeStart=fullWork();withBudget(1e9,()=>a.deepEqual(budgetedLeafRows(goal,new Map()),leafConstraints(goal,new Map())));const completed=fullWork()-completeStart;a(completed>128,String(completed));
+ console.log('ROW_CAP_CONTROL '+JSON.stringify({stopped,referenceStopped,completed}));`
  const run=spawnSync(process.execPath,['-e',code],{cwd:process.cwd(),env:{...process.env,GDP_WORK_FULL:'1',GDP_WORK_STEPS:'0'},encoding:'utf8',timeout:60000})
  expect(run.status,run.stdout+'\n'+run.stderr).toBe(0);expect(run.stdout).toContain('ROW_CAP_CONTROL')
 })

@@ -17,6 +17,7 @@ test('counted binding loops and public stops preserve a 1024-unit slack',()=>{
  import {strict as assert} from 'node:assert';
  import {withBudget,BudgetExpired,fullWork,pastWall,late,checkWorkEndpoint,withDeadline,clock} from './kernel/prove.ts';
  import {costs} from './core/solver.ts';
+ import {workLedger} from './core/work-admission.ts';
  import {interpret} from './core/machine.ts';
  import {watch} from './core/watch.ts';
  import {proveRule} from './core/dsl.ts';
@@ -26,12 +27,22 @@ test('counted binding loops and public stops preserve a 1024-unit slack',()=>{
  const run=interpret(m),start=fullWork();
  assert.throws(()=>withBudget(1000,()=>watch(m,run,law,{},32).start(run.init({}))),BudgetExpired);
  assert(fullWork()-start<=2024);
+ // f5851b032 rejects bounded counter writes; 405b00adc makes sticky refusal explicit.
+ withBudget(1,()=>assert.throws(()=>{costs.fm+=1},/unadmitted work counter mutation/));
  for(const poll of [pastWall,()=>late(Infinity)]){
-  const before=costs.fm;
-  try { assert.throws(()=>withBudget(1,()=>{costs.fm+=1;assert.throws(poll,BudgetExpired)}),BudgetExpired) }
-  finally { costs.fm=before }
+  const before=fullWork();
+  withBudget(1,()=>{assert.throws(()=>workLedger.start('fm',1,'hard-cap probe'),BudgetExpired);assert.doesNotThrow(poll)});
+  assert.equal(fullWork(),before);
+  assert.throws(()=>withBudget(1,()=>workLedger.withCapacityRefusalBoundary(()=>{
+   try { workLedger.start('fm',1,'guarded hard-cap probe') } catch(error) { assert(error instanceof BudgetExpired) }
+   poll();
+  })),BudgetExpired);
+  assert.equal(fullWork(),before);
  }
- withBudget(100000,()=>withDeadline(clock()-1,()=>assert.doesNotThrow(()=>checkWorkEndpoint('local deadline is not W'))));
+ withBudget(100000,()=>{
+  assert.throws(()=>withDeadline(clock()-1,()=>assert.fail('expired scope entered')),BudgetExpired);
+  assert.doesNotThrow(()=>checkWorkEndpoint('expired child does not poison parent'));
+ });
  const p=protocols.find(p=>p.id==='lock_server'),r=p.make(),laws=p.laws(r);
  for(const cap of [0,64,4096,10000]){
   const before=fullWork(),v=proveRule(r,laws,{search:{work:cap}}),used=fullWork()-before;

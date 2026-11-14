@@ -17,6 +17,8 @@ import {strict as a} from 'node:assert';
 import {withBudget,BudgetExpired,fullWork,checkWorkEndpoint} from './kernel/prove.ts';
 import {rawWork,workKeys,weightedWork} from './core/work-meter.ts';
 import {completeWorkProfile as profile} from './core/work-profile.ts';
+import {workLedger} from './core/work-admission.ts';
+import {workAdd,workMultiply,workAmount,workToNumber,zeroWork} from './core/work-amount.ts';
 import {tinyNode,tinyTerm,tinyBlock,reachState,reachEdge,observeEval,withReachabilityWork} from './core/work-observe.ts';
 import {compileC,fastStep} from './core/machine.ts';
 import {tinyFiniteCandidates} from './core/finite-tiny.ts';
@@ -27,10 +29,15 @@ if(profile.enabled){
  for(const action of [tinyNode,tinyTerm,reachState,reachEdge,()=>withReachabilityWork(()=>observeEval()),()=>withReachabilityWork(()=>observeEval(7,true))]){
   const old=rawWork(),used=fullWork();a.throws(()=>withBudget(0,action),BudgetExpired);a.deepEqual(rawWork(),old);a.equal(fullWork(),used);
  }
- a.throws(()=>withBudget(1,()=>{try{withReachabilityWork(()=>observeEval(100,true))}catch{}checkWorkEndpoint('refusal cannot be swallowed')}),BudgetExpired);
+ // f5851b032: refusal is atomic; 405b00adc makes sticky cancellation opt-in.
+ const refused=rawWork(),used=fullWork();
+ withBudget(1,()=>{a.throws(()=>withReachabilityWork(()=>observeEval(100,true)),BudgetExpired);checkWorkEndpoint('unprotected refusal')});
+ a.deepEqual(rawWork(),refused);a.equal(fullWork(),used);
+ a.throws(()=>withBudget(1,()=>workLedger.withCapacityRefusalBoundary(()=>{try{withReachabilityWork(()=>observeEval(100,true))}catch{}checkWorkEndpoint('protected refusal')})),BudgetExpired);
+ a.deepEqual(rawWork(),refused);a.equal(fullWork(),used);
  withBudget(100,()=>{a.throws(()=>withBudget(0,tinyTerm),BudgetExpired);tinyTerm()});
- a.throws(()=>withBudget(0,()=>{try{withBudget(10,tinyTerm)}catch{}checkWorkEndpoint('shared end')}),BudgetExpired);
- a.throws(()=>withBudget(1,()=>{try{withReachabilityWork(()=>observeEval(100,true))}catch{}a.throws(()=>withBudget(0.1,tinyTerm),BudgetExpired);a.throws(()=>tinyBlock(1,tinyTerm),BudgetExpired)}),BudgetExpired);
+ withBudget(0,()=>{try{withBudget(10,tinyTerm)}catch{}checkWorkEndpoint('unprotected shared end')});
+ a.throws(()=>withBudget(1,()=>{try{withReachabilityWork(()=>observeEval(100,true))}catch{}a.throws(()=>withBudget(0.1,tinyTerm),BudgetExpired);tinyBlock(1,tinyTerm);tinyTerm()}),BudgetExpired);
  const start=rawWork().tinyTerms;
  a.throws(()=>withBudget(2,()=>tinyBlock(100,()=>{tinyTerm();tinyTerm();tinyTerm()})),BudgetExpired);
  a.equal(rawWork().tinyTerms-start,2);
@@ -48,7 +55,10 @@ if(profile.enabled){a.equal(rawWork().tinyNodes-node0,stats.nodes);a(rawWork().t
 const test=compileC(law.holds,m),st={scalars:{x:0},maps:{}};
 withBudget(10000000,()=>withReachabilityWork(()=>{reachState();test({},st);withReachabilityWork(()=>test({},st));const step=fastStep(m);a(step);reachEdge();step({},st,{op:1})}));
 const last=rawWork();for(const k of workKeys)a(Number.isSafeInteger(last[k])&&last[k]>=before[k],k);
-a.equal(weightedWork(last),fullWork());
+if(profile.enabled){
+ const exact=workKeys.reduce((sum,key)=>workAdd(sum,workMultiply(workLedger.weights[key],workAmount(BigInt(last[key])))),zeroWork);
+ a.deepEqual(exact,workLedger.actual());a.equal(workToNumber(exact),fullWork());
+}else a.equal(weightedWork(last),fullWork());
 if(profile.enabled){for(const k of ['tinyNodes','tinyTerms','reachStates','reachEdges','reachEvals','reachCompiledEvals'])a(last[k]>before[k],k)}
 else for(const k of ['tinyNodes','tinyTerms','reachStates','reachEdges','reachEvals','reachCompiledEvals'])a.equal(last[k],0,k);
 tripwireGate.active=false;console.log('NATIVE_RESULT '+JSON.stringify({candidates,stats:{...stats,ms:0},coverage:Object.fromEntries(workKeys.map(k=>[k,last[k]-before[k]]))}));`

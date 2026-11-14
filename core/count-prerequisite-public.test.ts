@@ -7,10 +7,10 @@ import * as strategies from './count-strategies.ts'
 import * as planning from './count-prerequisite-plan.ts'
 import * as views from './count-premise-view.ts'
 import {checkCountedLaws} from '../kernel/kernel.ts'
-import {BudgetExpired,checkBudget,clock,counted,fullRate,withinDeadline,withBudget,withWall} from '../kernel/prove.ts'
-import {costs} from './solver.ts'
+import {clock,counted,fullRate,searchNow,withBudget,withWall} from '../kernel/prove.ts'
+import {workLedger} from './work-admission.ts'
 import {scopeCountProof,replayScopedCountProof} from './count-proof-scope.ts'
-import {compareWork,type WorkAmount} from './work-amount.ts'
+import {compareWork,integerQuotient,type WorkAmount} from './work-amount.ts'
 let offeredScope=false
 let alternatives=new Set<string>(),priority=new Map<string,number>(),selected:Law[]|undefined,interrupt:((event:Record<string,unknown>)=>void)|undefined
 let decline:((target:Law)=>boolean)|undefined
@@ -34,7 +34,7 @@ void mock.module('./count-premise-view.ts',()=>({...view,countPremiseContext:()=
 function run(m:Machine,callers:Law[],work?:number){
  const events:Record<string,unknown>[]=[],previous=countsDump.on
  countsDump.on=e=>{events.push(e as Record<string,unknown>);interrupt?.(e as Record<string,unknown>)}
- const invoke=()=>withWall(work===undefined?performance.now()+15000:clock()+work/fullRate,()=>({out:admitCountedFamily(m,callers,family,new Set(),clock()+100000),events}))
+ const invoke=()=>withWall(work===undefined?searchNow()+15000:clock()+work/fullRate,()=>({out:admitCountedFamily(m,callers,family,new Set(),clock()+100000),events}))
  try{return counted(fullRate,()=>work===undefined?invoke():withBudget(work,invoke))}
  finally{countsDump.on=previous}
 }
@@ -59,11 +59,11 @@ test('a conditional core remains uncommitted while its helper is unknown across 
  const helper:Law={name:'parked helper',holds:same(x('helper'),n(0))},core:Law={name:'conditional core',holds:same(x('core'),n(0))}
  const m:Machine={name:'conditional fallback',params:[],inputs:[],state:{helper:n(0),core:n(0)},step:{state:{helper:n(1),core:x('helper')}}}
  family=[helper,core];selected=[core];requirements=new Map();alternatives=new Set();priority=new Map([[helper.name,0],[core.name,1]])
- const previous=costs.fm;let purpose=''
+ let purpose=''
  try{
   interrupt=event=>{
    if(event.phase==='count-component-attempt')purpose=String(event.purpose)
-   if(event.phase==='query'&&event.law===helper.name&&purpose==='required')withBudget(0,()=>{costs.fm++;checkBudget('unresolved helper child')})
+   if(event.phase==='query'&&event.law===helper.name&&purpose==='required')withBudget(0,()=>workLedger.start('ticks',1,'unresolved helper child'))
   }
   const {out,events}=run(m,[core],25000000)
   expect(out.proven).toBe(false)
@@ -73,16 +73,23 @@ test('a conditional core remains uncommitted while its helper is unknown across 
   expect(events.filter(event=>event.phase==='count-component-attempt'&&event.law===core.name)).toHaveLength(1)
   expect(events.some(event=>event.phase==='count-component-closed'&&(event.members as string[]).includes(core.name))).toBe(false)
   expect(events.some(event=>event.phase==='closed-family')).toBe(false)
- }finally{interrupt=undefined;costs.fm=previous}
+ }finally{interrupt=undefined}
 })
 test('a native-expired ordinary member joins the later core and is checked together',()=>{
  const left:Law={name:'later core',holds:same(x('left'),n(0))},right:Law={name:'expired ordinary',holds:same(x('right'),n(0))}
  const m:Machine={name:'expiry absorption',params:[],inputs:[],state:{left:n(0),right:n(0)},step:{state:{left:x('right'),right:x('left')}}}
  family=[right,left];selected=[left];requirements=new Map([[left.name,[right.name]]]);alternatives=new Set();priority=new Map([[right.name,0],[left.name,1]])
- const saved=costs.fm;let stopped=false
+ let stopped=false
  interrupt=event=>{if(event.phase==='query'&&event.law===right.name&&!stopped){
-  stopped=true;costs.fm+=Math.max(1,Math.ceil((withinDeadline(Infinity)-clock())*fullRate/2.33)+2)
-  checkBudget('native ordinary expiry');throw new BudgetExpired('native ordinary expiry')
+  stopped=true
+  // f5851b032: consume only admitted integer work, then obtain a real local refusal.
+  const left=workLedger.available()!,ticks=integerQuotient(left,workLedger.weights.ticks)
+  if(ticks)workLedger.start('ticks',Number(ticks),'ordinary expiry fill')
+  const before=workLedger.actual()
+  try{workLedger.start('ticks',1,'native ordinary expiry')}catch(error){
+   expect(workLedger.capacityRefusal(error)).toBeDefined();expect(workLedger.actual()).toEqual(before);throw error
+  }
+  throw Error('ordinary endpoint did not refuse')
  }}
  try{
   const {out,events}=run(m,[left],25000000)
@@ -91,7 +98,7 @@ test('a native-expired ordinary member joins the later core and is checked toget
   expect(events.some(event=>event.phase==='count-component-attempt'&&event.law===right.name&&(event.component as string[]).length===2)).toBe(true)
   expect(events.some(event=>event.phase==='count-component-attempt'&&event.mode==='dissolve')).toBe(false)
   expect(out.proven).toBe(true);expect(checkCountedLaws(out.m,out.laws,out.proof!)).toBe(true)
- }finally{interrupt=undefined;costs.fm=saved}
+ }finally{interrupt=undefined}
 })
 test('a declared alternative may fail without declining the checked joint component',()=>{
  const left:Law={name:'mutual left',holds:same(x('left'),n(0))},right:Law={name:'mutual right',holds:same(x('right'),n(0))}
