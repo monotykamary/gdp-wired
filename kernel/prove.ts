@@ -1937,14 +1937,15 @@ function decideLaw0(m: Machine, laws: Law[], i: number, rounds: number): Decided
 // - a law's model, with the set it was found in: a model of every smaller set's goal too, whose hypotheses are fewer.
 // Untrusted: proveSetFast's proof is made and checked whole at its end.
 type Proof1 = {part: Goal, tree: Tree, uses: Map<string, string>, tuples?: Map<string, Set<string>>}
-type Settled = {text: string, inst: Instances, proofs: Record<string, Proof1>}
+type MemoContext = {machine: string, laws: Map<string, string>}
+type Settled = {text: string, context: MemoContext, inst: Instances, proofs: Record<string, Proof1>}
 type Unsettled = {goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram, why?: string}
-type Memo = {proven: Map<string, Settled>, models: Map<string, {text: string, model: Unsettled, strict: boolean, set: Map<string, string>}>}
+type Memo = {proven: Map<string, Settled>, models: Map<string, {text: string, context: MemoContext, model: Unsettled, strict: boolean, set: Map<string, string>}>}
 // (GDP_MEMO_CAP: how many machines' decisions are kept, 4 by default; the hits and misses counted for the engine's trace)
 const memoCap = Number(env.GDP_MEMO_CAP ?? 4)
 export const memoHits = {n: 0, miss: 0, setKey: '', setJson: ''}
 export const machineKey = (m: Machine): string => { const s = JSON.stringify(m); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return `${s.length}:${h}` }
-const memos = new Map<string, Memo>(), machineText = new WeakMap<Machine, string>(), lawText = new WeakMap<Law, {exact: string, text: string}>()
+const memos = new Map<string, Memo>(), machineText = new WeakMap<Machine, {exact: string, text: string}>(), lawText = new WeakMap<Law, {exact: string, text: string}>()
 // Rollback base only: legacy reuse has a stale-binder false-negative; release is held until reuse is repaired.
 // (texts up to a renaming of fresh names, x$12: a rule's machine and kinds' laws are made again with
 // fresh binders, so the same machine had another text each time and no decision was found again; GDP_MEMO_ALPHA=0 off)
@@ -1952,9 +1953,11 @@ const alpha = env.GDP_MEMO_ALPHA !== '0'
 const alphaText = (s: string): string => { if (!alpha) return s; const to = new Map<string, string>(); return s.replace(/([A-Za-z_?]+)\$(\d+)/g, (w, p: string) => { let r = to.get(w); if (!r) to.set(w, (r = `${p}$_${to.size}`)); return r }) }
 const textsOfLaw = (l: Law): {exact: string, text: string} => { let t = lawText.get(l); if (!t) { const exact = JSON.stringify([l.holds, l.forall ?? null, l.keys ?? null]); lawText.set(l, (t = {exact, text: alphaText(exact)})) } return t }
 const textOfLaw = (l: Law): string => textsOfLaw(l).text
+const textsOfMachine = (m: Machine): {exact: string, text: string} => { let t = machineText.get(m); if (!t) { const exact = JSON.stringify(m); machineText.set(m, (t = {exact, text: alphaText(exact)})) } return t }
+// Exact query context belongs to each entry, not to a shared alpha-keyed machine slot.
+const memoContext = (m: Machine, laws: Law[]): MemoContext => ({machine: textsOfMachine(m).exact, laws: new Map(laws.map(l => [l.name, textsOfLaw(l).exact]))})
 function memoOf(m: Machine): Memo {
-  let key = machineText.get(m)
-  if (key === undefined) machineText.set(m, (key = alphaText(JSON.stringify(m))))
+  const key = textsOfMachine(m).text
   let memo = memos.get(key)
   if (!memo) { if (memos.size >= memoCap) memos.clear(); memos.set(key, (memo = {proven: new Map(), models: new Map()})) }
   return memo
@@ -1972,7 +1975,7 @@ function settled(m: Machine, laws: Law[], i: number, rounds: number, usual: bool
   const out = settle(m, laws, i, rounds, usual, prev)
   const cap = <T>(x: Map<string, T>) => { if (x.size >= 4096) x.clear(); return x }
   if (out && 'proofs' in out) cap(memo.proven).set(law.name, out)
-  else if (out?.stuck === 'sat' && rounds === modelRounds) cap(memo.models).set(law.name, {text, model: out, strict: strict(usual), set: new Map(laws.map(l => [l.name, textOfLaw(l)]))})
+  else if (out?.stuck === 'sat' && rounds === modelRounds) cap(memo.models).set(law.name, {text, context: memoContext(m, laws), model: out, strict: strict(usual), set: new Map(laws.map(l => [l.name, textOfLaw(l)]))})
   return out
 }
 // The fast path's machines: no history, sums or "there exists" (their goals are other machines' or need witnesses).
@@ -2060,7 +2063,7 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
       if (!more || pastWall()) return last
       break
     }
-    if (!more) return {text: textOfLaw(law), inst, proofs}
+    if (!more) return {text: textOfLaw(law), context: memoContext(m, laws), inst, proofs}
     inst = more
   }
 }
@@ -2144,7 +2147,7 @@ function proveOne(m: Machine, laws: Law[], i: number): {proven: true} | {proven:
     }
     const memo = memoOf(m)
     if (memo.proven.size >= 4096) memo.proven.clear()
-    memo.proven.set(law.name, {text: textOfLaw(law), inst: at, proofs})
+    memo.proven.set(law.name, {text: textOfLaw(law), context: memoContext(m, laws), inst: at, proofs})
   }
   const few = triggered(pm, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
   if (!sameInstances(few, inst)) {
