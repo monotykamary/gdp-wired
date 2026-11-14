@@ -44,7 +44,7 @@ test('goal-local export uses mcF_sound and refuses an invalid frame',()=>{
 
 test('complete cut-free projects retain every frozen-F library byte and file order',()=>{
  const baseline=JSON.parse(readFileSync(new URL('./compat/count-family-F/LIBRARY-SHA256.json',import.meta.url),'utf8')) as {keyOrder:string[],hashes:Record<string,string>}
- for(const file of ['-- ordinary cut-free file\n','-- comment mentions CEntryF and checkCMachineF\n','def noCuts_proof : List CEntry := []\n']){
+ for(const file of ['-- ordinary cut-free file\n','-- comment mentions CEntryF and checkCMachineF\n','-- noncomputable def commented : List CEntryF := []\n','def noCuts_proof : List CEntry := []\n','noncomputable def noCuts_proof : List CEntry := []\n']){
   const project=leanProject(file)
   expect(Object.keys(project)).toEqual([...baseline.keyOrder,'Proofs.lean','lean-toolchain','lakefile.lean'])
   for(const name of baseline.keyOrder) expect(createHash('sha256').update(project[name]!).digest('hex')).toBe(baseline.hashes[name]!)
@@ -60,11 +60,22 @@ test('cut-free family emission and explicit empty cut lists select the old check
  expect(cmachineToLean('plain',f.machine,f.laws,empty)).toBe(a)
  expect(a).toContain('plain_proof : List CEntry :=')
  expect(a).not.toContain('CEntryF')
+ expect(a).not.toContain('noncomputable def plain_proof')
 })
+test('plain and noncomputable cut-family declarations select the same F library',()=>{
+ const plain=leanProject('def selected_proof : List CEntryF := []\n')
+ const modified=leanProject('noncomputable def selected_proof : List CEntryF := []\n')
+ expect(plain['CountMachine.lean']).toContain('theorem checkCMachineF_of_parts')
+ expect(modified['CountMachine.lean']).toBe(plain['CountMachine.lean'])
+ expect(modified['QAlpha.lean']).toBe(plain['QAlpha.lean'])
+})
+
 for(const kind of ['frame','mono','linear'] as const)test(`family ${kind} cuts are carried and malformed auxiliaries remain negative controls`,()=>{
  const f=familyCutFixture(kind),before=JSON.stringify(f),bad=brokenFamilyCut(f)
  const source=cmachineToLean(`with_${kind}`,f.machine,f.laws,f.proof,[{what:'invalid auxiliary',certs:bad.certs}])
- expect(source).toContain(`with_${kind}_proof : List CEntryF :=`)
+ expect(source).toContain(`noncomputable def with_${kind}_proof : List CEntryF :=`)
+ expect(source).not.toContain(`noncomputable def with_${kind}_machine`)
+ expect(source).not.toContain(`noncomputable def with_${kind}_decls`)
  expect(source).toContain('checkCMachineF')
  expect(source).toContain('cmachineF_sound')
  expect(source).toContain('= false := by decide +kernel')
@@ -77,4 +88,6 @@ test('alpha-renamed cut families use the cut-aware QAlpha transport',()=>{
  const f=familyCutFixture('frame',true),source=cmachineToLean('alpha',f.machine,f.laws,f.proof)
  expect(source).toContain('QAlpha.cmachineF_sound')
  expect(source).toContain('alpha_checkedMachine')
+ expect(source).toContain('noncomputable def alpha_proof : List CEntryF :=')
+ expect(leanProject(source)['CountMachine.lean']).toContain('theorem checkCMachineF_of_parts')
 })

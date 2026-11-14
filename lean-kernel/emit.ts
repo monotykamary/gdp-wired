@@ -520,7 +520,7 @@ def ${id}_machine : SMachine := ${machineLit(sm, {e, c}, ix, mx)}${renames.lengt
 def ${id}_renames : List QAlpha.Rename := ${list(renames.map(r => `⟨${ix(`?${r.flag}`)}, ${ix(r.old)}, ${ix(r.fresh)}⟩`))}
 def ${id}_checkedMachine : SMachine := QAlpha.renameAll ${id}_machine ${id}_renames` : ''}
 def ${id}_decls : List CDecl := ${list(counts.map(([cn, d]) => `⟨${mx(cn)}, ${mx(postName(cn))}, ${ix(d.j)}, ${ix(d.key)}, ${e(d.below)}, ${e(d.body)}, ${ix(d.lo ?? d.j)}, ${d.base ?? 0}⟩`))}
-def ${id}_proof : List ${withAux ? 'CEntryF' : 'CEntry'} := ${list(entries(proof.certs))}
+${withAux ? 'noncomputable ' : ''}def ${id}_proof : List ${withAux ? 'CEntryF' : 'CEntry'} := ${list(entries(proof.certs))}
 theorem ${id}_check : ${withAux ? 'checkCMachineF' : 'checkCMachine'} ${checked} ${id}_decls ${id}_proof = true := by ${checkBy}
 /-- ${laws.map(l => l.name).join('; ')}: each holds in every reachable state, each count map read as the state's count. -/
 theorem ${id}_laws : ∀ ρ M, CReach ${id}_machine ${id}_decls ρ M → ∀ ce ∈ ${id}_proof, ce.e.Holds ρ (withCnt ${id}_decls ρ M) :=
@@ -2349,7 +2349,7 @@ export function leanProject(file: string, opts: {name?: string} = {}): Record<st
   const name = opts.name ?? 'Proofs'
   // Only generated cut-family declarations need the new family library. Merely
   // mentioning CEntryF in a comment or identifier must not change a cut-free project.
-  const cutFamily = /^def [^\s:]+ : List CEntryF :=/m.test(file)
+  const cutFamily = /^(?:noncomputable )?def [^\s:]+ : List CEntryF :=/m.test(file)
   const library = cutFamily ? leanLibrary : {...leanLibrary, ...legacyFamilyLibrary}
   const modules = [...Object.keys(library).map(f => f.replace(/\.lean$/, '')), name]
   return {
