@@ -1946,7 +1946,7 @@ type Memo = {proven: Map<string, Settled>, models: Map<string, {text: string, co
 // (GDP_MEMO_CAP: how many machines' decisions are kept, 4 by default; the hits and misses counted for the engine's trace)
 const memoCap = Number(env.GDP_MEMO_CAP ?? 4)
 export const memoHits = {n: 0, miss: 0, setKey: '', setJson: ''}
-export const memoReuseStats = {hitChecks: 0, hitCheckFailures: 0, coldRetries: 0, modelHits: 0, modelsIgnored: 0, discardedSeeds: 0, wholeRetries: 0, decisionHits: 0, lawHits: 0, setHits: 0}
+export const memoReuseStats = {hitChecks: 0, hitCheckFailures: 0, coldRetries: 0, proofRetries: 0, modelRetries: 0, seedRetries: 0, modelHits: 0, modelsIgnored: 0, discardedSeeds: 0, wholeRetries: 0, decisionHits: 0, lawHits: 0, setHits: 0}
 export const machineKey = (m: Machine): string => { const s = JSON.stringify(m); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return `${s.length}:${h}` }
 const memos = new Map<string, Memo>(), machineText = new WeakMap<Machine, {exact: string, text: string}>(), lawText = new WeakMap<Law, {exact: string, text: string}>()
 // Alpha hits are untrusted hints: non-exact proofs are checked locally; non-exact models go cold.
@@ -1963,15 +1963,24 @@ const memoAttempt = (): MemoAttempt => ({cold: new Set(), reused: new Set(), fre
 function exactMemoContext(context: MemoContext, m: Machine, laws: Law[]): boolean {
   return context.machine === textsOfMachine(m).exact && laws.every(l => context.laws.get(l.name) === textsOfLaw(l).exact)
 }
-function discardMemo(memo: Memo, name: string, attempt: MemoAttempt): void {
+function discardMemo(memo: Memo, name: string, attempt: MemoAttempt, reason: 'proof' | 'model' | 'seed' = 'proof'): void {
   memo.proven.delete(name); memo.models.delete(name)
-  if (!attempt.cold.has(name)) { attempt.cold.add(name); memoReuseStats.coldRetries++ }
+  if (!attempt.cold.has(name)) { attempt.cold.add(name); memoReuseStats.coldRetries++; memoReuseStats[`${reason}Retries`]++ }
 }
-function checkMemoLaw(m: Machine, laws: Law[], i: number, cached: Settled): boolean {
-  return obligations(m, laws, {[laws[i]!.name]: cached.inst}, i).every(g => {
-    const p = cached.proofs[g.name], tree = p && widen(p.part, g, p.tree)
-    return !!tree && check(g, tree)
-  })
+function checkMemoLaw(m: Machine, laws: Law[], i: number, cached: Settled): Settled | undefined {
+  const proofs: Record<string, Proof1> = {}, byName = new Map(laws.map(l => [l.name, l]))
+  // Widen usually makes fresh leaves, but its grow fallback may return a cached tree.
+  // New tree objects drop every goal-local WeakMap annotation before source extraction.
+  const currentTree = (t: Tree): Tree => 'leaf' in t ? {...t} : {...t, yes: currentTree(t.yes), no: currentTree(t.no)}
+  for (const g of obligations(m, laws, {[laws[i]!.name]: cached.inst}, i)) {
+    const p = cached.proofs[g.name], widened = p && widen(p.part, g, p.tree)
+    const tree = widened && currentTree(widened)
+    if (!tree || !check(g, tree)) return undefined
+    // Read current row sources, never the cached support/tuple metadata.
+    const src = sourcesOf(m, laws, cached.inst, g, usedHyps(g, tree))
+    proofs[g.name] = {part: g, tree, uses: new Map((src ? [...src.keys()] : laws.map(l => l.name)).map(n => [n, textOfLaw(byName.get(n)!)])), ...(src ? {tuples: src} : {})}
+  }
+  return {text: textOfLaw(laws[i]!), context: memoContext(m, laws), inst: cached.inst, proofs}
 }
 function memoOf(m: Machine): Memo {
   const key = textsOfMachine(m).text
@@ -1989,18 +1998,18 @@ function settled(m: Machine, laws: Law[], i: number, rounds: number, usual: bool
   let prev = was?.text === text ? was : undefined
   const exact = prev && exactMemoContext(prev.context, m, laws)
   if (prev && Object.values(prev.proofs).every(p => stands(p, byName))) {
-    let valid = exact
+    let valid = exact ? prev : undefined
     if (!exact) { memoReuseStats.hitChecks++; valid = checkMemoLaw(m, laws, i, prev) }
     if (valid) {
       memoHits.n++; memoReuseStats[`${consumer}Hits`]++; attempt.reused.add(law.name)
-      return prev
+      return valid
     }
     memoReuseStats.hitCheckFailures++
     discardMemo(memo, law.name, attempt); prev = undefined
   } else if (prev && !exact) {
     // A partial renamed proof is not a verdict: stale instances/kept goals must not end this attempt.
     memoReuseStats.discardedSeeds++
-    discardMemo(memo, law.name, attempt); prev = undefined
+    discardMemo(memo, law.name, attempt, 'seed'); prev = undefined
   }
   memoHits.miss++
   const mo = !attempt.cold.has(law.name) && rounds === modelRounds ? memo.models.get(law.name) : undefined
@@ -2008,7 +2017,7 @@ function settled(m: Machine, laws: Law[], i: number, rounds: number, usual: bool
     if (exactMemoContext(mo.context, m, laws)) { memoReuseStats.modelHits++; return mo.model }
     // A renamed negative is only a hint. Do not let it bypass the one native cold attempt.
     memoReuseStats.modelsIgnored++
-    discardMemo(memo, law.name, attempt); prev = undefined
+    discardMemo(memo, law.name, attempt, 'model'); prev = undefined
   }
   const out = settle(m, laws, i, rounds, usual, prev)
   const cap = <T>(x: Map<string, T>) => { if (x.size >= 4096) x.clear(); return x }

@@ -69,10 +69,14 @@ for (const warm of [false, true]) test(`shared-holds metadata has a checked publ
     expect(out.checked).toBe(true)
     expect(out.proof && checkLaws(r.machine, laws, out.proof)).toBe(true)
   }
-  const ignored = memoReuseStats.modelsIgnored
+  const ignored = memoReuseStats.modelsIgnored, cold = memoReuseStats.coldRetries, modelRetries = memoReuseStats.modelRetries
   if (warm) publicChecked(make(name))
   publicChecked(make(name))
-  if (warm && process.env.GDP_MEMO_ALPHA !== '0') expect(memoReuseStats.modelsIgnored).toBeGreaterThan(ignored)
+  if (warm && process.env.GDP_MEMO_ALPHA !== '0') {
+    expect(memoReuseStats.modelsIgnored).toBeGreaterThan(ignored)
+    expect(memoReuseStats.coldRetries - cold).toBe(1)
+    expect(memoReuseStats.modelRetries - modelRetries).toBe(1)
+  }
 })
 
 // A real composed key admits all three consumers to the native EPR memo path.
@@ -129,6 +133,30 @@ test('renamed model payload is recomputed before the public proof', () => {
   expect(JSON.stringify(out.failed)).toContain(`${current.forall}#`)
   const publicProof = proveLaws(second.machine, [current])
   expect(publicProof.proven && publicProof.checked && publicProof.proof && checkLaws(second.machine, [current], publicProof.proof)).toBe(true)
+})
+
+test('renamed-hint support follows the current law selected by widened rows', () => {
+  const r = rule('current memo support provenance').inputs({i: nat, j: nat})
+    .state({x: 0, y: 0}).maps({Seen: bool.from(false)})
+    .assume(({i, j}) => i.lt(64).and(j.lt(64)))
+    .step(({i, j, y, Seen}) => ({x: y, Seen: Seen.set(i.times(64).plus(j), Seen.at(i.times(64).plus(j)).not())}))
+  const a = r.law('original support', s => s.y.eq(0)), b = r.law('current support', s => s.y.eq(0))
+  const target = r.law('dependent property', s => s.x.eq(0)), extra = r.law('added context', () => yes)
+  const old = decideLaw(r.machine, [a, b, target], 2)
+  expect(old?.proven).toBe(true)
+  if (!old || !old.proven) throw new Error('old native proof missing')
+  const supports = [a, b].filter(l => old.uses.includes(l.name))
+  expect(supports.length).toBe(1)
+  const previous = supports[0]!, replacement = previous === a ? b : a
+  const laws = [replacement, previous, target, extra], checks = memoReuseStats.hitChecks
+  const current = decideLaw(r.machine, laws, 2)
+  expect(current?.proven).toBe(true)
+  if (!current || !current.proven) throw new Error('current checked proof missing')
+  expect(memoReuseStats.hitChecks).toBeGreaterThan(checks)
+  expect(current.uses).toContain(replacement.name)
+  expect(current.uses).not.toContain(previous.name)
+  const proof = proveSetFast(r.machine, laws)
+  expect(proof.proven && proof.checked && proof.proof && checkLaws(r.machine, laws, proof.proof)).toBe(true)
 })
 
 test('reordered exact contexts retain independently checked material hits', () => {
