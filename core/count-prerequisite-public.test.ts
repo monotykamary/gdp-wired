@@ -130,7 +130,10 @@ test('proof-guided admission checks and shrinks offers before expansion, then cl
  }
 })
 
-test('reachable screening precedes a required ordinary allowance and survives fallback',()=>{
+// Known completeness-only gap, Main's 0.49.0 expected-RED decision; D evidence r0qxq5/4rbran.
+// Fixed-inventory context refusal rejects this true core with screening both off and on.
+// Keep every positive assertion: an unexpected pass must retire this 0.49.1 fix marker.
+test.failing('reachable screening precedes a required ordinary allowance and survives fallback',()=>{
  const bad:Law={name:'reachable ordinary',holds:same(x('noise'),n(0))},core:Law={name:'independent core',holds:same(x('core'),n(0))}
  const m:Machine={name:'generic required screen',params:[],inputs:[],state:{noise:n(0),core:n(0)},step:{state:{noise:n(1),core:x('core')}}}
  family=[bad,core];selected=[core];requirements=new Map([[core.name,[bad.name]]]);alternatives=new Set();priority=new Map([[bad.name,0],[core.name,1]])
