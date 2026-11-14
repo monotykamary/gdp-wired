@@ -1,0 +1,1 @@
+feat(research): retain bounded proof progress

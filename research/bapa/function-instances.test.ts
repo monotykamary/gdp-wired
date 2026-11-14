@@ -2,7 +2,7 @@ import {test, expect} from 'bun:test'
 import {argsKey, type E, type C, type Law, type Machine} from '../../core/machine.ts'
 import {checkLaws} from '../../kernel/kernel.ts'
 import {proveLaws} from '../../kernel/prove.ts'
-import {extendFunctionInstances, hasFunctionInstances, withFunctionInstances, type FunctionInstanceSpec} from '../../kernel/function-instances.ts'
+import {extendFunctionInstances, functionInstanceProgress, hasFunctionInstances, withFunctionInstances, type FunctionInstanceSpec} from '../../kernel/function-instances.ts'
 import {rigidMinimal, rigidMinimalLaw} from './rigid-minimal.ts'
 const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
 const call = (map: string, ...args: E[]): E => ({op: 'get', map, key: argsKey(args)})
@@ -27,6 +27,18 @@ test('default OFF keeps the old result; opt-in closes unseeded minimal without n
   expect(on.value.proof && checkLaws(p.abstractMachine, [rigidMinimalLaw], on.value.proof)).toBe(true)
   expect(JSON.stringify(p.abstractMachine)).toBe(before)
   expect(proveLaws(p.abstractMachine, [rigidMinimalLaw])).toEqual(off)
+})
+test('read-only progress snapshot cannot mutate active search and is absent outside its scope', () => {
+  const p=rigidMinimal()
+  expect(functionInstanceProgress()).toBeUndefined()
+  const r=withFunctionInstances(p.functionInstances,()=>{
+    const x=functionInstanceProgress()!
+    ;(x as {work:number}).work=1_000_000
+    expect(functionInstanceProgress()!.work).toBe(0)
+    return true
+  })
+  expect(r.status).toBe('complete')
+  expect(functionInstanceProgress()).toBeUndefined()
 })
 test('sort-derived bootstrap does not depend on a literal zero in the law', () => {
   const p = rigidMinimal(), law: Law = {name: 'positive without zero', holds: {op: 'or', xs: [{op: 'not', x: {op: '<=', a: k(1), b: v('quorums')}}, {op: '<=', a: k(1), b: v('nodes')}]}}

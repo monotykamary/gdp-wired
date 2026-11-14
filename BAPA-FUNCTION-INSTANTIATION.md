@@ -33,7 +33,7 @@ Each is fetched to its numbered `runs/bapa-*-fetch` directory. The unseeded mini
 
 `research/bapa/rigid-naive.ts` retains the original `vote(Node,Value)`, `decide(Quorum,Value)` and `decision(Value)` state; the two distinct finite guards; and the original intersection assumption. The three source helpers are explicitly **GIVEN, not found**. `learnedQuorum(value)` is a fresh proof-only ghost map checked by the existing `ghostedOk` route, not an observable model helper. Neither a selected table nor a ground tuple is supplied to proof search.
 
-Retained uncounted attempts, each `proven=false`, `checked=false`, never a source counterexample:
+The first three retained uncounted attempts returned `proven=false`, `checked=false`, never a source counterexample:
 
 | Batch | Refusal |
 | --- | --- |
@@ -41,7 +41,9 @@ Retained uncounted attempts, each `proven=false`, `checked=false`, never a sourc
 | `20261114-061140-gvi4q4` | Work cap 2,000,000 after nominal key filtering; work 1999995 / matched 9 / generated 845. |
 | `20261114-061223-egozf6` | Same work cap after exact structural IDs; work 2000000 / matched 9 / generated 845. |
 
-Reports are in `runs/bapa-rigid-naive-0N-fetch/unseeded-naive-consensus.files/proof-report.json`. Legacy helper instances can feed whole encoded map keys into scalar ghost-map reads and back into function candidates; generic nominal key filtering prevents that feedback. Remaining repeated scanning is being reduced by exact structural-ID deduplication, without changing the helper planner, adding a port-specific seed, or increasing any cap. A fourth uncounted attempt and the corresponding focused gate are pending.
+Reports for attempts 1–3 are in `runs/bapa-rigid-naive-0N-fetch/unseeded-naive-consensus.files/proof-report.json`. Legacy helper instances can feed whole encoded map keys into scalar ghost-map reads and back into function candidates; generic nominal key filtering prevents that feedback. Exact structural-ID deduplication reduces repeated scanning in the focused controls, without changing the helper planner, adding a port-specific seed, or increasing any cap.
+
+**Fourth attempt:** batch `20261114-061315-5b3n2y`, at the same code snapshot as the passing `87if06` focused gate, terminated with worker exit **124** after **570.03 s** (launcher exit 0 is not worker success). It emitted `source-machine.json` before the proof call, but `proof.log` is empty and **no `proof-report.json` or certificate was emitted**. Thus there is no returned prover verdict, per-goal attribution or function-search work total; this is a timeout, not a proof, source counterexample, or demonstrated strategy-cap refusal. Fetched intact to `runs/bapa-rigid-naive-04-fetch/`; terminal rows SHA256 `b516fd25c81621d8ac22cec06bed5eea3b81038ac7cdf50cd55a6cca1762df25`. No automatic retry, cap increase, or helper-planner change was made after the timeout. D review of the frozen implementation `ae288532a5e8a895482e5cf6ef8b284f8af342f0` remains required.
 
 Still required: actual whole port certificate; ghost-map existential elimination in the actual export; original-source wrapper; independent concrete transition comparison and port negatives. The already proved abstract `RigidNaive.lean` is not a substitute for these.
 

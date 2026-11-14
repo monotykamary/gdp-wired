@@ -12,10 +12,12 @@ export type FunctionInstanceSpec = {
   limits?: {work?: number, candidates?: number, tuples?: number, depth?: number}
 }
 type Limits = {work: number, candidates: number, tuples: number, depth: number}
-export type FunctionInstanceStats = {work: number, matched: number, generated: number, cyclic: boolean}
+export type FunctionInstanceStats = {work: number, matched: number, generated: number, candidates: number, cyclic: boolean}
 type Context = {spec: FunctionInstanceSpec, limits: Limits, stats: FunctionInstanceStats}
 class Limited extends Error {}
 let active: Context | undefined
+/** Read-only research telemetry. Inactive means no active discovery scope. */
+export const functionInstanceProgress = (): Readonly<FunctionInstanceStats> | undefined => active && {...active.stats}
 const safeLimit = (n: number | undefined, fallback: number): number => {
   const value = n ?? fallback
   if (!Number.isSafeInteger(value) || value < 1) throw new Error('function-instantiation limits must be positive safe integers')
@@ -27,7 +29,7 @@ export function withFunctionInstances<T>(source: FunctionInstanceSpec, run: () =
     {status: 'complete', value: T, stats: FunctionInstanceStats} |
     {status: 'limited', proven: false, checked: false, reason: string, stats: FunctionInstanceStats} {
   const spec = structuredClone(source), old = active
-  const context: Context = {spec, limits: {work: safeLimit(spec.limits?.work, 500_000), candidates: safeLimit(spec.limits?.candidates, 32), tuples: safeLimit(spec.limits?.tuples, 256), depth: safeLimit(spec.limits?.depth, 4)}, stats: {work: 0, matched: 0, generated: 0, cyclic: false}}
+  const context: Context = {spec, limits: {work: safeLimit(spec.limits?.work, 500_000), candidates: safeLimit(spec.limits?.candidates, 32), tuples: safeLimit(spec.limits?.tuples, 256), depth: safeLimit(spec.limits?.depth, 4)}, stats: {work: 0, matched: 0, generated: 0, candidates: 0, cyclic: false}}
   active = context
   try {
     for (const [sort, parameter] of Object.entries(spec.sorts)) if (!sort || typeof parameter !== 'string') throw new Error('invalid function-instantiation sort')
@@ -154,7 +156,7 @@ export function extendFunctionInstances(m: Machine, input: Instances, goals: Goa
     const id = key(e), had = pool.get(id)
     if (had) { if (priority < had.priority) had.priority = priority; return false }
     if (pool.size >= ctx.limits.candidates) throw new Limited(`function-instantiation candidate limit for ${sort}`)
-    tick(ctx); pool.set(id, {e, priority, depth}); return true
+    tick(ctx); pool.set(id, {e, priority, depth}); ctx.stats.candidates++; return true
   }
   const reads: Read[] = []
   const variableSort = (name: string): string | undefined => {
