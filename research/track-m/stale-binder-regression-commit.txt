@@ -1,0 +1,1 @@
+test(prover): use native counted kind-law regression route

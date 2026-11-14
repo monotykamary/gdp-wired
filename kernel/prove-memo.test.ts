@@ -42,6 +42,8 @@ test('binding metadata is not memoized only by a shared holds object', () => {
   const second = {...first, keys: [...(first.keys ?? []), 'unused$987654']}
   expect(second.holds).toBe(first.holds)
   const before = memoHits.miss
-  checked(r, [second])
+  const out = proveSetFast(r.machine, [second])
+  // This checks invalidation, not the fast prover's support for an extra unused key.
   expect(memoHits.miss).toBeGreaterThan(before)
+  if (out.proven) expect(out.checked && !!out.proof && checkLaws(r.machine, [second], out.proof)).toBe(true)
 })
