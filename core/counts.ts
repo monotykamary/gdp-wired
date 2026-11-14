@@ -670,10 +670,11 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
   if (closingBudget) until = countOrdinaryUntil(closingBudget)
   const prerequisiteFirst = !!closingBudget && env.GDP_COUNT_PREREQUISITES === '1'
   const proofGuided = prerequisiteFirst && env.GDP_COUNT_PROOF_GUIDED_SCHEDULING === '1'
-  const beforeClosing = <T>(body:()=>T):T|undefined => {
+  const beforeClosing = <T>(body:()=>T,onLocalExpiration?:()=>void):T|undefined => {
     if (!prerequisiteFirst) return body()
     return withSearchAllowance<T|undefined>(until,body,error=>{
-      if(!isLocalCountExpiration(error,closingBudget!.until))throw error; return undefined
+      if(!isLocalCountExpiration(error,closingBudget!.until))throw error
+      onLocalExpiration?.();return undefined
     })
   }
   let set=rejections?rejectionFamily(rejections,initial):initial.slice()
@@ -976,7 +977,10 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       if('proof'in result){
         scope=withSearchAllowance(end,()=>beforeClosing(()=>proofGuided
           ?ptime('premise-rescope',()=>rescopeCountProof(m,law,context,result.proof,new Set(scopes.keys()),end,event=>countsDump.on?.({phase:'count-component-rescope',law:law.name,...event}),countRescopeFunding()))
-          :ptime('premise-scope',()=>scopeCountProof(m,law,context,result.proof,end))),
+          :ptime('premise-scope',()=>scopeCountProof(m,law,context,result.proof,end)),
+          // The enclosing closing reserve may consume this local refusal.
+          // Preserve its classification even when exact admission stops before end.
+          ()=>{expired=true}),
           error=>{if(!isLocalCountExpiration(error,withinDeadline(closingBudget!.until)))throw error;expired=true;return undefined})
       }
       if('proof'in result&&!scope&&!expired&&clock()>=end){
