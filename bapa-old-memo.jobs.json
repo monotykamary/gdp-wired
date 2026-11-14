@@ -1,0 +1,24 @@
+[
+  {
+    "name": "old-lock-server-default",
+    "cmd": "bun -e 'import {protocols} from \"./research/protocols/ic3syn/models.ts\"; import {proveSetFast,proveLaws} from \"./kernel/prove.ts\"; import {checkLaws} from \"./kernel/kernel.ts\"; const p=protocols.find(x=>x.id===\"lock_server\"); const a=p.make(); const first=proveSetFast(a.machine,a.kindLaws()); const b=p.make(),ls=b.kindLaws(); const fast=proveSetFast(b.machine,ls); const ordinary=proveLaws(b.machine,ls); console.log(JSON.stringify({id:p.id,scope:\"only kind laws on two fresh constructions, not canonical safety run\",alpha:process.env.GDP_MEMO_ALPHA??\"default\",first:{proven:first.proven,checked:first.checked},fast:{proven:fast.proven,checked:fast.checked,failed:fast.failed},ordinary:{proven:ordinary.proven,checked:ordinary.checked,rechecked:!!ordinary.proof&&checkLaws(b.machine,ls,ordinary.proof)}},null,2));' > \"$SUPERCOMPUTER_OUTPUT_DIR/repro.json\"",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 180,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "old-lock-server-no-alpha",
+    "cmd": "GDP_MEMO_ALPHA=0 bun -e 'import {protocols} from \"./research/protocols/ic3syn/models.ts\"; import {proveSetFast,proveLaws} from \"./kernel/prove.ts\"; import {checkLaws} from \"./kernel/kernel.ts\"; const p=protocols.find(x=>x.id===\"lock_server\"); const a=p.make(); const first=proveSetFast(a.machine,a.kindLaws()); const b=p.make(),ls=b.kindLaws(); const fast=proveSetFast(b.machine,ls); const ordinary=proveLaws(b.machine,ls); console.log(JSON.stringify({id:p.id,scope:\"only kind laws on two fresh constructions, not canonical safety run\",alpha:process.env.GDP_MEMO_ALPHA??\"default\",first:{proven:first.proven,checked:first.checked},fast:{proven:fast.proven,checked:fast.checked,failed:fast.failed},ordinary:{proven:ordinary.proven,checked:ordinary.checked,rechecked:!!ordinary.proof&&checkLaws(b.machine,ls,ordinary.proof)}},null,2));' > \"$SUPERCOMPUTER_OUTPUT_DIR/repro.json\"",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 180,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  }
+]

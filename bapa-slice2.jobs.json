@@ -1,0 +1,5 @@
+[
+ {"name":"lock-server-sized","cmd":"bash scripts/bapa-lock-server.sh","cpu":2,"memory":4096,"timeout":900,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}},
+ {"name":"slice2-typecheck","cmd":"set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bun run typecheck > \"$SUPERCOMPUTER_OUTPUT_DIR/typecheck.log\" 2>&1; bunx oxlint --type-aware --deny-warnings --disable-nested-config research/bapa/*.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/lint.log\" 2>&1","cpu":4,"memory":8192,"timeout":600,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}},
+ {"name":"no-given-helper-search","cmd":"set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bun research/bapa/search-lock-server.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/search.log\" 2>&1","cpu":2,"memory":4096,"timeout":180,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}
+]

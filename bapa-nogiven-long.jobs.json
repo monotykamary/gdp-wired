@@ -1,0 +1,4 @@
+[
+ {"name":"uncounted-no-helper-60s","cmd":"set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; BAPA_SEARCH_MS=60000 bun research/bapa/search-lock-server.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/search.log\" 2>&1","cpu":2,"memory":8192,"timeout":150,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}},
+ {"name":"uncounted-no-helper-600s","cmd":"set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; BAPA_SEARCH_MS=600000 bun research/bapa/search-lock-server.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/search.log\" 2>&1","cpu":2,"memory":8192,"timeout":750,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}
+]

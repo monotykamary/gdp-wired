@@ -1,0 +1,4 @@
+[
+ {"name":"minimal-default","cmd":"bun research/bapa/repro-stale-binder.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/repro.json\"","cpu":2,"memory":4096,"timeout":120,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}},
+ {"name":"minimal-no-alpha","cmd":"GDP_MEMO_ALPHA=0 bun research/bapa/repro-stale-binder.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/repro.json\"","cpu":2,"memory":4096,"timeout":120,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}
+]

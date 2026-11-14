@@ -1,0 +1,35 @@
+[
+  {
+    "name": "fresh-alpha",
+    "cmd": "set -euo pipefail; bun -e 'import {proveSetFast,proveLaws} from \"./kernel/prove.ts\"; import {checkLaws} from \"./kernel/kernel.ts\"; import {lockServerSized,lockServerSizedLaws,lockServerUnrestrictedLaws} from \"./research/bapa/lock-server-sized.ts\"; const a=lockServerSized(); const al=[...a.kindLaws(),...lockServerSizedLaws(a)]; const first=proveSetFast(a.machine,al); const b=process.env.SAME_RULE ? a : lockServerSized(); const bl=[...b.kindLaws(),...lockServerUnrestrictedLaws(b)]; const fast=proveSetFast(b.machine,bl); const fallback=proveLaws(b.machine,bl); console.log(JSON.stringify({sameRule:!!process.env.SAME_RULE,alpha:process.env.GDP_MEMO_ALPHA??\"default\",first:{proven:first.proven,checked:first.checked},fast:{proven:fast.proven,checked:fast.checked,failed:fast.failed},fallback:{proven:fallback.proven,checked:fallback.checked,rechecked:!!fallback.proof&&checkLaws(b.machine,bl,fallback.proof),failed:fallback.failed}},null,2));' > \"$SUPERCOMPUTER_OUTPUT_DIR/comparison.json\"",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 120,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "fresh-no-alpha",
+    "cmd": "set -euo pipefail; GDP_MEMO_ALPHA=0 bun -e 'import {proveSetFast,proveLaws} from \"./kernel/prove.ts\"; import {checkLaws} from \"./kernel/kernel.ts\"; import {lockServerSized,lockServerSizedLaws,lockServerUnrestrictedLaws} from \"./research/bapa/lock-server-sized.ts\"; const a=lockServerSized(); const al=[...a.kindLaws(),...lockServerSizedLaws(a)]; const first=proveSetFast(a.machine,al); const b=process.env.SAME_RULE ? a : lockServerSized(); const bl=[...b.kindLaws(),...lockServerUnrestrictedLaws(b)]; const fast=proveSetFast(b.machine,bl); const fallback=proveLaws(b.machine,bl); console.log(JSON.stringify({sameRule:!!process.env.SAME_RULE,alpha:process.env.GDP_MEMO_ALPHA??\"default\",first:{proven:first.proven,checked:first.checked},fast:{proven:fast.proven,checked:fast.checked,failed:fast.failed},fallback:{proven:fallback.proven,checked:fallback.checked,rechecked:!!fallback.proof&&checkLaws(b.machine,bl,fallback.proof),failed:fallback.failed}},null,2));' > \"$SUPERCOMPUTER_OUTPUT_DIR/comparison.json\"",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 120,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "same-alpha",
+    "cmd": "set -euo pipefail; SAME_RULE=1 bun -e 'import {proveSetFast,proveLaws} from \"./kernel/prove.ts\"; import {checkLaws} from \"./kernel/kernel.ts\"; import {lockServerSized,lockServerSizedLaws,lockServerUnrestrictedLaws} from \"./research/bapa/lock-server-sized.ts\"; const a=lockServerSized(); const al=[...a.kindLaws(),...lockServerSizedLaws(a)]; const first=proveSetFast(a.machine,al); const b=process.env.SAME_RULE ? a : lockServerSized(); const bl=[...b.kindLaws(),...lockServerUnrestrictedLaws(b)]; const fast=proveSetFast(b.machine,bl); const fallback=proveLaws(b.machine,bl); console.log(JSON.stringify({sameRule:!!process.env.SAME_RULE,alpha:process.env.GDP_MEMO_ALPHA??\"default\",first:{proven:first.proven,checked:first.checked},fast:{proven:fast.proven,checked:fast.checked,failed:fast.failed},fallback:{proven:fallback.proven,checked:fallback.checked,rechecked:!!fallback.proof&&checkLaws(b.machine,bl,fallback.proof),failed:fallback.failed}},null,2));' > \"$SUPERCOMPUTER_OUTPUT_DIR/comparison.json\"",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 120,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  }
+]

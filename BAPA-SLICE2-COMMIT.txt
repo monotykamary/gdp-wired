@@ -1,0 +1,5 @@
+feat(research): migrate lock server to native tuple domains
+
+Use symbolic client and server sizes with no radix cap. Verify the original
+law by ordinary checked proofs with a given inductive helper, and retain
+runtime correspondence and Lean evidence independently of slice one.
