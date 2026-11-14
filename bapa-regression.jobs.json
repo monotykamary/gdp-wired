@@ -1,0 +1,10 @@
+[
+  {
+    "name": "legacy-kernel-regression",
+    "cmd": "set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bun test kernel/kernel.test.ts core/keyterms.test.ts core/quantifiers.test.ts core/pairs.test.ts core/runtime-keys.test.ts core/count-cases.test.ts lean-kernel/export-shape.test.ts lean-kernel/qalpha.test.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/tests.log\" 2>&1",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 900,
+    "required_agent_capabilities": {"output_files_protocol": 1, "result_files_protocol": 1}
+  }
+]

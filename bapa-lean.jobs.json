@@ -1,0 +1,10 @@
+[
+  {
+    "name": "bapa-lean-foundation",
+    "cmd": "bash scripts/bapa-lean.sh",
+    "cpu": 2,
+    "memory": 4,
+    "timeout": 900,
+    "required_agent_capabilities": {"output_files_protocol": 1, "result_files_protocol": 1}
+  }
+]
