@@ -12,7 +12,7 @@ async function sampled(kind:'stop'|'reuse'|'gone'|'foreign-phase'){
  writeFileSync(join(proc,'42','status'),'VmRSS:\t100 kB\nVmHWM:\t240 kB\nVmSize:\t900 kB\n');writeFileSync(join(proc,'uptime'),'12.34 0\n')
  writeFileSync(join(out,'phase-marker.tsv'),`${kind==='foreign-phase'?99:42}\t1\tclosing\t123456\n`)
  const child=Bun.spawn(['bash',script,'42',out,stop,proc,'0.01','777'],{stdout:'ignore',stderr:'pipe'}),exited=child.exited
- let done=false;exited.then(()=>{done=true})
+ let done=false;void exited.then(()=>{done=true},()=>{})
  const timer=setTimeout(()=>{if(!done)process.kill(child.pid,'SIGTERM')},5000)
  try{
   let first=false
