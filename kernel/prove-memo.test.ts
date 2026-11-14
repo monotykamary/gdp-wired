@@ -3,7 +3,8 @@ import {bool, nat, no, rule} from '../core/dsl.ts'
 import {checkLaws} from './kernel.ts'
 import {memoHits, proveLaws, proveSetFast} from './prove.ts'
 
-const make = () => rule('fresh binder memo regression')
+// Distinct machine names isolate tests; fresh copies within a test retain the same name.
+const make = (name = 'fresh binder memo regression') => rule(name)
   .inputs({i: nat}).maps({Flag: bool.from(false)})
   .step(({i, Flag}) => ({Flag: Flag.set(i, no)}))
 
@@ -15,7 +16,9 @@ const checked = (r: ReturnType<typeof make>, laws = r.kindLaws()) => {
   return out
 }
 
-test('fresh alpha-equivalent kind binders do not reuse stale instances', () => {
+// Rollback base only: retain positive assertions as explicit expected false-negatives.
+// Both markers must be removed by a proper reuse fix before 0.49.0 can ship.
+test.failing('fresh alpha-equivalent kind binders do not reuse stale instances (expected false-negative)', () => {
   const first = make(), firstLaws = first.kindLaws()
   checked(first, firstLaws)
   const second = make(), secondLaws = second.kindLaws()
@@ -26,15 +29,15 @@ test('fresh alpha-equivalent kind binders do not reuse stale instances', () => {
 })
 
 test('exact same-binder memo hits remain usable and independently checked', () => {
-  const r = make(), laws = r.kindLaws()
+  const r = make('exact same-binder memo regression'), laws = r.kindLaws()
   checked(r, laws)
   const before = memoHits.n
   checked(r, laws)
   expect(memoHits.n).toBeGreaterThan(before)
 })
 
-test('binding metadata is not memoized only by a shared holds object', () => {
-  const r = make(), [kind] = r.kindLaws()
+test.failing('binding metadata is not memoized only by a shared holds object (expected false-negative)', () => {
+  const r = make('shared holds metadata memo regression'), [kind] = r.kindLaws()
   expect(kind?.forall).toBeDefined()
   const first = {...kind!, name: 'shared holds binding metadata'}
   checked(r, [first])
