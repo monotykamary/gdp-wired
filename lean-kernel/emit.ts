@@ -786,7 +786,7 @@ theorem ${id}_laws : ∀ maps ρ, evalC ρ maps ${id}_fold.pre = true → ∀ t,
 // witness terms in place (some_of_subst) or over the machine's ghosts at every reachable state of the machine without
 // them (some_of_ghost); and `<id>.lawN` the same over named variables, each bound natural as w1, w2, ... (`lit`: the
 // condition printer, for P's literal).
-export function readable(id: string, laws: Law[], vars: string[], maps: string[], reach: {binders: string, hyp: string, call: string, have?: (j: number) => string, lit?: (c: C) => string, eLit?: (e: E) => string}): string {
+export function readable(id: string, laws: Law[], vars: string[], maps: string[], reach: {binders: string, hyp: string, call: string, have?: (j: number) => string, lit?: (c: C) => string, eLit?: (e: E) => string, ghosts?: boolean}): string {
   for (const name of [...vars, ...maps]) if (name === 'ρ' || name === 'μ' || name.includes('«') || name.includes('»')) throw new Error(`${id}: the name ${name} can't be a Lean abbreviation here`)
   const q = (name: string) => `«${name}»`
   // Division and remainder by a constant (div$k, mod$k): Lean's x / k and x % k, under the hypothesis that the map is
@@ -836,10 +836,15 @@ export function readable(id: string, laws: Law[], vars: string[], maps: string[]
     const ix = (name: string) => { const i = vars.indexOf(name); if (i < 0) throw new Error(`${id}: no variable for ${name}`); return i }
     const ws = ex.vars.map((_, i) => `w${i + 1}`), at = (env: string, vals: string[]) => `updAll ${env} [${ex.vars.map((n, i) => `(${ix(n)}, ${vals[i]})`).join(', ')}]`
     const P = `(${lit(ex.body)})`, key = law.forall ? ix(law.forall) : undefined
-    const sigma = ex.sub ? `[${ex.vars.map(n => `(${ix(n)}, ${eLit(ex.sub![n]!)})`).join(', ')}]` : ''
-    const machine = ex.ghost ? `${id}_ghosted.orig` : `${id}_machine`
+    // A retained family may carry ex.ghost metadata without exporting the
+    // original/ghosted pair. In that case its theorem is about this machine:
+    // choose its current witness values, not a nonexistent _ghosted.orig.
+    const throughGhosts = ex.ghost && reach.ghosts
+    const sub = ex.sub ?? (ex.ghost && !throughGhosts ? Object.fromEntries(ex.vars.map(n => [n, {op: 'var', name: n} as E])) : undefined)
+    const sigma = sub ? `[${ex.vars.map(n => `(${ix(n)}, ${eLit(sub[n]!)})`).join(', ')}]` : ''
+    const machine = throughGhosts ? `${id}_ghosted.orig` : `${id}_machine`
     const head = `theorem some${j} : ∀ ρ μ, SReach ${machine} ρ μ → ${key !== undefined ? '∀ k : Nat, ' : ''}∃ ${ws.join(' ')} : Nat, evalC (${at(key !== undefined ? `(upd ρ ${key} k)` : 'ρ', ws)}) μ ${P} = true`
-    const proof = ex.ghost
+    const proof = throughGhosts
       ? `  intro ρ μ h
   obtain ⟨ρg, hg⟩ := some_of_ghost ${id}_ghosted ${id}_ghostOk [${ex.vars.map(ix).join(', ')}] ${P} (by ${checkBy}) (fun ρ μ h => by
     ${haveOf(j)}
@@ -854,7 +859,7 @@ export function readable(id: string, laws: Law[], vars: string[], maps: string[]
 theorem law${j} ${reach.binders} (h : SReach ${machine} ρ μ) : ${statement(law)} := by
   ${key !== undefined ? 'intro k\n  ' : ''}obtain ⟨${ws.join(', ')}, hg⟩ := some${j} ρ μ h${key !== undefined ? ' k' : ''}
   exact ⟨${ws.join(', ')}, (evalC_iff (${at(key !== undefined ? `(upd ρ ${key} k)` : 'ρ', ws)}) μ ${P}).mp hg⟩`
-    return `-- ${law.name}: there exists, proven ${ex.ghost ? 'through ghosts the machine carries' : 'with its witness terms in place'}
+    return `-- ${law.name}: there exists, proven ${throughGhosts ? 'through ghosts the machine carries' : ex.ghost ? 'with current-machine witness values' : 'with its witness terms in place'}
 ${head} := by
 ${proof}
 ${plain}`
@@ -1552,7 +1557,7 @@ def ${id}_proof : List SEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
 theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by ${checkBy}
 theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_proof, e.Holds ρ M :=
   smachine_sound ${id}_machine ${id}_proof ${id}_check
-${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e})}${sm ? sumsBlock() : ''}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
+${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e, ghosts: !rf && !gm && gv.length > 0})}${sm ? sumsBlock() : ''}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
 example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix, mx, lit)}` : ''}`
@@ -1862,7 +1867,7 @@ ${cycProofText(id, p, [], vars, maps)}
 ${okLemmas}
 ${lawBlocks}
 ${lawsThm}
-${hm ? histBlock() : readable(id, laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: '', lit: c, eLit: e,
+${hm ? histBlock() : readable(id, laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: '', lit: c, eLit: e, ghosts: !rf && gv.length > 0,
   have: j => `have hl : holdsOver ${id}_l${j} μ ${keys2(laws[j]!)} ρ := cyc_machine_holds (${id}_law${j}_holds ρ μ h)`})}${opts.noFacts ? '' : factsProof(id, m, maps, vars, opts.simp)}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`}
 }
 
