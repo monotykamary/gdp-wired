@@ -10,9 +10,9 @@ const machine = (): Machine => ({name: 'deadline counter', params: [], inputs: [
 test('completion headroom is bounded, protocol independent, and leaves counted fuel unchanged', () => {
   const now = spyOn(performance, 'now').mockReturnValue(100)
   try {
-    expect(searchWall(60_000)).toBe(59_100)
-    expect(searchWall(100)).toBe(195)
-    expect(searchWall(-1)).toBe(99)
+    expect(searchWall(60_000)).toEqual({domain:'real',end:59_100})
+    expect(searchWall(100)).toEqual({domain:'real',end:195})
+    expect(searchWall(-1)).toEqual({domain:'real',end:99})
     expect(counted(fullRate, () => { const t = clock(); searchWall(60_000); return clock() - t }, true)).toBe(0)
   } finally { now.mockRestore() }
 })

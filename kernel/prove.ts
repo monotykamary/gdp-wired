@@ -271,7 +271,7 @@ let budgetUnitsEnd: number | undefined
 let admissionRefusedAt: number | undefined
 export const inBudget = (): boolean => completeWorkProfile.enabled ? workLedger.inBudget() : budgetUnitsEnd !== undefined
 export const inWorkScope = (): boolean => inBudget() || rate !== 0 || stepWorkProfile.enabled
-// An inherited counted scope has no wall-clock control path.
+// Search endpoints follow the active clock; legacy real walls remain separate.
 export const searchNow = (): number => inWorkScope() ? clock() : performance.now()
 export const budgetEnd = (): number => {
   if (proxySearchState()) return Infinity
@@ -365,37 +365,41 @@ export function withSearchWork<T>(cap: number, f: () => T): T {
 // (the EPR path's propositional search, a node's propagation, building a large goal's rows) stops there too, and past it
 // every goal is left unknown, whatever its own budget. Untrusted: it only stops a search.
 let wallEnd = Infinity
+export type WallDeadline=Readonly<{domain:'counted'|'real',end:number}>
+// Capture the producer's clock domain before nested counted() changes it.
+export const wallDeadline=(end:number,domain?:WallDeadline['domain']):WallDeadline=>({end,domain:domain??(inWorkScope()||proxySearchState()?.rate?'counted':'real')})
 // A legacy counted clock is not an opt-in work-only cancellation policy.
 // Preserve its inherited real wall; only explicit work scopes/profiles elide it.
 const workOnlyWall = (): boolean => inBudget() || stepWorkProfile.enabled
 export const pastWall = (): boolean => {
   checkWorkEndpoint('prover boundary')
   const proxy = proxySearchState()
-  if (proxy) return clock() > withinDeadline(Infinity) || (!proxy.rate && proxy.wallEnd !== Infinity && clock() > proxy.wallEnd)
+  if (proxy) return clock() > withinDeadline(Infinity) || (!workOnlyWall() && proxy.wallEnd !== Infinity && performance.now() > proxy.wallEnd)
   return (inWorkScope() && clock() > withinDeadline(budgetEnd()))
     || (!workOnlyWall() && wallEnd !== Infinity && performance.now() > wallEnd)
 }
-export function withWall<T>(end: number, f: () => T): T {
+export function withWall<T>(limit: number|WallDeadline, f: () => T): T {
   const proxy = proxySearchState()
+  // Untagged legacy endpoints retain their old policy. Search producers tag
+  // their domain explicitly, so counted milliseconds never become real time.
+  const {end,domain}=typeof limit==='number'?wallDeadline(limit,workOnlyWall()||proxy?.rate?'counted':'real'):limit
+  if(domain==='counted')return withDeadline(Math.min(budgetEnd(),end),f)
+  if(workOnlyWall())return f()
   if (proxy) {
-    if (proxy.rate) return withDeadline(end, f)
     const outer = proxy.wallEnd; proxy.wallEnd = Math.min(outer, end)
     try { return f() } finally { proxy.wallEnd = outer }
   }
-  // Scoped callers supply searchWall()/clock() endpoints in counted units.
-  // Keep A's inherited deadline semantics without consulting the wall clock.
-  if (workOnlyWall()) return withDeadline(Math.min(budgetEnd(), end), f)
   const outer = wallEnd
   wallEnd = Math.min(outer, end)
   try { return f() } finally { wallEnd = outer }
 }
 // Past the wall or the deadline in force: a goal grown now is left unknown at once.
 const ranOut = (): boolean => pastWall() || withinDeadline(Infinity) <= clock()
-// (the wall's end in force, Infinity where none: a search inside that stops itself there)
+// Active-clock endpoint; inherited real walls are checked separately by pastWall.
 export const wallAt = (): number => {
   const proxy = proxySearchState()
   if (proxy) return proxy.rate ? withinDeadline(Infinity) : proxy.wallEnd
-  return workOnlyWall() ? withinDeadline(budgetEnd()) : wallEnd
+  return inWorkScope() ? withinDeadline(budgetEnd()) : wallEnd
 }
 export const late = (until: number): boolean => {
   checkWorkEndpoint('prover poll')

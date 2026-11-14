@@ -8,15 +8,15 @@ const run = (extra: Record<string, string>, program: string) => {
 }
 const imports = `
 import {strict as assert} from 'node:assert';
-import {clock,counted,fullRate,pastWall,withWall,withBudget,wallAt} from './kernel/prove.ts';
-import {checkWall,WallExpired} from './core/wall.ts';
+import {clock,counted,fullRate,pastWall,withWall,withBudget,wallAt,wallDeadline,searchNow} from './kernel/prove.ts';
+import {checkWall,WallExpired,searchWall} from './core/wall.ts';
 `
 
 test('empty flags retain an expired inherited wall inside a legacy counted clock', () => {
   run({}, imports + `
     const expired=performance.now()-1;
     withWall(expired,()=>counted(fullRate,()=>{
-      assert.equal(wallAt(),expired);
+      assert.equal(wallAt(),Infinity); // counted endpoint, separate from the inherited real wall
       assert.equal(pastWall(),true);
       assert.throws(()=>checkWall('legacy inherited'),WallExpired);
     },true));
@@ -25,6 +25,45 @@ test('empty flags retain an expired inherited wall inside a legacy counted clock
   `)
 })
 
+test('counted searchWall and countedSearchNow support deadlines never become real wall timestamps', () => {
+  run({}, imports + `
+    Object.defineProperty(performance,'now',{configurable:true,value:()=>1000000});
+    counted(fullRate,()=>{
+      const end=searchWall(1000);
+      assert.equal(end.domain,'counted');
+      assert.equal(withWall(end,()=>pastWall()),false);
+      assert.equal(withWall(wallDeadline(searchNow()+4800),()=>pastWall()),false);
+      withWall(wallDeadline(clock()-1,'counted'),()=>assert.equal(pastWall(),true));
+      assert.equal(pastWall(),false);
+    },true);
+    assert.equal(pastWall(),false);
+  `)
+})
+
+test('a real deadline keeps its domain when a nested call becomes counted', () => {
+  run({}, imports + `
+    let now=1000;
+    Object.defineProperty(performance,'now',{configurable:true,value:()=>now});
+    const end=searchWall(1000);
+    assert.equal(end.domain,'real');
+    withWall(end,()=>counted(fullRate,()=>{
+      assert.equal(pastWall(),false);
+      now=end.end+1;
+      assert.equal(pastWall(),true);
+      assert.throws(()=>checkWall('real through counted'),WallExpired);
+    },true));
+    assert.equal(pastWall(),false);
+  `)
+})
+
+test('explicit real endpoints are elided only inside the existing work-only policy', () => {
+  run({}, imports + `
+    const end=wallDeadline(-Infinity,'real');
+    withWall(end,()=>counted(fullRate,()=>assert.equal(pastWall(),true),true));
+    withBudget(1000000,()=>withWall(end,()=>assert.equal(pastWall(),false)));
+    assert.equal(pastWall(),false);
+  `)
+})
 test('an explicit work budget elides an inherited legacy wall but retains work deadlines', () => {
   run({}, imports + `
     withWall(performance.now()-1,()=>withBudget(1000000,()=>counted(fullRate,()=>{

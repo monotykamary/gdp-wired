@@ -1,4 +1,4 @@
-import {searchNow as countedSearchNow, traceNow as countedTraceNow} from './wall.ts'
+import {searchNow as countedSearchNow, traceNow as countedTraceNow,wallDeadline} from './wall.ts'
 // The candidate pipeline (untrusted): the counted search, for a machine with counts (the kernel's countedObligations
 // and checkCountedLaws, Lean's CountMachine.lean), and the ∃ search's cone (core/dsl.ts's someCone) are one pipeline:
 //   1. the small instances (core/exists.ts's smallOf: each param 2 and 3, inputs and carried sets below 3), the one
@@ -1055,7 +1055,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         const structural = support.has(law) && !caller.includes(law)
         const strategy = selected.has(law), boundedSupport = !budget && activeSupport(set, support)
         const allotted = strategy ? Math.max(0, budget!.strategyUntil! - clock()) : budget ? share : supportBudget(until - clock(), share, boundedSupport && caller.includes(law), structural)
-        const supportUntil = strategy ? budget!.strategyUntil! : Math.min(until, clock() + (boundedSupport ? Math.min(allotted, 5_000) : allotted)), supportWall = countedSearchNow() + 4_800
+        const supportUntil = strategy ? budget!.strategyUntil! : Math.min(until, clock() + (boundedSupport ? Math.min(allotted, 5_000) : allotted)), supportWall = wallDeadline(countedSearchNow() + 4_800)
         let proofContext = closingBudget && !strategy && required ? set.filter(l=>required.has(l.name)||l===law) : set
         const ask = (pass: 0 | 1): Tried<Proof> => {
           const ms = Math.min(allotted, Math.max(0, (boundedSupport ? supportUntil : until) - clock()))
@@ -1163,7 +1163,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         }
         return finish(kept,{instances,certs})
       }
-      const remaining=until-clock(),share=remaining/Math.max(1,set.length-known.size),allotted=supportBudget(remaining,share,caller.includes(law),support.has(law)&&!caller.includes(law)),stop=Math.min(until,clock()+Math.min(allotted,5000)),wall=countedSearchNow()+4800
+      const remaining=until-clock(),share=remaining/Math.max(1,set.length-known.size),allotted=supportBudget(remaining,share,caller.includes(law),support.has(law)&&!caller.includes(law)),stop=Math.min(until,clock()+Math.min(allotted,5000)),wall=wallDeadline(countedSearchNow()+4800)
       const countFirst=env.GDP_COUNTS_COUNT_FIRST!=='0'&&(reads(law.holds,isCount).size>0||!!law.keys?.length)
       const ask=(context:Law[]):Tried<Proof>=>withWall(wall,()=>withDeadline(stop,()=>{
         const pass:0|1=countFirst?1:0

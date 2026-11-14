@@ -6,7 +6,7 @@ import {type C, type E, type Law, type Machine, type Request, type State, carrie
 import {checkWall, searchWall, WallExpired, BudgetExpired} from './wall.ts'
 import {boundaryState, lawFrontiers} from './finite-frontiers.ts'
 import {withReachabilityWork, reachState, reachEdge} from './work-observe.ts'
-import {wallAt, withWall} from '../kernel/prove.ts'
+import {wallAt, withWall,wallDeadline} from '../kernel/prove.ts'
 import {type TinyFiniteOptions, type TinyFiniteStatistics, type TinySeedStatistics, tinyFiniteCandidates, tinySeedCandidates} from './finite-tiny.ts'
 type Env = Record<string, number>
 type Samples = {p: Env, sts: State[]}[]
@@ -108,7 +108,7 @@ export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candid
   const limit = options.workLimit
   if (limit !== undefined && (!Number.isSafeInteger(limit) || limit < 0)) throw new Error('finite work limit must be a nonnegative safe integer')
   const work = limit === undefined ? undefined : {used: 0, limit, exhausted: false}
-  const start = countedTraceNow(), end = work ? wallAt() : Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
+  const start = countedTraceNow(), end = wallDeadline(work ? wallAt() : Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)).end))
   const tick = () => {
     if (!work) return
     checkWall('finite sampling work')
@@ -157,7 +157,7 @@ function lawReads(m: Machine, law: Law): {scalars: Set<string>, maps: Set<string
 // independent whole-family/source-interpreter boundary as sampled Houdini.
 // It is not wired into production generation until its bounded pilot passes.
 export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], candidates: Law[], params: Env[], options: FiniteOptions & TinyFiniteOptions & {rounds?: number, onTiny?: (round: number, stats: TinyFiniteStatistics) => void, onSeed?: (round: number, stats: TinySeedStatistics) => void} = {}): Law[] {
-  const start = countedTraceNow(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
+  const start = countedTraceNow(), end = wallDeadline(Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)).end))
   let survivors = candidates.slice(), timedOut = false
   try {
     return withWall(end, () => withReachabilityWork(() => {
