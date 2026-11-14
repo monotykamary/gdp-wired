@@ -122,7 +122,9 @@ const unitConfig: Record<string, UnitConfig> = {
   'core/public-closing-proposal.test.ts': {...full, env: {...full.env, GDP_COUNT_STRATEGIES: '1', GDP_COUNT_TIERS: '1', GDP_COUNT_FINAL_DEFER_CHECKS: '1'}},
   'core/inherited-wall.test.ts': rootProcess,
   'core/common-counted.test.ts': rootProcess,
-  'core/i6-meter.test.ts': rootProcess,
+  // Its child allows 120s; the outer Bun default 5s must not kill that child first.
+  'core/i6-meter.test.ts': {...rootProcess, timeoutMs: 130000},
+  'core/wall.test.ts': rootProcess,
   'core/prover-row-budget.test.ts': rootProcess,
   'core/hard-cap.test.ts': rootProcess,
   'core/work-admission-perf.test.ts': rootProcess,
