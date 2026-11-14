@@ -3,7 +3,7 @@ import {traceNow as countedTraceNow} from './wall.ts'
 // The consumer MUST independently check m.pre, ALL m.facts, the WHOLE current
 // family, the source interpreter's enabled step, and each reported post-law. This module owns no
 // solver/kernel policy and never extends the enclosing cooperative wall.
-import {type C, type E, type Law, type Machine, type Request, type State, cpair, cunpair, walk, compileFunction} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type State, cpair, cunpair, hasFinite, walk, compileFunction} from './machine.ts'
 import {checkWall, WallExpired} from './wall.ts'
 import {tinyNode, tinyTerm, tinyBlock} from './work-observe.ts'
 import {completeWorkProfile} from './work-profile.ts'
@@ -209,7 +209,9 @@ class Compiler {
         if (value === undefined) { value = this.condition(f, env, false, [...stack, `flag:${c.name}`]); this.flags.set(id, value) }
         return value
       }
-      case 'all': return conjunction(bindings([c.key, ...c.keys ?? []], this.binders, env).map(at => this.condition(c.c, at, post, stack)))
+      case 'all':
+        if (c.finite !== undefined) throw new Unsupported('finite sort quantifier: exact enumeration is not supported by the tiny compiler')
+        return conjunction(bindings([c.key, ...c.keys ?? []], this.binders, env).map(at => this.condition(c.c, at, post, stack)))
     }
   }
   predicateCode(p: Pred, rank: number[] | undefined, used: Term[], polarity = true): string {
@@ -509,6 +511,7 @@ export function tinySeedCandidates(source: Machine, m: Machine, params: Env,
   const stats: TinySeedStatistics = {phase: 'seed-only', scope: tinyScope(params, values, options), completed: false, timedOut: false,
     unsupported: [], models: 0, accepted: 0, coupledModels: 0, coupledAccepted: 0, ms: 0}
   try {
+    if (hasFinite([source, m])) throw new Unsupported('finite sort machine: tiny screening is not supported')
     const {slots} = tinyLayout(source, m, params, values, stats.scope)
     walkTinySeedVectors(source, params, slots, options, (vector, coupled) => {
       stats.models++; if (coupled) stats.coupledModels++
@@ -541,6 +544,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
   const stats: TinyFiniteStatistics = {scope, completed: false, exhausted: false, timedOut: false, unsupported: [], nodes: 0, states: 0, steps: 0, scenarios: 0, candidates: 0, postStatePrunes: 0, postRequestPrunes: 0, postIntervalFallbacks: 0, seedModels: 0, seedCandidates: 0, seedCoupledModels: 0, seedCoupledCandidates: 0, ms: 0}
   const unknown = (e: unknown) => { const reason = e instanceof Error ? e.message : String(e); if (!stats.unsupported.includes(reason)) stats.unsupported.push(reason) }
   try {
+    if (hasFinite([source, m, family])) throw new Unsupported('finite sort machine/law: tiny screening is not supported')
     const {slots, stateSlots} = tinyLayout(source, m, params, stateValues, scope)
     const compiler = new Compiler(source, m, params, slots, scope.cells, scope.binderValues)
     const pres: Pred[] = []

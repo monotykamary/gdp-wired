@@ -19,7 +19,7 @@ import {searchNow as countedSearchNow} from './wall.ts'
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {type TranslationFields, inheritSource, translationVerdict} from './source-check.ts'
 import {env as knobs} from './solver.ts'
-import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, fnCall, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, sourceFreeFn, withArithmetic} from './machine.ts'
+import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, fnCall, hasFinite, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, sourceFreeFn, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
@@ -961,6 +961,33 @@ export class SeqTable {
 }
 // f at every key below n: what bookkeeping a request carries meets, row by row (where each grant went, say).
 export const everyBelow = (n: TermLike, f: (key: Term) => Cond): Cond => everyKey(k => k.lt(n).implies(f(k)))
+
+// Explicit finite-domain opt-in. The guard, not the label, carries its semantics.
+// A size is over immutable params; the kernel validates that when it scopes the rule.
+// Unlike everyBelow's legacy breakpoint route, every/some enumerate every element.
+export function sizedSort(name: string, size: TermLike) {
+  if (!name) throw new Error('a sized sort needs a name')
+  const below = termOf(size)
+  const every = (f: (key: Term) => Cond): Cond => {
+    const key = `k$${++boundCounter}`
+    const body = f(v(key))
+    if (body.ex?.length || hasAll(body.c)) throw new Error('a finite sort body must be unquantified in this slice')
+    const c: C = {op: 'all', key, finite: name, c: {op: 'or', xs: [{op: 'not', x: {op: '<', a: v(key).e, b: below}}, body.c]}}
+    const n = valOf(size)
+    if (n !== undefined) naturalConst(n)
+    checkWall('finite sort enumeration')
+    let ok: boolean | undefined = n === undefined ? undefined : true
+    if (n !== undefined) for (let k = 0; k < n; k++) {
+      if ((k & 255) === 0) checkWall('finite sort enumeration')
+      const holds = f(keyTerm(k)).ok
+      if (holds === false) { ok = false; break }
+      if (holds === undefined) ok = undefined
+    }
+    return new Cond(c, ok)
+  }
+  return {name, size: new Term(below, valOf(size)), has: (key: TermLike) => new Term(termOf(key), valOf(key)).lt(size),
+    every, some: (f: (key: Term) => Cond) => every(k => f(k).not()).not()}
+}
 const when_ = (c: Cond, then: TermLike, otherwise: TermLike): Term => new Term({op: 'if', c: c.c, then: termOf(then), else: termOf(otherwise)}, c.ok === undefined ? undefined : valOf(c.ok ? then : otherwise))
 
 // Writes to the maps a map or a list of a kind is kept in (one per variable of the kind), as the step returns them under
@@ -1273,7 +1300,7 @@ class Hoister {
   quantifier(q: Extract<C, {op: 'all'}>, bound: string[], name?: string): C {
     const outer = bound.filter(key => namesIn(q).includes(key))
     if (outer.length) throw new Error(`a condition at every key reads ${outer[0]}, a key bound outside it: two keys at once are named together (everyKey((i, j) => ...))`)
-    const inner = perStep(q.c), keys = q.keys?.length ? {keys: q.keys} : {}
+    const inner = perStep(q.c), keys = {...(q.keys?.length ? {keys: q.keys} : {}), ...(q.finite === undefined ? {} : {finite: q.finite})}
     if (!inner) { const f = name ?? `${this.prefix}${++this.n}`; this.flags[f] = {op: 'all', key: q.key, ...keys, c: q.c}; return {op: 'flag', name: f} }
     const truth = inner.op === 'flag' ? inner : this.quantifier(inner, [...bound, q.key, ...(q.keys ?? [])])
     const split = (by: C) => this.quantifier({op: 'all', key: q.key, ...keys, c: swapC(q.c, inner, by)}, bound)
@@ -1304,6 +1331,8 @@ export function nameQuantifiers(m: Machine): Machine {
 const hasForall = (c: C, positive = true): boolean => c.op === 'all' ? positive || hasForall(c.c, positive) : c.op === 'not' ? hasForall(c.x, !positive) : c.op === 'and' || c.op === 'or' ? c.xs.some(y => hasForall(y, positive)) : false
 const hasAll = (c: C | E) => JSON.stringify(c).includes('"op":"all"')
 function prenex(c: C, what: string, key: string): C | undefined {
+  if (hasFinite(c) && (what.startsWith('step law') || (c.op !== 'all' && hasForall(c))))
+    throw new Error(`${what}: a finite universal is one whole law in this slice (not nested or a step law)`)
   let found = false
   const walk = (d: C, positive: boolean): C => {
     switch (d.op) {
@@ -1865,8 +1894,9 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   law(name: string, f: (env: P & S & M & Su) => Cond | Forall): Law { return withSource(this.lawOf(name, f(this.env({flags: false, inputs: false, queries: false}) as never)), {law: f as never}) }
   private lawOf(name: string, out: Cond | Forall): Law {
     const key = `key$${++keyCounter}`
-    if (out instanceof Cond) { const p = prenex(out.c, `law ${name}`, key); return this.divides(this.someOf(name, out, p ? {name, forall: key, holds: p} : {name, holds: out.c})) }
+    if (out instanceof Cond) { const p = prenex(out.c, `law ${name}`, key); return this.divides(this.someOf(name, out, p ? {name, forall: key, holds: p, ...(out.c.op === 'all' && out.c.finite !== undefined ? {finite: out.c.finite} : {})} : {name, holds: out.c})) }
     const [k1, more] = keysFor(out), inner = out.forall(v(k1), ...more.map(v)), holds = inner.c
+    if (hasFinite(holds)) throw new Error(`law ${name}: a finite universal is one whole law, not inside forall`)
     return this.divides(this.someOf(name, inner, more.length ? {name, forall: k1, keys: more, holds} : {name, forall: k1, holds: prenex(holds, `law ${name}`, k1) ?? holds}))
   }
   // A law's existentials (exists), pulled out before it: `some` its naturals, `witness` the ones given (a ghost's step

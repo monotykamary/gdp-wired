@@ -126,6 +126,7 @@ export function decE(x: unknown, at = 'term'): E {
 }
 export function encC(c: C, at = 'condition'): Json {
   if (!isObj(c)) fail(at, 'a condition')
+  if (c.op === 'all' && c.finite !== undefined) fail(at, 'finite sort quantifiers are not supported by interchange 1.1')
   switch (c.op) {
     case '<': case '<=': case '=': return {op: c.op, a: encE(c.a, `${at}.a`), b: encE(c.b, `${at}.b`)}
     case 'and': case 'or': return {op: c.op, xs: arr(c.xs, `${at}.xs`).map((y, i) => encC(y as C, `${at}.xs[${i}]`))}

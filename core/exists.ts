@@ -21,7 +21,7 @@ import {type C, type E, type Law, type Machine, type Request, type SomeProof, ty
 import {type Report, clock, proveLaw, proveLaws, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {env} from './solver.ts'
 import {WallExpired, checkWall} from './wall.ts'
-import {type Ghosted, ghostedMachine, ghostedOk, substC} from '../kernel/kernel.ts'
+import {type Ghosted, finiteLawBound, ghostedMachine, ghostedOk, substC} from '../kernel/kernel.ts'
 
 type Env = Record<string, number>
 // A bound value's naturals: [x], or an integer's [x, x$neg].
@@ -303,6 +303,7 @@ export function holdsAt(m: Machine, law: Law, p: Env, st: State, b: number): boo
   return withReachabilityWork(() => holdsAtWithin(m, law, p, st, b))
 }
 function holdsAtWithin(m: Machine, law: Law, p: Env, st: State, b: number): boolean {
+  const finite = finiteLawBound(law)
   let machineViews = views.get(m)
   if (!machineViews) views.set(m, (machineViews = new WeakMap()))
   let view = machineViews.get(st)
@@ -310,6 +311,7 @@ function holdsAtWithin(m: Machine, law: Law, p: Env, st: State, b: number): bool
     const empty: Request = Object.fromEntries((m.inputMaps ?? []).map(c => [c, new Map()]))
     machineViews.set(st, (view = carriedView(m, st, empty, undefined, p)))
   }
+  if (finite) return evalC({op: 'all', key: law.forall!, c: law.holds, finite: law.finite}, p, view, m)
   let tests = sampleTests.get(m)
   if (!tests) sampleTests.set(m, (tests = new WeakMap()))
   let test = tests.get(law.holds)

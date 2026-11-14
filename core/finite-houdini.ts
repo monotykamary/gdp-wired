@@ -2,7 +2,7 @@ import {traceNow as countedTraceNow} from './wall.ts'
 // A finite relative-CTI filter, never a proof. Unsupported evaluations are
 // unknown; only an actual enabled step from a state satisfying the WHOLE
 // current family may remove a non-caller. The checked prover sees survivors.
-import {type C, type E, type Law, type Machine, type Request, type State, carriedView, compileC, compileE, fastStep, interpret, seeded, walk} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type State, carriedView, compileC, compileE, fastStep, hasFinite, interpret, seeded, walk} from './machine.ts'
 import {checkWall, searchWall, WallExpired, BudgetExpired} from './wall.ts'
 import {boundaryState, lawFrontiers} from './finite-frontiers.ts'
 import {withReachabilityWork, reachState, reachEdge} from './work-observe.ts'
@@ -19,6 +19,7 @@ const conjuncts = (c: C): C[] => c.op === 'and' ? c.xs.flatMap(conjuncts) : [c]
 // the explicit cells plus one distinct fresh key per binder cover every case.
 export function finiteEvaluator(m: Machine, stop: () => boolean = () => false): (law: Law, p: Env, st: State) => Truth {
   const checkpoint = () => { checkWall('finite derived count'); if (stop()) throw new Error('finite evaluation stopped') }
+  const finiteMachine = hasFinite(m)
   const plans = new WeakMap<Law, ReturnType<typeof plan>>()
   const cache = new WeakMap<State, {params: Env, view: State, values: Map<Law, Truth>}>()
   function plan(law: Law) {
@@ -58,11 +59,12 @@ export function finiteEvaluator(m: Machine, stop: () => boolean = () => false): 
       return {key, safe, maps: [...maps], upper}
     })
     let nested = false; walk(law.holds, o => { if (o.op === 'all') nested = true })
-    return {keys, cover, guards: gs, test: compileC(law.holds, m), supported: !nested && !law.some?.length && !keys.some(k => k in m.state || m.params.includes(k)) && ![...variables(law.holds)].some(k => m.inputs.includes(k) && !keys.includes(k))}
+    return {keys, cover, guards: gs, test: compileC(law.holds, m), supported: !nested && !hasFinite(law) && !law.some?.length && !keys.some(k => k in m.state || m.params.includes(k)) && ![...variables(law.holds)].some(k => m.inputs.includes(k) && !keys.includes(k))}
   }
   return (law, p, st) => withReachabilityWork(() => {
     checkWall('finite law')
-    if (stop()) return undefined
+    // This specialized cover compiler has not been extended to sized domains.
+    if (stop() || finiteMachine) return undefined
     let entry = cache.get(st)
     if (!entry || entry.params !== p) { entry = {params: p, view: carriedView(m, st, Object.fromEntries((m.inputMaps ?? []).map(k => [k, new Map()])), undefined, p, checkpoint), values: new Map()}; cache.set(st, entry) }
     if (entry.values.has(law)) return entry.values.get(law)

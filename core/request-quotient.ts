@@ -1,7 +1,7 @@
 // Untrusted sampling optimization. A class is used only AFTER one member has
 // produced a state. Refusals are never generalized; the original request order,
 // logical trial allowance and first successful witness remain unchanged.
-import {type C,type E,type Machine,type Request,walk} from './machine.ts'
+import {type C,type E,type Machine,type Request,hasFinite,walk} from './machine.ts'
 import {startWork} from './work-admission.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {checkWall} from './wall.ts'
@@ -12,6 +12,7 @@ type Bound=ReadonlySet<string>
 export type RequestQuotient={classes:Uint32Array,count:number,selector?:string,reads:ReadonlyMap<number|undefined,readonly string[]>}
 
 export function requestQuotient(m:Machine,requests:readonly Request[]):RequestQuotient|undefined{
+ if(hasFinite(m))return undefined // arbitrary finite-body reads need an exact quotient proof
  if(requests.length<2||Object.keys(m.fns??{}).length||m.history||m.leasts||Object.keys(m.sums??{}).length)return undefined
  const names=[...m.inputs,...m.inputMaps??[]],inputs=new Set(m.inputs),maps=new Set(m.inputMaps??[])
  // Ambiguous namespaces and non-topological flags use the unmodified sampler.

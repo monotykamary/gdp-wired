@@ -2,7 +2,7 @@
 // candidate per index. The machine and its law compile to straight-line u32 code (what the forked Handwired's word
 // operations would emit), once as WGSL and once as JavaScript for the CPU baseline. Nothing here is trusted: whatever
 // the kernel reports is replayed by the interpreter before it is shown.
-import {type C, type E, type Law, type Machine, type Request, compileFunction, cpair, evalC, fnValue, interpret, noQuantifier, pointWrite} from '../../core/machine.ts'
+import {type C, type E, type Law, type Machine, type Request, compileFunction, cpair, evalC, fnValue, hasFinite, interpret, noQuantifier, pointWrite} from '../../core/machine.ts'
 import {type Watched, allowed, isStepLaw, watch} from '../../core/watch.ts'
 import {historyMachine} from '../../kernel/kernel.ts'
 
@@ -53,6 +53,7 @@ export function replay(m: Machine, law: Watched, s: Space, index: number): {para
 export const FN_KEYS = 1024
 // Returns each state variable's and map's bound over the space (the Handwired search assumes them of its registers).
 export function fitsU32(given: Machine, law: Watched, s: Space): {vars: Record<string, number>, cells: Record<string, number>} {
+  if (hasFinite([given, law])) throw new Error('the shader search does not support finite sort enumeration')
   const limit = 2 ** 32 - 1
   const fns = given.fns ?? {}, top = new Map<string, number>()
   // A function's largest value over the keys 0..kb.

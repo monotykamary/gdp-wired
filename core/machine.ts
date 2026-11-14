@@ -5,7 +5,7 @@
 // Arithmetic is linear: +, −, × by a constant, min, max, if. Maps are naturals indexed by naturals, every cell starting
 // at the same value; a law about a map holds for every key x, and is proven at one arbitrary x (with the law assumed at
 // every other key the step reads).
-import {boundOf, crossFree, eachParts, historyMachine, tuple, keyTerm, mapArities, plainKey, scope, sumRuntime, tupleParts} from '../kernel/kernel.ts'
+import {boundOf, crossFree, eachParts, finiteBound, finiteLawBound, historyMachine, tuple, keyTerm, mapArities, plainKey, scope, sumRuntime, tupleParts} from '../kernel/kernel.ts'
 import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
 import {runtimeWall} from './runtime-wall.ts'
 import {traceNow} from './trace-clock.ts'
@@ -30,6 +30,13 @@ export const walk = (t: unknown, f: (o: Record<string, unknown>) => void): void 
   const o = t as Record<string, unknown>
   f(o)
   for (const x of Object.values(o)) walk(x, f)
+}
+// Opt-in finite markers, including a law whose universal was pulled out by prenex.
+// Unsupported evaluators use this to refuse rather than approximate its domain.
+export const hasFinite = (value: unknown): boolean => {
+  let found = false
+  walk(value, o => { if (o.finite !== undefined && (o.op === 'all' || 'holds' in o)) found = true })
+  return found
 }
 // Every object in a term once (arrays too), a part shared by several uses read at its first: a witness read at each of
 // its uses in a goal is one object, and a walk of the goal written out would read it at each.
@@ -62,7 +69,7 @@ export type C =
   | {op: 'or', xs: C[]}
   | {op: 'not', x: C}
   | {op: 'flag', name: string} // a named condition of the step, decided once per step
-  | {op: 'all', key: string, keys?: string[], c: C, witness?: E} // c at every key: only as a whole flag (a quantified flag), the key only as a map's key;
+  | {op: 'all', key: string, keys?: string[], c: C, witness?: E, finite?: string} // c at every key: only as a whole flag (a quantified flag), the key only as a map's key;
   // in a law, under a not (some key where a condition holds), `witness` may name the key (kernel/prove.ts). A flag may
   // hold at every tuple of keys (`keys` the further ones), each read on its own and compared with another plainly
 
@@ -184,7 +191,7 @@ export const noQuantifier = (where: string): never => { throw new Error(`${where
 // A law: a condition on the state and params, and for a map law, `forall` names the key variable it holds at.
 // `keys`: the further keys, for a law about every two keys or more (after `forall`). `stated`: the law as written, when
 // `holds` is the stronger one the prover proved (some key named by a witness).
-export type Law = {name: string, holds: C, forall?: string, keys?: string[], stated?: C, some?: string[], witness?: SomeWitness, ex?: SomeProof}
+export type Law = {name: string, holds: C, forall?: string, keys?: string[], finite?: string, stated?: C, some?: string[], witness?: SomeWitness, ex?: SomeProof}
 // "There exists" (core/exists.ts): a law with `some` is ∃ those naturals. holds (each read by name in `holds`; an
 // integer is two of them, `x` and `x$neg`), after its `forall` key when it has one. The kernel never sees one: it is
 // proven through a witness, `witness` if given, else one the prover finds: a term of the state for each (`terms`, the
@@ -529,6 +536,16 @@ export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
     case 'not': return !evalC(c.x, env, st, m)
     case 'flag': return env[`?${c.name}`] === 1
     case 'all': {
+      const finite = finiteBound(c)
+      if (finite) {
+        runtimeWall.check?.('finite quantifier')
+        const size = naturalIn(evalE(finite, env, st, m), `size of ${c.finite}`)
+        for (let key = 0; key < size; key++) {
+          if ((key & 255) === 0) runtimeWall.check?.('finite quantifier')
+          if (!evalC(c.c, {...env, [c.key]: key}, st, m)) return false
+        }
+        return true
+      }
       const names = boundOf(c), keys = tupleKeys(c, env, st, m)
       const go = (i: number, at: Env): boolean => (i === names.length ? evalC(c.c, at, st, m) : keys.every(key => go(i + 1, {...at, [names[i]!]: key})))
       return go(0, env)
@@ -894,7 +911,7 @@ export function compileJs(m: Machine): string { return compileJsMode(m, false) }
 function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): string {
   const {h, plain, queries, carried} = runnable(m)
   // (a condition or a write at every key over a tuple key: the interpreter decides those, part by part)
-  const atEvery = [...Object.values(plain.step.flags ?? {}).filter(c => c.op === 'all'), ...Object.values(plain.step.maps ?? {}).filter(w => 'each' in w)]
+  const atEvery = [...Object.values(plain.step.flags ?? {}).filter(c => c.op === 'all' && c.finite === undefined), ...Object.values(plain.step.maps ?? {}).filter(w => 'each' in w)]
   const arity = mapArities(plain)
   if (JSON.stringify(atEvery).includes('"op":"tup"') || Object.entries(plain.step.maps ?? {}).some(([map, w]) => 'each' in w && (arity[map] ?? 1) > 1))
     throw new Error(`${m.name}: compileJs takes no tuple key at every key (interpret runs it)`)
@@ -932,6 +949,14 @@ function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): 
       case 'not': return `(!${cx(c.x)})`
       case 'flag': return `flag${flags.indexOf(c.name)}`
       case 'all': {
+        const finite = finiteBound(c)
+        if (finite) {
+          const size = ex(finite), outer = bound
+          bound = {...bound, [c.key]: 'fk'}
+          const body = cx(c.c)
+          bound = outer
+          return `(fn => { $finite(); for (let fk = 0; fk < fn; fk++) { if ((fk & 255) === 0) $finite(); if (!${body}) return false; } return true; })($n(${size}, ${id(`size of ${c.finite}`)}))`
+        }
         const names = boundOf(c), ks = names.map((_, i) => (i ? `k${i}` : 'k')), keys = names.length === 1 ? keysJs(c.c, c.key) : tupleJs(c), outer = bound
         bound = {...bound, ...Object.fromEntries(names.map((n, i) => [n, ks[i]!]))}
         const body = cx(c.c)
@@ -1043,7 +1068,7 @@ function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): 
 export function fork(state) {
   return {scalars: {...state.scalars}, maps: Object.fromEntries(Object.entries(state.maps).map(([name, cells]) => [name, new Map(cells)])), ...(state.defaults ? {defaults: {...state.defaults}} : {})${h ? ', history: state.history.slice(state.head), head: 0, last: state.last' : ''}};
 }
-export function step(params, state, input) {
+export function step(params, state, input${hasFinite(plain) ? ', $finite = () => { throw new Error("finite sort step requires a cancellation callback"); }' : ''}) {
   ${lines.join('\n  ')}
 }
 `
@@ -1059,15 +1084,27 @@ export function compileFunction<F>(params: string[], body: string): F {
   return new Function(...params, body) as F
 }
 // compileJs's module, loaded: init, fork and step.
-export type Compiled = {init: (params: object) => State & {head?: number}, fork: (st: State) => State, step: (params: object, st: State, input: object) => State & {head?: number}, cells?: (params: object, st: State, input: object, tick: () => void) => Record<string, Map<number, number>>}
+export type Compiled = {init: (params: object) => State & {head?: number}, fork: (st: State) => State, step: (params: object, st: State, input: object, finiteCheck?: () => void) => State & {head?: number}, cells?: (params: object, st: State, input: object, tick: () => void) => Record<string, Map<number, number>>}
 // The counts the generated `cells` computes (their declarations) and the maps the request carries besides them.
 type CompiledCells = {decls: NonNullable<Machine['counts']>, inputMaps: string[]}
 export const loadJs = (m: Machine): Compiled => loadJsMode(m, false)
-const loadJsMode = (m: Machine, persistent: boolean, cells?: CompiledCells): Compiled => compileFunction<() => Compiled>([], `${compileJsMode(m, persistent, cells).replace(/^export function/gm, 'function')}\nreturn {init, fork, step${cells ? ', cells' : ''}}`)()
+const loadJsMode = (m: Machine, persistent: boolean, cells?: CompiledCells): Compiled => {
+  const js = compileFunction<() => Compiled>([], `${compileJsMode(m, persistent, cells).replace(/^export function/gm, 'function')}\nreturn {init, fork, step${cells ? ', cells' : ''}}`)()
+  if (hasFinite(m)) {
+    // Standalone generated modules require an explicit cooperative callback.
+    // The loaded runtime uses the same cancellation bridge as the interpreter.
+    const step = js.step
+    js.step = (params, st, input, check = () => runtimeWall.check?.('finite quantifier')) => step(params, st, input, check)
+  }
+  return js
+}
 // The interpreter's step (persistent: a copy of the state each) through loadJs's, several times faster, a request's counts
 // given to it as maps the request carries (carriedView's, each cell its sum when read); none with a history, or where the
 // generator refuses the machine.
 export function fastStep(m: Machine): ((params: Env, st: State, input: Request) => State) | undefined {
+  // Its static per-step charge cannot account for a parameter-sized loop.
+  // Proof-time callers must use the interruptible, per-node interpreter instead.
+  if (hasFinite(m)) return undefined
   // (the counts the step itself reads, in its guards, flags, writes or assumption: a count only a law reads is never
   // computed for a step; a count's body may read another count, so the closure is taken)
   const all = m.counts ?? {}, read = new Set<string>()
@@ -1339,6 +1376,8 @@ function renameKey(lin: Lin, from: string, to: Lin | undefined): Lin {
 export function search(m: Machine, law: Law, depth = 3, bound = 2): {params: Env, trace: Env[]} | undefined {
   const run = interpret(m)
   const holds = (params: Env, st: State) => {
+    const finite = finiteLawBound(law)
+    if (finite) return evalC({op: 'all', key: law.forall!, c: law.holds, finite: law.finite}, params, st, m)
     const keys = law.forall ? [...new Set([0, ...Object.values(st.maps).flatMap(cells => [...cells.keys()])])] : [0]
     return keys.every(key => evalC(law.holds, {...params, ...(law.forall ? {[law.forall]: key} : {})}, st, m))
   }

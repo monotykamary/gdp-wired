@@ -1,0 +1,5 @@
+feat(core): add opt-in finite guarded quantifiers
+
+Keep guarded formulas and existing proof certificates unchanged. Add exact
+finite runtime enumeration, checked size scope and conservative refusals.
+Verify marked Lean exports and automatically derived Venn-region identities.

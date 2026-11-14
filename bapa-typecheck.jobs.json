@@ -1,0 +1,5 @@
+[
+ {"name":"scoped-strict-typecheck","cmd":"set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bunx tsc -p tsconfig.bapa.json > \"$SUPERCOMPUTER_OUTPUT_DIR/typecheck.log\" 2>&1; bun test core/sized-sort.test.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/tests.log\" 2>&1","cpu":4,"memory":8192,"timeout":600,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}},
+ {"name":"full-typecheck","cmd":"set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bun run typecheck > \"$SUPERCOMPUTER_OUTPUT_DIR/typecheck.log\" 2>&1","cpu":4,"memory":8192,"timeout":600,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}},
+ {"name":"package-typecheck","cmd":"set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bunx tsc -p tsconfig.build.json --noEmit --declaration false > \"$SUPERCOMPUTER_OUTPUT_DIR/typecheck.log\" 2>&1","cpu":4,"memory":8192,"timeout":600,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}
+]

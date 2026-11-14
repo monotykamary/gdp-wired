@@ -1,0 +1,4 @@
+[
+ {"name":"finite-regions-lean","cmd":"bash scripts/bapa-export.sh","cpu":2,"memory":4096,"timeout":900,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}},
+ {"name":"legacy-count-mutants","cmd":"set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bun test kernel/count.test.ts kernel/countmachine.test.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/tests.log\" 2>&1","cpu":2,"memory":4096,"timeout":900,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}
+]

@@ -22,7 +22,7 @@ import {searchNow as countedSearchNow} from './wall.ts'
 //
 // The budget is read off prove.ts's clock inside `counted` (the cost model's work, bmcRate units a millisecond), so the
 // search is the same on any machine; a wall-clock stop beside it (`wall`) is for callers under a wall-clock limit.
-import {type C, type E, type Law, type Machine, type Request, type State, evalC, evalE, interpret, isArithmetic, loadJs, numbersOf} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type State, evalC, evalE, hasFinite, interpret, isArithmetic, loadJs, numbersOf} from './machine.ts'
 import {stepLawObligations, substC, substE} from '../kernel/kernel.ts'
 import {clock, counted, fullRate} from '../kernel/prove.ts'
 import {REFUTED, cdclSession, growCdcl} from '../kernel/cdcl.ts'
@@ -45,6 +45,7 @@ export type BmcOptions = {
 // Machines whose runs the goals describe as they are: scalars only (no maps, history or carried maps), no quantified
 // flag, no function but division by a constant (whose facts fix its value); laws plain (no key, no "there exists").
 export function bmcFits(m: Machine, laws: Law[]): boolean {
+  if (hasFinite([m, laws])) return false
   if (Object.keys(m.maps ?? {}).length || m.history || m.inputMaps?.length) return false
   if (Object.values(m.step.flags ?? {}).some(f => f.op === 'all')) return false
   if (Object.keys(m.fns ?? {}).some(f => !isArithmetic(f))) return false

@@ -38,7 +38,7 @@ import {withEvaluationAdmission} from './evaluation-admission.ts'
 import {bitIntersection, bitIntersects} from './bitsets.ts'
 import {samplePredicates, sampleStateText} from './sample-cache.ts'
 import {sampleStep} from './sample-step.ts'
-import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, compileC, compileE, cpair, fastStep, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, partsOf as tupleOf, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
+import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, compileC, compileE, cpair, fastStep, divisorsIn, evalC, evalE, get, hasFinite, interpret, machineTerms, fnValue, modName, n, not, partsOf as tupleOf, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, type proveRule, bool, refuteModelByRuns, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
 import {clock, counted, fullWork, searchWork, decideLaw, decideNote, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall, withSearchWork} from '../kernel/prove.ts'
@@ -211,6 +211,7 @@ const few = (vals: number[]) => vals.length <= 4 && vals.every(x => x <= 8)
 // interpreted evaluations); the rest of the step the interpreter's. Its first steps are checked against the
 // interpreter's, and one that differs, or a domain past `most` tuples, leaves the interpreter's.
 export function domainStep(m: Machine, most = 20_000): ((params: Env, st: State, input: Request) => State | undefined) | undefined {
+  if (hasFinite(m)) return undefined // use the exact interpreter, never the speculative domain bound
   // (every write at every key, a relation's at its tuples and a plain map's at its keys, n 1; a write at one key as itself)
   const tupled = (mp: string) => (m.relations?.[mp]?.length ?? 0) > 1
   if (!Object.entries(m.step.maps ?? {}).some(([mp, w]) => 'each' in w && tupled(mp)) || m.history || m.leasts || m.inputMaps?.length || m.counts || m.fns) return undefined

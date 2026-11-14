@@ -25,7 +25,7 @@
 // query is the sum of its term over the records kept before the request and not yet spent (with pruning, a record whose
 // order plus `after` is at most the request's), as the runtimes read it. With pruning, a request whose order goes back
 // ends the candidate: the runtimes refuse it.
-import {type C, type E, type Machine, fnValue} from '../../core/machine.ts'
+import {type C, type E, type Machine, fnValue, hasFinite} from '../../core/machine.ts'
 import {FN_KEYS, carried, fitsU32, stepDigits} from '../search/compile.ts'
 import {historyMachine, plainKey} from '../../kernel/kernel.ts'
 import {type Watched, isStepLaw} from '../../core/watch.ts'
@@ -45,6 +45,7 @@ export function lowSteps(m: Machine, space: Space, atMost = space.depth) {
 }
 
 export function compile(given: Machine, law: Watched, space: Space, chunk: number, lowAtMost = space.depth): LoopProgram<AnyStage> {
+  if (hasFinite([given, law])) throw new Error('the GPU search does not support finite sort enumeration')
   const K = space.bound + 1, D = space.depth, L = lowSteps(given, space, lowAtMost)
   const bounds = fitsU32(given, law, space)
   const h = given.history, m = h ? historyMachine(given).machine : given, carriedIn = carried(given)

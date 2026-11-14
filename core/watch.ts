@@ -8,7 +8,7 @@
 // and flags; `then` with the state before the first step (plain names), the first request and its flags, the j-th
 // request as input@j, and the state and maps after the last step (primed names).
 import {type C, type E, type Law, type Machine, type Request, type State, carriedView, evalC, evalE, type interpret, numbersOf, walk} from './machine.ts'
-import type {StepLaw} from '../kernel/kernel.ts'
+import {finiteLawBound, type StepLaw} from '../kernel/kernel.ts'
 import {someHolds} from './exists.ts'
 import {checkWall, inBudget, checkWorkEndpoint} from './wall.ts'
 import {withEvaluationAdmission} from './evaluation-admission.ts'
@@ -123,7 +123,10 @@ export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: 
     // A law with "there exists" (core/exists.ts): broken only where no value can be a witness, as far as that is decided
     // (one natural or integer read linearly); undecided, it is kept.
     const at = (env: Env, st: State) => (w.some?.length ? someHolds(w.holds, w.some, {...env}, st, m, true)?.holds ?? true : evalC(w.holds, env, st, m))
-    const holds = (st: State) => atKeys(per(bound, st, () => keysOf(bound, st)), {...params}, env => at(env, st), st, m)
+    const finite = finiteLawBound(w)
+    const holds = (st: State) => finite
+      ? evalC({op: 'all', key: w.forall!, c: w.holds, finite: w.finite}, params, st, m)
+      : atKeys(per(bound, st, () => keysOf(bound, st)), {...params}, env => at(env, st), st, m)
     return {start: holds, step: (_before: State, _input: Request, after: State) => holds(after)}
   }
   const k = w.steps ?? 1, whens = w.when === undefined ? [] : Array.isArray(w.when) ? w.when : [w.when]

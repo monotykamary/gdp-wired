@@ -1,0 +1,3 @@
+[
+  {"name":"bapa-lean-export","cmd":"bash scripts/bapa-export.sh","cpu":2,"memory":4096,"timeout":900,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}
+]

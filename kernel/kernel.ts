@@ -1030,20 +1030,21 @@ export function scope(m: Machine, laws: Law[] = []) {
   // read only as a map's key (so every key the maps hold nothing at reads alike); a quantifier is a whole flag, nowhere
   // else.
   const readable = [...maps, ...carried, ...fns]
-  const bound = (what: string, key: string, t: E | C) => {
+  const bound = (what: string, key: string, t: E | C, finite = false) => {
     plainName(what, key)
     if ([...names, ...readable, ...flags].includes(key)) throw new Error(`${what}: the key ${key} is already a name of ${m.name}`)
     // (a count map, like a function, has a value at every key, not cells a runtime can list: read at no key term)
-    keyOnly(what, t, key, [...fns, ...counts])
+    if (!finite) keyOnly(what, t, key, [...fns, ...counts])
   }
   inScope(`${m.name}'s start`, Object.values(m.state), m.params)
   flags.forEach((f, i) => {
     const c = m.step.flags![f]!, what = `${m.name}'s flag ${f}`
     // A quantified flag's body reads no flag (the twin decides quantified flags before the plain ones).
     if (c.op === 'all') {
-      const keys = boundOf(c), body = crossFree(c.c, keys)
+      const finite = finiteBound(c), keys = boundOf(c), body = crossFree(c.c, keys)
+      if (finite) inScope(`${what}'s finite size`, [finite], m.params)
       distinct(what, keys)
-      for (const key of keys) { bound(what, key, body); apart(what, body, key, keys) }
+      for (const key of keys) { bound(what, key, body, finite !== undefined); if (!finite) apart(what, body, key, keys) }
       unquantified(what, c.c); inScope(what, [c.c], [...names, ...keys], readable, [])
     }
     else { unquantified(what, c); inScope(what, [c], names, readable, flags.slice(0, i)) }
@@ -1051,6 +1052,7 @@ export function scope(m: Machine, laws: Law[] = []) {
   const arity = mapArities(m, laws)
   for (const [map, w] of Object.entries(m.step.maps ?? {})) {
     const what = `${m.name}'s write to ${map}`
+    if ('finite' in w) throw new Error(`${what}: a finite marker is only for quantifiers, not writes at every key`)
     // At every key of a tuple-keyed map, the key is read as its parts (proj k, or the key whole at a read of the map):
     // the runtimes compute the write at every tuple of parts, each part read as a bound key is.
     if ('each' in w && (own(arity, map) ?? 1) > 1) {
@@ -1074,6 +1076,8 @@ export function scope(m: Machine, laws: Law[] = []) {
     for (const key of [law.forall, ...(law.keys ?? [])]) if (key) { plainName(what, key); if ([...names, ...maps, ...carried, ...fns].includes(key)) throw new Error(`${what}'s key ${key} is already a name of ${m.name}`) }
     if (law.keys?.length && (!law.forall || new Set([law.forall, ...law.keys]).size !== law.keys.length + 1)) throw new Error(`${what}: further keys come with a first, each a different name`)
     if (law.name.startsWith('?')) throw new Error(`${what}: a name starting with ? is a flag's (its instances)`)
+    const finite = finiteLawBound(law)
+    if (finite) inScope(`${what}'s finite size`, [finite], m.params)
     unquantified(what, law.holds)
   }
   const keysOf = (l: Law) => [...(l.forall ? [l.forall] : []), ...(l.keys ?? [])]
@@ -1141,6 +1145,26 @@ const tupleSides = (u: Extract<C, {a: E}>): [E, E][] | undefined => {
   if (u.op !== '=' || u.a.op !== 'tup' || u.b.op !== 'tup') return undefined
   const as = tupleParts(u.a), bs = tupleParts(u.b)
   return as.length === bs.length ? as.map((a, i) => [a, bs[i]!]) : undefined
+}
+// A marker is a request for exact finite enumeration, never a semantic axiom.
+// The guard remains in the formula sent to closing/assumed and the Lean twin.
+// Bounded.lean proves this exact shape equivalent to enumeration, including n=0.
+export function finiteBound(q: Extract<C, {op: 'all'}>): E | undefined {
+  if (q.finite === undefined) return undefined
+  const bad = () => { throw new Error('a finite quantifier requires one key and the exact guard k < size implies body') }
+  if (typeof q.finite !== 'string' || !q.finite.length || q.keys?.length) return bad()
+  const c = q.c
+  if (c.op !== 'or' || c.xs.length !== 2) return bad()
+  const guard = c.xs[0]!
+  if (guard.op !== 'not' || guard.x.op !== '<' || guard.x.a.op !== 'var' || guard.x.a.name !== q.key) return bad()
+  if (readsKey(guard.x.b, q.key)) return bad()
+  return guard.x.b
+}
+// Prenexing a finite law removes its quantifier, but not its guard or runtime domain.
+export function finiteLawBound(law: Law): E | undefined {
+  if (law.finite === undefined) return undefined
+  if (!law.forall || law.some?.length || law.ex) throw new Error('a finite law requires one universal key and no existential witness metadata')
+  return finiteBound({op: 'all', key: law.forall, ...(law.keys ? {keys: law.keys} : {}), c: law.holds, finite: law.finite})
 }
 export const keyTerm = (e: E, key: string): boolean => e.op === 'var' ? e.name === key
   : e.op === 'add' ? (e.a.op === 'var' && e.a.name === key && !readsKey(e.b, key)) || (e.b.op === 'var' && e.b.name === key && !readsKey(e.a, key))
