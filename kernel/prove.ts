@@ -398,7 +398,7 @@ const ranOut = (): boolean => pastWall() || withinDeadline(Infinity) <= clock()
 // Active-clock endpoint; inherited real walls are checked separately by pastWall.
 export const wallAt = (): number => {
   const proxy = proxySearchState()
-  if (proxy) return proxy.rate ? withinDeadline(Infinity) : proxy.wallEnd
+  if (proxy) return workOnlyWall() || proxy.rate ? withinDeadline(Infinity) : proxy.wallEnd
   return inWorkScope() ? withinDeadline(budgetEnd()) : wallEnd
 }
 export const late = (until: number): boolean => {

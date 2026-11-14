@@ -3,6 +3,7 @@ import {mkdirSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {protocols} from '../protocols/ic3syn/models.ts'
 import {admitCountedFamily} from '../../core/counts.ts'
+import {type Law} from '../../core/machine.ts'
 import {checkCountedLaws, checkLaws} from '../../kernel/kernel.ts'
 import {clock, proveLaws, proveSetFast} from '../../kernel/prove.ts'
 
@@ -13,7 +14,7 @@ if (protocols.length !== 29 || new Set(protocols.map(p => p.id)).size !== 29 || 
 const rows: unknown[] = []
 let failed = false
 const prove = (r: ReturnType<(typeof protocols)[number]['make']>, ordinary = false) => {
-  const laws = r.kindLaws(), machine = r.machine
+  const laws:Law[] = r.kindLaws(), machine = r.machine
   // The plain prover correctly refuses counted machines. Keep them intact and use
   // the native counted-family prover/checker; no stripped/projected machine is tested.
   if (Object.keys(machine.counts ?? {}).length) {

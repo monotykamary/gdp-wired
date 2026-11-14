@@ -147,7 +147,7 @@ for(const screen of ['0','1'])test('reachable screening precedes a required ordi
  process.env.GDP_COUNT_PROOF_GUIDED_SCHEDULING='1';process.env.GDP_COUNT_REACHABILITY_SCREEN=screen
  try{
   const {out,events}=run(m,[core],25000000)
-  if(!out.proven)throw Error(JSON.stringify({screen,why:out.why,events:events.filter(e=>String(e.phase).startsWith('count-recipe')||e.phase==='count-component-attempt'||e.phase==='count-component-result')}))
+  if(!out.proven)throw Error(JSON.stringify({screen,why:out.why,events:events.filter(e=>String(e.phase).startsWith('count-recipe')||e.phase==='count-component-attempt'||e.phase==='count-component-result')},(_key,value)=>typeof value==='bigint'?String(value):value))
   expect(out.proven).toBe(true);expect(checkCountedLaws(out.m,out.laws,out.proof!)).toBe(true)
   if(screen==='1'){
    expect(events.some(e=>e.phase==='count-reachability'&&e.law===bad.name&&e.outcome==='rejected')).toBe(true)

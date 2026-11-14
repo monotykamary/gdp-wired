@@ -8,8 +8,9 @@ const run = (extra: Record<string, string>, program: string) => {
 }
 const imports = `
 import {strict as assert} from 'node:assert';
-import {clock,counted,fullRate,pastWall,withWall,withBudget,wallAt,wallDeadline,searchNow} from './kernel/prove.ts';
+import {clock,counted,fullRate,pastWall,withWall,withBudget,wallAt,wallDeadline,searchNow,BudgetExpired} from './kernel/prove.ts';
 import {checkWall,WallExpired,searchWall} from './core/wall.ts';
+import {workLedger} from './core/work-admission.ts';
 `
 
 test('empty flags retain an expired inherited wall inside a legacy counted clock', () => {
@@ -82,7 +83,8 @@ test('FULL policy never consults the real wall and still honors its counted dead
     try {
       counted(fullRate,()=>withWall(clock()+1000000,()=>{
         assert.equal(pastWall(),false);checkWall('FULL work');
-        withWall(clock()-1,()=>assert.equal(pastWall(),true));
+        workLedger.start('ticks',500,'valid expired counted endpoint');
+        assert.throws(()=>withWall(clock()-1,()=>assert.fail('expired FULL endpoint entered')),BudgetExpired);
       }),true);
     } finally {
       if(desc)Object.defineProperty(performance,'now',desc);else Reflect.deleteProperty(performance,'now');
