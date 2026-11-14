@@ -212,6 +212,14 @@ theorem cmachine_sound (s : SMachine) (rs : List Rename) (ds : List CDecl) (ps :
   exact Kern.cmachine_sound (renameAll s rs) ds ps hc ρ M
     (((renameAll_equiv s rs hv).creach ds ρ M).mpr hr)
 
+/-- The same transport for the family check that carries each certificate's cuts. -/
+theorem cmachineF_sound (s : SMachine) (rs : List Rename) (ds : List CDecl) (ps : List CEntryF)
+    (hv : validAll s rs = true) (hc : checkCMachineF (renameAll s rs) ds ps = true) :
+    ∀ ρ M, CReach s ds ρ M → ∀ ce ∈ ps, ce.e.Holds ρ (withCnt ds ρ M) := by
+  intro ρ M hr
+  exact Kern.cmachineF_sound (renameAll s rs) ds ps hc ρ M
+    (((renameAll_equiv s rs hv).creach ds ρ M).mpr hr)
+
 /-- Transport the existing set-machine checker soundness to the ORIGINAL machine. -/
 theorem smachine_sound (s : SMachine) (rs : List Rename) (ps : List SEntry)
     (hv : validAll s rs = true) (hc : checkSMachine (renameAll s rs) ps = true) :
