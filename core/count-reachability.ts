@@ -14,6 +14,8 @@ import {strategyLawKey} from './strategy-premises.ts'
 import {reachEdge,reachState,withReachabilityWork} from './work-observe.ts'
 import {BudgetExpired,checkBudget,clock,fullRate,keyValue} from '../kernel/prove.ts'
 import {WallExpired} from './wall.ts'
+// This module also builds without ambient Node/Bun globals; declaration only.
+declare const process: {env: Record<string,string|undefined>}
 // The production scheduler must opt in before context hashing, samples, replay
 // ledger creation or any screen-side allocation. Direct calls remain explicit.
 export function optionalReachabilityScreen<T>(create:()=>T):T|undefined{
