@@ -27,7 +27,16 @@ const proposeFixture=(m:Machine,context:Law[],target:Law,end:number)=>{
 }
 void mock.module('./count-strategies.ts',()=>({...original,prepareCountStrategyMachine:(m:Machine)=>m,selectedCountStrategies:()=>selected??family,
  proposeCountStrategiesForClosing:proposeFixture,proposeCountStrategyKindForClosing:(_kind:'row'|'guard',m:Machine,context:Law[],target:Law,end:number)=>proposeFixture(m,context,target,end)}))
-void mock.module('./count-prerequisite-plan.ts',()=>({...planner,countPrerequisiteSchedule:()=>({requirements,recipes:new Map(family.map(law=>[law.name,[...(selected&&!selected.includes(law)?[{id:'ordinary',kind:'ordinary' as const}]:[{id:'row',kind:'strategy' as const,required:requirements.get(law.name)??[]}]),...(alternatives.has(law.name)?[{id:'independent',kind:'ordinary' as const,required:[]}]:[])]])),costs:new Map(family.map((law,index)=>[law.name,priority.get(law.name)??index]))})}))
+void mock.module('./count-prerequisite-plan.ts',()=>({...planner,countPrerequisiteSchedule:(_m:Machine,context:Law[])=>{
+ // Match the production planner's per-family offer filtering, including order
+ // and self exclusion. A removed law cannot remain a declared prerequisite.
+ const recomputed=new Map(context.map(owner=>{
+  const offered=new Set(context.filter(law=>(requirements.get(owner.name)??[]).includes(law.name)))
+  offered.delete(owner)
+  return [owner.name,Object.freeze(context.filter(law=>offered.has(law)).map(law=>law.name))] as const
+ }))
+ return {requirements:recomputed,recipes:new Map(context.map(law=>[law.name,[...(selected&&!selected.includes(law)?[{id:'ordinary',kind:'ordinary' as const}]:[{id:'row',kind:'strategy' as const,required:recomputed.get(law.name)??[]}]),...(alternatives.has(law.name)?[{id:'independent',kind:'ordinary' as const,required:[]}]:[])]])),costs:new Map(context.map((law,index)=>[law.name,priority.get(law.name)??index]))}
+}}))
 // Hold context selection fixed in this test so the optional subset optimizer
 // cannot avoid the intentionally offered false outsider before it is exercised.
 void mock.module('./count-premise-view.ts',()=>({...view,countPremiseContext:()=>undefined}))
