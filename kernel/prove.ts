@@ -365,11 +365,15 @@ export function withSearchWork<T>(cap: number, f: () => T): T {
 // (the EPR path's propositional search, a node's propagation, building a large goal's rows) stops there too, and past it
 // every goal is left unknown, whatever its own budget. Untrusted: it only stops a search.
 let wallEnd = Infinity
+// A legacy counted clock is not an opt-in work-only cancellation policy.
+// Preserve its inherited real wall; only explicit work scopes/profiles elide it.
+const workOnlyWall = (): boolean => inBudget() || stepWorkProfile.enabled
 export const pastWall = (): boolean => {
   checkWorkEndpoint('prover boundary')
   const proxy = proxySearchState()
   if (proxy) return clock() > withinDeadline(Infinity) || (!proxy.rate && proxy.wallEnd !== Infinity && clock() > proxy.wallEnd)
-  return inWorkScope() ? clock() > withinDeadline(budgetEnd()) : wallEnd !== Infinity && searchNow() > wallEnd
+  return (inWorkScope() && clock() > withinDeadline(budgetEnd()))
+    || (!workOnlyWall() && wallEnd !== Infinity && performance.now() > wallEnd)
 }
 export function withWall<T>(end: number, f: () => T): T {
   const proxy = proxySearchState()
@@ -380,7 +384,7 @@ export function withWall<T>(end: number, f: () => T): T {
   }
   // Scoped callers supply searchWall()/clock() endpoints in counted units.
   // Keep A's inherited deadline semantics without consulting the wall clock.
-  if (inWorkScope()) return withDeadline(Math.min(budgetEnd(), end), f)
+  if (workOnlyWall()) return withDeadline(Math.min(budgetEnd(), end), f)
   const outer = wallEnd
   wallEnd = Math.min(outer, end)
   try { return f() } finally { wallEnd = outer }
@@ -391,7 +395,7 @@ const ranOut = (): boolean => pastWall() || withinDeadline(Infinity) <= clock()
 export const wallAt = (): number => {
   const proxy = proxySearchState()
   if (proxy) return proxy.rate ? withinDeadline(Infinity) : proxy.wallEnd
-  return inWorkScope() ? withinDeadline(budgetEnd()) : wallEnd
+  return workOnlyWall() ? withinDeadline(budgetEnd()) : wallEnd
 }
 export const late = (until: number): boolean => {
   checkWorkEndpoint('prover poll')
