@@ -1923,7 +1923,7 @@ function decideLaw0(m: Machine, laws: Law[], i: number, rounds: number): Decided
   if (!fastShape(m, laws)) return undefined
   return withPatterns(m, laws, () => {
     if (!eprScope.patterns) return undefined
-    const out = settled(m, laws, i, rounds, false)
+    const out = settled(m, laws, i, rounds, false, 'decision')
     // (a proof's support: the laws its goals' proofs read)
     return !out ? undefined : 'proofs' in out ? {proven: true, uses: [...new Set(Object.values(out.proofs).flatMap(p => [...p.uses.keys()]))]} : out.stuck === 'sat' ? {proven: false, goal: out.goal, stuck: 'sat', witness: out.witness!, ...(out.diagram ? {diagram: out.diagram} : {})} : undefined
   })
@@ -1940,13 +1940,16 @@ type Proof1 = {part: Goal, tree: Tree, uses: Map<string, string>, tuples?: Map<s
 type MemoContext = {machine: string, laws: Map<string, string>}
 type Settled = {text: string, context: MemoContext, inst: Instances, proofs: Record<string, Proof1>}
 type Unsettled = {goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram, why?: string}
+type MemoAttempt = {cold: Set<string>, reused: Set<string>, fresh: Map<string, Settled | Unsettled | undefined>}
+type MemoConsumer = 'decision' | 'law' | 'set'
 type Memo = {proven: Map<string, Settled>, models: Map<string, {text: string, context: MemoContext, model: Unsettled, strict: boolean, set: Map<string, string>}>}
 // (GDP_MEMO_CAP: how many machines' decisions are kept, 4 by default; the hits and misses counted for the engine's trace)
 const memoCap = Number(env.GDP_MEMO_CAP ?? 4)
 export const memoHits = {n: 0, miss: 0, setKey: '', setJson: ''}
+export const memoReuseStats = {hitChecks: 0, hitCheckFailures: 0, coldRetries: 0, modelHits: 0, modelsIgnored: 0, discardedSeeds: 0, wholeRetries: 0, decisionHits: 0, lawHits: 0, setHits: 0}
 export const machineKey = (m: Machine): string => { const s = JSON.stringify(m); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return `${s.length}:${h}` }
 const memos = new Map<string, Memo>(), machineText = new WeakMap<Machine, {exact: string, text: string}>(), lawText = new WeakMap<Law, {exact: string, text: string}>()
-// Rollback base only: legacy reuse has a stale-binder false-negative; release is held until reuse is repaired.
+// Alpha hits are untrusted hints: non-exact proofs are checked locally; non-exact models go cold.
 // (texts up to a renaming of fresh names, x$12: a rule's machine and kinds' laws are made again with
 // fresh binders, so the same machine had another text each time and no decision was found again; GDP_MEMO_ALPHA=0 off)
 const alpha = env.GDP_MEMO_ALPHA !== '0'
@@ -1956,6 +1959,20 @@ const textOfLaw = (l: Law): string => textsOfLaw(l).text
 const textsOfMachine = (m: Machine): {exact: string, text: string} => { let t = machineText.get(m); if (!t) { const exact = JSON.stringify(m); machineText.set(m, (t = {exact, text: alphaText(exact)})) } return t }
 // Exact query context belongs to each entry, not to a shared alpha-keyed machine slot.
 const memoContext = (m: Machine, laws: Law[]): MemoContext => ({machine: textsOfMachine(m).exact, laws: new Map(laws.map(l => [l.name, textsOfLaw(l).exact]))})
+const memoAttempt = (): MemoAttempt => ({cold: new Set(), reused: new Set(), fresh: new Map()})
+function exactMemoContext(context: MemoContext, m: Machine, laws: Law[]): boolean {
+  return context.machine === textsOfMachine(m).exact && laws.every(l => context.laws.get(l.name) === textsOfLaw(l).exact)
+}
+function discardMemo(memo: Memo, name: string, attempt: MemoAttempt): void {
+  memo.proven.delete(name); memo.models.delete(name)
+  if (!attempt.cold.has(name)) { attempt.cold.add(name); memoReuseStats.coldRetries++ }
+}
+function checkMemoLaw(m: Machine, laws: Law[], i: number, cached: Settled): boolean {
+  return obligations(m, laws, {[laws[i]!.name]: cached.inst}, i).every(g => {
+    const p = cached.proofs[g.name], tree = p && widen(p.part, g, p.tree)
+    return !!tree && check(g, tree)
+  })
+}
 function memoOf(m: Machine): Memo {
   const key = textsOfMachine(m).text
   let memo = memos.get(key)
@@ -1965,17 +1982,39 @@ function memoOf(m: Machine): Memo {
 const stands = (p: Proof1, byName: Map<string, Law>): boolean => [...p.uses].every(([n, t]) => { const l = byName.get(n); return !!l && textOfLaw(l) === t })
 // Law i settled, from what was kept where it still stands (a proof whose support is in the set, a model of a set holding
 // this one): else its goals settled again, those whose proofs stand kept.
-function settled(m: Machine, laws: Law[], i: number, rounds: number, usual: boolean): Settled | Unsettled | undefined {
+function settled(m: Machine, laws: Law[], i: number, rounds: number, usual: boolean, consumer: MemoConsumer = 'decision', attempt: MemoAttempt = memoAttempt()): Settled | Unsettled | undefined {
   const law = laws[i]!, memo = memoOf(m), byName = new Map(laws.map(l => [l.name, l])), text = textOfLaw(law)
-  const was = memo.proven.get(law.name), prev = was?.text === text ? was : undefined
-  if (prev && Object.values(prev.proofs).every(p => stands(p, byName))) { memoHits.n++; return prev }
+  if (attempt.fresh.has(law.name)) return attempt.fresh.get(law.name)
+  const was = !attempt.cold.has(law.name) ? memo.proven.get(law.name) : undefined
+  let prev = was?.text === text ? was : undefined
+  const exact = prev && exactMemoContext(prev.context, m, laws)
+  if (prev && Object.values(prev.proofs).every(p => stands(p, byName))) {
+    let valid = exact
+    if (!exact) { memoReuseStats.hitChecks++; valid = checkMemoLaw(m, laws, i, prev) }
+    if (valid) {
+      memoHits.n++; memoReuseStats[`${consumer}Hits`]++; attempt.reused.add(law.name)
+      return prev
+    }
+    memoReuseStats.hitCheckFailures++
+    discardMemo(memo, law.name, attempt); prev = undefined
+  } else if (prev && !exact) {
+    // A partial renamed proof is not a verdict: stale instances/kept goals must not end this attempt.
+    memoReuseStats.discardedSeeds++
+    discardMemo(memo, law.name, attempt); prev = undefined
+  }
   memoHits.miss++
-  const mo = rounds === modelRounds ? memo.models.get(law.name) : undefined
-  if (mo && (!strict(usual) || mo.strict) && mo.text === text && laws.every(l => mo.set.get(l.name) === textOfLaw(l))) return mo.model
+  const mo = !attempt.cold.has(law.name) && rounds === modelRounds ? memo.models.get(law.name) : undefined
+  if (mo && (!strict(usual) || mo.strict) && mo.text === text && laws.every(l => mo.set.get(l.name) === textOfLaw(l))) {
+    if (exactMemoContext(mo.context, m, laws)) { memoReuseStats.modelHits++; return mo.model }
+    // A renamed negative is only a hint. Do not let it bypass the one native cold attempt.
+    memoReuseStats.modelsIgnored++
+    discardMemo(memo, law.name, attempt); prev = undefined
+  }
   const out = settle(m, laws, i, rounds, usual, prev)
   const cap = <T>(x: Map<string, T>) => { if (x.size >= 4096) x.clear(); return x }
   if (out && 'proofs' in out) cap(memo.proven).set(law.name, out)
   else if (out?.stuck === 'sat' && rounds === modelRounds) cap(memo.models).set(law.name, {text, context: memoContext(m, laws), model: out, strict: strict(usual), set: new Map(laws.map(l => [l.name, textOfLaw(l)]))})
+  if (attempt.cold.has(law.name)) attempt.fresh.set(law.name, out)
   return out
 }
 // The fast path's machines: no history, sums or "there exists" (their goals are other machines' or need witnesses).
@@ -2087,9 +2126,11 @@ export function proveSetFast(m: Machine, laws: Law[]): Report & {proof?: {instan
   // (laws with "there exists": proveSome's witnesses, its whole set this fast proof over the ghosted machine)
   if (!fastShape(m, laws)) return someLaws(laws) && fastShape(m, laws.map(l => ({name: l.name, holds: l.holds}))) ? proveSome(m, laws, {whole: proveSetFast}) as ReturnType<typeof proveSetFast> : proveLaws(m, laws)
   return withPatterns(m, laws, () => pointed(laws, () => {
+    const attempt = memoAttempt()
+    const run = (): ReturnType<typeof proveSetFast> => {
     const at: Settled[] = []
     for (let i = 0; i < laws.length; i++) {
-      const out = settled(m, laws, i, modelRounds, true)!
+      const out = settled(m, laws, i, modelRounds, true, 'set', attempt)!
       if (!('proofs' in out)) return {proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: out.goal, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {}), ...(out.diagram ? {diagram: out.diagram} : {})}}
       at.push(out)
     }
@@ -2113,6 +2154,15 @@ export function proveSetFast(m: Machine, laws: Law[]): Report & {proof?: {instan
     }
     const proof = {instances, trees}
     return {proven: true, nodes, leaves, checked: checkLaws(m, laws, proof), proof}
+    }
+    const out = run(), retry = [...attempt.reused].filter(name => !attempt.cold.has(name))
+    if ((!out.proven || !out.checked) && retry.length) {
+      memoReuseStats.wholeRetries++
+      const memo = memoOf(m)
+      for (const name of retry) discardMemo(memo, name, attempt)
+      return run()
+    }
+    return out
   }))
 }
 export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram} {
@@ -2125,7 +2175,7 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
   // proof, which widens and checks; wo's "a leader has the voting quorum's votes" from its 40-law set, 0.45 s there
   // against 25 s to unknown here)
   return withPatterns(m, laws, () => {
-    const out = eprScope.patterns && fastShape(m, laws) ? settled(m, laws, i, modelRounds, false) : undefined
+    const out = eprScope.patterns && fastShape(m, laws) ? settled(m, laws, i, modelRounds, false, 'law') : undefined
     if (out && 'proofs' in out) return {proven: true}
     if (out?.stuck === 'sat') return {proven: false, goal: out.goal, stuck: 'sat', ...(out.witness ? {witness: out.witness} : {}), ...(out.diagram ? {diagram: out.diagram} : {})}
     return pointed(laws, () => proveOne(m, laws, i))

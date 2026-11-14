@@ -1,7 +1,8 @@
 import {expect, test} from 'bun:test'
-import {bool, nat, no, rule} from '../core/dsl.ts'
+import {bool, nat, no, rule, yes} from '../core/dsl.ts'
 import {checkLaws} from './kernel.ts'
-import {memoHits, proveLaws, proveSetFast, sortMemoStats} from './prove.ts'
+import {patternsOf} from './epr.ts'
+import {decideLaw, memoHits, memoReuseStats, proveLaw, proveLaws, proveSetFast, sortMemoStats} from './prove.ts'
 
 // Distinct machine names isolate tests; fresh copies within a test retain the same name.
 const make = (name = 'fresh binder memo regression') => rule(name)
@@ -16,14 +17,17 @@ const checked = (r: ReturnType<typeof make>, laws = r.kindLaws()) => {
   return out
 }
 
-// Rollback base only: retain positive assertions as explicit expected false-negatives.
-// The renamed-state marker must be removed by the complete reuse fix.
-test.failing('fresh alpha-equivalent kind binders do not reuse stale instances (expected false-negative)', () => {
+test('fresh alpha-equivalent kind binders do not reuse stale instances', () => {
   const first = make(), firstLaws = first.kindLaws()
   checked(first, firstLaws)
   const second = make(), secondLaws = second.kindLaws()
   expect(JSON.stringify(secondLaws)).not.toBe(JSON.stringify(firstLaws))
+  const failed = memoReuseStats.hitCheckFailures, retries = memoReuseStats.coldRetries
   checked(second, secondLaws)
+  if (process.env.GDP_MEMO_ALPHA !== '0') {
+    expect(memoReuseStats.hitCheckFailures).toBeGreaterThan(failed)
+    expect(memoReuseStats.coldRetries - retries).toBe(1)
+  }
   const ordinary = proveLaws(second.machine, secondLaws)
   expect(ordinary.proven && ordinary.checked && !!ordinary.proof && checkLaws(second.machine, secondLaws, ordinary.proof)).toBe(true)
 })
@@ -65,6 +69,79 @@ for (const warm of [false, true]) test(`shared-holds metadata has a checked publ
     expect(out.checked).toBe(true)
     expect(out.proof && checkLaws(r.machine, laws, out.proof)).toBe(true)
   }
+  const ignored = memoReuseStats.modelsIgnored
   if (warm) publicChecked(make(name))
   publicChecked(make(name))
+  if (warm && process.env.GDP_MEMO_ALPHA !== '0') expect(memoReuseStats.modelsIgnored).toBeGreaterThan(ignored)
+})
+
+// A real composed key admits all three consumers to the native EPR memo path.
+const jointMemoRule = (name: string) => {
+  const r = rule(name).inputs({i: nat, j: nat})
+    .state({'v$1': 0, 'v$2': 1}).maps({Seen: bool.from(false)})
+    .assume(({i, j}) => i.lt(64).and(j.lt(64)))
+    .step(({i, j, Seen}) => ({Seen: Seen.set(i.times(64).plus(j), Seen.at(i.times(64).plus(j)).not())}))
+  expect(Object.values(patternsOf(r.machine, [])).some(pattern => pattern.length > 1)).toBe(true)
+  return r
+}
+
+for (const consumer of ['law', 'decision', 'set'] as const) {
+  test(`local hit check rejects a mismatched cached positive, consumer=${consumer}`, () => {
+    const r = jointMemoRule(`joint positive ${consumer}`)
+    const good = r.law('memo subject', s => s['v$1'].eq(0)), bad = r.law('memo subject', s => s['v$2'].eq(0))
+    const ask = (laws: typeof good[]) => consumer === 'law' ? proveLaw(r.machine, laws, 0) : consumer === 'decision' ? decideLaw(r.machine, laws, 0) : proveSetFast(r.machine, laws)
+    expect(ask([good])?.proven).toBe(true)
+    const before = memoReuseStats.hitCheckFailures, retries = memoReuseStats.coldRetries
+    expect(ask([bad])?.proven).not.toBe(true)
+    expect(memoReuseStats.hitCheckFailures).toBeGreaterThan(before)
+    expect(memoReuseStats.coldRetries - retries).toBe(1)
+  })
+  test(`exact model subsets reuse while renamed negative hints go cold, consumer=${consumer}`, () => {
+    const r = jointMemoRule(`joint model ${consumer}`)
+    const good = r.law('memo subject', s => s['v$1'].eq(0)), bad = r.law('memo subject', s => s['v$2'].eq(0)), support = r.law('dropped support', () => yes)
+    const ask = (laws: typeof good[], i: number) => consumer === 'law' ? proveLaw(r.machine, laws, i) : consumer === 'decision' ? decideLaw(r.machine, laws, i) : proveSetFast(r.machine, laws)
+    expect(ask([support, bad], 1)?.proven).toBe(false)
+    const reuse = memoReuseStats.modelHits
+    expect(ask([bad], 0)?.proven).toBe(false)
+    expect(memoReuseStats.modelHits).toBeGreaterThan(reuse)
+    const rejected = memoReuseStats.modelsIgnored
+    expect(ask([good], 0)?.proven).toBe(true)
+    expect(memoReuseStats.modelsIgnored).toBeGreaterThan(rejected)
+    const out = proveLaws(r.machine, [good])
+    expect(out.proven && out.checked && out.proof && checkLaws(r.machine, [good], out.proof)).toBe(true)
+  })
+}
+
+test('renamed model payload is recomputed before the public proof', () => {
+  const name = 'renamed model material regression'
+  const badOf = (r: ReturnType<typeof make>) => {
+    const [kind] = r.kindLaws()
+    return {...kind!, name: 'model material', keys: [...(kind!.keys ?? []), 'unused$987654']}
+  }
+  const first = make(name), old = badOf(first), prior = proveSetFast(first.machine, [old])
+  expect(prior.proven).toBe(false)
+  expect(JSON.stringify(prior.failed)).toContain(`${old.forall}#`)
+  const second = make(name), current = badOf(second), before = memoReuseStats.modelsIgnored
+  const out = proveSetFast(second.machine, [current])
+  expect(out.proven).toBe(false)
+  expect(memoReuseStats.modelsIgnored).toBeGreaterThan(before)
+  expect(JSON.stringify(out.failed)).not.toContain(`${old.forall}#`)
+  expect(JSON.stringify(out.failed)).toContain(`${current.forall}#`)
+  const publicProof = proveLaws(second.machine, [current])
+  expect(publicProof.proven && publicProof.checked && publicProof.proof && checkLaws(second.machine, [current], publicProof.proof)).toBe(true)
+})
+
+test('reordered exact contexts retain independently checked material hits', () => {
+  const r = jointMemoRule('ordered material provenance')
+  const a = r.law('first property', s => s['v$1'].eq(0)), b = r.law('second property', s => s['v$2'].eq(1))
+  const first = proveSetFast(r.machine, [a, b])
+  expect(first.proven && first.checked && first.proof && checkLaws(r.machine, [a, b], first.proof)).toBe(true)
+  const before = memoReuseStats.setHits
+  const second = proveSetFast(r.machine, [b, a])
+  expect(second.proven && second.checked && second.proof && checkLaws(r.machine, [b, a], second.proof)).toBe(true)
+  expect(memoReuseStats.setHits).toBeGreaterThan(before)
+  const hits = memoReuseStats.setHits
+  const third = proveSetFast(r.machine, [b, a])
+  expect(third.proven && third.checked && third.proof && checkLaws(r.machine, [b, a], third.proof)).toBe(true)
+  expect(memoReuseStats.setHits).toBeGreaterThan(hits)
 })
