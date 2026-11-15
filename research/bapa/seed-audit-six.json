@@ -1,0 +1,32 @@
+[
+  {
+    "id": "lock_server",
+    "models": "research/protocols/ic3syn/seed-audit-p1-models.ts",
+    "manifest": "research/bapa/seed-audit-lock_server.json"
+  },
+  {
+    "id": "simple_decentralized_lock",
+    "models": "research/protocols/ic3syn/seed-audit-p1-models.ts",
+    "manifest": "research/bapa/seed-audit-simple_decentralized_lock.json"
+  },
+  {
+    "id": "toy_consensus_forall",
+    "models": "research/protocols/ic3syn/seed-audit-p2-models.ts",
+    "manifest": "research/bapa/seed-audit-toy_consensus_forall.json"
+  },
+  {
+    "id": "sharded_kv",
+    "models": "research/protocols/ic3syn/seed-audit-p4-models.ts",
+    "manifest": "research/bapa/seed-audit-sharded_kv.json"
+  },
+  {
+    "id": "sharded_kv_no_lost_keys",
+    "models": "research/protocols/ic3syn/seed-audit-p4-models.ts",
+    "manifest": "research/bapa/seed-audit-sharded_kv_no_lost_keys.json"
+  },
+  {
+    "id": "firewall",
+    "models": "research/protocols/ic3syn/seed-audit-p1-models.ts",
+    "manifest": "research/bapa/seed-audit-firewall.json"
+  }
+]

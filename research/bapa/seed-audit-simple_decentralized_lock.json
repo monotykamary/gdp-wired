@@ -1,0 +1,28 @@
+{
+  "schema": "candidate-seed-manifest/v1",
+  "protocol": "simple_decentralized_lock",
+  "capture": "../../seed-audit-captures/simple_decentralized_lock",
+  "captureSha256": "e123183e89e3d5e0378d9aaf3e4d00a5f7e55b3584821faf0c6fa2d739e82958",
+  "bindings": {
+    "maps": {
+      "Message": {
+        "target": "Message",
+        "sorts": [
+          "Node",
+          "Node"
+        ],
+        "radix": 64
+      },
+      "HasLock": {
+        "target": "HasLock",
+        "sorts": [
+          "Node"
+        ],
+        "radix": 64
+      }
+    },
+    "domains": {
+      "Node": "size"
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "schema": "seed-adapter-results/v1",
+  "batch": "20261115-220831-jye1lt",
+  "runtime": {
+    "bun": "1.4.3",
+    "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+  },
+  "noProtocolSearch": true,
+  "publicCalls": 0,
+  "tests": {
+    "passed": 31,
+    "failed": 0,
+    "assertions": 173,
+    "typecheck": true,
+    "commitlint": true
+  },
+  "coreDslSha256": "5a54d54d0652faa91ee9c3fc74605ce96edaec20fd7b9e2bc284678fdabed33c",
+  "baselineProofOutputSha256": "820fae888fc0439843d0922f8e49eaab54c49d170bac4e1a1a2fe79d08c518a2",
+  "protocols": [
+    {
+      "protocol": "lock_server",
+      "modelsSha256": "5ecc6093a7a082b5e64e0ca2f7c587e5aa5986b4c39c630cf5fb96e3f4896e1a",
+      "machineSha256": "b1f1bb1c37d9028a8d8970e931d543370d1d622433a384037c2773abaa19963f",
+      "proposed": 4,
+      "nativeKinds": 1,
+      "expandedKinds": 1,
+      "fieldRowProposals": 0,
+      "dropped": 0
+    },
+    {
+      "protocol": "simple_decentralized_lock",
+      "modelsSha256": "5ecc6093a7a082b5e64e0ca2f7c587e5aa5986b4c39c630cf5fb96e3f4896e1a",
+      "machineSha256": "71507d562b9d1154eae9059ca6d8cea557f4352a79eaf974b3b73b3b14c1dfec",
+      "proposed": 4,
+      "nativeKinds": 1,
+      "expandedKinds": 1,
+      "fieldRowProposals": 0,
+      "dropped": 0
+    },
+    {
+      "protocol": "toy_consensus_forall",
+      "modelsSha256": "0db4075058a14e60acdd9dfb74aeae33906c60d414c707b9a6cc23e4fde79dd1",
+      "machineSha256": "b17689d0dee08584d2ad28be8942a211a47e30923e859740d7d0232ed2593fa4",
+      "proposed": 8,
+      "nativeKinds": 2,
+      "expandedKinds": 0,
+      "fieldRowProposals": 0,
+      "dropped": 0
+    },
+    {
+      "protocol": "sharded_kv",
+      "modelsSha256": "3063304ae3bf8d7c7cc9870c838f7f5da7ab916a96d3729a7ca0b8db5f5b1d76",
+      "machineSha256": "9745d0a38bf6a6864ced12d87ae88947acf779fe3a6563452b28d3d4864fed76",
+      "proposed": 23,
+      "nativeKinds": 0,
+      "expandedKinds": 2,
+      "fieldRowProposals": 0,
+      "dropped": 0
+    },
+    {
+      "protocol": "sharded_kv_no_lost_keys",
+      "modelsSha256": "3063304ae3bf8d7c7cc9870c838f7f5da7ab916a96d3729a7ca0b8db5f5b1d76",
+      "machineSha256": "60f02a5e277916f4fbb48cdc18217bafe8fe0ed0cc60017fa5455d1336de08a0",
+      "proposed": 10,
+      "nativeKinds": 1,
+      "expandedKinds": 2,
+      "fieldRowProposals": 5,
+      "dropped": 0
+    },
+    {
+      "protocol": "firewall",
+      "modelsSha256": "5ecc6093a7a082b5e64e0ca2f7c587e5aa5986b4c39c630cf5fb96e3f4896e1a",
+      "machineSha256": "32be15a46274925ff6f0d2f4c5babd4c08d7bef8af7a946b5776e61666cba506",
+      "proposed": 12,
+      "nativeKinds": 4,
+      "expandedKinds": 2,
+      "fieldRowProposals": 4,
+      "dropped": 0
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "schema": "candidate-seed-manifest/v1",
+  "protocol": "sharded_kv",
+  "capture": "../../seed-audit-captures/sharded_kv",
+  "captureSha256": "2d81751966afd9edebcaf04f5acdeadbe3ec75cccee60e0e0df633d08fdbda73",
+  "bindings": {
+    "maps": {
+      "Table": {
+        "target": "Table",
+        "sorts": [
+          "Node",
+          "Key"
+        ],
+        "radix": 64
+      },
+      "Owner": {
+        "target": "Owner",
+        "sorts": [
+          "Key",
+          "Node"
+        ],
+        "radix": 64
+      },
+      "TransferMsg": {
+        "target": "TransferMsg",
+        "sorts": [
+          "Node",
+          "Key",
+          "Value"
+        ],
+        "radix": 64
+      },
+      "Owned": {
+        "target": "Owned",
+        "sorts": [
+          "Key"
+        ],
+        "radix": 64
+      }
+    },
+    "domains": {
+      "Node": "nodes",
+      "Key": "keys",
+      "Value": "values"
+    },
+    "variables": {
+      "key$5": {
+        "sort": "Value",
+        "radix": 64
+      },
+      "key$6": {
+        "sort": "Value",
+        "radix": 64
+      }
+    }
+  }
+}

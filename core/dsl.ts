@@ -19,6 +19,7 @@ import {searchNow as countedSearchNow} from './wall.ts'
 // both runtimes do.
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {proveCandidateSeeds} from './candidate-seeds.ts'
+import {proveCountedCandidateSeeds} from './counted-candidate-seeds.ts'
 import {type TranslationFields, inheritSource, translationVerdict} from './source-check.ts'
 import {env as knobs} from './solver.ts'
 import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, fnCall, hasFinite, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, sourceFreeFn, withArithmetic} from './machine.ts'
@@ -2804,11 +2805,11 @@ export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?
 // (`stuck: 'sat'`, `witness`), reachable or not.
 // `fast`: the laws proven as a set by kernel/prove.ts's proveSetFast (a search's set proof, asked again after a drop: what
 // was settled before kept where it stands), not proveLaws; no cyclic certificate.
-export type CandidateSeedAudit = {status:'checked'|'inconclusive',kept:string[],dropped:{name:string,goal:string,stuck:'sat'}[],reason?:string}
+export type CandidateSeedAudit = {status:'checked'|'inconclusive',kind?:'usual'|'counted',kept:string[],dropped:{name:string,goal?:string,stuck?:'sat',reason?:string}[],reason?:string}
 export type ProveOptions = {search?: boolean | {ms?: number, work?: number | WorkAmount, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean,
   // Proposals only: every retained member and public goal is checked together.
   // A failed seed attempt falls through with no additional assumptions.
-  candidateSeeds?: {laws:Law[],report?:(audit:CandidateSeedAudit)=>void}}
+  candidateSeeds?: {kind?:'usual'|'counted',laws:Law[],counts?:NonNullable<Machine['counts']>,report?:(audit:CandidateSeedAudit)=>void}}
 
 // A verdict that isn't a checked proof, as the error a lemma, a guard or a gate is refused with (the verdict on `.verdict`).
 export class Unproven extends Error {
@@ -3001,15 +3002,26 @@ function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   return retainFrom(translationVerdict(r, laws, result), [result])
 }
 function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions): Verdict {
-  r = r.withSumsOf(laws)
+  r = r.withSumsOf(laws, opts.candidateSeeds?.laws ?? [])
   noting(r, laws)
   if(opts.candidateSeeds) {
     if(opts.search === false || opts.from === 'any') throw Error('candidate seeds require reachable-state search')
-    const machine = r.machine
-    const seeded = proveCandidateSeeds(machine,withKinds(r,laws),opts.candidateSeeds.laws)
-    opts.candidateSeeds.report?.({status:seeded.status,kept:seeded.kept.map(l=>l.name),dropped:seeded.dropped,
-      ...(seeded.status === 'inconclusive' ? {reason:seeded.reason} : {})})
-    if(seeded.status === 'checked') return retainFrom(verdictOf(seeded.closure),[seeded.closure],{kind:'inference',original:machine,laws})
+    const machine = r.machine, extraCounts = opts.candidateSeeds.counts ?? {}
+    if(opts.candidateSeeds.kind === 'counted' || Object.keys(machine.counts ?? {}).length || Object.keys(extraCounts).length) {
+      const reserved = new Set([...Object.keys(machine.maps ?? {}),...Object.keys(machine.counts ?? {}),...Object.keys(machine.state),...Object.keys(machine.fns ?? {}),...(machine.inputMaps ?? []),...machine.params,...machine.inputs])
+      if(Object.keys(extraCounts).some(n=>reserved.has(n))) throw Error('candidate count declaration must not override the source')
+      const producer = {...machine,counts:{...machine.counts,...extraCounts}}
+      const seeded = proveCountedCandidateSeeds(producer,withKinds(r,laws),opts.candidateSeeds.laws,typeof opts.search === 'object' ? opts.search.ms ?? 60_000 : 60_000)
+      opts.candidateSeeds.report?.({status:seeded.status,kind:'counted',kept:seeded.status === 'checked' ? seeded.kept.map(l=>l.name) : [],
+        dropped:seeded.status === 'checked' ? seeded.dropped.map(l=>({name:l.name,reason:'not retained by counted admission'})) : [],
+        ...(seeded.status === 'inconclusive' ? {reason:seeded.reason} : {})})
+      if(seeded.status === 'checked') return retainCounted({proven:true,checked:true,found:{laws:seeded.closure.laws.map(l=>({text:l.name}))}} as unknown as Verdict,seeded.closure)
+    } else {
+      const seeded = proveCandidateSeeds(machine,withKinds(r,laws),opts.candidateSeeds.laws)
+      opts.candidateSeeds.report?.({status:seeded.status,kept:seeded.kept.map(l=>l.name),dropped:seeded.dropped,
+        ...(seeded.status === 'inconclusive' ? {reason:seeded.reason} : {})})
+      if(seeded.status === 'checked') return retainFrom(verdictOf(seeded.closure),[seeded.closure],{kind:'inference',original:machine,laws})
+    }
   }
   const refuted = refuteByRuns(r, laws)
   checkWorkEndpoint('refutation result')

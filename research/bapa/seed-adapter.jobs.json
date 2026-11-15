@@ -1,0 +1,36 @@
+[
+  {
+    "name": "seed-adapter-tests",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "cmd": "set -euo pipefail; cp seed-test-inputs/dsl.ts core/dsl.ts; cp seed-test-inputs/proof-output.ts core/proof-output.ts; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bunx tsc -p research/bapa/tsconfig.candidate-seed.json > \"$SUPERCOMPUTER_OUTPUT_DIR/types.log\" 2>&1; bun test --timeout 120000 research/bapa/candidate-seed.test.ts research/bapa/candidate-seed-public.test.ts research/bapa/counted-seed.test.ts research/bapa/sum-seed.test.ts research/bapa/kind-seed.test.ts research/bapa/field-seed.test.ts research/bapa/multi-family-seed.test.ts research/bapa/proof-worker.test.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/tests.log\" 2>&1; bun research/bapa/counted-seed-symbolic.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/symbolic.log\" 2>&1; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < seed-test-inputs/commit-message.txt > \"$SUPERCOMPUTER_OUTPUT_DIR/commitlint.log\" 2>&1; sha256sum core/dsl.ts core/proof-output.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/source-boundary.sha256\"",
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "seed-restatement-six",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 1200,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "cmd": "set -euo pipefail; cp seed-test-inputs/dsl.ts core/dsl.ts; cp seed-test-inputs/proof-output.ts core/proof-output.ts; cp seed-audit-models/p1.ts research/protocols/ic3syn/seed-audit-p1-models.ts; cp seed-audit-models/p2.ts research/protocols/ic3syn/seed-audit-p2-models.ts; cp seed-audit-models/p4.ts research/protocols/ic3syn/seed-audit-p4-models.ts; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bun research/bapa/candidate-seed-audit.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1",
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  }
+]

@@ -13,6 +13,8 @@ export type SeedResult =
 // an inconclusive result as an assumption. In particular, a decision isn't a
 // certificate: only the final checked family carries proof authority.
 export function proveCandidateSeeds(machine: Machine, publicLaws: Law[], candidates: Law[]): SeedResult {
+  if(Object.keys(machine.counts ?? {}).length)
+    return {status:'inconclusive',kept:[],dropped:[],reason:'count-bearing machine requires counted candidate admission'}
   const names = new Set<string>()
   for (const law of [...publicLaws, ...candidates]) {
     if (!law.name || names.has(law.name)) throw Error('candidate family requires unique law names')
