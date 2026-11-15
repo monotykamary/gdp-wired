@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type CountCert, type CountDecl, type CountedGoal, type CountInst, type FrameCut, type MonoCut, type LinCut, type LemmaCut, framePath, lemmaPath, checkMC, checkCounted, checkCountedLaws, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, cellParts, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+import {type CountCert, type CountDecl, type CountedGoal, type CountInst, type FrameCut, type MonoCut, type LinCut, type LemmaCut, framePath, lemmaPath, checkMC, checkCounted, checkCountedLaws, checkLaws, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, cellParts, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {chooseLevels, clock, grow, minimal, proveBuilt, proveLaws, proveSetFast, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {exactNat, leanConnective, leanSurface, leanTerms} from './lean-terms.ts'
@@ -1604,12 +1604,14 @@ example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : '
 // is made with no cyclic certificate of its own (quietly): the export makes the certificate it exports from the usual
 // trees (cycMachineProof), and the usual export reads the trees, so a certificate made here is never read.
 const usualMade = new Map<string, ReturnType<typeof proveStepLaws>>()
+let retainedOnly = false
 // Where the usual proof fails and there are no step laws, the search's own set proof (proveSetFast: per-law instances
 // of each law's sort, a refutation's core widened to its goal, its trees checked by checkLaws): the laws the engine
 // proved that way (ring's) go to Lean from the trees that proof made, which Lean checks as any (`certReport.fast`).
 function proveStepLawsOnce(m: Machine, laws: Law[], stepLaws: StepLaw[]): ReturnType<typeof proveStepLaws> {
   const key = JSON.stringify([m, laws, stepLaws]), had = usualMade.get(key)
   if (had) return had
+  if (retainedOnly) throw new Error('retained-only export requested an uncaptured family; search is forbidden')
   // (with no step laws, the usual proof within usualMs of the cost model's clock (GDP_LEAN_USUAL_MS, 60 s): past it, the
   // fast one; wo's set with its ghost ran the usual proof 8 minutes and more)
   const fastToo = !stepLaws.length && !laws.some(l => l.some?.length)
@@ -1623,6 +1625,36 @@ function proveStepLawsOnce(m: Machine, laws: Law[], stepLaws: StepLaw[]): Return
 }
 // A proof made elsewhere (core/kind.ts's k-induction search), as the one the export reads for these step laws.
 export const seedStepProof = (m: Machine, laws: Law[], stepLaws: StepLaw[], r: ReturnType<typeof proveStepLaws>) => { usualMade.set(JSON.stringify([m, laws, stepLaws]), r) }
+// Captured-data entry points: validate and export only the supplied certificates.
+// These APIs may extend kernel term interning; use a fresh process for capsule
+// replay. Only exporter mode/cache globals are restored, not kernel term state.
+function retainedShape(id: string, m: Machine, laws: Law[]): void {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(id)) throw new Error('invalid retained Lean identifier')
+  if (Object.keys(m.fns ?? {}).length) throw new Error('retained function declarations require separate qualification')
+  if (m.history || m.sums && Object.keys(m.sums).length) throw new Error('retained history/sums projection requires separate qualification')
+  if (laws.some(l => l.some?.length)) throw new Error('retained export needs the already-resolved witness family')
+}
+export function retainedCMachineToLean(id: string, m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}): string {
+  retainedShape(id, m, laws)
+  if (!checkCountedLaws(m, laws, proof)) throw new Error('captured counted family does not check')
+  const old = checkBy
+  checkBy = 'decide +kernel'
+  try { return cmachineToLean(id, m, laws, proof) } finally { checkBy = old }
+}
+export function retainedSMachineToLean(id: string, m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, trees: Record<string, Tree>},
+    projection: Pick<NonNullable<Parameters<typeof smachineToLean>[3]>, 'ghosts' | 'ghosted' | 'ghostSubst' | 'forallSome'> = {}): string {
+  retainedShape(id, m, laws)
+  if (!checkLaws(m, laws, proof)) throw new Error('captured usual family does not check')
+  const old = checkBy, oldRetained = retainedOnly, oldCache = [...usualMade]
+  try {
+    usualMade.clear(); retainedOnly = true; checkBy = 'decide +kernel'
+    seedStepProof(m, laws, [], {proven: true, checked: true, nodes: 0, leaves: 0, proof: {laws: proof, instances: {}, perStep: {}, trees: {}}})
+    return smachineToLean(id, m, laws, projection)
+  } finally {
+    usualMade.clear(); for (const [key, value] of oldCache) usualMade.set(key, value)
+    retainedOnly = oldRetained; checkBy = old
+  }
+}
 const envOf = () => (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
 export const cyclicCerts = certMode
 let certsOn = false, cycTexts = 0

@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "files": ["proof-emit.ts", "proof-symbolic-smoke.ts", "retained-export.test.ts"],
+  "include": []
+}
