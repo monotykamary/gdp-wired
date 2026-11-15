@@ -121,6 +121,16 @@ The later combined `QAlpha`/`RowAlpha` gate covers `twophase`,
 whole-machine equality after both local transformations and retains every
 helper. The counted exporter uses the same row transport. See
 `INFERRED-ALPHA.md` for the exact source, regression and isolated-control gates.
+## Witness source families
+
+`--projection witness` preserves the complete retained family and projects the
+original public existential laws through checked scalar/map ghost witnesses.
+A separate `BoundGhost` theorem handles source binders sharing names with
+ghost variables; free ghosts remain excluded. Three source cases are checked:
+`simple`, `simple_regular`, `client_server_ae`. See `WITNESS-SOURCE.md` for
+exact receipts, supported contexts and the two isolated exporter corrections.
+No new protocol search was run.
+
 ## Current evidence
 
 - `20261115-171208-vix4lb`: typecheck succeeded; a counted fixture used an invalid

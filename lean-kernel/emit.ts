@@ -815,7 +815,7 @@ theorem ${id}_laws : ∀ maps ρ, evalC ρ maps ${id}_fold.pre = true → ∀ t,
 // witness terms in place (some_of_subst) or over the machine's ghosts at every reachable state of the machine without
 // them (some_of_ghost); and `<id>.lawN` the same over named variables, each bound natural as w1, w2, ... (`lit`: the
 // condition printer, for P's literal).
-export function readable(id: string, laws: Law[], vars: string[], maps: string[], reach: {binders: string, hyp: string, call: string, have?: (j: number) => string, lit?: (c: C) => string, eLit?: (e: E) => string, ghosts?: boolean}): string {
+export function readable(id: string, laws: Law[], vars: string[], maps: string[], reach: {binders: string, hyp: string, call: string, have?: (j: number) => string, lit?: (c: C) => string, eLit?: (e: E) => string, ghosts?: boolean, explicitExistentials?: ReadonlySet<string>}): string {
   for (const name of [...vars, ...maps]) if (name === 'ρ' || name === 'μ' || name.includes('«') || name.includes('»')) throw new Error(`${id}: the name ${name} can't be a Lean abbreviation here`)
   const q = (name: string) => `«${name}»`
   // Division and remainder by a constant (div$k, mod$k): Lean's x / k and x % k, under the hypothesis that the map is
@@ -964,7 +964,11 @@ ${plain}`
   return `namespace ${id}
 ${[...vars.filter(v => used.has(v)).map(v => `abbrev ${q(v)} : Nat := ${vars.indexOf(v)}`), ...maps.filter(mp => used.has(mp)).map(mp => `abbrev ${q(mp)} : Nat := ${maps.indexOf(mp)}`)].join('\n')}
 ${laws.map((law, j) => {
-    if (law.ex) return someOf(law, j)
+    if (law.ex) {
+      if (reach.explicitExistentials?.has(law.name) && (law.keys?.length || (law.forall && law.ex.ghost)))
+        return '-- Multi-key existential source theorem is emitted by the explicit ghost-substitution projection.'
+      return someOf(law, j)
+    }
     if (JSON.stringify(law.holds).includes('"op":"if"')) return `-- ${law.name}: its terms read an if, so no plain statement here (${id}_laws holds it)`
     const hyps = arithBinders(law), names = arithIn(law).map(hypName)
     // Proof terms retain neutral Boolean children; surface statements omit them.
@@ -1163,7 +1167,7 @@ export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {s
     ghosted?: Ghosted, forallSome?: {law: string, map: string, at: E, as: string}[],
     // (`ghostSubst`: a law with "there exists" as kernel.ts's someOfGhostsOk admits it, read by forall_some_of_ghostsubst:
     // the plain law `law` (proven) is `body` with each bound name at its term in `sub`; the bound names given in `free`)
-    ghostSubst?: {law: string, body: C, sub: Record<string, E>}[],
+    ghostSubst?: {law: string, body: C, sub: Record<string, E>, boundGhosts?: boolean}[],
     refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}, loop?: {loop: Loop, tamper?: {what: string, loop: Loop}}, noFacts?: boolean,
     kind?: KindLean,
     // (core/conformance.ts's twins: a sums machine tampered, with kernel.ts's answer; the cover goals' trees as found; a
@@ -1364,9 +1368,9 @@ theorem ${id}_some${j} : ∀ ρ M, SReach ${id}_gm.orig ρ M → ∀ v, ∃ val,
       if (!law) throw new Error(`${id}: ${gs.law}: no such law`)
       const sigma = list(Object.entries(gs.sub).map(([x, t]) => `(${ix(x)}, ${e(t)})`))
       return `
-/-- ${law.name}, read ∃: for every value of its keys, some natural for each of ${Object.keys(gs.sub).join(', ')} (at the ghosts' terms) where its body holds; no ghost read. -/
+/-- ${law.name}, read ∃: for every value of its keys, some natural for each of ${Object.keys(gs.sub).join(', ')} (at the ghosts' terms) where its body holds; no unbound ghost read. -/
 theorem ${id}_ex${j} : ∀ ρ M, SReach ${id}_gm.orig ρ M → ExHolds (${c(gs.body)}) ${id}_e${li}.law.key ${list(Object.keys(gs.sub).map(x => String(ix(x))))} M ${id}_e${li}.keys2 ρ :=
-  forall_some_of_ghostsubst ${id}_gm ${id}_gmOk ${id}_proof ${id}_check ${id}_e${li} (${memOf(li)}) ${sigma} (${c(gs.body)})
+  ${gs.boundGhosts ? 'forall_some_of_ghostsubst_bound' : 'forall_some_of_ghostsubst'} ${id}_gm ${id}_gmOk ${id}_proof ${id}_check ${id}_e${li} (${memOf(li)}) ${sigma} (${c(gs.body)})
     (by ${checkBy}) (by ${checkBy}) (by ${checkBy})`
     }).join('')}`
   }})
@@ -1586,7 +1590,7 @@ def ${id}_proof : List SEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
 theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by ${checkBy}
 theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_proof, e.Holds ρ M :=
   smachine_sound ${id}_machine ${id}_proof ${id}_check
-${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e, ghosts: !rf && !gm && gv.length > 0})}${sm ? sumsBlock() : ''}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
+${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e, ghosts: !rf && !gm && gv.length > 0, explicitExistentials: new Set((opts.ghostSubst ?? []).map(g => g.law))})}${sm ? sumsBlock() : ''}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
 example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix, mx, lit, c)}` : ''}`
@@ -2390,7 +2394,7 @@ export function leanProject(file: string, opts: {name?: string} = {}): Record<st
   const modules = [...Object.keys(library).map(f => f.replace(/\.lean$/, '')), name]
   return {
     ...library,
-    [`${name}.lean`]: file.includes('RowAlpha.') ? 'import RowAlpha\n'+file : file,
+    [`${name}.lean`]: (file.includes('RowAlpha.') ? 'import RowAlpha\n' : '') + (file.includes('forall_some_of_ghostsubst_bound') ? 'import BoundGhost\n' : '') + file,
     'lean-toolchain': 'leanprover/lean4:v4.34.0\n',
     'lakefile.lean': `import Lake
 open Lake DSL
