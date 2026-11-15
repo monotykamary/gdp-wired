@@ -39,15 +39,17 @@ const refused = (source: string, why: RegExp) => {
 }
 
 for (const [name, field] of [['instance', 'total'], ['missing', 'missing'], ['method', 'put'], ['constant', 'TAG'], ['collection', 'TAGS']] as const) {
+  // Default auto-search may use 10s, beyond Bun's 5s test default.
   t(`hasattr checks a literal ${name} binding without reading its value`, () => {
     const present = name !== 'missing'
     checked(`class Counter:\n    TAG = None\n    TAGS = [1, 2]\n${init}    def put(self) -> int:\n        if ${present ? '' : 'not '}hasattr(self, '${field}'):\n            self.total += 1\n        return self.total\n`)
-  })
+  }, 30_000)
 }
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('hasattr follows declaration-owned C3 through a diamond', () => {
   checked(`class Root:\n${init}class Left(Root):\n    pass\nclass Right(Root):\n    TOKEN = None\nclass Counter(Left, Right):\n    def put(self) -> int:\n        if hasattr(self, 'TOKEN'):\n            self.total += 1\n        return self.total\n`)
-})
+}, 30_000)
 
 t('hasattr does not invoke a property, including one raising AttributeError', () => {
   for (const body of ['return 1', 'raise AttributeError("not present")', 'self.total += 100\n        return 1']) {
@@ -61,11 +63,12 @@ for (const binding of ['flag = Descriptor()', 'flag: object = Descriptor()', 'fl
   })
 }
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('annotation-only and final method definitions preserve presence', () => {
   for (const bindings of ['    def flag(self):\n        return 1\n    flag: int\n', '    flag = [1]\n    def flag(self):\n        return 1\n']) {
     checked(`class Counter:\n${init}${bindings}    def put(self) -> int:\n        if hasattr(self, 'flag'):\n            self.total += 1\n        return self.total\n`)
   }
-})
+}, 30_000)
 
 t('overwritten inherited method metadata cannot establish presence', () => {
   refused(`class Root:\n${init}    def flag(self) -> int:\n        return 1\nclass Counter(Root):\n    flag = object()\n    def put(self) -> int:\n        if hasattr(self, 'flag'):\n            self.total += 1\n        return self.total\n`, /final class binding/)
@@ -84,13 +87,14 @@ t('a duplicate final method without annotation clears the earlier return type', 
   })
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('the final initializer supplies field types rather than an earlier definition', () => {
   checked(`class Counter:\n    def __init__(self, total: bool):\n        self.total = total\n${init}${put}`)
   withSource('class Counter:\n    def __init__(self, total: bool):\n        self.total = total\n    def __init__(self, total: int):\n        self.total = total\n' + put, file => {
     const r = Object.values(readPython(file, ['Counter']).recs).find(r => r.short === 'Counter')!
     expect(r.fields.find(f => f.name === 'total')!.t.k).toBe('int')
   })
-})
+}, 30_000)
 
 for (const binding of ['__init__ = None', '__init__ = [1]']) {
   t(`entry and nested constructors reject ${binding}`, () => {
@@ -100,9 +104,10 @@ for (const binding of ['__init__ = None', '__init__ = [1]']) {
   })
 }
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('an inherited initializer and annotation-only declaration still construct', () => {
   checked(`class Root:\n${init}class Counter(Root):\n    __init__: object\n${put}`)
-})
+}, 30_000)
 
 for (const decorator of ['property', 'classmethod', 'staticmethod']) {
   t(`a ${decorator} constructor is refused`, () => {

@@ -39,33 +39,37 @@ const py = (code: string, opts: PyOptions): X => {
   return extractPython(`${dir}/m.py`, {check: budget, ...opts})
 }
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('a token bucket: the clock an input, the lock atomic, a failure before any write the refusal', () => {
   const x = ok(extractPython(EX, {entry: 'TokenBucket', check: budget}))
   expect(x.source).toContain('.pre(({capacity0}) => capacity0.gt(0))')
   expect(x.notes.join('\n')).toMatch(/the lock held .*atomic/)
   expect(proveRule(x.rule!, [x.rule!.law('never past its capacity', ({tokens, capacity}: A) => tokens.atMost(capacity))])).toMatchObject(modelOnly)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('a dict of dataclasses: a missing key, a Literal mode, a result kept', () => {
   const x = ok(extractPython(EX, {entry: 'Ledger', check: budget}))
   expect(x.source).toContain("mode: oneOf('open', 'closed')")
   expect(step(x, 'a charge never takes a budget past its limit', (b, a) => a.budgets.at(b.charge_user.id).spent.atMost(a.budgets.at(b.charge_user.id).limit),
     b => b.method.is('charge').and(b.budgets.at(b.charge_user.id).spent.atMost(b.budgets.at(b.charge_user.id).limit)))).toMatchObject(modelOnly)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('a decision whose failure is kept: the law about when it raises', () => {
   const x = ok(extractPython(EX, {entry: ['check'], failures: 'kept', check: budget}))
   expect(step(x, 'refused at the budget', (_b, a) => a.failed, b => b.max_budget_none.not().and(b.spend.atLeast(b.max_budget)))).toMatchObject(modelOnly)
   expect(step(x, 'refused only past the budget', (_b, a) => a.failed, b => b.max_budget_none.not().and(b.spend.gt(b.max_budget)))).toMatchObject(modelOnly)
   expect(step(x, 'admitted below it', (_b, a) => a.failed.not(), b => b.spend.lt(b.max_budget))).toMatchObject(modelOnly)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('a store the caller states: its keys by template, a count kept with the failure after it', () => {
   const x = ok(extractPython(EX, {entry: 'SessionLimit', methods: ['hit'], failures: 'kept', stores: {cache: {get: ['get'], set: ['set'], value: 'int'}}, check: budget}))
   expect(x.notes.join('\n')).toMatch(/"hits:\{\}" keys held as cache_hits/)
   expect(step(x, 'admitted only below the limit', (b, a) => a.failed.not().implies(b.limit.gt(b.cache_hits.at(b.session.id).value)))).toMatchObject(modelOnly)
   expect(step(x, 'every hit counts one', (b, a) => a.cache_hits.at(b.session.id).value.eq(b.cache_hits.at(b.session.id).value.plus(1)))).toMatchObject(modelOnly)
-})
+}, 30_000)
 
 t('the boundary: an answered call an input, a skipped one kept only where nothing reads it', () => {
   const x = ok(py(`import logging\nlog = logging.getLogger("m")\n\ndef spend_of(key: str) -> float:\n    raise RuntimeError("not here")\n\n` +
@@ -95,6 +99,7 @@ t('the boundary inferred: a store, a skip, an answer tagged where the code is a 
   refused(extractPython(EX, {entry: 'SessionLimit', methods: ['hit'], failures: 'kept', strict: true}), /state it as a store/)
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('the boundary inferred: the entry, own code outside the subset cut, an injected protocol answered', () => {
   const code = `from typing import Protocol\n\nclass Flags(Protocol):\n    def enabled(self, name: str) -> bool: ...\n\n` +
     `def score(xs: dict[str, int]) -> int:\n    total = 0\n    for k in xs:\n        total += xs[k]\n    return total\n\n` +
@@ -116,7 +121,7 @@ t('the boundary inferred: the entry, own code outside the subset cut, an injecte
   const touch = 'import logging\n\nclass C:\n    def __init__(self):\n        self.n = 0\n\n    def bump(self) -> None:\n        logging.getLogger("c").info(self)\n        self.n += 1\n'
   refused(py(touch, {entry: 'C'}), /it is given the rule's state, which other code may change \(if it doesn't, state it: skip: \["info"\], or a `gdp: skip` comment on its line\)/)
   ok(py(touch.replace('.info(self)', '.info(self)  # gdp: skip'), {entry: 'C'}))
-})
+}, 30_000)
 
 // FastAPI's Depends marks an injected dependency (a class used as one: its constructor's argument): held as a store.
 const hasFastapi = hasPy && (() => { try { execFileSync('python3', ['-c', 'import fastapi'], {stdio: 'ignore'}); return true } catch { return false } })()
@@ -257,6 +262,7 @@ class Book:
 // A store's get and set inside a try that catches what they raise (a cache that may fail): each may raise, an input
 // says which, the check's store raising there; and terra's two cases: a finally an outer handler's raise goes out
 // through (refused), and a raise whose argument fails first (that failure is what is raised).
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('a store that may fail inside a try; a finally on a raise\'s way out; a raise\'s argument failing first', () => {
   const x = ok(py(`class Hits:
     def __init__(self, cache, limit: int):
@@ -284,7 +290,7 @@ t('a store that may fail inside a try; a finally on a raise\'s way out; a raise\
   refused(py('class A:\n    def __init__(self):\n        self.x = 0\n\n    def f(self, n: int) -> int:\n        try:\n            try:\n                if n == 7:\n                    raise ValueError()\n            finally:\n                self.x = 1\n        except ValueError:\n            pass\n        return self.x\n', {entry: 'A'}), /finally on a raise's way out of its try/)
   const y = ok(py('class A:\n    def __init__(self):\n        self.x = 0\n        self.d: dict[str, int] = {}\n\n    def f(self, k: str) -> int:\n        try:\n            raise ValueError(self.d[k])\n        except KeyError:\n            self.x = 1\n        except ValueError:\n            self.x = 2\n        return self.x\n', {entry: 'A'}))
   expect(step(y, 'a key it doesn\'t hold is the KeyError\'s', (_b, a) => a.x.eq(1), b => b.d.at(b.k.id).has.not())).toMatchObject(modelOnly)
-})
+}, 30_000)
 
 // A module function whose try returns other code's object field: where the caller reads it and it can't be answered,
 // that function is cut (other code, answered by its declared bool), as it was while the try was refused.
@@ -357,6 +363,7 @@ class Book:
         return d
 `
 const OTHER = 'def log(k):\n    pass\ndef notify(d):\n    pass\ndef ping():\n    pass\n'
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('try/except: a call that may raise, a KeyError, a raise by its class, else and finally, a re-raise', () => {
   const dir = mkdtempSync(`${tmpdir()}/gdp-pycase-`)
   writeFileSync(`${dir}/m.py`, TRY); writeFileSync(`${dir}/other.py`, OTHER)
@@ -368,7 +375,7 @@ t('try/except: a call that may raise, a KeyError, a raise by its class, else and
   expect(step(x, 'a hit past 3 returns 7', (_b, a) => a.hit_result.eq(7), b => b.method.is('hit').and(b.hit_d.gt(3))).kernelProven).toBe(false)
   expect(step(x, 'a take never past the cap', (b, a) => b.cap.atLeast(a.used.at(b.take_k.id).value).or(a.used.at(b.take_k.id).value.eq(b.used.at(b.take_k.id).value)), b => b.method.is('take'))).toMatchObject(modelOnly)
   expect(step(x, 'strict fails only where ping raised', (_b, a) => a.failed.implies(_b.ping_raises), b => b.method.is('strict'))).toMatchObject(modelOnly)
-})
+}, 30_000)
 
 test('key templates: disjoint where their fixed parts differ', () => {
   expect(disjoint('{a:{}}:spend', '{b:{}}:spend')).toBe(true)
@@ -444,6 +451,7 @@ class Claims(Base):
 `
 const claims = (o: Partial<PyOptions> = {}) => py(CLAIMS, {entry: 'Claims', methods: ['claim', 'finish'], failures: 'kept', defaults: ['status_attr'],
   stores: {client: {get: ['get'], set: ['set'], apart: true, values: {'{}': {json: {status: ['OPEN', 'DONE'], until: 'int'}}, '{}:lock': ['1']}}}, ...o})
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('a store of JSON records over a client of name= and nx: the conditional set, the lock by @contextmanager, a record made by its class', () => {
   const x = ok(claims())
   expect(x.notes.join('\n')).toMatch(/a @contextmanager generator, run around the with's body/)
@@ -456,7 +464,7 @@ t('a store of JSON records over a client of name= and nx: the conditional set, t
     b => b.method.is('claim').and(b['client_'].at(b.claim_key.id).has).and(b['client_'].at(b.claim_key.id).status.is('OPEN')).and(b.client_lock.at(b.claim_key.id).has))).toMatchObject(modelOnly)
   // the nx set read as conditional: a claim of a free key is the one that writes it
   expect(step(x, 'a claim always writes the record (refuted: a DONE one is kept)', (_b, a) => a['client_'].at(_b.claim_key.id).status.is('OPEN'), b => b.method.is('claim')).kernelProven).toBe(false)
-})
+}, 30_000)
 t('a store key template that may name another\'s is refused unless stated apart', () => {
   refused(claims({stores: {client: {get: ['get'], set: ['set'], values: {'{}': {json: {status: ['OPEN', 'DONE'], until: 'int'}}, '{}:lock': ['1']}}}}), /the key templates "\{\}" and "\{\}:lock" may name one key/)
 })
@@ -511,6 +519,7 @@ class ItemFate:
         self.state = "modal"
         return "modal"
 `
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('a set of the state (add, discard, in), a Literal alias, a Literal result, an int param beside a choice', () => {
   const x = ok(py(FATE, {entry: 'ItemFate', check: budget}))
   expect(x.source).toContain("state: oneOf('queued', 'placed', 'done', 'modal')")
@@ -520,14 +529,15 @@ t('a set of the state (add, discard, in), a Literal alias, a Literal result, an 
   // a strike only for a VM the item hadn't failed on: the set before the step
   expect(step(x, 'one strike per VM', (b, a) => a.fails.gt(b.fails).implies(b.avoid.at(b.boat_failed_vm.id).has.not()), b => b.method.is('boat_failed'))).toMatchObject(modelOnly)
   expect(step(x, 'a VM failed on is avoided after', (b, a) => a.avoid.at(b.boat_failed_vm.id).has.or(b.state.is('placed').not()).or(b.vm.eq(b.boat_failed_vm).not()), b => b.method.is('boat_failed'))).toMatchObject(modelOnly)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('a set removed from: a key it doesn\'t hold is a KeyError, the step\'s failure', () => {
   const x = ok(py(`class Seen:\n    def __init__(self):\n        self.ids: set[str] = set()\n\n    def add(self, i: str) -> None:\n        self.ids.add(i)\n\n    def drop(self, i: str) -> None:\n        self.ids.remove(i)\n`,
     {entry: 'Seen', failures: 'kept', check: budget}))
   expect(step(x, 'a drop of an id not held fails', (_b, a) => a.failed, b => b.method.is('drop').and(b.ids.at(b.drop_i.id).has.not()))).toMatchObject(modelOnly)
   expect(step(x, 'a drop of a held id leaves it out', (b, a) => a.failed.not().and(a.ids.at(b.drop_i.id).has.not()), b => b.method.is('drop').and(b.ids.at(b.drop_i.id).has))).toMatchObject(modelOnly)
-})
+}, 30_000)
 
 t('a type alias of 3.12 (type X = ...), and dict() as {}', () => {
   const x = ok(py(`from typing import Literal\n\ntype Mode = Literal["on", "off"]\n\nclass Switch:\n    def __init__(self):\n        self.mode: Mode = "off"\n        self.n: dict[str, int] = dict()\n\n    def flip(self, k: str) -> None:\n        self.mode = "on" if self.mode == "off" else "off"\n        self.n[k] = self.n.get(k, 0) + 1\n`,
@@ -535,6 +545,7 @@ t('a type alias of 3.12 (type X = ...), and dict() as {}', () => {
   expect(x.source).toContain("mode: oneOf('on', 'off')")
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('a constructor given a dict of no stated types, read nowhere the rule keeps; a dict of other code\'s objects left out', () => {
   const x = ok(py(`import threading\n\nclass Gate:\n    def __init__(self, msg: dict, cap: int):\n        self.msg = msg\n        self.cap = cap\n        self.n = 0\n        self.events: dict[str, threading.Event] = {}\n\n    def hit(self) -> bool:\n        if self.n >= self.cap:\n            return False\n        self.n += 1\n        return True\n`,
     {entry: 'Gate', check: budget}))
@@ -542,8 +553,9 @@ t('a constructor given a dict of no stated types, read nowhere the rule keeps; a
   expect(proveRule(x.rule!, [x.rule!.law('within the cap', ({n, cap}: A) => cap.atLeast(n).or(n.eq(0)))])).toMatchObject(modelOnly)
   // (read by the constructor: refused, whether it holds the key is the dict's)
   refused(py(`class Gate:\n    def __init__(self, msg: dict):\n        self.cap = int(msg["cap"])\n        self.n = 0\n\n    def hit(self) -> None:\n        self.n += 1\n`, {entry: 'Gate', check: budget}), /msg\['cap'\]: an item of msg: dict with no key and value types/)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('another module\'s constant read as its value; bytes never equal to a str', () => {
   const dir = mkdtempSync(`${tmpdir()}/gdp-pycase-`)
   writeFileSync(`${dir}/conf.py`, 'LIMIT = 3\n')
@@ -552,26 +564,29 @@ t('another module\'s constant read as its value; bytes never equal to a str', ()
   expect(proveRule(x.rule!, [x.rule!.law('at most conf.LIMIT', ({n}: A) => n.atMost(3))])).toMatchObject(modelOnly)
   // (body == "x" is never true: bytes and a str differ in Python)
   expect(step(x, 'a body other than its tag is always put below the limit', (_b, a) => a.put_result, b => b.n.lt(3).and(b.tag_none))).toMatchObject(modelOnly)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('a str result that is one of its literals on every path: a choice of them', () => {
   const x = ok(py(`class Life:\n    def __init__(self):\n        self.up = True\n        self.owned = False\n\n    def tick(self, work: bool) -> str:\n        if not self.up or self.owned:\n            return "keep"\n        if work:\n            self.owned = True\n            return "adopt"\n        self.up = False\n        return "stop"\n`,
     {entry: 'Life', check: budget}))
   expect(x.source).toContain("tick_result: oneOf('keep', 'adopt', 'stop')")
   expect(step(x, 'a VM stopped only with no work', (b, a) => a.tick_result.is('stop').implies(b.work.not()), () => yes)).toMatchObject(modelOnly)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('an argument the code ignores, kept where a law reads it (keep): the law about it broken', () => {
   const code = `class Fate:\n    def __init__(self):\n        self.fails = 0\n\n    def waited(self, start_failed: bool) -> None:\n        self.fails += 1\n`
   const bare = ok(py(code, {entry: 'Fate', check: budget}))
   expect(bare.model!.inputs.map(v => v.name)).not.toContain('start_failed')
   const x = ok(py(code, {entry: 'Fate', keep: ['start_failed'], check: budget}))
   expect(step(x, 'a wait counts only where a start failed', (b, a) => a.fails.gt(b.fails).implies(b.start_failed), () => yes).kernelProven).toBe(false)
-})
+}, 30_000)
 
 // The clock pinned only while the code runs, and never in what a module imported then copies: a framework's module
 // first imported by a call (FastAPI's routes, pydantic's models) that reads the types the code's modules hold sees the
 // real datetime (it raised `_Now | None is not a valid Pydantic field type` on LiteLLM's auth checks).
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('the clock pinned only in the code\'s run: a module a call first imports reads the real datetime', () => {
   const dir = mkdtempSync(`${tmpdir()}/gdp-pyclock-`)
   writeFileSync(`${dir}/win.py`, `import datetime as dt
@@ -607,10 +622,11 @@ def record():
 `)
   const x = ok(extractPython(`${dir}/win.py`, {entry: 'Window', check: budget}))
   expect(step(x, 'a hit counts at most one', (b, a) => a.count.atMost(b.count.plus(1)), () => yes)).toMatchObject(modelOnly)
-})
+}, 30_000)
 
 // A constructor argument typed by a Protocol (or by nothing) is an injected dependency, kept in a field however the
 // constructor assigns it (one place of a tuple's too): its methods' declared results answered by the request.
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('a Protocol-typed constructor argument, assigned in a tuple: an injected dependency whose calls are answered', () => {
   const code = (ret: string) => `from typing import Protocol
 
@@ -637,7 +653,7 @@ class Limiter:
   // (its result declared nowhere: refused saying what states it, and the answer stated reads it)
   refused(py(code(''), {entry: 'Limiter', check: budget}), /state what it returns \(answers: \{"cost": 'int'\}/)
   ok(py(code(''), {entry: 'Limiter', answers: {cost: 'int'}, check: budget}))
-})
+}, 30_000)
 
 // A store's get and set given options of a constant (a tracing span of None, which tier to use): the store read as one
 // map whatever they say, noted (LiteLLM's limiters, refused since 0.33); an option the request decides is refused.

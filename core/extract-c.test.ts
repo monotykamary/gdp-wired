@@ -210,6 +210,7 @@ t('C++: refused where it leaves the subset, each with why', () => {
   expect(why('template <class T> struct K { T n; void f() { n++; } };\nK<int> k;\n')).toMatch(/class template/)
 }, 60_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('the boundary inferred: a library call left out, another file\'s function answered over its declared type, the entry', () => {
   const x = ok(c(`#include <stdio.h>
 int quota_bonus(int n);
@@ -228,7 +229,7 @@ int meter_take(struct meter *m, unsigned n) {
   expect(notes).toMatch(/fflush .*left out \(tagged: gdp: skip/)
   expect(notes).toMatch(/quota_bonus .*answered by the request \(inferred: its value is read; assumes quota_bonus may return any int\)/)
   step(x, 'never past its cap', (_b, a) => a.used.atMost(a.cap), b => b.used.atMost(b.cap))
-})
+}, 30_000)
 
 // The reader fuzz's misreads (core/extract-fuzz.ts): a literal past 2^53 converted exactly.
 t('a literal past 2^53 stored in a narrower unsigned: its value there exactly (2^53 + 1 is 1 in 32 bits)', () => {

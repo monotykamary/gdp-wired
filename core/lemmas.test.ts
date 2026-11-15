@@ -8,6 +8,7 @@ import {Unproven, fn, min, modBy, nat, proveLeadsTo, proveSteps, recur, rule, wh
 import {area, areaLaws, backoff, escalation, escalationLaws, fillMeter, fillMeterLaws, filled, growing, ladder, ladderLaws, ledger, ledgerLaws, leftovers, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
 import {fnValue, interpret} from './machine.ts'
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('lemmas proven by induction, then used: the backoff schedule proven with them, not without', () => {
   expect(backoff().verdict).toMatchObject({proven: true, checked: true})
   const r = retries(), laws = retryLaws(r), steps = retrySteps(r)
@@ -18,7 +19,7 @@ test('lemmas proven by induction, then used: the backoff schedule proven with th
   expect(proveSteps(bare, retryLaws(bare), retrySteps(bare), {search: false}).proven).toBe(false)
   // The facts the rule assumes: the two equations and both lemmas.
   expect(r.machine.facts?.map(f => f.name)).toEqual(['delay: delay(0)', 'delay: delay(x + 1)', 'delay: at least 1', 'delay: at most 64'])
-})
+}, 30_000)
 
 test('a lemma that is not proven is refused, with the step it breaks at; lemmas lean on each other', () => {
   const made = () => recur('delay', {zero: 1, next: (_, d) => min(d.times(2), 64)}, {'at most 32': (_, d) => d.atMost(32)})

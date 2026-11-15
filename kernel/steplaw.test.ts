@@ -13,6 +13,7 @@ const counter = rule('counter').params({cap: nat}).inputs({op: oneOf('add', 'res
   .flags(({op, amount, used, cap}) => ({fits: op.is('add').and(used.plus(amount).atMost(cap))}))
   .step(({op, amount, used, resets, fits}) => ({used: when(fits, used.plus(amount), when(op.is('reset'), 0, used)), resets: when(op.is('reset'), resets.plus(1), resets)}))
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('step laws: proven when they hold, refused when a step breaks them', () => {
   const grows = counter.stepLaw('an add never lowers used', ({used}, after) => used.atMost(after.used), ({op}) => op.is('add'))
   const exact = counter.stepLaw('a fitting add adds exactly the amount', ({used, amount}, after) => after.used.eq(used.plus(amount)), ({fits}) => fits)
@@ -22,8 +23,9 @@ test('step laws: proven when they hold, refused when a step breaks them', () => 
   expect(proveSteps(counter, [], [never]).proven).toBe(false)
   const flags = counter.stepLaw('fits means used grows', ({used, fits}, after) => fits.implies(used.atMost(after.used)))
   expect(proveSteps(counter, [], [flags]).proven).toBe(true)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('step laws over maps, at every key, and over a history', () => {
   const tally = rule('tally').inputs({who: nat, ok: maybe(upTo(1))}).maps({Votes: 0})
     .step(({who, ok, Votes}) => ({Votes: Votes.bump(who, ok.match({none: () => ok.isSome, some: v => v.eq(1)}))}))
@@ -36,7 +38,7 @@ test('step laws over maps, at every key, and over a history', () => {
   const w = windowLimit()
   const grows: StepLaw = {name: 'ours never shrinks', then: {op: '<=', a: {op: 'var', name: 'ours'}, b: {op: 'var', name: "ours'"}}}
   expect(proveStepLaws(w, [], [grows])).toMatchObject({proven: true, checked: true})
-})
+}, 30_000)
 
 test('step laws outside the rule are refused', () => {
   const m = counter.machine

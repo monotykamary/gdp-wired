@@ -14,19 +14,22 @@ const order = setup({
   actions: {count: assign({retries: ({context}) => context.retries + 1}), notify: () => {}},
 }).createMachine(orderConfig as never)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a machine with nesting, history, a guard, actions and a root transition: the same runs as XState, its laws proven', () => {
   const c = xorder()
   expect(conforms(c, order, createActor, {runs: 300, depth: 16})).toEqual({checked: 300 * 16})
   expect(c.check()).toMatchObject({ok: true, stuck: [], ambiguous: []})
   expect(c.prove(xorderLaws(c).laws, xorderLaws(c).stepLaws)).toMatchObject({proven: true, checked: true})
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a guard given wrongly: a run where XState and the chart part, and the law it breaks refused', () => {
   const wrong = xorder('refunds a shipped order')
   expect(conforms(wrong, order, createActor, {runs: 300, depth: 16}).failure).toMatch(/REFUND: XState is in \{"active":"shipped"\}, the chart in "refunded"/)
   expect(wrong.prove(xorderLaws(wrong).laws, xorderLaws(wrong).stepLaws).proven).toBe(false)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a parallel machine whose guard reads the other region', () => {
   const checkout = setup({guards: {paid: stateIn({payment: 'paid'})}, actions: {attempt: assign({attempts: ({context}) => context.attempts + 1})}}).createMachine({
     id: 'checkout', type: 'parallel', context: {attempts: 0},
@@ -38,7 +41,7 @@ test('a parallel machine whose guard reads the other region', () => {
   const c = fromXState(checkout, {guards: {paid: env => env.in('payment.paid')}, actions: {attempt: ({attempts}) => ({attempts: attempts.plus(1)})}})
   expect(conforms(c, checkout, createActor, {runs: 200, depth: 10})).toEqual({checked: 2000})
   expect(c.prove([c.law('nothing ships unpaid', env => env.in('shipping.sent').implies(env.in('payment.paid')))])).toMatchObject({proven: true, checked: true})
-})
+}, 30_000)
 
 test('events with a payload: a guard and an action read it', () => {
   const tally = setup({
@@ -89,6 +92,7 @@ test('every key fromXState does not read is refused, by name, rather than droppe
   expect(build({initial: 'a', predictableActionArguments: true, description: 'd', states: {a: {tags: ['t'], meta: {}, on: {X: {target: 'a', reenter: true, description: 'x'}, Y: {target: 'a', internal: false}}}}})).not.toThrow()
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test("v4's cond read as the guard v5 calls guard, its params the object's other keys: the same runs as XState's", () => {
   const cfg = (key: 'cond' | 'guard') => ({id: 'retry', initial: 'idle', context: {n: 0}, states: {
     idle: {on: {GO: 'busy'}},
@@ -100,7 +104,7 @@ test("v4's cond read as the guard v5 calls guard, its params the object's other 
   const c = fromXState(cfg('cond'), bridge)
   expect(conforms(c, real, createActor, {runs: 200, depth: 10})).toEqual({checked: 2000})
   expect(c.prove([c.law('a guard that never holds is never passed', env => env.in('done').not()), c.law('at most two retries counted', ({n}) => n.atMost(2))])).toMatchObject({proven: true, checked: true})
-})
+}, 30_000)
 
 // Actors, timers and eventless transitions (the real-world corpus's machines use all three): an invoked actor's done and
 // error and a timer are events from outside, taken only where they can come; eventless transitions and entry and exit
@@ -127,6 +131,7 @@ const uploadBridge = {
   actions: {inc: ({n}: Record<string, Term>) => ({n: n!.plus(1)}), reset: () => ({n: 0}), tried: ({tries}: Record<string, Term>) => ({tries: tries!.plus(1)}), clear: () => ({tries: 0}), seen: ({visits}: Record<string, Term>) => ({visits: visits!.plus(1)}), out: ({outs}: Record<string, Term>) => ({outs: outs!.plus(1)})},
 }
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('an invoked actor, a timer, an eventless transition and entry and exit writes: the same runs as XState, its laws proven', () => {
   const c = fromXState(upload, uploadBridge)
   expect(conforms(c, upload, createActor, {runs: 300, depth: 20})).toEqual({checked: 6000})
@@ -134,7 +139,7 @@ test('an invoked actor, a timer, an eventless transition and entry and exit writ
   // the entry action given wrongly: the run where they part
   const wrong = fromXState(upload, {...uploadBridge, actions: {...uploadBridge.actions, seen: ({visits}: Record<string, Term>) => ({visits: visits!.plus(2)})}})
   expect(conforms(wrong, upload, createActor, {runs: 300, depth: 20}).failure).toMatch(/XState's visits is 1, the chart's 2/)
-})
+}, 30_000)
 
 test('entry and exit of compounds, a transition to its own state and into it again, eventless transitions in a parent and in a row', () => {
   const m = setup({

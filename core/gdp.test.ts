@@ -73,6 +73,7 @@ const tokenLaws = (r: ReturnType<typeof tokenRule>) => [
   r.law('every token is issued at most once', ({Issued}) => forall(t => Issued.at(t).atMost(1))),
 ]
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a gate mints once per step that takes its flag', () => {
   const tokens = tokenRule(false), redeemed = gate(defineProof('Redeemed'), tokens, 'redeem', {laws: tokenLaws(tokens)})
   name(7, t => {
@@ -82,14 +83,16 @@ test('a gate mints once per step that takes its flag', () => {
     expect(redeemed.request({op: 'redeem', token: 7}, t)).toBeNull() // used
   })
   expect(redeemed.state.maps['Used']?.get(7)).toBe(1)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a gate whose law fails is refused', () => {
   const replay = tokenRule(true)
   expect(() => gate(defineProof('Redeemed'), replay, 'redeem', {laws: tokenLaws(replay)})).toThrow(Unproven)
   expect(() => gate(defineProof('Redeemed'), replay, 'nope' as never, {laws: tokenLaws(replay)})).toThrow(/no flag nope/)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a gate refuses requests outside what was proven, and resumes from a saved state', () => {
   const quota = rule('quota').params({q: nat}).inputs({cost: upTo(10)}).state({used: 0})
     .assume(({cost}) => cost.atLeast(1))
@@ -107,8 +110,9 @@ test('a gate refuses requests outside what was proven, and resumes from a saved 
     expect(again.request({cost: 3}, tenant)?.kind).toBe('Served')
     expect(again.values()).toEqual({used: 8})
   })
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a gate over a history: at most cap emails to an account in any hour', () => {
   const mails = rule('reset emails per hour')
     .params({hour: nat, cap: nat, now: nat, who: nat})
@@ -124,7 +128,7 @@ test('a gate over a history: at most cap emails to an account in any hour', () =
   const sent = name('a@b.c', a => [0, 10, 20, 59, 61, 75, 80].map(t => g.request({acct: 1, t}, a) !== null))
   expect(sent).toEqual([true, true, false, false, true, true, false])
   expect(g.request({acct: 2, t: 80})).not.toBeNull() // another account's hour is its own
-})
+}, 30_000)
 
 test('a guard on a condition inside a record of the result', () => {
   const decide = fun('decide').inputs({level: upTo(3), cleared: bool}).returns(({level, cleared}) => ({verdict: {ok: cleared.or(level.eq(0)), level}}))

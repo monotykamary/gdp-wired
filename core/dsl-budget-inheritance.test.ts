@@ -97,6 +97,7 @@ if (completeWorkProfile.enabled) {
     })
   }
 
+  // Default auto-search may use 10s, beyond Bun's 5s test default.
   test('implicit search-enabled child preserves the normalized scheduling hint without a new ledger endpoint', () => {
     let enclosing!: WorkAdmissionSnapshot
     const f = probe(() => {
@@ -110,7 +111,7 @@ if (completeWorkProfile.enabled) {
         expect(out.proven).toBe(true); expect(out.checked).toBe(true)
       })
     } finally { f.close() }
-  })
+  }, 30_000)
 
   test('outermost implicit call still opens the original default budget', () => {
     expect(workLedger.inBudget()).toBe(false)

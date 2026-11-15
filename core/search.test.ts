@@ -38,6 +38,7 @@ test('a bounded from-any step proof still refuses a broken step law', () => {
   expect(proveSteps(r, [], [bad], {search: {ms: 1000}, from: 'any'})).toMatchObject({proven: false, stuck: 'sat'})
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('an invariant nobody wrote is found and proven, and said as a law', () => {
   const r = bucket(), law = bucketLaw(r)
   expect(proveRule(r, [law], {search: false}).proven).toBe(false)
@@ -48,14 +49,16 @@ test('an invariant nobody wrote is found and proven, and said as a law', () => {
   expect(v.assumes).toEqual({states: 'reachable', laws: v.found!.laws!.map(f => f.text)})
   // What was found, given back with the law, is a proof by the prover alone.
   expect(proveRule(r, [law, ...v.found!.laws!.map(f => f.law)], {search: false})).toMatchObject({proven: true, checked: true})
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('lemmas nobody stated are found and proven, as source to paste', () => {
   const r = retries('states no lemma'), v = proveSteps(r, retryLaws(r), retrySteps(r))
   expect(v).toMatchObject({proven: true, checked: true})
   expect(v.found?.lemmas?.delay?.lemmas?.length).toBeGreaterThan(0)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('no search where the prover alone proves the laws or a run breaks them', () => {
   const ok = pool(), proven = proveRule(ok, [poolLaw(ok), ok.law('in use + released <= acquired', ({inUse, released, acquired}) => inUse.plus(released).atMost(acquired))])
   expect(proven.found).toBeUndefined()
@@ -64,7 +67,7 @@ test('no search where the prover alone proves the laws or a run breaks them', ()
   expect(refuted.run).toBeDefined()
   expect(refuted.found).toBeUndefined()
   expect(performance.now() - t).toBeLessThan(5000)
-})
+}, 30_000)
 
 test('a search that finds nothing says so, within its time', () => {
   // False, but past where a few random runs go: nothing proves it.
@@ -74,6 +77,7 @@ test('a search that finds nothing says so, within its time', () => {
   expect(performance.now() - t).toBeLessThan(8000)
 })
 
+// Allow the 4s search plus proof overhead instead of Bun's 5s test default.
 test('a law broken only past where random runs go is refuted by a bounded run, which the interpreter takes', () => {
   // A lock of five codes: each step's code must be the next one (37, 512, 9, 1000, 77). No random run guesses them; the
   // model of the kernel's 5-step goal from the start (core/bmc.ts) names them.
@@ -85,8 +89,9 @@ test('a law broken only past where random runs go is refuted by a bounded run, w
   expect(v.proven).toBe(false)
   expect(v.goal).toContain('a run of 5 steps')
   expect(v.run?.trace.map(t => t.code)).toEqual(codes)
-})
+}, 30_000)
 
+// Allow the 4s search plus proof overhead instead of Bun's 5s test default.
 test('a deterministic loop broken only after thousands of steps is refuted by its forced run', () => {
   // No request: every run is the one run, 10,000 steps to the break, past any k-step goal (the kernel's k is at most 64).
   const r = rule('ticker').inputs({}).state({n: 0, m: 0}).step(({n, m}) => ({n: n.plus(1), m: when(n.atLeast(5000), m.plus(1), m)}))
@@ -94,7 +99,7 @@ test('a deterministic loop broken only after thousands of steps is refuted by it
   const v = proveRule(r, [law], {search: {ms: 4000}})
   expect(v.proven).toBe(false)
   expect(v.run?.trace.length).toBe(10_000)
-})
+}, 30_000)
 
 // A step law false from a state no run reaches: the search proves it with an invariant that holds only in reachable
 // states. Up to 0.30.0 the verdict was a plain proven, and a caller that steps the rule from states it is handed (a
@@ -126,6 +131,7 @@ const reachableOnly = (b: AnyRule, sl: AnyStepLaw, ok: AnyRule, okLaw: AnyStepLa
   expect(okv).toMatchObject({proven: true, checked: true})
   expect(okv.assumes).toBeUndefined()
 }
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a step law proven only in reachable states says so; {from: \'any\'} refutes it with the state', () => {
   const handsOver = (r: ReturnType<typeof ticket>) => r.stepLaw('a take hands over the payload', ({payload}, a) => a.value.eq(payload), ({takes}) => takes)
   const tb = ticket('payload is swapped'), t = ticket()
@@ -133,4 +139,4 @@ test('a step law proven only in reachable states says so; {from: \'any\'} refute
   const nothing = (r: ReturnType<typeof binding>) => r.stepLaw('a failed binding admits nothing', (_b, a) => a.admitted.eq(0), ({phase}) => phase.is('Failed'))
   const bb = binding('failed admits work'), b = binding()
   reachableOnly(bb, nothing(bb), b, nothing(b))
-})
+}, 30_000)

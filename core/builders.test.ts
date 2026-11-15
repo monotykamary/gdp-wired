@@ -42,6 +42,7 @@ test('clean rules, decisions and values agree with what was built from them', ()
   expect(crossCheckDecision(d).checked).toBeGreaterThan(500)
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a builder that writes a different expression than it computes is caught', () => {
   const cases: [string, () => () => void, () => string | undefined][] = [
     ['minus written as plus', () => planted(Term.prototype, 'minus', t => ({...(t as Term).e, op: 'add'} as E)), () => budgetCheck().failure],
@@ -64,7 +65,7 @@ test('a builder that writes a different expression than it computes is caught', 
     expect(proveRule(r, [l]).proven).toBe(true)
     expect(r.crossCheck([l]).failure).toContain('the step writes s')
   } finally { undo() }
-})
+}, 30_000)
 
 test('compare: a function and a rule against the code they describe, the encoding checked on real inputs', () => {
   // TimeCore.cap as jev-fabric writes it: U32.from_nat(min(left, local)), against a JavaScript rendering of it.

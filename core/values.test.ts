@@ -16,6 +16,7 @@ const account = (bug?: 'checks only the balance') => rule('account').params({lim
   .step(({op, amount, balance, ok}) => ({balance: when(ok, when(op.is('deposit'), balance.plus(amount), balance.minus(amount)), balance)}))
 const floor = (r: ReturnType<typeof account>) => r.law('the balance never goes below −limit', ({balance, limit}) => balance.atLeast(Int.of(limit).negate()))
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('an integer state variable: proven, the broken variant refused, runs agree with plain arithmetic', () => {
   expect(proveRule(account(), [floor(account())])).toMatchObject({proven: true, checked: true})
   const broken = proveRule(account('checks only the balance'), [floor(account('checks only the balance'))])
@@ -47,8 +48,9 @@ test('an integer state variable: proven, the broken variant refused, runs agree 
   const native = toLean([{id: 'account', machine: r.machine, laws: [floor(r)]}], {native: true})
   expect(native).toContain('by native_decide')
   expect(native).not.toContain('decide +kernel')
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('decimals: scaled exactly, compared with numbers, mixed places refused', () => {
   const fee = (bug?: 'may go negative') => fun('fee').inputs({price: decimal(2), coupon: decimal(2)})
     .returns(({price, coupon}) => ({total: bug ? price.minus(coupon) : price.minus(coupon).max(0), covered: price.minus(coupon).isNegative.not()}))
@@ -76,7 +78,7 @@ test('decimals: scaled exactly, compared with numbers, mixed places refused', ()
   let st = g.init({})
   for (const spend of ['7.25', '13.00', '12.75']) st = g.step({}, st, wallet.encodeInput({spend}))
   expect(wallet.decode(st)).toEqual({left: 0})
-})
+}, 30_000)
 
 test('integers in functions: negation, times by a negative constant, abs', () => {
   const f = fun('f').inputs({x: int}).returns(({x}) => ({y: x.times(-3).plus(7), a: x.abs, sign: x.isNegative}))
@@ -122,6 +124,7 @@ test('strings: patterns computed from the string, equality carries them, laws pr
   expect(() => intern.load([['admin.internal', intern('admin.internal') + 1000]])).toThrow('is interned as')
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('state of any kind: a choice, a flag, an optional value and a string, each written by the step and read back', () => {
   // Each kind's own values, written by the step: a choice, a flag, a string, an optional choice.
   const t = (bug?: 'reopens a closed ticket') => rule('ticket').inputs({op: oneOf('assign', 'close', 'reopen'), who: str({like: ['*@staff']})})
@@ -157,4 +160,4 @@ test('state of any kind: a choice, a flag, an optional value and a string, each 
   const findings = checkCase(machineCase('ticket', 'kinds in state', r, laws(r), [{name: 'reopens a closed ticket', why: 'closed stays closed', rule: t('reopens a closed ticket'), laws: laws(t('reopens a closed ticket')), steps: [stays(t('reopens a closed ticket'))]}], {steps: [stays(r)]}))
   expect(findings.filter(f => !f.ok).map(f => `${f.item} / ${f.check}: ${f.detail}`)).toEqual([])
   expect(findings.filter(f => f.check === 'builders').length).toBe(2)
-})
+}, 30_000)
