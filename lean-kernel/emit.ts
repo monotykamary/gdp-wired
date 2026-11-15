@@ -441,7 +441,7 @@ example : checkCounted ${id}_goal ${instsLit(t.insts)} ${id}_tab ${id}_tree ${id
 // instances and the tree. The count maps go to Lean as maps the request carries, each with its post name. `tampers`:
 // certificates kernel.ts refuses, which Lean computes to false.
 export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>},
-    tampers: {what: string, certs: Record<string, CountCert>}[] = []): string {
+    tampers: {what: string, certs: Record<string, CountCert>}[] = [], options: {extraVars?: string[], extraMaps?: string[], after?: (basis: {vars: readonly string[], maps: readonly string[], ix: (name: string) => number, mx: (name: string) => number, machine: (m: Machine) => string, condition: (c: C) => string, decls: (counts: Machine['counts']) => string}) => string} = {}): string {
   const obl = countedObligations(m, laws, proof.instances), counts = Object.entries(m.counts ?? {})
   const sm: Machine = {...m, counts: undefined, inputMaps: [...(m.inputMaps ?? []), ...counts.map(([cn]) => cn)]}
   const named = machineNames(sm, laws, [], [], {})
@@ -457,10 +457,14 @@ export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {inst
   // checker alpha-renames colliding local binders; QAlpha proves its original semantics.
   const renames = quantifiedRenames(sm, laws, [...vars, ...maps])
   vars.push(...renames.map(r => r.fresh))
+  for (const v of options.extraVars ?? []) if (!vars.includes(v)) vars.push(v)
+  for (const map of options.extraMaps ?? []) if (!maps.includes(map)) maps.push(map)
   const checked = renames.length ? `${id}_checkedMachine` : `${id}_machine`
   const {e, c} = leanTerms(vars, maps, id)
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
   const mx = (name: string) => { const j = maps.indexOf(name); if (j < 0) throw new Error(`${id}: no map for ${name}`); return j }
+  const decls = (ds: Machine['counts']) => list(Object.entries(ds ?? {}).map(([cn, d]) => `⟨${mx(cn)}, ${mx(postName(cn))}, ${ix(d.j)}, ${ix(d.key)}, ${e(d.below)}, ${e(d.body)}, ${ix(d.lo ?? d.j)}, ${d.base ?? 0}⟩`))
+  const after = options.after?.({vars, maps, ix, mx, machine: mm => machineLit(mm, {e, c}, ix, mx), condition: c, decls}) ?? ''
   const lawIx = (name: string) => laws.findIndex(l => l.name === name)
   const facts = m.facts ?? [], facts1 = facts.filter(f => !f.keys?.length), factsN = facts.filter(f => f.keys?.length)
   const tuples = (keys: E[], n2: number) => Array.from({length: Math.floor(keys.length / n2)}, (_, t) => keys.slice(t * n2, t * n2 + n2))
@@ -526,7 +530,7 @@ theorem ${id}_check : ${withAux ? 'checkCMachineF' : 'checkCMachine'} ${checked}
 theorem ${id}_laws : ∀ ρ M, CReach ${id}_machine ${id}_decls ρ M → ∀ ce ∈ ${id}_proof, ce.e.Holds ρ (withCnt ${id}_decls ρ M) :=
   ${renames.length ? `QAlpha.${withAux ? 'cmachineF_sound' : 'cmachine_sound'} ${id}_machine ${id}_renames ${id}_decls ${id}_proof (by ${checkBy}) ${id}_check` : `${withAux ? 'cmachineF_sound' : 'cmachine_sound'} ${id}_machine ${id}_decls ${id}_proof ${id}_check`}${tampers.map(t => `
 -- TAMPERED: ${t.what}. Lean computes the check to false, as kernel.ts refuses it.
-example : ${withAux ? 'checkCMachineF' : 'checkCMachine'} ${checked} ${id}_decls ${list(entries(t.certs))} = false := by ${checkBy}`).join('')}`
+example : ${withAux ? 'checkCMachineF' : 'checkCMachine'} ${checked} ${id}_decls ${list(entries(t.certs))} = false := by ${checkBy}`).join('')}${after}`
 }
 
 // Whole machines through Kern.machine_sound: Lean builds the goals from the machine; the trees are the kernel's.
@@ -1634,12 +1638,12 @@ function retainedShape(id: string, m: Machine, laws: Law[]): void {
   if (m.history || m.sums && Object.keys(m.sums).length) throw new Error('retained history/sums projection requires separate qualification')
   if (laws.some(l => l.some?.length)) throw new Error('retained export needs the already-resolved witness family')
 }
-export function retainedCMachineToLean(id: string, m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}): string {
+export function retainedCMachineToLean(id: string, m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}, options: NonNullable<Parameters<typeof cmachineToLean>[5]> = {}): string {
   retainedShape(id, m, laws)
   if (!checkCountedLaws(m, laws, proof)) throw new Error('captured counted family does not check')
   const old = checkBy
   checkBy = 'decide +kernel'
-  try { return cmachineToLean(id, m, laws, proof) } finally { checkBy = old }
+  try { return cmachineToLean(id, m, laws, proof, [], options) } finally { checkBy = old }
 }
 export function retainedSMachineToLean(id: string, m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, trees: Record<string, Tree>},
     projection: Pick<NonNullable<Parameters<typeof smachineToLean>[3]>, 'ghosts' | 'ghosted' | 'ghostSubst' | 'forallSome' | 'free' | 'after'> = {}): string {

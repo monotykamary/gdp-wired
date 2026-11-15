@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "files": ["proof-counted-source.ts", "proof-counted-source.test.ts", "counted-source-data.test.ts", "proof-source-verify.test.ts"],
+  "include": []
+}
