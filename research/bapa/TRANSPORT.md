@@ -15,8 +15,9 @@ arity. There is no implicit interpreted order, cardinality or arithmetic.
   function witnesses are exactly zero. State represented by relations does not
   license interpreting an arbitrary total function as a relation without its
   totality/functionality proof.
-- Candidate per-sort bound: constants + existential witnesses + one nonempty
-  filler. It is not yet a proved cutoff in this commit.
+- Per-sort bound: constants + existential witnesses + one nonempty filler,
+  proved in `RelationalSmallModel.lean` (the initial syntax commit alone did
+  not prove it).
 - Domain policy: fixed-64 sorts are excluded from certificate lifting unless a
   separate padding theorem is supplied. A restriction embedding is not padding.
 
@@ -45,13 +46,30 @@ encoding theorem, **not** an assertion that any old certificate checks its
 compiled formula. See `TRANSPORT-OBSTACLE.md` for the missing exact obligation
 bridge. The same batch's independent small-model job failed; it is not green.
 
+## Checked small-satisfiability cutoff
+
+`RelationalSmallModel.small_satisfiability` constructs a model with each sort
+of size at most constants + existential witnesses + 1. It handles aliasing by
+first constructing a duplicate-free enumeration, not assuming the witnesses
+are distinct. The induced model preserves equality and relations, hence all
+Boolean connectives; the universal assignment is pushed into the original
+model. `unsatisfiable_of_small` is the corresponding conditional logical lift.
+
+Batch `20261115-164543-pa07sd`: the small-model module and all three printed
+axiom reports passed. That overall job then failed in the separately compiled
+padding control on numeral elaboration; no whole-job PASS is claimed. All
+small-model declarations use only the three allowed axioms.
+
+The augmented tcommit control batch `20261115-164428-yq4uwp` passed independently:
+request and step semantics are unchanged, and both stale/mismatched cap
+annotation variants are rejected. No proof tree or table was changed.
+
 ## Outstanding gates
 
 1. Actual obligation-to-fragment and fragment-to-retained-numeric-model bridges,
    with exact function/flag/update semantics and certificate coverage.
-2. Small-satisfiability theorem for the declared fragment.
-3. Checked recognizer for the actual 67 declarations / 897 inventory entries.
-4. Per-family no-search lifts only after every required obligation passes.
+2. Checked recognizer for the actual 67 declarations / 897 inventory entries.
+3. Per-family cutoff-based lifts only after every required obligation passes.
 
 ## Concrete direct certificate lift: tcommit
 

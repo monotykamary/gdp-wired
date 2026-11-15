@@ -49,6 +49,27 @@ theorem safety (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : SReach machine
   have ht := hl' a b
   simpa [captured_tcommit_0_l0, holdsC, evalE, upd, ha, hb] using ht
 
+/-- The transition and request semantics are definitionally unchanged; only
+    the set of admitted initial parameter valuations grows. -/
+theorem request_semantics_unchanged (ρ : Nat → Nat) (M : Nat → Nat → Nat)
+    (ι : Nat → Nat) (κ : Nat → Nat → Nat) :
+    sView machine ρ M ι κ = sView captured_tcommit_0_machine ρ M ι κ := rfl
+
+theorem step_semantics_unchanged (ρ : Nat → Nat) (M : Nat → Nat → Nat)
+    (ι : Nat → Nat) (κ : Nat → Nat → Nat) :
+    sNext machine ρ M ι κ = sNext captured_tcommit_0_machine ρ M ι κ := rfl
+
+/-- Keep both negative controls: neither mismatched named premise list passes. -/
+theorem stale_cap_annotation_rejected :
+    checkSMachine machine captured_tcommit_0_proof = false := by decide +kernel
+
+theorem unmodified_machine_rejects_transported_annotation :
+    checkSMachine captured_tcommit_0_machine proof = false := by decide +kernel
+
+#print axioms request_semantics_unchanged
+#print axioms step_semantics_unchanged
+#print axioms stale_cap_annotation_rejected
+#print axioms unmodified_machine_rejects_transported_annotation
 #print axioms tree_unchanged
 #print axioms table_unchanged
 #print axioms no_size_cap
