@@ -421,7 +421,7 @@ export function reservePool(goal:Goal,decls:CountDecl[],pool:ReturnType<typeof g
  }
  const full={...pool.full,reads,insts:[...pool.full.insts]},oldReads=new Map(previous.reads.map(r=>[r[0],r])),nowReads=new Map(full.reads.map(r=>[json([r[1],keyId(r[2])]),r])),oldDecls=new Map(previousDecls.map(d=>[d.map,d])),nowDecls=new Map(decls.map(d=>[d.map,d])),fullIds=ids(full),currentIds=new Set(fullIds),oldIds=ids(previous),pending:CountCert['insts']=[],rebindings:unknown[]=[]
  for(const r of preserved)nowReads.set(json([r[1],keyId(r[2])]),r)
- const renamed:{key:string,from:string,to:string}[]=[],quarantined:{index:number,instance:CountInst}[]=[]
+ const renamed:{key:string,from:string,to:string,reason?:'source-freshness'}[]=[],quarantined:{index:number,instance:CountInst}[]=[]
  if(owner){
   // Regenerated representatives do not own selected binder names. Restore
   // those entries from the prior checked semantic selection below instead.
@@ -464,7 +464,22 @@ export function reservePool(goal:Goal,decls:CountDecl[],pool:ReturnType<typeof g
    wit=prior?.wit??old.wit
    const forbidden=sourceNames([{...goal,hyps:undefined},decls,full.reads,[...previous.insts,...full.insts].map(i=>i.below)],reservationOpen)
    for(const n of reservationHypNames(goal.hyps))forbidden.add(n)
-   if(owner.reserved.has(wit)||forbidden.has(wit))throw new UnsupportedCountProposal('reservation owned witness capture/source')
+   if(owner.reserved.has(wit)||forbidden.has(wit)){
+    // Before acquisition the spelling belongs only to the proposal: a source
+    // name is not its binder. Never rewrite the source or a selected pick.
+    // Once leased, free HYPS may already mean this witness; those must refuse.
+    if((prior&&reservationFree(goal.hyps).has(wit))||names((previous.picks??[]).filter((_,i)=>chosen.has(oldIds[i]!)),reservationOpen).has(wit))
+     throw new UnsupportedCountProposal('reservation owned witness capture/source')
+    const from=wit
+    for(const n of sourceNames([previous,full,goal,decls],reservationOpen))fresh.add(n)
+    for(const n of owner.reserved)fresh.add(n)
+    for(const l of [...owner.leases.values(),...leases.values()])fresh.add(l.wit)
+    do{reservationOpen();wit='w$'+state.next++}while(fresh.has(wit))
+    // Optional picks have no retained meaning: alpha-rename their bound
+    // witness occurrences together. A selected pick was refused above.
+    full.picks=(full.picks??[]).map((p,i)=>chosen.has(fullIds[i]!)?p:[p[0],p[1].map(t=>substE(t,{vars:{[from]:x(wit!)},maps:{},flags:{}}))])
+    fresh.add(wit);renamed.push({key,from,to:wit,reason:'source-freshness'})
+   }
    if([...owner.leases,...leases].some(([id,l])=>id!==key&&l.wit===wit)||full.insts.some(i=>i.wit===wit&&'i'+instId(i,full.reads)!==key))throw new UnsupportedCountProposal('reservation different witness owner')
    if(reservationIdentity(rebound,full.reads,decls)!==identity)throw new UnsupportedCountProposal('reservation owned read/definition changed')
    leases.set(key,{wit,identity})
