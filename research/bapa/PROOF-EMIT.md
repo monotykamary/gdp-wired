@@ -64,7 +64,7 @@ exporter library, not yet a capsule-consuming split CLI.
 ## Alpha-only source bridge
 
 Use `--projection alpha` to request a checked correspondence candidate for a
-plain, unique retained family. The source machine and public laws are rendered
+plain, unique retained family or a same-machine inferred family. The source machine and public laws are rendered
 from the capsule's original input, in the same injective name basis as the
 producer. Proposed quantified-flag renamings are **not trusted**: Lean checks
 `QAlpha.validAll`, equality of the renamed source and producer, and each public
@@ -99,6 +99,20 @@ or an all-29 claim. No proof search was repeated.
 Earlier alpha attempts remain recorded: `20261115-193440-46vp7u` failed a control
 AST typecheck; `20261115-193843-iyc8no` proved the source theorem and rejected the
 bad body, then stopped on an incorrect log matcher. Neither is a full gate pass.
+## Same-machine inferred families
+
+The same `--projection alpha` mode also accepts `route=inferred` only when the
+captured source machine is structurally identical and every public law is an
+unchanged member of the unique retained family. The **entire** inferred family
+and its proof are checked and emitted; helper laws are not assumed without
+being discharged by that family theorem. Counted and witness routes remain
+separate.
+
+Independent pi Terra review and batch `20261115-195418-q7plzy` passed: types,
+7 tests / 18 assertions, both retained `lockserv` and `lockserv_automaton` source
+projects, all source-theorem axiom gates, and commitlint. Both source laws select
+entry 4 from the complete family and use only the allowed axioms. No search was
+repeated. See `inferred-projection.jobs.json` for the exact capsule hashes.
 ## Current evidence
 
 - `20261115-171208-vix4lb`: typecheck succeeded; a counted fixture used an invalid

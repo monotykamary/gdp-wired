@@ -3,7 +3,7 @@
 import type {Machine, Law} from '../../core/machine.ts'
 import {boundOf} from '../../kernel/kernel.ts'
 import {retainedSMachineToLean} from '../../lean-kernel/emit.ts'
-import {inspectProvenance, lawCoverage, type NativeBundle} from './proof-capture.ts'
+import {inspectProvenance, lawCoverage, qualifyProjection, type NativeBundle} from './proof-capture.ts'
 
 type Rename = {flag:string, old:string, fresh:string}
 export function alphaProposals(source:Machine, producer:Machine): Rename[] {
@@ -19,14 +19,14 @@ export function alphaProposals(source:Machine, producer:Machine): Rename[] {
 }
 
 // Caller must restore the capsule's term prelude first. This only accepts a
-// plain, unique retained family; inferred, counted and witness routes need their
-// own semantic bridge. Every public claim is rendered from the original law.
+// plain family or an exact same-machine inferred family. Counted and witness
+// routes need their own semantic bridge. Every public claim is rendered from the original law.
 export function emitAlphaSource(id:string, bundle:NativeBundle):string {
-  if (bundle.schema !== 'bapa-proof/v1' || bundle.route !== 'plain' || !bundle.verdict.proven || !bundle.verdict.checked)
-    throw Error('alpha source projection requires a checked plain family')
+  if (bundle.schema !== 'bapa-proof/v1' || !['plain','inferred'].includes(bundle.route) || !bundle.verdict.proven || !bundle.verdict.checked)
+    throw Error('alpha source projection requires a checked usual family')
   const found=inspectProvenance(bundle.proof)
-  if(found.route !== 'plain' || found.counted.length || found.usual.length !== 1)
-    throw Error('alpha source projection requires one plain usual family')
+  if(found.route !== bundle.route || found.counted.length || found.usual.length !== 1)
+    throw Error('alpha source projection requires one complete usual family')
   const leaf=found.usual[0]!, source=bundle.original.machine, laws=bundle.original.laws
   if(source.history || source.sums && Object.keys(source.sums).length || Object.keys(source.fns ?? {}).length)
     throw Error('source machine requires a separately qualified semantic route')
@@ -34,6 +34,8 @@ export function emitAlphaSource(id:string, bundle:NativeBundle):string {
     throw Error('alpha source projection supports only nonempty ordinary public laws')
   if(Object.keys(source.counts??{}).length||Object.keys(leaf.machine.counts??{}).length)
     throw Error('counted source requires its own semantic bridge')
+  if(bundle.route==='inferred'&&qualifyProjection(bundle.original,leaf.machine,leaf.laws).kind!=='same-machine')
+    throw Error('inferred source projection requires the exact same source machine and public laws')
   const indices=lawCoverage(laws,leaf.laws), rs=alphaProposals(source,leaf.machine)
   const free=[...new Set(Object.values(source.step.flags ?? {}).flatMap(q=>q.op==='all'?boundOf(q):[]))]
   return retainedSMachineToLean(id,leaf.machine,leaf.laws,leaf.proof,{free,after:(ix,_mx,lit,c)=>{
