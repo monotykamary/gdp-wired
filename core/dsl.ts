@@ -1,4 +1,4 @@
-import {retainFrom, retainCounted, publishProof} from './proof-output.ts'
+import {retainFrom, retainCounted, publishProof, withPublicRule} from './proof-output.ts'
 import {searchNow as countedSearchNow} from './wall.ts'
 // Typed builders for machines, decisions and loops: names are declared once and come back as typed values, so a
 // misspelled name, a law that reads a request, or a step that sets an undeclared variable is a TypeScript error, and
@@ -2980,8 +2980,11 @@ function workVerdict(opts: ProveOptions, supported: boolean, run: (opts: ProveOp
   }
 }
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
-  const captureMachine = r.machine, hasCounts = !!Object.keys(captureMachine.counts ?? {}).length
-  return publishProof(workVerdict(opts, hasCounts, plan => withPublicSearchPolicy(hasCounts, () => proveRuleWall(r, laws, plan))), captureMachine, laws)
+  return withPublicRule(outermost => {
+    const captureMachine = r.machine, hasCounts = !!Object.keys(captureMachine.counts ?? {}).length
+    const result = workVerdict(opts, hasCounts, plan => withPublicSearchPolicy(hasCounts, () => proveRuleWall(r, laws, plan)))
+    return outermost ? publishProof(result, captureMachine, laws) : result
+  })
 }
 function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions): Verdict {
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined

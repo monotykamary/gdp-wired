@@ -1,5 +1,5 @@
 import {expect,test} from 'bun:test'
-import {proofOutput,retainFamily,retainFrom,publishProof,type PublicProofOutput} from './proof-output.ts'
+import {proofOutput,retainFamily,retainFrom,publishProof,withPublicRule,type PublicProofOutput} from './proof-output.ts'
 import type {Machine,Law} from './machine.ts'
 const machine={} as Machine,laws=[] as Law[],proof={instances:{},trees:{}}
 test('default-off output hooks preserve result identity and add no public keys',()=>{
@@ -13,6 +13,15 @@ test('actual producer links follow returned objects and reset between invocation
  try{const first=retainFamily({proven:true,checked:true},machine,laws,proof);const result=retainFrom({...first},[first]);publishProof(result,machine,laws);expect(event!.proof!.kind).toBe('derived')
  proofOutput.on=undefined;proofOutput.on=listener
  const stale=retainFrom({...first},[first]);publishProof(stale,machine,laws);expect((event!.proof as any).parents).toEqual([undefined])
+ }finally{proofOutput.on=undefined}
+})
+test('nested scope restores depth on throw without changing observer ownership',()=>{
+ const foreign=()=>{};proofOutput.on=foreign;const fault=Error('nested')
+ try{
+  expect(()=>withPublicRule(outer=>{expect(outer).toBe(true);withPublicRule(inner=>{expect(inner).toBe(false);throw fault})})).toThrow(fault)
+  expect(proofOutput.on).toBe(foreign)
+  withPublicRule(outer=>expect(outer).toBe(true))
+  expect(proofOutput.on).toBe(foreign)
  }finally{proofOutput.on=undefined}
 })
 test('unproven or unchecked families confer no provenance',()=>{

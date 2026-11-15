@@ -8,6 +8,12 @@ export type ProofOutputNode =
   | {kind:'usual',machine:Machine,laws:Law[],proof:{instances:Record<string,Instances>,trees:Record<string,Tree>}}
   | {kind:'derived',parents:(ProofOutputNode|undefined)[],context:unknown}
 export type PublicProofOutput={result:object,original:{machine:Machine,laws:Law[]},proof:ProofOutputNode|undefined}
+// Synchronous public rule invocations can recursively prove a Skolem family.
+let publicRuleDepth=0
+export function withPublicRule<T>(run:(outermost:boolean)=>T):T {
+  const outermost=publicRuleDepth++===0
+  try{return run(outermost)}finally{publicRuleDepth--}
+}
 let observer:((event:PublicProofOutput)=>void)|undefined
 let records=new WeakMap<object,ProofOutputNode>()
 // Every installation/clear starts a fresh custody window, even if a callback
