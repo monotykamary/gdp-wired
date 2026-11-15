@@ -1,0 +1,56 @@
+{
+  "schema": "bapa-db-native-ghost-validation/v1",
+  "batch": "20261115-232713-5od19y",
+  "tree": "e8966ea88768",
+  "image": "sc-f0d8daeee6c3",
+  "bun": "1.4.3",
+  "checks": {
+    "typecheck": 0,
+    "tests": 0,
+    "audit": 0,
+    "witnessAudit": 0,
+    "commitlint": 0
+  },
+  "tests": {
+    "passed": 42,
+    "failed": 0,
+    "assertions": 235
+  },
+  "preflight": {
+    "protocol": "client_server_db_ae",
+    "noSearch": true,
+    "publicCalls": 0,
+    "ghostsQualified": true,
+    "sourceUnchanged": true,
+    "rematerializationChanges": true,
+    "proposed": 27,
+    "dropped": 0,
+    "witnessProposals": 1,
+    "witnessRefusals": [],
+    "fieldRowProposals": 0,
+    "modelsSha256": "b0b47e17a3ba6b7843175e709150c4f20f9e924f4af05b2e9b993ebda206b294",
+    "machineSha256": "0ee8f2b72879d5048ae3cc380c478ca0bb76fb72c47b8735802f67607ac99c26",
+    "audit": {
+      "manifestSha256": "f5bda1f9c9d6cc04a23f91772191119b4728ba1fc3dc2bfd35fb6b3cbe934518",
+      "captureSha256": "e76ed2d24da036b98a98ea1edf509abe741499a2647c88f647c4d4f235cc87f0",
+      "graphManifestSha256": "da816ccc07eaf8f55829e188a184d30b303247d6949f2b3373f5bf0362c9d7c1",
+      "witnesses": [
+        {
+          "status": "proposed",
+          "name": "a received response was matched",
+          "sourceVariables": 1,
+          "targetVariables": 1,
+          "ghostMaps": {
+            "ResponseSent$w": "seed$witness$ResponseSent$w",
+            "DbResponseSent$g": "seed$witness$DbResponseSent$g",
+            "DbRequestSent$g": "seed$witness$DbRequestSent$g"
+          },
+          "helperMode": "guarded-equality",
+          "trusted": false
+        }
+      ]
+    }
+  },
+  "protocolReruns": 0,
+  "artifacts": "runs/db-native-ghost-02/db-native-ghost-gate.files"
+}

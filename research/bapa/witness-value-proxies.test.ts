@@ -17,7 +17,7 @@ test('ghost cells use one shared universally guarded value, not a relation row',
  expect(bindings.fields['Owner$n']).toBeDefined()
 })
 
-test('rejects non-bound ghost keys, nonunary layouts and unknown value sorts',()=>{
+test('rejects non-bound ghost keys, wrong key arities and unknown value sorts',()=>{
  expect(()=>abstractWitnessValues([{...law,forall:'other'}],bindings,{'Owner$n':'Node'})).toThrow('unbound ghost key')
  expect(()=>abstractWitnessValues([law],bindings,{'Owner$n':'Missing'})).toThrow('invalid ghost coordinate')
  expect(()=>abstractWitnessValues([law],{...bindings,maps:{'Owner$n':{target:'fresh',sorts:['Key','Node'],radix:64}}},{'Owner$n':'Node'})).toThrow('invalid ghost coordinate')

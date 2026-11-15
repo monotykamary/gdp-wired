@@ -8,11 +8,11 @@ import type {SeedBindings} from './candidate-seed-restatement.ts'
  * has to translate the result and the native kernel must check the proposal. */
 export function abstractWitnessValues(laws: Law[], bindings: SeedBindings, valueSorts: Record<string,string>): {laws: Law[], bindings: SeedBindings} {
   const maps = {...bindings.maps}, fields = {...bindings.fields}, variables = {...bindings.variables}
-  const specs: Record<string,{sort:string, keySort:string, radix:number}> = Object.create(null)
+  const specs: Record<string,{sort:string, keySorts:string[], radix:number}> = Object.create(null)
   for (const [name, sort] of Object.entries(valueSorts)) {
     const layout = maps[name]
-    if (!layout || layout.sorts.length !== 1 || !layout.sorts[0] || !layout.target || !Number.isSafeInteger(layout.radix) || layout.radix < 2 || !bindings.domains[sort] || !bindings.domains[layout.sorts[0]]) throw Error(`missing or invalid ghost coordinate: ${name}`)
-    specs[name] = {sort, keySort:layout.sorts[0], radix:layout.radix}
+    if (!layout || !layout.sorts.length || layout.sorts.some(s=>!bindings.domains[s]) || !layout.target || !Number.isSafeInteger(layout.radix) || layout.radix < 2 || !bindings.domains[sort]) throw Error(`missing or invalid ghost coordinate: ${name}`)
+    specs[name] = {sort, keySorts:layout.sorts, radix:layout.radix}
     delete fields[name]
   }
   const used = new Set<string>([...Object.keys(maps), ...Object.values(maps).map(m=>m.target), ...Object.values(bindings.domains)])
@@ -38,10 +38,12 @@ export function abstractWitnessValues(laws: Law[], bindings: SeedBindings, value
       const o=x as Record<string,unknown>, spec=specs[String(o.map)]
       if(o.op==='get' && spec){
         const key=o.key as E
-        if(!key || key.op!=='var' || Object.keys(key).some(k=>k!=='op' && k!=='name') || !bound.includes(key.name))throw Error(`unbound ghost key: ${String(o.map)}`)
-        const id=JSON.stringify([o.map,key.name]); let cell=found.get(id)
+        const parts=(e:E):E[]=>e.op==='tup'?[e.a,...parts(e.b)]:[e]
+        const coords=key?parts(key):[]
+        if(coords.length!==spec.keySorts.length||coords.some(c=>c.op!=='var'||Object.keys(c).some(k=>k!=='op'&&k!=='name')||!bound.includes(c.name)))throw Error(`unbound ghost key or invalid ghost coordinate: ${String(o.map)}`)
+        const id=JSON.stringify([o.map,key]); let cell=found.get(id)
         if(!cell){let name:string;do{name=`seed$ghost$value$${next++}`}while(used.has(name));used.add(name)
-          cell={read:{op:'get',map:String(o.map),key:{...key}},name}; found.set(id,cell)
+          cell={read:{op:'get',map:String(o.map),key:structuredClone(key)},name}; found.set(id,cell)
           variables[name]={sort:spec.sort,radix:spec.radix}
         }
         return {op:'var',name:cell.name}

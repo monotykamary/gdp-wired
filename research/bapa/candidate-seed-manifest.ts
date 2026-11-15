@@ -6,12 +6,13 @@ import {dirname, isAbsolute, join, resolve} from 'node:path'
 import type {Law, Machine, SomeWitness} from '../../core/machine.ts'
 import {ghostedMachine, type Ghosted} from '../../kernel/kernel.ts'
 import {adaptCandidateSeedWitness, type WitnessSeedAudit, type WitnessSeedProposal} from './candidate-seed-witness.ts'
+import {adaptNativeGhostSeeds,type NativeGhostBinding} from './native-ghost-seeds.ts'
 import {readCertificateGraph} from './proof-codec.ts'
 import {restateSeeds, type SeedAudit, type SeedBindings} from './candidate-seed-restatement.ts'
 import {restateCountSeeds, type CountSeedBinding, type CountSeedAudit} from './counted-seed-restatement.ts'
 import {restateSumSeeds, type SumSeedAudit} from './sum-seed.ts'
 
-export type CandidateSeedManifest = {schema:'candidate-seed-manifest/v1', protocol:string, capture:string, captureSha256:string, bindings:SeedBindings, countBindings?:Record<string,CountSeedBinding>, existentials?:string[]}
+export type CandidateSeedManifest = {schema:'candidate-seed-manifest/v1', protocol:string, capture:string, captureSha256:string, bindings:SeedBindings, countBindings?:Record<string,CountSeedBinding>, existentials?:string[], ghostBindings?:Record<string,NativeGhostBinding>}
 type Audit = {schema:'candidate-seed-audit/v1', protocol:string, manifestSha256:string, captureSha256:string, graphManifestSha256:string, sourceIdentity:unknown, laws:SeedAudit[], counts?:CountSeedAudit[], sums?:SumSeedAudit[], witnesses?:(WitnessSeedAudit|{status:'dropped',reason:string})[]}
 export type LoadedCandidateSeeds = {kind:'usual', laws:Law[], witnesses?:Record<string,SomeWitness>, ghosts?:Pick<Ghosted,'vars'|'maps'>, audit:Audit} | {kind:'counted', laws:Law[], counts:NonNullable<Machine['counts']>, audit:Audit}
 const sha=(x:Uint8Array)=>createHash('sha256').update(x).digest('hex')
@@ -67,7 +68,9 @@ export function loadCandidateSeedManifest(path:string, targetMachine:Machine, na
       if(contexts.length!==1||leaves.length!==1)throw Error('witness proposal requires one retained Skolem producer')
       const selected=native.publicLaws?.filter(l=>manifest.existentials!.includes(l.name))??[]
       if(selected.length!==manifest.existentials.length)throw Error('native public existential laws are required')
-      witness=adaptCandidateSeedWitness({...contexts[0],family:leaves[0].laws},targetMachine,selected,manifest.bindings)
+      witness=manifest.ghostBindings
+        ? adaptNativeGhostSeeds({...contexts[0],family:leaves[0].laws},targetMachine,selected,manifest.bindings,manifest.ghostBindings)
+        : adaptCandidateSeedWitness({...contexts[0],family:leaves[0].laws},targetMachine,selected,manifest.bindings)
       witnessAudit.push(...witness.audit)
     } catch(error) {witnessAudit.push({status:'dropped',reason:error instanceof Error?error.message:String(error)})}
   }
