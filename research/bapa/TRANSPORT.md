@@ -48,7 +48,7 @@ bridge. The same batch's independent small-model job failed; it is not green.
 
 ## Checked small-satisfiability cutoff
 
-`RelationalSmallModel.small_satisfiability` constructs a model with each sort
+`Bapa.Relational.small_satisfiability` constructs a model with each sort
 of size at most constants + existential witnesses + 1. It handles aliasing by
 first constructing a duplicate-free enumeration, not assuming the witnesses
 are distinct. The induced model preserves equality and relations, hence all
@@ -63,6 +63,33 @@ small-model declarations use only the three allowed axioms.
 The augmented tcommit control batch `20261115-164428-yq4uwp` passed independently:
 request and step semantics are unchanged, and both stale/mismatched cap
 annotation variants are rejected. No proof tree or table was changed.
+
+## Final verification and stopping point
+
+- `20261115-165537-5hw7av`: **PASS**, all four generic Lean modules and all
+  five conventional commit messages through the existing gates. The four
+  exported `.lean` files byte-match the final worktree files. All printed
+  theorem dependencies are within `propext`, `Classical.choice`, `Quot.sound`.
+- `20261115-165421-74qocy`: independent commitlint-only **PASS** for the same
+  five messages.
+- `20261115-164428-yq4uwp`: **PASS**, rechecked retained tcommit source plus
+  all ten direct-lift / operational-preservation / negative-control theorems.
+- Failed iterations remain under `runs/bapa-transport/`: elaboration errors
+  were not counted as proofs. The v5 attempt failed while shipping because
+  this lane edited documentation before upload completed; it did not supply
+  a Lean result. The stable-tree v7 gate above is the final result.
+
+The fixed-size control proves a sentence with cutoff 2 is satisfiable at size
+1 and unsatisfiable at size 64, so the fixed-64 exclusion is essential, not a
+padding assumption hidden in the cutoff theorem.
+
+**STOP at the exact retained-obligation bridge**, not at a blanket impossibility
+claim. Full requested step 2 (matching the generic numeric instances to old
+certificates) remains unproved; the abstract requested step 3 is now checked;
+requested step 4 (67-declaration recognizer) has not been implemented. Do not
+claim the generic cutoff lifts any family. The one independent direct tcommit
+lift stands on its checked unchanged proof tree. Complete per-case outcomes
+are in `TRANSPORT-RESULTS.md`; the exact mismatch is in `TRANSPORT-OBSTACLE.md`.
 
 ## Outstanding gates
 

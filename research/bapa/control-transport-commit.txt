@@ -1,0 +1,1 @@
+test(bapa): verify transport exclusions and record remaining gate

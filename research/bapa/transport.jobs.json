@@ -1,10 +1,10 @@
 [
   {
-    "name": "relational-fragment",
-    "cmd": "set -euo pipefail; export PATH=\"$PWD/scripts/lean-gate:$PATH\"; lean research/bapa/RelationalFragment.lean 2>&1 | tee \"$SUPERCOMPUTER_OUTPUT_DIR/RelationalFragment.log\"; cp research/bapa/RelationalFragment.lean \"$SUPERCOMPUTER_OUTPUT_DIR/RelationalFragment.lean\"",
+    "name": "relational-transport",
+    "cmd": "set -euo pipefail; root=$PWD; out=$SUPERCOMPUTER_OUTPUT_DIR; export PATH=\"$root/scripts/lean-gate:$PATH\"; export LEAN_PATH=\"$root/research/bapa:$root/lean-kernel\"; lean -o research/bapa/RelationalFragment.olean research/bapa/RelationalFragment.lean > \"$out/RelationalFragment.log\" 2>&1; lean research/bapa/RelationalNumeric.lean > \"$out/RelationalNumeric.log\" 2>&1; lean research/bapa/RelationalSmallModel.lean 2>&1 | tee \"$out/RelationalSmallModel.log\"; lean research/bapa/RelationalControls.lean 2>&1 | tee \"$out/RelationalControls.log\"; cp research/bapa/RelationalFragment.lean research/bapa/RelationalNumeric.lean research/bapa/RelationalSmallModel.lean research/bapa/RelationalControls.lean \"$out/\"; for msg in research/bapa/transport-commit.txt research/bapa/tcommit-transport-commit.txt research/bapa/numeric-transport-commit.txt research/bapa/cutoff-transport-commit.txt research/bapa/control-transport-commit.txt; do bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$msg\"; done > \"$out/commitlint.log\" 2>&1",
     "cpu": 1,
-    "memory": 2,
-    "timeout": 240,
+    "memory": 4,
+    "timeout": 300,
     "env": {"SUPERCOMPUTER_CONTROLLER": "1", "SUPERCOMPUTER_NO_BUILD": "1"},
     "required_agent_capabilities": {"output_files_protocol": 1, "result_files_protocol": 1}
   }
