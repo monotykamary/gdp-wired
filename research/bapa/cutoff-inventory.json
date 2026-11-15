@@ -1,0 +1,7047 @@
+{
+  "schema": "bapa-cutoff-feasibility/v1",
+  "status": "STOP_UNPROVED_TRANSPORT",
+  "note": "Receipt inventory, not a checked cutoff computation. Per-obligation fragment decisions remain unresolved. Complete retained family obligations, including helpers, are listed; auxiliary counts/guards are not all expanded as separate entries.",
+  "protocols": 29,
+  "theoremDeclarations": 67,
+  "obligations": 897,
+  "rows": [
+    {
+      "id": "consensus",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-consensus.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "9b466275e22874ab0118ab82f0e9fe3329ccbdbc827591bfff7b0378b4afef8f",
+      "route": "plain",
+      "theorems": [
+        "captured_consensus_0_check",
+        "captured_consensus_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 2,
+          "trees": 4,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "unresolved",
+      "reason": "numeric-to-relational-transport-unproved",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "tcommit",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-tcommit.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "b852b4a00c3843be6eff351435a4414423af85d6162f59ece8f6a641c6cc37dc",
+      "route": "plain",
+      "theorems": [
+        "captured_tcommit_0_check",
+        "captured_tcommit_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 1,
+          "trees": 2,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "unresolved",
+      "reason": "numeric-to-relational-transport-unproved",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "lock_server",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-lock_server.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "eb4f9e3d76280d713501e26553064d23bec73c249912710b1fd1728cf1a1a9bf",
+      "route": "inferred",
+      "theorems": [
+        "captured_lock_server_0_check",
+        "captured_lock_server_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 4,
+          "trees": 8,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "unresolved",
+      "reason": "numeric-to-relational-transport-unproved",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "quorum_leader_election",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-quorum_leader_election.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "6e78763becefa90a2f600e89b324445cf3aca8e8fd72451d4ceb57747d4ea8f5",
+      "route": "counted-family",
+      "theorems": [
+        "captured_quorum_leader_election_0_check",
+        "captured_quorum_leader_election_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "counted",
+          "laws": 6,
+          "obligations": 12,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "outside-pure-EPR",
+      "reason": "cardinality",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "toy_consensus_forall",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-toy_consensus_forall.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "33f1a9949fb71fec0b5c1017c0607b25517a4222de10f0634bddc9bd4d8ae84b",
+      "route": "counted-family",
+      "theorems": [
+        "captured_toy_consensus_forall_0_check",
+        "captured_toy_consensus_forall_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "counted",
+          "laws": 8,
+          "obligations": 16,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "outside-pure-EPR",
+      "reason": "cardinality",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "simple",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-fprime-normal28-v1/results/fprime-lean-simple.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "bcded04aa89d0e98e65b7cc16341f2810306b0830239064c5215465f22ebc462",
+      "route": "witness",
+      "theorems": [
+        "captured_simple_0_check",
+        "captured_simple_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 10,
+          "trees": 20,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "outside-pure-EPR",
+      "reason": "cyclic-predecessor-arithmetic",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "simple_regular",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-fprime-normal28-v1/results/fprime-lean-simple_regular.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "0d2fe5e42305af54bdad5cae8fec5f5270b1ce2bc5f78e471b1f0b6f849f6440",
+      "route": "witness",
+      "theorems": [
+        "captured_simple_regular_0_check",
+        "captured_simple_regular_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 17,
+          "trees": 34,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "outside-pure-EPR",
+      "reason": "cyclic-predecessor-arithmetic",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "lockserv_automaton",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-lockserv_automaton.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "6241666bd3dd8611b4f2ea9947c200fd7d79eeea051e0552bd7c15c7fc807cae",
+      "route": "inferred",
+      "theorems": [
+        "captured_lockserv_automaton_0_check",
+        "captured_lockserv_automaton_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 17,
+          "trees": 34,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "unresolved",
+      "reason": "numeric-to-relational-transport-unproved",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "sharded_kv",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-sharded_kv.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "2d81751966afd9edebcaf04f5acdeadbe3ec75cccee60e0e0df633d08fdbda73",
+      "route": "inferred",
+      "theorems": [
+        "captured_sharded_kv_0_check",
+        "captured_sharded_kv_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 23,
+          "trees": 46,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "unresolved",
+      "reason": "numeric-to-relational-transport-unproved",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 18,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 18,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 19,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 19,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 20,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 20,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 21,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 21,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 22,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 22,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "sharded_kv_no_lost_keys",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-sharded_kv_no_lost_keys.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "e41e37724663b689ed716c639694ff002c0be92e99ace6267f4ef8ad3cf8fe4f",
+      "route": "witness",
+      "theorems": [
+        "captured_sharded_kv_no_lost_keys_0_check",
+        "captured_sharded_kv_no_lost_keys_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 10,
+          "trees": 20,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "unresolved",
+      "reason": "numeric-to-relational-transport-unproved",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "lockserv",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-lockserv.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "faa7237497f6e46771e4c086ced54f0006f2f6abc17608f0ba971fa4143f1364",
+      "route": "inferred",
+      "theorems": [
+        "captured_lockserv_0_check",
+        "captured_lockserv_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 17,
+          "trees": 34,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "unresolved",
+      "reason": "numeric-to-relational-transport-unproved",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "twophase",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-twophase.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "ff290226cc7c36c19e358cf235b7d3a9e53caaf1ab748cacef9f1f89419cd2f8",
+      "route": "inferred",
+      "theorems": [
+        "captured_twophase_0_check",
+        "captured_twophase_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 12,
+          "trees": 24,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "unresolved",
+      "reason": "numeric-to-relational-transport-unproved",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "simple_decentralized_lock",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-fprime-sum-cover-v2/results/fprime-sum-cover-import-fixed.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "e123183e89e3d5e0378d9aaf3e4d00a5f7e55b3584821faf0c6fa2d739e82958",
+      "route": "inferred",
+      "theorems": [
+        "captured_simple_decentralized_lock_0_check",
+        "captured_simple_decentralized_lock_0_laws",
+        "captured_simple_decentralized_lock_0_scheck",
+        "captured_simple_decentralized_lock_0_exact",
+        "captured_simple_decentralized_lock_0_own",
+        "captured_simple_decentralized_lock_0_sum0",
+        "captured_simple_decentralized_lock_0_sum1"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 4,
+          "trees": 9,
+          "deletedRequiredProofRejected": true,
+          "sumCover": {
+            "goalCount": 1,
+            "goalNames": [
+              "sum$HasLock @cover HasLock"
+            ],
+            "goalSHA256": "4e0b2148d8c0a63f2f64d062305b284978871d0fd127fbdcea3837fe6f243098",
+            "goalIdentityMatched": true,
+            "retainedPlainLawGoals": 8,
+            "retainedPlainLawCheckerAccepted": true,
+            "coverDeletionRejected": true,
+            "sumCount": 2
+          }
+        }
+      ],
+      "classification": "outside-pure-EPR",
+      "reason": "sum-cover-cardinality",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "goal": "sum$HasLock @cover HasLock",
+          "phase": "cover",
+          "classification": "outside-pure-EPR",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "two_phase_commit",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-two_phase_commit.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "7ede3b2799c7912d4d0414d014980f386a9844bb1762473e80d92530ea89c66e",
+      "route": "inferred",
+      "theorems": [
+        "captured_two_phase_commit_0_check",
+        "captured_two_phase_commit_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 18,
+          "trees": 36,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "unresolved",
+      "reason": "numeric-to-relational-transport-unproved",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "consensus_wo_decide",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-consensus_wo_decide.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "3c6462416bf579f71e770e8545ef8eb5f011ecdfa6a419c9a72937ef795f8e6e",
+      "route": "counted-family",
+      "theorems": [
+        "captured_consensus_wo_decide_0_check",
+        "captured_consensus_wo_decide_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "counted",
+          "laws": 37,
+          "obligations": 74,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "outside-pure-EPR",
+      "reason": "cardinality",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 18,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 18,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 19,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 19,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 20,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 20,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 21,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 21,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 22,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 22,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 23,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 23,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 24,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 24,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 25,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 25,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 26,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 26,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 27,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 27,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 28,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 28,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 29,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 29,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 30,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 30,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 31,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 31,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 32,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 32,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 33,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 33,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 34,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 34,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 35,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 35,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 36,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 36,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "consensus_forall",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-consensus_forall.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "2650f80d2835941ed548dc51e1202909030a5603d011d1f09b4cd9de3d64c6d7",
+      "route": "counted-family",
+      "theorems": [
+        "captured_consensus_forall_0_check",
+        "captured_consensus_forall_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "counted",
+          "laws": 45,
+          "obligations": 90,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "outside-pure-EPR",
+      "reason": "cardinality",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 18,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 18,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 19,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 19,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 20,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 20,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 21,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 21,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 22,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 22,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 23,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 23,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 24,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 24,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 25,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 25,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 26,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 26,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 27,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 27,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 28,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 28,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 29,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 29,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 30,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 30,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 31,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 31,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 32,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 32,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 33,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 33,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 34,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 34,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 35,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 35,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 36,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 36,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 37,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 37,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 38,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 38,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 39,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 39,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 40,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 40,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 41,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 41,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 42,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 42,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 43,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 43,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 44,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 44,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "naive_consensus",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-naive_consensus.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "f9d79d65e341cd76a30eb2221864cf62c952d2bade77922df459e21af4e10030",
+      "route": "counted-family",
+      "theorems": [
+        "captured_naive_consensus_0_check",
+        "captured_naive_consensus_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "counted",
+          "laws": 12,
+          "obligations": 24,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "outside-pure-EPR",
+      "reason": "cardinality",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "client_server_ae",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-client_server_ae.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "279d235a4e19beea21319bbeff5e849982cfe9322a314b586e009957d821d8f3",
+      "route": "witness",
+      "theorems": [
+        "captured_client_server_ae_0_check",
+        "captured_client_server_ae_0_laws",
+        "captured_client_server_ae_1_check",
+        "captured_client_server_ae_1_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 10,
+          "trees": 20,
+          "deletedRequiredProofRejected": true
+        },
+        {
+          "index": 1,
+          "kind": "usual",
+          "laws": 10,
+          "trees": 20,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "unresolved",
+      "reason": "numeric-to-relational-transport-unproved",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "client_server_db_ae",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-client_server_db_ae.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "e76ed2d24da036b98a98ea1edf509abe741499a2647c88f647c4d4f235cc87f0",
+      "route": "witness",
+      "theorems": [
+        "captured_client_server_db_ae_0_check",
+        "captured_client_server_db_ae_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 27,
+          "trees": 54,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "unresolved",
+      "reason": "numeric-to-relational-transport-unproved",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 18,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 18,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 19,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 19,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 20,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 20,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 21,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 21,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 22,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 22,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 23,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 23,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 24,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 24,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 25,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 25,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 26,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 26,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "simple_election",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-simple_election.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "3a67aee7e3e895d27d4ab9d9d1df3fffd3de6ac7e47e35a51f2c0f5bc55cbf14",
+      "route": "counted-family",
+      "theorems": [
+        "captured_simple_election_0_check",
+        "captured_simple_election_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "counted",
+          "laws": 10,
+          "obligations": 20,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "outside-pure-EPR",
+      "reason": "cardinality",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "toy_consensus_epr",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-toy_consensus_epr.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "ceb44f37db78528ed827cc7c5d9df18b3b98e30ef662c820faad9cbdb7f824b6",
+      "route": "counted-family",
+      "theorems": [
+        "captured_toy_consensus_epr_0_check",
+        "captured_toy_consensus_epr_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "counted",
+          "laws": 8,
+          "obligations": 16,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "outside-pure-EPR",
+      "reason": "cardinality",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "toy_consensus",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-toy_consensus.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "bed8f5c501c899d0b6e2bca85cd8052951db207d2c2aced24b432ecc057e8c56",
+      "route": "counted-family",
+      "theorems": [
+        "captured_toy_consensus_0_check",
+        "captured_toy_consensus_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "counted",
+          "laws": 4,
+          "obligations": 8,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "outside-pure-EPR",
+      "reason": "cardinality",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "firewall",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-firewall.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "0d65e7fc04cacd716180a8927e4050249fe3323ff23b4331f577ed3be38432ab",
+      "route": "witness",
+      "theorems": [
+        "captured_firewall_0_check",
+        "captured_firewall_0_laws",
+        "captured_firewall_1_check",
+        "captured_firewall_1_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 6,
+          "trees": 12,
+          "deletedRequiredProofRejected": true
+        },
+        {
+          "index": 1,
+          "kind": "usual",
+          "laws": 6,
+          "trees": 12,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "unresolved",
+      "reason": "numeric-to-relational-transport-unproved",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 1,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "majorityset_leader_election",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-majorityset_leader_election.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "6258ae5d9441c4fe06bf54c2f5c5bba20c513157841d826d95bb199c32f8c306",
+      "route": "counted-family",
+      "theorems": [
+        "captured_majorityset_leader_election_0_check",
+        "captured_majorityset_leader_election_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "counted",
+          "laws": 16,
+          "obligations": 32,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "outside-pure-EPR",
+      "reason": "cardinality",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "consensus_epr",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-consensus_epr.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "f5b66624291dbf19d76b41c90469c67ba00386144ee34b024388adff2d13f3db",
+      "route": "counted-family",
+      "theorems": [
+        "captured_consensus_epr_0_check",
+        "captured_consensus_epr_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "counted",
+          "laws": 28,
+          "obligations": 56,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "outside-pure-EPR",
+      "reason": "cardinality",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 18,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 18,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 19,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 19,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 20,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 20,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 21,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 21,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 22,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 22,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 23,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 23,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 24,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 24,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 25,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 25,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 26,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 26,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 27,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 27,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "learning_switch",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-learning_switch.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "e21b72508b849a43d528684a573e0c960722a3eef5412b61598cb9af760a9c37",
+      "route": "inferred",
+      "theorems": [
+        "captured_learning_switch_0_check",
+        "captured_learning_switch_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 16,
+          "trees": 32,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "unresolved",
+      "reason": "numeric-to-relational-transport-unproved",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "learning_switch_i4",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-learning_switch_i4.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "9bf50f3289efbaaa87a04563690013e6c8089d897613718f1085f5a9a69a69e9",
+      "route": "inferred",
+      "theorems": [
+        "captured_learning_switch_i4_0_check",
+        "captured_learning_switch_i4_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "usual",
+          "laws": 22,
+          "trees": 44,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "unresolved",
+      "reason": "numeric-to-relational-transport-unproved",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 18,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 18,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 19,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 19,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 20,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 20,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 21,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 21,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "paxos_epr",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-normal28-lean/results/normal28-family-paxos_epr.files/FAMILY-CHECK.json",
+      "capsuleSHA256": "89ff11ec663114a06032c9df7ef1e1449f68bf5f7ec4cebf60344779dd00062d",
+      "route": "counted-family",
+      "theorems": [
+        "captured_paxos_epr_0_check",
+        "captured_paxos_epr_0_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "counted",
+          "laws": 25,
+          "obligations": 50,
+          "deletedRequiredProofRejected": true
+        }
+      ],
+      "classification": "outside-pure-EPR",
+      "reason": "cardinality",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 17,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 18,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 18,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 19,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 19,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 20,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 20,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 21,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 21,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 22,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 22,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 23,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 23,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 24,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 24,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    },
+    {
+      "id": "mldr",
+      "receipt": "/home/user/.local/state/r4-launcher/release049-family-assemble-v1/results/family-assemble.files/CHECK-RESULT.json",
+      "route": "counted-family",
+      "theorems": [
+        "mldr_capture_family_check",
+        "mldr_capture_family_laws"
+      ],
+      "families": [
+        {
+          "index": 0,
+          "kind": "counted",
+          "laws": 17,
+          "obligations": 34
+        }
+      ],
+      "classification": "outside-pure-EPR",
+      "reason": "cardinality-and-size-arithmetic",
+      "cutoff": null,
+      "coveredBy64": null,
+      "obligations": [
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 0,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 1,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 2,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 3,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 4,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 5,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 6,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 7,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 8,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 9,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 10,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 11,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 12,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 13,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 14,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 15,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "init",
+          "classification": "unresolved",
+          "cutoff": null
+        },
+        {
+          "family": 0,
+          "law": 16,
+          "phase": "step",
+          "classification": "unresolved",
+          "cutoff": null
+        }
+      ]
+    }
+  ]
+}
