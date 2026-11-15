@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "files": ["source-projection.ts", "source-projection.test.ts", "source-projection-control.ts", "proof-emit.ts"],
+  "include": []
+}

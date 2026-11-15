@@ -47,7 +47,7 @@ mixed-producer assembly is refused with the original capsule untouched. Lean
 identifiers are restricted before interpolation. No `sorry`, `axiom` or
 `native_decide` is admitted in generated proof source.
 
-## Split-check boundary (next slice, not yet installed)
+## Split-check boundary
 
 Monolithic emission is not the MLDR recipe. Its 32-GB path must keep one common
 full-family declaration, split each actual INIT/STEP certificate at a checked
@@ -56,12 +56,49 @@ original family entry and derive the original family theorem. A subset-family
 induction is not equivalent. The historical 35-part MLDR partition is evidence
 about that old artifact, not a justified fixed partition of new sized proofs.
 
-The reference implementation lives in original commit `0f5ca9d51` under
-`research/final29-lean/{counted-parts,frontier}.ts` and `FamilyParts.lean`.
-It requires a separate reviewed port and Lean gate. In particular the current
-emitter may use `noncomputable def` for cut-bearing entries; the old parser must
-not assume only `def`. No operational split-check command is claimed here yet.
+The reviewed port is now in `proof-parts.ts`, `proof-frontier.ts`, and
+`FamilyParts.lean`; see `PROOF-PARTS.md` and shared commit `dfcaa6010`. Five tiny
+Lean projects passed the full INIT/STEP family and axiom gates. This is an
+exporter library, not yet a capsule-consuming split CLI.
 
+## Alpha-only source bridge
+
+Use `--projection alpha` to request a checked correspondence candidate for a
+plain, unique retained family. The source machine and public laws are rendered
+from the capsule's original input, in the same injective name basis as the
+producer. Proposed quantified-flag renamings are **not trusted**: Lean checks
+`QAlpha.validAll`, equality of the renamed source and producer, and each public
+law and key list. `QAlpha` then transports reachability and the complete retained
+family theorem to the original source. The resulting `_source_lawN_holds`
+theorems are the public claims, not merely the producer's `_laws` theorem.
+
+```sh
+bun research/bapa/proof-emit.ts --capture "$CAPTURE" --sha256 "$SHA" \
+  --out "$SUPERCOMPUTER_OUTPUT_DIR/source" --projection alpha
+# Build the complete project, then run scripts/lean-gate/gate.ts on its build log
+# and BapaProof.lean. Every source theorem is included in #print axioms.
+```
+
+The output still says `EMITTED_NOT_CHECKED` until the separate Lean gate. Default
+emission/receipt fields are unchanged. Alpha mode rejects counted and witness
+routes, empty public families, and unrepresented `stated`, `some`, `ex`, `finite`
+or `witness` law metadata. More complex renaming patterns may be refused; there
+is no fallback to a JavaScript equivalence claim.
+
+Independent pi Terra review found two gaps (unsupported law shapes and a
+changed default receipt field); both are closed. Native batch
+`20261115-194427-jerb74` passed types, 9 tests / 33 assertions, retained consensus
+source proof and axiom gate, changed-body rejection, variable-capture rejection,
+manifest/protocol-tamper refusal, and commitlint. The source input is capsule
+`ed33f406d61ac50918cff1d69c81cbf843eebf417eb05091544a082f80def1fe`;
+`bapa_consensus_source_law0_holds` uses only the three allowed axioms.
+`_alpha_valid` and `_alpha_result` are axiom-free. This is a checked source-port
+projection for this symbolic-size consensus input, not a TLA+ translation proof
+or an all-29 claim. No proof search was repeated.
+
+Earlier alpha attempts remain recorded: `20261115-193440-46vp7u` failed a control
+AST typecheck; `20261115-193843-iyc8no` proved the source theorem and rejected the
+bad body, then stopped on an incorrect log matcher. Neither is a full gate pass.
 ## Current evidence
 
 - `20261115-171208-vix4lb`: typecheck succeeded; a counted fixture used an invalid

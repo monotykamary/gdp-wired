@@ -1,0 +1,11 @@
+[
+  {
+    "name": "alpha-source-gate",
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; SHA=ed33f406d61ac50918cff1d69c81cbf843eebf417eb05091544a082f80def1fe; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bunx tsc -p research/bapa/tsconfig.source-projection.json > \"$OUT/types.log\" 2>&1; bun test research/bapa/source-projection.test.ts research/bapa/retained-export.test.ts > \"$OUT/tests.log\" 2>&1; bun research/bapa/proof-emit.ts --capture alpha-consensus --sha256 \"$SHA\" --out \"$OUT/positive\" --projection alpha > \"$OUT/emission.log\" 2>&1; cd \"$OUT/positive\"; lake build > \"$OUT/lean.log\" 2>&1; bun \"$ROOT/scripts/lean-gate/gate.ts\" \"$OUT/lean.log\" BapaProof.lean > \"$OUT/axioms.log\" 2>&1; cd \"$ROOT\"; for kind in body capture; do bun research/bapa/source-projection-control.ts alpha-consensus \"$SHA\" \"$kind\" \"$OUT/$kind\" > \"$OUT/$kind-emission.log\" 2>&1; cp -a \"$OUT/positive/.lake\" \"$OUT/$kind/.lake\"; cd \"$OUT/$kind\"; set +e; lake env lean BapaProof.lean > \"$OUT/$kind-lean.log\" 2>&1; code=$?; set -e; test \"$code\" -ne 0; grep -Eq 'BapaProof[.]lean:[0-9]+:[0-9]+: error:' \"$OUT/$kind-lean.log\"; cd \"$ROOT\"; done; mkdir \"$OUT/tampered\"; cp -a alpha-consensus/. \"$OUT/tampered/\"; bun -e 'const fs=require(\"node:fs\"),p=process.env.SUPERCOMPUTER_OUTPUT_DIR+\"/tampered/CAPTURE.json\",m=JSON.parse(fs.readFileSync(p));m.identity.protocol=\"wrong_protocol\";fs.writeFileSync(p,JSON.stringify(m))'; set +e; bun research/bapa/proof-emit.ts --capture \"$OUT/tampered\" --sha256 \"$SHA\" --out \"$OUT/forbidden\" --projection alpha > \"$OUT/tamper.log\" 2>&1; code=$?; set -e; test \"$code\" -ne 0; test ! -e \"$OUT/forbidden/EMITTED.json\"; printf '%s\\n' 'feat(bapa): check alpha source projection in Lean' > \"$OUT/commit-message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$OUT/commit-message.txt\" > \"$OUT/commitlint.log\" 2>&1",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "runtime": {"bun": {"version": "1.4.3", "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"}},
+    "required_agent_capabilities": {"output_files_protocol": 1, "result_files_protocol": 1}
+  }
+]

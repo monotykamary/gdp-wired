@@ -1153,7 +1153,7 @@ function machineNames(m: Machine, laws: Law[], allSteps: StepLaw[], stepLaws: St
 // A tampered twin: its k, the base depths it keeps (indices into the k-step laws' base), the law, and kernel.ts's answer.
 export type KindLean = {kl: KInduction, start: {goal: Goal, tree: Tree, inst: Instances}, tampers?: {what: string, k: number, base: number[], law?: C, expect: boolean}[]}
 export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], tamper?: {what: string, machine: Machine}, simp?: string[], free?: string[],
-    ghosts?: string[], after?: (ix: (name: string) => number, mx: (name: string) => number, lit: (m: Machine) => string) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
+    ghosts?: string[], after?: (ix: (name: string) => number, mx: (name: string) => number, lit: (m: Machine) => string, c: (condition: C) => string) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
     // (ghost maps: `given` is kernel.ts's ghostedMachine(ghosted), exported as GhostMap.lean's SGhostedM; `forallSome`, the
     // laws read ∀∃, each with the ghost map it reads, at the key term `at`, read as the variable `as`)
     ghosted?: Ghosted, forallSome?: {law: string, map: string, at: E, as: string}[],
@@ -1585,7 +1585,7 @@ theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_pro
 ${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e, ghosts: !rf && !gm && gv.length > 0})}${sm ? sumsBlock() : ''}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
-example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix, mx, lit)}` : ''}`
+example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix, mx, lit, c)}` : ''}`
 }
 
 // --- the cyclic certificate's export (GDP_CERT=cyclic) -------------------------------------------------------------
@@ -1642,7 +1642,7 @@ export function retainedCMachineToLean(id: string, m: Machine, laws: Law[], proo
   try { return cmachineToLean(id, m, laws, proof) } finally { checkBy = old }
 }
 export function retainedSMachineToLean(id: string, m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, trees: Record<string, Tree>},
-    projection: Pick<NonNullable<Parameters<typeof smachineToLean>[3]>, 'ghosts' | 'ghosted' | 'ghostSubst' | 'forallSome'> = {}): string {
+    projection: Pick<NonNullable<Parameters<typeof smachineToLean>[3]>, 'ghosts' | 'ghosted' | 'ghostSubst' | 'forallSome' | 'free' | 'after'> = {}): string {
   retainedShape(id, m, laws)
   if (!checkLaws(m, laws, proof)) throw new Error('captured usual family does not check')
   const old = checkBy, oldRetained = retainedOnly, oldCache = [...usualMade]
