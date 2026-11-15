@@ -2390,7 +2390,7 @@ export function leanProject(file: string, opts: {name?: string} = {}): Record<st
   const modules = [...Object.keys(library).map(f => f.replace(/\.lean$/, '')), name]
   return {
     ...library,
-    [`${name}.lean`]: file,
+    [`${name}.lean`]: file.includes('RowAlpha.') ? 'import RowAlpha\n'+file : file,
     'lean-toolchain': 'leanprover/lean4:v4.34.0\n',
     'lakefile.lean': `import Lake
 open Lake DSL

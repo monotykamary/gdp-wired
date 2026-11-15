@@ -2,7 +2,7 @@
 import type {Machine} from '../../core/machine.ts'
 import {boundOf, postName, witnessesOf} from '../../kernel/kernel.ts'
 import {retainedCMachineToLean} from '../../lean-kernel/emit.ts'
-import {alphaProposals} from './source-projection.ts'
+import {alphaProposals,rowAlphaProposals} from './source-projection.ts'
 import {lawCoverage, type FamilyBundle} from './proof-capture.ts'
 
 export function countedSourceDefinitions(id: string, bundle: FamilyBundle) {
@@ -14,7 +14,7 @@ export function countedSourceDefinitions(id: string, bundle: FamilyBundle) {
   if (!laws.length || laws.some(l => l.stated !== undefined || l.some !== undefined || l.ex !== undefined || l.finite !== undefined || l.witness !== undefined))
     throw Error('source public laws require ordinary law metadata')
   const indices = lawCoverage(laws, bundle.final.laws)
-  const rs = alphaProposals(source, producer)
+  const rs = alphaProposals(source, producer), rows = rowAlphaProposals(source, producer)
   const vars = new Set<string>([...source.params, ...source.inputs, ...Object.keys(source.state), ...Object.keys(source.step.state ?? {})])
   const maps = new Set<string>([...Object.keys(source.maps ?? {}), ...Object.keys(source.step.maps ?? {}), ...(source.inputMaps ?? [])])
   // Expressions have the same var/get constructors consumed by leanTerms.
@@ -48,9 +48,10 @@ export function countedSourceDefinitions(id: string, bundle: FamilyBundle) {
       const {ix, mx} = basis
       newCountMapIndices = Object.keys(producer.counts ?? {}).filter(name => !Object.hasOwn(source.counts ?? {}, name)).map(mx)
       const renames = rs.map(r => `⟨${ix(`?${r.flag}`)}, ${ix(r.old)}, ${ix(r.fresh)}⟩`).join(', ')
+      const rowRenames = rows.map(r => `⟨${mx(r.map)}, ${ix(r.old)}, ${ix(r.fresh)}⟩`).join(', ')
       const claims = laws.map((law, j) => `def ${id}_source_law${j} : MLaw := ⟨${basis.condition(law.holds)}, ${law.forall ? `some ${ix(law.forall)}` : 'none'}⟩\ndef ${id}_source_keys${j} : List Nat := [${(law.keys ?? []).map(ix).join(', ')}]`).join('\n')
-      sourceDefs = `-- Proposed check only: QAlpha.renameAll ${id}_source ${id}_source_renames = { ${id}_machine with carried := ${id}_source.carried }
-def ${id}_source : SMachine := ${basis.machine(normalized)}\ndef ${id}_source_decls : List CDecl := ${basis.decls(source.counts)}\ndef ${id}_source_renames : List QAlpha.Rename := [${renames}]\ndef ${id}_source_count_maps : List Nat := [${newCountMapIndices.join(', ')}]\ndef ${id}_source_law_indices : List Nat := [${indices.join(', ')}]\n${claims}`
+      sourceDefs = `-- Proposed check only: RowAlpha.renameAll (QAlpha.renameAll ${id}_source ${id}_source_renames) ${id}_source_row_renames = { ${id}_machine with carried := ${id}_source.carried }
+def ${id}_source : SMachine := ${basis.machine(normalized)}\ndef ${id}_source_decls : List CDecl := ${basis.decls(source.counts)}\ndef ${id}_source_renames : List QAlpha.Rename := [${renames}]\ndef ${id}_source_row_renames : List RowAlpha.Rename := [${rowRenames}]\ndef ${id}_source_count_maps : List Nat := [${newCountMapIndices.join(', ')}]\ndef ${id}_source_law_indices : List Nat := [${indices.join(', ')}]\n${claims}`
       return ''
     }
   })

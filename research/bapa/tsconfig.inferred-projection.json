@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.json",
-  "files": ["inferred-projection.test.ts", "source-projection.ts"],
+  "files": ["inferred-projection.test.ts", "source-projection.ts", "inferred-alpha-control.ts"],
   "include": []
 }

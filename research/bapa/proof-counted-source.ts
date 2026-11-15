@@ -23,8 +23,9 @@ export function countedSourceProject(id:string,input:NativeBundle,options:PartOp
 theorem ${id}_source_keys${j}_eq : ${id}_source_keys${j} = ${entry}.e.keys2 := by rfl
 theorem ${id}_source_law${j}_holds (ρ M) (hr : CReach ${id}_source ${id}_source_decls ρ M) :
     holdsOver ${id}_source_law${j} (withCnt ${id}_source_decls ρ M) ${id}_source_keys${j} ρ := by
+  have hq := (QAlpha.renameAll_equiv ${id}_source ${id}_source_renames ${id}_source_alpha_valid).symm.creach_imp ${id}_source_decls hr
   have hr' : CReach ${id}_source_alpha ${id}_source_decls ρ M :=
-    (QAlpha.renameAll_equiv ${id}_source ${id}_source_renames ${id}_source_alpha_valid).symm.creach_imp ${id}_source_decls hr
+    (RowAlpha.renameAll_equiv ${id}_source_qalpha ${id}_source_row_renames ${id}_source_row_valid).symm.creach_imp ${id}_source_decls hq
   have h := bapa_counted_source_law ${id}_source_alpha ${id}_source_decls ${id}_decls
     ${id}_source_count_maps ${id}_source_count_maps ${entry}.e
     (by decide +kernel) (by decide +kernel) (by decide +kernel)
@@ -38,18 +39,22 @@ theorem ${id}_source_law${j}_holds (ρ M) (hr : CReach ${id}_source ${id}_source
   simpa only [SEntry.Holds, ${id}_source_law${j}_eq, ${id}_source_keys${j}_eq] using h
 #print axioms ${id}_source_law${j}_holds`
   }).join('\n')
-  const body=`import CountedSourceBridge
+  const body=`import RowAlpha
+import CountedSourceBridge
 import ${parts.finalModule}
 open Kern Cert
 set_option maxHeartbeats ${options.heartbeats}
 set_option maxRecDepth ${options.recursionDepth}
 ${data.sourceDefs}
-def ${id}_source_alpha : SMachine := QAlpha.renameAll ${id}_source ${id}_source_renames
+def ${id}_source_qalpha : SMachine := QAlpha.renameAll ${id}_source ${id}_source_renames
+def ${id}_source_alpha : SMachine := RowAlpha.renameAll ${id}_source_qalpha ${id}_source_row_renames
 theorem ${id}_source_alpha_valid : QAlpha.validAll ${id}_source ${id}_source_renames = true := by decide +kernel
+theorem ${id}_source_row_valid : RowAlpha.validAll ${id}_source_qalpha ${id}_source_row_renames = true := by decide +kernel
 theorem ${id}_source_shape : {${id}_source_alpha with carried := ${id}_source_alpha.carried ++ ${id}_source_count_maps} = ${id}_machine := by rfl
 ${publicProofs}
 #print axioms ${id}_laws
 #print axioms ${id}_source_alpha_valid
+#print axioms ${id}_source_row_valid
 #print axioms ${id}_source_shape
 `
   if(/\b(?:sorry|axiom|native_decide)\b/.test(body))throw Error('unapproved counted source construct')

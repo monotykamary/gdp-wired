@@ -87,3 +87,8 @@ family theorem and public theorem names. The nested emission metadata retains
 its original `EMITTED_NOT_CHECKED` label; the enclosing checked receipt is
 `SOURCE_CHECKED`. There was no new search. These three source proofs do not yet
 establish the remaining counted protocols or a 29/29 claim.
+
+The row-alpha extension additionally checks `consensus_forall` and
+`consensus_wo_decide` in `20261115-204348-11vcsk`, with `toy_consensus` as a
+no-row regression. It uses a separate `RowAlpha` semantic transport, not an
+assumption that row syntax is unchanged. See `INFERRED-ALPHA.md`.
