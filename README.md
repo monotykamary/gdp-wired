@@ -20,9 +20,9 @@ If a model is intentionally used at runtime, `fun(...).run()` interprets support
 `fun(...).compiled()` explicitly opts into generated JavaScript. User-supplied JavaScript helper source requires that opt-in;
 arithmetic terms, library `divBy`/`modBy` helpers, and source-free `recur` equations work with the default interpreter.
 
-[![How gdp-wired works: certificates, the kernel, the frontier (14 min)](https://raw.githubusercontent.com/monotykamary/gdp-wired/main/static/explainer.jpg)](https://gdpwired.dev/#explainer)
+[![How gdp-wired works: certificates, the kernel, the frontier (15 min)](https://raw.githubusercontent.com/monotykamary/gdp-wired/main/static/explainer.jpg)](https://gdpwired.dev/#explainer)
 
-How it works, in 14 minutes: what a certificate is, why the kernel is small, and the frontier. [Watch it on gdpwired.dev](https://gdpwired.dev/#explainer), with captions.
+How it works, in 15 minutes: what a certificate is, why the kernel is small, and the frontier. [Watch it on gdpwired.dev](https://gdpwired.dev/#explainer), with captions.
 
 ```sh
 npm install --save-dev gdp-wired typescript   # or bun add --dev gdp-wired typescript
