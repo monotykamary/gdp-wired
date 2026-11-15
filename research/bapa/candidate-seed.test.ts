@@ -14,6 +14,24 @@ describe('candidate restatement',()=>{
   expect(a.bindings).toEqual({k:'Key',i:'Node'})
   expect(a.law.holds).toEqual({op:'or',xs:[{op:'not',x:{op:'<',a:v('k'),b:v('keys')}},{op:'not',x:{op:'<',a:v('i'),b:v('nodes')}},{op:'=',a:{op:'get',map:'Owner',key:{op:'tup',a:v('k'),b:v('i')}},b:n(0)}]})
  })
+ test('restates sized unary native maps without relation metadata',()=>{
+  for(const map of ['HasLock','Semaphore']) {
+   const unary:Machine={name:'unary',params:['nodes'],inputs:[],state:{},maps:{[map]:0},step:{}}
+   const cfg={maps:{[map]:{target:map,sorts:['Node'],radix:64}},domains:{Node:'nodes'}}
+   const law:Law={name:'unary guarded',forall:'i',holds:{op:'or',xs:[{op:'not',x:{op:'<',a:v('i'),b:n(64)}},{op:'<=',a:{op:'get',map,key:v('i')},b:n(1)}]}}
+   const [a]=restateSeeds([law],unary,cfg)
+   expect(a?.status).toBe('candidate')
+   if(a?.status!=='candidate')throw Error('unary restatement failed')
+   expect(a.bindings).toEqual({i:'Node'})
+   expect(a.law.holds).toEqual({op:'or',xs:[{op:'not',x:{op:'<',a:v('i'),b:v('nodes')}},{op:'<=',a:{op:'get',map,key:v('i')},b:n(1)}]})
+   expect(restateSeeds([law],{...unary,relations:{[map]:['Other']}},cfg)[0]?.status).toBe('dropped')
+   expect(restateSeeds([law],{...unary,params:[]},cfg)[0]?.status).toBe('dropped')
+   expect(restateSeeds([law],{...unary,maps:{}},cfg)[0]?.status).toBe('dropped')
+  }
+ })
+ test('does not infer undeclared tuple positions from a native map',()=>{
+  expect(restateSeeds([source],{...target,relations:undefined},bindings)[0]?.status).toBe('dropped')
+ })
  test('drops an unclassified binder and ambiguous radix literal',()=>{
   const unclassified={...source,keys:['i','j']}
   const ambiguous={...source,holds:{op:'=',a:{op:'get',map:'Owner',key:packed},b:n(64)} as C}

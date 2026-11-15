@@ -52,7 +52,11 @@ export function restateSeeds(source: Law[], target: Machine, config: SeedBinding
           const name=String(o.map), layout=config.maps[name]
           if(!layout || !Object.hasOwn(target.maps ?? {},layout.target)) throw Error(`unmapped map ${name}`)
           const targetSorts=target.relations?.[layout.target]
-          if(!targetSorts || JSON.stringify(targetSorts)!==JSON.stringify(layout.sorts)) throw Error(`target layout not established for ${name}`)
+          // Unary native maps have no relation metadata. Their sized key is
+          // supplied explicitly by this manifest and checked by classify below.
+          // Tuples still require exact declared positions; never override them.
+          if(targetSorts ? JSON.stringify(targetSorts)!==JSON.stringify(layout.sorts) : layout.sorts.length!==1)
+            throw Error(`target layout not established for ${name}`)
           const keys=parts(o.key as E,layout.radix,layout.sorts.length)
           keys.forEach((key,i)=>classify(key,layout.sorts[i]!))
           return

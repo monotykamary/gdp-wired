@@ -1,0 +1,9 @@
+[
+  {
+    "name":"unary-seed-adapter",
+    "cpu":2,"memory":4096,"timeout":600,
+    "runtime":{"bun":{"version":"1.4.3","sha256":"7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"}},
+    "required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1},
+    "cmd":"set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bunx tsc -p research/bapa/tsconfig.candidate-seed.json > \"$OUT/types.log\" 2>&1; bun test research/bapa/candidate-seed.test.ts research/bapa/candidate-seed-public.test.ts research/bapa/proof-worker.test.ts > \"$OUT/tests.log\" 2>&1; printf '%s\\n' 'fix(bapa): restate unary map candidates over sized sorts' > \"$OUT/commit-message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$OUT/commit-message.txt\" > \"$OUT/commitlint.log\" 2>&1"
+  }
+]
