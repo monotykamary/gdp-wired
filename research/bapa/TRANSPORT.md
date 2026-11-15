@@ -30,6 +30,21 @@ all four printed declarations pass; axioms are respectively none, `propext`,
 none, and `Quot.sound`. Prior batch `20261115-161407-giian1` failed on use of
 the reserved identifier `Sort`; retained as failed, not counted as a success.
 
+## Checked numeric representation
+
+`RelationalNumeric.lean` proves tuple-code injectivity and represents every
+finite relation as an existing-kernel `Nat -> Nat -> Nat` table. The compiler's
+`Matrix.compile_correct` theorem preserves equality, relations and all Boolean
+connectives; `Satisfies.numeric_iff` preserves the full existential/universal
+assignment quantification. Native tuple keys (not literal radix64) are used.
+
+Batch `20261115-164203-wpgkpx`, `relational-numeric`: PASS including all seven
+printed axioms and conventional commit validation for `795dbc655` and
+`bb7fa0a2a`. Only `propext`, `Classical.choice`, `Quot.sound` appear. This is an
+encoding theorem, **not** an assertion that any old certificate checks its
+compiled formula. See `TRANSPORT-OBSTACLE.md` for the missing exact obligation
+bridge. The same batch's independent small-model job failed; it is not green.
+
 ## Outstanding gates
 
 1. Actual obligation-to-fragment and fragment-to-retained-numeric-model bridges,
@@ -60,7 +75,7 @@ size, including zero**, for the otherwise unchanged tcommit machine. The
 unbounded RM sort is unary-keyed; no fixed-64 sort or radix change is hidden.
 Axioms: tree/table/pre equality none; checker `propext`; laws/safety only
 `propext`, `Classical.choice`, `Quot.sound`. This is not a TLA+ correspondence
-proof, a relational-recognizer result, or a lift of the other 66 declarations.
+proof, a relational-recognizer result, or a lift of the other 65 declarations.
 
 The generic relational file itself has not lifted any family. In particular, generic matrix transport
 is not the requested certificate transport, and `cutoff <= 64` is not evidence
