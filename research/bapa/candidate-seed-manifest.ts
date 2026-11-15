@@ -39,7 +39,7 @@ export function loadCandidateSeedManifest(path:string, targetMachine:Machine, na
       if(!accepted || accepted.status!=='candidate' || maps[source]?.target!==accepted.target) delete maps[source]
     }
     const bound={...manifest.bindings,maps}, sums=restateSumSeeds(leaf.machine,producer,bound)
-    const audit=restateSeeds(leaf.laws,producer,bound,{...native,sumVariables:sums.substitutions,sourceMachine:leaf.machine})
+    const audit=restateSeeds(leaf.laws,producer,bound,{...native,sumVariables:sums.substitutions,tupleSums:sums.tupleSums,sourceMachine:leaf.machine})
     return {kind:'counted',laws:audit.flatMap(a=>a.status==='candidate'?[a.law]:[]),counts,audit:{...baseAudit,laws:audit,counts:countAudit,sums:sums.audit}}
   }
   const todo=[data.proof], seen=new Set<object>(), leaves:any[]=[]
@@ -59,7 +59,7 @@ export function loadCandidateSeedManifest(path:string, targetMachine:Machine, na
   for(const [sourceFamily,leaf] of leaves.entries()) {
     const sums=restateSumSeeds(leaf.machine,targetMachine,manifest.bindings)
     sumAudit.push(...sums.audit)
-    for(const item of restateSeeds(leaf.laws,targetMachine,manifest.bindings,{...native,sumVariables:sums.substitutions,sourceMachine:leaf.machine})) {
+    for(const item of restateSeeds(leaf.laws,targetMachine,manifest.bindings,{...native,sumVariables:sums.substitutions,tupleSums:sums.tupleSums,sourceMachine:leaf.machine})) {
       const index=audit.length,base={...item,index,sourceFamily,sourceIndex:item.index}
       audit.push(item.status==='candidate'?{...base,status:'candidate',bindings:item.bindings,law:{...item.law,name:`retained:${index}:${item.source}`}}:base)
     }

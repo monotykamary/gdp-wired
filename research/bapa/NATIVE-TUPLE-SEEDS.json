@@ -1,0 +1,21 @@
+{
+  "schema": "native-tuple-seed-preflight/v1",
+  "batch": "20261115-221754-4y18os",
+  "tree": "00b43fd0006c",
+  "runtime": {"bun": "1.4.3", "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"},
+  "protocol": "client_server_db_ae",
+  "captureSha256": "e76ed2d24da036b98a98ea1edf509abe741499a2647c88f647c4d4f235cc87f0",
+  "noSearch": true,
+  "publicCalls": 0,
+  "sourceUnchanged": true,
+  "before": {"proposed": 0, "dropped": 27},
+  "after": {"proposed": 23, "dropped": 4},
+  "tests": {"passed": 3, "failed": 0, "assertions": 14},
+  "remaining": [
+    {"sourceIndex": 0, "law": "a received response was matched", "reason": "unmapped map ResponseSent$w"},
+    {"sourceIndex": 1, "law": "DbResponseSent$g where DbResponseSent is set", "reason": "unsupported native tuple coordinate", "witnessMap": "DbResponseSent$g"},
+    {"sourceIndex": 2, "law": "a received response was matched: ResponseSent$w where ResponseSent is set", "reason": "unmapped map ResponseSent$w"},
+    {"sourceIndex": 26, "law": "DbRequestSent$g where DbRequestSent is set", "reason": "unsupported native tuple coordinate", "witnessMap": "DbRequestSent$g"}
+  ],
+  "limitations": ["Candidates only, not a source proof", "No private witness-map alias or G-point injection", "No kernel changes"]
+}

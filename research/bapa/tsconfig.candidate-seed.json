@@ -10,6 +10,7 @@
     "counted-seed.test.ts",
     "counted-seed-symbolic.ts",
     "sum-seed.test.ts",
+    "native-tuple-seed.test.ts",
     "kind-seed.test.ts",
     "field-seed.test.ts",
     "candidate-seed-audit.ts",

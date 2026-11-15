@@ -3,18 +3,21 @@
 import type {C, E, Law, Machine} from '../../core/machine.ts'
 import {proposeFieldRows, type FieldSeedBinding, type FieldRowAudit} from './field-seed.ts'
 import {expandFlatCellBinders} from './flat-cell-seed.ts'
+import {proposeTupleSumCells, type TupleSumProjection, type TupleSumSeed} from './tuple-sum-seed.ts'
 
 export type SeedLayout = {target: string, sorts: string[], radix: number}
 export type SeedBindings = {maps: Record<string, SeedLayout>, domains: Record<string, string>, fields?:Record<string,FieldSeedBinding>, variables?:Record<string,string|{sort:string,radix:number}>}
-export type SeedAudit = {index: number, source: string, status: 'candidate', bindings: Record<string,string>, unboundedBinders?:string[], vacuousBinders?:string[], cellBinders?:Record<string,string[]>, sourceFamily?:number, sourceIndex?:number, regeneratedKind?:string, expandedKind?:string, fieldRows?:FieldRowAudit, law: Law} | {index: number, source: string, status: 'dropped', reason: string, original?:Law}
+export type SeedAudit = {index: number, source: string, status: 'candidate', bindings: Record<string,string>, unboundedBinders?:string[], vacuousBinders?:string[], cellBinders?:Record<string,string[]>, sourceFamily?:number, sourceIndex?:number, regeneratedKind?:string, expandedKind?:string, fieldRows?:FieldRowAudit, tupleSumProjection?:TupleSumProjection, law: Law} | {index: number, source: string, status: 'dropped', reason: string, original?:Law}
 
-export type NativeSeedContext = {kindLaws?:Law[], sumVariables?:Record<string,string>, sourceMachine?:Machine}
+export type NativeSeedContext = {kindLaws?:Law[], sumVariables?:Record<string,string>, tupleSums?:Record<string,TupleSumSeed>, sourceMachine?:Machine}
 export function restateSeeds(source: Law[], target: Machine, config: SeedBindings, native:NativeSeedContext = {}): SeedAudit[] {
   return source.map((law, index): SeedAudit => {
     const original=law
     try {
       const allowed = new Set(['name','forall','keys','holds'])
       if (Object.keys(law).some(k => !allowed.has(k))) throw Error('unsupported law metadata')
+      const tupleSum = proposeTupleSumCells(law,native.tupleSums ?? {},[...target.params,...target.inputs,...Object.keys(target.state),...Object.keys(target.maps ?? {}),...Object.keys(target.fns ?? {}),...Object.keys(target.counts ?? {})])
+      law=tupleSum.law
       let expandedKind:string|undefined
       const kind = /^every (.+) cell is a value of its kind$/.exec(law.name)
       if(kind) {
@@ -62,6 +65,21 @@ export function restateSeeds(source: Law[], target: Machine, config: SeedBinding
         sorts[name] = sort
       }
       const parts = (e:E, radix:number, arity:number): string[] => {
+        // Native tuple keys nest to the right; each coordinate must be a
+        // bound variable whose sort is checked against the manifest below.
+        // Do not flatten a tuple in the left coordinate or infer expression sorts.
+        if (e.op === 'tup') {
+          if (!Number.isSafeInteger(radix) || radix < 2) throw Error('invalid packed layout')
+          const coords:E[] = []
+          let tail:E = e
+          while (tail.op === 'tup') { coords.push(tail.a); tail=tail.b }
+          coords.push(tail)
+          if (coords.length !== arity) throw Error('native tuple arity does not match layout')
+          return coords.map(coord => {
+            if (coord.op !== 'var') throw Error('unsupported native tuple coordinate')
+            return coord.name
+          })
+        }
         // The historic pk3 is n*radix^2 + k*radix + v. Flatten
         // arithmetic into a linear coefficient table, then require one bound
         // variable at each exact position; aliases and offsets are refused.
@@ -156,7 +174,7 @@ export function restateSeeds(source: Law[], target: Machine, config: SeedBinding
         return Object.fromEntries(Object.entries(o).map(([k,v])=>[k,rewrite(v)]))
       }
       const unboundedBinders = binders.filter(b => !bounded.has(b) && !vacuousBinders.includes(b))
-      return {index,source:law.name,status:'candidate',bindings:{...sorts},...(vacuousBinders.length ? {vacuousBinders} : {}),...(Object.keys(flat.bindings).length ? {cellBinders:flat.bindings} : {}),...(expandedKind ? {expandedKind} : {}),...(fieldProposal.audit ? {fieldRows:fieldProposal.audit} : {}),...(unboundedBinders.length ? {unboundedBinders} : {}),law:{...law,name:`retained:${index}:${law.name}`,holds:rewrite(law.holds) as C}}
+      return {index,source:law.name,status:'candidate',bindings:{...sorts},...(vacuousBinders.length ? {vacuousBinders} : {}),...(Object.keys(flat.bindings).length ? {cellBinders:flat.bindings} : {}),...(expandedKind ? {expandedKind} : {}),...(fieldProposal.audit ? {fieldRows:fieldProposal.audit} : {}),...(tupleSum.audit ? {tupleSumProjection:tupleSum.audit} : {}),...(unboundedBinders.length ? {unboundedBinders} : {}),law:{...law,name:`retained:${index}:${law.name}`,holds:rewrite(law.holds) as C}}
     } catch (error) {return {index,source:law.name,status:'dropped',reason:error instanceof Error ? error.message : String(error),original}}
   })
 }
