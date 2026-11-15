@@ -38,6 +38,30 @@ the reserved identifier `Sort`; retained as failed, not counted as a success.
 3. Checked recognizer for the actual 67 declarations / 897 inventory entries.
 4. Per-family no-search lifts only after every required obligation passes.
 
-No family has been lifted by this file. In particular, generic matrix transport
+## Concrete direct certificate lift: tcommit
+
+`TCommitCertificateTransport.lean` supplies a separate **direct**, not cutoff,
+proof-theoretic lift. It rechecks the retained original source and replaces only
+`size <= 64` by `trueC` in the machine precondition and the named certificate
+hypotheses. The variable tables and both proof trees are definitionally
+unchanged (`tree_unchanged`, `table_unchanged`). The unchanged trusted checker
+accepts the transformed certificate. There is no search or inferred invariant.
+
+Batch `20261115-163558-lnd502`: original retained source recheck and all six
+transport declarations PASS through the axiom gate. Retained `Proofs.lean`
+SHA256 `f91cffaae3b8f737fd62110f604e7616cc791e0bac477f835d88666d4cf5a2d2`,
+from the tcommit inventory receipt, capsule
+`b852b4a00c3843be6eff351435a4414423af85d6162f59ece8f6a641c6cc37dc`.
+The job mounts the retained `lean/` directory as `transport-retained`, rechecks
+`Proofs.lean`, then imports that rechecked module for the transport.
+
+`safety` states the same numeric commit/abort exclusion for **every natural RM
+size, including zero**, for the otherwise unchanged tcommit machine. The
+unbounded RM sort is unary-keyed; no fixed-64 sort or radix change is hidden.
+Axioms: tree/table/pre equality none; checker `propext`; laws/safety only
+`propext`, `Classical.choice`, `Quot.sound`. This is not a TLA+ correspondence
+proof, a relational-recognizer result, or a lift of the other 66 declarations.
+
+The generic relational file itself has not lifted any family. In particular, generic matrix transport
 is not the requested certificate transport, and `cutoff <= 64` is not evidence
 that a fixed-64 certificate covers a smaller relational model.
