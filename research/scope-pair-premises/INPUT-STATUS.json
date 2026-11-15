@@ -22,7 +22,7 @@
     "verdictSha256": "0394d86d90bea705a61e899da350941e4368cad31bae5e696964340f055fd369",
     "publicModelSha256": "47ad1a599fd8db43e561b6c29bc339cffb6bc9bc43efbaca624bd26fd707417c",
     "publicLawsSha256": "a7dae78abc333783704c50ee4a30caecb19282491a3193e2498da4b33ec385b7",
-    "readOnlyDiagnosis": "/home/user/.local/state/r4-launcher/control-20261112/READ-ONLY-DIAGNOSIS.md",
+    "readOnlyDiagnosis": "~/.local/state/r4-launcher/control-20261112/READ-ONLY-DIAGNOSIS.md",
     "readOnlyDiagnosisSha256": "0acffe29321863ab0bb05bb0def912c792faec49f138bee8a8d733fabf23107b",
     "publicModelAndNamesAreNotCapturedReplayInputs": true,
     "exactTransportComparisonAvailable": false

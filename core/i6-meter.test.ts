@@ -18,7 +18,8 @@ test('I6 records executed certificate/table work, cache misses and real candidat
  a.equal(rawWork().tableCells-stopped.tableCells,0);
  a(checkWitness([{lin:{x:2,1:-1},label:''}],{x:0}));
  const lin={i6:2},cold=rawWork();a.equal(canon(lin),'i6:2');const warm=rawWork();a.equal(canon(lin),'i6:2');
- a.equal(warm.tableCells-cold.tableCells,enabled?4:0);a.equal(rawWork().tableCells-warm.tableCells,enabled?1:0);
+ // f5851b032 meters itemwise key discovery/materialization; the warm lookup stays distinct.
+ a.equal(warm.tableCells-cold.tableCells,enabled?9:0);a.equal(rawWork().tableCells-warm.tableCells,enabled?1:0);
  a(check({name:'constant contradiction',hyps:[{op:'<=',a:{op:'const',value:1},b:{op:'const',value:0}}]},{leaf:[{kind:'input',index:0}]}));
  const r=pool(),result=inferLaws(r,[poolLaw(r)],[],{ms:10000000});
  a(result.proven&&result.checked,JSON.stringify(result));

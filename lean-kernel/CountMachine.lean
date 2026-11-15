@@ -1067,6 +1067,75 @@ def checkCMachine (s : SMachine) (ds : List CDecl) (ps : List CEntry) : Bool :=
       && checkMC (cStartGoal s ds ce.e) (cStartDecls s ds) ce.start
       && checkMC (cStepGoal s ds (ps.map (·.e)) ce.e) (cStepDecls s ds) ce.step)
 
+-- The cuts of one counted certificate (frames, per-key monotone cuts, per-key linear cuts), as the single-goal check
+-- checkMCF takes them. A family entry carries its two certificates' cuts beside them.
+structure CAux where
+  frames : List FrameCut := []
+  monos : List MonoCut := []
+  lins : List LinCut := []
+
+structure CEntryF where
+  e : SEntry
+  start : CCert
+  step : CCert
+  startAux : CAux
+  stepAux : CAux
+
+-- An entry without cuts, as an entry with empty cuts.
+def CEntry.toF (ce : CEntry) : CEntryF := ⟨ce.e, ce.start, ce.step, {}, {}⟩
+
+-- checkCMachine with each certificate's cuts: the same conditions, each goal checked by checkMCF.
+def checkCMachineF (s : SMachine) (ds : List CDecl) (ps : List CEntryF) : Bool :=
+  sOk s && avoids (s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)) s.f.m.pre && !readsC s.f.m.pre
+    && sTermsOk s (flagVars s.f.flags) && factsOk s
+    && cDistinct (cMaps ds ++ cPosts ds) && cApart s ds && ds.all (cDeclOk s ds (ps.map (·.e)))
+    && ps.all (fun ce => cEntryOk s ds (ps.map (·.e)) ce.e && witsOk s (ps.map (·.e)) ce.start && witsOk s (ps.map (·.e)) ce.step
+      && checkMCF (cStartGoal s ds ce.e) (cStartDecls s ds) ce.start ce.startAux.frames ce.startAux.monos ce.startAux.lins
+      && checkMCF (cStepGoal s ds (ps.map (·.e)) ce.e) (cStepDecls s ds) ce.step ce.stepAux.frames ce.stepAux.monos ce.stepAux.lins)
+
+-- The family check in parts, so a large family can be decided entry by entry (each part its own `decide`): the
+-- conditions on the machine and declarations, and one entry's conditions and two goals. `es` is the entries' laws.
+def cGlobalOkF (s : SMachine) (ds : List CDecl) (es : List SEntry) : Bool :=
+  sOk s && avoids (s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)) s.f.m.pre && !readsC s.f.m.pre
+    && sTermsOk s (flagVars s.f.flags) && factsOk s
+    && cDistinct (cMaps ds ++ cPosts ds) && cApart s ds && ds.all (cDeclOk s ds es)
+
+def cEntryCheckF (s : SMachine) (ds : List CDecl) (es : List SEntry) (ce : CEntryF) : Bool :=
+  cEntryOk s ds es ce.e && witsOk s es ce.start && witsOk s es ce.step
+    && checkMCF (cStartGoal s ds ce.e) (cStartDecls s ds) ce.start ce.startAux.frames ce.startAux.monos ce.startAux.lins
+    && checkMCF (cStepGoal s ds es ce.e) (cStepDecls s ds) ce.step ce.stepAux.frames ce.stepAux.monos ce.stepAux.lins
+
+/-- The family check is its parts: nothing is added or dropped by deciding them separately. -/
+theorem checkCMachineF_split (s : SMachine) (ds : List CDecl) (ps : List CEntryF) :
+    checkCMachineF s ds ps = (cGlobalOkF s ds (ps.map (·.e)) && ps.all (cEntryCheckF s ds (ps.map (·.e)))) := rfl
+
+/-- From the parts: the machine's conditions and every entry's check give the family check. -/
+theorem checkCMachineF_of_parts (s : SMachine) (ds : List CDecl) (ps : List CEntryF)
+    (hg : cGlobalOkF s ds (ps.map (·.e)) = true) (he : ∀ ce ∈ ps, cEntryCheckF s ds (ps.map (·.e)) ce = true) :
+    checkCMachineF s ds ps = true := by
+  rw [checkCMachineF_split, hg, Bool.true_and]
+  exact List.all_eq_true.mpr he
+
+theorem CEntry.toF_map_e (ps : List CEntry) : (ps.map CEntry.toF).map (·.e) = ps.map (·.e) := by
+  rw [List.map_map]; rfl
+
+/-- With no cuts the family check is the old one. -/
+theorem checkCMachineF_noAux (s : SMachine) (ds : List CDecl) (ps : List CEntry) :
+    checkCMachineF s ds (ps.map CEntry.toF) = checkCMachine s ds ps := by
+  have hf : ((fun ce : CEntryF => cEntryOk s ds (ps.map (·.e)) ce.e && witsOk s (ps.map (·.e)) ce.start && witsOk s (ps.map (·.e)) ce.step
+        && checkMCF (cStartGoal s ds ce.e) (cStartDecls s ds) ce.start ce.startAux.frames ce.startAux.monos ce.startAux.lins
+        && checkMCF (cStepGoal s ds (ps.map (·.e)) ce.e) (cStepDecls s ds) ce.step ce.stepAux.frames ce.stepAux.monos ce.stepAux.lins) ∘ CEntry.toF)
+      = (fun ce : CEntry => cEntryOk s ds (ps.map (·.e)) ce.e && witsOk s (ps.map (·.e)) ce.start && witsOk s (ps.map (·.e)) ce.step
+        && checkMC (cStartGoal s ds ce.e) (cStartDecls s ds) ce.start
+        && checkMC (cStepGoal s ds (ps.map (·.e)) ce.e) (cStepDecls s ds) ce.step) := by
+    funext ce
+    show (cEntryOk s ds (ps.map (·.e)) ce.e && witsOk s (ps.map (·.e)) ce.start && witsOk s (ps.map (·.e)) ce.step
+        && checkMCF (cStartGoal s ds ce.e) (cStartDecls s ds) ce.start [] [] []
+        && checkMCF (cStepGoal s ds (ps.map (·.e)) ce.e) (cStepDecls s ds) ce.step [] [] []) = _
+    rw [checkMCF_nil, checkMCF_nil]
+  unfold checkCMachineF checkCMachine
+  rw [CEntry.toF_map_e, List.all_map, hf]
+
 /-! Reading a law with its count maps renamed -/
 
 -- The maps a renamed term reads: a renamed map's cells are its new name's.
@@ -1222,7 +1291,7 @@ theorem cDistinct_append {a b : List Nat} (h : cDistinct (a ++ b) = true) : cDis
       · exact fun hm => hx (List.mem_append_right _ hm)
       · exact h3 y hy
 
-structure CParts (s : SMachine) (ds : List CDecl) (ps : List CEntry) : Prop where
+structure CParts (s : SMachine) (ds : List CDecl) (ps : List CEntryF) : Prop where
   sok : sOk s = true
   pre : avoids (s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)) s.f.m.pre = true
   preR : readsC s.f.m.pre = false
@@ -1231,12 +1300,12 @@ structure CParts (s : SMachine) (ds : List CDecl) (ps : List CEntry) : Prop wher
   dist : cDistinct (cMaps ds ++ cPosts ds) = true
   apart : cApart s ds = true
   decls : ∀ d ∈ ds, cDeclOk s ds (ps.map (·.e)) d = true
-  entries : ∀ ce ∈ ps, cEntryOk s ds (ps.map (·.e)) ce.e = true ∧ checkMC (cStartGoal s ds ce.e) (cStartDecls s ds) ce.start = true
-    ∧ checkMC (cStepGoal s ds (ps.map (·.e)) ce.e) (cStepDecls s ds) ce.step = true
+  entries : ∀ ce ∈ ps, cEntryOk s ds (ps.map (·.e)) ce.e = true ∧ checkMCF (cStartGoal s ds ce.e) (cStartDecls s ds) ce.start ce.startAux.frames ce.startAux.monos ce.startAux.lins = true
+    ∧ checkMCF (cStepGoal s ds (ps.map (·.e)) ce.e) (cStepDecls s ds) ce.step ce.stepAux.frames ce.stepAux.monos ce.stepAux.lins = true
   wits : ∀ ce ∈ ps, witsOk s (ps.map (·.e)) ce.start = true ∧ witsOk s (ps.map (·.e)) ce.step = true
 
-theorem cparts {s : SMachine} {ds : List CDecl} {ps : List CEntry} (h : checkCMachine s ds ps = true) : CParts s ds ps := by
-  simp only [checkCMachine, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true'] at h
+theorem cparts {s : SMachine} {ds : List CDecl} {ps : List CEntryF} (h : checkCMachineF s ds ps = true) : CParts s ds ps := by
+  simp only [checkCMachineF, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true'] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩ := h
   exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, fun ce hce => ⟨(h9 ce hce).1.1.1.1, (h9 ce hce).1.2, (h9 ce hce).2⟩,
     fun ce hce => ⟨(h9 ce hce).1.1.1.2, (h9 ce hce).1.1.2⟩⟩
@@ -1511,7 +1580,7 @@ theorem avoidsMapsE_right {A B : List Nat} {e : E} (h : avoidsMapsE (A ++ B) e =
 
 /-! The start -/
 
-theorem cstart_case (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : checkCMachine s ds ps = true) (ρ : Nat → Nat) (M : Nat → Nat → Nat)
+theorem cstart_case (s : SMachine) (ds : List CDecl) (ps : List CEntryF) (h : checkCMachineF s ds ps = true) (ρ : Nat → Nat) (M : Nat → Nat → Nat)
     (hM : StartMaps s.f.m M) (h0 : evalC ρ M s.f.m.pre = true) (hfa : ∀ l ∈ s.facts, l.Holds ρ M) (hpf : s.PFacts ρ M) :
     ∀ ce ∈ ps, ce.e.law.Holds (applyS s.f.m.init ρ M) (withCnt ds (applyS s.f.m.init ρ M) M) := by
   have P := cparts h
@@ -1552,7 +1621,7 @@ theorem cstart_case (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : che
       simp only [evalE]; rw [← hq, hM2 _ hp1, hM p hm]
     · rfl
   have hX0 : applyS s.f.m.init ρ M2 = X0 := applyS_congrM A.init ρ (fun mp hmp => hM2 mp hmp)
-  apply mc_sound _ _ _ hst (upd ρ ce.e.sk v) M2
+  apply mcF_sound _ _ _ _ _ _ hst (upd ρ ce.e.sk v) M2
   · -- Each post count: its bound and body, read across the start, are the declaration's at the start state.
     intro d' hd' x
     obtain ⟨d, hdf, rfl⟩ := List.mem_map.mp hd'
@@ -1837,7 +1906,7 @@ theorem sNext_other {s : SMachine} {x : Nat} (h : (s.extVars ++ flagVars s.f.fla
 
 theorem avoids_left {A B : List Nat} {c : C} (h : avoids (A ++ B) c = true) : avoids A c = true := by
   simp only [avoids, List.all_append, Bool.and_eq_true] at h; exact h.1
-theorem cstep_case (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : checkCMachine s ds ps = true) (ρ : Nat → Nat) (M : Nat → Nat → Nat)
+theorem cstep_case (s : SMachine) (ds : List CDecl) (ps : List CEntryF) (h : checkCMachineF s ds ps = true) (ρ : Nat → Nat) (M : Nat → Nat → Nat)
     (ι : Nat → Nat) (κ : Nat → Nat → Nat) (hp0 : evalC ρ M s.f.m.pre = true) (hfa : ∀ l ∈ s.facts, l.Holds ρ M) (hpf : s.PFacts ρ M)
     (ih : ∀ ce ∈ ps, ce.e.Holds ρ (withCnt ds ρ M)) (hG : GHolds ds (withInputs s.f.m.inputs ρ ι) (withCarried s M κ))
     (ha : evalC (sView s ρ M ι κ).1 (sView s ρ M ι κ).2 s.f.m.assume = true) :
@@ -1914,7 +1983,7 @@ theorem cstep_case (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : chec
   have hM0 : ∀ mp, mp ∉ cPosts ds → M0 mp = withCarried s M κ mp := fun mp hmp => by
     show withCarried s M' κ mp = _
     rw [withCarried_posts hpc F M κ, atPosts_other hmp]
-  apply mc_sound _ _ _ hstep W M0
+  apply mcF_sound _ _ _ _ _ _ hstep W M0
   · -- The counts the goal declares.
     intro d' hd' x
     rcases List.mem_append.mp hd' with hd | hd'
@@ -2132,7 +2201,7 @@ theorem cstep_case (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : chec
 that meet the facts, every entry of an accepted proof holds in every reachable state (each request carrying its count
 maps at their counts), each count map read as the state's count, a law about several keys at every value of its
 further keys. -/
-theorem cmachine_sound (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : checkCMachine s ds ps = true) :
+theorem cmachineF_sound (s : SMachine) (ds : List CDecl) (ps : List CEntryF) (h : checkCMachineF s ds ps = true) :
     ∀ ρ M, CReach s ds ρ M → ∀ ce ∈ ps, ce.e.Holds ρ (withCnt ds ρ M) := by
   have P := cparts h
   have hfok := P.facts
@@ -2231,10 +2300,21 @@ theorem counts_exist (s : SMachine) (ds : List CDecl) (hd : cDistinct (cMaps ds)
   rw [hB]
   exact sumBelow_congr _ (fun k _ => congrME _ _ _ d.body (fun mp hm => (hoff mp (avoidsMapsE_occ (hav d hdm).2 hm)).symm))
 
+
+/-- The family check without cuts, as before: its soundness is the cut-carrying check's at empty cuts. -/
+theorem cmachine_sound (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : checkCMachine s ds ps = true) :
+    ∀ ρ M, CReach s ds ρ M → ∀ ce ∈ ps, ce.e.Holds ρ (withCnt ds ρ M) := by
+  intro ρ M hr ce hce
+  exact cmachineF_sound s ds (ps.map CEntry.toF) (by rw [checkCMachineF_noAux]; exact h) ρ M hr ce.toF (List.mem_map_of_mem hce)
+
 end Kern
 
 #print axioms Kern.mc_sound
 #print axioms Kern.cmachine_sound
+#print axioms Kern.cmachineF_sound
+#print axioms Kern.checkCMachineF_noAux
+#print axioms Kern.checkCMachineF_split
+#print axioms Kern.checkCMachineF_of_parts
 #print axioms Kern.counts_exist
 #print axioms Kern.pickHyp_true
 #print axioms Kern.countedWF_sound

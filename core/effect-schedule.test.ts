@@ -16,12 +16,13 @@ const modelOnly = {kernelProven: true, proven: false, checked: false, translatio
 const sched3 = (src: string, params: string[] = [], runs = 100) => extractEffect(inProject(3, 's.ts', `import {Duration, Effect, Schedule} from 'effect'\nexport const s = (${params.map(p => `${p}: number`).join(', ')}) => ${src}\n`), {entry: 's', check: {runs}} as never)
 const sched4 = (src: string, params: string[] = [], runs = 100) => fromSchedule(src, {effect, params, runs})
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a source-derived schedule cannot become a plain DSL proof when replay is off', () => {
   const x = fromSchedule('Schedule.recurs(2)', {effect, runs: 0})
   expect(x.ok).toBe(true)
   const r = x.rule!
   expect(proveRule(r, [r.law('trivial', () => all())])).toMatchObject(modelOnly)
-})
+}, 30_000)
 
 const TAGGED = '{_tag: "Timeout"} | {_tag: "Refused", code: number}'
 export const V4 = [

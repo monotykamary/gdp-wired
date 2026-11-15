@@ -32,6 +32,7 @@ test('the runtimes keep every sum exact', () => {
   }
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('laws over a sum and over cells against it are proven; false ones refused with a run', () => {
   const r = token(), sum = r.law('the balances sum to the supply', ({Bal, supply}) => Bal.sum().eq(supply))
   const cell = r.law('no balance exceeds the supply', ({Bal, supply}) => forall(k => Bal.at(k).atMost(supply)))
@@ -46,7 +47,7 @@ test('laws over a sum and over cells against it are proven; false ones refused w
   const tooTight = proveRule(r, [r.law('the balances sum to at most 3', ({Bal}) => Bal.sum().atMost(3))])
   expect(tooTight.proven).toBe(false)
   expect(tooTight.run).toBeDefined()
-})
+}, 30_000)
 
 // Up to 0.30.0 a law reading M.sum() added the sum to its rule and to every rule made from it, before or after: they
 // decoded and compiled with a sum$M field, and crossCheck failed on it ("the step writes sum$Bal = 0 by its callback, 4
@@ -130,6 +131,7 @@ test('a sum the kernel cannot keep exact is refused', () => {
   expect(r.proven).toBe(false)
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a seat count never passes the capacity; a booking without the check is refused', () => {
   const seats = (bug?: 'no check') => rule('seats').params({capacity: nat}).inputs({op: oneOf('book', 'cancel'), seat: nat}).maps({Taken: 0})
     .flags(({op, seat, capacity, Taken}) => ({books: op.is('book').and(Taken.at(seat).eq(0), bug ? yes : Taken.sum().lt(capacity)), cancels: op.is('cancel')}))
@@ -139,7 +141,7 @@ test('a seat count never passes the capacity; a booking without the check is ref
   const b = seats('no check'), bv = proveRule(b, [b.law('capacity', ({Taken, capacity}) => Taken.sum().atMost(capacity))])
   expect(bv.proven).toBe(false)
   expect(bv.run).toBeDefined()
-})
+}, 30_000)
 
 // A job a worker takes and loses again and again: it ends under strong fairness, not under weak; with a stall that may
 // lose it for good, under neither.

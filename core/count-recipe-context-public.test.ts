@@ -8,7 +8,9 @@ import * as strategies from './count-strategies.ts'
 import * as planning from './count-prerequisite-plan.ts'
 import {type CountComponentRecipe} from './count-prerequisite-components.ts'
 import {type CountLawProof} from './count-proof-scope.ts'
-import {countRecipeContextSnapshot,countRecipeContextDifference} from './count-recipe-context.ts'
+import {CountRecipeContexts,countRecipeContextDecision,countRecipeContextSnapshot,countRecipeContextDifference} from './count-recipe-context.ts'
+import {CountRecipePass} from './count-recipe-controller.ts'
+import {workKeys} from './work-kinds.ts'
 import {type ExactRaw,workAmount,workFromExact,workShare,compareWork} from './work-amount.ts'
 import {workLedger} from './work-admission.ts'
 import {completeWorkProfile} from './work-profile.ts'
@@ -84,17 +86,16 @@ test('G1 public: widened ordinary supporter uses Q plus itself and still closes 
  expect(out.delta).toEqual({contextChanges:0,structuredReentries:0,terminalStructuredReentries:0})
 })
 
-test('G2 public: changed model bytes refuse the real structured fallback without a new recipe or fuel',()=>{
+test('G2 public: changed model bytes get a fresh pass and the true core proves on fallback',()=>{
  const f=single(true);let changed=false
- f.afterFirst=event=>{if(!changed&&event.phase==='count-recipe-closing'){f.m.name+=' changed context';changed=true}}
+ f.afterFirst=event=>{if(!changed&&event.phase==='count-recipe-closing'){f.m.name+=' changed context';f.decline=false;changed=true}}
  const out=run(f,f.family)
- expect(changed).toBe(true);expect(out.result.proven).toBe(false)
- expect(out.result.why).toBe('recipe fixed inventory context changed')
- expect(out.calls).toEqual(['target:row'])
- expect(out.events.filter(e=>e.phase==='count-component-attempt')).toHaveLength(1)
- expect(out.events.filter(e=>e.phase==='count-recipe-context')).toEqual([
-  {phase:'count-recipe-context',outcome:'refused',reason:'fixed-inventory-context-changed',structured:true}])
- expect(out.delta).toEqual({contextChanges:1,structuredReentries:0,terminalStructuredReentries:0})
+ expect(changed).toBe(true);expect(out.result.proven).toBe(true)
+ expect(checkCountedLaws(out.result.m,out.result.laws,out.result.proof!)).toBe(true)
+ expect(out.calls).toEqual(['target:row','target:row'])
+ expect(out.events.filter(e=>e.phase==='count-component-attempt')).toHaveLength(2)
+ expect(out.events.filter(e=>e.phase==='count-recipe-context')).toEqual([])
+ expect(out.delta).toEqual({contextChanges:0,structuredReentries:0,terminalStructuredReentries:0})
 })
 
 test('G2 public: same-context structured fallback reports terminal inventory without repeating construction',()=>{
@@ -106,6 +107,20 @@ test('G2 public: same-context structured fallback reports terminal inventory wit
  expect(out.delta).toEqual({contextChanges:0,structuredReentries:1,terminalStructuredReentries:1})
 })
 
+test('G2 public: zero-context-event reuse keeps all 26 counters byte-identical to the single-pass path',()=>{
+ const context='same',members=[{name:'target',reference:0,recipes:[{id:'row',kind:'strategy' as const}]}]
+ const measure=(registry:boolean)=>withBudget(ROOT,()=>{
+  const start=workLedger.snapshot(),contexts=new CountRecipeContexts<CountRecipePass<unknown>>()
+  let pass:CountRecipePass<unknown>|undefined
+  for(let i=0;i<3;i++){
+   if(registry)pass=contexts.acquire(context,false,()=>new CountRecipePass(members,context))
+   else if(pass){workLedger.start('tableCells',Math.min(context.length,pass.context.length),'count recipe inventory context');expect(countRecipeContextDecision(pass,context,false,false)).toBe(true)}
+   else pass=new CountRecipePass(members,context)
+  }
+  const end=workLedger.snapshot();return Object.fromEntries(workKeys.map(key=>[key,String(BigInt(end.counters[key])-BigInt(start.counters[key]))]))
+ })
+ expect(measure(true)).toEqual(measure(false))
+})
 test('G2 public positive: an accepted native proof has no context refusal or structured re-entry',()=>{
  const f=single(false),out=run(f,f.family)
  expect(out.result.proven).toBe(true);expect(out.result.proof).toBeDefined();expect(out.calls).toEqual(['target:row'])

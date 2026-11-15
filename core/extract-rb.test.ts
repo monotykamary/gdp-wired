@@ -29,6 +29,7 @@ const step = (x: ReturnType<typeof rb>, name: string, then: (b: any, a: any) => 
   if (!v.proven) throw new Error(`${name}: ${JSON.stringify({goal: v.goal, witness: v.witness})}`)
 }
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('a counter with a limit: Ruby\'s truth (0 is true), a field nil until it is set, the last expression as the result', () => {
   const x = ok(rb(`
 class Limiter
@@ -54,8 +55,9 @@ end`, 'Limiter', {methods: ['hit', 'seen?', 'reset']}))
   // (0 is true in Ruby: seen? after a reset is false only because @last is nil)
   step(x, 'a hit within the limit counts', (b, a) => a.count.eq(b.count.plus(1)), b => b.method.is('hit').and(b.limit.gt(b.count)))
   step(x, 'seen? is whether a hit was counted since the reset', (b, a) => a.seen_p_result.iff(b.last_none.not()), b => b.method.is('seen?'))
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('/ and % of a negative floor, as Ruby\'s do; symbols are a choice; case/when on them', () => {
   const x = ok(rb(`
 class Meter
@@ -78,7 +80,7 @@ class Meter
 end`, 'Meter', {methods: ['split', 'set']}))
   expect(x.source).toContain("oneOf('idle', 'busy')")
   step(x, 'the half and the rest make k again', (b, a) => a.half.plus(a.half).plus(a.rest).eq(b.split_k), b => b.method.is('split'))
-})
+}, 30_000)
 
 t('refused where it leaves the subset, each with why', () => {
   const loop = rb(`
@@ -97,6 +99,7 @@ end`, 'F', {methods: ['go']})
   expect(fdiv.refusals[0]!.what).toMatch(/float/)
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('the boundary inferred: another class\'s call left out or answered (tagged: Ruby states no types), a store injected, the entry', () => {
   const x = ok(rb(`
 module Metrics
@@ -125,8 +128,9 @@ end
   expect(notes).toMatch(/Quota.bonus .*answered by the request \(tagged/)
   expect(notes).toMatch(/Gate\(cache\): an injected dependency \(inferred/)
   step(x, 'admitted only within the cap', (_b, a) => a.failed.not().implies(a.cache_hits.at(_b.user.id).value.atMost(a.cap_)), () => yes)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('begin/rescue/else/ensure and a method\'s own rescue: another class\'s call may raise what a rescue catches, a raise by its class', () => {
   const x = ok(rb(`
 module Remote
@@ -172,7 +176,7 @@ end
   step(x, 'errors only where ping raised a StandardError', (b, a) => a.errors.gt(b.errors).implies(b.ping_raises.is('StandardError')), b => b.method.is('hit'))
   step(x, 'never past its cap but by a raise', (b, a) => a.n.gt(b.n).implies(b.cap_.gt(b.n)), () => yes)
   step(x, 'soft counts an error only where ping raised', (b, a) => a.errors.gt(b.errors).implies(b.soft_ping_raises), b => b.method.is('soft'))
-})
+}, 30_000)
 
 // The adversarial round (research/langs/adversarial): no false checked proof; what reaches the rule's state, refused.
 import {cases as advCases, judge, ADV} from '../research/langs/adversarial/cases.test-lib.ts'

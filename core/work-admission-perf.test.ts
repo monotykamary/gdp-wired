@@ -2,16 +2,21 @@ import {expect,test} from 'bun:test'
 import {spawnSync} from 'node:child_process'
 import {completeWorkKeys} from './work-profile.ts'
 
-test('hot aggregation is bit-identical to the ordered reference for every column and mixed vectors',()=>{
+// f5851b032: FULL telemetry rounds an exact sum once; flags-off retains ordered floating addition.
+test('aggregation matches its exact FULL or ordered legacy reference for every column and mixed vector',()=>{
  const code=`
  import {strict as a} from 'node:assert';
  import {costs} from './core/solver.ts';
  import {coreMeter} from './core/meter.ts';
  import {eprMeter} from './kernel/epr.ts';
- import {rawWork,workKeys,fullWork,weightedWork} from './core/work-meter.ts';
+ import {rawWork,workKeys,fullWork,weightedWork,legacyWeights,extraWorkKeys} from './core/work-meter.ts';
+ import {completeWorkProfile} from './core/work-profile.ts';
+ import {workAdd,workMultiply,workFromNumber,workAmount,workToNumber,zeroWork} from './core/work-amount.ts';
  const old=rawWork();let seed=1701;
  const set=(k,n)=>{if(k==='epr')eprMeter.n=n;else if(k in coreMeter)coreMeter[k]=n;else costs[k]=n};
- const check=()=>a(Object.is(fullWork(),weightedWork(rawWork())),JSON.stringify({actual:fullWork(),expected:weightedWork(rawWork())}));
+ const weights=Object.fromEntries([...legacyWeights,...extraWorkKeys.map(key=>[key,completeWorkProfile.weights[key]])]);
+ const exact=raw=>workToNumber(workKeys.reduce((sum,key)=>workAdd(sum,workMultiply(workFromNumber(weights[key]),workAmount(BigInt(raw[key])))),zeroWork));
+ const check=()=>{const raw=rawWork(),expected=completeWorkProfile.enabled?exact(raw):weightedWork(raw);a(Object.is(fullWork(),expected),JSON.stringify({actual:fullWork(),expected}))};
  try{
   for(const k of workKeys)set(k,0);
   for(const k of workKeys){for(const n of [1,7,2147483649,1099511627775]){set(k,n);check()}set(k,0)}

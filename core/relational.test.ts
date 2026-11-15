@@ -24,11 +24,13 @@ const desk = (leak: boolean, refuseBySecret = false) => rule('desk')
     }
   })
 
+// Allow the 5s search plus proof overhead beyond Bun's 5s test default.
 test('noninterference: the diagnosis never reaches the status, the total or the refusals', () => {
   const l = noninterference(desk(false), {secret: ['diagnosis'], visible: ['status', 'total']})
   const v = proveTwoRuns(l, {search: {ms: 5000}})
   expect(v.proven && v.checked).toBe(true)
-})
+}, 30_000)
+// Allow the 5s search plus proof overhead beyond Bun's 5s test default.
 test('noninterference: a decision by the diagnosis is refuted by two runs', () => {
   const l = noninterference(desk(true), {secret: ['diagnosis'], visible: ['status', 'total']})
   const v = proveTwoRuns(l, {search: {ms: 5000}})
@@ -36,7 +38,8 @@ test('noninterference: a decision by the diagnosis is refuted by two runs', () =
   expect(v.run).toBeDefined()
   const last = v.run!.trace.at(-1)!
   expect(last.a_diagnosis === last.b_diagnosis).toBe(false)
-})
+}, 30_000)
+// These two 5s searches can use 10s, beyond Bun's 5s test default.
 test('noninterference: a refusal by the secret is a difference', () => {
   const l = noninterference(desk(false, true), {secret: ['diagnosis'], visible: ['status']})
   const v = proveTwoRuns(l, {search: {ms: 5000}})
@@ -44,7 +47,7 @@ test('noninterference: a refusal by the secret is a difference', () => {
   expect(v.goal).toContain('refuse the same requests')
   // ... and with refusals assumed, only the state is compared
   expect(proveTwoRuns(noninterference(desk(false, true), {secret: ['diagnosis'], visible: ['status'], refusals: 'assumed'}), {search: {ms: 5000}}).proven).toBe(true)
-})
+}, 30_000)
 
 // A lockout: each user's failures counted, a login refused at 3 (per user), or at 10 failures of anyone (global).
 const lockout = (global: boolean) => rule('lockout')
@@ -54,28 +57,31 @@ const lockout = (global: boolean) => rule('lockout')
   .assume(({op, user, Fails, total}) => op.is('fail').or(Fails.at(user).lt(3)).and(global ? op.is('fail').or(total.lt(10)) : op.is('fail').or(op.is('login'))))
   .step(({op, user, Fails, total}) => ({Fails: Fails.set(user, when(op.is('fail'), Fails.at(user).plus(1), Fails.at(user))), total: when(op.is('fail'), total.plus(1), total)}))
 
+// Allow the 5s search plus proof overhead beyond Bun's 5s test default.
 test('isolation: a per-user lockout keeps each user\'s cell and refusals whatever the others do', () => {
   const v = proveTwoRuns(isolation(lockout(false), {owner: 'user'}), {search: {ms: 5000}})
   expect(v.proven && v.checked).toBe(true)
-})
+}, 30_000)
+// Allow the 5s search plus proof overhead beyond Bun's 5s test default.
 test('isolation: a global lockout lets the others lock B out', () => {
   const v = proveTwoRuns(isolation(lockout(true), {owner: 'user'}), {search: {ms: 5000}})
   expect(v.proven).toBe(false)
   expect(v.goal).toContain('refuse the same requests')
   expect(v.run).toBeDefined()
-})
+}, 30_000)
 
 // A cap, and two refactors of it: one the same rule, one with the boundary moved.
 const cap = (variant: 0 | 1 | 2) => rule('cap').params({limit: nat}).inputs({cost: nat}).state({used: 0})
   .step(({cost, used, limit}) => ({used: variant === 0 ? when(used.plus(cost).atMost(limit), used.plus(cost), used)
     : variant === 1 ? when(limit.lt(used.plus(cost)), used, used.plus(cost)) : when(used.plus(cost).lt(limit), used.plus(cost), used)}))
 
+// These two 5s searches can use 10s, beyond Bun's 5s test default.
 test('agreement: a refactor agrees on every history; a moved boundary is refuted', () => {
   expect(proveTwoRuns(agreement(cap(0), cap(1)), {search: {ms: 5000}}).proven).toBe(true)
   const v = proveTwoRuns(agreement(cap(0), cap(2)), {search: {ms: 5000}})
   expect(v.proven).toBe(false)
   expect(v.run).toBeDefined()
-})
+}, 30_000)
 
 test('two runs side by side run as their sides do', () => {
   const r = desk(false), p = twoRuns(r, r, {shared: ['op', 'amount'], refusals: 'assumed'})

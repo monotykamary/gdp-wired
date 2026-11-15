@@ -8,8 +8,6 @@ const builtin:Record<string,object>={object:Object.prototype,null:null as unknow
 type Ref=unknown[]
 export type Manifest={schema:'closing-graph/v1',complete:true,nodes:number,strings:number,shards:{name:string,bytes:number,sha256:string}[]}
 export type GraphOptions={prototypes?:Record<string,object>,metadata?:(object:object)=>unknown,restoreMetadata?:(object:object,value:unknown)=>void}
-const natural=(v:unknown):number=>{if(typeof v!=='number'||!Number.isSafeInteger(v)||v<0)throw Error('invalid graph integer');return v}
-const bit=(v:unknown):boolean=>{if(typeof v!=='boolean')throw Error('invalid graph bit');return v}
 function writeAll(fd:number,data:Buffer){let offset=0;while(offset<data.length){const n=writeSync(fd,data,offset,data.length-offset);if(n<=0)throw Error('short capsule write');offset+=n}}
 export function writeGraphCapsule(directory:string,root:unknown,options:GraphOptions={}):Manifest{
  mkdirSync(directory,{recursive:true});if(readdirSync(directory).length)throw Error('graph output must be a new empty directory')

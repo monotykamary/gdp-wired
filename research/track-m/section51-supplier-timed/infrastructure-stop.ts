@@ -1,5 +1,5 @@
 // Raw native infrastructure receipts never become a proof/search verdict.
-export function infrastructureStop(rows:any,guard:any):any|undefined{
+export function infrastructureStop(rows:any,guard:any){
  const names=['mldr-3g-timed','mldr-3g-instrumented']
  const affected=names.flatMap(name=>{
   const row=rows?.[name];if(!row)return []

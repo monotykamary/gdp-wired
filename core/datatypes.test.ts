@@ -39,6 +39,7 @@ test('values outside their kinds are refused as the runtimes refuse them', () =>
   expect(() => rule('x').inputs({r: customer}).machine).toThrow(/history record/)
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a variant as state: laws and step laws proven, the broken variant refused, runs decoded', () => {
   const r = hold(), laws = holdLaws(r), steps = holdSteps(r)
   expect(proveSteps(r, laws, steps)).toMatchObject({proven: true, checked: true})
@@ -66,7 +67,7 @@ test('a variant as state: laws and step laws proven, the broken variant refused,
     },
   }
   expect(r.compare(real as never, {trials: 300, bound: 30}).failure).toBeUndefined()
-})
+}, 30_000)
 
 test('same: values alike part by part', () => {
   const k = record({a: nat, b: variant({x: {n: nat}, y: {}})})
@@ -86,6 +87,7 @@ test('a function returns records and variants, run as runtime values', () => {
   expect(proveDecision(decide.law('an allow lasts an hour', () => [], (out, {now}) => out.verdict.match({allow: a => a.until.eq(now.plus(60)), deny: () => yes}))).proven).toBe(true)
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('maps and lists of a kind: proven, cross-checked, the broken variants refused, runs decoded', () => {
   const cases = [
     {r: accounts(), laws: accountLaws, steps: accountSteps, broken: accounts('lowers a limit below what is spent')},
@@ -110,8 +112,9 @@ test('maps and lists of a kind: proven, cross-checked, the broken variants refus
   let sj = gj.init(ps)
   for (const q of [{op: 'push', job: {id: 4, prio: 1}}, {op: 'push', job: {id: 5, prio: 9}}, {op: 'push', job: {id: 6, prio: 2}}, {op: 'pop', job: {id: 0, prio: 0}}, {op: 'push', job: {id: 7, prio: 3}}] as const) sj = gj.step(ps, sj, j.encodeInput(q))
   expect(j.decode(sj).Queue).toEqual([{id: 4, prio: 1}, {id: 7, prio: 3}])
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('the kinds keep their own laws; a variant named by another key; optional results', () => {
   // "every seat is free, held or sold" is proven beside "a sale is final" without being stated.
   const r = seats()
@@ -128,4 +131,4 @@ test('the kinds keep their own laws; a variant named by another key; optional re
   expect(pick.run({has: true, x: 4})).toEqual({out: 5})
   expect(pick.run({has: false, x: 4})).toEqual({out: null})
   expect(proveDecision(pick.law('present when has', ({has}) => has, out => out.out.isSome)).proven).toBe(true)
-})
+}, 30_000)

@@ -5,6 +5,7 @@ import {expect, test} from 'bun:test'
 import {chart} from './chart.ts'
 import {binding, bindingLaws, order, orderLaws, checkout, checkoutLaws} from '../examples/charts.ts'
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('the order chart: every state reached by a run the compiled rule takes, its laws proven, its broken variants caught', () => {
   const o = order(), report = o.check({params: {tries: 2}})
   expect(report).toMatchObject({ok: true, stuck: [], ambiguous: []})
@@ -23,8 +24,9 @@ test('the order chart: every state reached by a run the compiled rule takes, its
   expect(v.run?.trace.length).toBeGreaterThan(0)
   expect(order('ships two ways').check({params: {tries: 2}}).ambiguous.map(a => a.event)).toEqual(['ship'])
   expect(order('a state with no way out').check({params: {tries: 2}}).stuck).toEqual(['lost'])
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('parallel regions react to the same event, and a guard reads another region', () => {
   const k = checkout()
   expect(k.check()).toMatchObject({ok: true, stuck: [], ambiguous: []})
@@ -34,8 +36,9 @@ test('parallel regions react to the same event, and a guard reads another region
   const both = chart('both').regions({a: {states: {x: {}, y: {final: true}}}, b: {states: {x: {}, y: {final: true}}}}).on('go', {from: 'a.x', to: 'a.y'}).on('go', {from: 'b.x', to: 'b.y'})
   const g = both.rule.compiled(), st = g.step({}, g.init({}), both.rule.encodeInput({event: 'go'} as never))
   expect(both.rule.decode(st)).toEqual({a: 'y', b: 'y'})
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a state no run reaches is proven unreachable, and nesting, history and context run as a statechart does', () => {
   const c = chart('door').context({opened: 0}).states({
     closed: {}, open: {states: {ajar: {}, wide: {}}, history: true}, locked: {}, gone: {final: true},
@@ -63,7 +66,7 @@ test('a state no run reaches is proven unreachable, and nesting, history and con
   for (const e of ['widen', 'open', 'widen', 'close', 'open', 'close', 'lock', 'open', 'close', 'leave', 'open']) step(e)
   expect(c.law('opened at least once when open', env => env.in('open').implies(env.opened.atLeast(1)))).toBeDefined()
   expect(c.prove([c.law('opened at least once when open', env => env.in('open').implies(env.opened.atLeast(1)))])).toMatchObject({proven: true, checked: true})
-})
+}, 30_000)
 
 test('a chart that names no such state, a bad initial state or a cross-region transition is refused when built', () => {
   expect(() => chart('a').states({x: {}}).on('go', {from: 'x', to: 'y'}).rule).toThrow(/no state y/)
@@ -74,6 +77,7 @@ test('a chart that names no such state, a bad initial state or a cross-region tr
 
 // Internal transitions stay where they are; an output falls back to its default every step; the phase is kept as the
 // field named, and the events are encoded in the order declared.
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('internal transitions, outputs reset each step, a named state field and a declared event order', () => {
   const b = binding(), r = b.rule
   expect(Object.keys(r.machine.state)).toEqual(['phase', 'holds', 'command'])
@@ -103,4 +107,4 @@ test('internal transitions, outputs reset each step, a named state field and a d
   expect(b.prove([], bindingLaws(b))).toMatchObject({proven: true, checked: true})
   expect(binding('grants after closing').prove([], bindingLaws(binding('grants after closing'))).proven).toBe(false)
   expect(() => chart('x').events('a').states({s: {}}).on('b', {from: 's'}).rule).toThrow(/isn't one of the events declared/)
-})
+}, 30_000)

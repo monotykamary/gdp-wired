@@ -68,6 +68,7 @@ function sameRuns(a: Machine, b: Machine, params: () => Record<string, number>, 
   }
 }
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('the builders give the hand-written machines: same verdicts, same runs', () => {
   expect(proveRule(budget, [budget.law('b + m', ({s, b, m}) => s.atMost(b.plus(m)))]).proven).toBe(true)
   expect(proveLaws(loss(), [boundedLoss]).proven).toBe(true)
@@ -82,8 +83,9 @@ test('the builders give the hand-written machines: same verdicts, same runs', ()
   let t = 0
   sameRuns(window(true).machine, windowLimit(true), () => ({w: 1 + rand(4), c: rand(4), now: rand(12)}), i => { if (i === 0) t = 0; t += rand(3); return {forced: rand(5) === 0 ? 1 : 0, t} })
   expect(proveLaws(windowLimit(), [windowCeiling]).proven).toBe(true)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('variants are one call away, and broken ones are refuted', () => {
   const uncapped = budget.step(({b, c, s}) => ({s: when(s.lt(b), s.plus(c), s)}))
   expect(proveRule(uncapped, [uncapped.law('b + m', ({s, b, m}) => s.atMost(b.plus(m)))]).proven).toBe(false)
@@ -97,7 +99,7 @@ test('variants are one call away, and broken ones are refuted', () => {
   expect(proveRule(caps, capsLaws).proven).toBe(true) // the original is untouched
   const noRelation = window(false).relations(() => [])
   expect(proveRule(noRelation, [noRelation.law('window ceiling', ({ours, c}) => ours.atMost(c))]).proven).toBe(false)
-})
+}, 30_000)
 
 test('kinds: encodings, assumptions and match', () => {
   const r = rule('kinds')
@@ -192,6 +194,7 @@ test('search tries every value of a small kind, whatever the bound', () => {
 
 // A step law the laws given don't prove, broken only from a state no run reaches: refused from a random such state,
 // with its witness and no run, where the search is off; with it, proven with the invariant that rules the state out.
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a step law broken only from a state no run reaches: its state without the search, proven with it', () => {
   const r = rule('stays').inputs({go: bool}).state({s: 0}).step(({s}) => ({s}))
   const law = r.stepLaw('the count stays at 0', (_, after) => after.s.eq(0))
@@ -200,24 +203,26 @@ test('a step law broken only from a state no run reaches: its state without the 
   expect(v.run).toBeUndefined()
   expect(v.witness!.s).toBeGreaterThan(0)
   expect(proveSteps(r, [], [law])).toMatchObject({proven: true, checked: true})
-})
+}, 30_000)
 
 // A choice compares with a name, another choice of its kind or an index, and reads its index as a term.
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a choice compares by name, by choice or by index', () => {
   const r = rule('phases').inputs({to: oneOf('a', 'b', 'c')}).state({p: oneOf('a', 'b', 'c').from('a')}).step(({to}) => ({p: to}))
   const law = r.stepLaw('the phase is the one asked for', ({to}, after) => all(after.p.eq(to), after.p.index.eq(to.index), after.p.eq('a').implies(after.p.eq(0)), after.p.ne('b').or(to.is('b')), after.p.eq(when(to.is('c'), 2, to.index))))
   expect(proveSteps(r, [], [law])).toMatchObject({proven: true, checked: true})
-})
+}, 30_000)
 
 // A yes/no written under a wide condition stays a yes/no without the prover deciding the condition: an if is at most
 // the sum of its branches (before that row, 24 comparisons took ~20 s of case splits, 80 didn't finish).
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a yes/no state written under a wide condition keeps its kind without deciding the condition', () => {
   for (const pairs of [12, 40]) {
     const r = wide(pairs), started = performance.now()
     expect(proveRule(r, [])).toMatchObject({proven: true, checked: true})
     expect(performance.now() - started).toBeLessThan(2000)
   }
-})
+}, 30_000)
 
 test('a decision reading conditions about every key is proven as a step law of its rule', () => {
   const sets = rule('sets').inputs({n: nat}).carries('A', 'B', 'C')

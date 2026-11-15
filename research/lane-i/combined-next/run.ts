@@ -4,7 +4,7 @@ import {closeSync,mkdirSync,mkdtempSync,openSync,readFileSync,rmSync,statSync} f
 import {join,resolve} from 'node:path'
 import {spawnSync} from 'node:child_process'
 const input=resolve('port-input'),root=mkdtempSync('/tmp/combined-source-'),mode=process.argv[2]??'source'
-const source=readFileSync(join(input,'source.txt'),'utf8').trim(),out=resolve('/home/user/.sc-artifacts/lane-i-combined',source,mode)
+const source=readFileSync(join(input,'source.txt'),'utf8').trim(),out=resolve(process.env.HOME??'.','.sc-artifacts/lane-i-combined',source,mode)
 const clean=Object.fromEntries(Object.entries(process.env).filter(([key])=>!key.startsWith('GDP_')))
 const features=JSON.parse(readFileSync(join(input,'profile.json'),'utf8')) as Record<string,string>
 mkdirSync(out,{recursive:true})

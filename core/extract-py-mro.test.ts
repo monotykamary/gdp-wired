@@ -32,34 +32,40 @@ const increment = (x: ReturnType<typeof checked>, amount: number) => {
   expect(result).toMatchObject({kernelProven: true, proven: false, checked: false, translation: 'unchecked'})
 }
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('leftmost own method wins over a later base inheriting the root method', () => {
   increment(checked(root + 'class Left(Root):\n    def amount(self) -> int:\n        return 2\nclass Right(Root):\n    pass\nclass Counter(Left, Right):\n' + put), 2)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('a later own declaration wins over an earlier base merely inheriting the root', () => {
   increment(checked(root + 'class Left(Root):\n    pass\nclass Right(Root):\n    def amount(self) -> int:\n        return 3\nclass Counter(Left, Right):\n' + put), 3)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('cooperative super visits the next sibling in the actual receiver MRO', () => {
   increment(checked(root + 'class Left(Root):\n    def amount(self) -> int:\n        return super().amount() + 2\nclass Right(Root):\n    def amount(self) -> int:\n        return super(Right, self).amount() + 4\nclass Counter(Left, Right):\n' + put), 7)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('cooperative constructors visit both sibling initializers exactly once', () => {
   const source = 'class Root:\n    def __init__(self):\n        super().__init__()\n        self.total = 1\nclass Left(Root):\n    def __init__(self):\n        super().__init__()\n        self.total += 2\nclass Right(Root):\n    def __init__(self):\n        super().__init__()\n        self.total += 4\nclass Counter(Left, Right):\n    def put(self) -> int:\n        self.total += 1\n        return self.total\n'
   const x = checked(source)
   expect(x.source).toContain('7')
   increment(x, 1)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('super reads a sibling scalar through a property without consulting instance fields', () => {
   const source = 'class Root:\n    STEP = 1\n    def __init__(self):\n        self.total = 0\nclass Left(Root):\n    @property\n    def STEP(self) -> int:\n        return super().STEP + 2\nclass Right(Root):\n    STEP = 4\nclass Counter(Left, Right):\n    def put(self) -> int:\n        self.total += self.STEP\n        return self.total\n'
   increment(checked(source), 6)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('ordinary class-name attribute reads use the same selected scalar binding', () => {
   const source = root + 'class Left(Root):\n    STEP = 2\nclass Right(Root):\n    STEP = 4\nclass Counter(Left, Right):\n    def put(self) -> int:\n        self.total += Counter.STEP\n        return self.total\n'
   increment(checked(source), 2)
-})
+}, 30_000)
 
 t('field declarations follow C3 owners rather than flattened base fields', () => {
   const source = 'class Root:\n    flag: int = 1\n    def __init__(self):\n        self.flag = self.flag\nclass Left(Root):\n    pass\nclass Right(Root):\n    flag: bool = True\nclass Counter(Left, Right):\n    def put(self) -> bool:\n        self.flag = not self.flag\n        return self.flag\n'
@@ -69,11 +75,12 @@ t('field declarations follow C3 owners rather than flattened base fields', () =>
   checked(source)
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('same-named classes from different modules keep different method identities', () => {
   const files = { 'left.py': 'class Shared:\n    def __init__(self):\n        self.seed = 0\n    def amount(self) -> int:\n        return self.seed + 2\n', 'right.py': 'class Shared:\n    def __init__(self):\n        self.seed = 0\n    def amount(self) -> int:\n        return self.seed + 4\n' }
   const source = 'from left import Shared as L\nfrom right import Shared as R\nclass Counter:\n    def __init__(self):\n        self.left = L()\n        self.right = R()\n        self.total = 0\n    def put(self) -> int:\n        self.total += self.left.amount() + self.right.amount()\n        return self.total\n'
   increment(checked(source, files), 6)
-})
+}, 30_000)
 
 t('an unbound class value shadows an inherited method instead of falling through', () => {
   const {file} = fixture(root + 'class Counter(Root):\n    amount = [2]\n' + put)
@@ -82,12 +89,13 @@ t('an unbound class value shadows an inherited method instead of falling through
   expect(x.refusals.map(r => r.what).join('; ')).toMatch(/no field amount|cannot be bound|not callable|shared class collection|outside/)
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('an inherited collection may pass through a constructor only while its value stays unread', () => {
   const source = 'class Root:\n    DEFAULTS = ["code"]\n    def __init__(self):\n        self.defaults = self.DEFAULTS\n        self.total = 0\nclass Counter(Root):\n    def put(self) -> int:\n        self.total += 1\n        return self.total\n'
   const x = checked(source)
   expect(x.notes.join('\n')).toContain('never copied or frozen')
   increment(x, 1)
-})
+}, 30_000)
 
 t('shared collection contents and alias identity remain refused, not scalarized', () => {
   const base = 'class Root:\n    DEFAULTS = ["code"]\n    def __init__(self):\n        self.defaults = self.DEFAULTS\n        self.total = 0\nclass Counter(Root):\n'
@@ -99,12 +107,13 @@ t('shared collection contents and alias identity remain refused, not scalarized'
   }
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 t('empty variadics in inherited constructors and methods are bound, not unbound locals', () => {
   const source = 'class Root:\n    def __init__(self, **kwargs):\n        self.total = kwargs.get("start", 0)\nclass Counter(Root):\n    def put(self, *args, **kwargs) -> int:\n        if kwargs:\n            self.total += 100\n        self.total += kwargs.get("amount", 1)\n        return self.total\n'
   const x = checked(source)
   expect(x.notes.join('\n')).toContain('**kwargs is empty')
   increment(x, 1)
-})
+}, 30_000)
 
 t('nonempty variadic calls are refused rather than dropping their arguments', () => {
   const source = root + 'class Counter(Root):\n    def helper(self, **kwargs):\n        self.total += kwargs.get("amount", 1)\n    def put(self) -> int:\n        self.helper(amount=10)\n        return self.total\n'

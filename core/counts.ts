@@ -1,4 +1,4 @@
-import {searchNow as countedSearchNow, traceNow as countedTraceNow} from './wall.ts'
+import {searchNow as countedSearchNow, traceNow as countedTraceNow,wallDeadline} from './wall.ts'
 // The candidate pipeline (untrusted): the counted search, for a machine with counts (the kernel's countedObligations
 // and checkCountedLaws, Lean's CountMachine.lean), and the ∃ search's cone (core/dsl.ts's someCone) are one pipeline:
 //   1. the small instances (core/exists.ts's smallOf: each param 2 and 3, inputs and carried sets below 3), the one
@@ -56,7 +56,7 @@ import {countedCertificateHyps,transportCountCertificate} from './count-cert-tra
 import {type CountFamilyProof, type CountLawProof, type ScopedCountProof, type CountReplayDecline, scopeCountProof, replayScopedCountProof, isCheckedReducedScope, withCountScopeIdentityObservation, countScopeContextKey} from './count-proof-scope.ts'
 import {assertLiftedWorkLease, prepareCountStrategyMachine, proveCountStrategies, proposeCountStrategiesForClosing, proveCountStrategyKind, proposeCountStrategyKindForClosing, selectedCountStrategies} from './count-strategies.ts'
 import {type LiftedWorkBudget} from './count-lifted-budget.ts'
-import {countRecipeContextDecision} from './count-recipe-context.ts'
+import {CountRecipeContexts} from './count-recipe-context.ts'
 import {CountRecipePass,runCountRecipeController,type CountControllerMember,type CountRecipeClosingEntry} from './count-recipe-controller.ts'
 import {discoverLiftedCountGuard,discoverLiftedCountOperations} from './count-lifted-shape.ts'
 import {completeWorkProfile} from './work-profile.ts'
@@ -644,7 +644,7 @@ function searchCountedWithRejection(m0:Machine,g:ReturnType<typeof guardLaws>,m:
 }
 
 // One reservation survives context and structured fallbacks.
-type CountTierRun = {start: number, source?:Machine, budget?: CountTierBudget, prerequisites?:CountPrerequisiteMemory<ScopedCountProof>, reachability?:{key:string,screen:ReturnType<typeof countReachabilityScreen>},reachFunding?:CountReachabilityFunding,recipePass?:CountRecipePass<ScopedCountProof>,recipeStructured?:boolean}
+type CountTierRun = {start: number, source?:Machine, budget?: CountTierBudget, prerequisites?:CountPrerequisiteMemory<ScopedCountProof>, reachability?:{key:string,screen:ReturnType<typeof countReachabilityScreen>},reachFunding?:CountReachabilityFunding,recipeContexts?:CountRecipeContexts<CountRecipePass<ScopedCountProof>>}
 // Candidate scheduling only. Every returned family still goes through finish.
 export function admitCountedFamily(m:Machine,caller:Law[],initial:Law[],support:Set<Law>,until:number,tiers?:CountTierBudget):Counted {
   if (tiers && tiers.until !== until) throw new RangeError('mismatched tier deadline')
@@ -670,10 +670,11 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
   if (closingBudget) until = countOrdinaryUntil(closingBudget)
   const prerequisiteFirst = !!closingBudget && env.GDP_COUNT_PREREQUISITES === '1'
   const proofGuided = prerequisiteFirst && env.GDP_COUNT_PROOF_GUIDED_SCHEDULING === '1'
-  const beforeClosing = <T>(body:()=>T):T|undefined => {
+  const beforeClosing = <T>(body:()=>T,onLocalExpiration?:()=>void):T|undefined => {
     if (!prerequisiteFirst) return body()
     return withSearchAllowance<T|undefined>(until,body,error=>{
-      if(!isLocalCountExpiration(error,closingBudget!.until))throw error; return undefined
+      if(!isLocalCountExpiration(error,closingBudget!.until))throw error
+      onLocalExpiration?.();return undefined
     })
   }
   let set=rejections?rejectionFamily(rejections,initial):initial.slice()
@@ -738,28 +739,23 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
   const recipeJoint=():Counted=>{
     const prepared=beforeClosing(()=>{
       const context=countScopeContextKey(m,set)
-      if(tierRun.recipePass){
-        workLedger.start('tableCells',Math.min(context.length,tierRun.recipePass.context.length),'count recipe inventory context')
-        // Never reuse a fixed inventory for changed machine/law bytes. Keep
-        // the old instances and fuel; a different context gets no new pass.
-        if(!countRecipeContextDecision(tierRun.recipePass,context,tierRun.recipeStructured,structured,event=>countsDump.on?.(event)))return {kind:'context-changed' as const}
-      }else{
+      const pass=(tierRun.recipeContexts??=new CountRecipeContexts<CountRecipePass<ScopedCountProof>>()).acquire(context,structured,()=>{
         const plan=countPrerequisiteSchedule(m,set,selected,until)
         const members=workMap(set,(law,reference):CountControllerMember=>({name:law.name,reference,recipes:workMap(plan.recipes.get(law.name)??[],recipe=>{
           const shape=recipe.id==='lifted'?discoverLiftedCountGuard(m,law,set):undefined
           const operations=shape&&discoverLiftedCountOperations(m,shape)
           return {...recipe,...(operations?{caseKeys:workMap(operations,operation=>'op:'+operation.value,'count recipe case inventory')}:{})}
         },'count recipe inventory')}),'count member inventory')
-        tierRun.recipePass=new CountRecipePass<ScopedCountProof>(members,context)
-      }
-      tierRun.recipeStructured=structured
-      return {kind:'ready' as const,
+        return new CountRecipePass<ScopedCountProof>(members,context)
+      },event=>countsDump.on?.(event))
+      if(!pass)return {kind:'context-changed' as const}
+      return {kind:'ready' as const,pass,
         lawByName:new Map(workMap(set,law=>[law.name,law] as const,'count recipe law lookup')),
         active:new Set(workMap(set,law=>law.name,'count active inventory')),
         targets:workMap(caller,law=>law.name,'count recipe targets')}
     })
     if(!prepared||prepared.kind!=='ready')return {proven:false,laws:set,m,why:prepared?.kind==='context-changed'?'recipe fixed inventory context changed':'recipe planning budget'}
-    const {lawByName,active,targets}=prepared
+    const {lawByName,active,targets,pass}=prepared
     const tick=()=>workLedger.start('ticks',1,'count recipe adapter')
     const reconcile=()=>{if(reach)for(const name of reach.rejectedNames()){tick();active.delete(name)}}
     const screen=(law:Law,ordinary:number,citing:number):boolean=>{
@@ -773,7 +769,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
     if(beforeClosing(()=>{reconcile();return true})!==true)return {proven:false,laws:set,m,why:'recipe reconciliation budget'}
     attempts.houdini=true
     const transportDeclined=undefined
-    const outcome=runCountRecipeController(tierRun.recipePass!,targets,{
+    const outcome=runCountRecipeController(pass,targets,{
       active,observe:event=>countsDump.on?.(event),
       beforeClosing:countRecipeClosingCapture.on?controller=>countRecipeClosingCapture.on!({
         version:'counted-recipe-closing/v1',controller,m,set,caller,initial,selected,structured,
@@ -807,7 +803,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         if(!law)return
         const before=workLedger.actual();let identity=zeroWork
         const captured=withCountScopeIdentityObservation(amount=>{identity=workAdd(identity,amount)},()=>{
-          const scoped=rescopeCountProof(m,law,set,proof!,new Set(tierRun.recipePass!.held().keys()),Infinity,
+          const scoped=rescopeCountProof(m,law,set,proof!,new Set(pass.held().keys()),Infinity,
             event=>countsDump.on?.({phase:'count-component-rescope',law:name,...event}),countRescopeFunding())
           if(!scoped)return
           const checkedReduced=isCheckedReducedScope(scoped,m,set)
@@ -976,7 +972,10 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       if('proof'in result){
         scope=withSearchAllowance(end,()=>beforeClosing(()=>proofGuided
           ?ptime('premise-rescope',()=>rescopeCountProof(m,law,context,result.proof,new Set(scopes.keys()),end,event=>countsDump.on?.({phase:'count-component-rescope',law:law.name,...event}),countRescopeFunding()))
-          :ptime('premise-scope',()=>scopeCountProof(m,law,context,result.proof,end))),
+          :ptime('premise-scope',()=>scopeCountProof(m,law,context,result.proof,end)),
+          // The enclosing closing reserve may consume this local refusal.
+          // Preserve its classification even when exact admission stops before end.
+          ()=>{expired=true}),
           error=>{if(!isLocalCountExpiration(error,withinDeadline(closingBudget!.until)))throw error;expired=true;return undefined})
       }
       if('proof'in result&&!scope&&!expired&&clock()>=end){
@@ -1056,7 +1055,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         const structural = support.has(law) && !caller.includes(law)
         const strategy = selected.has(law), boundedSupport = !budget && activeSupport(set, support)
         const allotted = strategy ? Math.max(0, budget!.strategyUntil! - clock()) : budget ? share : supportBudget(until - clock(), share, boundedSupport && caller.includes(law), structural)
-        const supportUntil = strategy ? budget!.strategyUntil! : Math.min(until, clock() + (boundedSupport ? Math.min(allotted, 5_000) : allotted)), supportWall = countedSearchNow() + 4_800
+        const supportUntil = strategy ? budget!.strategyUntil! : Math.min(until, clock() + (boundedSupport ? Math.min(allotted, 5_000) : allotted)), supportWall = wallDeadline(countedSearchNow() + 4_800)
         let proofContext = closingBudget && !strategy && required ? set.filter(l=>required.has(l.name)||l===law) : set
         const ask = (pass: 0 | 1): Tried<Proof> => {
           const ms = Math.min(allotted, Math.max(0, (boundedSupport ? supportUntil : until) - clock()))
@@ -1164,7 +1163,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         }
         return finish(kept,{instances,certs})
       }
-      const remaining=until-clock(),share=remaining/Math.max(1,set.length-known.size),allotted=supportBudget(remaining,share,caller.includes(law),support.has(law)&&!caller.includes(law)),stop=Math.min(until,clock()+Math.min(allotted,5000)),wall=countedSearchNow()+4800
+      const remaining=until-clock(),share=remaining/Math.max(1,set.length-known.size),allotted=supportBudget(remaining,share,caller.includes(law),support.has(law)&&!caller.includes(law)),stop=Math.min(until,clock()+Math.min(allotted,5000)),wall=wallDeadline(countedSearchNow()+4800)
       const countFirst=env.GDP_COUNTS_COUNT_FIRST!=='0'&&(reads(law.holds,isCount).size>0||!!law.keys?.length)
       const ask=(context:Law[]):Tried<Proof>=>withWall(wall,()=>withDeadline(stop,()=>{
         const pass:0|1=countFirst?1:0

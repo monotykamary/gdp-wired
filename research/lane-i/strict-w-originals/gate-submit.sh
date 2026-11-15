@@ -11,7 +11,7 @@ if [ -f "$out/placement.json" ]; then
  vm=$(jq -r --arg key "strict-originals-$mode" '.[$key].vm // empty' "$out/placement.json")
  if [ -n "$vm" ]; then
   mkdir -p "$out/artifacts"
-  /home/user/.ascii/boat scp -r "$vm:/home/user/.sc-artifacts/lane-i-strict-originals/$source/$mode" "$out/artifacts" || status=1
+  $HOME/.ascii/boat scp -r "$vm:~/.sc-artifacts/lane-i-strict-originals/$source/$mode" "$out/artifacts" || status=1
  fi
 fi
 if [ -f "$out/summary.tsv" ]; then

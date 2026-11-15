@@ -1,13 +1,13 @@
 {
   "status": "Raw artifact verified, targeted/mutation/type checks passed across original + corrected tooling receipts; isolated source committed",
   "baseSnapshot": "30f9c3ba",
-  "privateIndex": "/private/tmp/lane-i-complete.index",
+  "privateIndex": "$TMPDIR/lane-i-complete.index",
   "task": "4575fac2-7dbb-4fcf-859f-63aba9e3e9c5",
   "waiterPid": 90266,
   "batch": "20261110-123336-6maehh",
   "resultDirectory": "runs/lane-i/complete-structural",
   "next": "Collect source/ledger/boundaries/bitmap composition checks; freeze and commit passing composed source; continue real F3 attachment and no-wall original-model census.",
-  "launch": "supercomputer --repo /private/tmp/lane-i-paxos-runner.djtUt9 run --jobs /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/work-meter/complete/prepare.jobs.json --out /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/runs/lane-i/complete-ast-preparation --backend boat --class interactive --data /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/generator:generator-input --data /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/work-meter/complete:complete-input --data /private/tmp/lane-i-gated-follow-up.wehlxC:frozen",
+  "launch": "supercomputer --repo $TMPDIR/lane-i-paxos-runner.djtUt9 run --jobs ../gdp-wired-integ/research/lane-i/work-meter/complete/prepare.jobs.json --out ../gdp-wired-integ/runs/lane-i/complete-ast-preparation --backend boat --class interactive --data ../gdp-wired-integ/research/lane-i/generator:generator-input --data ../gdp-wired-integ/research/lane-i/work-meter/complete:complete-input --data $TMPDIR/lane-i-gated-follow-up.wehlxC:frozen",
   "unvalidated": [
     "new raw observations",
     "constructor typing and coverage",
@@ -31,13 +31,13 @@
   "previousRun": {
     "status": "changed candidate validation in flight; no production promotion",
     "baseSnapshot": "30f9c3ba",
-    "privateIndex": "/private/tmp/lane-i-complete.index",
+    "privateIndex": "$TMPDIR/lane-i-complete.index",
     "task": "cd893c39-f0e2-4935-9ca3-5c9b57c0c9b7",
     "waiterPid": 58588,
     "batch": "20261110-123003-1cvbpa",
     "resultDirectory": "runs/lane-i/complete-progress",
     "next": "collect bounded AST mismatch or successful source artifact; then freeze and launch validation/checks.jobs.json",
-    "launch": "supercomputer --repo /private/tmp/lane-i-paxos-runner.djtUt9 run --jobs /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/work-meter/complete/prepare.jobs.json --out /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/runs/lane-i/complete-ast-preparation --backend boat --class interactive --data /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/generator:generator-input --data /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/work-meter/complete:complete-input --data /private/tmp/lane-i-gated-follow-up.wehlxC:frozen",
+    "launch": "supercomputer --repo $TMPDIR/lane-i-paxos-runner.djtUt9 run --jobs ../gdp-wired-integ/research/lane-i/work-meter/complete/prepare.jobs.json --out ../gdp-wired-integ/runs/lane-i/complete-ast-preparation --backend boat --class interactive --data ../gdp-wired-integ/research/lane-i/generator:generator-input --data ../gdp-wired-integ/research/lane-i/work-meter/complete:complete-input --data $TMPDIR/lane-i-gated-follow-up.wehlxC:frozen",
     "unvalidated": [
       "new raw observations",
       "constructor typing and coverage",
@@ -61,13 +61,13 @@
     "previousRun": {
       "status": "first preparation failed; source verified, child error was not retained by driver; diagnostic-only rerun in flight",
       "baseSnapshot": "30f9c3ba",
-      "privateIndex": "/private/tmp/lane-i-complete.index",
+      "privateIndex": "$TMPDIR/lane-i-complete.index",
       "task": "beef01f4-b4a7-4abf-b1e5-499bea073500",
       "waiterPid": 42471,
       "batch": "20261110-122546-ln00nn",
       "resultDirectory": "runs/lane-i/complete-ast-diagnostics",
       "next": "collect diagnostic child receipt; fix only established cause; rerun failed preparation; freeze emitted patch; run combined checks",
-      "launch": "supercomputer --repo /private/tmp/lane-i-paxos-runner.djtUt9 run --jobs /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/work-meter/complete/prepare.jobs.json --out /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/runs/lane-i/complete-ast-preparation --backend boat --class interactive --data /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/generator:generator-input --data /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/work-meter/complete:complete-input --data /private/tmp/lane-i-gated-follow-up.wehlxC:frozen",
+      "launch": "supercomputer --repo $TMPDIR/lane-i-paxos-runner.djtUt9 run --jobs ../gdp-wired-integ/research/lane-i/work-meter/complete/prepare.jobs.json --out ../gdp-wired-integ/runs/lane-i/complete-ast-preparation --backend boat --class interactive --data ../gdp-wired-integ/research/lane-i/generator:generator-input --data ../gdp-wired-integ/research/lane-i/work-meter/complete:complete-input --data $TMPDIR/lane-i-gated-follow-up.wehlxC:frozen",
       "unvalidated": [
         "new raw observations",
         "constructor typing and coverage",

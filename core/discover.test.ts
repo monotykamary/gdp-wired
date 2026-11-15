@@ -7,6 +7,7 @@ import {foundArea, foundInvoices, foundOrgChart, foundRetries, orgChart, orgChar
 // What `found` gives is source to paste: each entry is a property of an object literal.
 const pasted = (src: string[]) => compileFunction<() => Record<string, never>>([], `return {${src.join(', ')}}`)()
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('the backoff delay: the bounds its rule needs, found, and the source pasted back proves the rule', () => {
   const o = foundRetries()
   expect(o.verdict).toMatchObject({proven: true, checked: true})
@@ -17,7 +18,7 @@ test('the backoff delay: the bounds its rule needs, found, and the source pasted
   // As the rule stated it, refused.
   const bare = retries()
   expect(proveSteps(bare, retryLaws(bare), retrySteps(bare), {search: false}).proven).toBe(false)
-})
+}, 30_000)
 
 test('a closed form fitted exactly: squares is x·x', () => {
   const o = foundArea()
@@ -25,6 +26,7 @@ test('a closed form fitted exactly: squares is x·x', () => {
   expect(o.found).toEqual({sq: {lemmas: ["'f(x) = x·x': (x, f) => f.eq(x.mul(x))"]}})
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a law between two points, where the rule reads the function at two of its params', () => {
   const growing = recur('growing', {zero: 1, next: (_, d) => min(d.times(2), 64)})
   const r = rule('two tiers').params({low: nat, high: nat}).pre(({low, high}) => low.atMost(high)).inputs({}).state({n: 0}).fns({delay: growing})
@@ -34,7 +36,7 @@ test('a law between two points, where the rule reads the function at two of its 
   const o = discover(r, laws)
   expect(o.verdict).toMatchObject({proven: true, checked: true})
   expect(o.found).toEqual({delay: {lemmas: ["'f(x) <= 64': (_, f) => f.atMost(64)"], between: ["'f(y) >= f(x)': (_, f, __, g) => g.atLeast(f)"]}})
-})
+}, 30_000)
 
 test('a function of two arguments: the bound in the further argument', () => {
   // A bucket filled one a step up to its capacity, read below its capacity's own level: the law needs the bound.

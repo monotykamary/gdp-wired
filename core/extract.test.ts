@@ -47,6 +47,7 @@ export class Bucket {
 })
 
 // --- the subset -----------------------------------------------------------------------------------------------------
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a reducer over a discriminated union: switch, spreads, Math.max, a throw as the assumption', () => {
   const x = ok(ts(`
     type State = {count: number, step: number}
@@ -68,8 +69,9 @@ test('a reducer over a discriminated union: switch, spreads, Math.max, a throw a
   expect(x.evidence!.coverage.hit).toBe(x.evidence!.coverage.arms - 1) // the switch's no-case arm: the union's types rule it out
   const r = x.rule!
   expect(proveRule(r, [r.law('the step stays at least 1', ({step}: any) => step.atLeast(1))])).toMatchObject(modelOnly)
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a class with a keyed map: get or create, refill by elapsed seconds, a result kept', () => {
   const x = ok(ts(`
     type Bucket = {tokens: number, last: number}
@@ -98,8 +100,9 @@ test('a class with a keyed map: get or create, refill by elapsed seconds, a resu
   // Its representation: a key the map doesn't hold holds the defaults, inductive.
   expect(x.invariants!.map(l => l.name)).toEqual(["buckets: a key it doesn't hold holds the defaults"])
   expect(proveRule(x.rule!, x.invariants!)).toMatchObject({proven: true, checked: true, translation: 'sampled', translationChecks: 0})
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a wallet: debit refused past the balance, a getter, a counter of calls', () => {
   const x = ok(ts(`
     export class Wallet {
@@ -118,7 +121,7 @@ test('a wallet: debit refused past the balance, a getter, a counter of calls', (
   const r = x.rule!
   expect(x.source).toContain('balance: 0')
   expect(proveRule(r, [r.law('the balance never goes below 0', ({balance}: any) => balance.atLeast(0))])).toMatchObject(modelOnly)
-})
+}, 30_000)
 
 test('plain JavaScript: a Redux reducer with an untyped action and a default for unknown actions', () => {
   const x = ok(extract(`
@@ -358,6 +361,7 @@ const ORDER = `
         refunded: {type: 'final'},
       },
     })`
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('an XState machine: guards and assign actions read from setup(), the chart run beside XState\'s actor', () => {
   const x = extractXState(machineFile(ORDER), {file: 'order.ts', entry: 'order', xstate, check: {runs: 100, depth: 12}})
   if (!x.ok) throw new Error(JSON.stringify(x.refusals))
@@ -373,7 +377,7 @@ test('an XState machine: guards and assign actions read from setup(), the chart 
   expect(y.names!.map(n => `${n.code}:${n.role}`)).toEqual(['value:state', 'retries:state', 'event:method'])
   expect(proveRule(y.rule!, [...y.invariants!, y.rule!.law('the retries stay within 2', ({retries}: any) => retries.atMost(2))])).toMatchObject({proven: true, checked: true})
   expect(extractXState({code: machineFile(`${ORDER}\nexport const other = createMachine({})`), file: 'order.ts'}).refusals[0]!.what).toBe('several machines in the file (order, other): name one (entry)')
-})
+}, 30_000)
 
 test('XState: a payload read by a guard and an action; a context that goes below 0 is an integer', () => {
   const x = extractXState(machineFile(`
@@ -405,6 +409,7 @@ test('XState: v4 cond, a machine made by a function, and what fromXState refuses
   expect(after.refusals[0]!.what).toMatch(/fromXState: .*two timers in one state/)
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('XState: guards and actions from another file (amplify\'s): an imported object, its entries by name and spread; only those the config names read', () => {
   const files = {'./impl.ts': `import {assign} from 'xstate'
     const canGo = ({context}: {context: {n: number}}) => context.n < 2
@@ -427,8 +432,9 @@ test('XState: guards and actions from another file (amplify\'s): an imported obj
   expect(x.notes.join(' ')).toMatch(/1 guards of the object the config never names, not read/)
   const c = x.chart!
   expect(c.prove([c.law('n stays at most 2', ({n}: any) => n.atMost(2))])).toMatchObject({proven: true, checked: true})
-})
+}, 30_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('XState: inline assign actions and an inline guard, given by their place in the config; a machine with no states', () => {
   const x = extractXState(`import {createMachine, assign} from 'xstate'
     export const counter = createMachine({
@@ -445,7 +451,7 @@ test('XState: inline assign actions and an inline guard, given by their place in
   expect(x.source).not.toContain('int.from')
   const c = x.chart!
   expect(c.prove([c.law('the count never goes below 0', ({count}: any) => count.atLeast(0))])).toMatchObject({proven: true, checked: true})
-})
+}, 30_000)
 
 // --- widened: strings, other files, Redux Toolkit -------------------------------------------------------------------
 import * as rtk from '@reduxjs/toolkit'
@@ -560,6 +566,7 @@ test('a class that extends a generic one with its type arguments (upstash\'s Rat
   refused(ts('export abstract class Base<T> { protected readonly limit: T; constructor(l: T) { this.limit = l } go(): void {} }', 'Base'), /T is not in the subset/)
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a field holding a function (an injected clock): each call an input, one a step, the same in every method', () => {
   const x = ok(ts(`
     export class Window {
@@ -584,7 +591,7 @@ test('a field holding a function (an injected clock): each call an input, one a 
   ok(ts('export class Ids { last = 0; private gen: () => number = () => 7\n constructor(g: () => number) { this.gen = g }\n next(): void { this.last = this.gen() } }', 'Ids'))
   // whether an optional one was given: the check always gives one, so the claim would be narrower than the code
   refused(ts('export class Ids { last = 0; private gen: () => number = () => 7\n constructor(g?: () => number) { if (g) { this.gen = g } }\n next(): void { this.last = this.gen() } }', 'Ids'), /whether a function was given to the constructor/)
-})
+}, 30_000)
 
 test('a field holding a function: called twice in a step, set by a method, called while made, or read as a value, refused', () => {
   const C = (body: string) => ts(`export class C { n = 0; constructor(private f: () => number) {} ${body} }`, 'C')
@@ -596,6 +603,7 @@ test('a field holding a function: called twice in a step, set by a method, calle
   refused(C('go(): void { this.n = this.f() }').ok ? ts('export class C { n = 0; constructor(private f: () => {a: number}) {} go(): void { this.n = this.f().a } }', 'C') : C(''), /returns a compound value/)
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a mixin of the files read: its class between the entry and the class it is given, members resolved in that order', () => {
   const x = ok(ts(`
     type Ctor<T = {}> = new (...args: any[]) => T
@@ -618,7 +626,7 @@ test('a mixin of the files read: its class between the entry and the class it is
   refused(ts('class B { n = 0 }\nconst M = <T extends new (...a: any[]) => {}>(X: T) => class extends X { m = 0 }\nexport class C extends M(M(B)) { go(): void { this.n++ } }', 'C'), /a mixin applied twice/)
   refused(ts('class B { n = 0 }\nlet made = 0\nfunction M<T extends new (...a: any[]) => {}>(X: T) { made++; return class extends X { m = 0 } }\nexport class C extends M(B) { go(): void { this.n++ } }', 'C'), /more than a class/)
   refused(ts('class B { n = 0 }\nclass D { n = 0 }\nconst M = <T extends new (...a: any[]) => {}>(X: T) => class extends D { m = 0 }\nexport class C extends M(B) { go(): void { this.n++ } }', 'C'), /extends other than its parameter/)
-})
+}, 30_000)
 
 test('inheritance: a mixin, a class from another module, a field declared again and a missing super(...) are refused', () => {
   // a mixin of the files read over a class from another module: refused at that class
@@ -681,6 +689,7 @@ test('Dates as naturals: new Date(), getTime(), setTime() where the Date is held
 })
 
 // --- an object a factory makes: its state is what its functions close over -------------------------------------------
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a factory\'s object: the variables its functions close over are its state, a helper writing them inlined', () => {
   const x = ok(ts(`
     export function counter(limit: number) {
@@ -701,7 +710,7 @@ test('a factory\'s object: the variables its functions close over are its state,
   // a law over the extracted rule: the count never passes the limit
   const r = x.rule!, v = proveRule(r, [...(x.invariants ?? []), r.law('n stays within the limit', ({n, limit}: any) => n.atMost(limit))])
   expect(v).toMatchObject(modelOnly)
-})
+}, 30_000)
 
 test('a factory\'s object: state outside the factory, this, a value beside the functions and async are refused', () => {
   // closed over a module-level let: every object would share it (and the check's fresh objects would part from the rule)
@@ -714,6 +723,7 @@ test('a factory\'s object: state outside the factory, this, a value beside the f
 })
 
 // --- arrays, as lists --------------------------------------------------------------------------------------------------
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('arrays as lists: push, pop, length, an item read and set within the array; a reducer\'s [...xs, x]', () => {
   const x = ok(ts(`
     export class Recent {
@@ -739,7 +749,7 @@ test('arrays as lists: push, pop, length, an item read and set within the array;
   // the item pushed is an integer input (the code doesn't refuse it below 0: it leaves the state as it is)
   expect(y.source).toContain('.items({xs: int})')
   expect(y.source).toContain("...xs.apply(xs.push(v, all(type.is('add'), v.atLeast(0))))")
-})
+}, 30_000)
 
 test('arrays: one array in two places, a write to the state given, past the end, two writes, a read after a write are refused', () => {
   // two fields holding one array: a push through one is the other's (the rule's lists are two)
@@ -757,6 +767,7 @@ test('arrays: one array in two places, a write to the state given, past the end,
 
 // --- XState: machines made by a function, actors, timers, eventless transitions, maybes, v4 ---------------------------
 import * as xstate4 from 'xstate4'
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('XState: a machine a factory makes, its answers from outside an input; an actor, a timer and always run as XState', () => {
   const x = extractXState(`import {setup, assign, fromPromise} from 'xstate'
     export interface Deps { upload: () => Promise<void>, latched: () => boolean, log: (n: number) => void }
@@ -783,7 +794,7 @@ test('XState: a machine a factory makes, its answers from outside an input; an a
   expect(x.evidence!.events).toBeGreaterThan(1000)
   const c = x.chart!
   expect(c.prove([c.law('at most two retries', ({tries}: any) => tries.atMost(2))])).toMatchObject({proven: true, checked: true})
-})
+}, 30_000)
 
 test('XState: a factory argument with untyped functions (of type any), called only by an actor: outside the machine', () => {
   const src = (guard: string) => `import {setup, fromPromise} from 'xstate'
@@ -826,6 +837,7 @@ test('XState: what a factory or a machine could not run the same way is refused,
   expect(raise.refusals[0]!.what).toMatch(/sends to the machine itself/)
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('XState v4: cond, (context, event) guards and actions, services, after; a field written from an unread payload left out', () => {
   const x = extractXState(`import {createMachine, assign} from 'xstate'
     type Ctx = {retries: number, limit: number, token?: string}
@@ -850,7 +862,7 @@ test('XState v4: cond, (context, event) guards and actions, services, after; a f
   expect(x.source).toContain('"CLOSE"')
   const c = x.chart!
   expect(c.prove([c.law('the retries stay within the limit', ({retries, limit}: any) => retries.atMost(limit))])).toMatchObject({proven: true, checked: true})
-})
+}, 30_000)
 
 test('the boundary inferred: another module\'s function a class calls answered over its declared type, one returning nothing left out', () => {
   const code = `import {bonus, log} from './quota'

@@ -6,6 +6,7 @@ import {expect, test} from 'bun:test'
 import {Unproven, crossCheckDecision, nat, proveDecision, proveSteps, record, rule} from './dsl.ts'
 import {Line, invoiceLaws, invoiceSteps, invoices, metered, meteredLaws} from '../examples/invoices.ts'
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a list a request carries: proven, cross-checked, the broken variants refused', () => {
   const r = invoices(), laws = invoiceLaws(r), steps = invoiceSteps(r)
   expect(proveSteps(r, laws, steps)).toMatchObject({proven: true, checked: true})
@@ -14,7 +15,7 @@ test('a list a request carries: proven, cross-checked, the broken variants refus
     const b = invoices(bug)
     expect(proveSteps(b, invoiceLaws(b), invoiceSteps(b), {search: false}).proven).toBe(false)
   }
-})
+}, 30_000)
 
 test('the compiled rule on real lists: folds computed, the request refused or approved as the code would', () => {
   const r = invoices(), gen = r.compiled(), ps = r.encodeParams({budget: 100, cap: 40})
@@ -36,6 +37,7 @@ test('a fold lemma that does not hold is refused', () => {
   void Line
 })
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('folds that read the params: proven, the broken lemma refused, computed with the params a request is encoded with', () => {
   const r = metered(), laws = meteredLaws(r)
   expect(proveSteps(r, laws, [])).toMatchObject({proven: true, checked: true})
@@ -49,7 +51,7 @@ test('folds that read the params: proven, the broken lemma refused, computed wit
   for (const lines of [[line(30), line(10)], [line(60), line(60)], [line(20)]]) st = gen.step(ps, st, r.encodeInput({Lines: lines}, params))
   expect(r.decode(st)).toMatchObject({spent: 95, listed: 160, fees: 10}) // 40, then 55 (each line up to 25, the fee 5), then 25 past the budget
   expect(() => r.encodeInput({Lines: [line(1)]})).toThrow(/read the params/)
-})
+}, 30_000)
 
 // A decision reads a request's list as the rule's step does: each fold from its start and step, its lemmas, at the
 // list's end and at every key the decision reads it at.

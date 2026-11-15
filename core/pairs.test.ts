@@ -88,6 +88,7 @@ test('a condition at every two keys or three: decided on a few keys per breakpoi
   expect(falses).toBeGreaterThan(100)
 }, 120_000)
 
+// Default auto-search may use 10s, beyond Bun's 5s test default.
 test('a sorted list and distinct names: proven, cross-checked, the broken variants refused', () => {
   for (const [r, laws] of [[sortedList(), sortedListLaws], [distinctNames(), distinctNamesLaws]] as const) {
     const ls = laws(r as never)
@@ -102,7 +103,7 @@ test('a sorted list and distinct names: proven, cross-checked, the broken varian
   for (const l of [[1, 2, 3], [3, 2], [0, 0], [5], [1, 4, 9, 9], [2, 7, 8, 20]]) { st = g.step({}, st, r.encodeInput({n: l.length, New: new Map(l.map((x, i) => [i, x]))} as never)); lens.push(st.scalars.len!) }
   expect(lens).toEqual([3, 3, 3, 1, 1, 4])
   expect([...st.maps.At!].filter(([, x]) => x)).toEqual([[0, 2], [1, 7], [2, 8], [3, 20]])
-})
+}, 30_000)
 
 test('each key read on its own, compared with another plainly', () => {
   const at = (key: E): E => ({op: 'get', map: 'I', key}), m = (body: C): Machine => ({name: 'pairs', params: [], inputs: ['a'], state: {r: c(0)}, inputMaps: ['I'],

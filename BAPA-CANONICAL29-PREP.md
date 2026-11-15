@@ -1,6 +1,6 @@
 # Canonical29 preparation (not an authorization or launch)
 
-D supplied the retained recipe at `../gdp-wired-verifyP/research/verify-all/closing-snapshot-review/BAPA-CANONICAL29-RECIPE.md` and the read-only, consumed template `/home/user/.local/state/r4-launcher/section71-final29-inherit/`.
+D supplied the retained recipe at `../gdp-wired-verifyP/research/verify-all/closing-snapshot-review/BAPA-CANONICAL29-RECIPE.md` and the read-only, consumed template `~/.local/state/r4-launcher/section71-final29-inherit/`.
 
 The comparison must run once on the finally frozen BAPA candidate, after static review. Do not substitute `research/protocols/ic3syn/run.ts --ms 60000`.
 

@@ -1,6 +1,6 @@
 # Writer-only next-run packet (Main decision)
 
-Base48f21567f94b1d7ec26098e804af329f717a67c8; branch `track-m/closing-writer` in `/home/user/VCS/working-remote/open-source/gdp-wired-trackM-closing-writer`.
+Base48f21567f94b1d7ec26098e804af329f717a67c8; branch `track-m/closing-writer` in `../gdp-wired-trackM-closing-writer`.
 
 NEXT FULL RUN waits only for (1) accepted K memory fix, (2) peak export, (3) this write-only snapshot exporter. Shared-closing extraction, loader, and ledger hydration are deferred and preserved separately in `gdp-wired-trackM-peak-memory`; none is part of this packet. No tests or new B admissions yet.
 

@@ -46,5 +46,5 @@ No TS acceptance path is enabled until corresponding Lean theorems compile and p
 
 - Ask Fable (`hc t2`) to review this plan before accepting the new design; lane D (`hc t7`) reviews each kernel diff before completion.
 - All builds, tests, theorem compilation, mutants and profile runs through `SUPERCOMPUTER_CONTROLLER=1 supercomputer`; job outputs under `$SUPERCOMPUTER_OUTPUT_DIR`, retain batch IDs and use `supercomputer batch fetch`.
-- Local work only git, edits, reads and few-second commands. Initial shell could not find `supercomputer` on PATH; the installed executable was located at `/home/user/.local/bin/supercomputer` and its skill is the next required read.
-- Never push, rewrite history, edit another worktree, modify 4aaf claim runs, or kill by pattern. Stop started resources. Only append dated RESULT/BLOCKER receipts to `/home/user/VCS/working-remote/open-source/MAIN-INBOX.md`; do not message Main.
+- Local work only git, edits, reads and few-second commands. Initial shell could not find `supercomputer` on PATH; the installed executable was located at `~/.local/bin/supercomputer` and its skill is the next required read.
+- Never push, rewrite history, edit another worktree, modify 4aaf claim runs, or kill by pattern. Stop started resources. Only append dated RESULT/BLOCKER receipts to `../MAIN-INBOX.md`; do not message Main.

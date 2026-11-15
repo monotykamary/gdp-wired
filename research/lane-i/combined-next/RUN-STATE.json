@@ -1,6 +1,6 @@
 {
   "branch": "claude/mldr-next-combined",
-  "worktree": "/home/user/VCS/working-remote/open-source/gdp-wired-integ-next-stage",
+  "worktree": "../gdp-wired-integ-next-stage",
   "parent": "4bec30ad095fbb75396947a37ea113f47d875cc5",
   "sourceTree": "c936375358aee1fe61335f13b163d31df2ad79e1",
   "input": "/tmp/lane-i-combined-input.8gNQGZ",

@@ -13,6 +13,7 @@ import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.
 import {allowNode, certMs, closingInsts, reqTS, withWitness, foldNodes, certMode, quietly, uncoveredWhy, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, routeOf, searchedStepNodes, skMachine, stepLawNodes, tBack, tSub} from '../core/cyclic.ts'
 import type {Fact} from '../kernel/cyclic.ts'
 import {leanLibrary} from './library.ts'
+import {legacyFamilyLibrary} from './legacy-family-library.ts'
 import {proveKInduction} from '../core/kind.ts'
 import {quantifiedRenames} from './qalpha.ts'
 import {countsForReads} from '../core/count-facts.ts'
@@ -344,22 +345,10 @@ export function encodeCounted(id: string, goal: Goal, cert: {tree: Tree, lemmas?
   return {...base, lemmas: lemmaList(ls), lemmaList}
 }
 
-// A single counted obligation, including conditional frames. This is a conditional
-// goal theorem through mcF_sound, not a claim that the source machine's INIT or
-// its other operation goals have been proved.
-export function mcToLean(id: string, hyps: C[], decls: CountDecl[], cert: CountCert): string {
-  if (!checkMC(hyps, decls, cert)) throw new Error(`${id}: counted certificate does not check`)
-  const goal = mcGoal(hyps, decls, cert)!
-  const extra = lemmaNames(cert.lemmas ?? [], cert.frames, cert.monos, cert.lins)
-  const vars = [...new Set([...extra.vars, ...goal.hyps.flatMap(varsOf),
-    ...decls.flatMap(d => [d.j, d.lo ?? d.j, d.key, ...varsOfE(d.below), ...varsOfE(d.body)]),
-    ...cert.reads.flatMap(r => [r[0], ...varsOfE(r[2])]),
-    ...cert.insts.flatMap(i => [i.wit, ...varsOfE(i.below)]),
-    ...(cert.picks ?? []).flatMap(([v, ks]) => [v, ...ks.flatMap(varsOfE)])])]
-  const maps = [...new Set([...extra.maps, ...goal.hyps.flatMap(mapsOf), ...decls.flatMap(d => [d.map, ...mapsOf(d.below), ...mapsOf(d.body)])])]
-  const enc = encodeCounted(id, goal, cert, vars, maps), {e, c} = enc
-  const ix = (name: string) => { const i = vars.indexOf(name); if (i < 0) throw new Error(`${id}: unknown variable ${name}`); return i }
-  const mx = (name: string) => maps.indexOf(name)
+// The three cut lists of one counted certificate as Lean literals: frames over the certificate's own row encoder, per-key
+// monotone and linear cuts each with the table and tree of its own auxiliary goal. One code path for the single-goal
+// export (mcToLean) and the family export (cmachineToLean).
+function cutLits(id: string, cert: CountCert, decls: CountDecl[], enc: {row: (lin: Lin) => string}, vars: string[], maps: string[], c: (c: C) => string, ix: (name: string) => number): {frames: string, monos: string, lins: string} {
   const frames = list((cert.frames ?? []).map(f => `⟨${list(f.when.map(enc.row))}, ${ix(f.post)}, ${ix(f.pre)}⟩`))
   const counts = countsForReads(decls, cert.reads)
   if (!counts) throw new Error(`${id}: invalid count reads`)
@@ -379,6 +368,26 @@ export function mcToLean(id: string, hyps: C[], decls: CountDecl[], cert: CountC
     const side = (xs: [number, string][]) => list(xs.map(([k, v]) => `(${k}, ${ix(v)})`))
     return `⟨${list(l.when.map(c))}, ${side(l.pos)}, ${side(l.neg)}, ${proof.tab}, ${proof.tree}⟩`
   }))
+  return {frames, monos, lins}
+}
+
+// A single counted obligation, including conditional frames. This is a conditional
+// goal theorem through mcF_sound, not a claim that the source machine's INIT or
+// its other operation goals have been proved.
+export function mcToLean(id: string, hyps: C[], decls: CountDecl[], cert: CountCert): string {
+  if (!checkMC(hyps, decls, cert)) throw new Error(`${id}: counted certificate does not check`)
+  const goal = mcGoal(hyps, decls, cert)!
+  const extra = lemmaNames(cert.lemmas ?? [], cert.frames, cert.monos, cert.lins)
+  const vars = [...new Set([...extra.vars, ...goal.hyps.flatMap(varsOf),
+    ...decls.flatMap(d => [d.j, d.lo ?? d.j, d.key, ...varsOfE(d.below), ...varsOfE(d.body)]),
+    ...cert.reads.flatMap(r => [r[0], ...varsOfE(r[2])]),
+    ...cert.insts.flatMap(i => [i.wit, ...varsOfE(i.below)]),
+    ...(cert.picks ?? []).flatMap(([v, ks]) => [v, ...ks.flatMap(varsOfE)])])]
+  const maps = [...new Set([...extra.maps, ...goal.hyps.flatMap(mapsOf), ...decls.flatMap(d => [d.map, ...mapsOf(d.below), ...mapsOf(d.body)])])]
+  const enc = encodeCounted(id, goal, cert, vars, maps), {e, c} = enc
+  const ix = (name: string) => { const i = vars.indexOf(name); if (i < 0) throw new Error(`${id}: unknown variable ${name}`); return i }
+  const mx = (name: string) => maps.indexOf(name)
+  const {frames, monos, lins} = cutLits(id, cert, decls, enc, vars, maps, c, ix)
   const linRef = cert.lins?.length ? `${id}_lins` : '[]'
   const linDefinition = cert.lins?.length ? `def ${id}_lins : List LinCut := ${lins}\n` : ''
   const monoRef = cert.monos?.length ? `${id}_monos` : '[]'
@@ -437,7 +446,7 @@ export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {inst
   const sm: Machine = {...m, counts: undefined, inputMaps: [...(m.inputMaps ?? []), ...counts.map(([cn]) => cn)]}
   const named = machineNames(sm, laws, [], [], {})
   const allCerts = [proof.certs, ...tampers.map(t => t.certs)]
-  const extra = allCerts.flatMap(cs => Object.values(cs).map(k => lemmaNames(k.lemmas ?? [])))
+  const extra = allCerts.flatMap(cs => Object.values(cs).map(k => lemmaNames(k.lemmas ?? [], k.frames, k.monos, k.lins)))
   const goals = obl.map(o => { const g = mcGoal(o.goal.hyps, o.decls, proof.certs[o.goal.name]!); if (!g) throw new Error(`${id}: ${o.goal.name}: a read of no count`); return g })
   const certVars = allCerts.flatMap(cs => Object.values(cs).flatMap(k => [...k.reads.flatMap(r => [r[0], ...varsOfE(r[2])]), ...k.insts.flatMap(i => [i.wit, ...varsOfE(i.below)]), ...(k.picks ?? []).flatMap(([v2, ks]) => [v2, ...ks.flatMap(varsOfE)])]))
   const vars = [...new Set([...named.vars, ...extra.flatMap(n => n.vars), ...counts.flatMap(([, d]) => [d.j, d.lo ?? d.j, d.key, ...varsOfE(d.below), ...varsOfE(d.body)]), ...laws.map(l => (l.forall ? `${l.forall}#` : '#')),
@@ -481,12 +490,28 @@ export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {inst
   ${list((k.picks ?? []).map(([v2, ks]) => `(${ix(v2)}, ${list(ks.map(e))})`))},
   ${tt.lemmaList(k.lemmas ?? [])}⟩`
   }
+  // A certificate's cuts, encoded against the same table as its tree (a tampered certificate keeps the cuts of the one
+  // it tampers with, as it keeps its table and tree). Emitted only when some certificate of this export has a cut: an
+  // export without cuts is the text it was before.
+  const hasCuts = (k: CountCert) => !!(k.frames?.length || k.monos?.length || k.lins?.length)
+  const withAux = allCerts.some(cs => Object.values(cs).some(hasCuts))
+  const auxLit = (name: string, certs: Record<string, CountCert>) => {
+    const o = obl.find(o2 => o2.goal.name === name)!, k = certs[name]!, k0 = proof.certs[name]!
+    if (!hasCuts(k) && !hasCuts(k0)) return '⟨[], [], []⟩'
+    // The table is the original certificate's (as for its tree); the cuts are this certificate's own, so a tamper
+    // that drops or alters a cut is exported as altered and Lean computes the check without it.
+    const tt = encodeCounted(`${id}: ${name}`, mcGoal(o.goal.hyps, o.decls, k0)!, k0, vars, maps)
+    const cuts = cutLits(`${id}: ${name}`, {...k0, frames: k.frames, monos: k.monos, lins: k.lins}, o.decls, tt, vars, maps, c, ix)
+    return `⟨${cuts.frames}, ${cuts.monos}, ${cuts.lins}⟩`
+  }
   const entries = (certs: Record<string, CountCert>) => laws.map(law => {
     const inst = proof.instances[law.name] ?? {}
     return `⟨⟨⟨${c(law.holds)}, ${law.forall ? `some ${ix(law.forall)}` : 'none'}⟩, ${ix(law.forall ? `${law.forall}#` : '#')}, ${list((law.keys ?? []).map(key => String(ix(key))))}, ${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))}, ${list(pfinsts(inst))},
   ([], [], .leaf [] [] [] []), ([], [], .leaf [] [] [] [])⟩,
   ${certLit(`${law.name} @start`, certs)},
-  ${certLit(`${law.name} @step`, certs)}⟩`
+  ${certLit(`${law.name} @step`, certs)}${withAux ? `,
+  ${auxLit(`${law.name} @start`, certs)},
+  ${auxLit(`${law.name} @step`, certs)}` : ''}⟩`
   })
   return `-- ${m.name}: ${laws.map(l => l.name).join('; ')}, with counts ${counts.map(([cn]) => cn).join(', ')}
 --   (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')}; maps ${maps.map((v2, j) => `${j} ${v2}`).join(', ')})
@@ -495,13 +520,13 @@ def ${id}_machine : SMachine := ${machineLit(sm, {e, c}, ix, mx)}${renames.lengt
 def ${id}_renames : List QAlpha.Rename := ${list(renames.map(r => `⟨${ix(`?${r.flag}`)}, ${ix(r.old)}, ${ix(r.fresh)}⟩`))}
 def ${id}_checkedMachine : SMachine := QAlpha.renameAll ${id}_machine ${id}_renames` : ''}
 def ${id}_decls : List CDecl := ${list(counts.map(([cn, d]) => `⟨${mx(cn)}, ${mx(postName(cn))}, ${ix(d.j)}, ${ix(d.key)}, ${e(d.below)}, ${e(d.body)}, ${ix(d.lo ?? d.j)}, ${d.base ?? 0}⟩`))}
-def ${id}_proof : List CEntry := ${list(entries(proof.certs))}
-theorem ${id}_check : checkCMachine ${checked} ${id}_decls ${id}_proof = true := by ${checkBy}
+${withAux ? 'noncomputable ' : ''}def ${id}_proof : List ${withAux ? 'CEntryF' : 'CEntry'} := ${list(entries(proof.certs))}
+theorem ${id}_check : ${withAux ? 'checkCMachineF' : 'checkCMachine'} ${checked} ${id}_decls ${id}_proof = true := by ${checkBy}
 /-- ${laws.map(l => l.name).join('; ')}: each holds in every reachable state, each count map read as the state's count. -/
 theorem ${id}_laws : ∀ ρ M, CReach ${id}_machine ${id}_decls ρ M → ∀ ce ∈ ${id}_proof, ce.e.Holds ρ (withCnt ${id}_decls ρ M) :=
-  ${renames.length ? `QAlpha.cmachine_sound ${id}_machine ${id}_renames ${id}_decls ${id}_proof (by ${checkBy}) ${id}_check` : `cmachine_sound ${id}_machine ${id}_decls ${id}_proof ${id}_check`}${tampers.map(t => `
+  ${renames.length ? `QAlpha.${withAux ? 'cmachineF_sound' : 'cmachine_sound'} ${id}_machine ${id}_renames ${id}_decls ${id}_proof (by ${checkBy}) ${id}_check` : `${withAux ? 'cmachineF_sound' : 'cmachine_sound'} ${id}_machine ${id}_decls ${id}_proof ${id}_check`}${tampers.map(t => `
 -- TAMPERED: ${t.what}. Lean computes the check to false, as kernel.ts refuses it.
-example : checkCMachine ${checked} ${id}_decls ${list(entries(t.certs))} = false := by ${checkBy}`).join('')}`
+example : ${withAux ? 'checkCMachineF' : 'checkCMachine'} ${checked} ${id}_decls ${list(entries(t.certs))} = false := by ${checkBy}`).join('')}`
 }
 
 // Whole machines through Kern.machine_sound: Lean builds the goals from the machine; the trees are the kernel's.
@@ -786,7 +811,7 @@ theorem ${id}_laws : ∀ maps ρ, evalC ρ maps ${id}_fold.pre = true → ∀ t,
 // witness terms in place (some_of_subst) or over the machine's ghosts at every reachable state of the machine without
 // them (some_of_ghost); and `<id>.lawN` the same over named variables, each bound natural as w1, w2, ... (`lit`: the
 // condition printer, for P's literal).
-export function readable(id: string, laws: Law[], vars: string[], maps: string[], reach: {binders: string, hyp: string, call: string, have?: (j: number) => string, lit?: (c: C) => string, eLit?: (e: E) => string}): string {
+export function readable(id: string, laws: Law[], vars: string[], maps: string[], reach: {binders: string, hyp: string, call: string, have?: (j: number) => string, lit?: (c: C) => string, eLit?: (e: E) => string, ghosts?: boolean}): string {
   for (const name of [...vars, ...maps]) if (name === 'ρ' || name === 'μ' || name.includes('«') || name.includes('»')) throw new Error(`${id}: the name ${name} can't be a Lean abbreviation here`)
   const q = (name: string) => `«${name}»`
   // Division and remainder by a constant (div$k, mod$k): Lean's x / k and x % k, under the hypothesis that the map is
@@ -836,10 +861,15 @@ export function readable(id: string, laws: Law[], vars: string[], maps: string[]
     const ix = (name: string) => { const i = vars.indexOf(name); if (i < 0) throw new Error(`${id}: no variable for ${name}`); return i }
     const ws = ex.vars.map((_, i) => `w${i + 1}`), at = (env: string, vals: string[]) => `updAll ${env} [${ex.vars.map((n, i) => `(${ix(n)}, ${vals[i]})`).join(', ')}]`
     const P = `(${lit(ex.body)})`, key = law.forall ? ix(law.forall) : undefined
-    const sigma = ex.sub ? `[${ex.vars.map(n => `(${ix(n)}, ${eLit(ex.sub![n]!)})`).join(', ')}]` : ''
-    const machine = ex.ghost ? `${id}_ghosted.orig` : `${id}_machine`
+    // A retained family may carry ex.ghost metadata without exporting the
+    // original/ghosted pair. In that case its theorem is about this machine:
+    // choose its current witness values, not a nonexistent _ghosted.orig.
+    const throughGhosts = ex.ghost && reach.ghosts
+    const sub = ex.sub ?? (ex.ghost && !throughGhosts ? Object.fromEntries(ex.vars.map(n => [n, {op: 'var', name: n} as E])) : undefined)
+    const sigma = sub ? `[${ex.vars.map(n => `(${ix(n)}, ${eLit(sub[n]!)})`).join(', ')}]` : ''
+    const machine = throughGhosts ? `${id}_ghosted.orig` : `${id}_machine`
     const head = `theorem some${j} : ∀ ρ μ, SReach ${machine} ρ μ → ${key !== undefined ? '∀ k : Nat, ' : ''}∃ ${ws.join(' ')} : Nat, evalC (${at(key !== undefined ? `(upd ρ ${key} k)` : 'ρ', ws)}) μ ${P} = true`
-    const proof = ex.ghost
+    const proof = throughGhosts
       ? `  intro ρ μ h
   obtain ⟨ρg, hg⟩ := some_of_ghost ${id}_ghosted ${id}_ghostOk [${ex.vars.map(ix).join(', ')}] ${P} (by ${checkBy}) (fun ρ μ h => by
     ${haveOf(j)}
@@ -854,7 +884,7 @@ export function readable(id: string, laws: Law[], vars: string[], maps: string[]
 theorem law${j} ${reach.binders} (h : SReach ${machine} ρ μ) : ${statement(law)} := by
   ${key !== undefined ? 'intro k\n  ' : ''}obtain ⟨${ws.join(', ')}, hg⟩ := some${j} ρ μ h${key !== undefined ? ' k' : ''}
   exact ⟨${ws.join(', ')}, (evalC_iff (${at(key !== undefined ? `(upd ρ ${key} k)` : 'ρ', ws)}) μ ${P}).mp hg⟩`
-    return `-- ${law.name}: there exists, proven ${ex.ghost ? 'through ghosts the machine carries' : 'with its witness terms in place'}
+    return `-- ${law.name}: there exists, proven ${throughGhosts ? 'through ghosts the machine carries' : ex.ghost ? 'with current-machine witness values' : 'with its witness terms in place'}
 ${head} := by
 ${proof}
 ${plain}`
@@ -1552,7 +1582,7 @@ def ${id}_proof : List SEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
 theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by ${checkBy}
 theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_proof, e.Holds ρ M :=
   smachine_sound ${id}_machine ${id}_proof ${id}_check
-${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e})}${sm ? sumsBlock() : ''}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
+${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e, ghosts: !rf && !gm && gv.length > 0})}${sm ? sumsBlock() : ''}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
 example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix, mx, lit)}` : ''}`
@@ -1862,7 +1892,7 @@ ${cycProofText(id, p, [], vars, maps)}
 ${okLemmas}
 ${lawBlocks}
 ${lawsThm}
-${hm ? histBlock() : readable(id, laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: '', lit: c, eLit: e,
+${hm ? histBlock() : readable(id, laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: '', lit: c, eLit: e, ghosts: !rf && gv.length > 0,
   have: j => `have hl : holdsOver ${id}_l${j} μ ${keys2(laws[j]!)} ρ := cyc_machine_holds (${id}_law${j}_holds ρ μ h)`})}${opts.noFacts ? '' : factsProof(id, m, maps, vars, opts.simp)}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`}
 }
 
@@ -2317,9 +2347,13 @@ export {rationalsToLean} from './qlean.ts'
 // A Lake project that builds the twin and the file: `lake build` in its folder checks every proof.
 export function leanProject(file: string, opts: {name?: string} = {}): Record<string, string> {
   const name = opts.name ?? 'Proofs'
-  const modules = [...Object.keys(leanLibrary).map(f => f.replace(/\.lean$/, '')), name]
+  // Only generated cut-family declarations need the new family library. Merely
+  // mentioning CEntryF in a comment or identifier must not change a cut-free project.
+  const cutFamily = /^(?:noncomputable )?def [^\s:]+ : List CEntryF :=/m.test(file)
+  const library = cutFamily ? leanLibrary : {...leanLibrary, ...legacyFamilyLibrary}
+  const modules = [...Object.keys(library).map(f => f.replace(/\.lean$/, '')), name]
   return {
-    ...leanLibrary,
+    ...library,
     [`${name}.lean`]: file,
     'lean-toolchain': 'leanprover/lean4:v4.34.0\n',
     'lakefile.lean': `import Lake

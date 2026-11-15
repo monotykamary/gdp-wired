@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url'
 const fixture=fileURLToPath(new URL('./driver-owner.fixture.sh',import.meta.url)),helper=fileURLToPath(new URL('../section51-supplier-timed/driver-owner.sh',import.meta.url))
 for(const mode of ['normal','terminate','ignore'])test('R2 exact child ownership and cleanup: '+mode,async()=>{
  const out=mkdtempSync(join(tmpdir(),'driver-owner-')),worker=Bun.spawn(['bash',fixture,'worker',mode,out,helper],{stdout:'ignore',stderr:'pipe'}),exited=worker.exited
- let done=false;exited.then(()=>{done=true})
+ let done=false;void exited.then(()=>{done=true},()=>{})
  try{
   if(mode!=='normal'){
    for(let i=0;i<300&&!existsSync(join(out,'worker-ready'));i++)await Bun.sleep(10)

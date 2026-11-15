@@ -52,7 +52,7 @@ Per-helper construction, checking, rescoping and replay costs, and safety-only c
 
 ## Evidence
 
-Directory: `/home/user/VCS/working-remote/open-source/gdp-wired-trackM-closure-9eb/runs/r4-cap64-20261112-081430/mldr-3g-timed.files/`.
+Directory: `../gdp-wired-trackM-closure-9eb/runs/r4-cap64-20261112-081430/mldr-3g-timed.files/`.
 
 - `TIMED-TERMINAL.json` (same control directory): SHA256 `3f684d3475a242be80c02dc9c2da6fa465a85191948bc4d02a91800023dde902`.
 - `verdict.json`: `0394d86d90bea705a61e899da350941e4368cad31bae5e696964340f055fd369`.

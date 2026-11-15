@@ -22,5 +22,9 @@ test('accepted reduced family bytes and native verdict equal frozen f585',()=>wi
   expect(prior).toBeDefined();expect(now).toBeDefined();expect(JSON.stringify(proof)).toBe(before);Object.assign(oldCerts,prior.proof.certs);Object.assign(newCerts,now.proof.certs);oldPremises[owner.name]=prior.proof.premises!;newPremises[owner.name]=now.proof.premises!
  }
  const oldProof={instances:{},certs:oldCerts,premises:oldPremises},newProof={instances:{},certs:newCerts,premises:newPremises}
- expect(JSON.stringify(newProof)).toBe(JSON.stringify(oldProof));expect(checkCountedLaws(m,closed,oldProof)).toBe(true);expect(checkCountedLaws(m,closed,newProof)).toBe(true)
+ // 4cf1569a9 retains the original INIT header (declaration identity from 3a0715c88).
+ // Empty optional lemma lists have the same meaning; nonempty lists remain byte-sensitive.
+ const wire=(proof:typeof newProof)=>JSON.stringify(proof,(key,value:unknown)=>key==='lemmas'&&Array.isArray(value)&&value.length===0?undefined:value)
+ expect(oldProof.certs['left @start']?.lemmas).toEqual([]);expect(newProof.certs['left @start']).not.toHaveProperty('lemmas')
+ expect(wire(newProof)).toBe(wire(oldProof));expect(checkCountedLaws(m,closed,oldProof)).toBe(true);expect(checkCountedLaws(m,closed,newProof)).toBe(true)
 })))

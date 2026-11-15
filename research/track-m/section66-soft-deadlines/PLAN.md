@@ -4,7 +4,7 @@
 
 Main t6 authorizes (a) A's read-only endpoint-kind observation on the original d5c44268 pin and (b) B's general DSL soft-deadline fix. This work is (b) only. A's probe is separate and must not contain the fix. K owns ledger-semantics source review. D owns independent review and the new execution GO. Calibration remains HOLD.
 
-Base: d5c442685f5c11394c1ac99fa0568647290b0344 (Run A accepted pin). Worktree `/home/user/VCS/working-remote/open-source/gdp-wired-trackM-soft-deadlines`, branch `track-m/soft-deadline-boundaries`.
+Base: d5c442685f5c11394c1ac99fa0568647290b0344 (Run A accepted pin). Worktree `../gdp-wired-trackM-soft-deadlines`, branch `track-m/soft-deadline-boundaries`.
 
 ## Falsifiable hypothesis
 
@@ -42,4 +42,4 @@ K source acceptance, then D source acceptance/GO for an exact packet. Run focuse
 
 ## Routing
 
-Results/blockers append-only to `/home/user/VCS/working-remote/open-source/MAIN-INBOX.md`. No GitHub writes. Retained prior full-run evidence and the unused JSC contingency remain untouched.
+Results/blockers append-only to `../MAIN-INBOX.md`. No GitHub writes. Retained prior full-run evidence and the unused JSC contingency remain untouched.

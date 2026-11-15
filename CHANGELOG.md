@@ -3,6 +3,33 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.49.0
+
+- **IC3Syn: all 29 protocols proven with nothing written** and kernel-checked (0.45.0: 22 of 29 within 60 s), at larger
+  budgets than those runs, under the documented canonical configuration, in our harness. 27 verdicts come from the main
+  verification run; sharded_kv and MLDR come from separate runs of the same prover code and configuration. The release
+  source differs from the verified source only in the Lean exporter, so these verdicts are carried to it rather than
+  produced by 29 fresh runs. **Not claimed:** that all 29 fit within the reference budget W (counted work equal to 600
+  reference CPU seconds, IC3Syn's default timeout). That result is pending and will be published as an addendum.
+- **IC3Syn's broken variants:** 11/29 refuted with an actual counterexample run, 11/29 small-instance-only (a failure
+  without an execution trace), 7/29 unknown or incomplete. A SAT result or a small-instance rejection is not counted as
+  a refutation.
+- **Lean family certificates checked for all 29 IC3Syn protocols** (67 theorems, Lean 4.34.0; axioms propext,
+  Classical.choice and Quot.sound only). MLDR's family was checked as 35 obligation proofs joined into the family
+  theorem. Lean certifies the exported families; binding to the original machine (QAlpha transport exists; the counted
+  search's auxiliary count still needs a transport proof) is not claimed.
+- **Lean export:** families whose obligations use frame, monotone or linear cuts export those cuts and are checked by a
+  cut-aware family check; retained ghost laws no longer reference undeclared definitions; counted proofs of cut-carrying
+  families are `noncomputable`. Families without cuts export byte-identically to before.
+- **Prover:** separate fixed recipe inventories per model/law context (at most four per admission attempt); counted
+  search deadlines keep their own clock domain while legacy calls keep real-wall cancellation; memoized proof hints are
+  rechecked against the current model, with a cold fallback when stale. Preparatory BAPA features stay opt-in and
+  default-off.
+- **Known limitations:** a fifth inventory context is refused; a structured-fallback completeness regression is deferred
+  to 0.49.1 (it does not admit an invalid certificate); some counted-law failures return no execution trace (witness
+  search deferred to 0.50); checking MLDR in Lean on a 32 GB machine needs the split check, which the exporter does not
+  yet produce automatically.
+
 ## 0.48.0
 
 - **Breaking — source validation:** source translation is cross-checked against native execution by default;

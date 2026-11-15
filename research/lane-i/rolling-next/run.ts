@@ -5,7 +5,7 @@ import {join,resolve} from 'node:path'
 import {spawnSync} from 'node:child_process'
 const input=resolve('port-input'),root=mkdtempSync('/tmp/rolling-partial-')
 const source=readFileSync(join(input,'source.txt'),'utf8').trim()
-const out=resolve('/home/user/.sc-artifacts/lane-i-rolling-next',source,'partial-source')
+const out=resolve(process.env.HOME??'.','.sc-artifacts/lane-i-rolling-next',source,'partial-source')
 mkdirSync(out,{recursive:true})
 const hash=(bytes:Buffer)=>createHash('sha256').update(bytes).digest('hex')
 const blob=(bytes:Buffer)=>createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex')

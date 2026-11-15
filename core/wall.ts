@@ -1,15 +1,15 @@
 // Cooperative cancellation of untrusted search. Legacy callers retain their
 // wall; an explicit work scope never consults it or grants completion headroom.
-import {pastWall, clock, searchNow, wallAt, inBudget, inWorkScope, checkBudget, checkWorkAdmission, remainingWork} from '../kernel/prove.ts'
+import {pastWall, clock, searchNow, wallAt, inBudget, inWorkScope, checkBudget, checkWorkAdmission, remainingWork,wallDeadline,type WallDeadline} from '../kernel/prove.ts'
 import {runtimeWall} from './runtime-wall.ts'
-export {withBudget, budgetEnd, inBudget, checkBudget, checkWorkEndpoint, BudgetExpired, searchNow} from '../kernel/prove.ts'
+export {wallDeadline,withBudget, budgetEnd, inBudget, checkBudget, checkWorkEndpoint, BudgetExpired, searchNow} from '../kernel/prove.ts'
 export {traceNow} from './trace-clock.ts'
 // CLI proposal loops historically use epoch milliseconds rather than performance.
 // Preserve that fallback, but share the work clock in either opt-in work mode.
 export const searchDateNow = (): number => inWorkScope() ? clock() : Date.now()
-export const searchWall = (ms: number): number => inWorkScope()
+export const searchWall = (ms: number): WallDeadline => wallDeadline(inWorkScope()
   ? Math.min(wallAt(), clock() + Math.max(0, ms))
-  : searchNow() + ms - Math.min(1000, Math.max(0, ms) / 20)
+  : searchNow() + ms - Math.min(1000, Math.max(0, ms) / 20))
 // Legacy transport had a scaled wall allowance for uncounted assembly. Work
 // mode uses the given counted end, without a time multiplier or fresh budget.
 export const transportEnd = (until: number, cap = Infinity): number => inWorkScope()
