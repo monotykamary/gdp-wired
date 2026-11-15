@@ -86,12 +86,17 @@ export function fieldLaws(m: Machine, composed = true, loaded = true): Law[] {
       const old = rows.get(o.map as string)
       rows.set(o.map as string, old === undefined || old === key.a.k ? key.a.k : 0)
     })
+    // Zero is reserved for ambiguous packed strides; -1 denotes a native tuple.
+    for (const [map, sorts] of Object.entries(m.relations ?? {})) if (sorts.length === 2 && sorts[0] === sorts[1]) rows.set(map, -1)
     const agrees: {map: string, f: string, g: string, law: Law}[] = []
     for (const [map, base] of rows) if (base) for (let i = 0; i < fs.length; i++) for (let j = i + 1; j < fs.length; j++) {
-      const f = fs[i]!, g = fs[j]!, cell = (row: E) => get(map, plus(times(base, row), c))
+      const f = fs[i]!, g = fs[j]!, cell = (row: E) => get(map, base === -1 ? tuple([row, c]) : plus(times(base, row), c))
       const guard = all(da, db, less(c, bound), same(get(f, a), get(f, b)), same(get(g, a), get(g, b)))
       const law: Law = {name: `fields: ${f}[a]=${f}[b] and ${g}[a]=${g}[b] -> ${map} rows agree`, forall: ka, keys: [kb, kc], holds: any(not(guard), same(cell(a), cell(b)))}
-      out.push(law); agrees.push({map, f, g, law})
+      // Tuple agreement was already emitted above; use that same stronger law.
+      const existing = base === -1 ? out.find(l => l.name === law.name) : undefined
+      if (!existing) out.push(law)
+      agrees.push({map, f, g, law: existing ?? law})
     }
     if (!loaded) return out
     // Loaded rows: an every-key write that, in a flag's branch and inside the row of an input, reads ANOTHER plain-key
@@ -158,7 +163,12 @@ export function fieldLaws(m: Machine, composed = true, loaded = true): Law[] {
         }
         const here = t.op === 'and' ? [...positive, ...atoms(t)] : positive
         const key = t.key as Node | undefined, row = key?.b as Node | undefined, input = (row?.a as Node | undefined)?.name as string | undefined, src = t.map as string
-        if (t.op === 'get' && src !== map && src in maps && !rows.has(src) && key?.op === 'sub' && (key.a as Node).op === 'var' && (key.a as Node).name === w.each
+        if (base === -1 && t.op === 'get' && src !== map && src in maps && !rows.has(src)) {
+          const first: E = {op: 'proj', k: 0, a: x(w.each)}, second: E = {op: 'proj', k: 1, a: x(w.each)}
+          if (sameTerm(t.key, second)) for (const input of m.inputs) if (here.some(q => sameTerm(q, same(first, x(input))) || sameTerm(q, same(x(input), first))))
+            for (const q of here) if (q.op === 'flag') { const flag = q.name as string; loads.set(`${src}:${input}:${flag}`, {src, input, flag}) }
+        }
+        if (base !== -1 && t.op === 'get' && src !== map && src in maps && !rows.has(src) && key?.op === 'sub' && (key.a as Node).op === 'var' && (key.a as Node).name === w.each
           && row?.op === 'mul' && row.k === base && (row.a as Node).op === 'var' && input !== undefined && m.inputs.includes(input)
           && here.some(q => sameTerm(q, atMost(times(base, x(input)), x(w.each))))
           && here.some(q => sameTerm(q, less(x(w.each), plus(times(base, x(input)), n(base))))))
@@ -166,7 +176,7 @@ export function fieldLaws(m: Machine, composed = true, loaded = true): Law[] {
         for (const u of Object.values(t)) visit(u, here)
       }
       visit(w.value, [])
-      const cell = (r: E) => get(map, plus(times(base, r), c))
+      const cell = (r: E) => get(map, base === -1 ? tuple([r, c]) : plus(times(base, r), c))
       for (const {src, input, flag} of loads.values()) for (const [mk, mw] of Object.entries(m.step.maps ?? {})) {
         if ('each' in mw || mw.key.op !== 'var' || mw.key.name !== input || !(mk in maps) || rows.has(mk) || mk === src) continue
         const v = markerValue(mw.value, mk, mw.key, flag)

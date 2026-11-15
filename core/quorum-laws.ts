@@ -1,6 +1,6 @@
 // Untrusted quorum candidates read from a stored row, a majority assumption, and
 // an action's quantified guard. No protocol vocabulary or facts live here.
-import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, times, walk, x} from './machine.ts'
+import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, times, tuple, walk, x} from './machine.ts'
 import {substC, substE} from '../kernel/kernel.ts'
 import {env} from './solver.ts'
 
@@ -45,9 +45,12 @@ function rowOf(m: Machine, name: string): Row | undefined {
   const cell = body.op === '=' && eq(body.b, n(1)) ? body.a : body.op === '<=' && eq(body.a, n(1)) ? body.b : undefined
   if (cell?.op !== 'get' || !(cell.map in (m.maps ?? {}))) return undefined
   const k = cell.key
-  if (k.op !== 'add' || k.a.op !== 'mul' || k.a.k <= 1 || k.a.a.op !== 'var' || k.b.op !== 'var' || k.b.name !== d.key || !m.inputs.includes(k.a.a.name)) return undefined
-  if ([d.j, ...m.inputs].some(v => vars(d.below).has(v))) return undefined
-  return {name, map: cell.map, input: k.a.a.name, base: k.a.k, below: d.below, key: d.key, body}
+  const packedRow = k.op === 'add' && k.a.op === 'mul' && k.a.k > 1 && k.a.a.op === 'var' && k.b.op === 'var' && k.b.name === d.key ? {input: k.a.a.name, base: k.a.k} : undefined
+  const sorts = m.relations?.[cell.map]
+  const tupleRow = k.op === 'tup' && k.a.op === 'var' && k.b.op === 'var' && k.b.name === d.key && sorts?.length === 2 && sorts[0] === sorts[1] ? {input: k.a.name, base: 0} : undefined
+  const row = packedRow ?? tupleRow
+  if (!row || !m.inputs.includes(row.input) || [d.j, ...m.inputs].some(v => vars(d.below).has(v))) return undefined
+  return {name, map: cell.map, ...row, below: d.below, key: d.key, body}
 }
 
 export function quorumLaws(m: Machine, provenance = env.GDP_COUNT_LIFTED === '1'): {counts: NonNullable<Machine['counts']>, laws: Law[]} {
@@ -73,19 +76,42 @@ export function quorumLaws(m: Machine, provenance = env.GDP_COUNT_LIFTED === '1'
   for (const {row, sets} of rows.values()) {
     const rowBody = substC(row.body, sub({[row.input]: x(j), [row.key]: x(key)}))
     const domain = (v: string) => less(x(v), row.below)
-    const registry = new Map<string, {name: string, pair: boolean, swap: boolean}>()
+    const registry = new Map<string, {name: string, pair: boolean, swap: boolean}>(), pairCounts = new Set<string>()
+    // A count map accepts a plain key only. Quantify a single paired natural
+    // and project its components in the law; count reads use that key directly.
+    const pairLaw = (law: Law): Law | undefined => {
+      if (row.base) return law
+      const first: E = {op: 'proj', k: 0, a: x(a)}, second: E = {op: 'proj', k: 1, a: x(a)}
+      const project = substC(law.holds, sub({[a]: first, [b]: second})), expected = tuple([first, second])
+      let unsupported = false
+      const plain = (t: unknown): unknown => {
+        if (Array.isArray(t)) return t.map(plain)
+        if (!t || typeof t !== 'object') return t
+        const o = t as Record<string, unknown>
+        if (o.op === 'get' && pairCounts.has(o.map as string)) {
+          if (!eq(o.key, expected)) { unsupported = true; return o }
+          return {...o, key: x(a)}
+        }
+        return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, plain(v)]))
+      }
+      const keys = law.keys?.filter(k => k !== b), holds = plain(project) as C
+      return unsupported ? undefined : {...law, ...(keys?.length ? {keys} : {keys: undefined}), holds}
+    }
     const normal = (c: C): string => c.op === 'and' ? text(['and', conjs(c).map(normal).sort()]) : text(c)
     const count = (body: C, pair: boolean, label: string): ((a: string, b?: string) => E) => {
+      const pairKey = (a: E, b: E) => row.base ? packed(row.base, a, b) : tuple([a, b])
       const id = normal(body), old = registry.get(id)
-      if (old) return (a, b) => get(old.name, old.pair ? packed(row.base, x(old.swap ? b! : a), x(old.swap ? a : b!)) : x(a))
+      if (old) return (a, b) => get(old.name, old.pair ? pairKey(x(old.swap ? b! : a), x(old.swap ? a : b!)) : x(a))
       const name = fresh(`${row.name}$${label}`)
-      counts[name] = {j, key, below: row.below, body: indicator(body), ...(pair ? {lo, base: row.base} : {})}
+      const pairBody = pair && !row.base ? substC(body, sub({[j]: {op: 'proj', k: 0, a: x(j)}, [lo]: {op: 'proj', k: 1, a: x(j)}})) : body
+      counts[name] = {j, key, below: row.below, body: indicator(pairBody), ...(pair && row.base ? {lo, base: row.base} : {})}
       registry.set(id, {name, pair, swap: false})
-      if (pair) {
+      if (pair) pairCounts.add(name)
+      if (pair && row.base) {
         const swapped = normal(substC(body, sub({[j]: x(lo), [lo]: x(j)})))
         if (!registry.has(swapped)) registry.set(swapped, {name, pair, swap: true})
       }
-      return (a, b) => get(name, pair ? packed(row.base, x(a), x(b!)) : x(a))
+      return (a, b) => get(name, pair ? pairKey(x(a), x(b!)) : x(a))
     }
     let size: ((a: string) => E) | undefined
     const rowSize = (a: string) => (size ??= count(rowBody, false, 'row'))(a)
@@ -120,7 +146,9 @@ export function quorumLaws(m: Machine, provenance = env.GDP_COUNT_LIFTED === '1'
         if (m.inputs.some(i => vars(lifted).has(i)) || [...flagsIn(lifted)].length) continue
         const pair = vars(lifted).has(lo), c = count(all(rowBody, ...conjs(lifted)), pair, `${flag}$${bits}`)
         const atom = (a: string, b?: string) => atMost(times(2, c(a, b)), rowSize(a))
-        laws.push({name: `${row.name}: no quorum ${flag}/${bits}`, forall: a, ...(pair ? {keys: [b]} : {}), holds: any(not(all(domain(a), ...(pair ? [domain(b)] : []))), atom(a, b))})
+        const law: Law = {name: `${row.name}: no quorum ${flag}/${bits}`, forall: a, ...(pair ? {keys: [b]} : {}), holds: any(not(all(domain(a), ...(pair ? [domain(b)] : []))), atom(a, b))}
+        const proposal = pair ? pairLaw(law) : law
+        if (proposal) laws.push(proposal)
         if (!pair) noQuorums.push(a => atom(a))
       }
     }
@@ -136,14 +164,16 @@ export function quorumLaws(m: Machine, provenance = env.GDP_COUNT_LIFTED === '1'
         if (!setBody || !eq(d.below, row.below)) continue
         const used = new Set<string>(); walk(setBody, o => { if (o.op === 'get' && m.inputMaps!.includes(o.map as string)) used.add(o.map as string) })
         if (used.size !== 1) continue
-        const carried = [...used][0]!, shifted = substE(d.body, sub({[d.key]: {op: 'sub', a: x(update.each), b: times(row.base, x(row.input))}}))
+        const carried = [...used][0]!, column: E = row.base ? {op: 'sub', a: x(update.each), b: times(row.base, x(row.input))} : {op: 'proj', k: 1, a: x(update.each)}
+        const shifted = substE(d.body, sub({[d.key]: column}))
         let stores = false
         walk(update.value, o => {
-          if (o.op === 'if' && flagsIn(o.c).has(action) && eq(o.then, shifted)) stores = true
+          if (o.op === 'if' && flagsIn(o.c).has(action) && eq(o.then, shifted) && (row.base || conjs(o.c as C).some(c => eq(c, same({op: 'proj', k: 0, a: x(update.each)}, x(row.input))) || eq(c, same(x(row.input), {op: 'proj', k: 0, a: x(update.each)}))))) stores = true
           // Boolean maps lower an if-tree to disjunctive membership clauses.
           if (o.op === 'and' && shifted.op === 'if') {
             const parts = conjs(o as C)
-            if (parts.some(c => c.op === 'flag' && c.name === action) && parts.some(c => eq(c, shifted.c))) stores = true
+            const inRow = row.base || parts.some(c => eq(c, same({op: 'proj', k: 0, a: x(update.each)}, x(row.input))) || eq(c, same(x(row.input), {op: 'proj', k: 0, a: x(update.each)})))
+            if (inRow && parts.some(c => c.op === 'flag' && c.name === action) && parts.some(c => eq(c, shifted.c))) stores = true
           }
         })
         if (!stores) continue
@@ -185,7 +215,7 @@ export function quorumLaws(m: Machine, provenance = env.GDP_COUNT_LIFTED === '1'
             if (laws.length >= 32) return
             const law: Law = {name: `${row.name}: stored guard ${action}/${set}${suffix}`, forall: a, keys: [b, ...free.map((_, i) => i ? w : u)], holds: any(...base, ...extra)}
             // Metadata builds charged AST nodes too; it must be a no-op while the route is off.
-            if (provenance) {
+            if (provenance && row.base) {
             const rowRead = rowSize(a), twins = [...mapped].flatMap(([request, value]) => {
               if (!contains(comparison, {op: 'get', map: request, key: n(0)})) return []
               const read = value(a, b)
@@ -194,7 +224,8 @@ export function quorumLaws(m: Machine, provenance = env.GDP_COUNT_LIFTED === '1'
             const used = new Set<string>(); walk(law.holds, node => {if (node.op === 'get') used.add(node.map as string)})
             if (rowRead.op === 'get') origins.set(law, {kind: 'stored-row-guard', formula: text(law.holds), guard: action, guardFormula: text(guard), membershipMap: row.map, rowInput: row.input, rowCount: rowRead.map, requestSet: carried, width: row.base, halves: free.map((_, i) => i ? w : u), disabled: extra.length > 0, twins, definitions: Object.fromEntries([...used].flatMap(name => {const d = counts[name] ?? m.counts![name]; return d ? [[name, text(d)]] : []}))})
             }
-            laws.push(law)
+            const proposal = pairLaw(law)
+            if (proposal) laws.push(proposal)
           }
           add('', [])
           for (const [i, atom] of noQuorums.entries()) add(` or disabled/${i}`, [atom(a), atom(b)])

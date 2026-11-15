@@ -1,19 +1,20 @@
 import {expect, test} from 'bun:test'
-import {type C, type E, type Machine, all, any, atMost, get, interpret, less, n, not, same, times, plus, x} from './machine.ts'
+import {type C, type E, type Machine, all, any, atMost, get, interpret, less, n, not, same, times, plus, tuple, x} from './machine.ts'
 import {fieldLaws, selectFieldLaws, weakensField} from './field-laws.ts'
 import {scope} from '../kernel/kernel.ts'
 
-function fixture(prefix = '', stride = 8): Machine {
+function fixture(prefix = '', stride = 8, native = false): Machine {
   const i = prefix + 'i', j = prefix + 'j', size = prefix + 'size', z = prefix + 'cell'
   const rows = prefix + 'Rows', source = prefix + 'Source', marker = prefix + 'Marker', f = prefix + 'Version', g = prefix + 'Term'
   const phase = prefix + 'phase', ready = prefix + 'ready', flag = prefix + 'load'
   const lo = times(stride, x(i)), window = all(atMost(lo, x(z)), less(x(z), plus(lo, n(stride))))
-  const column: E = {op: 'sub', a: x(z), b: lo}
-  return {name: prefix + 'loaded rows', params: [size], inputs: [i, j], state: {[phase]: n(0), [ready]: n(1)},
+  const column: E = native ? {op: 'proj', k: 1, a: x(z)} : {op: 'sub', a: x(z), b: lo}
+  const first: E = {op: 'proj', k: 0, a: x(z)}
+  return {name: prefix + 'loaded rows', ...(native ? {relations: {[rows]: ['Node', 'Node']}} : {}), params: [size], inputs: [i, j], state: {[phase]: n(0), [ready]: n(1)},
     maps: {[rows]: 0, [source]: 0, [marker]: 0, [f]: 0, [g]: 0}, assume: less(x(i), x(size)),
     step: {flags: {[flag]: all(same(x(phase), n(0)), same(x(ready), n(1))),
-      fields: same(get(f, x(i)), get(g, x(i))), read: same(get(rows, plus(times(stride, x(i)), x(j))), n(1))},
-      maps: {[rows]: {each: z, value: {op: 'if', c: all({op: 'flag', name: flag}, window), then: get(source, column), else: get(rows, x(z))}},
+      fields: same(get(f, x(i)), get(g, x(i))), read: same(get(rows, native ? tuple([x(i), x(j)]) : plus(times(stride, x(i)), x(j))), n(1))},
+      maps: {[rows]: {each: z, value: {op: 'if', c: all({op: 'flag', name: flag}, native ? same(first, x(i)) : window), then: get(source, column), else: get(rows, native ? tuple([first, column]) : x(z))}},
         [marker]: {key: x(i), value: {op: 'if', c: {op: 'flag', name: flag}, then: n(1), else: get(marker, x(i))}}}}}
 }
 const loadLaws = (m: Machine) => fieldLaws(m).filter(law => law.name.includes(' row is '))
@@ -104,4 +105,20 @@ test('nested conjunctions expose singleton guards without capturing binder names
   expect(laws).toHaveLength(3)
   expect(laws[0]!.forall).not.toBe('a$field')
   expect(() => scope(m, laws)).not.toThrow()
+})
+test('tuple load and marked agreement match packed candidates after key normalization', () => {
+  const packed = fixture(), native = fixture('', 8, true)
+  const candidates = (m: Machine) => fieldLaws(m).filter(l => l.name.includes(' row is ') || l.name.includes('and Marker[a]=Marker[b]'))
+  const normalize = (t: any): any => {
+    if (Array.isArray(t)) return t.map(normalize)
+    if (!t || typeof t !== 'object') return t
+    if (t.op === 'tup') return plus(times(8, normalize(t.a)), normalize(t.b))
+    return Object.fromEntries(Object.entries(t).map(([k, v]) => [k, normalize(v)]))
+  }
+  expect(normalize(candidates(native))).toEqual(candidates(packed))
+  expect(candidates(native)).toHaveLength(4)
+  expect(() => scope(native, fieldLaws(native))).not.toThrow()
+  const unrelated = fixture('', 8, true), write = rowWrite(unrelated)
+  write.c = all({op: 'flag', name: 'load'}, same({op: 'proj', k: 0, a: x('cell')}, x('j')))
+  expect(candidates(unrelated)).toEqual([])
 })
