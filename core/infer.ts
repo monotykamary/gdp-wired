@@ -1,3 +1,4 @@
+import {retainFrom} from './proof-output.ts'
 import {searchNow as countedSearchNow, checkWorkEndpoint} from './wall.ts'
 // Invariants nobody wrote: a law that holds but isn't inductive, proven with laws the search finds. Nothing here is
 // trusted; what it finds is proven by the kernel with the rule's own laws, as laws of the same rule.
@@ -745,7 +746,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   const refuted = !opts.first && !opts.cubes && rule ? refuteModelByRuns(rule, laws, stepLaws) : undefined
   const first = opts.first ?? (refuted?.run ? {proven: false, checked: false, stuck: 'sat', ...refuted} as Verdict
     : opts.cubes ? {proven: false, checked: false} as Verdict : prove(laws))
-  if ((first.proven && first.checked) || first.run) return {...first, found: [], stats: stats(0, 0, 0)}
+  if ((first.proven && first.checked) || first.run) return retainFrom({...first, found: [], stats: stats(0, 0, 0)}, [first])
 
   // --- runs ------------------------------------------------------------------------------------------------------------
   const run = interpret(m), stepSample = sampleStep(m, run), rand = seeded(17), kinds = rule ? rule.kindsOfState() : []
@@ -3492,5 +3493,5 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   const kept = chosen.flatMap(f => (f.mod ? [f.mod.k] : []))
   if (kept.length) rule?.dividesBy(...kept)
   trace('end', {proven: true, stopped: stop(), found: chosen.map(f => textOf(f)).join('; ')})
-  return {...last, found: [...chosen.map(f => { const law = lawFor(f), text = law.name, source = sourceOf(f, text); return {law, text, ...(source ? {source} : {})} }), ...(enumProof ? enumSome : []).map(law => ({law, text: law.name}))], stats: stats(samples.length, forms.length, alive.length)}
+  return retainFrom({...last, found: [...chosen.map(f => { const law = lawFor(f), text = law.name, source = sourceOf(f, text); return {law, text, ...(source ? {source} : {})} }), ...(enumProof ? enumSome : []).map(law => ({law, text: law.name}))], stats: stats(samples.length, forms.length, alive.length)}, [last], {kind: 'inference', original: m, laws})
 }

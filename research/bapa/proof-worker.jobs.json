@@ -1,0 +1,15 @@
+[
+  {
+    "name": "proof-worker-gate",
+    "cmd": "set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bunx tsc -p research/bapa/tsconfig.proof-worker.json > \"$SUPERCOMPUTER_OUTPUT_DIR/types.log\" 2>&1; bun test core/proof-output.test.ts research/bapa/proof-worker.test.ts research/bapa/proof-capture.test.ts research/bapa/proof-codec.test.ts research/bapa/proof-projection.test.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/tests.log\" 2>&1; set +e; bun research/bapa/proof-worker.ts --only consensus > \"$SUPERCOMPUTER_OUTPUT_DIR/worker.log\" 2>&1; capture_exit=$?; set -e; test \"$capture_exit\" -eq 2; if bun research/bapa/proof-worker.ts --only consensus --work 1 --out \"$SUPERCOMPUTER_OUTPUT_DIR/tiny-work\" > \"$SUPERCOMPUTER_OUTPUT_DIR/tiny-work.log\" 2>&1; then exit 31; fi; bun research/bapa/proof-worker-gate.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/smoke.json\"; printf '%s\\n' 'feat(research): retain single-call BAPA search closures' > \"$SUPERCOMPUTER_OUTPUT_DIR/commit-message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$SUPERCOMPUTER_OUTPUT_DIR/commit-message.txt\" > \"$SUPERCOMPUTER_OUTPUT_DIR/commitlint.log\" 2>&1",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "env": {
+      "BAPA_SOURCE_COMMIT": "3e959e11aaca25293cd155c2996e19b262d0a5cd",
+      "BAPA_SOURCE_TREE": "aa33502b2e507d219a31974c235ea5a28ce80274"
+    },
+    "runtime": {"bun": {"version": "1.4.3", "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"}},
+    "required_agent_capabilities": {"output_files_protocol": 1, "result_files_protocol": 1}
+  }
+]

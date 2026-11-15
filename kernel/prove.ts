@@ -1,3 +1,4 @@
+import {retainFamily, retainFrom} from '../core/proof-output.ts'
 // An untrusted prover for the kernel: grows a split tree until every leaf's constraints are refuted by solve(), splitting
 // on whatever atom the hypotheses leave open (an if's condition, a min's or ∸'s comparison, a disjunction's atoms, two
 // reads of one map at keys not yet known equal or apart). Its trees go to kernel.check; nothing it says is trusted.
@@ -1886,7 +1887,8 @@ export function proveLaws(m: Machine, laws: Law[]): Report & {laws?: Law[], mach
   if (!laws.some(l => someKeys(l.holds).length)) return proveLawsAsGiven(m, laws)
   const out = chooseWitnesses(laws, l => l.holds, l => (l.forall ? [l.forall] : []), m, ls => { const r = proveLawsAsGiven(m, ls); return r.proven && r.checked }, (l, holds) => ({...l, holds, stated: l.stated ?? l.holds}))
   if ('stuck' in out) return {proven: false, nodes: 0, leaves: 0, failed: {goal: 'witnesses', stuck: out.stuck}, checked: false}
-  return {...proveLawsAsGiven(m, out.items), laws: out.items}
+  const result = proveLawsAsGiven(m, out.items)
+  return retainFrom({...result, laws: out.items}, [result], {kind: 'some-key', originalLaws: laws, resolvedLaws: out.items})
 }
 // One law's two goals, every law assumed (core/infer.ts adds laws one at a time and reproves only what isn't proven
 // yet); not a proof of the set, which proveLaws gives. Laws with some key go through proveLaws.
@@ -2163,7 +2165,7 @@ export function proveSetFast(m: Machine, laws: Law[]): Report & {proof?: {instan
       }
     }
     const proof = {instances, trees}
-    return {proven: true, nodes, leaves, checked: checkLaws(m, laws, proof), proof}
+    return retainFamily({proven: true, nodes, leaves, checked: checkLaws(m, laws, proof), proof}, m, laws, proof)
     }
     const out = run(), retry = [...attempt.reused].filter(name => !attempt.cold.has(name))
     if ((!out.proven || !out.checked) && retry.length) {
@@ -2443,6 +2445,7 @@ function proveLawsAsGiven(m: Machine, laws: Law[], defer?: (finish: () => void) 
   }
   if (defer) defer(finish)
   else finish()
+  if (!defer) retainFamily(out, m, laws, out.proof)
   return out
 }
 // Whether the usual proof's trees are checked (off while GDP_CERT=cyclic makes the certificate a cyclic proof).
