@@ -13,7 +13,7 @@ if [ -f "$out/placement.json" ]; then
   tree=$(head -1 "$input/source.txt")
   if [ -n "$vm" ]; then
     mkdir -p "$out/artifacts"
-    /home/user/.ascii/boat scp -r "$vm:/home/user/.sc-artifacts/lane-i-combined/$tree/$mode" "$out/artifacts" || status=1
+    $HOME/.ascii/boat scp -r "$vm:~/.sc-artifacts/lane-i-combined/$tree/$mode" "$out/artifacts" || status=1
     printf 'FETCHED_ARTIFACT_DIRECTORY %s/artifacts\n' "$out"
   fi
 fi

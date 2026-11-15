@@ -6,7 +6,7 @@ out=${SUPERCOMPUTER_OUTPUT_DIR:?native output protocol required}
 mode=${MLDR_MODE:?}
 export MLDR_WORKER_PID=$$
 [[ "$mode" == timed || "$mode" == instrumented ]]
-bun=/home/user/.bun/bin/bun
+bun=$HOME/.bun/bin/bun
 mkdir -p "$out"
 [[ $("$bun" --version) == 1.4.3 ]]
 [[ $(sha256sum "$bun" | cut -d ' ' -f 1) == 7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b ]]

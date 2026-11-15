@@ -16,7 +16,7 @@ export GDP_COUNT_DEFER_CHECKS=0 GDP_COUNT_C2_REPLAY=0 GDP_COUNT_C2_LEMMAS=0
 export GDP_WORK_WEIGHTS=$(< "$input/unit-weights.json")
 export GIT_TERMINAL_PROMPT=0 SUPERCOMPUTER_CONTROLLER=1
 export PATH="$HOME/.local/bin:$HOME/.bun/bin:$HOME/.elan/bin:$PATH"
-bun=/home/user/.bun/bin/bun
+bun=$HOME/.bun/bin/bun
 [[ $("$bun" --version) == 1.4.3 ]]
 [[ $(sha256sum "$bun" | cut -d ' ' -f 1) == 7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b ]]
 { printf 'bun=%s\n' "$bun"; "$bun" --version; sha256sum "$bun"; env | LC_ALL=C sort | grep -E '^(GDP_|SUPERCOMPUTER_CONTROLLER=|PATH=)'; } > "$out/environment.txt"

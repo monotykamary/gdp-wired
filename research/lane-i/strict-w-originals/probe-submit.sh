@@ -9,7 +9,7 @@ if [ -f "$out/placement.json" ]; then
  vm=$(jq -r '.["original-first-crossings"].vm // empty' "$out/placement.json")
  if [ -n "$vm" ]; then
   mkdir -p "$out/artifacts"
-  /home/user/.ascii/boat scp -r "$vm:/home/user/.sc-artifacts/lane-i-strict-originals/6115f86a8eade60c58aadf86df525548c04be6b9/first-crossings" "$out/artifacts" || status=1
+  $HOME/.ascii/boat scp -r "$vm:~/.sc-artifacts/lane-i-strict-originals/6115f86a8eade60c58aadf86df525548c04be6b9/first-crossings" "$out/artifacts" || status=1
  fi
 fi
 if [ -f "$out/summary.tsv" ]; then

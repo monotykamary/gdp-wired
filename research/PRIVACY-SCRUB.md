@@ -16,3 +16,13 @@ This changeset removes machine-specific locations from the seven added home-path
 ## Limits
 
 The scope is the specified original-main delta, not all historical paths or current research artifacts. Git history, captured logs and original receipt hashes are not rewritten. Whether research is published remains a separate decision. No proof semantics, budgets, job resources or scoring are changed. No Boat job is run by this scrub.
+
+## 0.49.0 home-path scrub
+
+The 0.48.0-to-0.49.0 delta added 88 home-directory lines in 32 files. They are replaced as follows; no proof semantics, budgets, job resources, scoring or test inputs change.
+
+- Sibling checkouts (`<home>/VCS/working-remote/open-source/<name>`) become `../<name>`, relative to the repository root.
+- Other home locations become `~/…` in notes, logs and receipts. In scripts and job commands they become `$HOME/…`; in TypeScript, `resolve(process.env.HOME??'.', …)`. On the machines that ran them, these resolve to the same locations.
+- macOS temporary directories (`/private/tmp/…`) become `$TMPDIR/…`.
+
+Five retained evidence files are pinned by content hash in their packet manifests: `research/scope-pair-premises/INPUT-STATUS.json`, `S51-FOCUSED-SPEC.json`, `evidence/r4-read-only-diagnosis.md` and `evidence/t301-retained-input-inventory.json` (by `PACKET.sha256`), and `runs/lane-i/gated-follow-up/recovery-remote-hashes.json` (by its `audit-input*.json`). These public copies are redacted location labels and no longer match those hashes. The originals are in the parent commit of this scrub. Randomly named temporary directories (`/tmp/<prefix>-XXXXXX`) are retained: they carry no user or machine identity.

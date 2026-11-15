@@ -2,7 +2,7 @@
 
 Status: **SOURCE-ONLY DRAFT; NOT COMPILED OR RUN.** No RED or GREEN result is claimed.
 
-- Worktree: `/home/user/VCS/working-remote/open-source/gdp-wired-trackM-section46-negatives`
+- Worktree: `../gdp-wired-trackM-section46-negatives`
 - Branch: `claude/b-section46-negatives`, fast-forwarded from `ab99a14d` to A's source-only candidate `0fc836616e98886046cc1c46399d1b071a2b2aaa` (tree `05c8a8e6ef023d3951cf0598076d38e2983f383a`).
 - A approved the two new test paths and this matrix. No production files or existing tests changed.
 - Main requested a separate child test commit on that exact candidate. Any later A repair is a new child; no dirty-source copying or history rewriting.

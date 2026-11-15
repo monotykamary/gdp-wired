@@ -36,8 +36,8 @@
     "namesAreNotLawASTs": true,
     "trace": null,
     "observerInstalled": false,
-    "verdictPath": "/home/user/VCS/working-remote/open-source/gdp-wired-trackM-recipe-close-hard-stop/runs/section51-hard-stop-timed-result/mldr-3g-timed.files/verdict.json",
-    "terminalAuditPath": "/home/user/.local/state/r4-launcher/s51-launch-20261112/TERMINAL-AUDIT.json"
+    "verdictPath": "../gdp-wired-trackM-recipe-close-hard-stop/runs/section51-hard-stop-timed-result/mldr-3g-timed.files/verdict.json",
+    "terminalAuditPath": "~/.local/state/r4-launcher/s51-launch-20261112/TERMINAL-AUDIT.json"
   },
   "exactReplay": {
     "status": "BLOCKED_MISSING_REPLAY_INPUT",

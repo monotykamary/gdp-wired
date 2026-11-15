@@ -6,7 +6,7 @@ import {spawn,spawnSync} from 'node:child_process'
 import {gunzipSync} from 'node:zlib'
 const input=resolve('port-input'),scratch=mkdtempSync('/tmp/combined-census-')
 const source=readFileSync(join(input,'source.txt'),'utf8').trim(),baseline=readFileSync(join(input,'baseline-source.txt'),'utf8').trim()
-const out=resolve('/home/user/.sc-artifacts/lane-i-combined',source,'strict28'),ids=JSON.parse(readFileSync(join(input,'ids.json'),'utf8')) as string[]
+const out=resolve(process.env.HOME??'.','.sc-artifacts/lane-i-combined',source,'strict28'),ids=JSON.parse(readFileSync(join(input,'ids.json'),'utf8')) as string[]
 const env={...Object.fromEntries(Object.entries(process.env).filter(([key])=>!key.startsWith('GDP_'))),GDP_WORK_FULL:'0',GDP_WORK_STEPS:'0'}
 const roots={baseline:join(scratch,'baseline'),candidate:join(scratch,'candidate')}
 mkdirSync(out,{recursive:true});for(const root of Object.values(roots))mkdirSync(root)

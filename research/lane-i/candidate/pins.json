@@ -7,7 +7,7 @@
   "reconciledKernel": "db5bc38ac2e08e25d392d7a7daa748c7a6c8245a",
   "reconciledLean": "b9039b851d59b7621e322a797096fcd724019f68",
   "candidateBranch": "claude/mldr-candidate",
-  "worktree": "/home/user/VCS/working-remote/open-source/gdp-wired-candidate",
+  "worktree": "../gdp-wired-candidate",
   "units": "uncalibrated; not W",
   "state": "D-admitted exact trees; counted API integration blocked (see D-HANDOFF.md)",
   "candidateSource": "7eccce262ef24718400d7e1e49fafb294a5d5ece",

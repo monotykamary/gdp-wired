@@ -6,7 +6,7 @@ import {spawn,spawnSync} from 'node:child_process'
 import {gunzipSync} from 'node:zlib'
 const input=resolve('port-input'),scratch=mkdtempSync('/tmp/combined-census-')
 const source=readFileSync(join(input,'source.txt'),'utf8').trim(),baseline=readFileSync(join(input,'baseline-source.txt'),'utf8').trim()
-const out=resolve('/home/user/.sc-artifacts/lane-i-strict-originals',source,'cap28'),ids=JSON.parse(readFileSync(join(input,'ids.json'),'utf8')) as string[]
+const out=resolve(process.env.HOME??'.','.sc-artifacts/lane-i-strict-originals',source,'cap28'),ids=JSON.parse(readFileSync(join(input,'ids.json'),'utf8')) as string[]
 const profile=JSON.parse(readFileSync(join(input,'flags.json'),'utf8')) as Record<string,string>
 const negatives=new Map((JSON.parse(readFileSync(join(input,'cases.json'),'utf8')) as {id:string,actual:number}[]).map(c=>[c.id,c.actual]))
 const env={...Object.fromEntries(Object.entries(process.env).filter(([key])=>!key.startsWith('GDP_'))),...profile}

@@ -5,7 +5,7 @@ import {join,resolve} from 'node:path'
 import {spawn,spawnSync} from 'node:child_process'
 import {gunzipSync} from 'node:zlib'
 const input=resolve('port-input'),root=mkdtempSync('/tmp/original-crossings-'),source=readFileSync(join(input,'source.txt'),'utf8').trim()
-const out=resolve('/home/user/.sc-artifacts/lane-i-strict-originals',source,'first-crossings'),cases=JSON.parse(readFileSync(join(input,'cases.json'),'utf8')) as {id:string,actual:number}[]
+const out=resolve(process.env.HOME??'.','.sc-artifacts/lane-i-strict-originals',source,'first-crossings'),cases=JSON.parse(readFileSync(join(input,'cases.json'),'utf8')) as {id:string,actual:number}[]
 const profile=JSON.parse(readFileSync(join(input,'flags.json'),'utf8')),env={...Object.fromEntries(Object.entries(process.env).filter(([key])=>!key.startsWith('GDP_'))),...profile}
 mkdirSync(out,{recursive:true})
 const hash=(b:Buffer|string)=>createHash('sha256').update(b).digest('hex')
