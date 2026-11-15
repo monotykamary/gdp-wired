@@ -1,0 +1,11 @@
+[
+  {
+    "name": "relational-fragment",
+    "cmd": "set -euo pipefail; export PATH=\"$PWD/scripts/lean-gate:$PATH\"; lean research/bapa/RelationalFragment.lean 2>&1 | tee \"$SUPERCOMPUTER_OUTPUT_DIR/RelationalFragment.log\"; cp research/bapa/RelationalFragment.lean \"$SUPERCOMPUTER_OUTPUT_DIR/RelationalFragment.lean\"",
+    "cpu": 1,
+    "memory": 2,
+    "timeout": 240,
+    "env": {"SUPERCOMPUTER_CONTROLLER": "1", "SUPERCOMPUTER_NO_BUILD": "1"},
+    "required_agent_capabilities": {"output_files_protocol": 1, "result_files_protocol": 1}
+  }
+]
