@@ -2809,7 +2809,8 @@ export type CandidateSeedAudit = {status:'checked'|'inconclusive',kind?:'usual'|
 export type ProveOptions = {search?: boolean | {ms?: number, work?: number | WorkAmount, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean,
   // Proposals only: every retained member and public goal is checked together.
   // A failed seed attempt falls through with no additional assumptions.
-  candidateSeeds?: {kind?:'usual'|'counted',laws:Law[],counts?:NonNullable<Machine['counts']>,report?:(audit:CandidateSeedAudit)=>void}}
+  candidateSeeds?: {kind?:'usual'|'counted',laws:Law[],counts?:NonNullable<Machine['counts']>,
+    witnesses?:Record<string,import('./machine.ts').SomeWitness>,ghosts?:Pick<Ghosted,'vars'|'maps'>,report?:(audit:CandidateSeedAudit)=>void}}
 
 // A verdict that isn't a checked proof, as the error a lemma, a guard or a gate is refused with (the verdict on `.verdict`).
 export class Unproven extends Error {
@@ -3020,7 +3021,7 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
         ...(seeded.status === 'inconclusive' ? {reason:seeded.reason} : {})})
       if(seeded.status === 'checked') return retainCounted({proven:true,checked:true,found:{laws:seeded.closure.laws.map(l=>({text:l.name}))}} as unknown as Verdict,seeded.closure)
     } else {
-      const seeded = proveCandidateSeeds(machine,withKinds(r,laws),opts.candidateSeeds.laws)
+      const seeded = proveCandidateSeeds(machine,withKinds(r,laws),opts.candidateSeeds.laws,opts.candidateSeeds.witnesses,opts.candidateSeeds.ghosts)
       opts.candidateSeeds.report?.({status:seeded.status,kept:seeded.kept.map(l=>l.name),dropped:seeded.dropped,
         ...(seeded.status === 'inconclusive' ? {reason:seeded.reason} : {})})
       if(seeded.status === 'checked') return retainFrom(verdictOf(seeded.closure),[seeded.closure],{kind:'inference',original:machine,laws})

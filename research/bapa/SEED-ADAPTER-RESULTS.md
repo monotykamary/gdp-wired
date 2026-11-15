@@ -1,5 +1,11 @@
 # Seed adapter acceptance
 
+This is the historical baseline receipt. The tuple-SUM correction and native
+source-tuple follow-ups are in `TUPLE-SEED-FOLLOWUPS.md`. The subsequently checked
+existential candidate route and exact no-lost-keys witness proposals are in
+`EXISTENTIAL-SEEDS.md`; those changes supersede the earlier missing-witness
+limitation here. None of these preflights is a protocol proof.
+
 Verified strict-once batch: **`20261115-220831-jye1lt`** (pinned Bun 1.4.3).
 Typecheck, **31 tests / 173 assertions**, retained-count symbolic fixture, and
 commitlint passed. The tests use the seeding-only `core/dsl.ts` snapshot and the

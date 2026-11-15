@@ -17,13 +17,13 @@ for(const item of config){
  if(matches.length!==1)throw Error(`expected one protocol ${item.id}`)
  const p=matches[0],r=p.make(),publicLaws=p.laws(r),machine=r.machine,before=JSON.stringify(machine)
  const counters=JSON.stringify(workAdmissionSnapshot().counters)
- const loaded=loadCandidateSeedManifest(item.manifest,machine,{kindLaws:r.kindLaws()})
+ const loaded=loadCandidateSeedManifest(item.manifest,machine,{kindLaws:r.kindLaws(),publicLaws})
  if(counters!==JSON.stringify(workAdmissionSnapshot().counters))throw Error(`${item.id}: restatement invoked native work`)
  if(before!==JSON.stringify(machine))throw Error(`${item.id}: restatement mutated supplied source`)
  const rematerialized=r.machine
  if(JSON.stringify(machine.sums??{})!==JSON.stringify(rematerialized.sums??{}))throw Error(`${item.id}: restatement added public sums`)
  const drops=loaded.audit.laws.filter(a=>a.status==='dropped')
- const result={protocol:item.id,noSearch:true,publicCalls:0,publicExistentialGoals:publicLaws.filter((l:{some?:string[]})=>l.some?.length).length,kind:loaded.kind,sourceUnchanged:true,rematerializationChanges:before!==JSON.stringify(rematerialized),modelsSha256:sha(readFileSync(item.models)),machineSha256:sha(before),proposed:loaded.laws.length,nativeKinds:loaded.audit.laws.filter(a=>a.status==='candidate'&&a.regeneratedKind).length,expandedKinds:loaded.audit.laws.filter(a=>a.status==='candidate'&&a.expandedKind).length,fieldRowProposals:loaded.audit.laws.filter(a=>a.status==='candidate'&&a.fieldRows).length,dropped:drops.length,drops,audit:loaded.audit}
+ const result={protocol:item.id,noSearch:true,publicCalls:0,publicExistentialGoals:publicLaws.filter((l:{some?:string[]})=>l.some?.length).length,kind:loaded.kind,sourceUnchanged:true,rematerializationChanges:before!==JSON.stringify(rematerialized),modelsSha256:sha(readFileSync(item.models)),machineSha256:sha(before),proposed:loaded.laws.length,witnessProposals:loaded.audit.witnesses?.filter(w=>w.status==='proposed').length??0,witnessRefusals:loaded.audit.witnesses?.filter(w=>w.status==='dropped')??[],nativeKinds:loaded.audit.laws.filter(a=>a.status==='candidate'&&a.regeneratedKind).length,expandedKinds:loaded.audit.laws.filter(a=>a.status==='candidate'&&a.expandedKind).length,fieldRowProposals:loaded.audit.laws.filter(a=>a.status==='candidate'&&a.fieldRows).length,dropped:drops.length,drops,audit:loaded.audit}
  results.push(result);writeFileSync(join(out,`${item.id}.json`),JSON.stringify(result,null,2)+'\n')
  console.log(JSON.stringify({protocol:item.id,proposed:loaded.laws.length,dropped:drops.length,drops}))
 }

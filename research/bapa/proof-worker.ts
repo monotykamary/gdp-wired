@@ -118,12 +118,13 @@ export async function runProofWorker(options: WorkerOptions): Promise<Record<str
       // the authoritative source machine. Capture still uses the public event.
       const {loadCandidateSeedManifest} = await import('./candidate-seed-manifest.ts')
       const candidateTarget = r.machine
-      const seeded = loadCandidateSeedManifest(options.seedManifest,candidateTarget,{kindLaws:r.kindLaws()})
+      const seeded = loadCandidateSeedManifest(options.seedManifest,candidateTarget,{kindLaws:r.kindLaws(),publicLaws:laws})
       if(seeded.audit.protocol !== options.id || seeded.audit.manifestSha256 !== seedHash) throw Error('candidate manifest identity mismatch')
       writeFileSync(join(options.out,'candidate-restatement.json'),JSON.stringify(seeded.audit,null,2)+'\n')
+      writeFileSync(join(options.out,'candidate-proposals.json'),JSON.stringify({laws:seeded.laws,...(seeded.kind==='usual'?{witnesses:seeded.witnesses,ghosts:seeded.ghosts}:{counts:seeded.counts})},null,2)+'\n')
       seedSummary = {protocol:seeded.audit.protocol,captureSha256:seeded.audit.captureSha256,
         proposed:seeded.laws.length,dropped:seeded.audit.laws.filter(l=>l.status==='dropped').length}
-      candidateSeeds = {kind:seeded.kind,laws:seeded.laws,...(seeded.kind === 'counted' ? {counts:seeded.counts} : {}),report:audit=>nativeSeedAudits.push(audit)}
+      candidateSeeds = {kind:seeded.kind,laws:seeded.laws,...(seeded.kind === 'counted' ? {counts:seeded.counts} : {witnesses:seeded.witnesses,ghosts:seeded.ghosts}),report:audit=>nativeSeedAudits.push(audit)}
     }
     // Without candidates, do not materialize before the public call.
     // Recover the authoritative machine only through proveRule's output event.

@@ -3,6 +3,7 @@
   "protocol": "sharded_kv_no_lost_keys",
   "capture": "../../seed-audit-captures/sharded_kv_no_lost_keys",
   "captureSha256": "e41e37724663b689ed716c639694ff002c0be92e99ace6267f4ef8ad3cf8fe4f",
+  "existentials": ["a transfer in flight, or every key owned"],
   "bindings": {
     "maps": {
       "Table": {
