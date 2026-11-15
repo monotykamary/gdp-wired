@@ -46,9 +46,30 @@ export function writeReceipt(path:string,report:Record<string,unknown>):Record<s
   try {writeFileSync(path,JSON.stringify(report,null,2)+'\n');return report}
   catch(error) {return {...report,status:'not-verified',receiptWriteError:error instanceof Error?error.message:String(error)}}
 }
-export type WorkerOptions = {id: string, out: string, work?: string, sourceCommit: string, sourceTree: string}
+export type WorkerOptions = {id: string, out: string, work?: string, broken?: boolean, sourceCommit: string, sourceTree: string}
+export function proofStatus(verdict:{proven:boolean,checked:boolean}, retention:{complete:boolean,projection?:{kind:string}}, broken:boolean):string {
+  if (broken && verdict.proven && verdict.checked) return 'unexpected-broken-proof'
+  if (!verdict.proven || !verdict.checked || !retention.complete) return 'not-verified'
+  return retention.projection?.kind === 'same-machine' ? 'captured' : 'captured-unqualified'
+}
+export function parseWorkerArgs(args:string[]):{id:string,out?:string,work?:string,broken:boolean} {
+  const known=new Set(['--only','--out','--work']), values:Record<string,string>={}
+  let broken=false
+  for(let i=0;i<args.length;){
+    const key=args[i++]!
+    if(key==='--broken'){if(broken)throw Error('duplicate --broken');broken=true;continue}
+    const value=args[i++]
+    if(!known.has(key)||values[key]!==undefined||!value||value.startsWith('--'))throw Error('usage: proof-worker.ts --only ID [--out NEW_DIR] [--work DIAGNOSTIC_UNITS] [--broken]')
+    values[key]=value
+  }
+  const id=values['--only']
+  if(!id||!/^[a-z][a-z0-9_]*$/.test(id))throw Error('one exact --only ID required; no fanout')
+  workBudget(values['--work'],id)
+  return {id,out:values['--out'],work:values['--work'],broken}
+}
 export async function runProofWorker(options: WorkerOptions): Promise<Record<string, unknown>> {
   if (!/^[a-z][a-z0-9_]*$/.test(options.id)) throw Error('one exact protocol ID required')
+  if (options.broken !== undefined && typeof options.broken !== 'boolean') throw Error('broken must be boolean')
   for (const key of ['sourceCommit', 'sourceTree'] as const)
     if (!/^[0-9a-f]{40}$/.test(options[key])) throw Error(`launcher must supply ${key}`)
   const units = workBudget(options.work, options.id)
@@ -56,7 +77,7 @@ export async function runProofWorker(options: WorkerOptions): Promise<Record<str
   const started = Date.now(), invocation = randomUUID()
   let cleared: string[] = [], returned: {proven:boolean,checked:boolean} | undefined
   const receipt = (result: Record<string, unknown>) => {
-    const report = {schema: 'bapa-search/v1', protocol: options.id, invocation,
+    const report = {schema: 'bapa-search/v1', protocol: options.id, invocation, variant: options.broken ? 'broken' : 'positive',
       sourceReference: {commit: options.sourceCommit, tree: options.sourceTree, assurance: 'launcher-supplied; content manifest retained'},
       profile: options.work === undefined ? '0.49-generous' : '0.49-flags-diagnostic-work-override',
       workBudget: String(units), elapsedMs: Date.now() - started, clearedFlagNames: cleared,
@@ -73,7 +94,7 @@ export async function runProofWorker(options: WorkerOptions): Promise<Record<str
     const sources = sourceManifest()
     writeFileSync(join(options.out, 'source-files.json'), JSON.stringify(sources, null, 2) + '\n')
     const identity: CaptureIdentity = {protocol: options.id, invocation, sourceCommit: options.sourceCommit, sourceTree: options.sourceTree,
-      driverSha256: hash(readFileSync(fileURLToPath(import.meta.url))), inputSha256: hash(JSON.stringify({id: options.id, sources})),
+      driverSha256: hash(readFileSync(fileURLToPath(import.meta.url))), inputSha256: hash(JSON.stringify({id: options.id, variant: options.broken ? 'broken' : 'positive', sources})),
       runtimeSha256, profileSha256: hash(readFileSync(profilePath)), workBudget: String(units), flags: {...profile049}}
     writeFileSync(join(options.out, 'identity.json'), JSON.stringify(identity, null, 2) + '\n')
     // NOTHING from core/kernel/registry is imported before installProfile.
@@ -83,7 +104,9 @@ export async function runProofWorker(options: WorkerOptions): Promise<Record<str
     ])
     const matches = protocols.filter(p => p.id === options.id)
     if (matches.length !== 1) throw Error(`expected one registered protocol: ${options.id}`)
-    const p = matches[0]!, r = p.make(), laws = p.laws(r)
+    const p = matches[0]!
+    if (options.broken && !p.bug) throw Error('registered broken variant is missing')
+    const r = p.make(options.broken ? p.bug : undefined), laws = p.laws(r)
     // Reading r.machine before the call changes the materialization boundary.
     // Recover the exact machine only through proveRule's output event instead.
     const before = workAdmissionSnapshot()
@@ -96,8 +119,7 @@ export async function runProofWorker(options: WorkerOptions): Promise<Record<str
     const deltas = Object.fromEntries(Object.entries(after.counters).map(([key, value]) => [key, String(BigInt(value) - BigInt(before.counters[key as keyof typeof before.counters]))]))
     writeFileSync(join(options.out, 'work.json'), JSON.stringify({before, after, counterDeltas: deltas}, null, 2) + '\n')
     writeFileSync(join(options.out, 'verdict.json'), JSON.stringify(captured.verdict, null, 2) + '\n')
-    const status = captured.verdict.proven && captured.verdict.checked && captured.retention.complete
-      ? captured.retention.projection.kind === 'same-machine' ? 'captured' : 'captured-unqualified' : 'not-verified'
+    const status = proofStatus(captured.verdict, captured.retention, options.broken ?? false)
     return receipt({status,
       publicCalls, proven: captured.verdict.proven, checked: captured.verdict.checked, retention: captured.retention,
       safety: p.safety, source: p.source, publicLawNames: laws.map(l => l.name)})
@@ -107,18 +129,10 @@ export async function runProofWorker(options: WorkerOptions): Promise<Record<str
 }
 
 if (import.meta.main) {
-  const args = process.argv.slice(2), known = new Set(['--only', '--out', '--work'])
-  const values: Record<string, string> = {}
-  for (let i = 0; i < args.length; i += 2) {
-    const key = args[i]!, value = args[i + 1]
-    if (!known.has(key) || values[key] !== undefined || !value || value.startsWith('--')) throw Error('usage: proof-worker.ts --only ID [--out NEW_DIR] [--work DIAGNOSTIC_UNITS]')
-    values[key] = value
-  }
-  const id = values['--only']
-  if (!id) throw Error('--only ID is required; no fanout')
-  const out = values['--out'] ?? (process.env.SUPERCOMPUTER_OUTPUT_DIR ? join(process.env.SUPERCOMPUTER_OUTPUT_DIR, id) : undefined)
+  const args = parseWorkerArgs(process.argv.slice(2))
+  const out = args.out ?? (process.env.SUPERCOMPUTER_OUTPUT_DIR ? join(process.env.SUPERCOMPUTER_OUTPUT_DIR, args.id + (args.broken ? '-broken' : '')) : undefined)
   if (!out) throw Error('provide --out NEW_DIR or SUPERCOMPUTER_OUTPUT_DIR')
-  const result = await runProofWorker({id, out, work: values['--work'], sourceCommit: process.env.BAPA_SOURCE_COMMIT ?? '', sourceTree: process.env.BAPA_SOURCE_TREE ?? ''})
+  const result = await runProofWorker({...args, out, sourceCommit: process.env.BAPA_SOURCE_COMMIT ?? '', sourceTree: process.env.BAPA_SOURCE_TREE ?? ''})
   console.log(JSON.stringify(result))
   if (result.status !== 'captured') process.exitCode = result.status === 'captured-unqualified' ? 2 : 1
 }

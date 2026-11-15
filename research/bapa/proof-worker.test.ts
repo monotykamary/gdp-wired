@@ -1,6 +1,6 @@
 import {expect, test} from 'bun:test'
 import {readFileSync} from 'node:fs'
-import {defaultWork, installProfile, profile049, workBudget, outputFailure, writeReceipt} from './proof-worker.ts'
+import {defaultWork, installProfile, profile049, workBudget, outputFailure, writeReceipt, parseWorkerArgs, proofStatus} from './proof-worker.ts'
 test('0.49 generous work profile has exact per-family defaults', () => {
   expect(defaultWork('consensus')).toBe(24_000_000_000)
   expect(defaultWork('mldr')).toBe(288_000_000_000)
@@ -21,6 +21,19 @@ test('post-return output failures preserve native verdicts and return a stdout f
   expect(outputFailure({proven:true,checked:true},Error('disk full'))).toEqual({proven:true,checked:true,outputError:'disk full'})
   const report=writeReceipt('/dev/null/receipt.json',{proven:true,checked:true,status:'not-verified'})
   expect(report.proven).toBe(true);expect(report.checked).toBe(true);expect(report.receiptWriteError).toBeDefined()
+})
+test('broken CLI uses the same default profile and cannot request a fanout', () => {
+  expect(parseWorkerArgs(['--only','consensus','--broken'])).toEqual({id:'consensus',out:undefined,work:undefined,broken:true})
+  expect(parseWorkerArgs(['--broken','--only','mldr','--out','artifact'])).toEqual({id:'mldr',out:'artifact',work:undefined,broken:true})
+  expect(defaultWork(parseWorkerArgs(['--broken','--only','mldr']).id)).toBe(288_000_000_000)
+  for(const args of [['--only','a,b'],['--only','a','--broken','--broken'],['--only','a','--only','b'],['--only','a','--work','0'],['--only','a','--broken','false']])expect(()=>parseWorkerArgs(args)).toThrow()
+})
+test('a checked proof of the registered broken variant is never an accepted worker result', () => {
+  const retention={complete:true,projection:{kind:'same-machine'}}
+  expect(proofStatus({proven:true,checked:true},retention,true)).toBe('unexpected-broken-proof')
+  expect(proofStatus({proven:false,checked:false},{complete:false},true)).toBe('not-verified')
+  expect(proofStatus({proven:true,checked:true},retention,false)).toBe('captured')
+  expect(proofStatus({proven:true,checked:true},{complete:true,projection:{kind:'unqualified'}},false)).toBe('captured-unqualified')
 })
 test('worker has one public call site, no given-helper or second-search fallback', () => {
   const source = readFileSync(new URL('./proof-worker.ts', import.meta.url), 'utf8')

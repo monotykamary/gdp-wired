@@ -63,6 +63,30 @@ the same verdict and reports the receipt-write error. Git commit/tree refs are
 the archive. The included gate refs name its pre-edit base; its content manifest
 binds the candidate files actually executed.
 
+## Broken-model option
+
+`--broken` selects the registry's exact `p.bug` variant through `p.make(p.bug)`;
+it does not alter the 22 flags, budget, safety-law callback or number of public
+calls. The variant is bound in the input hash and result. Its default output is
+`<id>-broken`. A proven+checked broken result is labeled
+`unexpected-broken-proof` and exits nonzero, never as an accepted capture.
+
+```sh
+bun research/bapa/proof-worker.ts --only consensus --broken
+```
+
+A negative worker exit alone is not evidence: inspect `variant`, `publicCalls`,
+`verdict.json`, and errors. Timeout, startup/capture failure or unknown is not a
+refutation. Existing TLC broken traces remain the independent reachable-bug
+control. Pinned Bun 1.4.3 batch `20261115-191014-b51mmn` passed: typecheck,
+26 tests / 195 assertions, one same-profile broken consensus public call,
+`proven=false`, `checked=false`, `stuck=sat`, a native witness and reachable
+run, and commitlint. Native job exit 0 in 10.46 s. Recipe:
+`research/bapa/proof-negative.jobs.json`. The earlier packet
+`20261115-190658-5x8oxz` had malformed launcher metadata and failed before
+any public proof call; its failed result is retained, not counted as a negative.
+The local six-test run was only a quick contract check, not proof evidence.
+
 ## Explicit limits
 
 This slice exports the proof **closure capsule**, not Lean. It never labels a
