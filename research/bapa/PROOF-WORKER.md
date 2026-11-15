@@ -3,9 +3,10 @@
 `research/bapa/proof-worker.ts` is a native **one protocol / one public
 `proveRule` call** worker. Use it inside a bounded supercomputer job, not on the
 controller. Protocols remain registered in `research/protocols/ic3syn/models.ts`.
-Only `p.laws(r)` (the safety property) is supplied: no `p.human`, helper file,
-last-proof cache, replacement solver, or second search. A port must not hide
-hand-written helpers in its safety-law callback.
+Only `p.laws(r)` (the safety property) is supplied as public goals: no `p.human`,
+trusted helper file, last-proof cache, replacement solver, or second public
+search. A port must not hide helpers in its safety-law callback. Optional
+retained-family candidates are supplied separately and rechecked as below.
 
 ```sh
 # The outer packet supplies its actual source reference; an uploaded archive
@@ -20,6 +21,35 @@ The default output is `$SUPERCOMPUTER_OUTPUT_DIR/<id>`. `--out` must name a new
 directory. `--only` accepts one exact ID, never a list or fanout. Use outer
 `SUPERCOMPUTER_CONTROLLER=1 SUPERCOMPUTER_NO_BUILD=1 supercomputer run ...
 --backend boat`; no Modal imports, nested dispatcher or child VM is used.
+
+## Optional retained candidates
+
+`--seed-candidates MANIFEST.json` loads a hash-bound retained family through
+`candidate-seed-manifest.ts`. Explicit map layouts and sort-to-parameter
+bindings restate supported laws over the current symbolic port; each rejected
+law is recorded with its reason in `candidate-restatement.json`. The worker
+requires the manifest protocol to equal `--only` and binds the manifest SHA-256
+into its input identity. See `CANDIDATE-SEED.md` for the schema and limitations.
+
+The candidates are **not facts or given assumptions**. Within the existing
+public-call work root, whole-family Houdini tests their initial and step
+obligations, removes definite failures, and accepts a result only after the
+kernel checks every kept candidate and public goal together. Unknown is not a
+proof. An inconclusive candidate attempt falls through to ordinary inference
+without adding any retained assumption. Native attempt audits appear under
+`result.json.candidateSeeding`. The 0.49 flags, work budget, broken-mode guard,
+full-family capture and separate source-export requirements are unchanged.
+
+The initial path handles ordinary laws, not existential or counted public
+families. A manifest alone does not establish that it is useful for a target:
+inspect the exact mapped/dropped audit before a lane's authorized one-time
+rerun. The sharded manifest included with the fixture is deliberately only a
+Node/Key put-model mapping, not a ready-made proof of the full protocol.
+
+```sh
+bun research/bapa/proof-worker.ts --only sharded_kv \
+  --seed-candidates path/to/audited-symbolic-port-manifest.json
+```
 
 ## Profile and capture
 

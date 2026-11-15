@@ -1,5 +1,6 @@
 // Native ONE-protocol worker. Run only inside a bounded supercomputer job.
-// No given/human helpers, no second search, no exporter invoked during search.
+// No trusted/given helpers, no second public search, no exporter during search.
+// Optional retained candidates enter whole-family Houdini and are rechecked.
 import {createHash, randomUUID} from 'node:crypto'
 import {mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs'
 import {dirname, join, resolve} from 'node:path'
@@ -46,26 +47,26 @@ export function writeReceipt(path:string,report:Record<string,unknown>):Record<s
   try {writeFileSync(path,JSON.stringify(report,null,2)+'\n');return report}
   catch(error) {return {...report,status:'not-verified',receiptWriteError:error instanceof Error?error.message:String(error)}}
 }
-export type WorkerOptions = {id: string, out: string, work?: string, broken?: boolean, sourceCommit: string, sourceTree: string}
+export type WorkerOptions = {id: string, out: string, work?: string, broken?: boolean, seedManifest?: string, sourceCommit: string, sourceTree: string}
 export function proofStatus(verdict:{proven:boolean,checked:boolean}, retention:{complete:boolean,projection?:{kind:string}}, broken:boolean):string {
   if (broken && verdict.proven && verdict.checked) return 'unexpected-broken-proof'
   if (!verdict.proven || !verdict.checked || !retention.complete) return 'not-verified'
   return retention.projection?.kind === 'same-machine' ? 'captured' : 'captured-unqualified'
 }
-export function parseWorkerArgs(args:string[]):{id:string,out?:string,work?:string,broken:boolean} {
-  const known=new Set(['--only','--out','--work']), values:Record<string,string>={}
+export function parseWorkerArgs(args:string[]):{id:string,out?:string,work?:string,broken:boolean,seedManifest?:string} {
+  const known=new Set(['--only','--out','--work','--seed-candidates']), values:Record<string,string>={}
   let broken=false
   for(let i=0;i<args.length;){
     const key=args[i++]!
     if(key==='--broken'){if(broken)throw Error('duplicate --broken');broken=true;continue}
     const value=args[i++]
-    if(!known.has(key)||values[key]!==undefined||!value||value.startsWith('--'))throw Error('usage: proof-worker.ts --only ID [--out NEW_DIR] [--work DIAGNOSTIC_UNITS] [--broken]')
+    if(!known.has(key)||values[key]!==undefined||!value||value.startsWith('--'))throw Error('usage: proof-worker.ts --only ID [--out NEW_DIR] [--work DIAGNOSTIC_UNITS] [--broken] [--seed-candidates MANIFEST]')
     values[key]=value
   }
   const id=values['--only']
   if(!id||!/^[a-z][a-z0-9_]*$/.test(id))throw Error('one exact --only ID required; no fanout')
   workBudget(values['--work'],id)
-  return {id,out:values['--out'],work:values['--work'],broken}
+  return {id,out:values['--out'],work:values['--work'],broken,...(values['--seed-candidates'] ? {seedManifest:values['--seed-candidates']} : {})}
 }
 export async function runProofWorker(options: WorkerOptions): Promise<Record<string, unknown>> {
   if (!/^[a-z][a-z0-9_]*$/.test(options.id)) throw Error('one exact protocol ID required')
@@ -76,12 +77,15 @@ export async function runProofWorker(options: WorkerOptions): Promise<Record<str
   mkdirSync(options.out, {recursive: false})
   const started = Date.now(), invocation = randomUUID()
   let cleared: string[] = [], returned: {proven:boolean,checked:boolean} | undefined
+  let seedHash:string|undefined, seedSummary:Record<string,unknown>|undefined
+  const nativeSeedAudits:unknown[] = []
   const receipt = (result: Record<string, unknown>) => {
     const report = {schema: 'bapa-search/v1', protocol: options.id, invocation, variant: options.broken ? 'broken' : 'positive',
       sourceReference: {commit: options.sourceCommit, tree: options.sourceTree, assurance: 'launcher-supplied; content manifest retained'},
       profile: options.work === undefined ? '0.49-generous' : '0.49-flags-diagnostic-work-override',
       workBudget: String(units), elapsedMs: Date.now() - started, clearedFlagNames: cleared,
       publicCalls: 1, givenHelpers: false, secondSearch: false,
+      ...(seedHash ? {candidateSeeding:{manifestSha256:seedHash,...seedSummary,native:nativeSeedAudits}} : {}),
       leanExecuted: false, allSizesProven: false, sizeClaim: 'as encoded; not qualified by this worker', ...result}
     return writeReceipt(join(options.out, 'result.json'), report)
   }
@@ -92,9 +96,10 @@ export async function runProofWorker(options: WorkerOptions): Promise<Record<str
     const runtimeSha256 = hash(readFileSync(process.execPath))
     if (runtimeSha256 !== '7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b') throw Error('worker Bun executable does not match the 0.49 runtime pin')
     const sources = sourceManifest()
+    if(options.seedManifest) seedHash = hash(readFileSync(options.seedManifest))
     writeFileSync(join(options.out, 'source-files.json'), JSON.stringify(sources, null, 2) + '\n')
     const identity: CaptureIdentity = {protocol: options.id, invocation, sourceCommit: options.sourceCommit, sourceTree: options.sourceTree,
-      driverSha256: hash(readFileSync(fileURLToPath(import.meta.url))), inputSha256: hash(JSON.stringify({id: options.id, variant: options.broken ? 'broken' : 'positive', sources})),
+      driverSha256: hash(readFileSync(fileURLToPath(import.meta.url))), inputSha256: hash(JSON.stringify({id: options.id, variant: options.broken ? 'broken' : 'positive', sources,...(seedHash ? {candidateSeedSha256:seedHash} : {})})),
       runtimeSha256, profileSha256: hash(readFileSync(profilePath)), workBudget: String(units), flags: {...profile049}}
     writeFileSync(join(options.out, 'identity.json'), JSON.stringify(identity, null, 2) + '\n')
     // NOTHING from core/kernel/registry is imported before installProfile.
@@ -107,12 +112,24 @@ export async function runProofWorker(options: WorkerOptions): Promise<Record<str
     const p = matches[0]!
     if (options.broken && !p.bug) throw Error('registered broken variant is missing')
     const r = p.make(options.broken ? p.bug : undefined), laws = p.laws(r)
-    // Reading r.machine before the call changes the materialization boundary.
-    // Recover the exact machine only through proveRule's output event instead.
+    let candidateSeeds:import('../../core/dsl.ts').ProveOptions['candidateSeeds']
+    if(options.seedManifest) {
+      // Candidate restatement may inspect a materialization; it never supplies
+      // the authoritative source machine. Capture still uses the public event.
+      const {loadCandidateSeedManifest} = await import('./candidate-seed-manifest.ts')
+      const seeded = loadCandidateSeedManifest(options.seedManifest,r.machine)
+      if(seeded.audit.protocol !== options.id || seeded.audit.manifestSha256 !== seedHash) throw Error('candidate manifest identity mismatch')
+      writeFileSync(join(options.out,'candidate-restatement.json'),JSON.stringify(seeded.audit,null,2)+'\n')
+      seedSummary = {protocol:seeded.audit.protocol,captureSha256:seeded.audit.captureSha256,
+        proposed:seeded.laws.length,dropped:seeded.audit.laws.filter(l=>l.status==='dropped').length}
+      candidateSeeds = {laws:seeded.laws,report:audit=>nativeSeedAudits.push(audit)}
+    }
+    // Without candidates, do not materialize before the public call.
+    // Recover the authoritative machine only through proveRule's output event.
     const before = workAdmissionSnapshot()
     const captured = captureFinalInvocation(join(options.out, 'closure'), identity, {laws}, () => {
       publicCalls++
-      return proveRule(r, laws, {search: {work: units}})
+      return proveRule(r, laws, {search: {work: units},...(candidateSeeds ? {candidateSeeds} : {})})
     })
     returned = captured.verdict
     const after = workAdmissionSnapshot()

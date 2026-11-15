@@ -28,6 +28,11 @@ test('broken CLI uses the same default profile and cannot request a fanout', () 
   expect(defaultWork(parseWorkerArgs(['--broken','--only','mldr']).id)).toBe(288_000_000_000)
   for(const args of [['--only','a,b'],['--only','a','--broken','--broken'],['--only','a','--only','b'],['--only','a','--work','0'],['--only','a','--broken','false']])expect(()=>parseWorkerArgs(args)).toThrow()
 })
+test('candidate manifest is explicit, single-use and separate from the work budget', () => {
+  expect(parseWorkerArgs(['--only','sharded_kv','--seed-candidates','seed.json'])).toEqual({id:'sharded_kv',out:undefined,work:undefined,broken:false,seedManifest:'seed.json'})
+  for(const args of [['--only','a','--seed-candidates'],['--only','a','--seed-candidates','a.json','--seed-candidates','b.json']]) expect(()=>parseWorkerArgs(args)).toThrow()
+  expect(defaultWork('sharded_kv')).toBe(24_000_000_000)
+})
 test('a checked proof of the registered broken variant is never an accepted worker result', () => {
   const retention={complete:true,projection:{kind:'same-machine'}}
   expect(proofStatus({proven:true,checked:true},retention,true)).toBe('unexpected-broken-proof')

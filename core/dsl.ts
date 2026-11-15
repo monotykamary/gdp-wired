@@ -18,6 +18,7 @@ import {searchNow as countedSearchNow} from './wall.ts'
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
+import {proveCandidateSeeds} from './candidate-seeds.ts'
 import {type TranslationFields, inheritSource, translationVerdict} from './source-check.ts'
 import {env as knobs} from './solver.ts'
 import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, fnCall, hasFinite, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, sourceFreeFn, withArithmetic} from './machine.ts'
@@ -2803,7 +2804,12 @@ export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?
 // (`stuck: 'sat'`, `witness`), reachable or not.
 // `fast`: the laws proven as a set by kernel/prove.ts's proveSetFast (a search's set proof, asked again after a drop: what
 // was settled before kept where it stands), not proveLaws; no cyclic certificate.
-export type ProveOptions = {search?: boolean | {ms?: number, work?: number | WorkAmount, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean}
+export type CandidateSeedAudit = {status:'checked'|'inconclusive',kept:string[],dropped:{name:string,goal:string,stuck:'sat'}[],reason?:string}
+export type ProveOptions = {search?: boolean | {ms?: number, work?: number | WorkAmount, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean,
+  // Proposals only: every retained member and public goal is checked together.
+  // A failed seed attempt falls through with no additional assumptions.
+  candidateSeeds?: {laws:Law[],report?:(audit:CandidateSeedAudit)=>void}}
+
 // A verdict that isn't a checked proof, as the error a lemma, a guard or a gate is refused with (the verdict on `.verdict`).
 export class Unproven extends Error {
   constructor(what: string, readonly verdict: Verdict) {
@@ -2997,6 +3003,14 @@ function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
 function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions): Verdict {
   r = r.withSumsOf(laws)
   noting(r, laws)
+  if(opts.candidateSeeds) {
+    if(opts.search === false || opts.from === 'any') throw Error('candidate seeds require reachable-state search')
+    const machine = r.machine
+    const seeded = proveCandidateSeeds(machine,withKinds(r,laws),opts.candidateSeeds.laws)
+    opts.candidateSeeds.report?.({status:seeded.status,kept:seeded.kept.map(l=>l.name),dropped:seeded.dropped,
+      ...(seeded.status === 'inconclusive' ? {reason:seeded.reason} : {})})
+    if(seeded.status === 'checked') return retainFrom(verdictOf(seeded.closure),[seeded.closure],{kind:'inference',original:machine,laws})
+  }
   const refuted = refuteByRuns(r, laws)
   checkWorkEndpoint('refutation result')
   // A state the laws allow whose step breaks one, with no run to it (a wide rule's: what the kernel's step goal would end
