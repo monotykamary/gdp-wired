@@ -32,6 +32,8 @@ import {WallExpired, checkWall, checkWorkEndpoint, searchWall, withBudget, Budge
 import {completeWorkProfile} from './work-profile.ts'
 import {workLedger} from './work-admission.ts'
 import {withStageAllowance, withStageDeadline, withStageWall} from './dsl-deadline.ts'
+import {type SearchTermination, stoppedSearch} from './search-termination.ts'
+import {WatchdogExpired, withSearchWatchdog} from './search-watchdog.ts'
 import {withPublicSearchPolicy} from './search-policy.ts'
 import {workRefusalWhy} from './work-refusal.ts'
 import {type WorkAmount, workDivide, workFromNumber, workToNumber} from './work-amount.ts'
@@ -2859,7 +2861,7 @@ export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?
 // `fast`: the laws proven as a set by kernel/prove.ts's proveSetFast (a search's set proof, asked again after a drop: what
 // was settled before kept where it stands), not proveLaws; no cyclic certificate.
 export type CandidateSeedAudit = {status:'checked'|'inconclusive',kind?:'usual'|'counted',kept:string[],dropped:{name:string,goal?:string,stuck?:'sat',reason?:string}[],reason?:string}
-export type ProveOptions = {search?: boolean | {ms?: number, work?: number | WorkAmount, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean,
+export type ProveOptions = {watchdogMs?: number, search?: boolean | {ms?: number, work?: number | WorkAmount, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean,
   // Opt-in refinement policy; never renews the caller's work or wall budget.
   modelRounds?: ModelRoundPolicy,
   // Proposals only: every retained member and public goal is checked together.
@@ -2942,7 +2944,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       return i === names.length ? evalC(f.holds, env, {scalars: {}, maps: {}}, m)
         : Array.from({length: top + 1}, (_, key) => key).every(key => at({...env, [names[i]!]: key}, i + 1))
     }
-    try { return at(params, 0) } catch (e) { if (e instanceof WallExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); return false }
+    try { return at(params, 0) } catch (e) { if (e instanceof WallExpired || e instanceof WatchdogExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); return false }
   }
   // (those that read no param once)
   const readsParams = (f: Law) => m.params.some(p => JSON.stringify(f.holds).includes(`"name":${JSON.stringify(p)}`))
@@ -2998,7 +3000,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       for (const sl of steps1) if (!watch(m, run, sl, params, bound).step(st, input, next)) return {goal: `${sl.name} @step law`, witness: witness()}
       for (const l of lawsHere) if (!watch(m, run, l, params, bound).step(st, input, next)) return {goal: `${l.name} @step`, witness: witness()}
     }
-  } catch (e) { if (e instanceof WallExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); return undefined }
+  } catch (e) { if (e instanceof WallExpired || e instanceof WatchdogExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); return undefined }
   return undefined
 }
 // The kernel's report as a verdict: its first goal left unproven, with its counterexample and why.
@@ -3035,24 +3037,34 @@ function workVerdict(opts: ProveOptions, supported: boolean, run: (opts: ProveOp
     return {proven: false, checked: false, stuck: 'unknown', why: workRefusalWhy(error)}
   }
 }
+function watchdogVerdict(ms: number | undefined, run: () => Verdict): Verdict {
+  let result: Verdict | undefined
+  try { return withSearchWatchdog(ms, () => result = run()) }
+  catch (e) {
+    if (!(e instanceof WatchdogExpired)) throw e
+    return stoppedSearch({...result, proven: false, checked: false, stuck: 'unknown'}, e.termination)
+  }
+}
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
-  return withModelRounds(opts.modelRounds, () => withPublicRule(outermost => {
+  return watchdogVerdict(opts.watchdogMs, () => withModelRounds(opts.modelRounds, () => withPublicRule(outermost => {
     const captureMachine = r.machine, hasCounts = !!Object.keys(captureMachine.counts ?? {}).length
     const result = workVerdict(opts, hasCounts, plan => withPublicSearchPolicy(hasCounts, () => proveRuleWall(r, laws, plan)))
     return outermost ? publishProof(result, captureMachine, laws) : result
-  }))
+  })))
 }
 function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions): Verdict {
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
   const run = (): Verdict => {
+    let result: Verdict | undefined
     try {
       checkWall('rule preflight')
-      const out = proveRuleIn(r, laws, opts)
+      const out = result = proveRuleIn(r, laws, opts)
       checkWall('rule result')
       return out
     } catch (e) {
-      if (!(e instanceof WallExpired)) throw e
-      return {proven: false, checked: false, stuck: 'unknown', why: e.message}
+      if (!(e instanceof WallExpired) && !(e instanceof WatchdogExpired)) throw e
+      const out = {...result, proven: false, checked: false, stuck: 'unknown', why: result?.why ?? e.message}
+      return e.termination ? stoppedSearch(out, e.termination) : out
     }
   }
   // One absolute wall for setup, sampling, generation and proof, not a fresh
@@ -3111,7 +3123,7 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   return searched(r, laws, [], v, opts)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
-  return workVerdict(opts, false, plan => proveStepsWall(r, laws, stepLaws, plan))
+  return watchdogVerdict(opts.watchdogMs, () => workVerdict(opts, false, plan => proveStepsWall(r, laws, stepLaws, plan)))
 }
 function proveStepsWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions): Verdict {
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
@@ -3120,8 +3132,9 @@ function proveStepsWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: L
   const run = (): Verdict => {
     try { return proveStepsIn(r, laws, stepLaws, opts) }
     catch (e) {
-      if (!(e instanceof WallExpired)) throw e
-      return {proven: false, checked: false, stuck: 'unknown', why: e.message}
+      if (!(e instanceof WallExpired) && !(e instanceof WatchdogExpired)) throw e
+      const out = {proven: false, checked: false, stuck: 'unknown', why: e.message}
+      return e.termination ? stoppedSearch(out, e.termination) : out
     }
   }
   const verdict = opts.from !== 'any' || ms === undefined ? run()
@@ -3162,6 +3175,15 @@ function stepGhosts(m: Machine, stepLaws: StepLaw[]): {machine: Machine, laws: L
 // recurrences or carried lists (the rule made again with them), then invariants over what it then is. The verdict is the
 // prover's on the laws with what was found; when nothing is found, the prover's own (with why).
 function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions): Verdict {
+  try { return searchedIn(r, laws, stepLaws, v, opts) }
+  catch (e) {
+    // Keep the initial SAT/goal/model before the outer catch can replace it.
+    // The exception carries provenance stamped before the clock scope unwinds.
+    if ((!(e instanceof WallExpired) && !(e instanceof WatchdogExpired)) || !e.termination) throw e
+    return stoppedSearch(v, e.termination)
+  }
+}
+function searchedIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions): Verdict {
   const any = opts.from === 'any'
   if ((v.proven && v.checked) || opts.search === false || v.run || v.stuck === 'sat' && (any || !/@step|@\d+ steps/.test(v.goal ?? ''))) return v
   // The deeper runs; then runs over small values (keys that meet, small params), whose requests meet their
@@ -3179,7 +3201,13 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   if (pool.length) { const deeper = refuteByRuns(r, laws, stepLaws, {...deeperBudget, trials: 300, seed: 43, states: false, mixed: true, near: v.witness, pool, until: runsUntil}); if (deeper?.run) return refutedVerdict(deeper) }
   const until = clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
   // (the search's end on the wall too: kernel/prove.ts's withWall, past which every goal is unknown)
-  return withStageWall(countedSearchNow() + Math.max(0, until - clock()), () => searchedUntil(r, laws, stepLaws, v, opts, until), () => v)
+  return withStageWall(countedSearchNow() + Math.max(0, until - clock()), () => {
+    const out = searchedUntil(r, laws, stepLaws, v, opts, until)
+    // Early incomplete fallbacks (including too little time for inference) must
+    // observe the owning endpoint before withWall restores the caller's scope.
+    if (!(out.proven && out.checked) && !out.run) checkWall('search result')
+    return out
+  }, () => stoppedSearch(v, {kind: 'work-exhausted', phase: 'search stage', scope: 'stage'}))
 }
 // Two machines alike up to the names of the keys their quantified flags and writes at every key bind (the rule builds
 // fresh ones each time it is read): each bound name by its place of first binding.
@@ -3320,19 +3348,23 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
       keep = keep.filter(c => !drop.includes(c))
     }
   }
-  const inf = withStageWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {join: 0} : {})}), () => undefined)
+  let searchStop: SearchTermination | undefined
+  const stageStopped = (): undefined => { searchStop = {kind: 'work-exhausted', phase: 'invariant search', scope: 'stage'}; return undefined }
+  const inf = withStageWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {join: 0} : {})}), stageStopped)
   if (!(inf?.proven && inf.checked)) {
     // The sum of each map the step writes (withMapSums): the search again over the rule with them, within half of what
     // is left (at most 20 s), where a law of cells against a total needs one (no ERC20 balance past the supply).
     const summed = target.withMapSums()
     if (summed && until - clock() - tail > 1000) {
-      const inf2 = withStageWall(tailAt(), () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2)}), () => undefined)
+      const inf2 = withStageWall(tailAt(), () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2)}), stageStopped)
+      searchStop = inf2?.termination ?? searchStop
       if (inf2?.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; const b = back(summed, found); if (!sk || (b.proven && b.checked)) return retainFrom({...(sk ? {} : verdict), ...b, proven: true, checked: true, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}, sk ? [inf2, b] : [inf2]) }
     }
     // (a step law's ghost: at most 10 s of it, as its goals cost more than the laws')
     const deep = bounded(Math.max(0, Math.min(until - clock(), ghosted && !laws.length ? 10_000 : Infinity)), Math.max(1, reached), true)
     if (deep) return refutedBy(deep)
-    return {...v, why: [v.why, inf ? `the search found nothing that proves it in ${Math.round(inf.stats.ms)} ms` : 'the search reached its stage deadline'].filter(Boolean).join('; ')}
+    const termination = inf?.termination ?? searchStop
+    return termination ? stoppedSearch(v, termination) : {...v, why: [v.why, inf ? `the search found nothing that proves it in ${Math.round(inf.stats.ms)} ms` : 'the search reached its stage deadline'].filter(Boolean).join('; ')}
   }
   const {found, stats: _stats, ...verdict} = inf
   void _stats

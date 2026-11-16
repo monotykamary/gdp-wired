@@ -16,3 +16,13 @@ export type SearchTerminationFields = {
   termination?: SearchTermination
   context?: SearchContext
 }
+export const searchContext = (v: SearchContext & SearchTerminationFields): SearchContext => v.context ?? ({
+  ...(v.goal === undefined ? {} : {goal: v.goal}), ...(v.stuck === undefined ? {} : {stuck: v.stuck}),
+  ...(v.why === undefined ? {} : {why: v.why}), ...(v.witness === undefined ? {} : {witness: v.witness}),
+})
+export const terminationWhy = (t: SearchTermination): string =>
+  `${t.kind === 'wall-deadline' ? 'wall deadline reached' : 'counted work exhausted'} (${t.phase}${t.scope === 'stage' ? '; stage allowance' : ''})`
+// Called only for an incomplete result or a caught interruption. The caller must
+// not use a late observation to relabel a completed proof/refutation.
+export const stoppedSearch = <T extends SearchContext & SearchTerminationFields>(v: T, termination: SearchTermination): T & SearchTerminationFields =>
+  ({...v, stopped: true, termination, context: searchContext(v), why: terminationWhy(termination)})

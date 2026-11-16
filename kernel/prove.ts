@@ -1,4 +1,6 @@
 import {retainFamily, retainFrom} from '../core/proof-output.ts'
+import type {SearchTermination} from '../core/search-termination.ts'
+import {checkWatchdog} from '../core/search-watchdog.ts'
 // An untrusted prover for the kernel: grows a split tree until every leaf's constraints are refuted by solve(), splitting
 // on whatever atom the hypotheses leave open (an if's condition, a min's or ∸'s comparison, a disjunction's atoms, two
 // reads of one map at keys not yet known equal or apart). Its trees go to kernel.check; nothing it says is trusted.
@@ -283,6 +285,7 @@ export const budgetEnd = (): number => {
 }
 // Hard-stop checkpoints must not turn a local search deadline into a whole-run stop.
 export function checkWorkEndpoint(phase: string): void {
+  checkWatchdog(phase)
   if (completeWorkProfile.enabled) { workLedger.check(phase); return }
   if (budgetUnitsEnd !== undefined && (admissionRefusedAt === budgetUnitsEnd || fullWork() > budgetUnitsEnd)) throw new BudgetExpired(phase)
 }
@@ -373,13 +376,20 @@ export const wallDeadline=(end:number,domain?:WallDeadline['domain']):WallDeadli
 // A legacy counted clock is not an opt-in work-only cancellation policy.
 // Preserve its inherited real wall; only explicit work scopes/profiles elide it.
 const workOnlyWall = (): boolean => inBudget() || stepWorkProfile.enabled
-export const pastWall = (): boolean => {
+// Preserve the predicate's original order, but capture the actual clock domain
+// at the cancelling boundary. A WallExpired alone cannot identify real time:
+// pastWall has always included counted stage endpoints as well.
+export const wallTermination = (phase: string): SearchTermination | undefined => {
   checkWorkEndpoint('prover boundary')
   const proxy = proxySearchState()
-  if (proxy) return clock() > withinDeadline(Infinity) || (!workOnlyWall() && proxy.wallEnd !== Infinity && performance.now() > proxy.wallEnd)
-  return (inWorkScope() && clock() > withinDeadline(budgetEnd()))
-    || (!workOnlyWall() && wallEnd !== Infinity && performance.now() > wallEnd)
+  if (proxy ? clock() > withinDeadline(Infinity) : inWorkScope() && clock() > withinDeadline(budgetEnd()))
+    return {kind: 'work-exhausted', phase, scope: 'stage'}
+  const end = proxy ? proxy.wallEnd : wallEnd
+  if (!workOnlyWall() && end !== Infinity && performance.now() > end)
+    return {kind: 'wall-deadline', phase, scope: 'search'}
+  return undefined
 }
+export const pastWall = (): boolean => wallTermination('prover boundary') !== undefined
 export function withWall<T>(limit: number|WallDeadline, f: () => T): T {
   const proxy = proxySearchState()
   // Untagged legacy endpoints retain their old policy. Search producers tag

@@ -1,5 +1,8 @@
 import {retainFrom} from './proof-output.ts'
 import {searchNow as countedSearchNow, checkWorkEndpoint} from './wall.ts'
+import {inWorkScope} from '../kernel/prove.ts'
+import {type SearchTermination, stoppedSearch} from './search-termination.ts'
+import {WatchdogExpired, withSearchWatchdog} from './search-watchdog.ts'
 // Invariants nobody wrote: a law that holds but isn't inductive, proven with laws the search finds. Nothing here is
 // trusted; what it finds is proven by the kernel with the rule's own laws, as laws of the same rule.
 //   - runs: random runs from the start (params and requests by their kinds, the assumption met) give reachable states,
@@ -61,6 +64,7 @@ type Env = Record<string, number>
 // `timed` times every budget, as before (`ms` the search's, `runsMs` the runs', 500 ms), for a benchmark under a
 // wall-clock limit (compare/chc/solve.ts); else `runsMs`, given, times the runs alone; else everything is counted.
 export type InferOptions = {
+  watchdogMs?: number // opt-in real safety bound; independent of counted/legacy search budget
   ms?: number // the whole search's budget, counted, and its wall time, a stop (20 s)
   runs?: number // the random runs: at least this many requests tried, and on until the samples are full (16,000; trials at most that many, or 3,000)
   runsMs?: number // the random runs by wall time instead (500 ms where `timed`)
@@ -81,7 +85,7 @@ export type InferOptions = {
 // What was found: each law as a Law (pass it with the rule's laws), how it reads, and for a rule, the builder call
 // that states it (`r.law(...)`), to paste.
 export type Found = {law: Law, text: string, source?: string}
-export type Inferred = Verdict & {found: Found[], stats: {samples: number, candidates: number, alive: number, proofs: number, ms: number, stopped: boolean}}
+export type Inferred = Verdict & {found: Found[], stats: {samples: number, candidates: number, alive: number, proofs: number, ms: number, stopped: boolean, termination?: SearchTermination}}
 
 // An atom: a value the forms read, the naturals it is made of with their signs (an integer is pos − neg); a cell atom
 // is a map's cell at the law's key (its parts are maps).
@@ -679,7 +683,15 @@ function comparisons(m: Machine, laws: Law[], atoms: Atom[], coords: number[], m
 export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
   // Repeated rounds and minimization can ask the same root goal again. Keep only
   // completed trees for this search, keyed by exact hypotheses and prover modes.
-  return withTrees(() => quietly(() => withDeadline(clock() + (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - countedSearchNow())), () => inferLawsSearch(target, laws, stepLaws, opts))))
+  try { return withSearchWatchdog(opts.watchdogMs, () => inferLawsWatched(target, laws, stepLaws, opts)) }
+  catch (e) {
+    if (!(e instanceof WatchdogExpired)) throw e
+    return {...stoppedSearch({...opts.first, proven: false, checked: false, stuck: 'unknown'}, e.termination), found: [], stats: {samples: 0, candidates: 0, alive: 0, proofs: 0, ms: 0, stopped: true}}
+  }
+}
+function inferLawsWatched(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[], opts: InferOptions): Inferred {
+  const out = withTrees(() => quietly(() => withDeadline(clock() + (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - countedSearchNow())), () => inferLawsSearch(target, laws, stepLaws, opts))))
+  return !(out.proven && out.checked) && !out.run && out.stats.termination ? stoppedSearch(out, out.stats.termination) : out
 }
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
   return withEvaluationAdmission(() => inferLawsSearchIn(target, laws, stepLaws, opts))
@@ -697,8 +709,18 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   const timed = !!opts.timed, w0 = work.n, used = {tries: 0, rows: 0, evals: 0, watched: 0, erows: 0, etries: 0}
   const now = (): number => (timed ? countedSearchNow() - t0
     : used.tries / inferRates.tries + used.rows / inferRates.rows + used.evals / inferRates.evals + used.watched / inferRates.watched + (work.n - w0) / inferRates.work)
-  let stopped = false
-  const stop = () => { checkWorkEndpoint('inference poll'); return stopped || (stopped = countedSearchNow() > wallUntil) }
+  // searchNow's domain is captured with this endpoint, before nested counted
+  // proof calls can change it. Do not classify a stop from stats.ms or its text.
+  const stopDomain = inWorkScope() ? 'counted' : 'real'
+  let stopped = false, termination: SearchTermination | undefined
+  const stop = () => {
+    checkWorkEndpoint('inference poll')
+    if (!stopped && countedSearchNow() > wallUntil) {
+      stopped = true
+      termination = {kind: stopDomain === 'real' ? 'wall-deadline' : 'work-exhausted', phase: 'inference poll', scope: 'stage'}
+    }
+    return stopped
+  }
   // The engine's clock (the stage below, from the small instance on): counted as `now` is, with the EPR path's work
   // (kernel/epr.ts's eprMeter) and the views' rows beside it, so that every choice it makes by its budget (a BFS cut, the
   // filter, a goal's cap, a round's growth) is the same on any machine; the wall (`stop`, `until` past `ms`) only ends it.
@@ -744,7 +766,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     const out = stepLaws.length ? proveStepLaws(model, given, stepLaws) : (fast ? proveSetFast : proveLaws)(model, given)
     return verdictOf(out)
   }
-  const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(countedSearchNow() - t0), stopped: stop()})
+  const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(countedSearchNow() - t0), stopped: stop(), ...(termination ? {termination} : {})})
   // The old public prover's first pass also sampled reachable counterexamples.
   // Keep that negative model evidence without invoking a source finalizer.
   const refuted = !opts.first && !opts.cubes && rule ? refuteModelByRuns(rule, laws, stepLaws) : undefined
