@@ -12,7 +12,7 @@ const verdict = proveRule(rule, laws, {
 })
 ```
 
-`proveSteps` uses the same `search.work` option. Standalone `inferLaws` takes `{work}` in its options, and `discover` takes `{work}` in its final options argument. These are explicit opt-ins; legacy `ms` calls retain their compatibility behavior and are not a promise of wall-clock-independent completion. Do not combine explicit `ms` and `work` grants. Unsupported work-mode families must refuse honestly rather than silently use a millisecond budget.
+`proveSteps` uses the same `search.work` option. Standalone `inferLaws` takes `{work, watchdogMs}` in its options. Standalone `discover(rule, laws, stepLaws, first, options)` accepts `{work, watchdogMs}` in the optional fifth argument; its search result and interruption fields are in `result.verdict`. The watchdog bounds the whole discovery request, not a fresh duration per candidate or round. These are explicit opt-ins; legacy `ms` calls retain their compatibility behavior and are not a promise of wall-clock-independent completion. Do not combine explicit `ms` and `work` grants. Unsupported work-mode families must refuse honestly rather than silently use a millisecond budget.
 
 Measure a representative successful search, preserve its checked result and work measurements, then choose and test a work margin. Increasing a cap does not fix an incorrect law, missing native interpretation or unsupported construct.
 

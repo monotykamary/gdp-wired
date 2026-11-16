@@ -24,7 +24,7 @@ const units: Unit[] = [
   ...tests('core', `exports.test.ts proof-output.test.ts protocol-refusal.test.ts deterministic-work.test.ts search-watchdog.test.ts effect-budget.test.ts infer-termination.test.ts guarded.test.ts cli.test.ts cli-deadline.test.ts cli-two-run-budget.test.ts lift-cli.test.ts security.test.ts solver.test.ts rand.test.ts dsl.test.ts dsl-binders.test.ts dsl-binder-groups.test.ts prenex-admission.test.ts generated-provenance.test.ts sums.test.ts
     arith.test.ts compare.test.ts mutate.test.ts mutate-terms.test.ts runtime-default.test.ts conformance.test.ts compose.test.ts relational.test.ts quantifiers.test.ts functions.test.ts
     keyterms.test.ts lists.test.ts liveness.test.ts sizes.test.ts values.test.ts rationals.test.ts builders.test.ts
-    gdp.test.ts datatypes.test.ts lemmas.test.ts discover.test.ts infer.test.ts infer-input.test.ts cyclic.test.ts cycles.test.ts
+    gdp.test.ts datatypes.test.ts lemmas.test.ts discover.test.ts discover-budget.test.ts infer.test.ts infer-input.test.ts cyclic.test.ts cycles.test.ts
     nonterm.test.ts data.test.ts data-synth.test.ts hypothesis.test.ts seqs.test.ts abstract.test.ts search.test.ts invoices.test.ts
     folds.test.ts trees.test.ts pairs.test.ts chart.test.ts chart-provenance.test.ts xstate.test.ts extract.test.ts extract-standalone.test.ts extract-ci-method-scope.test.ts source-check.test.ts source-diagnostic.test.ts extract-absence.test.ts extract-choice-joins.test.ts extract-standalone-prototype.test.ts extract-standalone-regression.test.ts extract-py.test.ts extract-step-native.test.ts extract-py-mro.test.ts extract-py-hasattr.test.ts extract-orm.test.ts extract-py-orm.test.ts extract-sol.test.ts sol-concrete.test.ts effect.test.ts
     effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts effect-schema.test.ts calendar.test.ts count-facts.test.ts count-ranges.test.ts count-write-frames.test.ts counts-completion-order.test.ts count-completion.test.ts count-witness.test.ts count-unions.test.ts count-witness-flags.test.ts count-focused.test.ts count-cases.test.ts count-focus-proof.test.ts count-recovery-order.test.ts count-cert-grow.test.ts field-laws.test.ts count-cubes.test.ts finite-tiny.test.ts finite-tiny-houdini.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts carry.test.ts scan-prefix.test.ts
@@ -131,6 +131,7 @@ const unitConfig: Record<string, UnitConfig> = {
   'core/count-prerequisite-scope-expiry.test.ts': {...full, env: {...full.env, GDP_COUNT_STRATEGIES: '1', GDP_COUNT_TIERS: '1', GDP_COUNT_PREREQUISITES: '1', GDP_COUNT_CLOSING_RESERVE: '1', GDP_COUNT_FINAL_DEFER_CHECKS: '1'}},
   'core/public-closing-proposal.test.ts': {...full, env: {...full.env, GDP_COUNT_STRATEGIES: '1', GDP_COUNT_TIERS: '1', GDP_COUNT_FINAL_DEFER_CHECKS: '1'}},
   'core/deterministic-work.test.ts': {...rootProcess, timeoutMs: 300000},
+  'core/discover-budget.test.ts': {...rootProcess, timeoutMs: 60000},
   'core/search-watchdog.test.ts': {...rootProcess, timeoutMs: 60000},
   'core/effect-budget.test.ts': {...rootProcess, timeoutMs: 60000},
   'core/infer-termination.test.ts': {...rootProcess, timeoutMs: 300000},
