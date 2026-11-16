@@ -4,7 +4,8 @@ import {join} from 'node:path'
 import {nat,proveRule,proveSteps,rule} from './dsl.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
-import {BudgetExpired,checkWorkEndpoint,inBudget,withBudget} from '../kernel/prove.ts'
+import {BudgetExpired,checkWorkEndpoint,inBudget,remainingWork,withBudget} from '../kernel/prove.ts'
+import {remainingStageWork,withStageWork} from './dsl-deadline.ts'
 import {costs} from './solver.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {workLedger} from './work-admission.ts'
@@ -18,6 +19,20 @@ for(const mode of ['public','steps','infer','discover']) test(`${mode} preserves
  }
  expect(run(5)).toEqual(run(0))
 },300_000)
+
+test('preflight divides actual remaining work in a nearly-exhausted parent',()=>{
+ withBudget(1000,()=>{
+  if(completeWorkProfile.enabled)workLedger.start('ticks',992)
+  else costs.fm+=400 // 932 model units, leaving 68, not a new grant
+  const left=remainingWork(),share=remainingStageWork(1_000_000,8)
+  expect(typeof share).toBe('number')
+  expect(share as number).toBeCloseTo(left/8,6)
+  expect(share as number).toBeLessThan(left)
+  const used=withStageWork(share,()=>remainingWork(),()=>-1)
+  expect(used).toBeCloseTo(left/8,6)
+  expect(remainingWork()).toBeCloseTo(left,6)
+ })
+})
 
 test('public work exhaustion is structured and mixed ms/work fails before entry',()=>{
  const r=rule('zero work').inputs({n:nat}).state({x:0}).step(({n})=>({x:n})),law=r.law('natural',({x})=>x.atLeast(0))

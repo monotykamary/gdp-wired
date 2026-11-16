@@ -31,7 +31,7 @@ import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWal
 import {WallExpired, checkWall, checkWorkEndpoint, searchWall, withBudget, BudgetExpired} from './wall.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {workLedger} from './work-admission.ts'
-import {withStageAllowance, withStageDeadline, withStageWall, withStageWork} from './dsl-deadline.ts'
+import {withStageAllowance, withStageDeadline, withStageWall, withStageWork, remainingStageWork} from './dsl-deadline.ts'
 import {type SearchTermination, completedSearch, searchContext, stoppedSearch} from './search-termination.ts'
 import {WatchdogExpired, checkWatchdog, withSearchWatchdog} from './search-watchdog.ts'
 import {withPublicSearchPolicy} from './search-policy.ts'
@@ -3125,7 +3125,7 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   const explicitWork = typeof opts.search === 'object' ? opts.search.work : undefined
   // Whole-set preflight is only one search strategy. In work mode reserve a
   // deterministic eighth for it, rather than starving inference at the root.
-  const preflight = explicitWork === undefined ? undefined : typeof explicitWork === 'number' ? explicitWork / 8 : workDivide(explicitWork, workFromNumber(8))
+  const preflight = explicitWork === undefined ? undefined : remainingStageWork(explicitWork, 8)
   const out = preflight !== undefined ? withStageWork(preflight, given, () => undefined) : ms === undefined ? given() : withStageWall(countedSearchNow() + ms / share, () =>
     share === 1 ? given() : counted(inferRates.work, () => withStageDeadline(clock() + ms / share, given, () => undefined)), () => undefined)
   const v: Verdict = out ? {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}

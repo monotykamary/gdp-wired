@@ -1,4 +1,5 @@
 // Fresh-process scheduling control: the proof and kernel are unchanged.
+import {tripwireGate} from '../../core/clock-tripwire-preload.ts'
 import {strict as assert} from 'node:assert'
 import {accounts, accountsLaw} from '../../examples/infer.ts'
 import {area, areaLaws} from '../../examples/discover.ts'
@@ -7,7 +8,6 @@ import {inferLaws} from '../../core/infer.ts'
 import {discover} from '../../core/discover.ts'
 import {costs} from '../../core/solver.ts'
 import {fullWork} from '../../kernel/prove.ts'
-import {tripwireGate} from '../../core/clock-tripwire-preload.ts'
 const delay=Number(Bun.env.BUDGET_TEST_DELAY ?? 0)
 const pause=()=>{if(delay)Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,delay)}
 const mode=Bun.argv[2]
