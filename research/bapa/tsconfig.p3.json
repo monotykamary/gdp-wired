@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["p3-sized.test.ts", "../protocols/ic3syn/models.ts"],
+  "exclude": []
+}

@@ -1,6 +1,6 @@
 // The IC3Syn suite (Cao et al., arXiv 2605.24619): its 29 protocols, each a TLA+ spec of Endive's benchmarks (pyv-paxos-epr
 // mypyvy's paxos_epr.pyv, which the TLA+ cites; README.md says where each is from), written as a gdp-wired rule by hand in
-// the encoding of ../models.ts (its README): a sort is the naturals below N = 64 (or 0 .. size − 1, a param, where the spec
+// the historical encoding of ../models.ts (its README): unmigrated sorts are below N = 64 (or 0 .. size − 1 where the spec
 // reads the whole sort), a relation a map of 0/1 cells at a·N + b, a function into a sort a map of naturals (v + 1, with
 // 0 for Nil), an enumeration a map of few values; each action a request (`op` and its parameters), its guard a flag, a
 // request whose flag is false a stutter. An `Init` that picks from a set (`owner \in [Node -> SUBSET Key]`, a start node,
@@ -9,8 +9,8 @@
 // Quorum` is the majorities too, which every config's quorums are (README.md: a quorum sort can't be written here).
 // Each port has its correspondence beside it (`file`, and what differs), a broken variant (`bug`), `bad` (the safety
 // property broken, read on the check's instance) and `check` (the instance and its TLC cfg; check.ts, tlc.py).
-import {type Term, all, any, everyKey, exists, forall, nat, no, oneOf, rule, when, yes} from '../../../core/dsl.ts'
-import {cpair} from '../../../core/machine.ts'
+import {Term, all, any, everyKey, exists, forall, nat, no, oneOf, rule, sizedSort, when, yes} from '../../../core/dsl.ts'
+import {cpair, tuple} from '../../../core/machine.ts'
 import {N, type Protocol, type Read, below, few, lt, majority, majorityWitness, pk, pk3, range, rel, relTrue} from './common.ts'
 
 type Bug = string | undefined
@@ -33,17 +33,18 @@ const quads = (r: Read, n: number) => range(n).flatMap(a => range(n).flatMap(b =
 // --- tla-consensus: Consensus.tla. chosen ⊆ Value; Next: chosen = {} ∧ chosen' = {v}. Inv: Cardinality(chosen) <= 1,
 // which over a set is ∀ a, b ∈ chosen: a = b.
 const consensus = (bug?: Bug) => rule('consensus')
-  .inputs({v: nat}).assume(({v}) => v.lt(N))
+  .params({values: nat}).sorts('Value')
+  .inputs({v: nat}).assume(({v, values}) => sizedSort('Value', values).has(v))
   .maps({Chosen: rel})
-  .flags(({Chosen}) => ({none: everyKey(k => Chosen.at(k).not())}))
+  .flags(({Chosen, values}) => ({none: everyKey(k => sizedSort('Value', values).has(k).implies(Chosen.at(k).not()))}))
   .flags(({none}) => ({chooses: bug ? yes : none}))
   .step(({v, chooses, Chosen}) => ({Chosen: Chosen.set(v, when(chooses, yes, Chosen.at(v)))}))
 
 // --- tla-tcommit: TCommit.tla. rmState: working 0, prepared 1, committed 2, aborted 3; RM is 0 .. size − 1 (canCommit and
 // notCommitted read every RM). Decide's two branches are two requests.
 const tcommit = (bug?: Bug) => rule('tcommit')
-  .params({size: nat}).pre(({size}) => size.atMost(N))
-  .inputs({op: oneOf('prepare', 'commit', 'abort'), rm: nat}).assume(({rm, size}) => rm.lt(size))
+  .params({size: nat}).sorts('RM')
+  .inputs({op: oneOf('prepare', 'commit', 'abort'), rm: nat}).assume(({rm, size}) => sizedSort('RM', size).has(rm))
   .maps({St: few(3)})
   .flags(({size, St}) => ({
     canCommit: everyKey(k => k.lt(size).implies(St.at(k).eq(1).or(St.at(k).eq(2)))),
@@ -56,16 +57,19 @@ const tcommit = (bug?: Bug) => rule('tcommit')
   }))
   .step(({rm, prepares, commits, aborts, St}) => ({St: St.set(rm, when(prepares, 1, when(commits, 2, when(aborts, 3, St.at(rm)))))}))
 
-// --- i4-lock-server: lockserver.tla. semaphore[s] (TRUE at first); s \in clientlocks[c] is Link[c·N + s].
+// --- i4-lock-server: lockserver.tla. Symbolic Client and Server; Link is a native Client×Server tuple.
+// As in slice 2, unary Semaphore is initially true. No helper invariant is supplied to search.
 const lockServer = (bug?: Bug) => rule('lock server')
-  .inputs({op: oneOf('connect', 'disconnect'), c: nat, s: nat}).assume(({c, s}) => lt(c, s))
-  .maps({Link: rel, Semaphore: relTrue})
+  .params({clients: nat, servers: nat}).sorts('Client', 'Server')
+  .inputs({op: oneOf('connect', 'disconnect'), c: nat, s: nat})
+  .assume(({clients, servers, c, s}) => all(sizedSort('Client', clients).has(c), sizedSort('Server', servers).has(s)))
+  .maps({Semaphore: relTrue}).relations({Link: ['Client', 'Server']})
   .flags(({op, c, s, Link, Semaphore}) => ({
     connects: op.is('connect').and(bug ? yes : Semaphore.at(s)),
-    disconnects: op.is('disconnect').and(Link.at(pk(c, s))),
+    disconnects: op.is('disconnect').and(Link.has(c, s)),
   }))
   .step(({c, s, connects, disconnects, Link, Semaphore}) => ({
-    Link: Link.set(pk(c, s), when(connects, yes, when(disconnects, no, Link.at(pk(c, s))))),
+    Link: {...Link.add([c, s]), value: when(connects, 1, when(disconnects, 0, Link.at(c, s))).e},
     Semaphore: Semaphore.set(s, when(connects, no, when(disconnects, yes, Semaphore.at(s)))),
   }))
 
@@ -78,7 +82,12 @@ const overMajority = (r: any, inputs: Record<string, unknown>, acts: string[], o
 
 // --- ex-quorum-leader-election: quorum_leader_election.tla. voted[i] is Voted[i] (j + 1; 0 is Nil). Node is 0 .. size − 1.
 // BecomeLeader(i, Q) for a majority Q.
-const quorumLeader = (bug?: Bug) => overMajority(rule('quorum leader election'), {op: oneOf('vote', 'become_leader'), i: nat, j: nat}, ['become_leader'], ({i, j, size}: any) => i.lt(size).and(j.lt(size)))
+const quorumLeader = (bug?: Bug) => rule('quorum leader election')
+  .params({size: nat}).sorts('Node')
+  .inputs({op: oneOf('vote', 'become_leader'), i: nat, j: nat}).carries('Q')
+  .counts({members: ({Q, size}) => ({below: size, body: (_x: Term, k: Term) => Q.has(k)})})
+  .assume(({op, i, j, size, Q, members}) => all(sizedSort('Node', size).has(i), sizedSort('Node', size).has(j),
+    op.is('become_leader').implies(majority(Q, members, size))))
   .maps({IsLeader: rel, Voted: 0})
   .flags(({i, Q, Voted}: any) => ({allVoted: everyKey(k => Q.has(k).implies(Voted.at(k).eq(i.plus(1))))}))
   .flags(({op, i, allVoted, Voted}: any) => ({votes: op.is('vote').and(bug ? yes : Voted.at(i).eq(0)), leads: op.is('become_leader').and(allVoted)}))
@@ -88,11 +97,15 @@ const quorumLeader = (bug?: Bug) => overMajority(rule('quorum leader election'),
   }))
 
 // --- pyv-toy-consensus-forall: toy_consensus_forall.tla. vote[i] is Vote[i] (v + 1; 0 is Nil). Node is 0 .. size − 1.
-const toyForall = (bug?: Bug) => overMajority(rule('toy consensus forall'), {op: oneOf('cast_vote', 'decide'), i: nat, v: nat}, ['decide'], ({i, v, size}: any) => i.lt(size).and(v.lt(N)))
+const toyForall = (bug?: Bug) => rule('toy consensus forall')
+  .params({size: nat, values: nat}).sorts('Node', 'Value')
+  .inputs({op: oneOf('cast_vote', 'decide'), i: nat, v: nat}).carries('Q')
+  .counts({members: ({Q, size}) => ({below: size, body: (_x: Term, k: Term) => Q.has(k)})})
+  .assume(({op, i, v, size, values, Q, members}) => all(sizedSort('Node', size).has(i), sizedSort('Value', values).has(v), op.is('decide').implies(majority(Q, members, size))))
   .maps({Vote: 0, Voted: rel, Decided: rel})
-  .flags(({v, Q, Vote}: any) => ({allVote: everyKey(k => Q.has(k).implies(Vote.at(k).eq(v.plus(1))))}))
-  .flags(({op, i, allVote, Voted}: any) => ({casts: op.is('cast_vote').and(bug ? yes : Voted.at(i).not()), decides: op.is('decide').and(allVote)}))
-  .step(({i, v, casts, decides, Vote, Voted, Decided}: any) => ({
+  .flags(({v, Q, Vote}) => ({allVote: everyKey(k => Q.has(k).implies(Vote.at(k).eq(v.plus(1))))}))
+  .flags(({op, i, allVote, Voted}) => ({casts: op.is('cast_vote').and(bug ? yes : Voted.at(i).not()), decides: op.is('decide').and(allVote)}))
+  .step(({i, v, casts, decides, Vote, Voted, Decided}) => ({
     Vote: Vote.set(i, when(casts, v.plus(1), Vote.at(i))),
     Voted: Voted.set(i, when(casts, yes, Voted.at(i))),
     Decided: Decided.set(v, when(decides, yes, Decided.at(v))),
@@ -101,8 +114,8 @@ const toyForall = (bug?: Bug) => overMajority(rule('toy consensus forall'), {op:
 // --- tla-simple: Simple.tla. Processes 0 .. n − 1, pc a 0, b 1, Done 2; (self − 1) % N is self − 1, or n − 1 at 0.
 // PCorrect, (∀i: pc[i] = Done) ⇒ ∃i: y[i] = 1, is written as its prenex form ∃i: pc[i] ≠ Done ∨ y[i] = 1.
 const simple = (regular: boolean) => (bug?: Bug) => rule(regular ? 'simple regular' : 'simple')
-  .params({n: nat}).pre(({n}) => n.atLeast(1).and(n.atMost(N)))
-  .inputs({op: oneOf('a1', 'a2', 'b'), self: nat, v: nat}).assume(({self, n, v}) => self.lt(n).and(v.atMost(1)))
+  .params({n: nat}).sorts('Process').pre(({n}) => n.atLeast(1))
+  .inputs({op: oneOf('a1', 'a2', 'b'), self: nat, v: nat}).assume(({self, n, v}) => sizedSort('Process', n).has(self).and(v.atMost(1)))
   // simple: x[i] 0 or 1. simple regular: x[i] {0} 0, {0, 1} 1, {1} 2; pc a1 0, a2 1, b 2, Done 3
   .maps({X: few(2), Y: few(1), Pc: few(3)})
   .flags(({op, self, n, v, X, Pc}) => {
@@ -120,7 +133,8 @@ const simple = (regular: boolean) => (bug?: Bug) => rule(regular ? 'simple regul
 
 // --- ex-lockserv-automaton: lockserv_automaton.tla. held is a scalar.
 const lockservAutomaton = (bug?: Bug) => rule('lockserv automaton')
-  .inputs({op: oneOf('lock', 'unlock', 'recv_lock', 'recv_grant', 'recv_unlock'), n: nat}).assume(({n}) => n.lt(N))
+  .params({size: nat}).sorts('Node')
+  .inputs({op: oneOf('lock', 'unlock', 'recv_lock', 'recv_grant', 'recv_unlock'), n: nat}).assume(({n, size}) => sizedSort('Node', size).has(n))
   .state({held: 0})
   .maps({LockMsg: rel, UnlockMsg: rel, GrantMsg: rel, HoldsLock: rel})
   .flags(({op, n, held, LockMsg, UnlockMsg, GrantMsg, HoldsLock}) => ({
@@ -167,9 +181,42 @@ const shardedKv = (noLost: boolean) => (bug?: Bug) => ((noLost ? rule('sharded k
     ...(noLost ? {Owned: Owned.set(k, when(owns, yes, Owned.at(k)))} : {}),
   }))
 
+// Accepted p4 no-lost port, isolated from the still-in-progress sharded_kv builder above.
+const shardedNoLost = (bug?: Bug) => {
+  const noLost = true
+  return rule('sharded kv no lost keys')
+    .params({nodes: nat, keys: nat, values: nat}).sorts('Node', 'Key', 'Value')
+    .inputs({op: oneOf('own', 'start', 'reshard', 'recv_transfer_msg', 'put'), n: nat, k: nat, v: nat, n2: nat})
+    .assume(({n, k, v, n2, nodes, keys, values}) => all(sizedSort('Node', nodes).has(n), sizedSort('Node', nodes).has(n2),
+      sizedSort('Key', keys).has(k), sizedSort('Value', values).has(v)))
+    .state({started: 0})
+    .maps({Table: 0, Owned: rel}).relations({Owner: ['Key', 'Node'], TransferMsg: ['Node', 'Key', 'Value']})
+    .flags(({k, keys, nodes, Owner, Owned}) => ({
+      unowned: everyKey(m => sizedSort('Node', nodes).has(m).implies(Owner.has(k, m).not())),
+      allOwned: noLost ? everyKey(m => sizedSort('Key', keys).has(m).implies(Owned.at(m))) : yes,
+    }))
+    .flags(({op, n, k, v, started, unowned, allOwned, Table, Owner, TransferMsg}) => ({
+      owns: op.is('own').and(started.eq(0), unowned),
+      starts: op.is('start').and(started.eq(0), allOwned),
+      reshards: op.is('reshard').and(started.eq(1), Table.at(new Term(tuple([n.e, k.e]))).eq(v.plus(1))),
+      receives: op.is('recv_transfer_msg').and(started.eq(1), TransferMsg.has(n, k, v)),
+      puts: op.is('put').and(started.eq(1), bug && !noLost ? yes : Owner.has(k, n)),
+    }))
+    .step(({n, k, v, n2, owns, starts, reshards, receives, puts, started, Table, Owner, TransferMsg, Owned}) => ({
+      started: when(starts, 1, started),
+      Table: Table.set(new Term(tuple([n.e, k.e])), when(reshards, 0, when(receives.or(puts), v.plus(1), Table.at(new Term(tuple([n.e, k.e])))))),
+      Owner: {...Owner.add([k, n]), value: when(owns.or(receives), 1, when(reshards, 0, Owner.at(k, n))).e},
+      TransferMsg: TransferMsg.each((a, b, c) => reshards.and(a.eq(n2), b.eq(k), c.eq(v))
+        .and(bug && noLost ? TransferMsg.has(a, b, c) : yes)
+        .or(TransferMsg.has(a, b, c).and(reshards.and(a.eq(n2), b.eq(k), c.eq(v)).not(), receives.and(a.eq(n), b.eq(k), c.eq(v)).not()))),
+      Owned: Owned.set(k, when(owns, yes, Owned.at(k))),
+    }))
+}
+
 // --- pyv-lockserv: lockserv.tla. One server: server_holds_lock is a scalar (1 at first).
 const lockserv = (bug?: Bug) => rule('lockserv')
-  .inputs({op: oneOf('send_lock', 'recv_lock', 'recv_grant', 'unlock', 'recv_unlock'), n: nat}).assume(({n}) => n.lt(N))
+  .params({size: nat}).sorts('Node')
+  .inputs({op: oneOf('send_lock', 'recv_lock', 'recv_grant', 'unlock', 'recv_unlock'), n: nat}).assume(({n, size}) => sizedSort('Node', size).has(n))
   .state({serverHoldsLock: 1})
   .maps({LockMsg: rel, GrantMsg: rel, UnlockMsg: rel, HoldsLock: rel})
   .flags(({op, n, serverHoldsLock, LockMsg, GrantMsg, UnlockMsg, HoldsLock}) => ({
@@ -190,9 +237,9 @@ const lockserv = (bug?: Bug) => rule('lockserv')
 // --- tla-twophase: TwoPhase.tla. rmState as tcommit's; tmState init 0, committed 1, aborted 2; msgs: Prepared(rm) is
 // PreparedMsg[rm], Commit and Abort two scalars. RM is 0 .. size − 1 (tmPrepared = RM reads every RM).
 const twoPhase = (bug?: Bug) => rule('two phase')
-  .params({size: nat}).pre(({size}) => size.atMost(N))
+  .params({size: nat}).sorts('RM')
   .inputs({op: oneOf('tm_rcv_prepared', 'tm_commit', 'tm_abort', 'rm_prepare', 'rm_choose_to_abort', 'rm_rcv_commit_msg', 'rm_rcv_abort_msg'), rm: nat})
-  .assume(({rm, size}) => rm.lt(size))
+  .assume(({rm, size}) => sizedSort('RM', size).has(rm))
   .state({tm: 0, commitMsg: 0, abortMsg: 0})
   .maps({Rm: few(3), TmPrepared: rel, PreparedMsg: rel})
   .flags(({size, TmPrepared}) => ({allPrepared: everyKey(k => k.lt(size).implies(TmPrepared.at(k)))}))
@@ -214,29 +261,31 @@ const twoPhase = (bug?: Bug) => rule('two phase')
     PreparedMsg: PreparedMsg.set(rm, when(prepares, yes, PreparedMsg.at(rm))),
   }))
 
-// --- ex-simple-decentralized-lock: simple_decentralized_lock.tla. Init's `\E start \in Node: has_lock = {start}` is an
-// `init` request naming start (src).
+// --- ex-simple-decentralized-lock: simple_decentralized_lock.tla. Init chooses one Node via src.
+// Node has symbolic size; Message is a native Node×Node relation, HasLock a unary map.
 const simpleDecentralizedLock = (bug?: Bug) => rule('simple decentralized lock')
-  .inputs({op: oneOf('init', 'send', 'recv'), src: nat, dst: nat}).assume(({src, dst}) => lt(src, dst))
+  .params({size: nat}).sorts('Node')
+  .inputs({op: oneOf('init', 'send', 'recv'), src: nat, dst: nat})
+  .assume(({src, dst, size}) => all(sizedSort('Node', size).has(src), sizedSort('Node', size).has(dst)))
   .state({started: 0})
-  .maps({Message: rel, HasLock: rel})
+  .maps({HasLock: rel}).relations({Message: ['Node', 'Node']})
   .flags(({op, src, dst, started, Message, HasLock}) => ({
     inits: op.is('init').and(started.eq(0)),
     sends: op.is('send').and(started.eq(1), HasLock.at(src)),
-    recvs: op.is('recv').and(started.eq(1), Message.at(pk(src, dst))),
+    recvs: op.is('recv').and(started.eq(1), Message.has(src, dst)),
   }))
   .step(({src, dst, inits, sends, recvs, started, Message, HasLock}) => ({
     started: when(inits, 1, started),
-    Message: Message.set(pk(src, dst), when(sends, yes, when(recvs, no, Message.at(pk(src, dst))))),
+    Message: {...Message.add([src, dst]), value: when(sends, 1, when(recvs, 0, Message.at(src, dst))).e},
     HasLock: HasLock.each(k => when(inits.and(k.eq(src)), yes, when(sends.and(k.eq(src)), bug ? HasLock.at(k) : no, when(recvs.and(k.eq(dst)), yes, HasLock.at(k))))),
   }))
 
 // --- i4-two-phase-commit: two_phase_commit.tla (I4's). Node is 0 .. size − 1 (Go1 and Go2 read every node); Go2's
 // `\E n: vote_no(n) \/ ~alive(n)` names that node (w).
 const twoPhaseCommit = (bug?: Bug) => rule('two-phase commit')
-  .params({size: nat}).pre(({size}) => size.atMost(N))
+  .params({size: nat}).sorts('Node')
   .inputs({op: oneOf('vote1', 'vote2', 'fail', 'go1', 'go2', 'commit', 'abort'), n: nat, w: nat})
-  .assume(({n, w, size}) => n.lt(size).and(w.lt(size)))
+  .assume(({n, w, size}) => sizedSort('Node', size).has(n).and(sizedSort('Node', size).has(w)))
   .state({abortFlag: 0})
   .maps({VoteYes: rel, VoteNo: rel, Alive: relTrue, GoCommit: rel, GoAbort: rel, DecideCommit: rel, DecideAbort: rel})
   .flags(({size, GoCommit, GoAbort, VoteYes}) => ({
@@ -267,58 +316,66 @@ const twoPhaseCommit = (bug?: Bug) => rule('two-phase commit')
 // --- pyv-consensus-wo-decide and pyv-consensus-forall: consensus_wo_decide.tla, consensus_forall.tla. Quorums is the
 // majorities of Node, 0 .. size − 1 (the configs' {{n1, n2}, {n2, n3}, {n1, n3}}; the TLA+ states no intersection, and a
 // set of quorums that may not meet makes the property false); voting_quorum is a set, VotingQuorum, and Init's
-// `voting_quorum \in Quorums` an `init` request carrying it. <<i, j>> \in votes is Votes[i·N + j], <<i, v>> \in decided
-// Decided[i·N + v].
-const consensusWo = (decide: boolean) => (bug?: Bug) => overMajority(rule(decide ? 'consensus forall' : 'consensus wo decide'),
-  {op: decide ? oneOf('init', 'send_request_vote', 'send_vote', 'recv_vote', 'choose_voting_quorum', 'become_leader', 'decide')
-    : oneOf('init', 'send_request_vote', 'send_vote', 'recv_vote', 'choose_voting_quorum', 'become_leader'), i: nat, j: nat, ...(decide ? {v: nat} : {})},
-  ['init', 'choose_voting_quorum'], ({i, j, v, size}: any) => i.lt(size).and(j.lt(size), ...(decide ? [v.lt(N)] : [])))
+// `voting_quorum \in Quorums` an `init` request carrying it. <<i, j>> \in votes is Votes(i,j), <<i, v>> \in decided
+// Decided(i,v). This rerun uses native Node×Node / Node×Value tuples and symbolic
+// Node/Value sizes; the majority interpretation and setup phase are unchanged.
+const consensusWo = (decide: boolean) => (bug?: Bug) => rule(decide ? 'consensus forall' : 'consensus wo decide')
+  .params({size: nat, ...(decide ? {values: nat} : {})}).sorts('Node', ...(decide ? ['Value'] : []))
+  .inputs({op: decide ? oneOf('init', 'send_request_vote', 'send_vote', 'recv_vote', 'choose_voting_quorum', 'become_leader', 'decide')
+    : oneOf('init', 'send_request_vote', 'send_vote', 'recv_vote', 'choose_voting_quorum', 'become_leader'), i: nat, j: nat, ...(decide ? {v: nat} : {})})
+  .carries('Q')
+  .counts({members: ({Q, size}: any) => ({below: size, body: (_x: Term, k: Term) => Q.has(k)})})
+  .assume(({op, i, j, v, size, values, Q, members}: any) => all(sizedSort('Node', size).has(i), sizedSort('Node', size).has(j),
+    ...(decide ? [sizedSort('Value', values).has(v)] : []), op.is('init').or(op.is('choose_voting_quorum')).implies(majority(Q, members, size))))
   .state({started: 0})
-  .maps({VoteRequestMsg: rel, Voted: rel, VoteMsg: rel, Votes: rel, Leader: rel, VotingQuorum: rel, ...(decide ? {Decided: rel} : {})})
-  .flags(({i, Q, VotingQuorum, Votes, Decided}: any) => ({
-    quorumVotes: everyKey(k => Q.has(k).implies(Votes.at(pk(i, k)))),
-    votingQuorumVotes: everyKey(k => VotingQuorum.at(k).implies(Votes.at(pk(i, k)))),
-    ...(decide ? {undecided: everyKey(x => x.lt(N).implies(Decided.at(pk(i, x)).not()))} : {}),
+  .maps({Voted: rel, Leader: rel, VotingQuorum: rel})
+  .relations({VoteRequestMsg: ['Node', 'Node'], VoteMsg: ['Node', 'Node'], Votes: ['Node', 'Node'], ...(decide ? {Decided: ['Node', 'Value']} : {})})
+  .flags(({i, Q, VotingQuorum, Votes, Decided, values}: any) => ({
+    quorumVotes: everyKey(k => Q.has(k).implies(Votes.has(i, k))),
+    votingQuorumVotes: everyKey(k => VotingQuorum.at(k).implies(Votes.has(i, k))),
+    ...(decide ? {undecided: everyKey(x => sizedSort('Value', values).has(x).implies(Decided.has(i, x).not()))} : {}),
   }))
   .flags(({op, i, j, started, quorumVotes, votingQuorumVotes, undecided, Voted, VoteRequestMsg, VoteMsg, Leader}: any) => ({
     inits: op.is('init').and(started.eq(0)),
     requests: op.is('send_request_vote').and(started.eq(1)),
-    // SendVote(src, dst) is (i, j)
-    votes: op.is('send_vote').and(started.eq(1), bug ? yes : Voted.at(i).not(), VoteRequestMsg.at(pk(j, i))),
-    // RecvVote(i, sender) is (i, j)
-    receives: op.is('recv_vote').and(started.eq(1), VoteMsg.at(pk(j, i))),
+    // SendVote(src, dst) is (i, j).
+    votes: op.is('send_vote').and(started.eq(1), bug ? yes : Voted.at(i).not(), VoteRequestMsg.has(j, i)),
+    // RecvVote(i, sender) is (i, j).
+    receives: op.is('recv_vote').and(started.eq(1), VoteMsg.has(j, i)),
     chooses: op.is('choose_voting_quorum').and(started.eq(1), quorumVotes),
-    // (voting_quorum # {} holds of every majority)
     leads: op.is('become_leader').and(started.eq(1), votingQuorumVotes),
     ...(decide ? {decides: op.is('decide').and(started.eq(1), Leader.at(i), undecided)} : {}),
   }))
   .step(({i, j, v, inits, requests, votes, receives, chooses, leads, decides, started, Q, VoteRequestMsg, Voted, VoteMsg, Votes, Leader, VotingQuorum, Decided}: any) => ({
     started: when(inits, 1, started),
     VotingQuorum: VotingQuorum.each((k: Term) => when(inits.or(chooses), Q.has(k), VotingQuorum.at(k))),
-    VoteRequestMsg: VoteRequestMsg.set(pk(i, j), when(requests, yes, VoteRequestMsg.at(pk(i, j)))),
-    VoteMsg: VoteMsg.set(pk(i, j), when(votes, yes, VoteMsg.at(pk(i, j)))),
+    VoteRequestMsg: VoteRequestMsg.add([i, j], requests),
+    VoteMsg: VoteMsg.add([i, j], votes),
     Voted: Voted.set(i, when(votes, yes, Voted.at(i))),
-    Votes: Votes.set(pk(i, j), when(receives, yes, Votes.at(pk(i, j)))),
+    Votes: Votes.add([i, j], receives),
     Leader: Leader.set(i, when(leads, yes, Leader.at(i))),
-    ...(decide ? {Decided: Decided.set(pk(i, v), when(decides, yes, Decided.at(pk(i, v))))} : {}),
+    ...(decide ? {Decided: Decided.add([i, v], decides)} : {}),
   }))
 
 // --- ex-naive-consensus: naive_consensus.tla. Quorum is the majorities of Node, 0 .. size − 1 (the config's). <<n, v>> \in
-// vote is Vote[v·N + n], and CastVote's `\A x: <<n, x>> \notin vote` is read through Voted[n] (every write keeps Voted[n] =
+// vote is native Vote(v,n), and CastVote's `\A x: <<n, x>> \notin vote` is read through Voted[n] (every write keeps Voted[n] =
 // ∃x vote(n, x): a node's votes are only added). decide ⊆ Quorum \X Value is read only as `<<Q, v>> \in decide` for some
 // Q (LearnValue's), so the port keeps its projection Decide[v] = ∃Q: <<Q, v>> \in decide (check.ts compares it with
 // TLC's VIEW of the same).
-const naiveConsensus = (bug?: Bug) => overMajority(rule('naive consensus'), {op: oneOf('cast_vote', 'collect_votes', 'learn_value'), n: nat, v: nat},
-  ['collect_votes'], ({n, v, size}: any) => n.lt(size).and(v.lt(N)))
-  .maps({Vote: rel, Voted: rel, Decide: rel, Decision: rel})
-  .flags(({v, Q, Vote}: any) => ({allVote: everyKey(k => Q.has(k).implies(Vote.at(pk(v, k))))}))
-  .flags(({op, n, v, allVote, Voted, Decide}: any) => ({
+const naiveConsensus = (bug?: Bug) => rule('naive consensus')
+  .params({size: nat, values: nat}).sorts('Node', 'Value')
+  .inputs({op: oneOf('cast_vote', 'collect_votes', 'learn_value'), n: nat, v: nat}).carries('Q')
+  .counts({members: ({Q, size}) => ({below: size, body: (_x: Term, k: Term) => Q.has(k)})})
+  .assume(({op, n, v, size, values, Q, members}) => all(sizedSort('Node', size).has(n), sizedSort('Value', values).has(v), op.is('collect_votes').implies(majority(Q, members, size))))
+  .maps({Voted: rel, Decide: rel, Decision: rel}).relations({Vote: ['Value', 'Node']})
+  .flags(({v, Q, Vote}) => ({allVote: everyKey(k => Q.has(k).implies(Vote.has(v, k)))}))
+  .flags(({op, n, v, allVote, Voted, Decide}) => ({
     casts: op.is('cast_vote').and(bug ? yes : Voted.at(n).not()),
     collects: op.is('collect_votes').and(allVote),
     learns: op.is('learn_value').and(Decide.at(v)),
   }))
-  .step(({n, v, casts, collects, learns, Vote, Voted, Decide, Decision}: any) => ({
-    Vote: Vote.set(pk(v, n), when(casts, yes, Vote.at(pk(v, n)))),
+  .step(({n, v, casts, collects, learns, Vote, Voted, Decide, Decision}) => ({
+    Vote: Vote.add([v, n], casts),
     Voted: Voted.set(n, when(casts, yes, Voted.at(n))),
     Decide: Decide.set(v, when(collects, yes, Decide.at(v))),
     Decision: Decision.set(v, when(learns, yes, Decision.at(v))),
@@ -327,7 +384,7 @@ const naiveConsensus = (bug?: Bug) => overMajority(rule('naive consensus'), {op:
 // --- pyv-client-server-ae and pyv-client-server-db-ae: client_server_ae.tla, client_server_db_ae.tla. match, any
 // relation at Init, is set by `match` requests before `start`. <<n, r>> \in request_sent is RequestSent[n·N + r],
 // <<r, p>> \in match Match[r·N + p], <<i, n>> \in t T[i·N + n] (NoneWithId(i) reads every n).
-const clientServer = (db: boolean) => (bug?: Bug) => (rule(db ? 'client server db ae' : 'client server ae') as any)
+export const clientServer = (db: boolean) => (bug?: Bug) => (rule(db ? 'client server db ae' : 'client server ae') as any)
   .inputs(db ? {op: oneOf('match', 'start', 'new_request', 'receive_response', 'server_process_request', 'db_process_request', 'server_process_db_response'), n: nat, r: nat, p: nat, i: nat}
     : {op: oneOf('match', 'start', 'new_request', 'respond', 'receive_response'), n: nat, r: nat, p: nat})
   .assume(({n, r, p, i}: any) => lt(n, r, p, ...(db ? [i] : [])))
@@ -358,15 +415,36 @@ const clientServer = (db: boolean) => (bug?: Bug) => (rule(db ? 'client server d
     } : {}),
   }))
 
+// Native sized tuple port: the same five actions and setup choices as above.
+// Node, Request and Response sizes are independent symbolic naturals.
+const clientServerSized = (bug?: Bug) => rule('client server ae')
+  .params({nodes: nat, requestSize: nat, responses: nat})
+  .sorts('Node', 'Request', 'Response')
+  .relations({Match: ['Request', 'Response'], RequestSent: ['Node', 'Request'], ResponseSent: ['Node', 'Response'], ResponseReceived: ['Node', 'Response']})
+  .inputs({op: oneOf('match', 'start', 'new_request', 'respond', 'receive_response'), n: nat, r: nat, p: nat})
+  .assume(({n, r, p, nodes, requestSize, responses}) => all(sizedSort('Node', nodes).has(n), sizedSort('Request', requestSize).has(r), sizedSort('Response', responses).has(p)))
+  .state({started: 0})
+  .flags(({op, n, r, p, started, RequestSent, ResponseSent, Match}) => ({
+    matches: op.is('match').and(started.eq(0)), starts: op.is('start').and(started.eq(0)),
+    requests: op.is('new_request').and(started.eq(1)),
+    receives: op.is('receive_response').and(started.eq(1), ResponseSent.has(n, p)),
+    responds: op.is('respond').and(started.eq(1), RequestSent.has(n, r), bug ? yes : Match.has(r, p)),
+  }))
+  .step(({n, r, p, started, matches, starts, requests, receives, responds, Match, RequestSent, ResponseSent, ResponseReceived}) => ({
+    started: when(starts, 1, started), Match: Match.add([r, p], matches), RequestSent: RequestSent.add([n, r], requests),
+    ResponseSent: ResponseSent.add([n, p], responds), ResponseReceived: ResponseReceived.add([n, p], receives),
+  }))
+
 // Native tuple port of the same seven actions: no packed-key aliases in
 // synthesized provenance laws. The old packed form above remains a reference.
 const clientServerDb = (bug?: Bug) => rule('client server db ae')
+  .params({nodes: nat, requestSize: nat, responses: nat, ids: nat})
   .sorts('Node', 'Request', 'Response', 'DbRequestId')
   .relations({Match: ['Request', 'Response'], RequestSent: ['Node', 'Request'], ResponseSent: ['Node', 'Response'], ResponseReceived: ['Node', 'Response'], DbRequestSent: ['DbRequestId', 'Request'], DbResponseSent: ['DbRequestId', 'Response'], T: ['DbRequestId', 'Node']})
   .inputs({op: oneOf('match', 'start', 'new_request', 'receive_response', 'server_process_request', 'db_process_request', 'server_process_db_response'), n: nat, r: nat, p: nat, i: nat})
-  .assume(({n, r, p, i}) => lt(n, r, p, i))
+  .assume(({n, r, p, i, nodes, requestSize, responses, ids}) => all(sizedSort('Node', nodes).has(n), sizedSort('Request', requestSize).has(r), sizedSort('Response', responses).has(p), sizedSort('DbRequestId', ids).has(i)))
   .state({started: 0})
-  .flags(({i, T}) => ({noneWithId: everyKey(m => m.lt(N).implies(T.has(i, m).not()))}))
+  .flags(({i, nodes, T}) => ({noneWithId: everyKey(m => sizedSort('Node', nodes).has(m).implies(T.has(i, m).not()))}))
   .flags(({op, n, r, p, i, started, noneWithId, RequestSent, ResponseSent, DbRequestSent, DbResponseSent, T, Match}) => ({
     matches: op.is('match').and(started.eq(0)), starts: op.is('start').and(started.eq(0)),
     requests: op.is('new_request').and(started.eq(1)),
@@ -381,54 +459,69 @@ const clientServerDb = (bug?: Bug) => rule('client server db ae')
     DbRequestSent: DbRequestSent.add([i, r], serverRequests), DbResponseSent: DbResponseSent.add([i, p], dbResponds), T: T.add([i, n], serverRequests),
   }))
 
-// --- ex-simple-election: simple_election.tla. Quorum is the majorities of Acceptor, 0 .. size − 1 (the config's, with
-// the full set: a superset enables what its subsets do); <<a, p>> \in promise is Promise[p·N + a], and DidNotPromise(a)
-// is read through Promised[a] (kept = ∃p promise(a, p), as naive consensus's Voted).
-const simpleElection = (bug?: Bug) => overMajority(rule('simple election'), {op: oneOf('send_1a', 'send_1b', 'decide'), a: nat, p: nat},
-  ['decide'], ({a, p, size}: any) => a.lt(size).and(p.lt(N)))
-  .maps({Start: rel, Promise: rel, Promised: rel, Leader: rel})
-  .flags(({p, Q, Promise}: any) => ({chosenAt: everyKey(k => Q.has(k).implies(Promise.at(pk(p, k))))}))
-  .flags(({op, a, p, chosenAt, Start, Promised}: any) => ({
+// --- ex-simple-election: simple_election.tla. Acceptor and Proposer have independent symbolic sizes.
+// Quorum retains the canonical majority interpretation, counted over Acceptor; Promise is (Proposer, Acceptor).
+// Promised[a] is the same derived row-presence variable as in the old port, not an extra safety premise.
+const simpleElection = (bug?: Bug) => rule('simple election')
+  .params({size: nat, proposers: nat}).sorts('Acceptor', 'Proposer')
+  .inputs({op: oneOf('send_1a', 'send_1b', 'decide'), a: nat, p: nat}).carries('Q')
+  .counts({members: ({Q, size}) => ({below: size, body: (_x: Term, k: Term) => Q.has(k)})})
+  .assume(({a, p, size, proposers, op, Q, members}) => all(
+    sizedSort('Acceptor', size).has(a), sizedSort('Proposer', proposers).has(p),
+    op.is('decide').implies(majority(Q, members, size))))
+  .maps({Start: rel, Promised: rel, Leader: rel}).relations({Promise: ['Proposer', 'Acceptor']})
+  .flags(({p, Q, Promise}) => ({chosenAt: everyKey(k => Q.has(k).implies(Promise.has(p, k)))}))
+  .flags(({op, a, p, chosenAt, Start, Promised}) => ({
     sends1a: op.is('send_1a'),
     sends1b: op.is('send_1b').and(Start.at(p), bug ? yes : Promised.at(a).not()),
     decides: op.is('decide').and(chosenAt),
   }))
-  .step(({a, p, sends1a, sends1b, decides, Start, Promise, Promised, Leader}: any) => ({
+  .step(({a, p, sends1a, sends1b, decides, Start, Promise, Promised, Leader}) => ({
     Start: Start.set(p, when(sends1a, yes, Start.at(p))),
-    Promise: Promise.set(pk(p, a), when(sends1b, yes, Promise.at(pk(p, a)))),
+    Promise: Promise.add([p, a], sends1b),
     Promised: Promised.set(a, when(sends1b, yes, Promised.at(a))),
     Leader: Leader.set(p, when(decides, yes, Leader.at(p))),
   }))
 
 // --- pyv-toy-consensus-epr: toy_consensus_epr.tla. Quorum is the majorities of Node, 0 .. size − 1 (the config's);
-// <<n, v>> \in vote is Vote[v·N + n].
-const toyEpr = (bug?: Bug) => overMajority(rule('toy consensus epr'), {op: oneOf('cast_vote', 'decide'), n: nat, v: nat}, ['decide'], ({n, v, size}: any) => n.lt(size).and(v.lt(N)))
-  .maps({Voted: rel, Vote: rel, Decided: rel})
-  .flags(({v, Q, Vote}: any) => ({chosenAt: everyKey(k => Q.has(k).implies(Vote.at(pk(v, k))))}))
-  .flags(({op, n, chosenAt, Voted}: any) => ({casts: op.is('cast_vote').and(bug ? yes : Voted.at(n).not()), decides: op.is('decide').and(chosenAt)}))
-  .step(({n, v, casts, decides, Voted, Vote, Decided}: any) => ({
-    Vote: Vote.set(pk(v, n), when(casts, yes, Vote.at(pk(v, n)))),
+// <<n, v>> \in vote is native Vote(v,n), with symbolic Node and Value sizes.
+const toyEpr = (bug?: Bug) => rule('toy consensus epr')
+  .params({size: nat, values: nat}).sorts('Node', 'Value')
+  .inputs({op: oneOf('cast_vote', 'decide'), n: nat, v: nat}).carries('Q')
+  .counts({members: ({Q, size}) => ({below: size, body: (_x: Term, k: Term) => Q.has(k)})})
+  .assume(({op, n, v, size, values, Q, members}) => all(sizedSort('Node', size).has(n), sizedSort('Value', values).has(v), op.is('decide').implies(majority(Q, members, size))))
+  .maps({Voted: rel, Decided: rel}).relations({Vote: ['Value', 'Node']})
+  .flags(({v, Q, Vote}) => ({chosenAt: everyKey(k => Q.has(k).implies(Vote.has(v, k)))}))
+  .flags(({op, n, chosenAt, Voted}) => ({casts: op.is('cast_vote').and(bug ? yes : Voted.at(n).not()), decides: op.is('decide').and(chosenAt)}))
+  .step(({n, v, casts, decides, Voted, Vote, Decided}) => ({
+    Vote: Vote.add([v, n], casts),
     Voted: Voted.set(n, when(casts, yes, Voted.at(n))),
     Decided: Decided.set(v, when(decides, yes, Decided.at(v))),
   }))
 
 // --- ex-toy-consensus: toy_consensus.tla. vote[i] is Vote[i] (v + 1; 0 is Nil); Node is 0 .. size − 1; Decide(v, Q) for a
 // majority Q.
-const toyConsensus = (bug?: Bug) => overMajority(rule('toy consensus'), {op: oneOf('cast_vote', 'decide'), i: nat, v: nat}, ['decide'], ({i, v, size}: any) => i.lt(size).and(v.lt(N)))
+const toyConsensus = (bug?: Bug) => rule('toy consensus')
+  .params({size: nat, values: nat}).sorts('Node', 'Value')
+  .inputs({op: oneOf('cast_vote', 'decide'), i: nat, v: nat}).carries('Q')
+  .counts({members: ({Q, size}) => ({below: size, body: (_x: Term, k: Term) => Q.has(k)})})
+  .assume(({op, i, v, size, values, Q, members}) => all(sizedSort('Node', size).has(i), sizedSort('Value', values).has(v), op.is('decide').implies(majority(Q, members, size))))
   .maps({Vote: 0, Decision: rel})
-  .flags(({v, Q, Vote}: any) => ({chosenAt: everyKey(k => Q.has(k).implies(Vote.at(k).eq(v.plus(1))))}))
-  .flags(({op, i, chosenAt, Vote}: any) => ({casts: op.is('cast_vote').and(bug ? yes : Vote.at(i).eq(0)), decides: op.is('decide').and(chosenAt)}))
-  .step(({i, v, casts, decides, Vote, Decision}: any) => ({
+  .flags(({v, Q, Vote}) => ({chosenAt: everyKey(k => Q.has(k).implies(Vote.at(k).eq(v.plus(1))))}))
+  .flags(({op, i, chosenAt, Vote}) => ({casts: op.is('cast_vote').and(bug ? yes : Vote.at(i).eq(0)), decides: op.is('decide').and(chosenAt)}))
+  .step(({i, v, casts, decides, Vote, Decision}) => ({
     Vote: Vote.set(i, when(casts, v.plus(1), Vote.at(i))),
     Decision: Decision.set(v, when(decides, yes, Decision.at(v))),
   }))
 
-// --- pyv-firewall: firewall.tla. internal, any function at Init, is set by `internal` requests before `start`;
-// d \in sent[s] is Sent[s·N + d].
+// --- pyv-firewall: firewall.tla. Symbolic Node; Sent is a native Node×Node relation.
+// Internal is chosen before start exactly as in the canonical port; no extra invariant is supplied.
 const firewall = (bug?: Bug) => rule('firewall')
-  .inputs({op: oneOf('internal', 'start', 'send_from_internal', 'send_to_internal'), s: nat, d: nat}).assume(({s, d}) => lt(s, d))
+  .params({size: nat}).sorts('Node')
+  .inputs({op: oneOf('internal', 'start', 'send_from_internal', 'send_to_internal'), s: nat, d: nat})
+  .assume(({s, d, size}) => all(sizedSort('Node', size).has(s), sizedSort('Node', size).has(d)))
   .state({started: 0})
-  .maps({Internal: rel, Sent: rel, AllowedIn: rel})
+  .maps({Internal: rel, AllowedIn: rel}).relations({Sent: ['Node', 'Node']})
   .flags(({op, s, d, started, Internal, AllowedIn}) => ({
     marks: op.is('internal').and(started.eq(0)),
     starts: op.is('start').and(started.eq(0)),
@@ -438,7 +531,7 @@ const firewall = (bug?: Bug) => rule('firewall')
   .step(({s, d, marks, starts, fromInternal, toInternal, started, Internal, Sent, AllowedIn}) => ({
     started: when(starts, 1, started),
     Internal: Internal.set(s, when(marks, yes, Internal.at(s))),
-    Sent: Sent.set(pk(s, d), when(fromInternal.or(toInternal), yes, Sent.at(pk(s, d)))),
+    Sent: Sent.add([s, d], fromInternal.or(toInternal)),
     AllowedIn: AllowedIn.set(d, when(fromInternal, yes, AllowedIn.at(d))),
   }))
 
@@ -446,50 +539,54 @@ const firewall = (bug?: Bug) => rule('firewall')
 // Voters[n·N + v], leader a set; Node is 0 .. size − 1. ReceiveVote(voter, n, vs) and BecomeLeader(n, vs) name vs =
 // voters[n], so neither carries it; BecomeLeader's vs \in Majority is majority() of the row voters[n].
 const majoritySet = (bug?: Bug) => rule('majorityset leader election')
-  .params({size: nat}).pre(({size}) => size.atMost(N))
+  .params({size: nat}).sorts('Node')
   .inputs({op: oneOf('voting', 'receive_vote', 'become_leader'), n: nat, m: nat})
-  .maps({Vote: rel, Voters: rel, Leader: rel})
-  .counts({voters: ({Voters, size}: any) => ({below: size, body: (x: Term, k: Term) => Voters.at(pk(x, k))})})
-  .assume(({op, n, m, size, voters}: any) => n.lt(size).and(m.lt(size), op.is('become_leader').implies(size.lt(voters.at(n).times(2)))))
-  .flags(({n, Vote}) => ({didNotVote: everyKey(x => x.lt(N).implies(Vote.at(pk(n, x)).not()))}))
+  .relations({Vote: ['Node', 'Node'], Voters: ['Node', 'Node']}).maps({Leader: rel})
+  .counts({voters: ({Voters, size}) => ({below: size, body: (x: Term, k: Term) => Voters.has(x, k)})})
+  .assume(({op, n, m, size, voters}) => all(sizedSort('Node', size).has(n), sizedSort('Node', size).has(m),
+    op.is('become_leader').implies(size.lt(voters.at(n).times(2)))))
+  .flags(({n, size, Vote}) => ({didNotVote: everyKey(x => sizedSort('Node', size).has(x).implies(Vote.has(n, x).not()))}))
   .flags(({op, n, m, didNotVote, Vote, Voters}) => ({
-    // Voting(n1, n2) is (n, m); ReceiveVote(voter, n, vs) is (m, n)
     votes: op.is('voting').and(bug ? yes : didNotVote),
-    receives: op.is('receive_vote').and(Vote.at(pk(m, n)), Voters.at(pk(n, m)).not()),
+    receives: op.is('receive_vote').and(Vote.has(m, n), Voters.has(n, m).not()),
     leads: op.is('become_leader'),
   }))
   .step(({n, m, votes, receives, leads, Vote, Voters, Leader}) => ({
-    Vote: Vote.set(pk(n, m), when(votes, yes, Vote.at(pk(n, m)))),
-    Voters: Voters.set(pk(n, m), when(receives, yes, Voters.at(pk(n, m)))),
+    Vote: Vote.add([n, m], votes), Voters: Voters.add([n, m], receives),
     Leader: Leader.set(n, when(leads, yes, Leader.at(n))),
   }))
 
 // --- pyv-consensus-epr: consensus_epr.tla. Quorum is the majorities of Node, 0 .. size − 1 (the config's, with the full
-// set); sender \in votes[n] is Votes[n·N + sender], v \in decided[n] Decided[n·N + v]; SendVote's `vote_request_msg' =
+// set); sender \in votes[n] is native Votes(n,sender), v \in decided[n] Decided(n,v); Node/Value sizes are symbolic.
+// SendVote's `vote_request_msg' =
 // ... \cup or \ {<<src, dst>>}` is `nondet`.
-const consensusEpr = (bug?: Bug) => overMajority(rule('consensus epr'),
-  {op: oneOf('send_request_vote', 'send_vote', 'recv_vote', 'become_leader', 'decide'), i: nat, j: nat, v: nat, nondet: nat},
-  ['become_leader'], ({i, j, v, nondet, size}: any) => i.lt(size).and(j.lt(size), v.lt(N), nondet.atMost(1)))
-  .maps({VoteRequestMsg: rel, Voted: rel, VoteMsg: rel, Votes: rel, Leader: rel, Decided: rel})
-  .flags(({i, Q, Votes, Decided}: any) => ({
-    quorumVotes: everyKey(k => Q.has(k).implies(Votes.at(pk(i, k)))),
-    undecided: everyKey(x => x.lt(N).implies(Decided.at(pk(i, x)).not())),
+const consensusEpr = (bug?: Bug) => rule('consensus epr')
+  .params({size: nat, values: nat}).sorts('Node', 'Value')
+  .inputs({op: oneOf('send_request_vote', 'send_vote', 'recv_vote', 'become_leader', 'decide'), i: nat, j: nat, v: nat, nondet: nat}).carries('Q')
+  .counts({members: ({Q, size}) => ({below: size, body: (_x: Term, k: Term) => Q.has(k)})})
+  .assume(({op, i, j, v, nondet, size, values, Q, members}) => all(sizedSort('Node', size).has(i), sizedSort('Node', size).has(j),
+    sizedSort('Value', values).has(v), nondet.atMost(1), op.is('become_leader').implies(majority(Q, members, size))))
+  .maps({Voted: rel, Leader: rel})
+  .relations({VoteRequestMsg: ['Node', 'Node'], VoteMsg: ['Node', 'Node'], Votes: ['Node', 'Node'], Decided: ['Node', 'Value']})
+  .flags(({i, Q, Votes, Decided, values}) => ({
+    quorumVotes: everyKey(k => Q.has(k).implies(Votes.has(i, k))),
+    undecided: everyKey(x => sizedSort('Value', values).has(x).implies(Decided.has(i, x).not())),
   }))
-  .flags(({op, i, j, quorumVotes, undecided, Voted, VoteRequestMsg, VoteMsg, Leader}: any) => ({
+  .flags(({op, i, j, quorumVotes, undecided, Voted, VoteRequestMsg, VoteMsg, Leader}) => ({
     requests: op.is('send_request_vote'),
-    // SendVote(src, dst) and RecvVote(n, sender) are (i, j)
-    votes: op.is('send_vote').and(bug ? yes : Voted.at(i).not(), VoteRequestMsg.at(pk(j, i))),
-    receives: op.is('recv_vote').and(VoteMsg.at(pk(j, i))),
+    // SendVote(src, dst) and RecvVote(n, sender) are (i, j).
+    votes: op.is('send_vote').and(bug ? yes : Voted.at(i).not(), VoteRequestMsg.has(j, i)),
+    receives: op.is('recv_vote').and(VoteMsg.has(j, i)),
     leads: op.is('become_leader').and(quorumVotes),
     decides: op.is('decide').and(Leader.at(i), undecided),
   }))
-  .step(({i, j, v, nondet, requests, votes, receives, leads, decides, VoteRequestMsg, Voted, VoteMsg, Votes, Leader, Decided}: any) => ({
-    VoteRequestMsg: VoteRequestMsg.set(pk(i, j), when(requests.or(votes.and(nondet.eq(1))), yes, when(votes, no, VoteRequestMsg.at(pk(i, j))))),
-    VoteMsg: VoteMsg.set(pk(i, j), when(votes, yes, VoteMsg.at(pk(i, j)))),
+  .step(({i, j, v, nondet, requests, votes, receives, leads, decides, VoteRequestMsg, Voted, VoteMsg, Votes, Leader, Decided}) => ({
+    VoteRequestMsg: {...VoteRequestMsg.add([i, j]), value: when(requests.or(votes.and(nondet.eq(1))), 1, when(votes, 0, VoteRequestMsg.at(i, j))).e},
+    VoteMsg: VoteMsg.add([i, j], votes),
     Voted: Voted.set(i, when(votes, yes, Voted.at(i))),
-    Votes: Votes.set(pk(i, j), when(receives, yes, Votes.at(pk(i, j)))),
+    Votes: Votes.add([i, j], receives),
     Leader: Leader.set(i, when(leads, yes, Leader.at(i))),
-    Decided: Decided.set(pk(i, v), when(decides, yes, Decided.at(pk(i, v)))),
+    Decided: Decided.add([i, v], decides),
   }))
 
 // --- the three that need a composed key (README.md: "Composed keys"). A guard or write that ranges over a coordinate
@@ -605,10 +702,10 @@ export const tabR = (T: any, t: Term, x: Term, y: Term) => x.eq(y).or(T.has(t, x
 const learnT = (T: any, learns: any, size: Term, src: Term, sw0: Term, sw1: Term, back = false) => T.union((t: Term, x: Term, y: Term) =>
   learns.and(t.eq(src), x.eq(y).not(), x.lt(size), y.lt(size), tabR(T, src, x, sw1).and(tabR(T, src, sw0, y)).or(back ? x.eq(sw0).and(y.eq(sw1)) : no)))
 const learningSwitchR = (bug?: Bug) => rule('learning switch')
-  .params({size: nat}).pre(({size}) => size.atLeast(1).and(size.atMost(N)))
+  .params({size: nat}).pre(({size}) => size.atLeast(1))
   .sorts('Node').relations({T: ['Node', 'Node', 'Node'], P: ['Node', 'Node', 'Node', 'Node']})
   .inputs({op: oneOf('new_packet', 'forward'), ps: nat, pd: nat, sw0: nat, sw1: nat, nondet: nat})
-  .assume(({ps, pd, sw0, sw1, nondet, size}) => below(size, ps, pd, sw0, sw1, nondet))
+  .assume(({ps, pd, sw0, sw1, nondet, size}) => all(...[ps, pd, sw0, sw1, nondet].map(x => sizedSort('Node', size).has(x))))
   .flags(({ps, sw1, size, T}: any) => ({noRoute: everyKey(w => w.lt(size).implies(w.eq(sw1).or(T.has(ps, sw1, w).not())))}))
   .flags(({op, ps, pd, sw0, sw1, noRoute, P}: any) => {
     const forwards = op.is('forward').and(P.has(ps, pd, sw0, sw1))
@@ -622,10 +719,10 @@ const learningSwitchR = (bug?: Bug) => rule('learning switch')
 // (src, dst and link as functions into Node, each a map of the node itself beside a 0/1 map of whether Init has set it:
 // no node is read through a truncation, v ∸ 1, as the phased port's v + 1 encoding reads it)
 const learningSwitchI4R = (bug?: Bug) => rule('learning switch i4')
-  .params({size: nat, packets: nat}).pre(({size, packets}) => size.atLeast(1).and(size.atMost(N), packets.atMost(N)))
+  .params({size: nat, packets: nat}).pre(({size}) => size.atLeast(1))
   .sorts('Packet', 'Node').relations({Pend: ['Packet', 'Node', 'Node'], Dom: ['Node', 'Node'], T: ['Node', 'Node', 'Node']})
   .inputs({op: oneOf('src', 'dst', 'link', 'start', 'new_packet', 'flood', 'route'), p: nat, sw0: nat, sw1: nat, sw2: nat})
-  .assume(({p, sw0, sw1, sw2, size, packets}) => p.lt(packets).and(below(size, sw0, sw1, sw2)))
+  .assume(({p, sw0, sw1, sw2, size, packets}) => sizedSort('Packet', packets).has(p).and(...[sw0, sw1, sw2].map(x => sizedSort('Node', size).has(x))))
   .state({started: 0})
   .maps({Src: 0, Dst: 0, Link: 0, SrcSet: 0, DstSet: 0, LinkSet: 0})
   .flags(({p, sw1, sw2, size, packets, SrcSet, DstSet, LinkSet, Dst, T}: any) => {
@@ -845,14 +942,14 @@ const mldrRequests = (inp: any, r?: Read) => {
 
 // --- the protocols, with their safety laws, their instances and their TLC cfgs --------------------------------------
 const one = (name: string, map: string) => (r: any) => [r.law(name, (env: any) => forall((a, b) => lt(a, b).and(env[map].at(a), env[map].at(b)).implies(a.eq(b))))]
-const mutex = one('one holder', 'HoldsLock')
+const mutex = (r: any) => [r.law('one holder', ({size, HoldsLock}: any) => forall((a, b) => all(sizedSort('Node', size).has(a), sizedSort('Node', size).has(b), HoldsLock.at(a), HoldsLock.at(b)).implies(a.eq(b))))]
 const N3 = range(3), N2 = range(2), N4 = range(4)
 
 export const protocols: Protocol[] = [
   {id: 'consensus', ic3syn: 'tla-consensus', file: 'Consensus.tla', source: 'Endive benchmarks/Consensus.tla (Lamport\'s Consensus)', safety: 'Cardinality(chosen) <= 1',
-    make: consensus, bug: 'Next without chosen = {}', laws: one('at most one value chosen', 'Chosen'),
+    make: consensus, bug: 'Next without chosen = {}', laws: r => [r.law('at most one value chosen', ({values, Chosen}: any) => forall((a, b) => all(sizedSort('Value', values).has(a), sizedSort('Value', values).has(b), Chosen.at(a), Chosen.at(b)).implies(a.eq(b))))],
     bad: r => twoDistinct(r, 'Chosen', N3),
-    check: {inputs: {v: N3}, project: r => cells(r, 'Chosen', N3), tlc: tlc('Consensus', consts({Value: nodes(3, 'v')}), 'Inv')}},
+    check: {params: {values: 3}, inputs: {v: N3}, project: r => cells(r, 'Chosen', N3), tlc: tlc('Consensus', consts({Value: nodes(3, 'v')}), 'Inv')}},
   {id: 'tcommit', ic3syn: 'tla-tcommit', file: 'TCommit.tla', source: 'Endive benchmarks/TCommit.tla (Lamport\'s TCommit)', safety: '~(rmState[rm1] = "aborted" /\\ rmState[rm2] = "committed")',
     make: tcommit, bug: 'commit without canCommit',
     laws: r => [r.law('commit and abort exclude', ({size, St}: any) => forall((a, b) => a.lt(size).and(b.lt(size)).implies(St.at(a).eq(3).and(St.at(b).eq(2)).not())))],
@@ -860,9 +957,9 @@ export const protocols: Protocol[] = [
     check: {params: {size: 3}, inputs: {op: range(3), rm: N3}, project: r => cells(r, 'St', N3), tlc: tlc('TCommit', consts({RM: nodes(3, 'rm')}), 'TCConsistent')}},
   {id: 'lock_server', ic3syn: 'i4-lock-server', file: 'lockserver.tla', source: 'Endive benchmarks/lockserver.tla (I4\'s lock server)', safety: 'clientlocks[ci] \\cap clientlocks[cj] # {} => ci = cj',
     make: lockServer, bug: 'connect without the semaphore',
-    laws: r => [r.law('one client per server', ({Link}: any) => forall((c1, c2, s) => lt(c1, c2, s).and(Link.at(pk(c1, s)), Link.at(pk(c2, s))).implies(c1.eq(c2))))],
-    bad: r => N2.some(s => twoDistinct(r, 'Link', N2.map(c => c * N + s))),
-    check: {inputs: {op: range(2), c: N2, s: N2}, project: r => [cells(r, 'Semaphore', N2), cells(r, 'Link', pairs(N2, N2))],
+    laws: r => [r.law('one client per server', ({clients, servers, Link}: any) => forall((c1, c2, s) => all(sizedSort('Client', clients).has(c1), sizedSort('Client', clients).has(c2), sizedSort('Server', servers).has(s), Link.has(c1, s), Link.has(c2, s)).implies(c1.eq(c2))))],
+    bad: r => N2.some(s => twoDistinct(r, 'Link', N2.map(c => cpair(c, s)))),
+    check: {params: {clients: 2, servers: 2}, inputs: {op: range(2), c: N2, s: N2}, project: r => [cells(r, 'Semaphore', N2), cells(r, 'Link', N2.flatMap(c => N2.map(s => cpair(c, s))))],
       tlc: tlc('lockserver', consts({Server: nodes(2, 's'), Client: nodes(2, 'c')}, {Nil: 'Nil'}), 'Inv')}},
   ...[false].map((): Protocol => ({id: 'quorum_leader_election', ic3syn: 'ex-quorum-leader-election', file: 'quorum_leader_election.tla',
     source: 'Endive benchmarks/quorum_leader_election.tla', safety: 'isleader[i] /\\ isleader[j] => i = j',
@@ -873,9 +970,9 @@ export const protocols: Protocol[] = [
       project: r => [cells(r, 'IsLeader', N3), cells(r, 'Voted', N3)], tlc: tlc('quorum_leader_election', consts({Node: nodes(3)}, {Nil: 'Nil'}), 'Inv')}})),
   ...[false].map((): Protocol => ({id: 'toy_consensus_forall', ic3syn: 'pyv-toy-consensus-forall', file: 'toy_consensus_forall.tla',
     source: 'Endive benchmarks/toy_consensus_forall.tla (mypyvy\'s)', safety: '\\A vi, vj \\in decided: vi = vj',
-    make: toyForall, bug: 'cast_vote without voted', laws: one('one value decided', 'Decided'),
+    make: toyForall, bug: 'cast_vote without voted', laws: r => [r.law('one value decided', ({values, Decided}: any) => forall((a, b) => all(sizedSort('Value', values).has(a), sizedSort('Value', values).has(b), Decided.at(a), Decided.at(b)).implies(a.eq(b))))],
     bad: r => twoDistinct(r, 'Decided', N2),
-    check: {params: {size: 3}, inputs: {op: range(2), i: N3, v: N2, qm: range(8)}, expand: withMajority(3),
+    check: {params: {size: 3, values: 2}, inputs: {op: range(2), i: N3, v: N2, qm: range(8)}, expand: withMajority(3),
       project: r => [cells(r, 'Vote', N3), cells(r, 'Voted', N3), cells(r, 'Decided', N2)],
       tlc: tlc('toy_consensus_forall', consts({Node: nodes(3), Value: nodes(2, 'v')}, {Nil: 'Nil'}), 'Inv')}})),
   ...[false, true].map((regular): Protocol => {
@@ -883,32 +980,32 @@ export const protocols: Protocol[] = [
     return {id: regular ? 'simple_regular' : 'simple', ic3syn: regular ? 'tla-simpleregular' : 'tla-simple', file: regular ? 'SimpleRegular.tla' : 'Simple.tla',
       source: `Endive benchmarks/${regular ? 'SimpleRegular' : 'Simple'}.tla (Lamport's)`, safety: '(\\A i: pc[i] = "Done") => \\E i: y[i] = 1',
       make: simple(regular), bug: regular ? 'a2 leaves x = {0, 1}' : 'a leaves x',
-      laws: r => [r.law('some process not done, or some y is 1', ({n: size, Pc, Y}: any) => exists(i => i.lt(size).and(Pc.at(i).eq(regular ? 3 : 2).not().or(Y.at(i).eq(1)))))],
+      laws: r => [r.law('some process not done, or some y is 1', ({n: size, Pc, Y}: any) => exists(i => sizedSort('Process', size).has(i).and(Pc.at(i).eq(regular ? 3 : 2).not().or(Y.at(i).eq(1)))))],
       bad: r => P.every(i => r.cell('Pc', i) === (regular ? 3 : 2)) && P.every(i => r.cell('Y', i) === 0),
       check: {params: {n}, inputs: {op: regular ? range(3) : [0, 2], self: P, v: [0, 1]}, project: r => [cells(r, 'X', P), cells(r, 'Y', P), cells(r, 'Pc', P)],
         tlc: tlc(regular ? 'SimpleRegular' : 'Simple', `CONSTANTS\n  N = ${n}\n`, 'PCorrect')}}
   }),
   {id: 'lockserv_automaton', ic3syn: 'ex-lockserv-automaton', file: 'lockserv_automaton.tla', source: 'Endive benchmarks/lockserv_automaton.tla', safety: 'holds_lock[x] /\\ holds_lock[y] => x = y',
     make: lockservAutomaton, bug: 'recv_lock while held', laws: mutex, bad: r => twoDistinct(r, 'HoldsLock', N3),
-    check: {inputs: {op: range(5), n: N3}, project: r => [['LockMsg', 'UnlockMsg', 'GrantMsg', 'HoldsLock'].map(m => cells(r, m, N3)), r.scalar('held')],
+    check: {params: {size: 3}, inputs: {op: range(5), n: N3}, project: r => [['LockMsg', 'UnlockMsg', 'GrantMsg', 'HoldsLock'].map(m => cells(r, m, N3)), r.scalar('held')],
       tlc: tlc('lockserv_automaton', consts({Node: nodes(3)}), 'Mutex')}},
   ...[false, true].map((noLost): Protocol => ({id: noLost ? 'sharded_kv_no_lost_keys' : 'sharded_kv', ic3syn: noLost ? 'pyv-sharded-kv-no-lost-keys' : 'pyv-sharded-kv',
     file: noLost ? 'sharded_kv_no_lost_keys.tla' : 'sharded_kv.tla', source: `Endive benchmarks/${noLost ? 'sharded_kv_no_lost_keys' : 'sharded_kv'}.tla (mypyvy's)`,
     safety: noLost ? '(\\E n, k, v: <<n, k, v>> \\in transfer_msg) \\/ (\\A k: \\E n: k \\in owner[n])' : 'table[n1][k] = v1 /\\ table[n2][k] = v2 => n1 = n2 /\\ v1 = v2',
-    make: shardedKv(noLost), bug: noLost ? 'reshard without the transfer message' : 'put without ownership',
+    make: noLost ? shardedNoLost : shardedKv(false), bug: noLost ? 'reshard without the transfer message' : 'put without ownership',
     laws: r => [noLost
-      ? r.law('a transfer in flight, or every key owned', ({keys, started, Owner, TransferMsg}: any) => forall(k => k.lt(keys).and(started.eq(1)).implies(
-        exists(x => x.lt(N).and(Owner.at(pk(k, x)))).or(exists(z => TransferMsg.at(z))))))
+      ? r.law('a transfer in flight, or every key owned', ({nodes, keys, values, started, Owner, TransferMsg}: any) => forall(k => k.lt(keys).and(started.eq(1)).implies(
+        exists(x => x.lt(nodes).and(Owner.has(k, x))).or(exists(n => exists(j => exists(v => all(n.lt(nodes), j.lt(keys), v.lt(values), TransferMsg.has(n, j, v)))))))))
       : r.law('one value per key', ({Table}: any) => forall((a, b, k, v, u) => lt(a, b, k, v, u).and(Table.at(pk(a, k)).eq(v.plus(1)), Table.at(pk(b, k)).eq(u.plus(1))).implies(a.eq(b).and(v.eq(u)))))],
     bad: noLost
-      ? r => r.scalar('started') === 1 && !triples(N2, N2, N2).some(z => r.cell('TransferMsg', z)) && N2.some(k => !N2.some(n => r.cell('Owner', k * N + n)))
+      ? r => r.scalar('started') === 1 && !N2.some(n => N2.some(k => N2.some(v => r.cell('TransferMsg', tk(n, k, v))))) && N2.some(k => !N2.some(n => r.cell('Owner', tk(k, n))))
       : r => N2.some(k => N2.flatMap(n => r.cell('Table', n * N + k) ? [n] : []).length > 1),
-    check: {params: noLost ? {keys: 2} : {}, inputs: {op: range(5), n: N2, k: N2, v: N2, n2: N2},
-      project: r => r.scalar('started') ? [cells(r, 'Table', pairs(N2, N2)), cells(r, 'Owner', pairs(N2, N2)), cells(r, 'TransferMsg', triples(N2, N2, N2))] : undefined,
+    check: {params: noLost ? {nodes: 2, keys: 2, values: 2} : {}, inputs: {op: range(5), n: N2, k: N2, v: N2, n2: N2},
+      project: r => r.scalar('started') ? (noLost ? [cells(r, 'Table', N2.flatMap(a => N2.map(b => tk(a, b)))), cells(r, 'Owner', N2.flatMap(a => N2.map(b => tk(a, b)))), cells(r, 'TransferMsg', N2.flatMap(a => N2.flatMap(b => N2.map(c => tk(a, b, c)))))] : [cells(r, 'Table', pairs(N2, N2)), cells(r, 'Owner', pairs(N2, N2)), cells(r, 'TransferMsg', triples(N2, N2, N2))]) : undefined,
       tlc: tlc(noLost ? 'sharded_kv_no_lost_keys' : 'sharded_kv', consts({Node: nodes(2), Key: nodes(2, 'k'), Value: nodes(2, 'v')}, {Nil: 'Nil'}), 'Safety')}})),
   {id: 'lockserv', ic3syn: 'pyv-lockserv', file: 'lockserv.tla', source: 'Endive benchmarks/lockserv.tla (mypyvy\'s lockserv)', safety: 'holds_lock[x] /\\ holds_lock[y] => x = y',
     make: lockserv, bug: 'recv_lock without server_holds_lock', laws: mutex, bad: r => twoDistinct(r, 'HoldsLock', N3),
-    check: {inputs: {op: range(5), n: N3}, project: r => [['LockMsg', 'GrantMsg', 'UnlockMsg', 'HoldsLock'].map(m => cells(r, m, N3)), r.scalar('serverHoldsLock')],
+    check: {params: {size: 3}, inputs: {op: range(5), n: N3}, project: r => [['LockMsg', 'GrantMsg', 'UnlockMsg', 'HoldsLock'].map(m => cells(r, m, N3)), r.scalar('serverHoldsLock')],
       tlc: tlc('lockserv', consts({Node: nodes(3)}), 'Mutex')}},
   {id: 'twophase', ic3syn: 'tla-twophase', file: 'TwoPhase.tla', source: 'Endive benchmarks/TwoPhase.tla (Lamport\'s TwoPhase)', safety: '~(rmState[rm1] = "aborted" /\\ rmState[rm2] = "committed")',
     make: twoPhase, bug: 'tm_commit before every RM is prepared',
@@ -917,8 +1014,8 @@ export const protocols: Protocol[] = [
     check: {params: {size: 3}, inputs: {op: range(7), rm: N3}, project: r => [cells(r, 'Rm', N3), r.scalar('tm'), cells(r, 'TmPrepared', N3), cells(r, 'PreparedMsg', N3), r.scalar('commitMsg'), r.scalar('abortMsg')],
       tlc: tlc('TwoPhase', consts({RM: nodes(3, 'rm')}), 'TCConsistent')}},
   {id: 'simple_decentralized_lock', ic3syn: 'ex-simple-decentralized-lock', file: 'simple_decentralized_lock.tla', source: 'Endive benchmarks/simple_decentralized_lock.tla', safety: 'x \\in has_lock /\\ y \\in has_lock => x = y',
-    make: simpleDecentralizedLock, bug: 'send keeps the lock', laws: one('one node holds the lock', 'HasLock'), bad: r => twoDistinct(r, 'HasLock', N3),
-    check: {inputs: {op: range(3), src: N3, dst: N3}, project: r => r.scalar('started') ? [cells(r, 'HasLock', N3), cells(r, 'Message', pairs(N3, N3))] : undefined,
+    make: simpleDecentralizedLock, bug: 'send keeps the lock', laws: r => [r.law('one node holds the lock', ({size, HasLock}: any) => forall((a, b) => all(sizedSort('Node', size).has(a), sizedSort('Node', size).has(b), HasLock.at(a), HasLock.at(b)).implies(a.eq(b))))], bad: r => twoDistinct(r, 'HasLock', N3),
+    check: {params: {size: 3}, inputs: {op: range(3), src: N3, dst: N3}, project: r => r.scalar('started') ? [cells(r, 'HasLock', N3), cells(r, 'Message', N3.flatMap(a => N3.map(b => cpair(a, b))))] : undefined,
       tlc: tlc('simple_decentralized_lock', consts({Node: nodes(3)}), 'Inv')}},
   {id: 'two_phase_commit', ic3syn: 'i4-two-phase-commit', file: 'two_phase_commit.tla', source: 'Endive benchmarks/two_phase_commit.tla (I4\'s)',
     safety: '(n \\in decide_commit => n2 \\notin decide_abort) /\\ (n \\in decide_commit => n2 \\in vote_yes) /\\ (n \\in decide_abort => abort_flag)',
@@ -934,71 +1031,70 @@ export const protocols: Protocol[] = [
     safety: decide ? '<<n1, v1>> \\in decided /\\ <<n2, v2>> \\in decided => v1 = v2' : 'leader[i] /\\ leader[j] => i = j',
     make: consensusWo(decide), bug: 'send_vote without voted',
     laws: decide
-      ? r => [r.law('one value decided', ({size, Decided}: any) => forall((a, b, v, u) => a.lt(size).and(b.lt(size), v.lt(N), u.lt(N), Decided.at(pk(a, v)), Decided.at(pk(b, u))).implies(v.eq(u))))]
-      : r => [r.law('one leader', ({size, Leader}: any) => forall((a, b) => a.lt(size).and(b.lt(size), Leader.at(a), Leader.at(b)).implies(a.eq(b))))],
-    bad: decide ? r => new Set(N3.flatMap(n => N2.filter(v => r.cell('Decided', n * N + v)))).size > 1 : r => twoDistinct(r, 'Leader', N3),
+      ? r => [r.law('one value decided', ({size, values, Decided}: any) => forall((a, b, v, u) => all(sizedSort('Node', size).has(a), sizedSort('Node', size).has(b), sizedSort('Value', values).has(v), sizedSort('Value', values).has(u), Decided.has(a, v), Decided.has(b, u)).implies(v.eq(u))))]
+      : r => [r.law('one leader', ({size, Leader}: any) => forall((a, b) => all(sizedSort('Node', size).has(a), sizedSort('Node', size).has(b), Leader.at(a), Leader.at(b)).implies(a.eq(b))))],
+    bad: decide ? r => new Set(N3.flatMap(n => N2.filter(v => r.cell('Decided', tk(n, v))))).size > 1 : r => twoDistinct(r, 'Leader', N3),
     // (the configs' Quorums are the three 2-sets, not the full set, which the port's majorities also take: the check reads
     // those three alone, since voting_quorum stores the set and a stored full set would be a state the config has not)
-    check: {params: {size: 3}, inputs: {op: decide ? range(7) : range(6), i: N3, j: N3, qm: [3, 5, 6], ...(decide ? {v: N2} : {})}, expand: withMajority(3),
+    check: {params: {size: 3, ...(decide ? {values: 2} : {})}, inputs: {op: decide ? range(7) : range(6), i: N3, j: N3, qm: [3, 5, 6], ...(decide ? {v: N2} : {})}, expand: withMajority(3),
       uses: [['qm'], ['i', 'j'], ['i', 'j'], ['i', 'j'], ['i', 'qm'], ['i'], ['i', 'v']],
-      project: r => r.scalar('started') ? [['VoteRequestMsg', 'VoteMsg', 'Votes'].map(m => cells(r, m, pairs(N3, N3))), cells(r, 'Voted', N3), cells(r, 'Leader', N3), cells(r, 'VotingQuorum', N3), cells(r, 'Decided', pairs(N3, N2))] : undefined,
+      project: r => r.scalar('started') ? [['VoteRequestMsg', 'VoteMsg', 'Votes'].map(m => cells(r, m, N3.flatMap(a => N3.map(b => tk(a, b))))), cells(r, 'Voted', N3), cells(r, 'Leader', N3), cells(r, 'VotingQuorum', N3), cells(r, 'Decided', N3.flatMap(a => N2.map(b => tk(a, b))))] : undefined,
       tlc: tlc(decide ? 'consensus_forall' : 'consensus_wo_decide', `${consts({Node: nodes(3), ...(decide ? {Value: nodes(2, 'v')} : {})})}  ${decide ? 'Quorum' : 'Quorums'} = {{n1, n2}, {n2, n3}, {n1, n3}}\n`, 'Safety')}})),
   {id: 'naive_consensus', ic3syn: 'ex-naive-consensus', file: 'naive_consensus.tla', source: 'Endive benchmarks/naive_consensus.tla', safety: 'v1 \\in decision /\\ v2 \\in decision => v1 = v2',
-    make: naiveConsensus, bug: 'cast_vote twice', laws: one('one value decided', 'Decision'), bad: r => twoDistinct(r, 'Decision', N2),
-    check: {params: {size: 3}, inputs: {op: range(3), n: N3, v: N2, qm: range(8)}, expand: withMajority(3), uses: [['n', 'v'], ['v', 'qm'], ['v']],
-      project: r => [cells(r, 'Vote', pairs(N2, N3)), cells(r, 'Decide', N2), cells(r, 'Decision', N2)],
+    make: naiveConsensus, bug: 'cast_vote twice', laws: r => [r.law('one value decided', ({values, Decision}: any) => forall((a, b) => all(sizedSort('Value', values).has(a), sizedSort('Value', values).has(b), Decision.at(a), Decision.at(b)).implies(a.eq(b))))], bad: r => twoDistinct(r, 'Decision', N2),
+    check: {params: {size: 3, values: 2}, inputs: {op: range(3), n: N3, v: N2, qm: range(8)}, expand: withMajority(3), uses: [['n', 'v'], ['v', 'qm'], ['v']],
+      project: r => [cells(r, 'Vote', N2.flatMap(a => N3.map(b => tk(a, b)))), cells(r, 'Decide', N2), cells(r, 'Decision', N2)],
       tlc: {...tlc('naive_consensus', `${consts({Node: nodes(3), Value: nodes(2, 'v')})}  Quorum = {{n1, n2}, {n2, n3}, {n1, n3}}\n`, 'Safety', 'VIEW DecideView\n'),
         // decide's projection to its values, as the port keeps it
         fix: [`sed -i 's/^====/DecideView == <<vote, {v \\\\in Value : \\\\E Q \\\\in Quorum : <<Q, v>> \\\\in decide}, decision>>\\n====/' naive_consensus.tla`]}}},
   ...[false, true].map((db): Protocol => {
-    const Ns = N2, R = N2, P = N2, I = N2, key = db ? tk : (a: number, b: number) => a * N + b
+    const Ns = N2, R = N2, P = N2, I = N2, key = tk
     const keys = Ns.flatMap(a => R.map(b => key(a, b)))
     return {id: db ? 'client_server_db_ae' : 'client_server_ae', ic3syn: db ? 'pyv-client-server-db-ae' : 'pyv-client-server-ae', file: db ? 'client_server_db_ae.tla' : 'client_server_ae.tla',
       source: `Endive benchmarks/${db ? 'client_server_db_ae' : 'client_server_ae'}.tla (mypyvy's)`, safety: '<<n, p>> \\in response_received => \\E r: <<n, r>> \\in request_sent /\\ <<r, p>> \\in match',
-      make: db ? clientServerDb : clientServer(false), bug: db ? 'db_process_request without match' : 'respond without match',
-      laws: r => db ? [r.law('a received response was matched', ({RequestSent, Match, ResponseReceived}: any) => forall((n, p) => lt(n, p).and(ResponseReceived.has(n, p)).implies(
-        exists(x => x.lt(N).and(RequestSent.has(n, x), Match.has(x, p))))))] : [r.law('a received response was matched', ({RequestSent, Match, ResponseReceived}: any) => forall((n, p) => lt(n, p).and(ResponseReceived.at(pk(n, p))).implies(
-        exists(x => x.lt(N).and(RequestSent.at(pk(n, x)), Match.at(pk(x, p)))))))],
+      make: db ? clientServerDb : clientServerSized, bug: db ? 'db_process_request without match' : 'respond without match',
+      laws: r => [r.law('a received response was matched', ({nodes, requestSize, responses, RequestSent, Match, ResponseReceived}: any) => forall((n, p) => all(sizedSort('Node', nodes).has(n), sizedSort('Response', responses).has(p), ResponseReceived.has(n, p)).implies(
+        exists(x => sizedSort('Request', requestSize).has(x).and(RequestSent.has(n, x), Match.has(x, p))))))],
       bad: r => Ns.some(n => P.some(p => r.cell('ResponseReceived', key(n, p)) && !R.some(x => r.cell('RequestSent', key(n, x)) && r.cell('Match', key(x, p))))),
-      check: {inputs: {op: db ? range(7) : range(5), n: Ns, r: R, p: P, ...(db ? {i: I} : {})},
+      check: {params: {nodes: 2, requestSize: 2, responses: 2, ...(db ? {ids: 2} : {})}, inputs: {op: db ? range(7) : range(5), n: Ns, r: R, p: P, ...(db ? {i: I} : {})},
         uses: db ? [['r', 'p'], [], ['n', 'r'], ['n', 'p'], ['n', 'r', 'i'], ['i', 'r', 'p'], ['n', 'i', 'p']] : [['r', 'p'], [], ['n', 'r'], ['n', 'r', 'p'], ['n', 'p']],
         project: r => r.scalar('started') ? [['Match', 'RequestSent', 'ResponseSent', 'ResponseReceived'].map(m => cells(r, m, keys)),
           ...(db ? [['DbRequestSent', 'DbResponseSent', 'T'].map(m => cells(r, m, keys))] : [])] : undefined,
         tlc: tlc(db ? 'client_server_db_ae' : 'client_server_ae', consts({Node: nodes(2), Request: nodes(2, 'r'), Response: nodes(2, 'p'), ...(db ? {DbRequestId: nodes(2, 'i')} : {})}), 'Safety')}}
   }),
   {id: 'simple_election', ic3syn: 'ex-simple-election', file: 'simple_election.tla', source: 'Endive benchmarks/simple_election.tla', safety: 'pi \\in leader /\\ pj \\in leader => pi = pj',
-    make: simpleElection, bug: 'send_1b after a promise', laws: one('one leader', 'Leader'), bad: r => twoDistinct(r, 'Leader', N2),
-    check: {params: {size: 3}, inputs: {op: range(3), a: N3, p: N2, qm: range(8)}, expand: withMajority(3), uses: [['p'], ['a', 'p'], ['p', 'qm']], project: r => [cells(r, 'Start', N2), cells(r, 'Promise', pairs(N2, N3)), cells(r, 'Leader', N2)],
+    make: simpleElection, bug: 'send_1b after a promise', laws: r => [r.law('one leader', ({proposers, Leader}: any) => forall((a, b) => all(sizedSort('Proposer', proposers).has(a), sizedSort('Proposer', proposers).has(b), Leader.at(a), Leader.at(b)).implies(a.eq(b))))], bad: r => twoDistinct(r, 'Leader', N2),
+    check: {params: {size: 3, proposers: 2}, inputs: {op: range(3), a: N3, p: N2, qm: range(8)}, expand: withMajority(3), uses: [['p'], ['a', 'p'], ['p', 'qm']], project: r => [cells(r, 'Start', N2), cells(r, 'Promise', N2.flatMap(p => N3.map(a => cpair(p, a)))), cells(r, 'Leader', N2)],
       tlc: tlc('simple_election', `${consts({Acceptor: nodes(3, 'a'), Proposer: nodes(2, 'p')})}  Quorum = {{a1, a2}, {a1, a3}, {a2, a3}, {a1, a2, a3}}\n`, 'Safety')}},
   {id: 'toy_consensus_epr', ic3syn: 'pyv-toy-consensus-epr', file: 'toy_consensus_epr.tla', source: 'Endive benchmarks/toy_consensus_epr.tla (mypyvy\'s)', safety: '\\A vi, vj \\in decided: vi = vj',
-    make: toyEpr, bug: 'cast_vote twice', laws: one('one value decided', 'Decided'), bad: r => twoDistinct(r, 'Decided', N2),
-    check: {params: {size: 3}, inputs: {op: range(2), n: N3, v: N2, qm: range(8)}, expand: withMajority(3), uses: [['n', 'v'], ['v', 'qm']], project: r => [cells(r, 'Voted', N3), cells(r, 'Vote', pairs(N2, N3)), cells(r, 'Decided', N2)],
+    make: toyEpr, bug: 'cast_vote twice', laws: r => [r.law('one value decided', ({values, Decided}: any) => forall((a, b) => all(sizedSort('Value', values).has(a), sizedSort('Value', values).has(b), Decided.at(a), Decided.at(b)).implies(a.eq(b))))], bad: r => twoDistinct(r, 'Decided', N2),
+    check: {params: {size: 3, values: 2}, inputs: {op: range(2), n: N3, v: N2, qm: range(8)}, expand: withMajority(3), uses: [['n', 'v'], ['v', 'qm']], project: r => [cells(r, 'Voted', N3), cells(r, 'Vote', N2.flatMap(a => N3.map(b => tk(a, b)))), cells(r, 'Decided', N2)],
       tlc: tlc('toy_consensus_epr', `${consts({Node: nodes(3), Value: nodes(2, 'v')}, {Nil: 'Nil'})}  Quorum = {{n1, n2}, {n1, n3}, {n2, n3}}\n`, 'Safety')}},
   ...[false].map((): Protocol => ({id: 'toy_consensus', ic3syn: 'ex-toy-consensus', file: 'toy_consensus.tla', source: 'Endive benchmarks/toy_consensus.tla',
-    safety: '\\A vi, vj \\in decision: vi = vj', make: toyConsensus, bug: 'cast_vote twice', laws: one('one value decided', 'Decision'), bad: r => twoDistinct(r, 'Decision', N2),
-    check: {params: {size: 3}, inputs: {op: range(2), i: N3, v: N2, qm: range(8)}, expand: withMajority(3),
+    safety: '\\A vi, vj \\in decision: vi = vj', make: toyConsensus, bug: 'cast_vote twice', laws: r => [r.law('one value decided', ({values, Decision}: any) => forall((a, b) => all(sizedSort('Value', values).has(a), sizedSort('Value', values).has(b), Decision.at(a), Decision.at(b)).implies(a.eq(b))))], bad: r => twoDistinct(r, 'Decision', N2),
+    check: {params: {size: 3, values: 2}, inputs: {op: range(2), i: N3, v: N2, qm: range(8)}, expand: withMajority(3),
       project: r => [cells(r, 'Vote', N3), cells(r, 'Decision', N2)], tlc: tlc('toy_consensus', consts({Node: nodes(3), Value: nodes(2, 'v')}, {Nil: 'Nil'}), 'Inv')}})),
   {id: 'firewall', ic3syn: 'pyv-firewall', file: 'firewall.tla', source: 'Endive benchmarks/firewall.tla (mypyvy\'s)', safety: 'd \\in sent[s] /\\ internal[d] => \\E i: internal[i] /\\ s \\in sent[i]',
     make: firewall, bug: 'send_to_internal without allowed_in',
-    laws: r => [r.law('a sender to the inside was sent to from the inside', ({Internal, Sent}: any) => forall((s, d) => lt(s, d).and(Sent.at(pk(s, d)), Internal.at(d)).implies(
-      exists(x => x.lt(N).and(Internal.at(x), Sent.at(pk(x, s)))))))],
-    bad: r => N3.some(s => N3.some(d => r.cell('Sent', s * N + d) && r.cell('Internal', d) && !N3.some(i => r.cell('Internal', i) && r.cell('Sent', i * N + s)))),
-    check: {inputs: {op: range(4), s: N3, d: N3}, project: r => r.scalar('started') ? [cells(r, 'Internal', N3), cells(r, 'Sent', pairs(N3, N3)), cells(r, 'AllowedIn', N3)] : undefined,
+    laws: r => [r.law('a sender to the inside was sent to from the inside', ({size, Internal, Sent}: any) => forall((s, d) => all(sizedSort('Node', size).has(s), sizedSort('Node', size).has(d), Sent.has(s, d), Internal.at(d)).implies(
+      exists(x => sizedSort('Node', size).has(x).and(Internal.at(x), Sent.has(x, s))))))],
+    bad: r => N3.some(s => N3.some(d => r.cell('Sent', cpair(s, d)) && r.cell('Internal', d) && !N3.some(i => r.cell('Internal', i) && r.cell('Sent', cpair(i, s))))),
+    check: {params: {size: 3}, inputs: {op: range(4), s: N3, d: N3}, project: r => r.scalar('started') ? [cells(r, 'Internal', N3), cells(r, 'Sent', N3.flatMap(s => N3.map(d => cpair(s, d)))), cells(r, 'AllowedIn', N3)] : undefined,
       tlc: tlc('firewall', consts({Node: nodes(3)}), 'Inv')}},
   ...[false].map((): Protocol => ({id: 'majorityset_leader_election', ic3syn: 'ex-majorityset-leader-election', file: 'majorityset_leader_election.tla',
     source: 'Endive benchmarks/majorityset_leader_election.tla', safety: 'x \\in leader /\\ y \\in leader => x = y', make: majoritySet, bug: 'vote twice',
     laws: r => [r.law('one leader', ({size, Leader}: any) => forall((a, b) => a.lt(size).and(b.lt(size), Leader.at(a), Leader.at(b)).implies(a.eq(b))))],
     bad: r => twoDistinct(r, 'Leader', N3),
     check: {params: {size: 3}, inputs: {op: range(3), n: N3, m: N3},
-      project: r => [cells(r, 'Vote', pairs(N3, N3)), cells(r, 'Voters', pairs(N3, N3)), cells(r, 'Leader', N3)],
+      project: r => [cells(r, 'Vote', N3.flatMap(a => N3.map(b => tk(a, b)))), cells(r, 'Voters', N3.flatMap(a => N3.map(b => tk(a, b)))), cells(r, 'Leader', N3)],
       tlc: tlc('majorityset_leader_election', consts({Node: nodes(3)}), 'Safety')}})),
   {id: 'consensus_epr', ic3syn: 'pyv-consensus-epr', file: 'consensus_epr.tla', source: 'Endive benchmarks/consensus_epr.tla (mypyvy\'s)', safety: 'v1 \\in decided[n1] /\\ v2 \\in decided[n2] => v1 = v2',
     make: consensusEpr, bug: 'send_vote without voted',
-    laws: r => [r.law('one value decided', ({size, Decided}: any) => forall((a, b, v, u) => a.lt(size).and(b.lt(size), v.lt(N), u.lt(N), Decided.at(pk(a, v)), Decided.at(pk(b, u))).implies(v.eq(u))))],
-    bad: r => new Set(N3.flatMap(n => N2.filter(v => r.cell('Decided', n * N + v)))).size > 1,
-    check: {params: {size: 3}, inputs: {op: range(5), i: N3, j: N3, qm: range(8), v: N2, nondet: [0, 1]}, expand: withMajority(3),
+    laws: r => [r.law('one value decided', ({size, values, Decided}: any) => forall((a, b, v, u) => all(sizedSort('Node', size).has(a), sizedSort('Node', size).has(b), sizedSort('Value', values).has(v), sizedSort('Value', values).has(u), Decided.has(a, v), Decided.has(b, u)).implies(v.eq(u))))],
+    bad: r => new Set(N3.flatMap(n => N2.filter(v => r.cell('Decided', tk(n, v))))).size > 1,
+    check: {params: {size: 3, values: 2}, inputs: {op: range(5), i: N3, j: N3, qm: range(8), v: N2, nondet: [0, 1]}, expand: withMajority(3),
       uses: [['i', 'j'], ['i', 'j', 'nondet'], ['i', 'j'], ['i', 'qm'], ['i', 'v']],
-      project: r => [['VoteRequestMsg', 'VoteMsg', 'Votes'].map(m => cells(r, m, pairs(N3, N3))), cells(r, 'Voted', N3), cells(r, 'Leader', N3), cells(r, 'Decided', pairs(N3, N2))],
+      project: r => [['VoteRequestMsg', 'VoteMsg', 'Votes'].map(m => cells(r, m, N3.flatMap(a => N3.map(b => tk(a, b))))), cells(r, 'Voted', N3), cells(r, 'Leader', N3), cells(r, 'Decided', N3.flatMap(a => N2.map(b => tk(a, b))))],
       tlc: tlc('consensus_epr', `${consts({Node: nodes(3), Value: nodes(2, 'v')})}  Quorum = {{n1, n2}, {n2, n3}, {n1, n3}, {n1, n2, n3}}\n`, 'Safety')}},
   {id: 'learning_switch', ic3syn: 'pyv-learning-switch', file: 'learning_switch.tla', source: 'Endive benchmarks/learning_switch.tla (mypyvy\'s)',
     safety: 'table(t, ·, ·) reflexive, transitive, antisymmetric, its successors a chain', make: learningSwitchR, bug: 'forward learns without the no-route check',

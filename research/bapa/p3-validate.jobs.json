@@ -1,0 +1,3 @@
+[
+  {"name":"p3-sized-validation","cmd":"bun install --frozen-lockfile && bun test research/bapa/p3-sized.test.ts && bunx tsc -p research/bapa/tsconfig.p3.json && bunx oxlint --deny-warnings research/bapa/p3-sized.test.ts research/protocols/ic3syn/models.ts && bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/bapa/P3-PORT-COMMIT.txt","cpu":2,"memory":8192,"timeout":600,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}
+]

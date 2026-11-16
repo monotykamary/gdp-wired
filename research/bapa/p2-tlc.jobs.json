@@ -1,0 +1,101 @@
+[
+  {
+    "name": "p2-tlc-consensus",
+    "cmd": "unset GDP_CYCLIC_LOG; set -e; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; python3 research/verify-all/tlc-audit-run-20261109.py consensus 1800000 > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1; cp -r runs/verify-all/tlc-evidence-consensus-* \"$SUPERCOMPUTER_OUTPUT_DIR/evidence\"; jq -e '.tlc.complete == true and .tlc.exit == 0 and .tlc.violated == false and .port.exit == 0 and .port.result.done == true and .port.result.bad == 0 and .port.result.states == .tlc.states and .port.result.edges == .tlc.edges and .broken.exit == 0 and .broken.result.bad > 0' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"; jq '{id,tlc,port,broken}' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 4500,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "p2-tlc-consensus_epr",
+    "cmd": "unset GDP_CYCLIC_LOG; set -e; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; python3 research/verify-all/tlc-audit-run-20261109.py consensus_epr 1800000 > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1; cp -r runs/verify-all/tlc-evidence-consensus_epr-* \"$SUPERCOMPUTER_OUTPUT_DIR/evidence\"; jq -e '.tlc.complete == true and .tlc.exit == 0 and .tlc.violated == false and .port.exit == 0 and .port.result.done == true and .port.result.bad == 0 and .port.result.states == .tlc.states and .port.result.edges == .tlc.edges and .broken.exit == 0 and .broken.result.bad > 0' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"; jq '{id,tlc,port,broken}' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 4500,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "p2-tlc-consensus_forall",
+    "cmd": "unset GDP_CYCLIC_LOG; set -e; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; python3 research/verify-all/tlc-audit-run-20261109.py consensus_forall 1800000 > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1; cp -r runs/verify-all/tlc-evidence-consensus_forall-* \"$SUPERCOMPUTER_OUTPUT_DIR/evidence\"; jq -e '.tlc.complete == true and .tlc.exit == 0 and .tlc.violated == false and .port.exit == 0 and .port.result.done == true and .port.result.bad == 0 and .port.result.states == .tlc.states and .port.result.edges == .tlc.edges and .broken.exit == 0 and .broken.result.bad > 0' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"; jq '{id,tlc,port,broken}' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 4500,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "p2-tlc-consensus_wo_decide",
+    "cmd": "unset GDP_CYCLIC_LOG; set -e; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; python3 research/verify-all/tlc-audit-run-20261109.py consensus_wo_decide 1800000 > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1; cp -r runs/verify-all/tlc-evidence-consensus_wo_decide-* \"$SUPERCOMPUTER_OUTPUT_DIR/evidence\"; jq -e '.tlc.complete == true and .tlc.exit == 0 and .tlc.violated == false and .port.exit == 0 and .port.result.done == true and .port.result.bad == 0 and .port.result.states == .tlc.states and .port.result.edges == .tlc.edges and .broken.exit == 0 and .broken.result.bad > 0' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"; jq '{id,tlc,port,broken}' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 4500,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "p2-tlc-toy_consensus",
+    "cmd": "unset GDP_CYCLIC_LOG; set -e; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; python3 research/verify-all/tlc-audit-run-20261109.py toy_consensus 1800000 > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1; cp -r runs/verify-all/tlc-evidence-toy_consensus-* \"$SUPERCOMPUTER_OUTPUT_DIR/evidence\"; jq -e '.tlc.complete == true and .tlc.exit == 0 and .tlc.violated == false and .port.exit == 0 and .port.result.done == true and .port.result.bad == 0 and .port.result.states == .tlc.states and .port.result.edges == .tlc.edges and .broken.exit == 0 and .broken.result.bad > 0' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"; jq '{id,tlc,port,broken}' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 4500,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "p2-tlc-toy_consensus_epr",
+    "cmd": "unset GDP_CYCLIC_LOG; set -e; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; python3 research/verify-all/tlc-audit-run-20261109.py toy_consensus_epr 1800000 > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1; cp -r runs/verify-all/tlc-evidence-toy_consensus_epr-* \"$SUPERCOMPUTER_OUTPUT_DIR/evidence\"; jq -e '.tlc.complete == true and .tlc.exit == 0 and .tlc.violated == false and .port.exit == 0 and .port.result.done == true and .port.result.bad == 0 and .port.result.states == .tlc.states and .port.result.edges == .tlc.edges and .broken.exit == 0 and .broken.result.bad > 0' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"; jq '{id,tlc,port,broken}' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 4500,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "p2-tlc-toy_consensus_forall",
+    "cmd": "unset GDP_CYCLIC_LOG; set -e; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; python3 research/verify-all/tlc-audit-run-20261109.py toy_consensus_forall 1800000 > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1; cp -r runs/verify-all/tlc-evidence-toy_consensus_forall-* \"$SUPERCOMPUTER_OUTPUT_DIR/evidence\"; jq -e '.tlc.complete == true and .tlc.exit == 0 and .tlc.violated == false and .port.exit == 0 and .port.result.done == true and .port.result.bad == 0 and .port.result.states == .tlc.states and .port.result.edges == .tlc.edges and .broken.exit == 0 and .broken.result.bad > 0' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"; jq '{id,tlc,port,broken}' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 4500,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "p2-tlc-naive_consensus",
+    "cmd": "unset GDP_CYCLIC_LOG; set -e; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; python3 research/verify-all/tlc-audit-run-20261109.py naive_consensus 1800000 > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1; cp -r runs/verify-all/tlc-evidence-naive_consensus-* \"$SUPERCOMPUTER_OUTPUT_DIR/evidence\"; jq -e '.tlc.complete == true and .tlc.exit == 0 and .tlc.violated == false and .port.exit == 0 and .port.result.done == true and .port.result.bad == 0 and .port.result.states == .tlc.states and .port.result.edges == .tlc.edges and .broken.exit == 0 and .broken.result.bad > 0' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"; jq '{id,tlc,port,broken}' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 4500,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "bapa-p2-port-controls",
+    "cmd": "unset GDP_CYCLIC_LOG; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1 && bun test research/bapa/consensus-sized.test.ts && bunx tsc -p research/bapa/tsconfig.p2.json && bunx oxlint --type-aware --deny-warnings --disable-nested-config research/bapa/consensus-sized.test.ts research/protocols/ic3syn/models.ts && bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/bapa/P2-PORT-COMMIT.txt",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  }
+]

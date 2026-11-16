@@ -1,0 +1,6 @@
+feat(protocols): port p3 protocols to symbolic sized domains
+
+Use independent symbolic sort sizes and native tuple relations for the
+client-server ports. Remove fixed ceilings from the transaction and
+native learning-switch models without changing their laws or mutants.
+Keep the existing TLC instances and tuple-aware projections.

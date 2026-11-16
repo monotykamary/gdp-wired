@@ -113,6 +113,46 @@ paxos_epr.pyv, the model the TLA+ transcribes; IC3Syn's 1806 s and 9 invariants 
 | 28 | mldr | Endive MongoLoglessDynamicRaft.tla | mldr | majority of a config, overlap of two | Server 3, MaxTerm 2, MaxConfigVersion 2 |
 | 29 | pyv-paxos-epr | mypyvy paxos_epr.pyv (Endive paxos_epr.tla, faulty) | (not ported, below) | quorum sort (axiom) | |
 
+## Symbolic-size ports (BAPA rerun, lane p1)
+
+`lock_server`, `lockserv`, `lockserv_automaton`, `simple_decentralized_lock`,
+`simple`, `simple_regular`, `simple_election`, and `firewall` now use symbolic
+sort sizes with no fixed upper cap. Binary state relations use native tuple
+keys, never a fixed radix; unary maps keep their original values and defaults.
+The ring programs retain `n >= 1`, required by their original predecessor
+semantics; all other p1 sizes may be zero (empty sorts admit no corresponding
+request). Election retains this port's majority-quorum interpretation, with an
+exact count over all acceptors, not arbitrary intersecting quorum families.
+
+The original safety properties, broken transitions, setup phases, and TLC
+instances are unchanged. The small-instance projections now read native tuple
+keys. `sized-p1.test.ts` also exercises identities past the old boundary and
+empty-domain refusal. Existing timing/proof tables below and above are
+**historical bounded-port results**, not all-size certificates for these new
+machines. New no-given-helper search, TLC and Lean evidence must be recorded
+separately; removing the cap is not itself a proof.
+
+## Symbolic-size rerun encoding (p3)
+
+The canonical `tcommit`, `twophase`, `two_phase_commit`, `client_server_ae`,
+`client_server_db_ae`, `learning_switch`, and `learning_switch_i4` entries now
+use size parameters with no fixed upper bound. Transaction maps have one RM
+or Node key (a unary tuple). Client/server relations have native tuple keys,
+with independent `nodes`, `requestSize`, `responses`, and (DB only) `ids`
+parameters. The switches retain their existing native tuple, single-step
+updates and Node-valued functions; `size >= 1` remains, but the upper bound
+on Node and Packet sizes does not. `sizedSort(...).has` expresses the input
+domains; quantifiers and whole-relation updates range over the same symbolic
+bounds. No radix erasure or cutoff lift is involved.
+
+The laws and each named broken branch are unchanged in meaning. The historical
+packed client/server and phased switch definitions remain references, not
+registry-selected machines. Small TLC instances, setup projections, and the
+learning-switch pending constraint remain as listed below; both client/server
+projections now read native tuple cells. The historical tables below describe
+prior bounded runs, **not** all-size proof certificates. Symbolic proof export
+and Lean recheck must be obtained independently from the new machines.
+
 ## The encoding, beyond ../README.md's
 
 - **The spec's variables, one for one.** A set variable is a map of 0/1 cells; a function into a sort with Nil a map

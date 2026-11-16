@@ -1,0 +1,90 @@
+[
+  {
+    "name": "p3-tlc-tcommit",
+    "cmd": "set -euo pipefail; python3 research/verify-all/tlc-audit-run-20261109.py tcommit 1200000 > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1; cp -r runs/verify-all/tlc-evidence-tcommit-* \"$SUPERCOMPUTER_OUTPUT_DIR/evidence\"; python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); t=r[\"tlc\"]; p=r[\"port\"][\"result\"]; b=r[\"broken\"][\"result\"]; print(json.dumps(r)); assert t[\"exit\"] == 0 and t[\"complete\"] and not t[\"violated\"]; assert r[\"port\"][\"exit\"] == 0 and p[\"done\"] and p[\"bad\"] == 0; assert (t[\"states\"],t[\"edges\"]) == (p[\"states\"],p[\"edges\"]); assert r[\"broken\"][\"exit\"] == 0 and b[\"bad\"] > 0' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 3300,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "p3-tlc-twophase",
+    "cmd": "set -euo pipefail; python3 research/verify-all/tlc-audit-run-20261109.py twophase 1200000 > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1; cp -r runs/verify-all/tlc-evidence-twophase-* \"$SUPERCOMPUTER_OUTPUT_DIR/evidence\"; python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); t=r[\"tlc\"]; p=r[\"port\"][\"result\"]; b=r[\"broken\"][\"result\"]; print(json.dumps(r)); assert t[\"exit\"] == 0 and t[\"complete\"] and not t[\"violated\"]; assert r[\"port\"][\"exit\"] == 0 and p[\"done\"] and p[\"bad\"] == 0; assert (t[\"states\"],t[\"edges\"]) == (p[\"states\"],p[\"edges\"]); assert r[\"broken\"][\"exit\"] == 0 and b[\"bad\"] > 0' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 3300,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "p3-tlc-two_phase_commit",
+    "cmd": "set -euo pipefail; python3 research/verify-all/tlc-audit-run-20261109.py two_phase_commit 1200000 > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1; cp -r runs/verify-all/tlc-evidence-two_phase_commit-* \"$SUPERCOMPUTER_OUTPUT_DIR/evidence\"; python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); t=r[\"tlc\"]; p=r[\"port\"][\"result\"]; b=r[\"broken\"][\"result\"]; print(json.dumps(r)); assert t[\"exit\"] == 0 and t[\"complete\"] and not t[\"violated\"]; assert r[\"port\"][\"exit\"] == 0 and p[\"done\"] and p[\"bad\"] == 0; assert (t[\"states\"],t[\"edges\"]) == (p[\"states\"],p[\"edges\"]); assert r[\"broken\"][\"exit\"] == 0 and b[\"bad\"] > 0' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 3300,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "p3-tlc-client_server_ae",
+    "cmd": "set -euo pipefail; python3 research/verify-all/tlc-audit-run-20261109.py client_server_ae 1200000 > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1; cp -r runs/verify-all/tlc-evidence-client_server_ae-* \"$SUPERCOMPUTER_OUTPUT_DIR/evidence\"; python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); t=r[\"tlc\"]; p=r[\"port\"][\"result\"]; b=r[\"broken\"][\"result\"]; print(json.dumps(r)); assert t[\"exit\"] == 0 and t[\"complete\"] and not t[\"violated\"]; assert r[\"port\"][\"exit\"] == 0 and p[\"done\"] and p[\"bad\"] == 0; assert (t[\"states\"],t[\"edges\"]) == (p[\"states\"],p[\"edges\"]); assert r[\"broken\"][\"exit\"] == 0 and b[\"bad\"] > 0' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 3300,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "p3-tlc-client_server_db_ae",
+    "cmd": "set -euo pipefail; python3 research/verify-all/tlc-audit-run-20261109.py client_server_db_ae 1200000 > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1; cp -r runs/verify-all/tlc-evidence-client_server_db_ae-* \"$SUPERCOMPUTER_OUTPUT_DIR/evidence\"; python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); t=r[\"tlc\"]; p=r[\"port\"][\"result\"]; b=r[\"broken\"][\"result\"]; print(json.dumps(r)); assert t[\"exit\"] == 0 and t[\"complete\"] and not t[\"violated\"]; assert r[\"port\"][\"exit\"] == 0 and p[\"done\"] and p[\"bad\"] == 0; assert (t[\"states\"],t[\"edges\"]) == (p[\"states\"],p[\"edges\"]); assert r[\"broken\"][\"exit\"] == 0 and b[\"bad\"] > 0' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 3300,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "p3-tlc-learning_switch",
+    "cmd": "set -euo pipefail; python3 research/verify-all/tlc-audit-run-20261109.py learning_switch 1200000 > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1; cp -r runs/verify-all/tlc-evidence-learning_switch-* \"$SUPERCOMPUTER_OUTPUT_DIR/evidence\"; python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); t=r[\"tlc\"]; p=r[\"port\"][\"result\"]; b=r[\"broken\"][\"result\"]; print(json.dumps(r)); assert t[\"exit\"] == 0 and t[\"complete\"] and not t[\"violated\"]; assert r[\"port\"][\"exit\"] == 0 and p[\"done\"] and p[\"bad\"] == 0; assert (t[\"states\"],t[\"edges\"]) == (p[\"states\"],p[\"edges\"]); assert r[\"broken\"][\"exit\"] == 0 and b[\"bad\"] > 0' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 3300,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "p3-tlc-learning_switch_i4",
+    "cmd": "set -euo pipefail; python3 research/verify-all/tlc-audit-run-20261109.py learning_switch_i4 1200000 > \"$SUPERCOMPUTER_OUTPUT_DIR/audit.log\" 2>&1; cp -r runs/verify-all/tlc-evidence-learning_switch_i4-* \"$SUPERCOMPUTER_OUTPUT_DIR/evidence\"; python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); t=r[\"tlc\"]; p=r[\"port\"][\"result\"]; b=r[\"broken\"][\"result\"]; print(json.dumps(r)); assert t[\"exit\"] == 0 and t[\"complete\"] and not t[\"violated\"]; assert r[\"port\"][\"exit\"] == 0 and p[\"done\"] and p[\"bad\"] == 0; assert (t[\"states\"],t[\"edges\"]) == (p[\"states\"],p[\"edges\"]); assert r[\"broken\"][\"exit\"] == 0 and b[\"bad\"] > 0' \"$SUPERCOMPUTER_OUTPUT_DIR/evidence/result.json\"",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 3300,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "p3-final-port-validation",
+    "cmd": "bun install --frozen-lockfile && bun test research/bapa/p3-sized.test.ts && bunx tsc -p research/bapa/tsconfig.p3.json && bunx oxlint --deny-warnings research/bapa/p3-sized.test.ts research/protocols/ic3syn/models.ts && bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/bapa/P3-PORT-COMMIT.txt",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 600,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  }
+]

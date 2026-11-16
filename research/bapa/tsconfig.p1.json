@@ -1,0 +1,1 @@
+{"extends":"../../tsconfig.json","include":["../protocols/ic3syn/models.ts","../protocols/ic3syn/sized-p1.test.ts","lock-server-sized.test.ts"],"exclude":["../../vendor/**","../../node_modules/**"]}
