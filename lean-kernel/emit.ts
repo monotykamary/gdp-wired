@@ -811,12 +811,13 @@ theorem ${id}_laws : ∀ maps ρ, evalC ρ maps ${id}_fold.pre = true → ∀ t,
 // abbreviation for its column), proven from the machine's theorem by unfolding the law's own definition. The statement
 // is what a Lean development cites; the column numbers stay inside the namespace.
 // `have`: the line that gives each law as a hypothesis hl (an SEntry's Holds by default; a cyclic proof's, holdsOver).
+// `lawDef`: the separate condition definition wrapped by a cyclic MLaw; other exporters inline the condition.
 // A law with "there exists" (core/exists.ts, `ex` on the law the kernel proved) is stated as the existential it is:
 // `<id>_someN`, ∃ w1 .. wn, P with the bound naturals set to them (updAll, Ghost.lean), from the law proven with its
 // witness terms in place (some_of_subst) or over the machine's ghosts at every reachable state of the machine without
 // them (some_of_ghost); and `<id>.lawN` the same over named variables, each bound natural as w1, w2, ... (`lit`: the
 // condition printer, for P's literal).
-export function readable(id: string, laws: Law[], vars: string[], maps: string[], reach: {binders: string, hyp: string, call: string, have?: (j: number) => string, lit?: (c: C) => string, eLit?: (e: E) => string, ghosts?: boolean, explicitExistentials?: ReadonlySet<string>}): string {
+export function readable(id: string, laws: Law[], vars: string[], maps: string[], reach: {binders: string, hyp: string, call: string, have?: (j: number) => string, lit?: (c: C) => string, eLit?: (e: E) => string, ghosts?: boolean, explicitExistentials?: ReadonlySet<string>, lawDef?: (j: number) => string}): string {
   for (const name of [...vars, ...maps]) if (name === 'ρ' || name === 'μ' || name.includes('«') || name.includes('»')) throw new Error(`${id}: the name ${name} can't be a Lean abbreviation here`)
   const q = (name: string) => `«${name}»`
   // Division and remainder by a constant (div$k, mod$k): Lean's x / k and x % k, under the hypothesis that the map is
@@ -973,7 +974,7 @@ ${laws.map((law, j) => {
     if (JSON.stringify(law.holds).includes('"op":"if"')) return `-- ${law.name}: its terms read an if, so no plain statement here (${id}_laws holds it)`
     const hyps = arithBinders(law), names = arithIn(law).map(hypName)
     // Proof terms retain neutral Boolean children; surface statements omit them.
-    const surfaceProof = `by simpa [${id}_l${j}, holdsC, evalE, upd] using hl'`
+    const surfaceProof = `by simpa [${id}_l${j}${reach.lawDef ? `, ${reach.lawDef(j)}` : ''}, holdsC, evalE, upd] using hl'`
     const rw = names.length ? `have hμ : ${statement(law, false)} := ${surfaceProof}\n  rw [${names.join(', ')}] at hμ\n  exact hμ` : `exact ${surfaceProof}`
     const own = law.keys?.length ? `${reach.have ? reach.have(j) : `have hl : ${id}_e${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])`}
   have hl' := fun k ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} => (evalC_iff (upd (${law.keys.reduce((acc, key, i) => `upd (${acc}) ${vars.indexOf(key)} k${i + 2}`, 'ρ')}) ${vars.indexOf(law.forall!)} k) μ ${id}_l${j}.holds).mp (hl ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} k)
@@ -1842,7 +1843,7 @@ theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_mla
 theorem ${id}_hcheck : checkHMachine ${id}_hist [] ${id}_records = true := by ${checkBy}
 theorem ${id}_hlaws : ∀ ρ M hist, HReach ${id}_hist ρ M hist → ∀ e ∈ ${id}_mlaws, holdsOver e.1 M e.2 ρ :=
   fun ρ M hist h => ${id}_laws ρ M (hreach_plain ${id}_hist ${id}_records ${id}_hcheck ρ M hist h)
-${readable(id, laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat) (hist : List (Nat → Nat))', hyp: `HReach ${id}_hist ρ μ hist`, call: '',
+${readable(id, laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat) (hist : List (Nat → Nat))', hyp: `HReach ${id}_hist ρ μ hist`, call: '', lawDef: j => `${id}_law${j}`,
   have: j => `have hl : holdsOver ${id}_l${j} μ ${keys2(laws[j]!)} ρ := cyc_machine_holds (${id}_law${j}_holds ρ μ ${reach('h')})`})}`
   }
   // The machine's own step laws, one step or k (BridgeRules.lean's cyc_kstep_sound): the SKStep as the usual export
@@ -1933,7 +1934,7 @@ ${cycProofText(id, p, [], vars, maps)}
 ${okLemmas}
 ${lawBlocks}
 ${lawsThm}
-${hm ? histBlock() : readable(id, laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: '', lit: c, eLit: e, ghosts: !rf && gv.length > 0,
+${hm ? histBlock() : readable(id, laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: '', lit: c, eLit: e, ghosts: !rf && gv.length > 0, lawDef: j => `${id}_law${j}`,
   have: j => `have hl : holdsOver ${id}_l${j} μ ${keys2(laws[j]!)} ρ := cyc_machine_holds (${id}_law${j}_holds ρ μ h)`})}${opts.noFacts ? '' : factsProof(id, m, maps, vars, opts.simp)}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`}
 }
 
@@ -2641,6 +2642,6 @@ theorem ${id}_law${j}_holds : ∀ ρ M, SReach ${id}_machine ρ M → ∀ ρ' : 
 ${(b.tampered ?? []).map((tm, j) => `-- TAMPERED: ${tm.what}. Lean computes the check against the proof to false.
 def ${id}_tamperedm${j} : SMachine := ${machineLit(tm.machine, t, ix, mx)}
 example : cycMOk ${id}_tamperedm${j} ${id}_enc ${id}_facts ${id}_law0 ${keysL(b.laws[0]!)} ${id}_node0 = false := by ${checkBy}`).join('\n')}
-${readable(id, b.laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: '',
+${readable(id, b.laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: '', lawDef: j => `${id}_law${j}`,
   have: j => `have hl : holdsOver ${id}_l${j} μ ${list((b.laws[j]!.keys ?? []).map(k2 => String(ix(k2))))} ρ := cyc_machine_holds (${id}_law${j}_holds ρ μ h)`})}`
 }
