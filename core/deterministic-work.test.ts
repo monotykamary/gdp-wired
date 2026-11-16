@@ -55,7 +55,12 @@ test('child exhaustion leaves a larger parent usable, ancestor exhaustion propag
    expect(child.termination?.kind).toBe('work-exhausted')
    expect(()=>checkWorkEndpoint('parent remains usable')).not.toThrow()
   })
-  expect(()=>withBudget(10,()=>proveRule(r,[law],{search:{work:1_000_000}}))).toThrow(BudgetExpired)
+  let returnedAfterChild=false
+  expect(()=>withBudget(10,()=>{
+   proveRule(r,[law],{search:{work:1_000_000}})
+   returnedAfterChild=true
+  })).toThrow(BudgetExpired)
+  expect(returnedAfterChild).toBe(false)
  } finally {hook.mockRestore()}
  expect(inBudget()).toBe(false)
 })
