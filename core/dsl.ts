@@ -2839,7 +2839,8 @@ export const loop = (name: string): LoopRule => new LoopRule({name, params: [], 
 // that steps the rule from states it didn't reach so (a host's, a stored one it didn't check) has no proof for those.
 // Absent, every step law holds from every state where the laws (and the rule's kinds) hold, reachable or not, and the
 // laws together are kept by every step from such a state. `{from: 'any'}` proves only so.
-export type Verdict = TranslationFields & {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>, k?: number, assumes?: Assumes, rank?: E | E[]}
+export type {SearchTermination, SearchContext, SearchTerminationFields} from './search-termination.ts'
+export type Verdict = TranslationFields & import('./search-termination.ts').SearchTerminationFields & {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>, k?: number, assumes?: Assumes, rank?: E | E[]}
 export type Assumes = {states: 'reachable', laws: string[]}
 // `facts`: lemmas about the rule's functions (those known by their facts) proven from those facts by a cyclic proof
 // (core/cycles.ts), the laws proven with them; `rank`: a loop's rank, found from its runs (`proveLoop` with none).
