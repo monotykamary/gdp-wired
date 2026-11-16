@@ -83,6 +83,8 @@ const units: Unit[] = [
   ...tests('lean-kernel/lift-typed', 'roles.test.ts'),
   ...tests('lean-kernel/lift-simulation', 'shape.test.ts'),
   ...tests('research/bapa', 'lift-regression.test.ts'),
+  // These controls enforce the full canonical release gate, not just this quick roster.
+  ...tests('.', 'scripts/release-ci/full-gate-contract.test.ts scripts/release-ci/full-gate-runner.test.ts scripts/release-ci/full-gate-worker.test.ts scripts/release-ci/full-gate-native.test.ts scripts/release-ci/verify-publish-gate.test.ts'),
   ...tests('research/query', 'goal-pack.test.ts'),
   ...tests('research/translation-fuzz', 'model.test.ts'),
   ...runs('research/translation-fuzz/smoke.ts'),

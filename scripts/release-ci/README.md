@@ -1,6 +1,16 @@
-# Reconstructing the 0.48.0 CI control inputs
+# Release CI
 
-These are coordination helpers, not a new gate and not published package contents. They were recovered after a sandbox reboot removed temporary controls. `setup-b11.sh` and `e0-verify.ts` are byte-for-byte copies of the restored, previously used controls; the collector still requires its positive run and all four negative controls before any supplemental verification claim.
+## Full canonical release gate
+
+See [FULL-GATE.md](./FULL-GATE.md) for the exact-commit, fully provisioned
+canonical suite runner and the mandatory reviewed receipt/status publication
+gate. Quick CI alone does not authorize a release. A release HOLD remains in
+force until Main explicitly clears it.
+
+## Historical 0.48.0 CI control inputs
+
+The following are historical coordination helpers, not the current full gate
+and not published package contents. They were recovered after a sandbox reboot removed temporary controls. `setup-b11.sh` and `e0-verify.ts` are byte-for-byte copies of the restored, previously used controls; the collector still requires its positive run and all four negative controls before any supplemental verification claim.
 
 **Boat submissions are on hold until the coordinator explicitly says go.** Local preparation does not lift the hold, repair authentication or grant release admission. Do not invoke the worker scripts locally: they install/build/test. The preparation command below performs only filesystem/Git metadata work and does not contact Boat, npm or a controller.
 
