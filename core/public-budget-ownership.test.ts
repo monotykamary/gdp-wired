@@ -35,23 +35,27 @@ for(const mode of ['rule','steps'] as const){
  })
 
  test(`${mode} own watchdog cannot return through exhausted ancestor work`,()=>{
-  const {r,law}=fixture()
-  let childEntered=false,returnedAfterChild=false,time=0,lateWatchdogReads=0
-  const now=spyOn(performance,'now').mockImplementation(()=>{if(time===100)lateWatchdogReads++;return time})
-  const hook=spyOn(r,'withSumsOf').mockImplementation(()=>{childEntered=true;charge();time=100;return r})
-  try{
-   expect(()=>withBudget(10,()=>{
-    const opts={search:{work:20_000},watchdogMs:10}
-    if(mode==='rule')proveRule(r,[law],opts)
-    else proveSteps(r,[law],[],opts)
-    returnedAfterChild=true
-   })).toThrow(BudgetExpired)
-   expect(childEntered).toBe(true)
-   expect(returnedAfterChild).toBe(false)
-   // Complete-ledger admission may refuse earlier; normal mode must really
-   // traverse the owned-watchdog-first bug path, not just any outer failure.
-   if(!completeWorkProfile.enabled)expect(lateWatchdogReads).toBeGreaterThan(0)
-  }finally{now.mockRestore();hook.mockRestore()}
-  expect(()=>checkWorkEndpoint('restored')).not.toThrow()
+  for(const explicitWork of [false,true]){
+   const {r,law}=fixture()
+   let childEntered=false,returnedAfterChild=false,time=0,lateWatchdogReads=0
+   const now=spyOn(performance,'now').mockImplementation(()=>{if(time===100)lateWatchdogReads++;return time})
+   const hook=spyOn(r,'withSumsOf').mockImplementation(()=>{childEntered=true;charge();time=100;return r})
+   try{
+    expect(()=>withBudget(10,()=>{
+     // The implicit case isolates outer watchdog recovery: no child
+     // withBudget completion guard may save a missing ancestor recheck.
+     const opts={search:explicitWork?{work:20_000}:false as const,watchdogMs:10}
+     if(mode==='rule')proveRule(r,[law],opts)
+     else proveSteps(r,[law],[],opts)
+     returnedAfterChild=true
+    })).toThrow(BudgetExpired)
+    expect(childEntered).toBe(true)
+    expect(returnedAfterChild).toBe(false)
+    // Complete-ledger admission may refuse earlier; normal mode must really
+    // traverse the owned-watchdog-first bug path, not just any outer failure.
+    if(!completeWorkProfile.enabled)expect(lateWatchdogReads).toBeGreaterThan(0)
+   }finally{now.mockRestore();hook.mockRestore()}
+   expect(()=>checkWorkEndpoint('restored')).not.toThrow()
+  }
  })
 }
