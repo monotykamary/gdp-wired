@@ -8,10 +8,13 @@ import {join} from 'node:path'
 import {check} from '../../core/cli.ts'
 import {scoreRecall, type RecallSide} from './score.ts'
 
-// Extraction replay remains useful, but Java has no enabled native source-law journal.
-const sourceUnknown = (law: Awaited<ReturnType<typeof check>>['rules'][number]['laws'][number], kernelProven?: boolean) => {
-  expect(law).toMatchObject({verdict: 'unknown', translation: 'unchecked', ...(kernelProven === undefined ? {} : {kernelProven})})
-  expect(law.run).toBeUndefined()
+// A preserved native journal admits these supported laws; it does not itself add a public replay marker.
+const sourceVerdict = (law: Awaited<ReturnType<typeof check>>['rules'][number]['laws'][number], proven: boolean) => {
+  expect(law).toMatchObject({verdict: proven ? 'proven' : 'broken', translation: 'sampled'})
+  if (proven) {
+    expect(law.translationChecks).toBeGreaterThan(0)
+    expect(law.run).toBeUndefined()
+  } else expect(law.run?.length).toBeGreaterThan(0)
   expect(law.replayed).toBeUndefined()
   expect(law.cert).toBeUndefined()
 }
@@ -93,17 +96,17 @@ nativeTest('owned constructor family requires a complete native repair', async (
       const compiled = spawnSync('javac', [file, join(dir, 'ReplayFamily.java')], {encoding: 'utf8', timeout: 30_000})
       expect(compiled.status, compiled.stderr).toBe(0)
     }
-    expect(results.map(r => r.exit)).toEqual([2, 2, 2])
+    expect(results.map(r => r.exit)).toEqual([1, 1, 0])
     for (const [i, result] of results.entries()) {
       expect(result.rules.map(r => r.ctor).sort((a, b) => (a ?? '').localeCompare(b ?? ''))).toEqual(['()', '(boolean)'])
       expect(result.rules.every(r => r.ok && !!r.checked)).toBe(true)
-      for (const rule of result.rules) sourceUnknown(rule.laws[0]!, i === 2 || (i === 1 && rule.ctor === '()'))
+      for (const rule of result.rules) sourceVerdict(rule.laws[0]!, i === 2 || (i === 1 && rule.ctor === '()'))
     }
     for (const rule of results[0]!.rules) {
       const law = rule.laws[0]!
-      sourceUnknown(law, false)
-      // Authored fixture trace, not a finding supplied by an unknown verdict.
-      const witness = [...(rule.ctor === '(boolean)' ? ['made with choice = false'] : []), 'hit(allowed=false)']
+      sourceVerdict(law, false)
+      // Independently replay the public run, including its exact constructor argument.
+      const witness = law.run!
       const lines = [...witness]
       const constructor = /^made with choice = (true|false)$/.exec(lines[0] ?? '')
       expect(!!constructor).toBe(rule.ctor === '(boolean)')
@@ -130,9 +133,12 @@ nativeTest('owned constructor family requires a complete native repair', async (
     for (const [i, text] of sources.entries()) expect(readFileSync(join(root, names[i]!, 'OwnedFamily.java'), 'utf8')).toBe(text)
     const before: RecallSide = {version: 'vulnerable', status: 'checked', result: results[0]!}
     const after = (i: number): RecallSide => ({version: 'fixed', status: 'checked', result: results[i]!})
+    expect(scoreRecall([before, after(2)]).found).toBe(false) // sampled is not a replay marker
+    // The independent driver reproduced each public run on its exact original constructor.
+    for (const rule of results[0]!.rules) rule.laws[0]!.replayed = 'owned Java driver reproduced the public run on the original constructor'
     const partial = scoreRecall([before, after(1)]), complete = scoreRecall([before, after(2)])
     expect(partial.found).toBe(false)
-    expect(complete.found).toBe(false)
+    expect(complete.found).toBe(true)
     console.log('OWNED_FAMILY_CONTROL ' + JSON.stringify({scope: 'self-owned native Java only; no upstream recall', hashes: sources.map(text => createHash('sha256').update(text).digest('hex')), controls, partialAdmitted: partial.found, completeAdmitted: complete.found}))
   } finally { rmSync(root, {recursive: true, force: true}) }
 }, 120_000)
@@ -179,14 +185,14 @@ nativeTest('owned fixed source exposes and replays its added constructor', async
       const compiled = spawnSync('javac', [file, join(dir, 'ReplayAdded.java')], {encoding: 'utf8', timeout: 30_000})
       expect(compiled.status, compiled.stderr).toBe(0)
     }
-    expect(results.map(r => r.exit)).toEqual([2, 2, 2])
+    expect(results.map(r => r.exit)).toEqual([1, 1, 0])
     for (const [i, result] of results.entries()) {
       const expected = i === 0 ? ['()', '(boolean)'] : ['()', '(boolean)', '(int)']
       expect(result.rules.map(r => r.ctor).sort((a, b) => (a ?? '').localeCompare(b ?? ''))).toEqual(expected)
       expect(result.rules.every(r => r.ok && !!r.checked && r.entry === 'OwnedAdded')).toBe(true)
       for (const rule of result.rules) {
         expect(rule.laws).toHaveLength(1)
-        sourceUnknown(rule.laws[0]!, !(i === 0 || (i === 1 && rule.ctor === '(int)')))
+        sourceVerdict(rule.laws[0]!, !(i === 0 || (i === 1 && rule.ctor === '(int)')))
       }
     }
     const before: RecallSide = {version: 'vulnerable', status: 'checked', result: results[0]!}
@@ -194,8 +200,9 @@ nativeTest('owned fixed source exposes and replays its added constructor', async
     expect(scoreRecall([before, after(2)]).found).toBe(false) // still no native original replay
     const replay = (from: number, rule: (typeof results)[number]['rules'][number], targets: number[]) => {
       const law = rule.laws[0]!
-      sourceUnknown(law, false)
-      const witness = [...(rule.ctor === '(boolean)' ? ['made with choice = false'] : rule.ctor === '(int)' ? ['made with seed = 0'] : []), 'hit(allowed=false)']
+      sourceVerdict(law, false)
+      // Use the actual public run, preserving the constructor selector and argument.
+      const witness = law.run!
       const lines = [...witness]
       let argument = '0'
       if (rule.ctor === '(boolean)') {
@@ -233,9 +240,11 @@ nativeTest('owned fixed source exposes and replays its added constructor', async
     replay(1, added, [1, 2]) // this signature does not exist on the original; never fabricate that replay
     expect(controls).toHaveLength(8)
     for (const [i, text] of sources.entries()) expect(readFileSync(join(root, versions[i]!, 'OwnedAdded.java'), 'utf8')).toBe(text)
+    // Mark only the original public runs reproduced by the independent Java driver.
+    for (const rule of results[0]!.rules) rule.laws[0]!.replayed = 'owned Java driver reproduced the public run on the original constructor'
     const partial = scoreRecall([before, after(1)]), complete = scoreRecall([before, after(2)])
-    expect(partial.found).toBe(false)
-    expect(complete.found).toBe(false)
+    expect(partial.found).toBe(false) // added (int) remains broken
+    expect(complete.found).toBe(true)
     console.log('OWNED_ADDED_CONSTRUCTOR ' + JSON.stringify({scope: 'self-owned native Java only; no upstream recall', hashes: sources.map(text => createHash('sha256').update(text).digest('hex')), constructors: results.map(r => r.rules.map(x => x.ctor)), controls, partialAdmitted: partial.found, completeAdmitted: complete.found}))
   } finally { rmSync(root, {recursive: true, force: true}) }
 }, 120_000)

@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs'
 import {canonicalJobHash} from './full-gate-contract'
 import {validateKnownFailuresPolicy} from './known-failures'
 
-const retired = ['lean-package-0', 'lean-package-1', 'lean-package-2', 'lean-package-3', 'lean-cyclic', 'lean-cycles', 'lean-cycles-loops', 'lean-protocols-sync', 'lean-jev-fabric', 'lean-ksteps']
+const retired = ['lean-package-0', 'lean-package-1', 'lean-package-2', 'lean-package-3', 'lean-cyclic', 'lean-cycles', 'lean-cycles-loops', 'lean-protocols-sync', 'lean-jev-fabric', 'lean-ksteps', 'lean-keyed']
 
 test('repaired Lean jobs must pass and cannot return as known failures', () => {
   const jobs = JSON.parse(readFileSync(new URL('../../supercomputer/suite.json', import.meta.url), 'utf8')) as {name: string, cmd: string}[]

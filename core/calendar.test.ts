@@ -125,7 +125,7 @@ test('business days: a deadline law of one step (each time\'s week a key) and of
   expect(proveRule(r15, [law(r15, 10)], {search: {ms: 20_000}}).run).toBeDefined()
 }, 120_000)
 
-test.skipIf(!hasPython)('the CLI: business-day model verdicts retained without a Python source proof', async () => {
+test.skipIf(!hasPython)('the CLI: an unsupported business-day proof stays unchecked, a native-journal violation is broken', async () => {
   const dir = mkdtempSync(`${tmpdir()}/gdp-bdays-`)
   const src = DESK.replace('# gdp: law fulfilled only within 30 days: requests[rid].fulfilled implies now - requests[rid].received < 30 days',
     '# gdp: law within 10 business days: requests[rid].fulfilled implies now - requests[rid].received <= 10 business days\n    # gdp: law within 9 business days: requests[rid].fulfilled implies now - requests[rid].received <= 9 business days')
@@ -138,9 +138,12 @@ test.skipIf(!hasPython)('the CLI: business-day model verdicts retained without a
   const laws = Object.fromEntries(r.rules[0]!.laws.map(l => [l.name, l]))
   expect(r.exit).toBe(2)
   expect(laws['within 10 business days']).toMatchObject({kernelProven: true, verdict: 'unknown', translation: 'unchecked'})
-  expect(laws['within 9 business days']).toMatchObject({kernelProven: false, verdict: 'unknown', translation: 'unchecked'})
+  // Restoring the native law journal validates this counterexample. It does not
+  // turn the still-unsupported 10-day source proof above into a certificate.
+  expect(laws['within 9 business days']).toMatchObject({verdict: 'broken', translation: 'sampled'})
+  expect(laws['within 9 business days']!.run!.length).toBeGreaterThan(0)
   for (const law of Object.values(laws)) {
-    expect(law.run).toBeUndefined()
+    if (law.name !== 'within 9 business days') expect(law.run).toBeUndefined()
     expect(law.cert).toBeUndefined()
   }
 }, 300_000)

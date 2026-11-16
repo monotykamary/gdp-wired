@@ -273,18 +273,6 @@
           "{\"id\":\"consensus_wo_decide\",\"tries\":2,\"search\":{\"verdict\":\"unknown\",\"ms\":0,\"found\":0,\"some\":0,\"facts\":0,\"lemmas\":0}}"
         ]
       }
-    },
-    {
-      "job": "lean-keyed",
-      "definitionSha256": "f5f05f8b1f53e763137b7c25bb96771580bc5a01afcc5e7bac936620cf8cc949",
-      "exitCode": 1,
-      "signature": {
-        "failedTests": [],
-        "diagnostics": [
-          "Keyed.lean:section=outbox_machine@ddc438097071ddeb85e15be463da45dacf23dd886ac7c7523df520b59acd671a:1475:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ outbox_law0\nbut is expected to have type\n  ∀ (k : Nat), μ InFlight k ≤ μ Q k",
-          "Keyed.lean:section=outbox_machine@ddc438097071ddeb85e15be463da45dacf23dd886ac7c7523df520b59acd671a:1480:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ outbox_law1\nbut is expected to have type\n  ∀ (k : Nat), μ Q k ≤ 1"
-        ]
-      }
     }
   ],
   "requiredPass": [
@@ -298,6 +286,7 @@
     "lean-cycles-loops",
     "lean-protocols-sync",
     "lean-jev-fabric",
-    "lean-ksteps"
+    "lean-ksteps",
+    "lean-keyed"
   ]
 }

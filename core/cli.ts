@@ -820,7 +820,8 @@ export async function check(targets: string[], given: Partial<Opts> = {}, each?:
   const o: Opts = {ms: 10_000, propose: true, ...given}, all: RuleOut[] = []
   for (const p of targets) for (const t of targetsOf(p)) { const rs = await checkTarget(t, o); all.push(...rs); if (each) rs.forEach(each) }
   const stated = all.flatMap(r => r.laws)
-  return {rules: all, exit: stated.some(l => l.translation === 'unchecked' || l.translation === 'error') ? 2 : stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') || o.security && all.some(r => !r.ok) ? 2 : 0}
+  // A sampled source translation cannot turn an unknown proof into a successful check.
+  return {rules: all, exit: stated.some(l => l.verdict === 'unknown' || l.translation === 'unchecked' || l.translation === 'error') ? 2 : stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') || o.security && all.some(r => !r.ok) ? 2 : 0}
 }
 // --- draft: laws from a clause, for a person to review ----------------------------------------------------------------
 // gdp-wired draft <file> --clause <text> | --clause-file <f> --cite <ref> [--llm <command> | --answer <file>] [--by <who>]:

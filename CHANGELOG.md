@@ -7,6 +7,10 @@ noted), each with the command that reproduces it.
 
 ### Fixed
 
+- From 0.32.0 through 0.50.1, `gdp-wired-cli check` exited 0 when a stated law came back unknown, so CI could
+  pass on an unproven law. This included unknown laws with a sampled source translation in 0.48.0–0.50.1.
+  Unknown stated laws now exit 2; review-only candidates still do not affect the exit code.
+
 - Fixed a soundness issue in `toLean` exports of laws over lists of plain values, present since 0.34.0. A claim about
   the values could be proved about their positions instead: for example, “every value is nonnegative” could be
   accepted even for a list containing a negative value. The 0.50.1 CLI already refused these source proofs. Laws
@@ -14,8 +18,8 @@ noted), each with the command that reproduces it.
   over record items remain supported. Re-check and re-export affected laws.
 - `toLean` now refuses source laws whose translation was rejected or was not checked, rather than exporting the
   substituted model theorem as if the source check had succeeded.
-- Corrected generated Lean proofs and axiom-report handling for ten previously failing export checks. Twelve
-  inherited jobs remain recorded as failures; they are not claimed to pass.
+- Corrected generated Lean proofs and axiom-report handling for eleven previously failing export checks. The
+  known-failure list shrinks from 22 to 11 entries; the remaining entries are not claimed to pass.
 - Source validation no longer loses its native observations when recording timing details. Python ordered-list
   observations preserve the actual values and object identities instead of using symbolic positions as native data.
 - Proof search now rejects arithmetic intermediates outside the exact integer range, matching the proof checker's

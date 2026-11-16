@@ -178,19 +178,29 @@ t('a vulnerable inherited body is refuted and replayed; the fixed original is no
   const verdict = async (fixed: boolean) => {
     const {file, root} = fixture(`/// gdp: law spending stays within its cap: spent <= 10\nabstract contract Target { uint256 public spent; function spend(uint256 n) external { if (${fixed ? 'n <= 10 - spent' : 'spent < 10'}) spent += n; } }`)
     const result = await check([file], {root, entry: 'Target', propose: false, ms: 60_000, check: checks})
-    expect(result.exit).toBe(2)
+    expect(result.exit).toBe(fixed ? 0 : 1)
     expect(result.rules[0]!.refusals).toEqual([])
     const law = result.rules[0]!.laws.find(l => l.name === 'spending stays within its cap')!
-    expect(law).toMatchObject({verdict: 'unknown', translation: 'unchecked', kernelProven: fixed})
-    expect(law.run).toBeUndefined()
-    expect(law.replayed).toBeUndefined()
+    // The preserved native law journal now binds the public result to the
+    // unchanged inherited body: a sampled proof, or a bytecode-replayed break.
+    expect(law).toMatchObject({verdict: fixed ? 'proven' : 'broken', translation: 'sampled'})
+    if (fixed) {
+      expect(law.translationChecks).toBeGreaterThan(0)
+      expect(law.run).toBeUndefined()
+      expect(law.replayed).toBeUndefined()
+    } else {
+      expect(law.run!.length).toBeGreaterThan(0)
+      expect(law.replayed).toContain('replayed on the code')
+    }
     expect(law.cert).toBeUndefined()
-    // Independently replay the model's candidate against unchanged bytecode. This is not a source-law proof.
+    // The same preserved journal validates a separately built attributed law;
+    // independently replay its counterexample against unchanged bytecode too.
     const x = extractSolidity(file, {root, entry: 'Target', check: checks})
     const built = buildLaw(x, lawsIn(readFileSync(file, 'utf8'))[0]!)
     if (built.kind !== 'law') throw Error('the class-level cap is a state invariant')
     const model = proveRule(x.rule!, [...x.invariants ?? [], built.law], {search: {ms: 60_000}})
-    expect(model).toMatchObject({kernelProven: fixed, proven: false, checked: false, translation: 'unchecked'})
+    expect(model).toMatchObject({proven: fixed, checked: fixed, translation: 'sampled'})
+    if (fixed) expect(model.translationChecks).toBeGreaterThan(0)
     if (!fixed) {
       expect(model.run).toBeDefined()
       expect(x.replay!(model.run!, built.law)).toMatchObject({ok: true, what: expect.stringContaining('replayed on the code')})
@@ -198,6 +208,6 @@ t('a vulnerable inherited body is refuted and replayed; the fixed original is no
     return law
   }
   const bad = await verdict(false)
-  expect(bad.verdict).toBe('unknown')
-  expect((await verdict(true)).verdict).toBe('unknown')
+  expect(bad.verdict).toBe('broken')
+  expect((await verdict(true)).verdict).toBe('proven')
 }, 300_000)

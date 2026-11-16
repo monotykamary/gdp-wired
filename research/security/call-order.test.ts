@@ -8,10 +8,13 @@ import {join} from 'node:path'
 import {check} from '../../core/cli.ts'
 import {scoreRecall, type RecallSide} from './score.ts'
 
-// Extraction replay remains useful, but Java has no enabled native source-law journal.
-const sourceUnknown = (law: Awaited<ReturnType<typeof check>>['rules'][number]['laws'][number], kernelProven?: boolean) => {
-  expect(law).toMatchObject({verdict: 'unknown', translation: 'unchecked', ...(kernelProven === undefined ? {} : {kernelProven})})
-  expect(law.run).toBeUndefined()
+// These supported Java laws have a sampled native journal, not an automatic public replay marker.
+const sourceVerdict = (law: Awaited<ReturnType<typeof check>>['rules'][number]['laws'][number], proven: boolean) => {
+  expect(law).toMatchObject({verdict: proven ? 'proven' : 'broken', translation: 'sampled'})
+  if (proven) {
+    expect(law.translationChecks).toBeGreaterThan(0)
+    expect(law.run).toBeUndefined()
+  } else expect(law.run?.length).toBeGreaterThan(0)
   expect(law.replayed).toBeUndefined()
   expect(law.cert).toBeUndefined()
 }
@@ -161,13 +164,13 @@ nativeTest('owned multi-call witness order changes the native policy outcome', a
       expect(rule.ctor).toBeUndefined()
       expect(rule.ok && !!rule.checked).toBe(true)
       expect(rule.laws).toHaveLength(1)
-      sourceUnknown(rule.laws[0]!, i !== 0)
-      expect(results[i]!.exit).toBe(2)
+      sourceVerdict(rule.laws[0]!, i !== 0)
+      expect(results[i]!.exit).toBe(i === 0 ? 1 : 0)
     }
     const side = (version: string, i: number): RecallSide => ({version, status: 'checked', result: results[i]!})
     expect(scoreRecall([side('vulnerable', 0), side('fixed', 1)]).found).toBe(false)
-    // Authored finite order contrast; never synthesize a finding on the unknown source verdict.
-    const law = results[0]!.rules[0]!.laws[0]!, witness = ['arm()', 'hit()']
+    // Replay the exact public run and contrast its order with the same calls reordered.
+    const law = results[0]!.rules[0]!.laws[0]!, witness = law.run!
     const exact = replayOwnedTrace(witness, calls => [...calls])
     expect(exact).toContain('arm')
     expect(exact).toContain('hit')
@@ -236,8 +239,11 @@ nativeTest('owned multi-call witness order changes the native policy outcome', a
     expect(controls[0]!.broken).toBe(true)
     expect(controls[1]!.broken).toBe(false)
     expect(controls[0]!.sourceSha256).toBe(controls[1]!.sourceSha256)
-    sourceUnknown(law, false)
+    sourceVerdict(law, false)
     expect(scoreRecall([side('vulnerable', 0), side('fixed', 1)]).found).toBe(false)
+    // The identity-associated independent driver reproduced the exact original public run.
+    law.replayed = 'owned Java driver reproduced the public run on the original in order'
+    expect(scoreRecall([side('vulnerable', 0), side('fixed', 1)]).found).toBe(true)
     expect(scoreRecall([side('vulnerable', 0), side('fixed', 0)]).found).toBe(false)
     console.log('OWNED_CALL_ORDER ' + JSON.stringify({scope: 'finite owned allowlisted method-order contrast only; no general replay or upstream recall guarantee', hashes, constructorArguments: [], methodArguments: [], witness, reorderedWitness: reordered.map(call => call + '()'), controls}))
   } finally { rmSync(root, {recursive: true, force: true}) }

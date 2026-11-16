@@ -15,13 +15,23 @@ const has = (c: string) => { try { execFileSync(c, ['--version'], {stdio: 'ignor
 const t = has('solc') && has('anvil') ? test : test.skip
 const dir = mkdtempSync(`${tmpdir()}/gdp-sol-test-`)
 const file = (name: string, body: string) => { const f = `${dir}/${name}.sol`; writeFileSync(f, `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n${body}`); return f }
-const verdicts = async (f: string, entry?: string) => {
+const verdicts = async (f: string, expected: Record<string, 'proven' | 'broken'> = {}, entry?: string) => {
   const [r] = await checkTarget({lang: 'solidity', at: f, files: [f]}, {ms: 60_000, propose: false, ...(entry ? {entry} : {})})
   expect(r!.refusals).toEqual([])
+  for (const name of Object.keys(expected)) expect(r!.laws.some(l => l.name === name)).toBe(true)
   for (const law of r!.laws) {
-    expect(law).toMatchObject({verdict: 'unknown', translation: 'unchecked'})
-    expect(law.run).toBeUndefined()
-    expect(law.replayed).toBeUndefined()
+    // Scalar laws with preserved native journals are stronger than the old
+    // unchecked result. Unsupported mapping/reentrant laws stay unchecked.
+    const verdict = expected[law.name]
+    expect(law).toMatchObject(verdict ? {verdict, translation: 'sampled'} : {verdict: 'unknown', translation: 'unchecked'})
+    if (verdict === 'proven') expect(law.translationChecks).toBeGreaterThan(0)
+    if (verdict === 'broken') {
+      expect(law.run!.length).toBeGreaterThan(0)
+      expect(law.replayed).toContain('replayed on the code')
+    } else {
+      expect(law.run).toBeUndefined()
+      expect(law.replayed).toBeUndefined()
+    }
     expect(law.cert).toBeUndefined()
   }
   return Object.fromEntries(r!.laws.map(l => [l.name, l]))
@@ -29,16 +39,16 @@ const verdicts = async (f: string, entry?: string) => {
 
 // A model counterexample and its bytecode replay remain useful independent
 // evidence. They must not be manufactured into a native-law source verdict.
-const modelAndReplay = (f: string, name: string, broken: boolean) => {
+const modelAndReplay = (f: string, name: string, broken: boolean, translation: 'sampled' | 'unchecked' = 'unchecked') => {
   const x = extractSolidity(f)
   expect(x.ok).toBe(true)
   const law = lawsIn(readFileSync(f, 'utf8')).find(l => l.name === name)!
   const built = buildLaw(x, law)
   if (built.kind !== 'law') throw Error('expected a state invariant')
   const model = proveRule(x.rule!, [...x.invariants ?? [], built.law], {search: {ms: 60_000}})
-  expect(model).toMatchObject({proven: false, checked: false, translation: 'unchecked'})
+  expect(model).toMatchObject({proven: false, checked: false, translation})
   if (!broken) return {run: model.run ? runOf(x, model.run) : undefined, replayed: undefined}
-  expect(model.kernelProven).toBe(false)
+  if (translation === 'unchecked') expect(model.kernelProven).toBe(false)
   expect(model.run).toBeDefined()
   const replay = x.replay!(model.run!, built.law)
   expect(replay.ok).toBe(true)
@@ -73,9 +83,10 @@ contract Ledger {
         unchecked { balances[msg.sender] = b - amount; }
         balances[to] += amount;
     }
-}`))
+}`), {'transfer never mints': 'proven'})
+  // The step law has a native journal; mapping aggregation remains unavailable.
   expect(v['the balances sum to the supply']!.kernelProven).toBe(true)
-  expect(v['transfer never mints']!.kernelProven).toBe(true)
+  expect(v['transfer never mints']!.verdict).toBe('proven')
 }, 600_000)
 
 t('the DAO\'s shape: broken by a re-entrant run, replayed on the code; cleared first, proven', async () => {
@@ -116,9 +127,11 @@ contract Counter {
     function up() external { require(count < 100); count += 1; }
 }`
   const wrapped = file('Wraps', src(true))
-  expect((await verdicts(wrapped))['never below the start']!.kernelProven).toBe(false)
-  expect(modelAndReplay(wrapped, 'never below the start', true).replayed).toContain('replayed on the code')
-  expect((await verdicts(file('Reverts', src(false))))['never below the start']!.kernelProven).toBe(true)
+  // Both scalar variants now have native law journals: the wrap is replayed,
+  // while checked subtraction preserves the invariant on the original bytecode.
+  expect((await verdicts(wrapped, {'never below the start': 'broken'}))['never below the start']!.verdict).toBe('broken')
+  expect(modelAndReplay(wrapped, 'never below the start', true, 'sampled').replayed).toContain('replayed on the code')
+  expect((await verdicts(file('Reverts', src(false)), {'never below the start': 'proven'}))['never below the start']!.verdict).toBe('proven')
 }, 900_000)
 
 t('refused, each where it is with why', () => {

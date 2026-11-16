@@ -1,5 +1,6 @@
 // The CLI on a small file in each language: preserve mathematical verdicts, but only native-validated source laws
-// may be proven or broken. Foreign/model-only frontends are unknown/unchecked, exit 2, without a source certificate.
+// may be proven or broken. Restored native law journals can establish sampled source proofs or replayed breaks;
+// unsupported source checks remain unknown, unchecked, or errors rather than inheriting model verdicts.
 // Each is skipped where its toolchain isn't installed (the suite's cli-<lang> jobs install them).
 import {expect, setDefaultTimeout, test} from 'bun:test'
 
@@ -13,7 +14,7 @@ import {pathToFileURL} from 'node:url'
 import {check, colors, scoped} from './cli.ts'
 import {lawsIn, parse} from './laws.ts'
 
-// Old native rule replay is independent evidence, not a native source-law journal.
+// Native rule replay alone is not a source-law journal; successful sampled source proofs need actual law checks.
 type SourceLaw = Awaited<ReturnType<typeof check>>['rules'][number]['laws'][number]
 const unchecked = (law: SourceLaw, kernelProven?: boolean) => {
   expect(law).toMatchObject({verdict: 'unknown', translation: 'unchecked', ...(kernelProven === undefined ? {} : {kernelProven})})
@@ -21,6 +22,26 @@ const unchecked = (law: SourceLaw, kernelProven?: boolean) => {
   expect(law.replayed).toBeUndefined()
   expect(law.cert).toBeUndefined()
 }
+const sampledProof = (law: SourceLaw, certificate = false) => {
+  expect(law).toMatchObject({verdict: 'proven', translation: 'sampled'})
+  expect(law.translationChecks).toBeGreaterThan(0)
+  expect(law.run).toBeUndefined()
+  expect(law.replayed).toBeUndefined()
+  if (certificate) expect(law.cert).toBeDefined()
+  else expect(law.cert).toBeUndefined()
+}
+const sampledProofs = (laws: SourceLaw[], certificate = false) => {
+  expect(laws.length).toBeGreaterThan(0)
+  for (const law of laws) sampledProof(law, certificate)
+}
+// A sampled break carries a counterexample run; these frontends do not expose a separate replay receipt.
+const sampledBreak = (law: SourceLaw) => {
+  expect(law).toMatchObject({verdict: 'broken', translation: 'sampled'})
+  expect(law.run!.length).toBeGreaterThan(0)
+  expect(law.replayed).toBeUndefined()
+  expect(law.cert).toBeUndefined()
+}
+// These explicitly classified model proofs lack a native source interpretation.
 const modelLaws = (laws: SourceLaw[]) => {
   expect(laws.length).toBeGreaterThan(0)
   for (const law of laws) unchecked(law, true)
@@ -262,7 +283,7 @@ export const counter = setup({
 }
 
 for (const [lang, c] of Object.entries(CASES)) {
-  (TOOLS[lang]!() ? test : test.skip)(lang === 'ts' ? `${lang}: a law stated in the code proven, one broken with its run, exit 1` : `${lang}: model verdicts retained, source laws unchecked, exit 2`, async () => {
+  (TOOLS[lang]!() ? test : test.skip)(`${lang}: source law verdicts require native journal evidence`, async () => {
     const target = `${files(c.files, c.modules)}/${c.target ?? Object.keys(c.files)[0]}`
     const {rules, exit} = await check([target], {ms: 5000, propose: false, check: {runs: 30, depth: 6, states: 60}})
     const r = rules.find(x => x.ok) ?? rules[0]!
@@ -277,10 +298,18 @@ for (const [lang, c] of Object.entries(CASES)) {
       expect(broken.run!.at(-1)!).toMatch(/hit/i)
       expect(exit).toBe(1)
     } else {
-      unchecked(positive, true)
-      unchecked(broken, false)
-      if (lang === 'xstate') unchecked(by('it stays open'), true)
-      expect(exit).toBe(2)
+      // The native frontends now retain source-law samples; Effect and XState are still model-only.
+      if (lang === 'effect' || lang === 'xstate') {
+        unchecked(positive, true)
+        unchecked(broken, false)
+        if (lang === 'xstate') unchecked(by('it stays open'), true)
+        expect(exit).toBe(2)
+      } else {
+        sampledProof(positive)
+        sampledBreak(broken)
+        expect(broken.run!.at(-1)!).toMatch(/hit/i)
+        expect(exit).toBe(1)
+      }
     }
     // (every law stated in the code is reported, each once at least: none dropped by any language's reader)
     const stated = Object.entries(c.files).flatMap(([f, text]) => lawsIn(text, f.split('/').pop()!).map(l => l.where))
@@ -555,7 +584,7 @@ class Lock:
 }, 180_000)
 
 // Every constructor is a separate checked scope, including a constructor that breaks a stated law.
-;(TOOLS.java!() ? test : test.skip)('Java constructor alternatives all keep their class laws and replay receipts', async () => {
+;(TOOLS.java!() ? test : test.skip)('Java constructor alternatives keep sampled proofs and broken starts', async () => {
   const dir = files({'Counter.java': `// gdp: law n nonnegative: n >= 0
 public class Counter {
   private int n;
@@ -572,20 +601,23 @@ public class Counter {
     expect(r.checked).toContain('requests from the start')
     expect(r.laws.length).toBe(1)
   }
-  unchecked(result.rules.find(r => r.ctor === '()')!.laws[0]!, true)
-  unchecked(result.rules.find(r => r.ctor === '(boolean)')!.laws[0]!, false)
-  expect(result.exit).toBe(2)
+  // Each constructor's restored native journal has its own proof or initial-state counterexample.
+  sampledProof(result.rules.find(r => r.ctor === '()')!.laws[0]!)
+  const negative = result.rules.find(r => r.ctor === '(boolean)')!.laws[0]!
+  sampledBreak(negative)
+  expect(negative.run![0]).toContain('negative = true')
+  expect(result.exit).toBe(1)
   const printed = spawnSync(process.execPath, [new URL('./cli.ts', import.meta.url).pathname, 'check', `${dir}/Counter.java`, '--json', '--no-propose', '--ms', '3000'], {encoding: 'utf8'})
-  expect(printed.status).toBe(2)
+  expect(printed.status).toBe(1)
   const json = JSON.parse(printed.stdout) as {rules: {ctor?: string}[]}
   expect(new Set(json.rules.map(r => r.ctor))).toEqual(new Set(['()', '(boolean)']))
   writeFileSync(`${dir}/gdp.toml`, '[rules.Counter]\nctor = "()"\n')
   const selected = await check([`${dir}/Counter.java`], {ms: 3000, propose: false})
   expect(selected.rules.length).toBe(1)
-  modelLaws(selected.rules[0]!.laws)
-  expect(selected.exit).toBe(2)
+  sampledProofs(selected.rules[0]!.laws)
+  expect(selected.exit).toBe(0)
 })
-;(TOOLS.java!() ? test : test.skip)('constructor variants retain their scopes without source certificates', async () => {
+;(TOOLS.java!() ? test : test.skip)('constructor variants retain their scopes with sampled native journals', async () => {
   const dir = files({'Counter.java': `// gdp: law n stays zero: n == 0
 public class Counter {
   private int n;
@@ -596,8 +628,8 @@ public class Counter {
   const result = await check([`${dir}/Counter.java`], {ms: 3000, propose: false, cert: `${dir}/certs`})
   expect(result.rules.length).toBe(2)
   expect(new Set(result.rules.map(r => r.ctor))).toEqual(new Set(['()', '(boolean)']))
-  expect(result.exit).toBe(2)
-  for (const r of result.rules) modelLaws(r.laws)
+  expect(result.exit).toBe(0)
+  for (const r of result.rules) sampledProofs(r.laws, true)
 })
 ;(TOOLS.java!() ? test : test.skip)('a supported Java constructor never hides an unread constructor', async () => {
   const dir = files({'Counter.java': `// gdp: law n nonnegative: n >= 0
@@ -627,9 +659,11 @@ struct Meter {
   expect(result.rules.length).toBe(2)
   expect(new Set(result.rules.map(r => r.ctor))).toEqual(new Set(['()', '(negative: Bool)']))
   for (const r of result.rules) { expect(r.ok).toBe(true); expect(r.checked).toContain('requests from the start') }
-  unchecked(result.rules.find(r => r.ctor === '()')!.laws[0]!, true)
-  unchecked(result.rules.find(r => r.ctor === '(negative: Bool)')!.laws[0]!, false)
-  expect(result.exit).toBe(2)
+  sampledProof(result.rules.find(r => r.ctor === '()')!.laws[0]!)
+  const negative = result.rules.find(r => r.ctor === '(negative: Bool)')!.laws[0]!
+  sampledBreak(negative)
+  expect(negative.run![0]).toContain('negative = true')
+  expect(result.exit).toBe(1)
 })
 
 ;(TOOLS.swift!() ? test : test.skip)('a supported Swift initializer never hides a failable alternative or its law', async () => {
@@ -738,15 +772,20 @@ class Counter:
 `})
   const {rules, exit} = await check([`${dir}/fate.py`], {ms: 5000, propose: false})
   expect(rules.map(r => [r.entry, r.laws.map(l => [l.name, l.verdict])])).toEqual([
-    ['Fate', [['modal only after tries strikes', 'unknown'], ['one strike per VM', 'unknown']]], ['Counter', [['at most cap', 'unknown']]]])
-  for (const r of rules) modelLaws(r.laws)
+    ['Fate', [['modal only after tries strikes', 'proven'], ['one strike per VM', 'unknown']]], ['Counter', [['at most cap', 'proven']]]])
+  // The journal can sample the scalar laws; the set-membership law still needs its own source check.
+  sampledProof(rules[0]!.laws[0]!)
+  unchecked(rules[0]!.laws[1]!, true)
+  expect(rules[0]!.laws[1]!.why).toContain('avoid')
+  sampledProof(rules[1]!.laws[0]!)
   expect(exit).toBe(2)
   // (the strike charged whatever VM: the law about distinct VMs broken, with its run)
   writeFileSync(`${dir}/fate.py`, readAdv(`${dir}/fate.py`, 'utf8').replace('        if vm in self.avoid:\n            return\n', ''))
   const b = await check([`${dir}/fate.py`], {ms: 5000, propose: false})
   const law = b.rules[0]!.laws.find(l => l.name === 'one strike per VM')!
-  unchecked(law, false)
-  expect(b.exit).toBe(2)
+  sampledBreak(law)
+  expect(law.run!.at(-1)).toContain('failed(')
+  expect(b.exit).toBe(1)
 }, 180_000)
 
 // A law about an argument the code ignores (the bug is that it does): the argument kept in the rule, the law broken.
@@ -761,12 +800,42 @@ class Waits:
         self.fails += 1
 `})
   const {rules, exit} = await check([`${dir}/waits.py`], {ms: 5000, propose: false})
-  unchecked(rules[0]!.laws[0]!, false)
-  expect(exit).toBe(2)
+  // The restored journal admits this sampled break; this frontend exposes the run but no separate replay receipt.
+  sampledBreak(rules[0]!.laws[0]!)
+  expect(rules[0]!.laws[0]!.run!.at(-1)).toContain('start_failed=false')
+  expect(exit).toBe(1)
 }, 180_000)
 
 // from = "any": a law proven only with an invariant the search finds holds from the start, not from every state the laws
 // allow; stated beside it, the invariant makes the two one inductive set, proven from any state.
+test('a sampled but unknown TypeScript invariant fails the CLI closed', async () => {
+  const source = `// gdp: law b within 3: b <= 3
+export class Mirror {
+  a = 0;
+  b = 0;
+  hit(): void { if (this.a < 3) this.a += 1; this.b = this.a; }
+}
+`
+  const dir = files({'mirror.ts': source}), target = `${dir}/mirror.ts`
+  const result = await check([target], {ms: 5000, propose: false, from: 'any'})
+  expect(result.rules[0]!.laws).toHaveLength(1)
+  const law = result.rules[0]!.laws[0]!
+  expect(law).toMatchObject({kind: 'law', verdict: 'unknown', translation: 'sampled'})
+  expect(law.translationChecks).toBeGreaterThan(0)
+  expect(law.run).toBeUndefined()
+  expect(law.replayed).toBeUndefined()
+  expect(law.cert).toBeUndefined()
+  expect(result.exit).toBe(2)
+  const printed = spawnSync(process.execPath, [new URL('./cli.ts', import.meta.url).pathname, 'check', target, '--from', 'any', '--json', '--no-propose', '--ms', '5000'], {encoding: 'utf8'})
+  expect(printed.status).toBe(2)
+  expect(JSON.parse(printed.stdout).exit).toBe(2)
+  // Stating the required invariant closes the proof, rather than forcing every check to fail.
+  writeFileSync(target, source.replace('export class', '// gdp: law a within 3: a <= 3\nexport class'))
+  const complete = await check([target], {ms: 5000, propose: false, from: 'any'})
+  sampledProofs(complete.rules[0]!.laws)
+  expect(complete.exit).toBe(0)
+}, 180_000)
+
 const mirrorCode = (helper: boolean) => `
 class Mirror:
     # gdp: law b within 3: b <= 3
@@ -785,16 +854,22 @@ ${helper ? '    # gdp: law a within 3: a <= 3\n' : ''}
   const a = await check([`${dir}/mirror.py`], {ms: 5000, propose: false})
   // (true from the start, not inductive alone: unknown, the law it needs said)
   expect(a.rules[0]!.laws.map(l => l.verdict)).toEqual(['unknown'])
+  // An unknown from=any law must still cause the CLI to fail closed.
   expect(a.exit).toBe(2)
-  unchecked(a.rules[0]!.laws[0]!, true)
+  // The reachable proof has native samples, but is not an any-state proof.
+  expect(a.rules[0]!.laws[0]).toMatchObject({verdict: 'unknown', translation: 'sampled'})
+  expect(a.rules[0]!.laws[0]!.translationChecks).toBeGreaterThan(0)
+  expect(a.rules[0]!.laws[0]!.run).toBeUndefined()
+  expect(a.rules[0]!.laws[0]!.replayed).toBeUndefined()
+  expect(a.rules[0]!.laws[0]!.cert).toBeUndefined()
   const reach = await check([`${dir}/mirror.py`], {ms: 5000, propose: false, from: 'reachable'})
-  modelLaws(reach.rules[0]!.laws)
-  expect(reach.exit).toBe(2)
+  sampledProofs(reach.rules[0]!.laws)
+  expect(reach.exit).toBe(0)
   writeFileSync(`${dir}/mirror.py`, mirrorCode(true))
   const b = await check([`${dir}/mirror.py`], {ms: 5000, propose: false})
-  modelLaws(b.rules[0]!.laws)
-  expect(b.exit).toBe(2)
-  expect(b.rules[0]!.laws.every(l => l.from === undefined)).toBe(true)
+  sampledProofs(b.rules[0]!.laws)
+  expect(b.exit).toBe(0)
+  expect(b.rules[0]!.laws.every(l => l.from === 'any')).toBe(true)
 }, 180_000)
 
 // Candidate verdicts cannot mask stated-law precedence, even when target order is reversed.
@@ -909,9 +984,10 @@ class Spin:
 `})
   const {rules, exit} = await check([`${dir}/m.py`], {ms: 5000, propose: false})
   const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
-  expect(v['nothing but health answers without the token']).toEqual(['Gate', 'unknown'])
-  expect(v['a made tree was asked for']).toEqual(['Store', 'unknown'])
-  for (const r of rules.filter(r => ['Gate', 'Store'].includes(r.entry!))) modelLaws(r.laws)
+  expect(v['nothing but health answers without the token']).toEqual(['Gate', 'proven'])
+  sampledProof(rules.find(r => r.entry === 'Gate')!.laws[0]!)
+  expect(v['a made tree was asked for']).toEqual(['Store', 'proven'])
+  sampledProofs(rules.find(r => r.entry === 'Store')!.laws)
   expect(v['spins stop']![1]).toBe('not read')
   const stated = lawsIn(readAdv(`${dir}/m.py`, 'utf8'), 'm.py').map(l => l.where), told = new Set(rules.flatMap(r => r.laws.map(l => l.where)))
   expect(stated.filter(w => !told.has(w))).toEqual([])
@@ -983,7 +1059,7 @@ class Tries:
 `})
   const {rules} = await check([`${dir}/t.py`], {ms: 5000, propose: false})
   expect(rules[0]!.ok).toBe(true)
-  modelLaws(rules[0]!.laws)
+  sampledProof(rules[0]!.laws[0]!)
 }, 180_000)
 
 // What the code names, a law names the same: a field named failed (the keyword yields to it), a module's constant, a
@@ -1027,7 +1103,22 @@ class Pending:
   const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
   expect(v['every start boat made no VM for is given back']).toEqual(['Creation', 'unknown'])
   expect(v['at most LIMIT asks']).toEqual(['Creation', 'unknown'])
-  modelLaws(rules.find(r => r.entry === 'Creation')!.laws)
+  const asks = rules.find(r => r.entry === 'Creation')!.laws.find(l => l.name === 'at most LIMIT asks')!
+  expect(asks).toMatchObject({verdict: 'unknown', translation: 'sampled'})
+  expect(asks.translationChecks).toBeGreaterThan(0)
+  expect(asks.why).toContain('not inductive')
+  expect(asks.run).toBeUndefined()
+  expect(asks.replayed).toBeUndefined()
+  expect(asks.cert).toBeUndefined()
+  // The native interpreter currently rejects this equality even on initial zeros; never promote its kernel-only proof.
+  const refund = rules.find(r => r.entry === 'Creation')!.laws.find(l => l.name === 'every start boat made no VM for is given back')!
+  expect(refund).toMatchObject({verdict: 'unknown', translation: 'error', kernelProven: true})
+  expect(refund.translationChecks).toBeGreaterThan(0)
+  expect(refund.translationWitness).toBeDefined()
+  expect(refund.why).toContain('translation error')
+  expect(refund.run).toBeUndefined()
+  expect(refund.replayed).toBeUndefined()
+  expect(refund.cert).toBeUndefined()
   // (a sum of a map of integers: its positive parts less its negative parts; from any state it needs the laws about them)
   expect(v['the need is the pending sum']![1]).not.toBe('not read')
 }, 180_000)
@@ -1157,17 +1248,27 @@ def hit(x: int) -> int:
 `, 'gdp.toml': 'from = "any"\n[rules.budgets]\n'})
   const {rules} = await check([`${dir}/s.py`], {ms: 8000, propose: false})
   const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
-  expect(v['a demand keeps a VM no longer than the idle time']).toEqual(['release_ttl', 'unknown'])
-  expect(v['a share of a count never exceeds the count']).toEqual(['ceiling', 'unknown'])
+  expect(v['a demand keeps a VM no longer than the idle time']).toEqual(['release_ttl', 'proven'])
+  sampledProof(rules.find(r => r.entry === 'release_ttl')!.laws[0]!)
+  expect(v['a share of a count never exceeds the count']).toEqual(['ceiling', 'proven'])
   expect(v['a warm lease never takes a VM about to stop']).toEqual(['Entry', 'unknown'])
-  expect(v["a batch's budget is within the starts left"]).toEqual(['budget', 'unknown'])
-  expect(v['a step grows by a quarter of the pool at most']).toEqual(['Grow', 'unknown'])
-  expect(v['finished at most once']).toEqual(['Item', 'unknown'])
-  for (const name of ['release_ttl', 'ceiling', 'Entry', 'budget', 'Grow']) modelLaws(rules.find(r => r.entry === name)!.laws)
-  unchecked(rules.find(r => r.entry === 'Item')!.laws.find(l => l.name === 'finished at most once')!, true)
+  expect(v["a batch's budget is within the starts left"]).toEqual(['budget', 'proven'])
+  expect(v['a step grows by a quarter of the pool at most']).toEqual(['Grow', 'proven'])
+  expect(v['finished at most once']).toEqual(['Item', 'proven'])
+  // The Entry clock and Pending map lack native interpretation; the scalar laws have journal samples.
+  for (const name of ['release_ttl', 'ceiling', 'budget', 'Grow']) sampledProofs(rules.find(r => r.entry === name)!.laws)
+  modelLaws(rules.find(r => r.entry === 'Entry')!.laws)
+  sampledProof(rules.find(r => r.entry === 'Item')!.laws.find(l => l.name === 'finished at most once')!)
   expect(v['taken at most once more than lost']).toEqual(['Item', 'unknown'])
-  expect(v['at most one hold a call']).toEqual(['Holder', 'unknown'])
-  modelLaws(rules.find(r => r.entry === 'Holder')!.laws)
+  const taken = rules.find(r => r.entry === 'Item')!.laws.find(l => l.name === 'taken at most once more than lost')!
+  expect(taken).toMatchObject({verdict: 'unknown', translation: 'sampled'})
+  expect(taken.translationChecks).toBeGreaterThan(0)
+  expect(taken.why).toContain('not inductive')
+  expect(taken.run).toBeUndefined()
+  expect(taken.replayed).toBeUndefined()
+  expect(taken.cert).toBeUndefined()
+  expect(v['at most one hold a call']).toEqual(['Holder', 'proven'])
+  sampledProofs(rules.find(r => r.entry === 'Holder')!.laws)
   expect(rules.some(r => r.entry === 'budgets')).toBe(false)
   // (a sum of integers after a step: from the start, the search finds the sums' laws; from any state it needs them)
   const reach = await check([`${dir}/s.py`], {ms: 8000, propose: false, from: 'reachable', entry: 'Pending'})
@@ -1177,7 +1278,8 @@ def hit(x: int) -> int:
 
 // Every refusal that suggests a fix names one that works: the fix it prints applied as it says (its gdp.toml form, at
 // the top and under the rule, and its comment on the line it names) and the check read again: the rule read and its
-// law proven. A call of other code whose value is read and whose type is declared nowhere (answers, gdp: answer), and
+// source verdict checked: sampled proof where supported, unchecked or a translation error where not. A call of other
+// code whose value is read and whose type is declared nowhere (answers, gdp: answer), and
 // one given the rule's state (skip, gdp: skip), in each language that says so.
 const PRICED = (lang: string): Record<string, string> => {
   const law = (c: string, e: string) => `${c} gdp: law a counted hit stays within the limit: ${e}`
@@ -1309,7 +1411,7 @@ func (l *Limiter) Hit(cost int) bool {
 const TARGET: Record<string, string> = {python: 'limiter.py', ruby: 'limiter.rb', elixir: 'limiter.ex', java: 'demo/Limiter.java', rust: '.', c: 'limiter.c', go: 'p'}
 const SAYS = /state (?:it|what it returns):? \(?(answers|skip): (\{[^}]*\}|\[[^\]]*\]), or a `(gdp: [^`]+)` comment on its line/
 for (const lang of Object.keys(TARGET)) {
-  (TOOLS[lang]!() ? test : test.skip)(`${lang}: the fix a refusal suggests, applied as it says, is read (gdp.toml at the top, under the rule, and the comment)`, async () => {
+  (TOOLS[lang]!() ? test : test.skip)(`${lang}: the suggested refusal fix is read, with its honest source verdict (top-level, rule, comment)`, async () => {
     const o = {ms: 5000, propose: false, check: {runs: 30, depth: 6, states: 60}}
     const at = (d: string) => `${d}/${TARGET[lang]}`
     const d0 = files(PRICED(lang))
@@ -1331,7 +1433,22 @@ for (const lang of Object.keys(TARGET)) {
       const d = files({...PRICED(lang), ...fix})
       const {rules} = await check([at(d)], o)
       if (!rules[0]!.ok) throw new Error(`${how}: still refused: ${JSON.stringify(rules[0]!.refusals)}`)
-      modelLaws(rules[0]!.laws)
+      if (lang === 'ruby') {
+        // Native interpretation currently rejects this @limit law despite the model proof; keep the mismatch fail-closed.
+        const law = rules[0]!.laws[0]!
+        expect(law).toMatchObject({verdict: 'not read', translation: 'error', kernelProven: true})
+        expect(law.translationChecks).toBeGreaterThan(0)
+        expect(law.translationWitness).toBeDefined()
+        expect(law.why).toContain('translation error')
+        expect(law.run).toBeUndefined()
+        expect(law.replayed).toBeUndefined()
+        expect(law.cert).toBeUndefined()
+      } else if (lang === 'c' || lang === 'go') {
+        // Native interpretation cannot yet bind the receiver named l.
+        modelLaws(rules[0]!.laws)
+      } else {
+        sampledProofs(rules[0]!.laws)
+      }
     }
   }, 600_000)
 }
@@ -1359,7 +1476,7 @@ ${body}
   expect(r1[0]!.ok).toBe(false)
   expect(r1[0]!.refusals.map(r => `${r.where}: ${r.what}`).join('; ')).toMatch(/Limiter\.kt:10:\d+: repeat\(cost\) \{ used \+= 1 \}: a loop \(repeat\)/)
   const {rules: r2} = await check([`${kt('        used += cost')}/Limiter.kt`], o)
-  modelLaws(r2[0]!.laws)
+  sampledProofs(r2[0]!.laws)
 }, 600_000)
 
 // Code across files as it ships: a TypeScript class whose base is in a file it imports (read beside it), and a Python
@@ -1374,6 +1491,6 @@ test('a TypeScript base class in a relative import, and Python\'s super(C, self)
   const py = files({'counter.py': `class Base:\n    def __init__(self, cap: int) -> None:\n        self.cap = cap\n        self.n = 0\n\n\n# gdp: law it never passes its cap: cap < 0 or n <= cap\nclass Counter(Base):\n    def __init__(self, cap: int) -> None:\n        super(Counter, self).__init__(cap)\n\n    def hit(self) -> None:\n        if self.n < self.cap:\n            self.n += 1\n`})
   const p = await check([`${py}/counter.py`], {ms: 5000, propose: false, entry: 'Counter'})
   expect(p.rules[0]!.ok).toBe(true)
-  modelLaws(p.rules[0]!.laws)
-  expect(p.exit).toBe(2)
+  sampledProof(p.rules[0]!.laws[0]!)
+  expect(p.exit).toBe(0)
 }, 120_000)

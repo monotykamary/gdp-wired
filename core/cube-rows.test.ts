@@ -7,7 +7,11 @@ const law:Law={name:'template',forall:'a',keys:['b'],holds:same(get('A',x('a')),
 const run=interpret(m),params={size:2},start=run.init(params),rows=[{params,st:start},{params,st:run.step(params,start,{at:0})}]
 function cubes(input: typeof rows | undefined){
  const events:{phase:string,info:Record<string,number|string>}[]=[]
- const result=inferLaws(m,[law],[],{cubes:2,rows:input,ms:1500,progress:(phase,info)=>events.push({phase,info})})
+ // Equality is about the completed counted search, not a wall-truncated prefix.
+ // The published and current code both return [] when sampling consumes the wall;
+ // keep the existing 1500 counted budget, with Bun's test timeout as the outer guard.
+ const result=inferLaws(m,[law],[],{cubes:2,rows:input,ms:1500,wall:Infinity,progress:(phase,info)=>events.push({phase,info})})
+ expect(result.stats.stopped).toBe(false)
  return {result,events,runs:events.find(e=>e.phase==='runs')!.info}
 }
 test('cube-only inference reuses supplied states without another random walk',()=>{

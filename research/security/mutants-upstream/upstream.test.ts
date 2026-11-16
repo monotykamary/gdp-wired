@@ -57,14 +57,34 @@ test('all saved upstream witnesses reproduce independently on both original and 
   expect(() => verify(forged)).toThrow('mutation edit changed')
 }, 60_000)
 
-test('the fresh pinned Python corpus cannot count unchecked native-law results as strict recall', async () => {
+test('the fresh pinned Python corpus cannot count a refused or unchecked baseline as strict recall', async () => {
   for (const c of cases) {
     const row = await measure(c)
-    expect(row.baseline.fullyRead).toBe(true)
     expect(row.baseline.exit).toBe(2)
-    expect(row.baseline.claims.length).toBeGreaterThan(0)
-    expect(row.baseline.claims.every(l => l.verdict === 'unknown' && l.translation === 'unchecked' && l.kernelProven)).toBe(true)
+    expect(row.baseline.claims).toHaveLength(c.policies.length)
+    if (c.id === 'ailice-gas') {
+      // The preserved journal now exposes a native failure-observation mismatch.
+      // A kernel proof cannot promote that source-translation error into recall.
+      expect(row.baseline.fullyRead).toBe(false)
+      expect(row.baseline.claims[0]).toMatchObject({verdict: 'not read', translation: 'error', kernelProven: true, why: expect.stringContaining('false in the native code')})
+      expect(row.baseline.claims[0]!.translationChecks).toBeGreaterThan(0)
+      expect(row.baseline.claims[0]!.translationWitness).toMatchObject({failed: false, legacyResult: true})
+    } else {
+      expect(c.id).toBe('codeagent-iterations')
+      // Native private state is still unavailable; keep the baseline unchecked.
+      expect(row.baseline.fullyRead).toBe(true)
+      expect(row.baseline.claims[0]).toMatchObject({verdict: 'unknown', translation: 'unchecked', kernelProven: true, why: expect.stringContaining('native value of _consumed is unavailable')})
+    }
+    // Mutant breaks can now be source-sampled, but neither invalid baseline is
+    // eligible for strict recall. Do not manufacture a clean baseline proof.
     expect(row.mutants.every(m => !m.detected && m.side.fullyRead)).toBe(true)
-    expect(row.mutants.every(m => m.side.exit === 2 && m.side.claims.every(l => l.verdict === 'unknown' && l.translation === 'unchecked'))).toBe(true)
+    for (const mutant of row.mutants) {
+      expect(mutant.side.exit).toBe(1)
+      expect(mutant.side.claims).toHaveLength(c.policies.length)
+      for (const law of mutant.side.claims) {
+        expect(law).toMatchObject({verdict: 'broken', translation: 'sampled'})
+        expect(law.run!.length).toBeGreaterThan(0)
+      }
+    }
   }
 }, 180_000)
