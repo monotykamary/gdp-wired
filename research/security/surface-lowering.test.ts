@@ -191,8 +191,9 @@ function orderedModel(fixture:OrderedListFixture):OrderedStepModel {
 }
 function orderedLoweredMeaning(law:StepLaw, model:OrderedStepModel):boolean {
   const names=[law.forall,...(law.keys??[])].filter((name):name is string=>name!==undefined)
+  const conditions=Array.isArray(law.when)?law.when:law.when?[law.when]:[]
   const at=(i:number, env:Record<string,number>):boolean => i===names.length
-    ? (!law.when || !evalC(law.when,{...env,method:1},model) || evalC(law.then,{...env,method:1},model))
+    ? (!conditions.every(condition=>evalC(condition,{...env,method:1},model)) || evalC(law.then,{...env,method:1},model))
     : orderedBound.every(value=>at(i+1,{...env,[names[i]!]:value}))
   return at(0,{})
 }

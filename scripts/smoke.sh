@@ -207,6 +207,22 @@ class Meter:
         return True
 PY
 sed 's|^    # gdp: law never past the cap.*|    # gdp: law a take always counts: used == old(used) + n|' meter.py > meter2.py
+# Native replay now supports this Python law: require the actual source proof.
+npx --no-install gdp-wired-cli check meter.py --no-propose --json > python-checked.json || { cat python-checked.json; exit 1; }
+node --input-type=module - <<'JS'
+import {readFileSync} from 'node:fs'
+const result = JSON.parse(readFileSync('python-checked.json', 'utf8'))
+const law = result.rules?.[0]?.laws?.[0]
+if (result.exit !== 0 || result.rules?.length !== 1 || !result.rules[0].ok || result.rules[0].laws?.length !== 1 ||
+    law?.name !== 'never past the cap' || law.verdict !== 'proven' || !['sampled', 'exhaustive'].includes(law.translation) || !(law.translationChecks > 0)) {
+  throw new Error(`gdp-wired-cli check: Python source proof was not checked: ${JSON.stringify(result)}`)
+}
+JS
+# Preserve the fail-closed controls by explicitly disabling source replay.
+cat > gdp.toml <<'TOML'
+[check]
+lawCrossCheck = false
+TOML
 for file in meter.py meter2.py; do
   code=0
   npx --no-install gdp-wired-cli check "$file" --no-propose --json --cert unchecked-certs > cli.json || code=$?
@@ -229,7 +245,8 @@ if (existsSync('unchecked-certs') && readdirSync('unchecked-certs').length) {
 }
 JS
 done
-echo "gdp-wired-cli check: unchecked Python laws exit 2, preserve model verdicts, and emit no source certificate"
+rm gdp.toml
+echo "gdp-wired-cli check: explicitly unchecked Python laws exit 2, preserve model verdicts, and emit no source certificate"
 # gdp-wired-check, the standalone checker (gdp-wired's second bin): the proven law's certificate (--cert) accepted
 # under plain node, and refused once a derivation's multiplier is raised.
 npx --no-install gdp-wired-cli check wallet.ts --no-propose --cert certs > cli.log || { cat cli.log; exit 1; }

@@ -35,8 +35,17 @@ test('multiple handlers share one table', () => {
   expect(x.model!.maps).toHaveLength(1)
 })
 
-test('ORM map representation invariant is kernel proved but source-law unchecked', () => {
+test('ORM generated representation invariants pass with native replay available', () => {
   const x = extract(file, {entry: ['create', 'update', 'read'], orm, check: {runs: 8, states: 10, probes: true}})
+  expect(x.refusals).toEqual([])
+  expect(x.invariants!.length).toBeGreaterThan(0)
+  expect(x.evidence!.requests).toBeGreaterThan(0)
+  // These generated representation laws are structural, not user source laws.
+  expect(proveRule(x.rule!, x.invariants!)).toMatchObject({proven: true, checked: true, translation: 'sampled', translationChecks: 0})
+}, 30000)
+
+test('ORM generated representation invariants remain unchecked when native replay is disabled', () => {
+  const x = extract(file, {entry: ['create', 'update', 'read'], orm, check: {runs: 8, states: 10, probes: true, lawCrossCheck: false}})
   expect(x.refusals).toEqual([])
   expect(x.invariants!.length).toBeGreaterThan(0)
   expect(proveRule(x.rule!, x.invariants!)).toMatchObject({kernelProven: true, proven: false, checked: false, translation: 'unchecked'})
