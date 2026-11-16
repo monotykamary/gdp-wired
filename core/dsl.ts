@@ -3048,7 +3048,7 @@ function watchdogVerdict(ms: number | undefined, run: () => Verdict): Verdict {
   catch (e) {
     if (!(e instanceof WatchdogExpired)) throw e
     checkWatchdog(e.termination.phase) // an expired ancestor still owns cancellation
-    if (completedSearch(result)) return result!
+    if (completedSearch(result) || result?.stopped && result.termination) return result!
     return stoppedSearch({...result, proven: false, checked: false, stuck: 'unknown'}, e.termination)
   }
 }
@@ -3066,7 +3066,7 @@ function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
     try {
       checkWall('rule preflight')
       const out = result = proveRuleIn(r, laws, opts)
-      if (!completedSearch(out)) checkWall('rule result')
+      if (!completedSearch(out) && !(out.stopped && out.termination)) checkWall('rule result')
       return out
     } catch (e) {
       if (!(e instanceof WallExpired) && !(e instanceof WatchdogExpired)) throw e

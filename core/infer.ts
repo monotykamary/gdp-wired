@@ -714,7 +714,7 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
     if (error instanceof WatchdogExpired) checkWatchdog(error.termination.phase)
     else if (error instanceof BudgetExpired) checkWorkEndpoint(error.phase)
     else throw error
-    if (error instanceof WatchdogExpired && completedSearch(result)) return result!
+    if (error instanceof WatchdogExpired && (completedSearch(result) || result?.stopped && result.termination)) return result!
     const termination: SearchTermination = error instanceof WatchdogExpired ? error.termination : {kind: 'work-exhausted', phase: error.phase, scope: 'search'}
     return {...stoppedSearch({...result, ...opts.first, proven: false, checked: false, stuck: 'unknown', ...((observed.lastContext ?? observed.context?.()) ? {context: observed.lastContext ?? observed.context?.()} : {})}, termination), found: [], stats: {...(observed.last ?? result?.stats ?? {samples: 0, candidates: 0, alive: 0, proofs: 0, ms: 0, work: Math.max(0, fullWork() - started)}), stopped: true, termination}}
   }
