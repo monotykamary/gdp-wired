@@ -1,4 +1,7 @@
+import {createHash} from 'node:crypto'
 import { canonicalJobHash } from './full-gate-contract'
+
+export type LeanSourceEvidence = {file: string; source: string}
 
 export type FailureSignature = { failedTests: string[]; diagnostics: string[] }
 export type KnownFailureEntry = { job: string; definitionSha256: string; exitCode: number; signature: FailureSignature }
@@ -41,14 +44,42 @@ export function validateKnownFailuresPolicy(policy: unknown, canonicalJobs: read
   return policy as KnownFailuresPolicy
 }
 
-/** Normalization v1: strip ANSI SGR and Bun marker timing; replace absolute
+function bindKeyedSection(diagnostics: string[], rawSources: unknown): string[] {
+  if (!Array.isArray(rawSources)) return fail('invalid Lean sources')
+  const sources = new Map<string, string>()
+  for (const raw of rawSources) {
+    const source = record(raw); keys(source, ['file', 'source'])
+    if (typeof source.file !== 'string' || !/^[A-Za-z0-9_-]+\.lean$/.test(source.file) || typeof source.source !== 'string' || !source.source.length || sources.has(source.file)) return fail('invalid or duplicate Lean source')
+    sources.set(source.file, source.source)
+  }
+  const source = sources.get('Keyed.lean')
+  if (source === undefined) return diagnostics
+  const anchors = [...source.matchAll(/^def outbox_machine(?:\s|:)/gm)]
+  if (anchors.length !== 1) return fail('missing or ambiguous Keyed outbox section')
+  const index = anchors[0]!.index!, startLine = source.slice(0, index).split('\n').length
+  const section = source.slice(index), endLine = source.split('\n').length
+  const sectionHash = createHash('sha256').update(section).digest('hex')
+  return diagnostics.map(item => {
+    const location = /^Keyed\.lean:(\d+):(\d+): (?:error|warning):/.exec(item)
+    if (!location) return item
+    const line = Number(location[1]), column = Number(location[2])
+    if (!Number.isSafeInteger(line) || !Number.isSafeInteger(column) || line < 1 || column < 1 || line > endLine) return fail('invalid Keyed diagnostic location')
+    if (line < startLine) return item
+    return item.replace(/^Keyed\.lean:\d+:\d+:/, `Keyed.lean:section=outbox_machine@${sectionHash}:${line - startLine + 1}:${column}:`)
+  })
+}
+
+/** Normalization v2: strip ANSI SGR and Bun marker timing; replace absolute
  * prefixes before a Lean basename. For a search JSON export-failure record only,
  * replace its search.ms integer with 0. Preserve every other byte of diagnostic
  * bodies, file-qualified titles, error lines, line/column and multiplicity.
+ * Keyed outbox diagnostics bind the complete source section hash and one-based
+ * section-relative line instead of an unrelated prefix's absolute line count.
+ * Original absolute lines remain in the native logs and captured source.
  * Complete Lean compiler/gate reports are authoritative, one per invocation.
  * A filtered wrapper mirror must preserve the header and an ordered subset of
  * that report's body lines; each report can account for at most one mirror. */
-export function extractFailureSignature(stdout: string, stderr: string, leanDiagnostics: readonly string[] = []): FailureSignature {
+export function extractFailureSignature(stdout: string, stderr: string, leanDiagnostics: readonly string[] = [], leanSources: unknown = []): FailureSignature {
   // ANSI SGR escape bytes are the precise protocol sequence being removed.
   // eslint-disable-next-line no-control-regex
   const clean = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, '')
@@ -126,7 +157,7 @@ export function extractFailureSignature(stdout: string, stderr: string, leanDiag
     else diagnostics.push(item)
   }
   if (!leanDiagnostics.length && diagnostics.some(x => /\.lean:\d+:\d+:.*error:/.test(x))) fail('complete Lean diagnostics required')
-  return {failedTests: failedTests.sort(), diagnostics: [...(failedTests.length ? bunErrors : []), ...diagnostics].sort()}
+  return {failedTests: failedTests.sort(), diagnostics: [...(failedTests.length ? bunErrors : []), ...bindKeyedSection(diagnostics, leanSources)].sort()}
 }
 
 export function matchKnownFailure(policy: KnownFailuresPolicy, jobName: string, definitionSha256: string, code: number, value: FailureSignature): KnownFailureEntry {

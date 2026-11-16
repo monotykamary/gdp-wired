@@ -109,7 +109,7 @@ export function finalize(inputDir: string, resultsPath: string, pinPath: string,
       const data = obj(readJson(artifact('LEAN-DIAGNOSTICS.json')), 'Lean diagnostics')
       if (data.schema !== 'gdp-lean-diagnostics/v1' || !Array.isArray(data.logs) || !data.logs.every((s: unknown) => typeof s === 'string')) fail('invalid Lean diagnostics')
       const logs: string[] = data.logs
-      const signature = extractFailureSignature(stdout.toString('utf8'), stderr.toString('utf8'), logs)
+      const signature = extractFailureSignature(stdout.toString('utf8'), stderr.toString('utf8'), logs, data.sources ?? [])
       matchKnownFailure(activePolicy, job.name, definitions[job.name], row.code, signature)
       jobs.push({...base, status: 'FAILED', code: 1, outcome: 'KNOWN_FAILURE', signature})
     } else jobs.push({...base, status: 'SUCCEEDED', code: 0})

@@ -67,6 +67,19 @@ export function diagnosticEnvironment(root: string, cwd: string, env: NodeJS.Pro
   return {env: {...env, PATH: bin + delimiter + (env.PATH ?? ''), GDP_RELEASE_REAL_LEAN: isAbsolute(executable) ? executable : resolve(cwd, executable), GDP_RELEASE_LEAN_LOGS: directory}, readLogs}
 }
 
+// Capture only the canonical keyed job's freshly generated source, not a stale checkout file.
+export function keyedSources(jobName: string, cwd: string, commandStarted: number): {file: string, source: string}[] {
+  if (jobName !== 'lean-keyed') return []
+  const path = join(cwd, 'Keyed.lean')
+  let stat: ReturnType<typeof lstatSync>
+  try { stat = lstatSync(path) } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+    throw error
+  }
+  if (!stat.isFile() || stat.isSymbolicLink()) throw Error('unsafe Keyed source file')
+  return stat.mtimeMs >= commandStarted ? [{file: 'Keyed.lean', source: readFileSync(path, 'utf8')}] : []
+}
+
 export async function worker(inputDir: string, manifestHash: string, jobName: string): Promise<number> {
   if (!sha256pattern.test(manifestHash) || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(jobName)) throw Error('invalid worker arguments')
   const output = process.env.SUPERCOMPUTER_OUTPUT_DIR
@@ -171,7 +184,8 @@ export async function worker(inputDir: string, manifestHash: string, jobName: st
       if (!stat.isFile() || stat.isSymbolicLink()) throw Error('unsafe full diagnostic file')
       if (stat.mtimeMs >= commandStarted) logs.push(readFileSync(path, 'utf8'))
     }
-    writeFileSync(join(output, 'LEAN-DIAGNOSTICS.json'), JSON.stringify({schema: 'gdp-lean-diagnostics/v1', logs}) + '\n', {flag: 'wx'})
+    const sources = keyedSources(jobName, cwd, commandStarted)
+    writeFileSync(join(output, 'LEAN-DIAGNOSTICS.json'), JSON.stringify({schema: 'gdp-lean-diagnostics/v1', logs, ...(sources.length ? {sources} : {})}) + '\n', {flag: 'wx'})
     writeFileSync(join(output, 'COMMAND-RESULT.json'), JSON.stringify({name: jobName, command: job.cmd, cwd: job.cwd ?? '.', code, signal: result.signal, error: result.error?.message ?? null}) + '\n', {flag: 'wx'})
     return code
   } finally { rmSync(root, {recursive: true, force: true}) }

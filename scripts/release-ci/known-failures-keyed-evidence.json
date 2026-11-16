@@ -1,0 +1,55 @@
+{
+  "schema": "gdp-keyed-section-evidence/v1",
+  "baselineCommit": "c08bb385bbb1afc8dbf6ce1fc8aa8d838b9eb3a5",
+  "diagnosticTreeBaseCommit": "ec6e64c6910318b18551f87f6d2362100750adcc",
+  "diagnosticSourceBinding": "ordinary source upload, not independently Git-provisioned",
+  "priorComparisonSha256": "a8d5c0f1d7fad46ed35f4bf464666ddee7c4075278fb3873413f7e950d8ed606",
+  "section": {
+    "file": "Keyed.lean",
+    "anchor": "def outbox_machine",
+    "extent": "anchor through EOF",
+    "sha256": "ddc438097071ddeb85e15be463da45dacf23dd886ac7c7523df520b59acd671a",
+    "relativeLines": [
+      1475,
+      1480
+    ],
+    "column": 11
+  },
+  "baseline": {
+    "sourceSha256": "a8355850016a6f33c90ba9305f9c3db7167aa65068f7754493ebd5979c3ea4dd",
+    "sectionStart": 4462,
+    "absoluteLines": [
+      5936,
+      5941
+    ],
+    "signature": {
+      "failedTests": [],
+      "diagnostics": [
+        "Keyed.lean:5936:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ outbox_law0\nbut is expected to have type\n  ∀ (k : Nat), μ InFlight k ≤ μ Q k",
+        "Keyed.lean:5941:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ outbox_law1\nbut is expected to have type\n  ∀ (k : Nat), μ Q k ≤ 1"
+      ]
+    }
+  },
+  "current": {
+    "sourceSha256": "bf629190b78f2ea20736a6f173d409d5dedb50b1eead34d8c914af23b92f5d0b",
+    "sectionStart": 3604,
+    "absoluteLines": [
+      5078,
+      5083
+    ],
+    "signature": {
+      "failedTests": [],
+      "diagnostics": [
+        "Keyed.lean:5078:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ outbox_law0\nbut is expected to have type\n  ∀ (k : Nat), μ InFlight k ≤ μ Q k",
+        "Keyed.lean:5083:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ outbox_law1\nbut is expected to have type\n  ∀ (k : Nat), μ Q k ≤ 1"
+      ]
+    }
+  },
+  "canonicalSignature": {
+    "failedTests": [],
+    "diagnostics": [
+      "Keyed.lean:section=outbox_machine@ddc438097071ddeb85e15be463da45dacf23dd886ac7c7523df520b59acd671a:1475:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ outbox_law0\nbut is expected to have type\n  ∀ (k : Nat), μ InFlight k ≤ μ Q k",
+      "Keyed.lean:section=outbox_machine@ddc438097071ddeb85e15be463da45dacf23dd886ac7c7523df520b59acd671a:1480:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ outbox_law1\nbut is expected to have type\n  ∀ (k : Nat), μ Q k ≤ 1"
+    ]
+  }
+}

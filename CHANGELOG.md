@@ -15,8 +15,8 @@ noted), each with the command that reproduces it.
   inherited failures. Matching exceptions remain recorded as failures, not passing tests; any new or changed failure
   blocks release. The fixed `exists` test is required to pass. The inherited generated-Lean export failures remain
   unresolved; this does not mean that every example export checks successfully.
-- **Clean example checks:** the counted Lean example compiles its `QAlpha` prerequisite explicitly, rather than
-  depending on a cached object from another job.
+- **Clean example checks:** the counted, keyed, and JevFabric Lean examples compile their `QAlpha` and
+  `BridgeRules` prerequisites explicitly, rather than depending on cached objects from another job.
 
 ## 0.50.0
 

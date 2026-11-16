@@ -80,7 +80,20 @@ prevents `tail` or `grep` from hiding an additional error. Only the policy
 parser's documented path/display normalization is permitted; diagnostics must
 otherwise match exactly. A captured invocation accounts for at most one filtered
 wrapper mirror with matching header and unchanged retained body lines; changed
-bodies and extra copies remain distinct diagnostics. A missing or incomplete baseline is a release blocker,
+bodies and extra copies remain distinct diagnostics.
+
+The two `lean-keyed` outbox errors additionally require the complete generated
+`Keyed.lean` source captured in the same hash-verified diagnostic artifact. Their
+location key is `section=outbox_machine@<sha256>:<relative-line>:<column>`: the
+section begins at the unique `def outbox_machine` and extends through EOF. The
+entire section's bytes, relative position, error kind and complete type diagnostic
+must match. Absolute locations remain unchanged in the raw logs and in
+`known-failures-keyed-evidence.json`; only an unrelated earlier certificate's
+length may vary. Missing/ambiguous source, changed section bytes, a moved error
+within the section, or any additional error still blocks release. Other Lean
+locations retain their original exact matching.
+
+A missing or incomplete baseline is a release blocker,
 not a reason to widen an exception.
 
 ## Review and publication

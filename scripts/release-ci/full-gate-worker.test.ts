@@ -1,11 +1,28 @@
 import {expect, test} from 'bun:test'
 import {createHash} from 'node:crypto'
 import {execFileSync, spawnSync} from 'node:child_process'
-import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {delimiter, join} from 'node:path'
 import {prepare} from './full-gate-runner'
-import {diagnosticEnvironment, worker} from './full-gate-worker'
+import {diagnosticEnvironment, keyedSources, worker} from './full-gate-worker'
+
+test('keyed source evidence requires the keyed job and a fresh regular file', () => {
+  const root = mkdtempSync(join(tmpdir(), 'keyed-source-')), path = join(root, 'Keyed.lean')
+  try {
+    const started = Date.now() - 10_000, source = '-- prefix\ndef outbox_machine := 42\n'
+    expect(keyedSources('lean-keyed', root, started)).toEqual([])
+    writeFileSync(path, source)
+    expect(keyedSources('lean-keyed', root, started)).toEqual([{file: 'Keyed.lean', source}])
+    expect(keyedSources('other', root, started)).toEqual([])
+    utimesSync(path, new Date(started - 5000), new Date(started - 5000))
+    expect(keyedSources('lean-keyed', root, started)).toEqual([])
+    rmSync(path); symlinkSync('missing', path)
+    expect(() => keyedSources('lean-keyed', root, started)).toThrow('unsafe Keyed source file')
+    rmSync(path); mkdirSync(path)
+    expect(() => keyedSources('lean-keyed', root, started)).toThrow('unsafe Keyed source file')
+  } finally { rmSync(root, {recursive: true, force: true}) }
+})
 
 test('full Lean diagnostics survive canonical tail filters without masking the compiler exit', () => {
   const root = mkdtempSync(join(tmpdir(), 'full-gate-diagnostics-'))

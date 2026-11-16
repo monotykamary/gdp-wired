@@ -3,7 +3,7 @@
   "baselineCommit": "c08bb385bbb1afc8dbf6ce1fc8aa8d838b9eb3a5",
   "evidence": {
     "triageSha256": "a0047e5d0af8f0fcaed2e9fc31434ff6f5e3c8ff0066cc93e4925309ac0e6140",
-    "comparisonSha256": "a8d5c0f1d7fad46ed35f4bf464666ddee7c4075278fb3873413f7e950d8ed606"
+    "comparisonSha256": "e430d95e6f9beca91201a442ec93c148302bea3322dfe33119a2375451f63325"
   },
   "entries": [
     {
@@ -495,19 +495,19 @@
     },
     {
       "job": "lean-keyed",
-      "definitionSha256": "0054312895a21467506ccbbbeb79af311515e8482a926f8a488d98bd8ab20cd9",
+      "definitionSha256": "f5f05f8b1f53e763137b7c25bb96771580bc5a01afcc5e7bac936620cf8cc949",
       "exitCode": 1,
       "signature": {
         "failedTests": [],
         "diagnostics": [
-          "Keyed.lean:5936:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ outbox_law0\nbut is expected to have type\n  ∀ (k : Nat), μ InFlight k ≤ μ Q k",
-          "Keyed.lean:5941:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ outbox_law1\nbut is expected to have type\n  ∀ (k : Nat), μ Q k ≤ 1"
+          "Keyed.lean:section=outbox_machine@ddc438097071ddeb85e15be463da45dacf23dd886ac7c7523df520b59acd671a:1475:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ outbox_law0\nbut is expected to have type\n  ∀ (k : Nat), μ InFlight k ≤ μ Q k",
+          "Keyed.lean:section=outbox_machine@ddc438097071ddeb85e15be463da45dacf23dd886ac7c7523df520b59acd671a:1480:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ outbox_law1\nbut is expected to have type\n  ∀ (k : Nat), μ Q k ≤ 1"
         ]
       }
     },
     {
       "job": "lean-jev-fabric",
-      "definitionSha256": "fecf78e3dfdfb8e7fe5337ad9a1f6695a9cdd0051e0a11aa9439bed8016a16e3",
+      "definitionSha256": "5c9f779fdf391b9222f126e47e0ed48c775516a2ef7f15efae7bdfe64966d424",
       "exitCode": 1,
       "signature": {
         "failedTests": [],

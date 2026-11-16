@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'bun:test'
+import {readFileSync} from 'node:fs'
+import {createHash} from 'node:crypto'
 import { canonicalJobHash } from './full-gate-contract'
 import { extractFailureSignature, matchKnownFailure, validateKnownFailuresPolicy } from './known-failures'
 
@@ -8,6 +10,18 @@ const signature = {failedTests: ['test A'], diagnostics: ['error: assertion fail
 const policy = {schema: 'gdp-known-failures/v1', baselineCommit: 'a'.repeat(40), evidence: {triageSha256: 'b'.repeat(64), comparisonSha256: 'c'.repeat(64)}, entries: [{job: 'test', definitionSha256: hash, exitCode: 1, signature}], requiredPass: ['exists']}
 
 describe('known failure signatures', () => {
+  test('canonical keyed and JevFabric jobs bootstrap BridgeRules in dependency order', () => {
+    const canonical = JSON.parse(readFileSync(new URL('../../supercomputer/suite.json', import.meta.url), 'utf8')) as {name: string; cmd: string}[]
+    for (const name of ['lean-keyed', 'lean-jev-fabric']) {
+      const job = canonical.find(job => job.name === name)!
+      expect(job.cmd).toContain('export PATH=$PWD/../scripts/lean-gate:$PATH')
+      const modules = /for f in ([^;]+); do/.exec(job.cmd)![1]!.split(' ')
+      for (const module of ['History', 'Live', 'Cyclic', 'Bridge', 'Ghost', 'Refine', 'BridgeRules']) expect(modules).toContain(module)
+      for (const [before, after] of [['Cyclic', 'Bridge'], ['Live', 'Ghost'], ['Ghost', 'Refine'], ['Bridge', 'BridgeRules'], ['Refine', 'BridgeRules'], ['History', 'BridgeRules']] as const) {
+        expect(modules.indexOf(before)).toBeLessThan(modules.indexOf(after))
+      }
+    }
+  })
   test('generic empty policy and exact signature', () => {
     expect(validateKnownFailuresPolicy({...policy, entries: []}, jobs).entries).toEqual([])
     const checked = validateKnownFailuresPolicy(policy, jobs)
@@ -71,6 +85,35 @@ describe('known failure signatures', () => {
     expect(extractFailureSignature(changed, '', [report]).diagnostics).toHaveLength(2)
     expect(extractFailureSignature(report, report, [report]).diagnostics).toHaveLength(2)
     expect(extractFailureSignature(report, report, [report, report]).diagnostics).toHaveLength(2)
+  })
+  test('Keyed outbox identity binds section bytes and relative positions, not earlier certificates', () => {
+    const section = 'def outbox_machine : Nat := 0\ntheorem law0 : True := by trivial\n'
+    const source = 'import BridgeRules\n' + section
+    const report = 'Keyed.lean:3:11: error: Type mismatch\n  actual\nbut is expected to have type\n  wanted\n'
+    const evidence = [{file: 'Keyed.lean', source}]
+    const original = extractFailureSignature(report, '', [report], evidence)
+    const digest = createHash('sha256').update(section).digest('hex')
+    expect(original.diagnostics[0]).toBe(`Keyed.lean:section=outbox_machine@${digest}:2:11: error: Type mismatch\n  actual\nbut is expected to have type\n  wanted`)
+    const moved = report.replace(':3:11:', ':5:11:')
+    expect(extractFailureSignature(moved, '', [moved], [{file: 'Keyed.lean', source: '-- prefix changed\n\n' + source}])).toEqual(original)
+    expect(extractFailureSignature(moved, '', [moved])).not.toEqual(original)
+    const scoped = {...policy, entries: [{...policy.entries[0]!, signature: original}]}
+    for (const changed of [
+      extractFailureSignature(report, '', [report], [{file: 'Keyed.lean', source: source.replace('Nat := 0', 'Nat := 1')}]),
+      extractFailureSignature('', '', [report.replace(':3:11:', ':2:11:')], evidence),
+      extractFailureSignature('', '', [report.replace(':3:11:', ':3:12:')], evidence),
+      extractFailureSignature('', '', [report.replace('  wanted', '  different')], evidence),
+      extractFailureSignature('', '', [report + 'Keyed.lean:1:1: error: new prefix failure\n'], evidence),
+    ]) expect(() => matchKnownFailure(scoped as never, 'test', hash, 1, changed)).toThrow()
+  })
+  test('Keyed source evidence rejects ambiguity, invalid shape and impossible positions', () => {
+    const source = 'def outbox_machine : Nat := 0\n'
+    const report = 'Keyed.lean:1:1: error: mismatch\n'
+    for (const evidence of [null, {}, [{file: '../Keyed.lean', source}], [{file: 'Keyed.lean', source, untrustedHash: 'x'}], [{file: 'Keyed.lean', source}, {file: 'Keyed.lean', source}], [{file: 'Keyed.lean', source: source + source}], [{file: 'Keyed.lean', source: 'no section'}]]) {
+      expect(() => extractFailureSignature('', '', [report], evidence)).toThrow()
+    }
+    expect(() => extractFailureSignature('', '', [report.replace(':1:1:', ':100:1:')], [{file: 'Keyed.lean', source}])).toThrow()
+    expect(extractFailureSignature('', '', ['Other.lean:7:1: error: unchanged\n'], [{file: 'Keyed.lean', source}]).diagnostics).toEqual(['Other.lean:7:1: error: unchanged'])
   })
   test('pending metadata and required exists fail closed', () => {
     expect(() => validateKnownFailuresPolicy({...policy, pending: 'missing Lean'}, jobs)).toThrow()

@@ -1236,7 +1236,7 @@
 "cwd": "lean-kernel",
 "cpu": 2.0,
 "timeout": 900,
-"cmd": "export PATH=$PWD/../scripts/lean-gate:$PATH; export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets History Live; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } || exit 3; done; bun ../research/distributed/lean.ts > Keyed.lean 2> keyed.err || { grep -v '^cyclic:' keyed.err; exit 4; }; grep -v '^cyclic:' keyed.err; lean Keyed.lean 2>&1 | grep -v linter | tail -8; s=${PIPESTATUS[0]}; grep -c '_live0_holds' Keyed.lean; echo lean-exit $s; exit $s"
+"cmd": "export PATH=$PWD/../scripts/lean-gate:$PATH; export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets History Live Cyclic Bridge Ghost Refine BridgeRules; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } || exit 3; done; bun ../research/distributed/lean.ts > Keyed.lean 2> keyed.err || { grep -v '^cyclic:' keyed.err; exit 4; }; grep -v '^cyclic:' keyed.err; lean Keyed.lean 2>&1 | grep -v linter | tail -8; s=${PIPESTATUS[0]}; grep -c '_live0_holds' Keyed.lean; echo lean-exit $s; exit $s"
 },
 {
 "name": "lean-sums",
@@ -1374,7 +1374,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 2400,
-"cmd": "export PATH=$PWD/../scripts/lean-gate:$PATH; export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets History; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; bun ../examples/jev-fabric/run.ts --lean > JevFabric.lean && grep -c '^theorem' JevFabric.lean && lean JevFabric.lean 2>&1 | grep -v -e linter -e Hint -e unused | tail -20; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
+"cmd": "export PATH=$PWD/../scripts/lean-gate:$PATH; export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets History Live Cyclic Bridge Ghost Refine BridgeRules; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; bun ../examples/jev-fabric/run.ts --lean > JevFabric.lean && grep -c '^theorem' JevFabric.lean && lean JevFabric.lean 2>&1 | grep -v -e linter -e Hint -e unused | tail -20; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
 },
 {
 "name": "synth-fns",

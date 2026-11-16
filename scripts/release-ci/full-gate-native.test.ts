@@ -8,12 +8,15 @@ import {finalize} from './full-gate-native'
 
 const sha = (s: Buffer | string) => createHash('sha256').update(s).digest('hex')
 const json = (v: unknown) => JSON.stringify(v) + '\n'
-function fixture(withKnownFailure = false) {
+const keyedSection = 'def outbox_machine : Nat := by\n  exact missing\n'
+const keyedSource = '-- prefix\n' + keyedSection
+const keyedReport = 'Keyed.lean:3:3: error: unknown identifier\n  missing\n'
+function fixture(withKnownFailure = false, keyed = false) {
   const root = mkdtempSync(join(tmpdir(), 'native-test-')), input = join(root, 'input'), out = join(root, 'results')
   mkdirSync(input); mkdirSync(out)
   const runtime = {bun: {version: '1.4.3', sha256: 'd'.repeat(64)}}
   const suite = [{name:'one',cmd:withKnownFailure ? 'bun test inherited.test.ts' : 'true',runtime}, {name:withKnownFailure ? 'exists' : 'two',cmd:'echo ok',cwd:'scripts',runtime}], suiteBytes = json(suite)
-  const policy = {schema:'gdp-known-failures/v1',baselineCommit:'c'.repeat(40),evidence:{triageSha256:'d'.repeat(64),comparisonSha256:'e'.repeat(64)},entries:[{job:'one',definitionSha256:canonicalJobHash(suite[0]!),exitCode:1,signature:{failedTests:['inherited test'],diagnostics:['error: assertion failed']}}],requiredPass:['exists']}
+  const policy = {schema:'gdp-known-failures/v1',baselineCommit:'c'.repeat(40),evidence:{triageSha256:'d'.repeat(64),comparisonSha256:'e'.repeat(64)},entries:[{job:'one',definitionSha256:canonicalJobHash(suite[0]!),exitCode:1,signature:keyed ? {failedTests:[],diagnostics:[`Keyed.lean:section=outbox_machine@${sha(keyedSection)}:2:3: error: unknown identifier\n  missing`]} : {failedTests:['inherited test'],diagnostics:['error: assertion failed']}}],requiredPass:['exists']}
   if (withKnownFailure) writeFileSync(join(input, 'known-failures.json'), json(policy))
   const commit = 'a'.repeat(40), tree = 'b'.repeat(40), archive = Buffer.from('fixture archive bytes')
   writeFileSync(join(input, 'repo-0.tar'), archive)
@@ -27,7 +30,8 @@ function fixture(withKnownFailure = false) {
     if (withKnownFailure) {
       files['LEAN-DIAGNOSTICS.json'] = json({schema:'gdp-lean-diagnostics/v1',logs:[]})
       if (job.name === 'one') {
-        files['stderr.log'] = 'error: assertion failed\n(fail) inherited test [1ms]\n 1 fail\n'
+        files['stderr.log'] = keyed ? keyedReport : 'error: assertion failed\n(fail) inherited test [1ms]\n 1 fail\n'
+        if (keyed) files['LEAN-DIAGNOSTICS.json'] = json({schema:'gdp-lean-diagnostics/v1',logs:[keyedReport],sources:[{file:'Keyed.lean',source:keyedSource}]})
         files['COMMAND-RESULT.json'] = json({name:job.name,command:job.cmd,cwd:job.cwd ?? '.',code:1,signal:null,error:null})
       }
     }
@@ -71,6 +75,35 @@ test('authenticated known failure remains natively FAILED, alongside required ex
     expect(summary.cleanupComplete).toBe(true)
   } finally {rmSync(f.root,{recursive:true,force:true})}
 })
+test('authenticated Keyed source preserves the key across a prefix shift', () => {
+  const f = fixture(true, true), shifted = fixture(true, true)
+  try {
+    const report = keyedReport.replace(':3:3:', ':5:3:')
+    shifted.replaceArtifact('one', 'stderr.log', report)
+    shifted.replaceArtifact('one', 'LEAN-DIAGNOSTICS.json', json({schema:'gdp-lean-diagnostics/v1',logs:[report],sources:[{file:'Keyed.lean',source:'-- extra\n-- more\n' + keyedSource}]}))
+    shifted.save()
+    const a = f.run().receipt.jobs.find(job => job.name === 'one')!
+    const b = shifted.run().receipt.jobs.find(job => job.name === 'one')!
+    expect(a.status).toBe('FAILED'); expect(b.status).toBe('FAILED')
+    if (a.status !== 'FAILED' || b.status !== 'FAILED') throw Error('expected failure')
+    expect(a.signature).toEqual(b.signature)
+    expect(a.signature.diagnostics).toEqual([`Keyed.lean:section=outbox_machine@${sha(keyedSection)}:2:3: error: unknown identifier\n  missing`])
+  } finally {rmSync(f.root,{recursive:true,force:true}); rmSync(shifted.root,{recursive:true,force:true})}
+})
+for (const [name, mutate] of Object.entries({
+  'changed section': (f: ReturnType<typeof fixture>) => f.replaceArtifact('one','LEAN-DIAGNOSTICS.json',json({schema:'gdp-lean-diagnostics/v1',logs:[keyedReport],sources:[{file:'Keyed.lean',source:keyedSource.replace('exact missing','exact changed')}]})),
+  'changed relative location': (f: ReturnType<typeof fixture>) => {const report = keyedReport.replace(':3:3:', ':2:3:'); f.replaceArtifact('one','stderr.log',report); f.replaceArtifact('one','LEAN-DIAGNOSTICS.json',json({schema:'gdp-lean-diagnostics/v1',logs:[report],sources:[{file:'Keyed.lean',source:keyedSource}]}))},
+  'changed error': (f: ReturnType<typeof fixture>) => {const report = keyedReport.replace('unknown identifier','different error'); f.replaceArtifact('one','stderr.log',report); f.replaceArtifact('one','LEAN-DIAGNOSTICS.json',json({schema:'gdp-lean-diagnostics/v1',logs:[report],sources:[{file:'Keyed.lean',source:keyedSource}]}))},
+  'changed body': (f: ReturnType<typeof fixture>) => {const report = keyedReport.replace('  missing','  changed'); f.replaceArtifact('one','stderr.log',report); f.replaceArtifact('one','LEAN-DIAGNOSTICS.json',json({schema:'gdp-lean-diagnostics/v1',logs:[report],sources:[{file:'Keyed.lean',source:keyedSource}]}))},
+  'missing source': (f: ReturnType<typeof fixture>) => f.replaceArtifact('one','LEAN-DIAGNOSTICS.json',json({schema:'gdp-lean-diagnostics/v1',logs:[keyedReport]})),
+  'duplicate source': (f: ReturnType<typeof fixture>) => f.replaceArtifact('one','LEAN-DIAGNOSTICS.json',json({schema:'gdp-lean-diagnostics/v1',logs:[keyedReport],sources:[{file:'Keyed.lean',source:keyedSource},{file:'Keyed.lean',source:keyedSource}]})),
+  'tampered source artifact': (f: ReturnType<typeof fixture>) => writeFileSync(join(f.out,'one.files','LEAN-DIAGNOSTICS.json'),json({schema:'gdp-lean-diagnostics/v1',logs:[keyedReport],sources:[{file:'Keyed.lean',source:keyedSource + '-- tampered\n'}]})),
+})) test(`keyed evidence rejects ${name}`, () => {
+  const f = fixture(true, true)
+  try {mutate(f); f.save(); expect(() => f.run()).toThrow(); expect(existsSync(f.receiptPath)).toBe(false)}
+  finally {rmSync(f.root,{recursive:true,force:true})}
+})
+
 for (const [name, mutate] of Object.entries({
   'an additional failed test': (f: ReturnType<typeof fixture>) => {f.replaceArtifact('one','stderr.log','error: assertion failed\n(fail) inherited test [1ms]\nerror: new\n(fail) new test [2ms]\n 2 fail\n')},
   'changed diagnostic': (f: ReturnType<typeof fixture>) => {f.replaceArtifact('one','stderr.log','error: changed\n(fail) inherited test [1ms]\n 1 fail\n')},
