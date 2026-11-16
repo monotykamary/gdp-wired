@@ -24,6 +24,12 @@ noted), each with the command that reproduces it.
 
 - A quantifier's generated variable could capture a parameter, input or state of the same name (e.g. a parameter k inside everyKey(k => ...)), so the law was proven about the wrong variable. Generated variables are now capture-avoiding. Present since 0.3.0; re-prove laws whose quantified variable shares a name with a declaration.
 
+- inferLaws no longer mutates the rule it is given: a second inference on the same rule (e.g. with remainders off after a default run) could return unknown for a congruence it proves from a cold start.
+
+### Known issues
+
+Some toLean exports (keyed maps, cyclic proofs, k-step laws and some protocol exports) don't yet type-check in Lean; the kernel's own checks are unaffected. A fix is planned for 0.50.2.
+
 ## 0.50.0
 
 - **BAPA source proofs:** checked safety theorems for 27 encoded source models, including their symbolic size parameters
