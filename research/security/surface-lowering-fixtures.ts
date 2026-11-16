@@ -60,3 +60,78 @@ export const duplicatePolicyNames = (): Law[] => {
   if (!first) throw new Error('missing fixture')
   return [{...first.lowered, name:'duplicate surface policy'}, {...first.lowered, name:'duplicate surface policy'}]
 }
+
+export type OrderedPredicate = 'membership' | 'equality' | 'order'
+export type OrderedScalar = Readonly<{kind:'scalar', value:number}>
+export type OrderedRecord = Readonly<{kind:'record', id:'a'|'b'|'c', rank:number}>
+export type OrderedValue = OrderedScalar | OrderedRecord
+export type OrderedListFixture = Readonly<{
+  id:string
+  valueKind:'scalar'|'record'
+  predicate:OrderedPredicate
+  before:readonly OrderedValue[]
+  after:readonly OrderedValue[]
+  source:string
+  law:string
+  status:'admitted'|'refused'
+  refusal?:string
+}>
+
+const scalarFifo = `class FIFO:
+    def __init__(self):
+        self.items: list[int] = []
+    def put(self, x: int):
+        self.items.append(x)
+    def take(self) -> int:
+        return self.items.pop(0)
+`
+
+// Item intentionally has no __eq__: Python's membership is object identity here.
+const recordFifo = `class Item:
+    def __init__(self, rank: int):
+        self.rank = rank
+class FIFO:
+    def __init__(self):
+        self.items: list[Item] = []
+    def put(self, x: Item):
+        self.items.append(x)
+    def take(self) -> Item:
+        return self.items.pop(0)
+`
+
+const lawFor = (kind:'scalar'|'record', predicate:OrderedPredicate):string => {
+  const o = kind === 'scalar' ? 'o' : 'o.rank'
+  const j = kind === 'scalar' ? 'j' : 'j.rank'
+  const tail = predicate === 'membership' ? 'o in self.items' : predicate === 'equality' ? `o in self.items or ${o} == ${j}` : `o in self.items or ${o} <= ${j}`
+  return `forall o in old(self.items): forall j in old(self.items): ${tail}`
+}
+
+function sequences<T>(values:readonly T[], max=3):T[][] {
+  const out:T[][]=[[]]
+  let row:T[][]=[[]]
+  for (let size=1;size<=max;size++) {
+    row=row.flatMap(prefix=>values.map(value=>[...prefix,value]))
+    out.push(...row)
+  }
+  return out
+}
+
+/**
+ * Exact finite source fixtures: every sequence over three representatives at
+ * sizes 0..3. This contains all distinct-value permutations and repetitions.
+ * Scalar quantification is refused until values and membership are lowered
+ * faithfully. Record-argument cases retain their distinct aliasing refusal.
+ */
+export function orderedListFixtures(): OrderedListFixture[] {
+  const scalar:readonly OrderedScalar[]=[{kind:'scalar',value:0},{kind:'scalar',value:1},{kind:'scalar',value:2}]
+  const record:readonly OrderedRecord[]=[{kind:'record',id:'a',rank:2},{kind:'record',id:'b',rank:1},{kind:'record',id:'c',rank:1}]
+  const make=(kind:'scalar'|'record', values:readonly OrderedValue[], source:string, status:'admitted'|'refused', refusal?:string):OrderedListFixture[] =>
+    sequences(values).flatMap(before => (['membership','equality','order'] as const).map(predicate => ({
+      id:`ordered-${kind}-${predicate}-${before.map(value=>value.kind==='scalar'?value.value:value.id).join('')||'empty'}`,
+      valueKind:kind, predicate, before, after:before.slice(1), source, law:lawFor(kind,predicate), status, ...(refusal ? {refusal} : {}),
+    })))
+  return [
+    ...make('scalar',scalar,scalarFifo,'refused','scalar ordered list'),
+    ...make('record',record,recordFifo,'refused','one object in two places'),
+  ]
+}

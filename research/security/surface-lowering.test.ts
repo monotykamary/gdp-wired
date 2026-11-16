@@ -1,8 +1,13 @@
 import {expect, test} from 'bun:test'
+import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
 import {proveLaws} from '../../kernel/prove.ts'
-import {rule} from '../../core/dsl.ts'
+import {rule, type StepLaw} from '../../core/dsl.ts'
+import {extractPython} from '../../core/extract-py.ts'
+import {buildLaw, ScalarListQuantifierError} from '../../core/laws.ts'
 import type {C, E, Law} from '../../core/machine.ts'
-import {duplicatePolicyNames, nestedUniversalAdmission, surfaceFixtures, type SurfaceFixture} from './surface-lowering-fixtures.ts'
+import {duplicatePolicyNames, nestedUniversalAdmission, orderedListFixtures, surfaceFixtures, type OrderedListFixture, type OrderedValue, type SurfaceFixture} from './surface-lowering-fixtures.ts'
 
 type Model = Readonly<{free:Record<string, number>, maps:Record<string, readonly number[]>}>
 type ExistsBinding = Readonly<{vars:readonly string[], pos:boolean}>
@@ -152,4 +157,116 @@ test('mutant lowering is detected although its substituted lowered tautology pro
   expect(()=>assertAgreement({...fixture,lowered:mutant},[counterexample])).toThrow()
   const m=rule('mutant proof control').state({s:0}).step(({s})=>({s})).machine
   expect(proveLaws(m,[mutant])).toMatchObject({proven:true,checked:true})
+})
+
+
+type OrderedStepModel = Model
+const orderedBound = [0, 1, 2] as const
+
+function scalar(item:OrderedValue):number {
+  if (item.kind !== 'scalar') throw new Error('scalar source evaluator received a record')
+  return item.value
+}
+function sameRecord(a:OrderedValue, b:OrderedValue):boolean {
+  return a.kind === 'record' && b.kind === 'record' && a.id === b.id
+}
+/** Independent concrete source semantics for FIFO's pop(0), not core's AST evaluator. */
+function orderedSourceMeaning(fixture:OrderedListFixture):boolean {
+  return fixture.before.every(o => fixture.before.every(j => {
+    const remains = fixture.valueKind === 'scalar'
+      ? fixture.after.some(item => scalar(item) === scalar(o))
+      : fixture.after.some(item => sameRecord(item,o))
+    if (remains || fixture.predicate === 'membership') return remains
+    const left=fixture.valueKind === 'scalar' ? scalar(o) : (o.kind === 'record' ? o.rank : (()=>{ throw new Error('record fixture contains scalar') })())
+    const right=fixture.valueKind === 'scalar' ? scalar(j) : (j.kind === 'record' ? j.rank : (()=>{ throw new Error('record fixture contains scalar') })())
+    return fixture.predicate === 'equality' ? left === right : left <= right
+  }))
+}
+function orderedModel(fixture:OrderedListFixture):OrderedStepModel {
+  if (fixture.valueKind !== 'scalar') throw new Error('a refused record fixture has no lowered model')
+  // pop(0) removes key zero; the remaining insertion keys are not renumbered.
+  const before=orderedBound.map(index=>index<fixture.before.length?1:0)
+  const after=orderedBound.map(index=>index>0 && index<fixture.before.length?1:0)
+  return {free:{},maps:{'items.has':before,"items.has'":after}}
+}
+function orderedLoweredMeaning(law:StepLaw, model:OrderedStepModel):boolean {
+  const names=[law.forall,...(law.keys??[])].filter((name):name is string=>name!==undefined)
+  const at=(i:number, env:Record<string,number>):boolean => i===names.length
+    ? (!law.when || !evalC(law.when,{...env,method:1},model) || evalC(law.then,{...env,method:1},model))
+    : orderedBound.every(value=>at(i+1,{...env,[names[i]!]:value}))
+  return at(0,{})
+}
+function assertOrderedAgreement(fixture:OrderedListFixture, law:StepLaw):void {
+  const model=orderedModel(fixture)
+  expect(orderedLoweredMeaning(law,model), fixture.id+' '+JSON.stringify({before:fixture.before,after:fixture.after,law:fixture.law})).toBe(orderedSourceMeaning(fixture))
+}
+function assertScalarSourceRefusal(fixtures:readonly OrderedListFixture[]):void {
+  const first=fixtures[0]
+  if (!first) throw new Error('missing ordered scalar fixture')
+  const root=mkdtempSync(join(tmpdir(),'gdp-ordered-surface-'))
+  try {
+    const file=join(root,'fifo.py')
+    writeFileSync(file,first.source)
+    const extracted=extractPython(file,{entry:'FIFO',check:{runs:2,depth:3,states:4,probes:false}})
+    if (!extracted.ok) throw new Error('scalar FIFO extraction refused: '+JSON.stringify(extracted.refusals))
+    for (const law of new Set(fixtures.map(fixture=>fixture.law))) {
+      expect(()=>buildLaw(extracted,{name:'ordered '+law,expr:law,method:'take'})).toThrow(ScalarListQuantifierError)
+    }
+  } finally { rmSync(root,{recursive:true,force:true}) }
+}
+
+test('generated scalar FIFO source shapes refuse rather than substitute positions', () => {
+  const fixtures=orderedListFixtures(), scalarFixtures=fixtures.filter(fixture=>fixture.valueKind==='scalar')
+  // Three values and lengths 0..3: 1 + 3 + 9 + 27 sequences, for each predicate.
+  expect(scalarFixtures).toHaveLength((1+3+9+27)*3)
+  expect(scalarFixtures.some(fixture=>fixture.before.map(scalar).join(',')==='2,1')).toBe(true)
+  expect(scalarFixtures.some(fixture=>fixture.before.map(scalar).join(',')==='1,1')).toBe(true)
+  expect(scalarFixtures.filter(fixture=>fixture.before.length===3 && new Set(fixture.before.map(scalar)).size===3)).toHaveLength(6*3)
+  expect(scalarFixtures.every(fixture=>fixture.status==='refused' && fixture.refusal==='scalar ordered list')).toBe(true)
+  assertScalarSourceRefusal(scalarFixtures)
+})
+
+test('record identity is represented in the source oracle and its current extractor refusal stays explicit', () => {
+  const fixtures=orderedListFixtures().filter(fixture=>fixture.valueKind==='record')
+  expect(fixtures).toHaveLength((1+3+9+27)*3)
+  const distinct=fixtures.find(fixture=>fixture.predicate==='membership' && fixture.before.map(item=>item.kind==='record'?item.id:'?').join(',')==='a,b')
+  const repeated=fixtures.find(fixture=>fixture.predicate==='membership' && fixture.before.map(item=>item.kind==='record'?item.id:'?').join(',')==='a,a')
+  if (!distinct || !repeated) throw new Error('missing record identity controls')
+  expect(orderedSourceMeaning(distinct)).toBe(false) // a.rank differs from b.rank, and a itself was removed
+  expect(orderedSourceMeaning(repeated)).toBe(true)  // the exact same object remains
+  const root=mkdtempSync(join(tmpdir(),'gdp-ordered-record-refusal-'))
+  try {
+    const file=join(root,'fifo.py')
+    writeFileSync(file,distinct.source)
+    const extracted=extractPython(file,{entry:'FIFO',check:{runs:2,depth:3,states:4,probes:false}})
+    expect(extracted.ok).toBe(false)
+    if (!extracted.ok) expect(extracted.refusals.some(refusal=>/one object in two places/.test(refusal.what))).toBe(true)
+  } finally { rmSync(root,{recursive:true,force:true}) }
+})
+
+function positionalMutant(fixture:OrderedListFixture):StepLaw {
+  const o={op:'var',name:'oPosition'} as const, j={op:'var',name:'jPosition'} as const, one={op:'const',value:1} as const
+  const remains:C={op:'=',a:{op:'get',map:"items.has'",key:o},b:one}
+  const body:C=fixture.predicate==='membership' ? remains : {op:'or',xs:[remains,{op:fixture.predicate==='equality'?'=':'<=',a:o,b:j}]}
+  const held:C={op:'and',xs:[{op:'=',a:{op:'get',map:'items.has',key:o},b:one},{op:'=',a:{op:'get',map:'items.has',key:j},b:one}]}
+  return {name:'positional list-item mutant',forall:'oPosition',keys:['jPosition'],when:{op:'=',a:{op:'var',name:'method'},b:one},then:{op:'or',xs:[{op:'not',x:held},body]}}
+}
+
+test('generated value semantics detects positional substitution for membership, equality and ordering',()=>{
+  const mismatches={membership:0,equality:0,order:0}
+  for(const fixture of orderedListFixtures().filter(f=>f.valueKind==='scalar')) {
+    if(orderedSourceMeaning(fixture)!==orderedLoweredMeaning(positionalMutant(fixture),orderedModel(fixture)))mismatches[fixture.predicate]++
+  }
+  for(const count of Object.values(mismatches))expect(count).toBeGreaterThan(0)
+})
+
+test('the oracle detects both the false FIFO minimum and duplicate-value membership mutants',()=>{
+  for(const [predicate,values,source] of [['order','2,1',false],['membership','0,0',true]] as const) {
+    const fixture=orderedListFixtures().find(candidate=>candidate.valueKind==='scalar' && candidate.predicate===predicate && candidate.before.map(scalar).join(',')===values)
+    if(!fixture)throw Error('missing positional mutant witness')
+    const mutant=positionalMutant(fixture)
+    expect(orderedSourceMeaning(fixture)).toBe(source)
+    expect(orderedLoweredMeaning(mutant,orderedModel(fixture))).toBe(!source)
+    expect(()=>assertOrderedAgreement(fixture,mutant)).toThrow()
+  }
 })
