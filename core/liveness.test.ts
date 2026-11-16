@@ -136,7 +136,10 @@ const settled = (r: ReturnType<typeof orders>) => r.leadsTo('every order placed 
 
 test('a liveness about every key: its key a fresh param no step reads, refused without it; the stalling variant refuted by a fair ring', () => {
   const r = orders(), l = settled(r)
-  expect(l.forall).toMatch(/^key\$/)
+  // The spelling is internal; the key must still be fresh and threaded through keyed().
+  expect(l.forall).toEqual(expect.any(String))
+  expect(l.forall).not.toBe('')
+  expect(r.machine.params).not.toContain(l.forall!)
   expect(keyed(r, l).machine.params).toEqual([l.forall!])
   expect(() => proveLiveness(r.machine, [], l)).toThrow()
   expect(proveLeadsTo(r, [], l, {ms: 10_000})).toMatchObject({proven: true, checked: true})

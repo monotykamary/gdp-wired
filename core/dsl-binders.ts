@@ -43,7 +43,17 @@ export function encodeBinders<T>(value:T,declared:string[],allowedFree:string[]=
   collect(value);guardReserved(value,allowedFree)
   if(!boundNames.size)return value
   const names=new Map<string,string>();let next=0
-  for(const n of boundNames){let fresh:string;do{fresh=`gdp$bound$${++next}`}while(used.has(fresh));used.add(fresh);names.set(n,fresh)}
+  for(const n of boundNames){
+    if(names.has(n))continue
+    // Integer witnesses are one signed value encoded by stem/stem$neg.
+    // Search/decoding and Lean export use this relationship, so rename the
+    // whole group together and exclude collisions with either fresh member.
+    const stem=n.endsWith('$neg')?n.slice(0,-4):n
+    const group=[stem,`${stem}$neg`].filter(part=>boundNames.has(part))
+    let fresh:string
+    do{fresh=`gdp$bound$${++next}`}while(used.has(fresh)||group.some(part=>used.has(fresh+part.slice(stem.length))))
+    for(const part of group){const alias=fresh+part.slice(stem.length);used.add(alias);names.set(part,alias)}
+  }
   const rewrite=(x:unknown):unknown=>{
     if(typeof x==='string')return names.get(x)??x
     if(!x||typeof x!=='object')return x
