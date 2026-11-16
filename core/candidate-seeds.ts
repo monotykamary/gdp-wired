@@ -66,7 +66,7 @@ export function proveCandidateSeeds(machine: Machine, publicLaws: Law[], candida
     for (let i = 0; i < kept.length; i++) {
       const decision = decideLaw(working, family, plainPublic.length + i) ?? proveLaw(working, family, plainPublic.length + i)
       if (!decision.proven) {
-        if (decision.stuck !== 'sat') return {status: 'inconclusive', kept, dropped, reason: `undecided candidate: ${kept[i]!.name}: ${decision.stuck}`}
+        if (decision.stuck !== 'sat') return {status: 'inconclusive', kept, dropped, reason: `undecided candidate: ${kept[i]!.name}: ${decision.stuck}${'why' in decision && decision.why ? `: ${decision.why}` : ''}`}
         dropped.push({name: kept[i]!.name, goal: decision.goal, stuck: 'sat'})
         kept = kept.filter((_, j) => j !== i)
         removed = true

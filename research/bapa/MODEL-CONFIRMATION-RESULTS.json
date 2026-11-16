@@ -1,0 +1,21 @@
+{
+  "schema": "bapa-model-confirmation-validation/v1",
+  "batch": "20261116-000047-3bn9gl",
+  "tree": "eae2045308ca",
+  "image": "sc-f0d8daeee6c3",
+  "bun": "1.4.3",
+  "checks": {"typecheck": 0, "controls": 0, "public": 0, "kernel": 0, "mutation": 0, "strictZero": 0, "commitlint": 0},
+  "testExecutions": {
+    "kernel": {"passed": 285, "failed": 0, "assertions": 2309214},
+    "compatibilityAndControls": {"passed": 45, "failed": 0, "assertions": 207},
+    "retainedAndPublicReplay": {"passed": 2, "failed": 0, "assertions": 16},
+    "GDP_STRICT_0_replay": {"passed": 2, "failed": 0, "assertions": 16}
+  },
+  "legacyMutation": {"exitCode": 1, "expectedFailure": "public replay drops retained:7 as SAT", "regressionRejectedStaleSAT": true, "productionFileRestored": true},
+  "fixture": {"sourceBatch": "20261115-222258-z7uv4q", "inspectionBatch": "20261115-234210-j43pcr", "familySize": 25, "sha256": "1b2f38e79ecb6d7295229f9f45050136d46cd304ea22900b3f09902b72e119f3"},
+  "checker": {"path": "kernel/kernel.ts", "unchanged": true, "sha256": "3243412b82d6e13e70c1623c7ca9f79df34f73217256b8fb31fff218808330c8", "leanChanges": false},
+  "artifacts": "runs/model-confirmation-04/model-confirmation-gate.files",
+  "protocolReseeds": 0,
+  "allSizeClaim": false,
+  "separateExploratoryFailure": "Broad bun test kernel also matched lean-kernel/frame-export.test.ts; its unchanged frozen-F file-order expectation omits existing RowAlpha.lean and BoundGhost.lean. The explicit ./kernel/*.test.ts suite is green."
+}

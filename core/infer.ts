@@ -1904,7 +1904,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
         return {used, g: g!}
       }
       let at = inst
-      const {result} = withModels<Asked>(mm, ls, inst, i2 => (at = i2, goalOf(i2)), gs => ask(gs, at), x => (mapNames.length && x.stuck === 'sat' && x.witness ? {goal: x.g, w: x.witness} : undefined), x => !!x.used || x.stuck === 'sat')
+      const {result} = withModels<Asked>(mm, ls, inst, i2 => (at = i2, goalOf(i2)), gs => ask(gs, at), x => (mapNames.length && x.stuck === 'sat' && x.witness ? {goal: x.g, w: x.witness} : undefined), x => !!x.used || (x.stuck === 'sat' && !!x.witness), (x, _why) => ({g: x.g, stuck: 'unknown'}))
       return result.used ? {used: result.used} : {stuck: result.stuck, witness: result.witness}
     }
     const stateOf = (w: Record<string, number>): {params: Env, st: State} => {
