@@ -168,5 +168,22 @@
     "timeout": 1800,
     "name": "release-bapa-tests",
     "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; GDP_EPR=0 GDP_SET_FIRST=0 bun test --timeout 120000 research/bapa > \"$OUT/tests.log\" 2>&1; for c in tsconfig.proof-witness tsconfig.sdl-transport tsconfig.p2-source-inclusion tsconfig.proof-parts tsconfig.counted-source tsconfig.model-rounds; do bunx tsc -p \"research/bapa/$c.json\" > \"$OUT/$c.log\" 2>&1; done; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/bapa/release-integration-commit.txt > \"$OUT/commitlint.log\" 2>&1"
+  },
+  {
+    "name": "release-shared-lean",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1800,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; trap 'rm -rf \"$OUT/project/.lake\"' EXIT; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-shared-controls.ts \"$OUT/project\" > \"$OUT/emit.log\" 2>&1; cd \"$OUT/project\"; lake build > \"$OUT/lean.log\" 2>&1; lake env lean ReleaseControls.lean >> \"$OUT/lean.log\" 2>&1; bun \"$ROOT/scripts/lean-gate/gate.ts\" \"$OUT/lean.log\" ReleaseControls.lean > \"$OUT/axioms.log\" 2>&1"
   }
 ]
