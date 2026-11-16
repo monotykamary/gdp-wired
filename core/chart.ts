@@ -19,6 +19,7 @@
 import {type Kind, type ProveOptions, type Rule, type TermLike, type Verdict, Choice, Cond, Term, all, any, no, oneOf, proveRule, proveSteps, rule, when, yes} from './dsl.ts'
 import {type Law, type Request, type State, interpret, numbersOf} from './machine.ts'
 import {allowed} from './watch.ts'
+import {reservedName} from './dsl-binders.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
 
 // A state: a leaf, or a compound with its children (the first is the initial one unless `initial` names another).
@@ -34,7 +35,7 @@ type After<X> = X & {in: (path: string) => Cond, last: (compound: string) => Cho
 // last (as XState enters a state any way but through its history node).
 export type Transition<P, I, X> = {from: string | string[], to?: string, fresh?: boolean, when?: (env: Env<P, I, X>) => Cond, set?: (env: Env<P, I, X>) => Partial<{[k in keyof X]: X[k] extends Choice<infer K> ? K | X[k] : TermLike | Cond | X[k]}>}
 
-type Region = {name: string, field: string, leaves: string[], finals: Set<string>, compounds: Map<string, {initial: string, history: boolean}>}
+type Region = {name: string, field: string, leaves: string[], finals: Set<string>, compounds: Map<string, {initial: string, history: boolean}>, historyFields: Map<string, string>}
 type Placed<P, I, X> = Transition<P, I, X> & {event: string, region: string, sources: string[], depth: number, order: number}
 
 export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
@@ -79,8 +80,25 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
         }
       }
       walk('', root)
-      return {name, field: single ? s.field ?? 'state' : name, leaves, finals, compounds}
+      return {name, field: single ? s.field ?? 'state' : name, leaves, finals, compounds, historyFields: new Map<string, string>()}
     })
+    // Allocate readable legacy names first, before fallbacks, so an encoded name cannot steal one.
+    // Include every declared field and generated flag: history is storage, never an alias for user data.
+    const usedNames = new Set([...regions.map(r => r.field), ...Object.keys(s.params), ...Object.keys(s.inputs),
+      ...Object.keys(s.context), ...Object.keys(s.outputs), 'event', ...s.on.flatMap((_, i) => [`on${i}`, `take${i}`])])
+    const histories = regions.flatMap(r => [...r.compounds].filter(([c, v]) => c && v.history).map(([c]) => ({r, c})))
+    for (const {r, c} of histories) {
+      const legacy = `${r.field}.last.${c}`
+      if (!reservedName(legacy) && !usedNames.has(legacy)) { r.historyFields.set(c, legacy); usedNames.add(legacy) }
+    }
+    // Encode UTF-16 code units (including lone surrogates) injectively, in a namespace outside `.last.`.
+    const hex = (x: string) => Array.from({length: x.length}, (_, i) => x.charCodeAt(i).toString(16).padStart(4, '0')).join('')
+    for (const {r, c} of histories) if (!r.historyFields.has(c)) {
+      const base = `gdp$chart$history$${hex(r.field)}$${hex(c)}`
+      let name = base, n = 0
+      while (usedNames.has(name)) name = `${base}$${++n}`
+      r.historyFields.set(c, name); usedNames.add(name)
+    }
     // A path as the region and the state within it.
     const locate = (path: string): [Region, string] => {
       if (single) return [regions[0]!, path]
@@ -106,7 +124,7 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
     })
     // Most specific source first, then the order declared: the first enabled in this order is taken.
     placed.sort((a, b) => b.depth - a.depth || a.order - b.order)
-    const lastOf = (r: Region, c: string) => `${r.field}.last${c ? `.${c}` : ''}`
+    const lastOf = (r: Region, c: string) => r.historyFields.get(c)!
     const state: Obj = {}
     for (const r of regions) {
       const kind = oneOf(...r.leaves), enter = (path: string): string => { const c = r.compounds.get(path); return c ? enter(path ? `${path}.${c.initial}` : c.initial) : path }
@@ -173,7 +191,7 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
     const {regions} = this.build(), single = regions.length === 1 && regions[0]!.name === 'state'
     const [head, ...rest] = single ? ['state', ...compound.split('.')] : compound.split('.'), r = regions.find(x => x.name === head)!, c = rest.join('.')
     if (!r?.compounds.get(c)?.history) throw new Error(`${this.s.name}: ${compound} keeps no history`)
-    return env[`${r.field}.last.${c}`] as Choice<string>
+    return env[r.historyFields.get(c)!] as Choice<string>
   }
   private wrap(env: Obj): Obj { return Object.assign(Object.create(null), env, {in: (p: string) => this.in(env, p), last: (c: string) => this.last(env, c)}) }
   law(name: string, f: (env: After<P & X>) => Cond): Law { return this.rule.law(name, (env: Obj) => f(this.wrap(env) as never)) }
@@ -185,7 +203,7 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
   chartLaws(): Law[] {
     const {rule: r, regions} = this.build()
     return regions.flatMap(reg => [...reg.compounds].filter(([c, {history}]) => history && c).map(([c]) =>
-      r.law(`${reg.name === 'state' ? '' : `${reg.name}.`}${c} remembers one of its own states`, (env: Obj) => any(...reg.leaves.filter(l => l.startsWith(`${c}.`)).map(l => (env[`${reg.field}.last.${c}`] as Choice<string>).is(l))))))
+      r.law(`${reg.name === 'state' ? '' : `${reg.name}.`}${c} remembers one of its own states`, (env: Obj) => any(...reg.leaves.filter(l => l.startsWith(`${c}.`)).map(l => (env[reg.historyFields.get(c)!] as Choice<string>).is(l))))))
   }
   prove(laws: Law[] = [], stepLaws: StepLaw[] = [], opts: ProveOptions = {}): Verdict { const given = [...this.chartLaws(), ...laws]; return stepLaws.length ? proveSteps(this.rule, given, stepLaws, opts) : proveRule(this.rule, given, opts) }
 

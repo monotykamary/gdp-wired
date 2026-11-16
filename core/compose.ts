@@ -14,10 +14,11 @@
 import {type C, type E, type Law, type Machine, type MapUpdate, all, any, bit, not, same, unreachable, x} from './machine.ts'
 import {type StepLaw, type Subst, substC, substE} from '../kernel/kernel.ts'
 import {nameQuantifiers} from './dsl.ts'
+import {copyVariable, generatedVariable} from './dsl-binders.ts'
 
 function rename(e: E, prefix: string, m: Machine, inputs: Record<string, E>): E {
   switch (e.op) {
-    case 'var': return m.params.includes(e.name) ? e : m.inputs.includes(e.name) ? (inputs[e.name] ?? e) : x(`${prefix}${e.name}`)
+    case 'var': return m.params.includes(e.name) ? e : m.inputs.includes(e.name) ? (inputs[e.name] ?? e) : copyVariable(e, x(`${prefix}${e.name}`))
     case 'const': return e
     case 'mul': return {...e, a: rename(e.a, prefix, m, inputs)}
     case 'if': return {op: 'if', c: renameC(e.c, prefix, m, inputs), then: rename(e.then, prefix, m, inputs), else: rename(e.else, prefix, m, inputs)}
@@ -46,9 +47,9 @@ function renamed(m: Machine, p: string, inputs: Record<string, E>, stays?: C) {
     maps: Object.fromEntries(Object.entries(m.maps ?? {}).map(([n, v]) => [`${p}${n}`, v])),
     step: {
       flags: Object.fromEntries(Object.entries(m.step.flags ?? {}).map(([n, c]) => [`${p}${n}`, renameC(c, p, m, inputs)])),
-      state: Object.fromEntries(Object.entries(m.step.state ?? {}).map(([n, e]) => [`${p}${n}`, keep(rename(e, p, m, inputs), x(`${p}${n}`))])),
+      state: Object.fromEntries(Object.entries(m.step.state ?? {}).map(([n, e]) => [`${p}${n}`, keep(rename(e, p, m, inputs), generatedVariable(`${p}${n}`))])),
       maps: Object.fromEntries(Object.entries(m.step.maps ?? {}).map(([n, w]) => {
-        if ('each' in w) return [`${p}${n}`, {each: `${p}${w.each}`, value: keep(rename(w.value, p, m, inputs), {op: 'get', map: `${p}${n}`, key: x(`${p}${w.each}`)})}]
+        if ('each' in w) return [`${p}${n}`, {each: `${p}${w.each}`, value: keep(rename(w.value, p, m, inputs), {op: 'get', map: `${p}${n}`, key: generatedVariable(`${p}${w.each}`)})}]
         const key = rename(w.key, p, m, inputs)
         return [`${p}${n}`, {key, value: keep(rename(w.value, p, m, inputs), {op: 'get', map: `${p}${n}`, key})}]
       })),

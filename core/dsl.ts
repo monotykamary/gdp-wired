@@ -17,7 +17,7 @@ import {searchNow as countedSearchNow} from './wall.ts'
 //
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
-import {binder, copyVariable, encodeBinders, guardReserved, internalName, plainDeclaration, variable} from './dsl-binders.ts'
+import {binder, copyVariable, encodeBinders, generatedVariable, guardReserved, internalName, plainDeclaration, variable} from './dsl-binders.ts'
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {proveCandidateSeeds} from './candidate-seeds.ts'
 import {proveCountedCandidateSeeds} from './counted-candidate-seeds.ts'
@@ -854,10 +854,10 @@ function sumOver(map: string, at: (key: Term) => TermLike, plain: boolean): Term
   // still distinguishes a same-spelled free user parameter.
   const legacyProbe = substVarsE(probe, {[placeholder]: {op: 'var', name: 'k$sum$'}})
   const id = plain ? `sum$${map}` : `sum$${map}$${fnv(JSON.stringify(legacyProbe))}`, key = `${id}$k`
-  const term = substVarsE(probe, {[placeholder]: {op: 'var', name: key}}), had = sumDecls.get(id)
+  const term = substVarsE(probe, {[placeholder]: generatedVariable(key)}), had = sumDecls.get(id)
   if (had && JSON.stringify(had.term) !== JSON.stringify(term)) throw new Error(`${id}: two sums by one name`)
   sumDecls.set(id, {key, term})
-  return v(id)
+  return new Term(generatedVariable(id), scope?.vars[id])
 }
 // The sums a set of terms reads (by name), declared.
 export const sumsIn = (ts: unknown[], more: Iterable<string> = []): Record<string, Sum> | undefined => {
@@ -1952,7 +1952,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const terms = Object.assign({}, ...bs.map(b => b.terms ?? {})) as Record<string, E>
     const ghost: Record<string, {start: E, step: E}> = {}
     const env = bs.some(b => b.step) ? this.env({}) : {}
-    for (const b of bs) if (b.start && b.step) { const st = b.step(env); for (const n of b.vars) ghost[n] = {start: b.start[n] ?? {op: 'const', value: 0}, step: st[n] ?? {op: 'var', name: n}} }
+    for (const b of bs) if (b.start && b.step) { const st = b.step(env); for (const n of b.vars) ghost[n] = {start: b.start[n] ?? {op: 'const', value: 0}, step: st[n] ?? variable(n)} }
     const witness = {...(Object.keys(terms).length ? {terms} : {}), ...(Object.keys(ghost).length ? {ghost} : {})}
     return {...law, some: vars, ...(Object.keys(witness).length ? {witness} : {})}
   }

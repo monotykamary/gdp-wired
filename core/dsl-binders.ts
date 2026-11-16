@@ -14,8 +14,23 @@ export function variable(name:string):{op:'var',name:string} {
   if(identity(name))Object.defineProperty(out,origin,{value:true,enumerable:true})
   return out
 }
+// Only generator sites may issue this mark; a matching name is not provenance.
+export function generatedVariable(name:string):{op:'var',name:string} {
+  const out={op:'var' as const,name}
+  Object.defineProperty(out,origin,{value:true,enumerable:true})
+  return out
+}
 export function copyVariable<T extends object>(from:object,to:T):T {
-  if((from as Record<symbol,unknown>)[origin])Object.defineProperty(to,origin,{value:true,enumerable:true})
+  if((from as Record<symbol,unknown>)[origin]) {
+    Object.defineProperty(to,origin,{value:true,enumerable:true})
+    const a=(from as {name?:unknown}).name,b=(to as {name?:unknown}).name
+    // Composition prefixes an issued identity. Preserve its readable alias too,
+    // but only a marked source node can authorize this renamed identity.
+    if(typeof a==='string'&&typeof b==='string'&&b.endsWith(a)) {
+      const id=identity(a),prefix=b.slice(0,b.length-a.length)
+      if(id&&prefix)internalName(prefix+id.root,prefix+id.legacy)
+    }
+  }
   return to
 }
 export const reservedName=(name:string):boolean=>name==='1'||/[*[\],:#?~'⟦⟧⟨⟩|]/.test(name)

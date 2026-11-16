@@ -29,6 +29,7 @@
 //   mode == "closed", outcome == SLOW_ERROR, mode == :closed        a choice by its value
 import {type Cond, Choice, Int, Str, Term, all, any, forall, no, not, yes} from './dsl.ts'
 import type {Extraction, Name} from './extract.ts'
+import {copyVariable} from './dsl-binders.ts'
 import {attachNativeLaw} from './source-check.ts'
 import {nativeLaw} from './native-law.ts'
 import {type AnyRule, type TwoRunLaw, agreement, isolation, noninterference} from './relational.ts'
@@ -328,7 +329,7 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
           if (one instanceof Int) {
             // (after the step: the sums over the map before it, as the state after it holds them, primed)
             const after = (m.env ?? c.a) === c.a && c.step && c.a !== c.b, src = (after ? c.b[m.n.rule] : map) as typeof map
-            const sumOf = (part: 'pos' | 'neg') => { const t = src.sum(cell => (cell[fs[0]!] as Int)[part]) as Term; return after && t.e.op === 'var' ? new Term({op: 'var', name: `${t.e.name}'`}) : t }
+            const sumOf = (part: 'pos' | 'neg') => { const t = src.sum(cell => (cell[fs[0]!] as Int)[part]) as Term; return after && t.e.op === 'var' ? new Term(copyVariable(t.e, {op: 'var', name: `${t.e.name}'`})) : t }
             return {t: 'num', v: new Int(sumOf('pos'), sumOf('neg'))}
           }
           return {t: 'num', v: Int.of(map.sum(cell => cell[fs[0]!]) as Term)}
