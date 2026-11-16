@@ -4,6 +4,7 @@ import {mkdtempSync, writeFileSync, rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {extractPython, type PyOptions} from './extract-py.ts'
 import {proveSteps} from './dsl.ts'
+import {buildLaw} from './laws.ts'
 import {envOf, inEnv} from './system.ts'
 setDefaultTimeout(60_000)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -200,9 +201,11 @@ django('ORM display boundary: decorated display and behavior-changing hooks rema
 django('Django model columns initialize a real row', () => {
   const x = checked(run(prefix, {entry: 'Account', methods: ['credit']}))
   const r = x.rule!
-  const amount = x.names!.find(n => n.code === 'amount' && n.role === 'state')!.rule
-  const input = x.names!.find(n => n.code === 'n' && n.role === 'input')!.rule
-  expect(proveSteps(r, x.invariants ?? [], [r.stepLaw('credit adds exactly the request', (b: A, a: A) => a[amount].eq(b[amount].plus(b[input])))]).proven).toBe(true)
+  const b = buildLaw(x, {name: 'credit adds exactly the request', expr: 'amount == old(amount) + n', method: 'credit'})
+  if (b.kind !== 'step') throw new Error('expected a credit step law')
+  const v = proveSteps(r, x.invariants ?? [], [b.law])
+  expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  expect(v.translationChecks).toBeGreaterThan(0)
 })
 django('Django keyed handlers persist only at save, and share table state', () => {
   const x = checked(run(prefix + `
