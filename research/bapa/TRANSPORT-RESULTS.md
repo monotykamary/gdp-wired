@@ -11,7 +11,7 @@ counts, successful finite checks, or these rows.
 | tcommit | **Direct no-search certificate lift**, every natural RM size, including zero |
 | lock_server | Not established |
 | quorum_leader_election | Not established |
-| toy_consensus_forall | Not established |
+| toy_consensus_forall | **Direct no-search certificate lift**; all 16 obligations and family checked, surviving-bound mutant rejected |
 | simple | Not established |
 | simple_regular | Not established |
 | lockserv_automaton | Not established |
@@ -43,6 +43,14 @@ Both certificate tables/trees are unchanged. The old source was rechecked,
 then the transported checker result and all-size safety were checked in Lean.
 It is **not** a new search, a source/TLA+ correspondence proof, a positive
 relational-recognizer decision, or a cutoff-based family lift.
+
+The toy_consensus_forall result erases size/value bounds consistently and
+prunes obsolete bound-case splits, then rechecks the kept subtree from an empty
+path for all target values. All count definitions, request evaluation and state
+transition evaluation are unchanged. Its surviving-bound-row mutant is rejected
+both as an individual step and as a complete family. This is another direct
+numeric certificate lift, not a generic cutoff or source-projection result.
+See `TOY-TRANSPORT.md` and `toy-transport.tsv`.
 
 The generic development proves a finite many-sorted, nonempty, function-free
 countermodel language, its representation in existing numeric kernel semantics,

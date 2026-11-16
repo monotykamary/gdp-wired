@@ -1,0 +1,13 @@
+[
+  {
+    "name": "p2-finite-simulation",
+    "cmd": "python3 research/bapa/p2-finite-simulation.py; code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1 && bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/bapa/p2-finite-simulation-commit.txt > \"$SUPERCOMPUTER_OUTPUT_DIR/commitlint.log\" 2>&1",
+    "cpu": 1,
+    "memory": 4,
+    "timeout": 1800,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  }
+]

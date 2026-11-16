@@ -1,0 +1,5 @@
+fix(bapa): check typed init trees against full goals
+
+Drop only four optional initialization hypothesis caches, preserving the
+full typed goals and tree structure. Use rfl for row-equality controls;
+keep empty sorts and the old-bound mutant without new assumptions.

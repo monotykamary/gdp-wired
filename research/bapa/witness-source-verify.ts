@@ -19,7 +19,34 @@ export function verifyWitnessSourceProject(directory:string,log:string) {
   const prefix='bapa_'+id, source:unknown[]=r.sourceProjection.sourceTheorems??[], names:unknown[]=r.sourceProjection.publicLawNames??[]
   if(r.familyTheorem!==prefix+'_laws' || !source.length || source.length!==names.length || names.some(x=>typeof x!=='string')) throw Error('public witness theorem coverage mismatch')
   if(source.some(x=>typeof x!=='string' || !new RegExp('^'+prefix+'_(?:ex|public)[0-9]+$').test(x))) throw Error('invalid source theorem names')
-  const wanted=[r.familyTheorem,...source]
+  const branchNames:string[]=[]
+  if(r.sourceProjection.parentPaths !== undefined) {
+    const paths=r.sourceProjection.parentPaths
+    if(!Array.isArray(paths)||paths.length<2||paths.length>128)throw Error('invalid witness parent coverage')
+    const positions=new Set<string>()
+    for(const [i,p] of paths.entries()) {
+      if(!Array.isArray(p.path)||!p.path.length||p.path.some((n:unknown)=>!Number.isSafeInteger(n)||Number(n)<0)||positions.has(JSON.stringify(p.path)))throw Error('invalid witness parent path')
+      positions.add(JSON.stringify(p.path))
+      const branch=prefix+'_path'+i
+      if(p.familyTheorem!==branch+'_laws'||!Array.isArray(p.sourceTheorems)||p.sourceTheorems.length!==source.length||
+         p.sourceTheorems.some((n:unknown,j:number)=>n!==(source[j] as string).replace(prefix+'_',branch+'_')))throw Error('missing witness parent theorem coverage')
+      branchNames.push(p.familyTheorem,...p.sourceTheorems)
+    }
+  }
+  const alphaNames:string[]=[]
+  if(r.sourceProjection.alphaTransports!==undefined){
+    if(!Array.isArray(r.sourceProjection.alphaTransports))throw Error('invalid witness alpha transports')
+    for(const a of r.sourceProjection.alphaTransports){
+      if(typeof a.id!=='string'||!new RegExp('^'+prefix+'(?:_path[0-9]+)?$').test(a.id)||
+        !/^[a-f0-9]{64}$/.test(a.sourceSha256)||!/^[a-f0-9]{64}$/.test(a.producerSourceSha256)||
+        !Array.isArray(a.renames)||!Array.isArray(a.rows)||!a.renames.length&&!a.rows.length)
+        throw Error('invalid witness alpha custody')
+      const expected=['_alpha_valid','_row_valid','_alpha_result','_source_reach'].map(s=>a.id+s)
+      if(JSON.stringify(a.theorems)!==JSON.stringify(expected))throw Error('missing witness alpha theorem coverage')
+      alphaNames.push(...expected)
+    }
+  }
+  const wanted=[r.familyTheorem,...source,...branchNames,...alphaNames]
   if(new Set(wanted).size!==wanted.length) throw Error('duplicate source theorem names')
   const errors=gate(log,[readFileSync(join(root,'BapaProof.lean'),'utf8')],false)
   if(errors.length) throw Error(errors.join('; '))

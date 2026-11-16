@@ -1,0 +1,5 @@
+feat(bapa): prove unbounded tuple-key binder primitives
+
+Check raw-address binder equivalences, component injectivity, and key
+parser controls. Record the seven-capsule triage and pending source
+bridges without claiming a complete certificate translator.

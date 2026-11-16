@@ -1,0 +1,13 @@
+[
+  {
+    "name": "sdl-transport-baseline",
+    "cmd": "set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bun research/bapa/sdl-source-data.ts; python3 research/bapa/sdl-transport-replay.py",
+    "cpu": 2,
+    "memory": 12,
+    "timeout": 1500,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  }
+]

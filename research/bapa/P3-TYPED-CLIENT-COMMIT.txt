@@ -1,0 +1,5 @@
+feat(bapa): transport retained bounds with per-sort parameters
+
+Keep the common-size API and add fail-closed typed row and expression
+substitution. Preserve retained tree shape and compose the four-sort
+client with source inclusion and checked existential ghost projection.

@@ -1,0 +1,36 @@
+[
+  {
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "multiparent-unit",
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bunx tsc -p research/bapa/tsconfig.proof-witness.json > \"$OUT/types.log\" 2>&1; BAPA_MULTIPARENT_CONTROL=\"$OUT/control\" bun test research/bapa/proof-witness.test.ts research/bapa/source-projection.test.ts > \"$OUT/tests.log\" 2>&1; cd \"$OUT/control\"; lake build > \"$OUT/lean.log\" 2>&1; lake env lean BapaProof.lean >> \"$OUT/lean.log\" 2>&1; bun \"$ROOT/scripts/lean-gate/gate.ts\" \"$OUT/lean.log\" BapaProof.lean > \"$OUT/axioms.log\" 2>&1; cp -a \"$OUT/control/.lake\" \"$OUT/control-bad-second/.lake\"; cd \"$OUT/control-bad-second\"; set +e; lake env lean BapaProof.lean > \"$OUT/bad-second.log\" 2>&1; code=$?; set -e; test \"$code\" -ne 0; grep -Eq 'BapaProof[.]lean:[0-9]+:[0-9]+: error:' \"$OUT/bad-second.log\"; printf '%s\\n' 'feat(bapa): check every retained witness parent in Lean' > \"$OUT/commit-message.txt\"; cd \"$ROOT\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$OUT/commit-message.txt\" > \"$OUT/commitlint.log\" 2>&1; rm -rf \"$OUT/control/.lake\" \"$OUT/control-bad-second/.lake\""
+  },
+  {
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "multiparent-firewall",
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/proof-emit.ts --capture p1-historical/symbolic-firewall --sha256 2ed5690066d27705a905eca1dc338612f19c0ed09a59d9f16d79a956ef33c14e --projection witness --out \"$OUT/project\" > \"$OUT/emission.log\" 2>&1; cd \"$OUT/project\"; lake build > \"$OUT/lean.log\" 2>&1; lake env lean BapaProof.lean >> \"$OUT/lean.log\" 2>&1; bun \"$ROOT/research/bapa/witness-source-verify.ts\" \"$OUT/project\" \"$OUT/lean.log\" \"$OUT/SOURCE-CHECKED.json\" > \"$OUT/source-check.log\" 2>&1; bun \"$ROOT/research/bapa/multi-parent-witness-controls.ts\" \"$OUT/project\" \"$OUT/lean.log\" > \"$OUT/receipt-controls.json\"; rm -rf \"$OUT/project/.lake\""
+  }
+]

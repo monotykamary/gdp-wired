@@ -87,8 +87,10 @@ padding assumption hidden in the cutoff theorem.
 claim. Full requested step 2 (matching the generic numeric instances to old
 certificates) remains unproved; the abstract requested step 3 is now checked;
 requested step 4 (67-declaration recognizer) has not been implemented. Do not
-claim the generic cutoff lifts any family. The one independent direct tcommit
-lift stands on its checked unchanged proof tree. Complete per-case outcomes
+claim the generic cutoff lifts any family. Independent direct lifts now include
+tcommit (unchanged proof tree) and toy_consensus_forall (checked pruning of
+obsolete bound splits, with surviving-bound negative controls). See
+`TOY-TRANSPORT.md` for the latter. Complete per-case outcomes
 are in `TRANSPORT-RESULTS.md`; the exact mismatch is in `TRANSPORT-OBSTACLE.md`.
 
 ## Outstanding gates

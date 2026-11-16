@@ -1,0 +1,9 @@
+[
+  {
+    "name":"radix-key-binder-unit",
+    "cmd":"set -euo pipefail; root=$PWD; out=$SUPERCOMPUTER_OUTPUT_DIR; export PATH=\"$root/scripts/lean-gate:$PATH\"; export LEAN_PATH=\"$root/radix-retained/.lake/build/lib/lean\"; lean -o \"$out/RadixKeySyntax.olean\" research/bapa/RadixKeySyntax.lean 2>&1 | tee \"$out/check.log\"; cp research/bapa/RadixKeySyntax.lean \"$out/\"",
+    "cpu":1,"memory":2,"timeout":180,
+    "env":{"SUPERCOMPUTER_CONTROLLER":"1","SUPERCOMPUTER_NO_BUILD":"1"},
+    "required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}
+  }
+]

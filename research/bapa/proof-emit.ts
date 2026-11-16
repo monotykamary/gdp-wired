@@ -6,7 +6,7 @@ import {readFamilyCapsule, type ReadLimits} from './proof-codec.ts'
 import {inspectProvenance, type NativeBundle} from './proof-capture.ts'
 import {restoreTermPrelude} from './proof-prelude.ts'
 import {emitAlphaSource} from './source-projection.ts'
-import {exportWitnessSource} from './proof-witness.ts'
+import {exportWitnessSource, type WitnessPathReceipt, type WitnessAlphaReceipt} from './proof-witness.ts'
 import {retainedCMachineToLean, retainedSMachineToLean, leanProject} from '../../lean-kernel/emit.ts'
 
 const hash=(s:string)=>createHash('sha256').update(s).digest('hex')
@@ -18,11 +18,13 @@ export function emitRetained(directory:string,sha256:string,out:string,limits:Re
   const bundle=data as NativeBundle
   restoreTermPrelude(bundle.terms,metadata)
   const id='bapa_'+bundle.identity.protocol.replace(/[^A-Za-z0-9_]/g,'_')
-  let body:string, witnessTheorems:string[]=[]
+  let body:string, witnessTheorems:string[]=[], witnessPaths:WitnessPathReceipt[]|undefined, alphaTransports:WitnessAlphaReceipt[]|undefined
   if(mode==='witness'){
     const projected=exportWitnessSource(bundle,id)
     body=projected.body+'\n'+projected.publicBridge
     witnessTheorems=projected.sourceTheorems.map(t=>t.name)
+    witnessPaths=projected.parentPaths
+    alphaTransports=projected.alphaTransports
   }
   else if(mode==='alpha')body=emitAlphaSource(id,bundle)
   else if(bundle.route==='counted-family')body=retainedCMachineToLean(id,bundle.final.machine,bundle.final.laws,bundle.final.proof)
@@ -34,7 +36,7 @@ export function emitRetained(directory:string,sha256:string,out:string,limits:Re
     body=retainedSMachineToLean(id,leaf.machine,leaf.laws,leaf.proof)
   }
   const sourceTheorems=mode==='alpha'?[id+'_source_laws',...bundle.original.laws.map((_,j)=>id+'_source_law'+j+'_holds')]:witnessTheorems
-  const printed=[id+'_laws',...sourceTheorems,...(mode==='alpha'?[id+'_alpha_valid',id+'_alpha_result']:[])]
+  const printed=[id+'_laws',...sourceTheorems,...(witnessPaths??[]).flatMap(p=>[p.familyTheorem,...p.sourceTheorems]),...(mode==='alpha'?[id+'_alpha_valid',id+'_alpha_result']:[]),...(alphaTransports??[]).flatMap(a=>a.theorems)]
   const text='import QAlpha\nimport Ghost\nimport GhostMap\nopen Kern Cert\nset_option maxHeartbeats 200000000\nset_option maxRecDepth 100000\n'+body+'\n'+printed.map(t=>'#print axioms '+t).join('\n')+'\n'
   if(/\b(?:sorry|axiom|native_decide)\b/.test(text))throw Error('unapproved Lean source construct')
   const project=leanProject(text,{name:'BapaProof'})
@@ -43,7 +45,7 @@ export function emitRetained(directory:string,sha256:string,out:string,limits:Re
   for(const [name,content]of Object.entries(project))writeFileSync(join(out,name),content,{flag:'wx'})
   const receipt={schema:'bapa-emission/v1',status:'EMITTED_NOT_CHECKED',inputSha256:sha256,identity:manifest.identity,
     route:bundle.route,projection:manifest.projection,familyTheorem:id+'_laws',files,
-    ...(mode!=='none'?{sourceProjection:{kind:mode,status:'EMITTED_NOT_CHECKED',sourceTheorems,publicLawNames:bundle.original.laws.map(l=>l.name)}}:{}),
+    ...(mode!=='none'?{sourceProjection:{kind:mode,status:'EMITTED_NOT_CHECKED',sourceTheorems,publicLawNames:bundle.original.laws.map(l=>l.name),...(witnessPaths?{parentPaths:witnessPaths}:{}),...(alphaTransports?.length?{alphaTransports}:{})}}:{}),
     leanVersion:'4.34.0',leanExecuted:false,allSizesProven:false,
     publicSourceAcceptance:mode==='none'?'REQUIRES_SEPARATE_SOURCE_BRIDGE_AND_LEAN_CHECK':'REQUIRES_LEAN_SOURCE_PROJECTION_CHECK'}
   writeFileSync(join(out,'EMITTED.json'),JSON.stringify(receipt,null,2)+'\n',{flag:'wx'})

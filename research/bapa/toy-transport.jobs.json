@@ -1,0 +1,17 @@
+[
+  {
+    "name": "toy-consensus-forall-transport",
+    "cmd": "set -euo pipefail; root=$PWD; out=$SUPERCOMPUTER_OUTPUT_DIR; export PATH=\"$root/scripts/lean-gate:$PATH\"; mkdir -p \"$out/rechecked\"; export LEAN_PATH=\"$out/rechecked:$root/research/bapa:$root/transport-retained/.lake/build/lib/lean\"; sha256sum transport-retained/Proofs.lean > \"$out/retained-source.sha256\"; lean -o \"$out/rechecked/Proofs.olean\" transport-retained/Proofs.lean > \"$out/retained-check.log\" 2>&1; lean -o research/bapa/CertificateBoundErasure.olean research/bapa/CertificateBoundErasure.lean 2>&1 | tee \"$out/translator.log\"; lean -o \"$out/rechecked/ToyConsensusForallTransport.olean\" research/bapa/ToyConsensusForallTransport.lean 2>&1 | tee \"$out/transport.log\"; lean research/bapa/ToyConsensusForallControls.lean 2>&1 | tee \"$out/controls.log\"; cp research/bapa/CertificateBoundErasure.lean research/bapa/ToyConsensusForallTransport.lean research/bapa/ToyConsensusForallControls.lean \"$out/\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/bapa/toy-transport-commit.txt > \"$out/commitlint.log\" 2>&1",
+    "cpu": 1,
+    "memory": 4,
+    "timeout": 600,
+    "env": {
+      "SUPERCOMPUTER_CONTROLLER": "1",
+      "SUPERCOMPUTER_NO_BUILD": "1"
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  }
+]

@@ -6,8 +6,13 @@ producer family, and emits a source existential theorem. It does not search for
 new helpers, witnesses, or proofs. The ordinary/quantified/row-alpha and counted
 routes remain separate.
 
-The supported provenance is one unambiguous `witness` or `skolem` context and its
-unique usual producer, with only transparent projection links around it. The
+The supported provenance has checked `witness` or `skolem` contexts and complete
+usual producer families. Single-path behavior is unchanged. For multiple parent
+paths, every path gets its own checked family and source witness theorem; the
+public result conjoins all of them. A context-free inference path may reuse the
+unique retained witness context only after its complete machine, law membership
+and source substitution pass the same checks. Ambiguous context reuse is refused.
+See `MULTI-PARENT-WITNESS.md` for the coverage contract and negative controls. The
 exporter uses `bundle.original.laws`, not the context's possibly augmented law
 list, as its public contract. It checks original-machine equality, public body
 and binder identity, exact captured substitutions, full-family membership and

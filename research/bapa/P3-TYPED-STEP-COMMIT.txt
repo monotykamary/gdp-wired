@@ -1,0 +1,5 @@
+fix(bapa): check typed step trees against full goals
+
+Clear optional STEP named caches without changing trees or deleting goal
+conjuncts. Normalize only disjunction association in the public-law helper.
+Require baseline, family, old-bound mutant and source theorem together.

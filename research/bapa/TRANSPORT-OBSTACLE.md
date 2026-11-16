@@ -28,8 +28,8 @@ functions, order, cardinality and arithmetic are also excluded unless separately
 elaborated with a checked semantic bridge.
 
 Accordingly no checked recognizer for all 67 declarations has landed, no generic
-per-family cutoffs are claimed, and the 28 families other than tcommit retain
-their old scopes. The direct tcommit certificate transport is independent of
-this missing relationalization: it keeps the old single-map representation,
+per-family cutoffs are claimed. Families without separately checked direct
+transports retain their old scopes. The direct tcommit and toy_consensus_forall
+transports are independent of this missing relationalization; for tcommit: it keeps the old single-map representation,
 request/step semantics, proof trees and variable tables, and the trusted checker
 verifies the weakened parameter precondition without search.

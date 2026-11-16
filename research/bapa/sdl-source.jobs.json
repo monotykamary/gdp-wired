@@ -1,0 +1,1 @@
+[{"name":"sdl-source-composition","cmd":"python3 research/bapa/sdl-source-recheck.py","cpu":2,"memory":6,"timeout":900,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}]
