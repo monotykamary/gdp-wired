@@ -2,7 +2,7 @@
 // No search. The existing SDL replay rechecks every dependency and source theorem.
 import {createHash} from 'node:crypto'
 import {readFileSync, writeFileSync, mkdirSync} from 'node:fs'
-import {join, resolve} from 'node:path'
+import {join} from 'node:path'
 import {spawnSync} from 'node:child_process'
 import {leanProject} from '../../lean-kernel/emit.ts'
 const root=process.cwd(), out=process.env.SUPERCOMPUTER_OUTPUT_DIR!

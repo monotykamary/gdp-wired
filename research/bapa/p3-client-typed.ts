@@ -6,6 +6,7 @@ import {readCertificateGraph} from './proof-codec.ts'
 import {restoreTermPrelude} from './proof-prelude.ts'
 import {leanProject,retainedSMachineToLean} from '../../lean-kernel/emit.ts'
 import {boundOf,witnessesOf,substC} from '../../kernel/kernel.ts'
+import type {Machine} from '../../core/machine.ts'
 const sha=(x:string|Uint8Array)=>createHash('sha256').update(x).digest('hex')
 const [capture,proofPath,out]=process.argv.slice(2)
 if(!capture||!proofPath||!out)throw Error('usage: p3-client-inclusion.ts CAPTURE PROOFS OUT')
@@ -20,7 +21,7 @@ let leaf=data.proof
 while(leaf.kind==='derived'){if(leaf.parents.length!==1)throw Error('ambiguous producer');leaf=leaf.parents[0]}
 if(leaf.kind!=='usual')throw Error('expected usual leaf')
 const {protocols}=await import('../protocols/ic3syn/models.ts')
-const p=protocols.find(p=>p.id==='client_server_db_ae')!,r=p.make(),laws=p.laws(r),source=r.machine
+const p=protocols.find(p=>p.id==='client_server_db_ae')!,r=p.make(),laws=p.laws(r),source:Machine=r.machine
 const names=new Set<string>([...source.params,...source.inputs,...Object.keys(source.state)])
 function visit(x:any):void{if(!x||typeof x!=='object')return;if(Array.isArray(x)){x.forEach(visit);return}if(x.op==='var')names.add(x.name);Object.values(x).forEach(visit)}
 visit(source);visit(laws)
