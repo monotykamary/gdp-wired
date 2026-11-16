@@ -367,7 +367,7 @@ export function checkGo(dir: string, pkg: GoPkg, read: GoRead, r: Rule, sorts: S
         return {arms: blocks.size, hit: [...blocks.values()].filter(b => b.hit).length, missed: [...blocks.values()].filter(b => !b.hit).map(b => `the block at ${b.file}:${b.from}-${b.to}`)}
       } catch { return {arms: 0, hit: 0, missed: []} }
     }
-    return {...speak(work, `${work}/harness`, {...goEnv(), GOCOVERDIR: `${work}/cov`}, pkg, read, r, sorts, opts, count), buildMs}
+    return Object.assign(speak(work, `${work}/harness`, {...goEnv(), GOCOVERDIR: `${work}/cov`}, pkg, read, r, sorts, opts, count), {buildMs})
   } finally {
     try { fs.rmSync(hfile) } catch { /* gone */ }
     try { fs.rmSync(mainDir, {recursive: true, force: true}) } catch { /* gone */ }
@@ -505,7 +505,8 @@ export function speak(work: string, bin: string, env: Record<string, string | un
       ev = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0,
         mismatch: `the check's harness: ${(e as Error).message}`}
     }
-    return {...ev, runMs: Math.round(performance.now() - r0)}
+    // The native journal is keyed by this exact evidence object.
+    return Object.assign(ev, {runMs: Math.round(performance.now() - r0)})
   } finally {
     if (wi >= 0) try { fs.closeSync(wi) } catch { /* closed */ }
     if (ro >= 0) try { fs.closeSync(ro) } catch { /* closed */ }

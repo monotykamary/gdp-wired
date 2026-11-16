@@ -4776,7 +4776,8 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
       return {arms: arms.length, hit: arms.filter(a => hit.has(a)).length, missed: arms.filter(a => !hit.has(a)).map(a => `the arm at ${a}`)}
     }
     const ev = drive(m, r, sorts, side, o)
-    return {...ev, runMs: Math.round(performance.now() - r0)}
+    // The native journal is keyed by this exact evidence object.
+    return Object.assign(ev, {runMs: Math.round(performance.now() - r0)})
   } catch (x) {
     if (x instanceof HarnessFailure) throw x
     return {...empty, mismatch: `the check's harness: ${(x as Error).message}`}

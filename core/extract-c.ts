@@ -463,7 +463,7 @@ export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r:
     try { cp.execFileSync(`${work}/harness`, ['--probe'], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 20_000}) }
     catch (x) { return {...empty, mismatch: `the check's harness doesn't start: ${why(x).split('\n').filter(Boolean).slice(0, 3).join(' | ')}`} }
     const buildMs = Math.round(performance.now() - b0), none = (): Coverage => ({arms: 0, hit: 0, missed: []})
-    return {...speak(work, `${work}/harness`, (globalThis as {process?: {env?: Record<string, string>}}).process?.env, c.pkg, read, r, sorts, opts.check ?? {}, none), buildMs}
+    return Object.assign(speak(work, `${work}/harness`, (globalThis as {process?: {env?: Record<string, string>}}).process?.env, c.pkg, read, r, sorts, opts.check ?? {}, none), {buildMs})
   } finally {
     try { fs.rmSync(work, {recursive: true, force: true}) } catch { /* gone */ }
   }
