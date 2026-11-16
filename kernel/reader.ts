@@ -189,7 +189,7 @@ export class Reader {
     switch (e.op) {
       case 'var': lin = e.name === '1' || /[*[\],:⟦⟨⟩|]/.test(e.name) ? undefined : same(0, e, 0, 0, 0, () => v(e.name)); break
       case 'const': lin = same(0, e, 0, 0, 0, () => k(e.value)); break
-      case 'mul': { const a = this.linear(e.a); lin = a.lin && same(0, e, a.lin, 0, 0, () => scale(a.lin!, e.k)); r = a; break }
+      case 'mul': { const a = this.linear(e.a); lin = a.lin && Number.isSafeInteger(e.k) ? same(0, e, a.lin, 0, 0, () => scale(a.lin!, e.k)) : undefined; r = a; break }
       case 'prod': { const a = this.linear(e.a), b = this.linear(e.b); lin = a.lin && b.lin && same(0, e, a.lin, b.lin, 0, () => times(a.lin!, b.lin!)); r = both(a, b); break }
       case 'add': { const a = this.linear(e.a), b = this.linear(e.b); lin = a.lin && b.lin && same(0, e, a.lin, b.lin, 0, () => add(a.lin!, b.lin!)); r = both(a, b); break }
       case 'sub': case 'min': case 'max': {
@@ -223,6 +223,9 @@ export class Reader {
       case 'tup': lin = undefined; break
       case 'proj': { const ps = this.tparts(e.a); r = ps.r; lin = !ps.lins ? undefined : e.k === 0 ? ps.lins[0] : ps.lins.length === 2 ? ps.lins[1] : undefined; break }
     }
+    // Match kernel.ts's linearOf: an unsafe intermediate form is no form,
+    // even if later arithmetic would cancel it back into the safe range.
+    if (lin && !everyLinearCell(lin, (_key, coefficient) => Number.isSafeInteger(coefficient), 'reader linear safety')) lin = undefined
     // (an open value's reason is what its decided parts need: only the column's own value is open)
     const out: LV = {lin, w: r.w, fin: r.fin, pos: r.pos, stamp: r.pos < 0 ? 0 : this.trail.stamp(r.pos), node: this.node}
     this.ls.set(e, out)
