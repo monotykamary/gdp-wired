@@ -21,7 +21,7 @@ import {binder, copyVariable, encodeBinders, generatedVariable, guardReserved, i
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {proveCandidateSeeds} from './candidate-seeds.ts'
 import {proveCountedCandidateSeeds} from './counted-candidate-seeds.ts'
-import {type TranslationFields, inheritSource, translationVerdict} from './source-check.ts'
+import {type TranslationFields, bindSourceMachine, inheritSource, translationVerdict} from './source-check.ts'
 import {env as knobs} from './solver.ts'
 import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, fnCall, hasFinite, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, sourceFreeFn, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
@@ -2288,7 +2288,9 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const sums = sumsIn(machineTerms(m), s.sumsRead ?? [])
     const out = withArithmetic(sums ? {...m, state: {...m.state, ...Object.fromEntries(Object.keys(sums).map(n => [n, {op: 'const', value: 0} as E]))}, sums} : m, [], s.arith ?? [])
     const encoded = encodeBinders(out, this.names().map(([n]) => n))
-    return s.ghost ? s.ghost(encoded) : encoded
+    const machine = s.ghost ? s.ghost(encoded) : encoded
+    bindSourceMachine(this, machine)
+    return machine
   }
   // The same rule with ghosts its machine gains (the search's, over a law with "there exists" made plain: skolemOf).
   withGhosts(ghost: (m: Machine) => Machine): this { return this.with({ghost}) }

@@ -18,6 +18,7 @@ import {legacyFamilyOrder} from './legacy-family-order.ts'
 import {proveKInduction} from '../core/kind.ts'
 import {quantifiedRenames} from './qalpha.ts'
 import {countsForReads} from '../core/count-facts.ts'
+import {requireSourceTranslation} from '../core/source-check.ts'
 export {leanLibrary}
 
 export type Exported = {name: string, goal: Goal, tree: Tree}
@@ -2245,6 +2246,17 @@ export type LeanItem =
 // `cyclic`: each machine, loop and fold the cyclic route covers from cyclic certificates (see cycMachineToLean); defaults
 // to GDP_CERT=cyclic. `certReport` then says which items went which way.
 export function toLean(items: LeanItem[], opts: {title?: string, native?: boolean, cyclic?: boolean} = {}): string {
+  // Admit source-derived models before changing exporter state or emitting any text.
+  // Ordinary typed DSL machines have no provenance entry and pass unchanged.
+  for (const item of items) {
+    if ('machine' in item) requireSourceTranslation(item.machine, [...item.laws, ...(item.stepLaws ?? []), ...(item.liveness ?? [])])
+    else if ('kInduction' in item) requireSourceTranslation(item.kInduction.machine, [...item.kInduction.laws, item.kInduction.law])
+    else if ('countedMachine' in item) requireSourceTranslation(item.countedMachine, item.laws)
+    else if ('refinement' in item) {
+      requireSourceTranslation(item.refinement.impl, item.refinement.relation)
+      requireSourceTranslation(item.refinement.spec, item.refinement.relation)
+    } else if ('cyclic' in item && item.bridge) requireSourceTranslation(item.bridge.machine, item.bridge.laws)
+  }
   const outer = checkBy, outerCerts = certsOn
   const env = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
   checkBy = (opts.native ?? env?.GDP_LEAN_NATIVE === '1') ? 'native_decide' : 'decide +kernel'

@@ -29,6 +29,15 @@ export function inheritSource(from: object, to: object, transparent = false): vo
   const source = sources.get(from)
   if (transparent && source) sources.set(to, source)
 }
+// Rule.machine makes a fresh structural model. Carry source provenance onto that
+// exact model so public consumers that receive only a Machine still fail closed.
+// The marker is enumerable here: spread/reconstruction keeps the warning, but
+// never the private WeakMap journal (a copied machine is therefore rejected).
+export function bindSourceMachine(rule: object, machine: object): void {
+  const source = sources.get(rule)
+  if (source) { mark(machine, true); sources.set(machine, source) }
+  else if (marked(rule)) mark(machine, true)
+}
 const evidence = new WeakMap<object, NativeJournal>()
 const sources = new WeakMap<object, {root: object, journal?: NativeJournal, generated: Set<object>}>()
 const nativeLaws = new WeakMap<object, {rule: object, method?: string, name: string, evaluate: (observation: NativeObservation) => boolean}>()
@@ -66,6 +75,13 @@ export function translationVerdict<V extends {proven: boolean, checked: boolean,
     if (!observed) return unchecked(`no native observation of ${law.method ?? law.name}`)
   }
   return {...verdict, translation: journal.scope, translationChecks: checks}
+}
+// Lean export is a public proof boundary. It must repeat source admission from
+// the bound machine and laws instead of trusting caller-supplied fields or an
+// old verdict: the journal and native-law identities live only in these maps.
+export function requireSourceTranslation(rule: object, laws: object[]): void {
+  const verdict = translationVerdict<{proven: boolean, checked: boolean, why?: string}>(rule, laws, {proven: true, checked: true})
+  if (!verdict.proven || !verdict.checked) throw new Error(verdict.why ?? 'source translation was not checked')
 }
 const sourceIdentity = new WeakMap<object, number>(), cloneIdentity = new WeakMap<object, number>()
 let nextIdentity = 0
