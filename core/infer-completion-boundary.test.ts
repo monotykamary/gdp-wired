@@ -36,6 +36,7 @@ test('completed inference survives owned internal bookkeeping stops, not ancesto
     inject('core/infer.ts', '    const took = now() - began', '\n    ;(globalThis as any).__inferChecked?.(last, observed.completed)')
     inject('core/infer.ts', '  for (const f of opts.minimize === false || enumProof ? [] : [...chosen].reverse()) {', '\n    ;(globalThis as any).__inferBoundary?.("minimization", observed.completed ?? last)')
     inject('core/infer.ts', "  trace('end', {proven: true, stopped: stop(), found: chosen.map(f => textOf(f)).join('; ')})", '  ;(globalThis as any).__inferBoundary?.("final", observed.completed ?? last)\n', true)
+    inject('core/infer.ts', '    return verdict\n  }\n  const completedStats', '    if (verdict.proven && verdict.checked && laws.every(law => ls.includes(law))) (globalThis as any).__inferBoundary?.("engine-progress", observed.completed ?? verdict)\n', true)
     inject('core/infer.ts', '      observed.last ??= observed.snapshot?.(); observed.lastContext ??= observed.context?.()', '\n      ;(globalThis as any).__inferInterruption?.({resultAssigned: result !== undefined, error: (error as Error).name})')
     const runner = `
 import {writeFileSync} from 'node:fs';
@@ -76,7 +77,7 @@ globalThis.__diagnosticFailedCandidate=last=>{
 };
 globalThis.__inferChecked=(last,completed)=>{receipt.lastCapture=completed?{proven:completed.proven,checked:completed.checked,found:completed.found.map(f=>f.text)}:undefined;receipt.later={proven:last.proven,checked:last.checked,goal:last.goal,stuck:last.stuck,witness:last.witness};};
 globalThis.__inferBoundary=(point,completed)=>{
- const wanted=mode==='final'?'final':mode==='minimization'?'minimization':'first';
+ const wanted=mode==='final'?'final':mode==='minimization'?'minimization':mode==='engine-progress'?'engine-progress':'first';
  if(point!==wanted||mode==='context'||mode==='progress'||mode==='ancestor-work'||expired)return;
  if(!completed||!((completed.proven&&completed.checked)||completed.run))throw Error('boundary reached without completed evidence');
  receipt.boundary={point,proven:completed.proven,checked:completed.checked,run:completed.run,found:completed.found?.map(f=>f.text)??[]};
@@ -85,11 +86,13 @@ globalThis.__inferBoundary=(point,completed)=>{
   catch(e){if(!(e instanceof BudgetExpired))throw e;receipt.rejectedActualWork=true;if(mode==='rejected')throw e;}
  }
  expire(point);
+ if(mode==='engine-progress')checkWatchdog('completed engine progress');
 };
 const simple=rule('owned completed boundary').state({value:0}).step(({value})=>({value:value.plus(1)}));
 const simpleLaw=simple.law(mode==='first-run'?'stays zero':'nonnegative',({value})=>mode==='first-run'?value.eq(0):value.atLeast(0));
 const usePool=['minimization','progress','context'].includes(mode);
-const r=mode==='final'?accounts():usePool?pool():simple, laws=mode==='final'?[accountsLaw(r)]:usePool?[poolLaw(r)]:[simpleLaw];
+const useAccounts=['final','engine-progress'].includes(mode);
+const r=useAccounts?accounts():usePool?pool():simple, laws=useAccounts?[accountsLaw(r)]:usePool?[poolLaw(r)]:[simpleLaw];
 const expectedFirst=mode==='context'?proveRule(r,laws,{search:false}):undefined;
 let capsule;
 proofOutput.on=e=>{capsule=e.proof;};
@@ -130,7 +133,7 @@ finally{proofOutput.on=undefined;receipt.childReturned=childReturned;writeFileSy
       writeFileSync(join(artifacts, 'watchdog.instrumented.ts'), readFileSync(join(worker, 'core/search-watchdog.ts'), 'utf8'))
     }
     const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GDP_WORK_') && key !== 'GDP_STEP_WORK'))
-    for (const mode of ['first-proof', 'first-run', 'final', 'minimization', 'progress', 'ancestor', 'ancestor-work', 'rejected', 'rejected-then-wall', 'context']) {
+    for (const mode of ['first-proof', 'first-run', 'final', 'engine-progress', 'minimization', 'progress', 'ancestor', 'ancestor-work', 'rejected', 'rejected-then-wall', 'context']) {
       const file = join(root, `${mode}.json`)
       const child = spawnSync(process.execPath, [join(worker, 'boundary.ts')], {cwd: worker, env: {...env, INFER_BOUNDARY_MODE: mode, INFER_BOUNDARY_RESULT: file}, encoding: 'utf8', timeout: 45000})
       expect(child.status, child.stderr).toBe(0)
@@ -162,7 +165,7 @@ finally{proofOutput.on=undefined;receipt.childReturned=childReturned;writeFileSy
         if (mode === 'first-run') { expect(receipt.result.run).toEqual(receipt.boundary.run); expect(receipt.result.run.trace.length).toBeGreaterThan(0) }
         else {
           expect(receipt.result).toMatchObject({proven: true, checked: true}); expect(receipt.replay?.accepted).toBe(true)
-          const originalLaw = mode === 'final' ? 'a <= total' : ['progress', 'minimization'].includes(mode) ? 'released <= acquired' : 'nonnegative'
+          const originalLaw = ['final', 'engine-progress'].includes(mode) ? 'a <= total' : ['progress', 'minimization'].includes(mode) ? 'released <= acquired' : 'nonnegative'
           expect(receipt.proofLaws).toContain(originalLaw)
           for (const found of receipt.result.found) expect(receipt.proofLaws).toContain(found.law.name)
         }
@@ -170,12 +173,16 @@ finally{proofOutput.on=undefined;receipt.childReturned=childReturned;writeFileSy
           expect(receipt.boundary?.point).toBe(mode); expect(receipt.result.found.length).toBeGreaterThan(0)
           expect(receipt.result.found.map((f: {text: string}) => f.text)).toEqual(receipt.boundary.found)
         }
+        if (mode === 'engine-progress') {
+          expect(receipt.boundary?.point).toBe('engine-progress'); expect(receipt.boundary?.checked).toBe(true)
+          expect(receipt.result.found.map((f: {text: string}) => f.text)).toEqual(receipt.boundary.found)
+        }
         if (mode === 'progress') {
           expect(receipt.proofProgress).toBeDefined(); expect(receipt.lastCapture).toMatchObject({proven: true, checked: true})
           expect(receipt.result.found.map((f: {text: string}) => f.text)).toEqual(receipt.lastCapture.found)
         }
         expect(receipt.events.length).toBeGreaterThan(0)
-        expect(receipt.polls.some((poll: {phase: string}) => poll.phase === (mode === 'progress' ? 'completed proof progress' : 'inference poll'))).toBe(true)
+        expect(receipt.polls.some((poll: {phase: string}) => poll.phase === (mode === 'progress' ? 'completed proof progress' : mode === 'engine-progress' ? 'completed engine progress' : 'inference poll'))).toBe(true)
       }
     }
   } finally { rmSync(root, {recursive: true, force: true}) }

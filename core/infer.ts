@@ -803,7 +803,13 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     const model = normalized?.machine ?? mm
     const given = normalized ? [...normalized.kindLaws().filter(k => !ls.some(l => l.name === k.name)), ...ls] : ls
     const out = stepLaws.length ? proveStepLaws(model, given, stepLaws) : (fast ? proveSetFast : proveLaws)(model, given)
-    return verdictOf(out)
+    const verdict = verdictOf(out)
+    // Engine callbacks can observe a completed whole family before enumProof
+    // or last receives it. Retain only a proof of EVERY caller law, with the
+    // exact additional laws it used; a proved candidate alone is not success.
+    if (verdict.proven && verdict.checked && laws.every(law => ls.includes(law)))
+      observed.completed = retainFrom({...verdict, found: ls.filter(law => !laws.includes(law)).map(law => ({law, text: law.name})), stats: completedStats(sampleCount(), candidateCount(), aliveCount())}, [verdict], {kind: 'inference', original: m, laws})
+    return verdict
   }
   const completedStats = (samples: number, candidates: number, alive: number): Inferred['stats'] =>
     ({samples, candidates, alive, proofs, ms: Math.round(countedSearchNow() - t0), work: Math.max(0, fullWork() - work0), stopped: false})
