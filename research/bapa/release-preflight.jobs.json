@@ -1,0 +1,20 @@
+[
+  {
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "release-preflight",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bunx tsc -p research/bapa/tsconfig.release.json > \"$OUT/types.log\" 2>&1; for c in p1 p2 p3; do bunx tsc -p \"research/bapa/tsconfig.$c.json\" > \"$OUT/types-$c.log\" 2>&1; done; bun test --timeout 120000 research/protocols/ic3syn/sized-p1.test.ts research/bapa/consensus-sized.test.ts research/bapa/p3-sized.test.ts > \"$OUT/ports.log\" 2>&1; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/bapa/release-integration-commit.txt > \"$OUT/commitlint.log\" 2>&1"
+  }
+]

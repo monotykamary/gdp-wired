@@ -1,0 +1,470 @@
+[
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-lock_server",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts lock_server > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-lockserv",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts lockserv > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-lockserv_automaton",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts lockserv_automaton > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-simple_election",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts simple_election > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-simple",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts simple > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-simple_regular",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts simple_regular > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-firewall",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts firewall > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-consensus",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts consensus > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-consensus_epr",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts consensus_epr > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-naive_consensus",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts naive_consensus > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-toy_consensus",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts toy_consensus > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-toy_consensus_epr",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts toy_consensus_epr > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-consensus_forall",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts consensus_forall > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-consensus_wo_decide",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts consensus_wo_decide > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-tcommit",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts tcommit > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-twophase",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts twophase > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-two_phase_commit",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts two_phase_commit > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-learning_switch",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts learning_switch > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-learning_switch_i4",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts learning_switch_i4 > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-client_server_ae",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts client_server_ae > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-quorum_leader_election",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts quorum_leader_election > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-majorityset_leader_election",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts majorityset_leader_election > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-sharded_kv_no_lost_keys",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts sharded_kv_no_lost_keys > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-toy_consensus_forall",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts toy_consensus_forall > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-client_server_db_ae",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts client_server_db_ae > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-simple_decentralized_lock",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-sdl.ts > \"$OUT/replay.log\" 2>&1"
+  }
+]

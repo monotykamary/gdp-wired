@@ -1,0 +1,152 @@
+[
+  {
+    "id": "lock_server",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p1/runs/bapa-p1/seeded-01/p1-seeded-lock_server.files/lock_server/closure",
+    "to": "release-captures/lock_server",
+    "sha256": "74134f5c9a15808ef5521f93e42226afc1ff96397f8404daf7d9a7978411e0df"
+  },
+  {
+    "id": "lockserv",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p1/runs/bapa-p1/search-01-recovered/p1-search-lockserv.files/lockserv/closure",
+    "to": "release-captures/lockserv",
+    "sha256": "f5bfd1e13863bdf318e638ae398d26629899b637914bfa6db2283d12ef7a1ee0"
+  },
+  {
+    "id": "lockserv_automaton",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p1/runs/bapa-p1/search-01-recovered/p1-search-lockserv_automaton.files/lockserv_automaton/closure",
+    "to": "release-captures/lockserv_automaton",
+    "sha256": "8a0fa118813b55b492e1d79fcb056664a548d3a783885e98d83446b895c1b8f6"
+  },
+  {
+    "id": "simple_election",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p1/runs/bapa-p1/search-01-recovered/p1-search-simple_election.files/simple_election/closure",
+    "to": "release-captures/simple_election",
+    "sha256": "7654c0e364334f0835602b06dcfc7307fdc089d0825f92d17e16f5a67a84ff75"
+  },
+  {
+    "id": "simple",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p1/runs/bapa-p1/search-01-recovered/p1-search-simple.files/simple/closure",
+    "to": "release-captures/simple",
+    "sha256": "84c3f25567e40ceb8f610eab3925f33b4fa5c4a3b75e2a738b54468a59224bef"
+  },
+  {
+    "id": "simple_regular",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p1/runs/bapa-p1/search-01-recovered/p1-search-simple_regular.files/simple_regular/closure",
+    "to": "release-captures/simple_regular",
+    "sha256": "7546f2449107d3b742b08a0987f741a062df57578fd036d5bc1baa5f40e01b79"
+  },
+  {
+    "id": "firewall",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p1/runs/bapa-p1/historical-seeds/symbolic-firewall",
+    "to": "release-captures/firewall",
+    "sha256": "2ed5690066d27705a905eca1dc338612f19c0ed09a59d9f16d79a956ef33c14e"
+  },
+  {
+    "id": "consensus",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/search-1-recovered/p2-search-consensus.files/consensus/closure",
+    "to": "release-captures/consensus",
+    "sha256": "ed33f406d61ac50918cff1d69c81cbf843eebf417eb05091544a082f80def1fe"
+  },
+  {
+    "id": "consensus_epr",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/search-1-recovered/p2-search-consensus_epr.files/consensus_epr/closure",
+    "to": "release-captures/consensus_epr",
+    "sha256": "98abd8ff095e7eba3e4d1aaf1f3987a34218b8e48909bcf05d16822b41f2867e"
+  },
+  {
+    "id": "naive_consensus",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/search-1-recovered/p2-search-naive_consensus.files/naive_consensus/closure",
+    "to": "release-captures/naive_consensus",
+    "sha256": "4f39bdba8a93ed816ace7bbf25b169e9f972cc1ce72f0801c09612d05f9cd8b4"
+  },
+  {
+    "id": "toy_consensus",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/search-1-recovered/p2-search-toy_consensus.files/toy_consensus/closure",
+    "to": "release-captures/toy_consensus",
+    "sha256": "4558a6d95c1f2462f58baffa3dd094bbe8023f6ee4f6b132f47b65b41bc44a84"
+  },
+  {
+    "id": "toy_consensus_epr",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/search-1-recovered/p2-search-toy_consensus_epr.files/toy_consensus_epr/closure",
+    "to": "release-captures/toy_consensus_epr",
+    "sha256": "8891f5b5fce7789a03a6d3afecc3d8b0115e956aef0e212f0e41566e38772098"
+  },
+  {
+    "id": "consensus_forall",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/search-1-recovered/p2-search-consensus_forall.files/consensus_forall/closure",
+    "to": "release-captures/consensus_forall",
+    "sha256": "49a2bfa9f1cc6f7d3128a03370668ed06e6fea35cfa8abfead7aedd0c8a58c6f"
+  },
+  {
+    "id": "consensus_wo_decide",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/search-1-recovered/p2-search-consensus_wo_decide.files/consensus_wo_decide/closure",
+    "to": "release-captures/consensus_wo_decide",
+    "sha256": "30f20617cd346ecaea9ef5ba806739eaebfb05d7ce2acff0256a592a284da361"
+  },
+  {
+    "id": "tcommit",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p3/runs/bapa-p3/search-v1/p3-search-tcommit.files/tcommit/closure",
+    "to": "release-captures/tcommit",
+    "sha256": "bf0e4ea650455462bff52d2a60f307ee2482227deb083a0033f778f90fa40e02"
+  },
+  {
+    "id": "twophase",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p3/runs/bapa-p3/search-v1/p3-search-twophase.files/twophase/closure",
+    "to": "release-captures/twophase",
+    "sha256": "a562243d6ca33b6a34f6f3225d0228ab7815eb6608b67f3349318c5f5e1ff396"
+  },
+  {
+    "id": "two_phase_commit",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p3/runs/bapa-p3/search-v1/p3-search-two_phase_commit.files/two_phase_commit/closure",
+    "to": "release-captures/two_phase_commit",
+    "sha256": "11f70b04cbb150d08bff4b3069350baebb83013577ae6c1672b277d56ea9b6fc"
+  },
+  {
+    "id": "learning_switch",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p3/runs/bapa-p3/search-v1/p3-search-learning_switch.files/learning_switch/closure",
+    "to": "release-captures/learning_switch",
+    "sha256": "b7b74efa596b7300767692824fee0eba50f7cd2b3a2844620467eef95c0cb20f"
+  },
+  {
+    "id": "learning_switch_i4",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p3/runs/bapa-p3/search-v1/p3-search-learning_switch_i4.files/learning_switch_i4/closure",
+    "to": "release-captures/learning_switch_i4",
+    "sha256": "a2ba258b5b05c03761289f21e3ea91357deec4382e633c688add5a362d1f7f31"
+  },
+  {
+    "id": "client_server_ae",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p3/runs/bapa-p3/search-v1/p3-search-client_server_ae.files/client_server_ae/closure",
+    "to": "release-captures/client_server_ae",
+    "sha256": "1c6929e5f1bfecea95d106eef4a33b914764853b6d17ca752f0d1413207a352b"
+  },
+  {
+    "id": "quorum_leader_election",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p4/runs/bapa-p4-search-recovered/quorum_leader_election.files/quorum_leader_election/closure",
+    "to": "release-captures/quorum_leader_election",
+    "sha256": "26190ed5247317ec80f418e9218cbce744daf79cff12ce139b67326c0f0f9c32"
+  },
+  {
+    "id": "majorityset_leader_election",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p4/runs/bapa-p4-search-recovered/majorityset_leader_election.files/majorityset_leader_election/closure",
+    "to": "release-captures/majorityset_leader_election",
+    "sha256": "ffd934042e82796eec2b13f7b7a81332995dd37a60d2ecfe62b44da37b8ba0dc"
+  },
+  {
+    "id": "sharded_kv_no_lost_keys",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p4/runs/bapa-p4-no-lost-existential/sharded-no-lost-existential.files/sharded_kv_no_lost_keys/closure",
+    "to": "release-captures/sharded_kv_no_lost_keys",
+    "sha256": "c9bdfffdd16d612b310d1ca11169e3e563e6eaf34f0b4311e02919097cfa5af1"
+  },
+  {
+    "id": "toy_consensus_forall",
+    "from": "/home/user/.local/state/r4-launcher/release049-f-capture-bound-input-v6/results-full/capture-f41-full-toy_consensus_forall-normal.files/certificate",
+    "to": "release-captures/toy_consensus_forall",
+    "sha256": "33f1a9949fb71fec0b5c1017c0607b25517a4222de10f0634bddc9bd4d8ae84b"
+  },
+  {
+    "id": "client_server_db_ae",
+    "from": "/home/user/.local/state/r4-launcher/release049-f-capture-bound-input-v6/results-full/capture-f41-full-client_server_db_ae-normal.files/certificate",
+    "to": "release-captures/client_server_db_ae",
+    "sha256": "e76ed2d24da036b98a98ea1edf509abe741499a2647c88f647c4d4f235cc87f0"
+  }
+]
