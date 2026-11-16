@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import {matchKnownFailure, validateKnownFailuresPolicy, type FailureSignature, type KnownFailuresPolicy} from './known-failures'
 
 // These checks validate a receipt's internal consistency, not the authenticity of
 // its claims. The caller must obtain and verify source, native evidence, output
@@ -16,14 +17,19 @@ export type SuccessfulExecution = ExecutionIdentity & {
   status: 'SUCCEEDED'; code: 0; cleanupComplete: true; outputHashes: OutputHashes
   reproductionLabel?: string; provenance?: 'independent-reproduction'; originalLost?: LostExecution
 }
+export type KnownFailureExecution = ExecutionIdentity & {
+  status: 'FAILED'; code: 1; outcome: 'KNOWN_FAILURE'; signature: FailureSignature; cleanupComplete: true; outputHashes: OutputHashes
+}
 export type ReleaseReceipt = {
   schema: 'gdp-release-full-gate/v1'; commit: string; tree: string; suiteSha256: string
   provisioningSha256: string; submodules: Record<string, string>
-  imagePins: { imageId: string; pinReceiptSha256: string; protected: true; reference: string }[]; jobs: SuccessfulExecution[]
+  imagePins: { imageId: string; pinReceiptSha256: string; protected: true; reference: string }[]; jobs: (SuccessfulExecution | KnownFailureExecution)[]
+  knownFailuresSha256?: string
 }
 export type ReleaseExpected = {
   commit: string; tree: string; suiteSha256: string
   canonicalJobs: readonly CanonicalJob[]; vendorPins: Record<string, string>
+  trustedKnownFailuresPolicy?: KnownFailuresPolicy; knownFailuresSha256?: string
 }
 
 const fail = (message: string): never => { throw new Error(`full-gate: ${message}`) }
@@ -113,6 +119,7 @@ export function verifyLostReproduction(original: unknown, reproduction: unknown)
 export type ReceiptSummary = {
   receipt: ReleaseReceipt; cleanupComplete: boolean
   openCustody: { name: string; batchId: string; launchIdentity: string; statement: string }[]
+  knownFailures: KnownFailureExecution[]; counts: { succeeded: number; knownFailures: number; total: number }
 }
 export function verifyReleaseReceipt(receipt: unknown, expected: ReleaseExpected): ReceiptSummary {
   const x = object(expected, 'expected')
@@ -126,7 +133,14 @@ export function verifyReleaseReceipt(receipt: unknown, expected: ReleaseExpected
     if (definitions.has(value.name)) fail(`duplicate canonical job ${value.name}`)
     definitions.set(value.name, hash)
   }
+  if ((expected.trustedKnownFailuresPolicy === undefined) !== (expected.knownFailuresSha256 === undefined)) fail('trusted policy and hash must be supplied together')
+  if (expected.trustedKnownFailuresPolicy) {
+    hex(expected.knownFailuresSha256, 64, 'expected knownFailuresSha256')
+    validateKnownFailuresPolicy(expected.trustedKnownFailuresPolicy, expected.canonicalJobs)
+    if (!expected.trustedKnownFailuresPolicy.requiredPass.includes('exists')) fail('exists must be required to pass')
+  }
   const r = object(receipt, 'receipt')
+  if (expected.trustedKnownFailuresPolicy ? r.knownFailuresSha256 !== expected.knownFailuresSha256 : 'knownFailuresSha256' in r) fail('known failures policy hash mismatch')
   if (r.schema !== 'gdp-release-full-gate/v1' || r.commit !== commit || r.tree !== tree || r.suiteSha256 !== suite) fail('receipt schema or source mismatch')
   hex(r.provisioningSha256, 64, 'receipt provisioningSha256')
   samePins(r.submodules, x.vendorPins, 'receipt submodules')
@@ -143,6 +157,7 @@ export function verifyReleaseReceipt(receipt: unknown, expected: ReleaseExpected
   if (!Array.isArray(r.jobs) || r.jobs.length !== definitions.size) fail('job count mismatch')
   const seen = new Set<string>(), launches = new Set<string>()
   const openCustody: ReceiptSummary['openCustody'] = []
+  const knownFailures: KnownFailureExecution[] = []
   for (const value of r.jobs as unknown[]) {
     const e = execution(value), name = e.name as string
     if (seen.has(name) || !definitions.has(name) || definitions.get(name) !== e.definitionSha256) fail(`duplicate, unexpected or changed job ${name}`)
@@ -150,7 +165,11 @@ export function verifyReleaseReceipt(receipt: unknown, expected: ReleaseExpected
     if (e.commit !== commit || e.tree !== tree || e.provisioningSha256 !== r.provisioningSha256) fail(`job source or provisioning mismatch ${name}`)
     samePins(e.submodules, x.vendorPins, 'job submodules')
     if (!images.has(e.imageId as string)) fail(`unprotected job image ${name}`)
-    if (e.status !== 'SUCCEEDED' || e.code !== 0) fail(`job did not succeed ${name}`)
+    if (e.status === 'FAILED' && e.code === 1 && e.outcome === 'KNOWN_FAILURE' && expected.trustedKnownFailuresPolicy) {
+      if (name === 'exists' || expected.trustedKnownFailuresPolicy.requiredPass.includes(name)) fail(`required job did not succeed ${name}`)
+      matchKnownFailure(expected.trustedKnownFailuresPolicy, name, e.definitionSha256 as string, 1, e.signature as FailureSignature)
+      knownFailures.push(value as KnownFailureExecution)
+    } else if (e.status !== 'SUCCEEDED' || e.code !== 0 || 'outcome' in e || 'signature' in e) fail(`job did not succeed ${name}`)
     if ('originalLost' in e) {
       verifyLostReproduction(e.originalLost, e)
       const lost = execution(e.originalLost, true)
@@ -162,5 +181,5 @@ export function verifyReleaseReceipt(receipt: unknown, expected: ReleaseExpected
     if (launches.has(e.launchIdentity as string)) fail('duplicate launch identity')
     launches.add(e.launchIdentity as string)
   }
-  return { receipt: receipt as ReleaseReceipt, cleanupComplete: openCustody.length === 0, openCustody }
+  return { receipt: receipt as ReleaseReceipt, cleanupComplete: openCustody.length === 0, openCustody, knownFailures, counts: {succeeded: definitions.size - knownFailures.length, knownFailures: knownFailures.length, total: definitions.size} }
 }

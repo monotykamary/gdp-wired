@@ -11,6 +11,12 @@ noted), each with the command that reproduces it.
   the data-only lift CLI; no new native-CLI support is claimed.
 - **No other coverage change:** MLDR remains proven up to size 64, not unrestricted. The existing 27
   source-model results retain their theorem and axiom checks.
+- **Release verification:** the complete provisioned suite is checked against a committed, hash-bound list of
+  inherited failures. Matching exceptions remain recorded as failures, not passing tests; any new or changed failure
+  blocks release. The fixed `exists` test is required to pass. The inherited generated-Lean export failures remain
+  unresolved; this does not mean that every example export checks successfully.
+- **Clean example checks:** the counted Lean example compiles its `QAlpha` prerequisite explicitly, rather than
+  depending on a cached object from another job.
 
 ## 0.50.0
 

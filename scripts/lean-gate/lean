@@ -13,7 +13,15 @@ for a in "$@"; do case $a in *.lean) srcs+=("$a");; esac; done
 [ ${#srcs[@]} -eq 0 ] && exec "$real" "$@"
 log=$(mktemp)
 "$real" "$@" | tee "$log"; s=${PIPESTATUS[0]}
-bun "$here/gate.ts" "$log" "${srcs[@]}"; g=$?
+if [ -n "${GDP_RELEASE_LEAN_LOGS:-}" ]; then
+  gate_log=$(mktemp "$GDP_RELEASE_LEAN_LOGS/gate.XXXXXXXX.log") || exit 125
+  bun "$here/gate.ts" "$log" "${srcs[@]}" 2>&1 | tee "$gate_log"
+  statuses=("${PIPESTATUS[@]}")
+  [ "${statuses[1]}" -eq 0 ] || exit 125
+  g=${statuses[0]}
+else
+  bun "$here/gate.ts" "$log" "${srcs[@]}"; g=$?
+fi
 rm -f "$log"
 [ "$s" -ne 0 ] && exit "$s"
 exit $g

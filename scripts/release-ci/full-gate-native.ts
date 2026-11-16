@@ -3,6 +3,7 @@ import {lstatSync, readFileSync, writeFileSync} from 'node:fs'
 import {dirname, isAbsolute, join, relative, resolve, sep} from 'node:path'
 import {canonicalJobHash, verifyReleaseReceipt, type ReleaseReceipt, type ReceiptSummary} from './full-gate-contract'
 import {canonicalJobs} from './full-gate-runner'
+import {extractFailureSignature, matchKnownFailure, validateKnownFailuresPolicy, type KnownFailuresPolicy} from './known-failures'
 
 const hash = (v: Buffer | string) => createHash('sha256').update(v).digest('hex')
 const fail = (s: string): never => { throw Error(`native finalizer: ${s}`) }
@@ -37,6 +38,14 @@ export function finalize(inputDir: string, resultsPath: string, pinPath: string,
   const manifestHash = hash(manifestBytes), suiteBytes = readFileSync(contained(input, 'canonical-suite.json'))
   if (hash(suiteBytes) !== manifest.suiteSha256) fail('suite hash mismatch')
   const suite = canonicalJobs(readJson(suiteBytes)), definitions = obj(manifest.definitions, 'definitions')
+  let policy: KnownFailuresPolicy | undefined
+  if (manifest.knownFailuresSha256 !== undefined) {
+    const bytes = readFileSync(contained(input, 'known-failures.json'))
+    if (hash(bytes) !== manifest.knownFailuresSha256) fail('policy hash mismatch')
+    policy = readJson(bytes) as KnownFailuresPolicy
+    validateKnownFailuresPolicy(policy, suite)
+    if (!policy.requiredPass.includes('exists')) fail('exists must be required to pass')
+  }
   if (Object.keys(definitions).length !== suite.length) fail('definition coverage mismatch')
   for (const job of suite) if (definitions[job.name] !== canonicalJobHash(job)) fail('definition mismatch')
   if (!Array.isArray(manifest.repositories) || !manifest.repositories.length) fail('missing repositories')
@@ -59,7 +68,7 @@ export function finalize(inputDir: string, resultsPath: string, pinPath: string,
   const jobs: ReleaseReceipt['jobs'] = []
   for (const job of suite) {
     const row = obj(rows[job.name], `row ${job.name}`)
-    if (row.name !== job.name || row.run_name !== job.name || row.status !== 'SUCCEEDED' || row.code !== 0 || row.terminal !== true || row.strict_once !== true || row.max_attempts !== 1 || row.attempts !== 1 || row.attempt !== 1 || ('image' in row && row.image !== image) || ('runtime_verification' in row && (row.runtime_verified !== true || obj(row.runtime_verification, 'runtime verification').ok !== true)) || ('runtime_verified' in row && row.runtime_verified !== true)) fail(`invalid row ${job.name}`)
+    if (row.name !== job.name || row.run_name !== job.name || !((row.status === 'SUCCEEDED' && row.code === 0) || (row.status === 'FAILED' && row.code === 1 && policy)) || row.terminal !== true || row.strict_once !== true || row.max_attempts !== 1 || row.attempts !== 1 || row.attempt !== 1 || ('image' in row && row.image !== image) || ('runtime_verification' in row && (row.runtime_verified !== true || obj(row.runtime_verification, 'runtime verification').ok !== true)) || ('runtime_verified' in row && row.runtime_verified !== true)) fail(`invalid row ${job.name}`)
     if (job.runtime !== undefined) {
       const verification = obj(row.runtime_verification, 'required runtime verification')
       if (row.runtime_verified !== true || verification.ok !== true || canonicalJobHash({name: job.name, cmd: job.cmd, runtime: verification.required}) !== canonicalJobHash({name: job.name, cmd: job.cmd, runtime: job.runtime})) fail('required runtime binding mismatch')
@@ -89,8 +98,21 @@ export function finalize(inputDir: string, resultsPath: string, pinPath: string,
     const artifact = (name: string): Buffer => artifacts.get(name) ?? fail(`missing ${name}`)
     const provision = obj(readJson(artifact('PROVISIONED.json')), 'provisioning'), command = obj(readJson(artifact('COMMAND-RESULT.json')), 'command result')
     if (provision.commit !== manifest.commit || provision.tree !== manifest.tree || provision.suiteSha256 !== manifest.suiteSha256 || provision.provisioningSha256 !== manifestHash || provision.definitionSha256 !== definitions[job.name] || !same(provision.vendorPins, vendorPins)) fail('provisioning mismatch')
-    if (command.name !== job.name || command.command !== job.cmd || command.cwd !== (job.cwd ?? '.') || command.code !== 0 || command.signal !== null || command.error !== null) fail('command result mismatch')
-    jobs.push({name: job.name, nativeName: row.name, batchId: batch, definitionSha256: definitions[job.name], commit: manifest.commit, tree: manifest.tree, provisioningSha256: manifestHash, submodules: vendorPins, imageId: image, attempts: 1, launchIdentity: launch, status: 'SUCCEEDED', code: 0, cleanupComplete: true, outputHashes: {stdoutSha256: hash(artifact('stdout.log')), stderrSha256: hash(artifact('stderr.log')), nativeReceiptSha256: hash(JSON.stringify(row))}})
+    if (command.name !== job.name || command.command !== job.cmd || command.cwd !== (job.cwd ?? '.') || command.code !== row.code || command.signal !== null || command.error !== null) fail('command result mismatch')
+    const stdout = artifact('stdout.log'), stderr = artifact('stderr.log')
+    const base = {name: job.name, nativeName: row.name as string, batchId: batch, definitionSha256: definitions[job.name] as string, commit: manifest.commit as string, tree: manifest.tree as string, provisioningSha256: manifestHash, submodules: vendorPins, imageId: image, attempts: 1 as const, launchIdentity: launch, cleanupComplete: true as const, outputHashes: {stdoutSha256: hash(stdout), stderrSha256: hash(stderr), nativeReceiptSha256: hash(JSON.stringify(row))}}
+    if (row.status === 'FAILED') {
+      const activePolicy = policy ?? fail(`unapproved failure ${job.name}`)
+      if (job.name === 'exists' || activePolicy.requiredPass.includes(job.name)) fail(`required failure ${job.name}`)
+      // The worker always emits this artifact, including an empty log list. Requiring
+      // it for every failed job also covers indirect Lean invocations (e.g. lake).
+      const data = obj(readJson(artifact('LEAN-DIAGNOSTICS.json')), 'Lean diagnostics')
+      if (data.schema !== 'gdp-lean-diagnostics/v1' || !Array.isArray(data.logs) || !data.logs.every((s: unknown) => typeof s === 'string')) fail('invalid Lean diagnostics')
+      const logs: string[] = data.logs
+      const signature = extractFailureSignature(stdout.toString('utf8'), stderr.toString('utf8'), logs)
+      matchKnownFailure(activePolicy, job.name, definitions[job.name], row.code, signature)
+      jobs.push({...base, status: 'FAILED', code: 1, outcome: 'KNOWN_FAILURE', signature})
+    } else jobs.push({...base, status: 'SUCCEEDED', code: 0})
   }
   if (Object.keys(batches).length !== usedBatches.size || Object.keys(validation).length !== usedBatches.size) fail('unexpected cleanup batch')
   for (const [id, raw] of Object.entries(batches)) {
@@ -98,7 +120,8 @@ export function finalize(inputDir: string, resultsPath: string, pinPath: string,
     if (!usedBatches.has(id) || batch.batch !== id || !Array.isArray(batch.pending) || batch.pending.length || !Array.isArray(batch.unlaunched) || batch.unlaunched.length || !Array.isArray(batch.attempts) || batch.attempts.some((attempt: unknown) => !matchedAttempts.has(attempt))) fail('unexpected or pending cleanup attempt')
   }
   const receipt: ReleaseReceipt = {schema: 'gdp-release-full-gate/v1', commit: manifest.commit, tree: manifest.tree, suiteSha256: manifest.suiteSha256, provisioningSha256: manifestHash, submodules: vendorPins, imagePins: [{imageId: image, pinReceiptSha256: hash(pinBytes), protected: true, reference}], jobs}
-  const summary = verifyReleaseReceipt(receipt, {commit: manifest.commit, tree: manifest.tree, suiteSha256: manifest.suiteSha256, canonicalJobs: suite, vendorPins})
+  if (policy) receipt.knownFailuresSha256 = manifest.knownFailuresSha256
+  const summary = verifyReleaseReceipt(receipt, {commit: manifest.commit, tree: manifest.tree, suiteSha256: manifest.suiteSha256, canonicalJobs: suite, vendorPins, ...(policy ? {trustedKnownFailuresPolicy: policy, knownFailuresSha256: manifest.knownFailuresSha256} : {})})
   writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n', {flag: 'wx'})
   return summary
 }

@@ -34,7 +34,9 @@ Both paths must be new and separate from the source checkout. The command:
    from the canonical job; the original command, cwd and resource fields are
    retained and bound by a definition digest.
 4. Reconstructs and checks Git trees in each worker, installs frozen dependencies,
-   and records provisioning and actual command results separately.
+   and records provisioning and actual command results separately. Full compiler
+   diagnostics are retained before canonical terminal-output filters; the original
+   commands, compiler executable and axiom checks are not weakened.
 5. Pins the image identified by the native results, including after a completed
    failed run so its diagnostic environment is retained.
 6. Authenticates native job results, output manifests and bytes, source bindings,
@@ -52,8 +54,34 @@ bun run release:full-gate finalize INPUT RESULTS_JSON IMAGE_PIN_JSON NEW_RECEIPT
 ```
 
 Preparation is **not evidence of a run**. Finalization rejects incomplete,
-failed, duplicate, mismatched or unclosed native executions. It never starts a
-replacement job. It will not overwrite an existing receipt.
+unrecognized failed, duplicate, mismatched or unclosed native executions. It never
+starts a replacement job. It will not overwrite an existing receipt.
+
+## Exact inherited failures
+
+`scripts/release-ci/known-failures.json` is the reviewed exception policy. Its raw
+SHA-256 is bound into the receipt and checked against the policy committed at the
+tested source SHA during publication. Each entry binds a canonical job definition,
+its native exit code, and its file-qualified full failed-test titles or full
+normalized Lean diagnostics. Evidence hashes identify the provisioned 0.50.0 baseline comparison.
+The policy never authorizes a generic nonzero exit, a missing diagnostic, a skipped
+job, a lost attempt, or a new or changed failure. `exists` must pass.
+
+A matching inherited failure stays **FAILED** with its actual nonzero code in the
+native evidence. Its receipt outcome is explicitly `KNOWN_FAILURE`, never a
+fabricated successful test. Previously failing jobs may pass; no test is required
+to fail. The summary reports passing jobs and accepted inherited failures
+separately. The whole canonical suite still executes.
+
+Full compiler output is captured using a transparent PATH recorder downstream of
+the existing Lean axiom-gate wrapper. Lake output and the protocol exporter log
+are also retained where those canonical commands use direct output files. This
+prevents `tail` or `grep` from hiding an additional error. Only the policy
+parser's documented path/display normalization is permitted; diagnostics must
+otherwise match exactly. A captured invocation accounts for at most one filtered
+wrapper mirror with matching header and unchanged retained body lines; changed
+bodies and extra copies remain distinct diagnostics. A missing or incomplete baseline is a release blocker,
+not a reason to widen an exception.
 
 ## Review and publication
 
@@ -90,8 +118,10 @@ The runner never pushes, publishes or calls a GitHub write API. Publishing check
 that the latest status is successful on the resolved source commit and names
 these exact receipt bytes. Missing, pending, failed, ambiguous, truncated or
 wrong-SHA responses fail closed. The committed receipt must additionally cover
-all canonical jobs, source/submodule identities, protected images and successful
-single-attempt execution records. Already-published skip behavior is unchanged.
+all canonical jobs, source/submodule identities, protected images and accepted
+single-attempt execution records. Accepted inherited failures remain explicitly
+listed; a successful release status does not claim that every test passed.
+Already-published skip behavior is unchanged.
 
 ## Loss and independent reproduction
 

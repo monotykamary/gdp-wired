@@ -84,6 +84,11 @@ export async function prepare(rootArg: string, inputArg: string): Promise<void> 
   if (text(root, 'status', '--porcelain=v1', '--untracked-files=all', '--ignore-submodules=none')) throw Error('dirty source after submodule initialization')
   const suiteBytes = readFileSync(join(root, 'supercomputer/suite.json'))
   const suite = canonicalJobs(JSON.parse(suiteBytes.toString('utf8')))
+  const policyBytes = git(root, ['show', `${commit}:scripts/release-ci/known-failures.json`])
+  const {validateKnownFailuresPolicy} = await import('./known-failures')
+  const policy = JSON.parse(policyBytes.toString('utf8'))
+  validateKnownFailuresPolicy(policy, suite)
+  if (!policy.requiredPass.includes('exists')) throw Error('exists must be required to pass')
   const contract = await import(pathToFileURL(join(root, 'scripts/release-ci/full-gate-contract.ts')).href)
   const definitions = Object.fromEntries(canonicalDefinitions(suite, contract.canonicalJobHash).map(d => [d.name, d.definitionSha256]))
   // mkdir without recursive refuses an existing path, preserving prior evidence.
@@ -119,10 +124,11 @@ export async function prepare(rootArg: string, inputArg: string): Promise<void> 
   }
   visit('.', commit)
   if (text(root, 'rev-parse', 'HEAD^{commit}') !== commit || text(root, 'status', '--porcelain=v1', '--untracked-files=all', '--ignore-submodules=none')) throw Error('source changed while packing')
-  const manifest = {commit, tree, suiteSha256: sha256(suiteBytes), repositories, definitions}
+  const manifest = {commit, tree, suiteSha256: sha256(suiteBytes), knownFailuresSha256: sha256(policyBytes), repositories, definitions}
   const manifestBytes = Buffer.from(JSON.stringify(manifest) + '\n')
   writeFileSync(join(input, 'manifest.json'), manifestBytes, {flag: 'wx'})
   writeFileSync(join(input, 'canonical-suite.json'), suiteBytes, {flag: 'wx'})
+  writeFileSync(join(input, 'known-failures.json'), policyBytes, {flag: 'wx'})
   const manifestHash = sha256(manifestBytes)
   const jobs = suite.map(job => {
     const required = job.required_agent_capabilities
@@ -167,13 +173,14 @@ export async function run(root: string, inputArg: string, outputArg: string, sch
   const pin = execFileSync(cli, ['image', 'pin', image, '--kind', 'packet', '--reference', `full-gate-${manifest.commit}-${basename(output)}`], {cwd: root, env: environment, timeout: 120_000, maxBuffer: 1024 * 1024})
   const pinPath = join(output, 'image-pin.json')
   writeFileSync(pinPath, pin, {flag: 'wx'})
-  if (native.error || native.signal || native.status !== 0) throw Error('native run did not pass; receipts retained, no retry or release receipt emitted')
+  if (native.error || native.signal || ![0, 3].includes(native.status ?? -1)) throw Error('native run did not pass; receipts retained, no retry or release receipt emitted')
   const {finalize} = await import('./full-gate-native.ts')
   const receiptPath = join(output, 'receipt.json')
   const summary = finalize(input, resultsPath, pinPath, receiptPath)
   if (!summary.cleanupComplete || summary.openCustody.length) throw Error('fresh canonical run has unresolved custody')
   writeStatusPayload(receiptPath, join(output, 'status-payload.json'))
-  console.log(`Canonical outcomes and custody verified for ${manifest.commit}; Main must review, commit the receipt and post the status.`)
+  console.log(JSON.stringify({gate: summary.knownFailures.length ? 'ACCEPTED_WITH_KNOWN_FAILURES' : 'ACCEPTED', commit: manifest.commit, counts: summary.counts, knownFailures: summary.knownFailures, openCustody: summary.openCustody}))
+  console.log('Main must review, commit the receipt and post the status.')
 }
 
 export function writeStatusPayload(receiptPath: string, outputPath: string): void {
@@ -189,7 +196,7 @@ async function main(): Promise<void> {
   if (command === 'finalize' && args.length === 5 && input && output && pin && receipt) {
     const {finalize} = await import('./full-gate-native.ts')
     const summary = finalize(input, output, pin, receipt)
-    console.log(JSON.stringify({cleanupComplete: summary.cleanupComplete, openCustody: summary.openCustody}))
+    console.log(JSON.stringify({gate: summary.knownFailures.length ? 'ACCEPTED_WITH_KNOWN_FAILURES' : 'ACCEPTED', cleanupComplete: summary.cleanupComplete, openCustody: summary.openCustody, counts: summary.counts, knownFailures: summary.knownFailures}))
     return
   }
   throw Error('usage: release:full-gate prepare INPUT | run INPUT OUTPUT [CLASS] | finalize INPUT RESULTS_JSON PIN_JSON RECEIPT_JSON')

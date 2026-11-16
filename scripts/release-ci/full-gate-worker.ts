@@ -2,9 +2,9 @@
 // job. Native custody and output evidence are authenticated by the finalizer.
 import {createHash} from 'node:crypto'
 import {execFileSync, spawnSync} from 'node:child_process'
-import {closeSync, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'node:fs'
+import {closeSync, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
-import {dirname, isAbsolute, join, sep} from 'node:path'
+import {delimiter, dirname, isAbsolute, join, resolve, sep} from 'node:path'
 import {pathToFileURL} from 'node:url'
 
 const sha256 = (data: Buffer | string) => createHash('sha256').update(data).digest('hex')
@@ -38,6 +38,33 @@ export function readPackTar(tar: Buffer): Buffer {
   if (!Number.isSafeInteger(size) || end > tar.length || paddedEnd + 1024 > tar.length) throw Error('truncated tar')
   for (let i = end; i < tar.length; i++) if (tar[i] !== 0) throw Error('unexpected archive member or padding')
   return tar.subarray(512, end)
+}
+
+// Record the selected real compiler before the canonical command's tail/grep.
+// The existing scripts/lean-gate wrapper remains first on its own PATH and its
+// exit/axiom checks are unchanged: its downstream compiler is this transparent
+// recorder, which invokes the original executable by absolute path.
+export function diagnosticEnvironment(root: string, cwd: string, env: NodeJS.ProcessEnv): {env: NodeJS.ProcessEnv, readLogs: () => string[]} {
+  const directory = join(root, 'lean-diagnostics'), bin = join(root, 'diagnostic-bin')
+  mkdirSync(directory); mkdirSync(bin)
+  const selected = spawnSync('bash', ['-c', 'type -P lean'], {cwd, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']})
+  const executable = selected.status === 0 ? selected.stdout.trim() : ''
+  const readLogs = () => readdirSync(directory).sort().map(name => {
+    const path = join(directory, name)
+    if (!/^(?:lean|gate)\.[A-Za-z0-9]+\.log$/.test(name) || !lstatSync(path).isFile() || lstatSync(path).isSymbolicLink()) throw Error('unsafe compiler diagnostic record')
+    return readFileSync(path, 'utf8')
+  })
+  if (!executable) return {env, readLogs}
+  writeFileSync(join(bin, 'lean'), [
+    '#!/bin/bash',
+    'log=$(mktemp "$GDP_RELEASE_LEAN_LOGS/lean.XXXXXXXX.log") || exit 125',
+    '"$GDP_RELEASE_REAL_LEAN" "$@" 2>&1 | tee "$log"',
+    'statuses=("${PIPESTATUS[@]}")',
+    '[ "${statuses[1]}" -eq 0 ] || exit 125',
+    'exit "${statuses[0]}"',
+    '',
+  ].join('\n'), {mode: 0o700, flag: 'wx'})
+  return {env: {...env, PATH: bin + delimiter + (env.PATH ?? ''), GDP_RELEASE_REAL_LEAN: isAbsolute(executable) ? executable : resolve(cwd, executable), GDP_RELEASE_LEAN_LOGS: directory}, readLogs}
 }
 
 export async function worker(inputDir: string, manifestHash: string, jobName: string): Promise<number> {
@@ -124,13 +151,27 @@ export async function worker(inputDir: string, manifestHash: string, jobName: st
     }
     const submodules = Object.fromEntries(records.slice(1).map(item => [item.path, item.commit]))
     writeFileSync(join(output, 'PROVISIONED.json'), JSON.stringify({commit: manifest.commit, tree: manifest.tree, suiteSha256: manifest.suiteSha256, provisioningSha256: manifestHash, vendorPins: submodules, definitionSha256: manifest.definitions[jobName]}) + '\n', {flag: 'wx'})
+    const diagnostics = diagnosticEnvironment(root, cwd, process.env)
     const stdout = openSync(join(output, 'stdout.log'), 'wx'), stderr = openSync(join(output, 'stderr.log'), 'wx')
+    const commandStarted = Date.now()
     let result: ReturnType<typeof spawnSync>
     try {
       const args = job.timeout === undefined ? ['-c', job.cmd] : ['--signal=KILL', `${job.timeout}s`, 'bash', '-c', job.cmd]
-      result = spawnSync(job.timeout === undefined ? 'bash' : 'timeout', args, {cwd, env: process.env, stdio: ['ignore', stdout, stderr]})
+      result = spawnSync(job.timeout === undefined ? 'bash' : 'timeout', args, {cwd, env: diagnostics.env, stdio: ['ignore', stdout, stderr]})
     } finally { closeSync(stdout); closeSync(stderr) }
     const code = result.status ?? 128
+    const logs = diagnostics.readLogs()
+    // Lake invokes its compiler by absolute path, outside the PATH recorder.
+    // These are the full files written by the unchanged canonical commands.
+    const supplementary = jobName === 'lean-package-0' ? ['/tmp/leanpkg/lake.out']
+      : ['lean-protocols-sync', 'lean-protocols-wo'].includes(jobName) ? ['/tmp/e.log'] : []
+    for (const path of supplementary) {
+      if (!existsSync(path)) continue
+      const stat = lstatSync(path)
+      if (!stat.isFile() || stat.isSymbolicLink()) throw Error('unsafe full diagnostic file')
+      if (stat.mtimeMs >= commandStarted) logs.push(readFileSync(path, 'utf8'))
+    }
+    writeFileSync(join(output, 'LEAN-DIAGNOSTICS.json'), JSON.stringify({schema: 'gdp-lean-diagnostics/v1', logs}) + '\n', {flag: 'wx'})
     writeFileSync(join(output, 'COMMAND-RESULT.json'), JSON.stringify({name: jobName, command: job.cmd, cwd: job.cwd ?? '.', code, signal: result.signal, error: result.error?.message ?? null}) + '\n', {flag: 'wx'})
     return code
   } finally { rmSync(root, {recursive: true, force: true}) }

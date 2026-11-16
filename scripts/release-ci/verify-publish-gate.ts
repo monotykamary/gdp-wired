@@ -42,12 +42,14 @@ async function main() {
     if (match[1] === '160000') vendorPins[match[4]!] = match[3]!
   }
   if (Object.keys(vendorPins).length === 0) throw new Error('source tree has no gitlinks')
+  const policyBytes = git('show', `${commit}:scripts/release-ci/known-failures.json`)
+  const trustedKnownFailuresPolicy = JSON.parse(policyBytes.toString('utf8'))
   const receiptPath = `full-gate/${commit}.json`
   const entry = gitText('ls-tree', registry, '--', receiptPath)
   if (!/^100644 blob [0-9a-f]{40}\t/.test(entry) || !entry.endsWith(`\t${receiptPath}`)) throw new Error('receipt is not a regular committed registry blob')
   const receiptBytes = git('show', `${registry}:${receiptPath}`)
   const receipt = JSON.parse(receiptBytes.toString('utf8'))
-  const verified = verifyReleaseReceipt(receipt, {commit, tree, suiteSha256: sha256(suite), canonicalJobs, vendorPins})
+  const verified = verifyReleaseReceipt(receipt, {commit, tree, suiteSha256: sha256(suite), canonicalJobs, vendorPins, trustedKnownFailuresPolicy, knownFailuresSha256: sha256(policyBytes)})
   const response = await fetch(`https://api.github.com/repos/${repo}/commits/${commit}/status?per_page=100`, {
     headers: {Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}`, 'X-GitHub-Api-Version': '2022-11-28'},
     signal: AbortSignal.timeout(30_000),
@@ -55,8 +57,8 @@ async function main() {
   let body: unknown
   try { body = await response.json() } catch { throw new Error(`invalid GitHub status response (HTTP ${response.status})`) }
   validateReleaseGateStatus(response.status, body, commit, sha256(receiptBytes))
-  console.log(JSON.stringify({commit, receiptSha256: sha256(receiptBytes), cleanupComplete: verified.cleanupComplete, openCustody: verified.openCustody}))
-  console.log(`Full gate outcomes verified for ${commit}; receipt-sha256:${sha256(receiptBytes)}`)
+  console.log(JSON.stringify({commit, receiptSha256: sha256(receiptBytes), gate: verified.knownFailures.length ? 'ACCEPTED_WITH_KNOWN_FAILURES' : 'ACCEPTED', cleanupComplete: verified.cleanupComplete, openCustody: verified.openCustody, counts: verified.counts, knownFailures: verified.knownFailures}))
+  console.log(`Full gate receipt verified for ${commit}; receipt-sha256:${sha256(receiptBytes)}`)
 }
 
 if (import.meta.main) main().catch(error => { console.error('Full gate verification failed:', error); process.exitCode = 1 })

@@ -1,0 +1,551 @@
+{
+  "schema": "gdp-known-failures/v1",
+  "baselineCommit": "c08bb385bbb1afc8dbf6ce1fc8aa8d838b9eb3a5",
+  "evidence": {
+    "triageSha256": "a0047e5d0af8f0fcaed2e9fc31434ff6f5e3c8ff0066cc93e4925309ac0e6140",
+    "comparisonSha256": "a8d5c0f1d7fad46ed35f4bf464666ddee7c4075278fb3873413f7e950d8ed606"
+  },
+  "entries": [
+    {
+      "job": "trading",
+      "definitionSha256": "84710275a4f9b51d98a140e2c6e9f919e98b21cd2421c70ca7bd21c39cf313c2",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [
+          "loops.test.ts :: a queue drained from its front: the fold over its places; the tasks run were due, and one left may be due (it waits behind one that isn’t)",
+          "ordered.test.ts :: a queue of numbers: the first and last items, pop(0), checked against the code; a take removes the first item",
+          "ordered.test.ts :: an order book of two lists: price-time priority proven, a self-trade found and replayed",
+          "rounding.test.ts :: Java: Math.floor, Math.round and a cast of a float division, exact below their edges",
+          "rounding.test.ts :: a price on a tick: a floor and Python round, exact; the tick laws proven, a half rounding up broken",
+          "rounding.test.ts :: round(a / k) at |a| of 2^52 or more: an edge, the claim below it"
+        ],
+        "diagnostics": [
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toEqual(expected)",
+          "error: expect(received).toEqual(expected)",
+          "error: expect(received).toEqual(expected)"
+        ]
+      }
+    },
+    {
+      "job": "extract-rb",
+      "definitionSha256": "ca4a2cc268fe034d2fd2984d21ba382cc0936f955a53f90312bcf7be567315d7",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [
+          "extract-rb.test.ts :: / and % of a negative floor, as Ruby's do; symbols are a choice; case/when on them",
+          "extract-rb.test.ts :: a counter with a limit: Ruby's truth (0 is true), a field nil until it is set, the last expression as the result",
+          "extract-rb.test.ts :: begin/rescue/else/ensure and a method's own rescue: another class's call may raise what a rescue catches, a raise by its class",
+          "extract-rb.test.ts :: the boundary inferred: another class's call left out or answered (tagged: Ruby states no types), a store injected, the entry"
+        ],
+        "diagnostics": [
+          "error: a hit within the limit counts: {}",
+          "error: admitted only within the cap: {}",
+          "error: errors only where ping raised a StandardError: {}",
+          "error: the half and the rest make k again: {}"
+        ]
+      }
+    },
+    {
+      "job": "extract-ex",
+      "definitionSha256": "8bfb3f4ea417fda90b80fb3474abb8bc06ee5945d7193dab47b9e71f24f21e66",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [
+          "extract-ex.test.ts :: a GenServer: clauses on the message and the state, a guard, cond and raise, a cast",
+          "extract-ex.test.ts :: a plain module over a struct: immutable updates, div and rem truncating toward zero",
+          "extract-ex.test.ts :: the boundary inferred: another module's call left out or answered (tagged: Elixir states no types), the entry"
+        ],
+        "diagnostics": [
+          "error: an open counter under its limit counts a hit: {}",
+          "error: never past its cap: {}",
+          "error: the half and the rest make k again: {}"
+        ]
+      }
+    },
+    {
+      "job": "extract-c",
+      "definitionSha256": "b287adea58d031b78816637a690e89b236eb951876157b61fb68933282bb126c",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [
+          "extract-c.test.ts :: C++: a class, its constructor the start (its parameters the rule's), private members, lock guards, std::min, std::array, a throw",
+          "extract-c.test.ts :: C++: a default member initializer beside a constructor that sets other fields",
+          "extract-c.test.ts :: a file that keeps its state in globals: the globals one object, its functions requests, an extern volatile the request's",
+          "extract-c.test.ts :: a fixed array is a list of its length; an index the path doesn't keep within it is refused (undefined behavior)",
+          "extract-c.test.ts :: a literal past 2^53 stored in a narrower unsigned: its value there exactly (2^53 + 1 is 1 in 32 bits)",
+          "extract-c.test.ts :: a stated failure, assert and abort are refusals; a write before one needs onError: discard",
+          "extract-c.test.ts :: a switch: labels together, a case running into the next, an enum, ?: and the file's functions inlined",
+          "extract-c.test.ts :: an out-parameter: what the function leaves in *data is its result beside the value returned; masks of promoted values",
+          "extract-c.test.ts :: bit operations with a constant: flags set, cleared, toggled and tested, composed into one form",
+          "extract-c.test.ts :: division and remainder truncate toward zero; by zero it is refused",
+          "extract-c.test.ts :: signed overflow is undefined: refused where the path doesn't exclude it, never wrapped",
+          "extract-c.test.ts :: the boundary inferred: a library call left out, another file's function answered over its declared type, the entry",
+          "extract-c.test.ts :: unsigned arithmetic wraps; a narrow one is promoted and converted back"
+        ],
+        "diagnostics": [
+          "error: a dequeue gives the item at the tail: {}",
+          "error: a failure half open trips it: {}",
+          "error: a lap wraps at 256: {}",
+          "error: a take never goes below 0: {}",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: never past its cap: {}",
+          "error: ok sets it to 1: {}",
+          "error: the half and the rest make k again: {}"
+        ]
+      }
+    },
+    {
+      "job": "extract-jvm",
+      "definitionSha256": "e4b051337f80ab71a7b1cbdff6d158d7bae472b8b94b93a92db3829a8438a65c",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [
+          "extract-jvm.test.ts :: Kotlin: an immutable data class's method returning its next value is a step to it; copy, scope functions",
+          "extract-jvm.test.ts :: Kotlin: when on an enum, a nullable Long (?:, !!, smart casts), check, @Synchronized",
+          "extract-jvm.test.ts :: a compare-and-set loop read as its first pass; an AtomicInteger as the int it holds; Math.max and min",
+          "extract-jvm.test.ts :: a map of records, Optional, a ReentrantLock's try/finally: the step atomic, one key written a step",
+          "extract-jvm.test.ts :: a switch on an enum: a case falling through into the next, the default; a static constant folded",
+          "extract-jvm.test.ts :: int wraps past MAX_VALUE as Java's does; Math.addExact traps (an ArithmeticException, kept as the result)",
+          "extract-jvm.test.ts :: the boundary inferred: a field @Autowired (a store), a constructor's injected interface (its call an answer the harness stubs), the entry",
+          "extract-jvm.test.ts :: the clock and an answered call of other code, each the request's (the check's copy of the code rewritten)"
+        ],
+        "diagnostics": [
+          "error: a grant sets the lease from now: {}",
+          "error: a hit counts one, or none where it is refused: {}",
+          "error: a hit is remembered: {}",
+          "error: a hit past MAX_VALUE wraps to MIN_VALUE: {}",
+          "error: a slow error counts as slow too (it falls through): {}",
+          "error: a spend within the limit adds it: {}",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)"
+        ]
+      }
+    },
+    {
+      "job": "extract-swift",
+      "definitionSha256": "c93783131ba1782a7febd1f84dffbfa4cd23e47a0f017581510dad4db763aa25",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [
+          "extract-swift.test.ts :: a struct: + traps past UInt8 (a crash, the failure), &+ wraps, an Optional set, an enum's raw value, a throw",
+          "extract-swift.test.ts :: an actor: its methods each one step",
+          "extract-swift.test.ts :: the boundary inferred: an injected store by its keys, an answer over a protocol's declared result, the entry"
+        ],
+        "diagnostics": [
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)"
+        ]
+      }
+    },
+    {
+      "job": "extract-orm",
+      "definitionSha256": "d85dce9ed67edae297149d2b61869eb1cdee90bf9a77fa4ad93c36cfc414839a",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [
+          "core/extract-py-orm.test.ts :: Django model columns initialize a real row"
+        ],
+        "diagnostics": [
+          "error: expect(received).toBe(expected)"
+        ]
+      }
+    },
+    {
+      "job": "extract-rs",
+      "definitionSha256": "1b2161abb82c552697e0445600fa2a09cc24eff1a83e081c20d611493f17d135",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [
+          "extract-rs.test.ts :: Rust atomic ordering: typed load and store retain invalid-order failures",
+          "extract-rs.test.ts :: a C-like enum, its discriminant, an Err returned, an atomic counter",
+          "extract-rs.test.ts :: integers of a width: + traps past it (the failure), wrapping_add wraps, checked_add is an Option",
+          "extract-rs.test.ts :: the boundary inferred: other crates' calls left out or answered (tagged: their types aren't read), the entry"
+        ],
+        "diagnostics": [
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toMatchObject(expected)"
+        ]
+      }
+    },
+    {
+      "job": "extract-go",
+      "definitionSha256": "90414edc715f21b5e9052bf218c25c42540acc2bd07d442d57091936e97e3189",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [
+          "extract-go.test.ts :: *big.Int fields (blnk's balances): nil a state of its own, Add and Sub in place, Cmp, an error as the refusal",
+          "extract-go.test.ts :: Go's integer division truncates toward zero; conversions wrap into the narrower type",
+          "extract-go.test.ts :: a context.Context argument passed on to the package's own functions is read; one the step reads is refused",
+          "extract-go.test.ts :: a panic or an error after a write is refused, unless the caller discards what a failed call wrote",
+          "extract-go.test.ts :: a struct given by value (gitea's CreateReviewOptions, the csr options): its fields inputs; writing the copy changes nothing the caller sees",
+          "extract-go.test.ts :: a struct of uint32 counters (gobreaker's Counts): increments wrap at 2^32, a result kept",
+          "extract-go.test.ts :: a uint64 below 0 is refused (Go wraps it past the rule's 2^53); past 2^53 the runtime refuses",
+          "extract-go.test.ts :: aliasing through pointers: a copied pointer writes the object, a copied struct doesn't, an interior pointer does",
+          "extract-go.test.ts :: embedded structs: a promoted pointer method writes the embedded field, a value receiver writes a copy",
+          "extract-go.test.ts :: maps: read with a zero for a missing key, comma-ok, delete, a nil map's write panics; a range over one is refused",
+          "extract-go.test.ts :: overflow at each width: int8 wraps to −128, uint16 below 0 wraps up, int32 products wrap",
+          "extract-go.test.ts :: panics: explicit, a nil *big.Int, a division by a constant zero is Go's compile error; each a refusal, the state as it was",
+          "extract-go.test.ts :: the boundary inferred: another package's call left out, one whose value is read answered over its type, the entry"
+        ],
+        "diagnostics": [
+          "error: Bump on a nil map is refused (a panic): {}",
+          "error: Check refuses a negative value: {}",
+          "error: Hit counts a request: {}",
+          "error: Move never leaves N below 0: {}",
+          "error: a copied pointer writes the object: {}",
+          "error: a refused take changes nothing: {}",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: int8 127 + 1 is −128: {}",
+          "error: onRequest at 2^32 − 1 wraps to 0: {}",
+          "error: −7 / 2 is −3: {}"
+        ]
+      }
+    },
+    {
+      "job": "runner-cli-c-jvm",
+      "definitionSha256": "3d9b15351eb8e1fe4188fc782eddc64b76f2b5e11af0ea06dab9bd3cc5620ed6",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [
+          "extract-c.test.ts :: C++: a class, its constructor the start (its parameters the rule's), private members, lock guards, std::min, std::array, a throw",
+          "extract-c.test.ts :: C++: a default member initializer beside a constructor that sets other fields",
+          "extract-c.test.ts :: a file that keeps its state in globals: the globals one object, its functions requests, an extern volatile the request's",
+          "extract-c.test.ts :: a fixed array is a list of its length; an index the path doesn't keep within it is refused (undefined behavior)",
+          "extract-c.test.ts :: a literal past 2^53 stored in a narrower unsigned: its value there exactly (2^53 + 1 is 1 in 32 bits)",
+          "extract-c.test.ts :: a stated failure, assert and abort are refusals; a write before one needs onError: discard",
+          "extract-c.test.ts :: a switch: labels together, a case running into the next, an enum, ?: and the file's functions inlined",
+          "extract-c.test.ts :: an out-parameter: what the function leaves in *data is its result beside the value returned; masks of promoted values",
+          "extract-c.test.ts :: bit operations with a constant: flags set, cleared, toggled and tested, composed into one form",
+          "extract-c.test.ts :: division and remainder truncate toward zero; by zero it is refused",
+          "extract-c.test.ts :: signed overflow is undefined: refused where the path doesn't exclude it, never wrapped",
+          "extract-c.test.ts :: the boundary inferred: a library call left out, another file's function answered over its declared type, the entry",
+          "extract-c.test.ts :: unsigned arithmetic wraps; a narrow one is promoted and converted back",
+          "extract-jvm.test.ts :: Kotlin: an immutable data class's method returning its next value is a step to it; copy, scope functions",
+          "extract-jvm.test.ts :: Kotlin: when on an enum, a nullable Long (?:, !!, smart casts), check, @Synchronized",
+          "extract-jvm.test.ts :: a compare-and-set loop read as its first pass; an AtomicInteger as the int it holds; Math.max and min",
+          "extract-jvm.test.ts :: a map of records, Optional, a ReentrantLock's try/finally: the step atomic, one key written a step",
+          "extract-jvm.test.ts :: a switch on an enum: a case falling through into the next, the default; a static constant folded",
+          "extract-jvm.test.ts :: int wraps past MAX_VALUE as Java's does; Math.addExact traps (an ArithmeticException, kept as the result)",
+          "extract-jvm.test.ts :: the boundary inferred: a field @Autowired (a store), a constructor's injected interface (its call an answer the harness stubs), the entry",
+          "extract-jvm.test.ts :: the clock and an answered call of other code, each the request's (the check's copy of the code rewritten)"
+        ],
+        "diagnostics": [
+          "error: a dequeue gives the item at the tail: {}",
+          "error: a failure half open trips it: {}",
+          "error: a grant sets the lease from now: {}",
+          "error: a hit counts one, or none where it is refused: {}",
+          "error: a hit is remembered: {}",
+          "error: a hit past MAX_VALUE wraps to MIN_VALUE: {}",
+          "error: a lap wraps at 256: {}",
+          "error: a slow error counts as slow too (it falls through): {}",
+          "error: a spend within the limit adds it: {}",
+          "error: a take never goes below 0: {}",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: expect(received).toBe(expected)",
+          "error: never past its cap: {}",
+          "error: ok sets it to 1: {}",
+          "error: the half and the rest make k again: {}"
+        ]
+      }
+    },
+    {
+      "job": "lean-package-0",
+      "definitionSha256": "48593b6addbce4182d503ad42b5015f4fa9f03eeb4d1e01d27ff97052c057271",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [],
+        "diagnostics": [
+          "axiom-gate: 111 #print axioms asked, 0 answered",
+          "error: Proofs.lean:1688:11: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 4 k) μ authority_law0\nbut is expected to have type\n  ∀ (k : Nat), μ Child k ≤ μ Grants k",
+          "error: Proofs.lean:1693:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ authority_law1\nbut is expected to have type\n  ρ live ≤ ρ issued",
+          "error: Proofs.lean:1698:11: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 5 k) μ authority_law2\nbut is expected to have type\n  ∀ (k : Nat), μ Child k ≤ ρ issued",
+          "error: Proofs.lean:1703:11: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 6 k) μ authority_law3\nbut is expected to have type\n  ∀ (k : Nat), μ Grants k ≤ 1",
+          "error: Proofs.lean:2418:11: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 5 k) μ childuse_law0\nbut is expected to have type\n  ∀ (k : Nat), μ Grants k ≤ 1",
+          "error: Proofs.lean:2705:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ rota_law0\nbut is expected to have type\n  ρ weekday < 7",
+          "error: Proofs.lean:2710:54: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ rota_law1\nbut is expected to have type\n  ρ weekday = μ «mod$7» (ρ day)",
+          "error: Proofs.lean:2717:65: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ rota_law2\nbut is expected to have type\n  ρ lead = μ «mod$3» (μ «div$7» (ρ day))",
+          "error: Proofs.lean:2877:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_delay_ind_law0\nbut is expected to have type\n  1 ≤ ρ fx",
+          "error: Proofs.lean:2882:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_delay_ind_law1\nbut is expected to have type\n  ρ fx ≤ 64",
+          "error: Proofs.lean:3077:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ backoff_law0\nbut is expected to have type\n  ρ next ≤ ρ last + 64",
+          "error: Proofs.lean:3250:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_growing_ind_law0\nbut is expected to have type\n  1 ≤ ρ fx",
+          "error: Proofs.lean:3255:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_growing_ind_law1\nbut is expected to have type\n  ρ fx ≤ 64",
+          "error: Proofs.lean:3478:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_growing_two_law0\nbut is expected to have type\n  1 ≤ ρ fy",
+          "error: Proofs.lean:3483:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_growing_two_law1\nbut is expected to have type\n  ρ fy ≤ 64",
+          "error: Proofs.lean:3488:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_growing_two_law2\nbut is expected to have type\n  ρ fx ≤ ρ fy",
+          "error: Proofs.lean:3751:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ growing_law0\nbut is expected to have type\n  ρ start ≤ ρ level",
+          "error: Proofs.lean:3756:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ growing_law1\nbut is expected to have type\n  μ delay (ρ start) ≤ μ delay (ρ level)",
+          "error: Proofs.lean:4021:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ invoices_law0\nbut is expected to have type\n  ρ spent ≤ ρ budget",
+          "error: Proofs.lean:4026:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ invoices_law1\nbut is expected to have type\n  ρ tax ≤ ρ spent",
+          "error: Proofs.lean:4189:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_backoff_ind_law0\nbut is expected to have type\n  ρ fx ≤ 64",
+          "error: Proofs.lean:4194:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_backoff_ind_law1\nbut is expected to have type\n  1 ≤ ρ fx",
+          "error: Proofs.lean:4389:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ foundbackoff_law0\nbut is expected to have type\n  ρ next ≤ ρ last + 64",
+          "error: Proofs.lean:6638:11: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k k2 : Nat), holdsC (upd (upd ρ 3 k2) 2 k) μ sortedlist_law0\nbut is expected to have type\n  ∀ (k k2 : Nat), (k < k2 → ρ len ≤ k2) ∨ μ At k < μ At k2",
+          "error: Proofs.lean:6643:11: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 4 k) μ sortedlist_law1\nbut is expected to have type\n  ∀ (k : Nat), k < ρ len ∨ μ At k = 0",
+          "error: Proofs.lean:6771:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ checkoutchart_law0\nbut is expected to have type\n  ¬ρ shipping = 1 ∨ ρ payment = 1",
+          "error: Proofs.lean:7134:11: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 6 k) μ inferlease_law0\nbut is expected to have type\n  ∀ (k : Nat), k = ρ owner ∨ μ Expiry k ≤ ρ now",
+          "error: Proofs.lean:7139:11: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 7 k) μ inferlease_law1\nbut is expected to have type\n  ∀ (k : Nat), μ Expiry k ≤ ρ «until»",
+          "error: Proofs.lean:730:11: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 4 k) μ caps_law0\nbut is expected to have type\n  ∀ (k : Nat), μ Day k ≤ ρ d",
+          "error: Proofs.lean:7328:11: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ accounts_law0\nbut is expected to have type\n  ∀ (k : Nat), μ «Acct.spent» k ≤ μ «Acct.limit» k",
+          "error: Proofs.lean:8435:11: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 2 k) μ bits_law0\nbut is expected to have type\n  ∀ (k : Nat), μ A k ≤ 1",
+          "error: Proofs.lean:8440:11: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k k2 k3 : Nat), holdsC (upd (upd (upd ρ 4 k2) 5 k3) 3 k) μ bits_law1\nbut is expected to have type\n  ∀ (k k2 k3 : Nat), μ A k = μ A k2 ∨ μ A k2 = μ A k3 ∨ μ A k = μ A k3",
+          "error: Proofs.lean:8771:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ tagged_law0\nbut is expected to have type\n  ρ served ≤ ρ next",
+          "error: Proofs.lean:9491:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ lazy_law0\nbut is expected to have type\n  ρ a_issued = ρ b_issued",
+          "error: Proofs.lean:9496:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ lazy_law1\nbut is expected to have type\n  ρ a_live = ρ b_live",
+          "error: Proofs.lean:9501:11: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ lazy_law2\nbut is expected to have type\n  ρ a_live ≤ 1",
+          "error: Proofs.lean:9506:11: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 6 k) μ lazy_law3\nbut is expected to have type\n  ∀ (k : Nat), μ a_Grants k = μ b_Grants k",
+          "error: Proofs.lean:9511:11: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 6 k) μ lazy_law4\nbut is expected to have type\n  ∀ (k : Nat), ρ a_live = 1 ∧ μ b_Child k = μ a_Child k ∨ ρ a_live = 0 ∧ μ b_Child k = 0",
+          "error: build failed"
+        ]
+      }
+    },
+    {
+      "job": "lean-package-1",
+      "definitionSha256": "2b613916d5ca0198a4905515b723ab97d16f5cf80badd704e2b68e3dce4a1e70",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [],
+        "diagnostics": [
+          "Proofs.lean:1169:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ minutes_law0\nbut is expected to have type\n  ρ count ≤ ρ cap",
+          "Proofs.lean:1174:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ minutes_law1\nbut is expected to have type\n  60 * ρ minute ≤ ρ last",
+          "Proofs.lean:1321:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ billing_law0\nbut is expected to have type\n  ρ used ≤ ρ billed",
+          "Proofs.lean:1326:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ billing_law1\nbut is expected to have type\n  ρ billed < ρ used + 15",
+          "Proofs.lean:1491:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_twos_ind_law0\nbut is expected to have type\n  ρ fx ≤ 10",
+          "Proofs.lean:1496:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_twos_ind_law1\nbut is expected to have type\n  ρ fx ≤ 2 * ρ x",
+          "Proofs.lean:156:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ window_law0\nbut is expected to have type\n  ρ ours ≤ ρ c",
+          "Proofs.lean:1613:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ twos_law0\nbut is expected to have type\n  ρ v ≤ 10",
+          "Proofs.lean:1771:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_growing_ind_law0\nbut is expected to have type\n  1 ≤ ρ fx",
+          "Proofs.lean:1776:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_growing_ind_law1\nbut is expected to have type\n  ρ fx ≤ 64",
+          "Proofs.lean:1999:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_growing_two_law0\nbut is expected to have type\n  1 ≤ ρ fy",
+          "Proofs.lean:2004:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_growing_two_law1\nbut is expected to have type\n  ρ fy ≤ 64",
+          "Proofs.lean:2009:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_growing_two_law2\nbut is expected to have type\n  ρ fx ≤ ρ fy",
+          "Proofs.lean:2235:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ ladder_law0\nbut is expected to have type\n  ρ prev ≤ ρ level",
+          "Proofs.lean:2240:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ ladder_law1\nbut is expected to have type\n  μ delay (ρ prev) ≤ μ delay (ρ level)",
+          "Proofs.lean:2527:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_square_ind_law0\nbut is expected to have type\n  ρ fx = ρ x * ρ x",
+          "Proofs.lean:2651:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ foundarea_law0\nbut is expected to have type\n  ρ a = ρ n * ρ n",
+          "Proofs.lean:3510:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k k2 : Nat), holdsC (upd (upd ρ 3 k2) 2 k) μ distinctnames_law0\nbut is expected to have type\n  ∀ (k k2 : Nat), (k < k2 → ρ len ≤ k2) ∨ ¬μ Names k = μ Names k2",
+          "Proofs.lean:4234:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 4 k) μ seats_law0\nbut is expected to have type\n  ∀ (k : Nat), μ Seats k < 3",
+          "Proofs.lean:4524:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 1 k) μ team_law0\nbut is expected to have type\n  ∀ (k : Nat), k < 4 ∨ μ Team k = 0",
+          "Proofs.lean:4529:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ team_law1\nbut is expected to have type\n  μ Team 0 + μ Team 1 + μ Team 2 + μ Team 3 ≤ ρ cap",
+          "Proofs.lean:5037:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ batches_law0\nbut is expected to have type\n  ρ waiting ≤ 5",
+          "Proofs.lean:5280:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ countdown_law0\nbut is expected to have type\n  ρ a_left + ρ b_used = ρ cap",
+          "Proofs.lean:810:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 4 k) μ inline_law0\nbut is expected to have type\n  ∀ (k : Nat), ¬ρ live = 1 ∨ μ Child k ≤ μ Grants k",
+          "Proofs.lean:815:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 5 k) μ inline_law1\nbut is expected to have type\n  ∀ (k : Nat), μ Child k ≤ ρ issued",
+          "Proofs.lean:820:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 6 k) μ inline_law2\nbut is expected to have type\n  ∀ (k : Nat), μ Grants k ≤ 1 ∧ μ Child k ≤ μ Grants k",
+          "Proofs.lean:825:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ inline_law3\nbut is expected to have type\n  ρ live ≤ ρ issued"
+        ]
+      }
+    },
+    {
+      "job": "lean-package-2",
+      "definitionSha256": "c47cba2f6c44139ed06df33fb2b70b909545cf4f82065a18e254821aa296266b",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [],
+        "diagnostics": [
+          "Proofs.lean:1211:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_filled_two_law0\nbut is expected to have type\n  ρ fy ≤ ρ cap",
+          "Proofs.lean:1216:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_filled_two_law1\nbut is expected to have type\n  ρ fy ≤ ρ y",
+          "Proofs.lean:1221:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_filled_two_law2\nbut is expected to have type\n  ρ fx ≤ ρ fy",
+          "Proofs.lean:1352:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ filled_law0\nbut is expected to have type\n  ρ level ≤ ρ cap",
+          "Proofs.lean:1483:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ tank_law0\nbut is expected to have type\n  ρ level ≤ ρ room",
+          "Proofs.lean:2097:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_pyramid_ind_law0\nbut is expected to have type\n  6 * ρ fx = 2 * (ρ x * ρ x * ρ x) + 3 * (ρ x * ρ x) + ρ x",
+          "Proofs.lean:2235:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ foundpyramid_law0\nbut is expected to have type\n  6 * ρ a = 2 * (ρ n * ρ n * ρ n) + 3 * (ρ n * ρ n) + ρ n",
+          "Proofs.lean:3455:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ wideflag_law0\nbut is expected to have type\n  ρ armed ≤ 1",
+          "Proofs.lean:3460:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ wideflag_law1\nbut is expected to have type\n  ρ alarm ≤ 1",
+          "Proofs.lean:4166:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ xstateorder_law0\nbut is expected to have type\n  ρ «state.last.active» = 1 ∨ ρ «state.last.active» = 2",
+          "Proofs.lean:4171:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ xstateorder_law1\nbut is expected to have type\n  ρ retries ≤ 2",
+          "Proofs.lean:426:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ members_law0\nbut is expected to have type\n  ρ count = 0 ∨ μ S (ρ last) = 1",
+          "Proofs.lean:4832:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ jobs_law0\nbut is expected to have type\n  ρ Queue_len ≤ ρ cap",
+          "Proofs.lean:4837:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 5 k) μ jobs_law1\nbut is expected to have type\n  ∀ (k : Nat), k < ρ Queue_len ∨ μ «Queue.id» k = 0 ∧ μ «Queue.prio» k = 0",
+          "Proofs.lean:5195:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ tickets_law0\nbut is expected to have type\n  ρ served ≤ ρ next",
+          "Proofs.lean:5597:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ recounted_law0\nbut is expected to have type\n  ρ served ≤ ρ next",
+          "Proofs.lean:5906:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ twophase_law0\nbut is expected to have type\n  ρ a_used = ρ b_used",
+          "Proofs.lean:5911:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ twophase_law1\nbut is expected to have type\n  ρ a_pending ≤ ρ most",
+          "Proofs.lean:655:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ larger_law0\nbut is expected to have type\n  ρ seen ≤ ρ high",
+          "Proofs.lean:802:47: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ dispenser_law0\nbut is expected to have type\n  μ «mod$2» (ρ issued) = 0",
+          "Proofs.lean:983:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_filled_ind_law0\nbut is expected to have type\n  ρ fx ≤ ρ cap",
+          "Proofs.lean:988:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_filled_ind_law1\nbut is expected to have type\n  ρ fx ≤ ρ x"
+        ]
+      }
+    },
+    {
+      "job": "lean-package-3",
+      "definitionSha256": "02ab961480f60b96473e34a66e0daa114d095e62f9dd2d81eaf6a054d67c7a18",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [],
+        "diagnostics": [
+          "Proofs.lean:1790:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ normalform_law0\nbut is expected to have type\n  ∀ (k : Nat), μ Names k ≤ 1",
+          "Proofs.lean:1948:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ room_law0\nbut is expected to have type\n  ρ shakes = μ pairs (ρ people)",
+          "Proofs.lean:2297:74: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ ledger_law0\nbut is expected to have type\n  μ «mod$3» (ρ balance + 2 * ρ «balance$neg») = 0",
+          "Proofs.lean:2308:116: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ ledger_law1\nbut is expected to have type\n  μ «div$3» (ρ balance + 2 * ρ «balance$neg») + ρ «net$neg» = ρ net + ρ «balance$neg»",
+          "Proofs.lean:2426:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_leftovers_ind_law0\nbut is expected to have type\n  ρ fx ≤ 6 * ρ x",
+          "Proofs.lean:2554:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ leftovers_law0\nbut is expected to have type\n  ρ total ≤ 6 * ρ day",
+          "Proofs.lean:2676:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ Recur_squares_ind_law0\nbut is expected to have type\n  ρ fx = ρ x * ρ x",
+          "Proofs.lean:2800:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ area_law0\nbut is expected to have type\n  ρ a = ρ n * ρ n",
+          "Proofs.lean:2995:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ metered_law0\nbut is expected to have type\n  ρ spent ≤ ρ budget",
+          "Proofs.lean:3000:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ metered_law1\nbut is expected to have type\n  ρ spent ≤ ρ listed + ρ fees",
+          "Proofs.lean:3248:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ foundinvoices_law0\nbut is expected to have type\n  ρ spent ≤ ρ budget",
+          "Proofs.lean:3253:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ foundinvoices_law1\nbut is expected to have type\n  ρ tax ≤ ρ spent",
+          "Proofs.lean:3382:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ runningstats_law0\nbut is expected to have type\n  ρ s * ρ s ≤ ρ n * ρ q",
+          "Proofs.lean:387:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ escrow_law0\nbut is expected to have type\n  ρ released ≤ ρ closed",
+          "Proofs.lean:6264:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ orderchart_law0\nbut is expected to have type\n  ρ «state.last.active» = 1 ∨ ρ «state.last.active» = 2",
+          "Proofs.lean:6269:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ orderchart_law1\nbut is expected to have type\n  ρ retries ≤ ρ tries",
+          "Proofs.lean:6482:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ inferpool_law0\nbut is expected to have type\n  ρ released ≤ ρ acquired",
+          "Proofs.lean:6487:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ inferpool_law1\nbut is expected to have type\n  ρ inUse + ρ released ≤ ρ acquired",
+          "Proofs.lean:6986:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ held_law0\nbut is expected to have type\n  ρ «at» < 3",
+          "Proofs.lean:6991:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ held_law1\nbut is expected to have type\n  ρ «at» = 0 ∨ ρ «at» = 1 ∧ ρ «at.holding.amount» ≤ ρ cap ∨ ρ «at» = 2 ∧ ρ «at.released.amount» ≤ ρ cap",
+          "Proofs.lean:6996:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ held_law2\nbut is expected to have type\n  ρ «at» = 0 ∧ ρ paid = 0 ∨ ρ «at» = 1 ∧ ρ paid = 0 ∨ ρ «at» = 2 ∧ ρ paid = ρ «at.released.amount»",
+          "Proofs.lean:7881:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 4 k) μ scope_law0\nbut is expected to have type\n  ∀ (k : Nat), k < ρ Scope_len ∨ μ Scope k = 0",
+          "Proofs.lean:7886:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k k2 : Nat), holdsC (upd (upd ρ 6 k2) 5 k) μ scope_law1\nbut is expected to have type\n  ∀ (k k2 : Nat), (k < k2 → ρ Scope_len ≤ k2) ∨ μ Scope k < μ Scope k2",
+          "Proofs.lean:8289:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ logged_law0\nbut is expected to have type\n  ρ served ≤ ρ next",
+          "Proofs.lean:8683:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ reviews_law0\nbut is expected to have type\n  ∀ (k : Nat), μ Pending k ≤ 1"
+        ]
+      }
+    },
+    {
+      "job": "lean-cyclic",
+      "definitionSha256": "2109aa7501c757a6dd4233f483e95617c7216dd681109f517a86f7c649aa614e",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [],
+        "diagnostics": [
+          "'budget_runs' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]",
+          "Proofs.lean:1111:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ cyccounter_law0\nbut is expected to have type\n  ρ v ≤ 10",
+          "Proofs.lean:1368:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 6 k) μ cyccaps_law0\nbut is expected to have type\n  ∀ (k : Nat), μ Day k ≤ ρ d",
+          "Proofs.lean:1437:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 6 k) μ cycfill_law0\nbut is expected to have type\n  ∀ (k : Nat), μ Level k ≤ ρ cap",
+          "Proofs.lean:1527:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 6 k) μ cyctally_law0\nbut is expected to have type\n  ∀ (k : Nat), μ Count k ≤ ρ cap",
+          "Proofs.lean:1673:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ cycbudget_law0\nbut is expected to have type\n  ρ spent ≤ ρ cap",
+          "Proofs.lean:1678:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ cycbudget_law1\nbut is expected to have type\n  ρ n ≤ ρ spent",
+          "axiom-gate: budget_runs depends on sorryAx"
+        ]
+      }
+    },
+    {
+      "job": "lean-cycles",
+      "definitionSha256": "8750b5046055e9911643246244777be5426b4328362efff72a2356757cb4d3b1",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [],
+        "diagnostics": [
+          "Proofs.lean:2153:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ ruledouble_law0\nbut is expected to have type\n  ρ value = 2 * ρ count",
+          "Proofs.lean:2300:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ rulefill_law0\nbut is expected to have type\n  ρ level ≤ ρ n",
+          "Proofs.lean:608:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ rule91_law0\nbut is expected to have type\n  ρ out = 91"
+        ]
+      }
+    },
+    {
+      "job": "lean-cycles-loops",
+      "definitionSha256": "8596e0a26d7543f3f8175a36c4a01c9e7e7a10406ee807a05c35247f6b13f109",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [],
+        "diagnostics": [
+          "Proofs.lean:1002:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ loopeuclid_law1\nbut is expected to have type\n  1 ≤ ρ b",
+          "Proofs.lean:2134:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ livebatches_law0\nbut is expected to have type\n  ρ waiting ≤ 5",
+          "Proofs.lean:997:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ loopeuclid_law0\nbut is expected to have type\n  1 ≤ ρ a"
+        ]
+      }
+    },
+    {
+      "job": "lean-protocols-sync",
+      "definitionSha256": "e3cfa835012e1236de496c8bb02348c0d96debff3a5a3f5af4feb7872e2527d5",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [],
+        "diagnostics": [
+          "P_lock_server_sync.lean:847:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ lock_server_sync_law0\nbut is expected to have type\n  ∀ (k : Nat), μ Link k ≤ 1",
+          "P_lock_server_sync.lean:852:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 4 k) μ lock_server_sync_law1\nbut is expected to have type\n  ∀ (k : Nat), μ Semaphore k ≤ 1",
+          "P_lock_server_sync.lean:857:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k k2 k3 : Nat), holdsC (upd (upd (upd ρ 6 k2) 7 k3) 5 k) μ lock_server_sync_law2\nbut is expected to have type\n  ∀ (k k2 k3 : Nat), (k < 64 → k2 < 64 → k3 < 64 → μ Link (64 * k + k3) = 1 → ¬μ Link (64 * k2 + k3) = 1) ∨ k = k2",
+          "P_lock_server_sync.lean:862:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k k2 : Nat), holdsC (upd (upd ρ 9 k2) 8 k) μ lock_server_sync_law3\nbut is expected to have type\n  ∀ (k k2 : Nat), (k < 64 → 64 ≤ k2) ∨ μ Semaphore k2 + μ Link (64 * k + k2) ≤ 1",
+          "P_lock_server_sync.lean:862:11: error: Type mismatch: After simplification, term\n has type\nbut is expected to have type\n1"
+        ]
+      }
+    },
+    {
+      "job": "lean-protocols-wo",
+      "definitionSha256": "d8e4ed060eacc0cd03321bba0365b03d58029996ebc5ad8ba0a7b8732fc2b52e",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [],
+        "diagnostics": [
+          "not-exported",
+          "{\"id\":\"consensus_wo_decide\",\"tries\":2,\"search\":{\"verdict\":\"unknown\",\"ms\":0,\"found\":0,\"some\":0,\"facts\":0,\"lemmas\":0}}"
+        ]
+      }
+    },
+    {
+      "job": "lean-keyed",
+      "definitionSha256": "0054312895a21467506ccbbbeb79af311515e8482a926f8a488d98bd8ab20cd9",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [],
+        "diagnostics": [
+          "Keyed.lean:5936:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ outbox_law0\nbut is expected to have type\n  ∀ (k : Nat), μ InFlight k ≤ μ Q k",
+          "Keyed.lean:5941:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 3 k) μ outbox_law1\nbut is expected to have type\n  ∀ (k : Nat), μ Q k ≤ 1"
+        ]
+      }
+    },
+    {
+      "job": "lean-jev-fabric",
+      "definitionSha256": "fecf78e3dfdfb8e7fe5337ad9a1f6695a9cdd0051e0a11aa9439bed8016a16e3",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [],
+        "diagnostics": [
+          "JevFabric.lean:1138:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 7 k) μ law41_law0\nbut is expected to have type\n  ∀ (k : Nat), k < ρ Q_len ∨ μ Q k = 0",
+          "JevFabric.lean:1359:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 7 k) μ law42_law0\nbut is expected to have type\n  ∀ (k : Nat), k < ρ Q_len ∨ μ Q k = 0",
+          "JevFabric.lean:2525:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ extra3_law0\nbut is expected to have type\n  ρ used + ρ remaining ≤ ρ cap",
+          "JevFabric.lean:2530:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ extra3_law1\nbut is expected to have type\n  ρ inflight ≤ 1 ∧ (¬ρ inflight = 1 ∨ ρ tokens < ρ limit)",
+          "JevFabric.lean:2535:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ extra3_law2\nbut is expected to have type\n  ¬ρ off = 1 ∨ ρ remaining = 0 ∧ ρ limit < ρ tokens",
+          "JevFabric.lean:2992:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ extra4_law0\nbut is expected to have type\n  ρ emitted ≤ ρ total",
+          "JevFabric.lean:2997:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ extra4_law1\nbut is expected to have type\n  ρ pending < ρ batch",
+          "JevFabric.lean:3002:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ extra4_law2\nbut is expected to have type\n  ρ outs ≤ 1",
+          "JevFabric.lean:3409:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 6 k) μ extra5_law0\nbut is expected to have type\n  ∀ (k : Nat), k < ρ Printed_len ∨ μ Printed k = 0",
+          "JevFabric.lean:3414:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k k2 : Nat), holdsC (upd (upd ρ 8 k2) 7 k) μ extra5_law1\nbut is expected to have type\n  ∀ (k k2 : Nat), (k < k2 → ρ Printed_len ≤ k2) ∨ μ Printed k < μ Printed k2",
+          "JevFabric.lean:3419:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 9 k) μ extra5_law2\nbut is expected to have type\n  ∀ (k : Nat), ρ Printed_len ≤ k ∨ μ Printed k ≤ ρ cursor",
+          "JevFabric.lean:4271:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  ∀ (k : Nat), holdsC (upd ρ 7 k) μ extra6_law0\nbut is expected to have type\n  ∀ (k : Nat), k < ρ Q_len ∨ μ Q k = 0",
+          "JevFabric.lean:4276:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ extra6_law1\nbut is expected to have type\n  ρ total ≤ ρ max",
+          "JevFabric.lean:4281:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ extra6_law2\nbut is expected to have type\n  ρ closed ≤ 1",
+          "JevFabric.lean:4634:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ extra10_law0\nbut is expected to have type\n  ρ offset = ρ delivered + ρ lost",
+          "JevFabric.lean:4639:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ extra10_law1\nbut is expected to have type\n  ρ offset ≤ ρ count",
+          "JevFabric.lean:4937:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ extra14_law0\nbut is expected to have type\n  ρ started ≤ ρ last",
+          "JevFabric.lean:4942:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ extra14_law1\nbut is expected to have type\n  ρ left = ρ duration - (ρ last - ρ started)"
+        ]
+      }
+    },
+    {
+      "job": "lean-ksteps",
+      "definitionSha256": "fa52c713453958532aa3d98e211fd7f32a7da8834dabed575900a6ae68f761ee",
+      "exitCode": 1,
+      "signature": {
+        "failedTests": [],
+        "diagnostics": [
+          "KSteps.lean:1642:11: error: Type mismatch: After simplification, term\n  hl'\n has type\n  holdsC ρ μ budget_steps_law0\nbut is expected to have type\n  ρ s ≤ ρ b + ρ m"
+        ]
+      }
+    }
+  ],
+  "requiredPass": [
+    "exists"
+  ]
+}

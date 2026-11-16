@@ -24,7 +24,39 @@ function reproduced(): any {
   return r
 }
 
+function policyFixture(): {receipt: any; trusted: any} {
+  const jobs = [{name:'inherited',cmd:'bun test inherited'}, {name:'exists',cmd:'bun test exists'}]
+  const policy = {schema:'gdp-known-failures/v1',baselineCommit:commit,evidence:{triageSha256:hash,comparisonSha256:hash},entries:[{job:'inherited',definitionSha256:canonicalJobHash(jobs[0]!),exitCode:1,signature:{failedTests:['known test'],diagnostics:['error: known assertion']}}],requiredPass:['exists']}
+  const receipt = fixture()
+  receipt.knownFailuresSha256 = hash
+  receipt.jobs = jobs.map((job: any, i: number) => ({...receipt.jobs[0], name: job.name, nativeName: job.name, definitionSha256: canonicalJobHash(job), launchIdentity: `launch-${i}`}))
+  const entry = policy.entries[0]!, execution = receipt.jobs.find((j: any) => j.name === entry.job)
+  Object.assign(execution, {status: 'FAILED', code: 1, outcome: 'KNOWN_FAILURE', signature: structuredClone(entry.signature)})
+  return {receipt, trusted: {...expected, canonicalJobs: jobs, trustedKnownFailuresPolicy: policy, knownFailuresSha256: hash}}
+}
+
 describe('full gate contract', () => {
+  test('accepts exact policy failure and rejects policy hash or signature changes', () => {
+    const {receipt, trusted} = policyFixture()
+    const result = verifyReleaseReceipt(receipt, trusted)
+    expect(result.knownFailures).toHaveLength(1)
+    expect(result.counts.knownFailures).toBe(1)
+    expect(() => verifyReleaseReceipt(receipt, {...trusted, knownFailuresSha256: '0'.repeat(64)})).toThrow()
+    const altered = structuredClone(receipt)
+    altered.jobs.find((j: any) => j.outcome === 'KNOWN_FAILURE').signature.diagnostics.push('unexpected failure')
+    expect(() => verifyReleaseReceipt(altered, trusted)).toThrow()
+    expect(() => verifyReleaseReceipt(receipt, {...expected, canonicalJobs: trusted.canonicalJobs})).toThrow()
+  })
+  test('required exists cannot fail or be removed from requiredPass', () => {
+    const {receipt, trusted} = policyFixture()
+    const exists = receipt.jobs.find((j: any) => j.name === 'exists')
+    expect(exists).toBeDefined()
+    Object.assign(exists, {status: 'FAILED', code: 1, outcome: 'KNOWN_FAILURE', signature: {failedTests: [], diagnostics: []}})
+    expect(() => verifyReleaseReceipt(receipt, trusted)).toThrow()
+    const policy = structuredClone(trusted.trustedKnownFailuresPolicy)
+    policy.requiredPass = policy.requiredPass.filter((s: string) => s !== 'exists')
+    expect(() => verifyReleaseReceipt(receipt, {...trusted, trustedKnownFailuresPolicy: policy})).toThrow()
+  })
   test('hashes complete definitions with recursively stable key order', () => {
     const a = canonicalJobs[0]!
     expect(canonicalJobHash(a)).toBe(canonicalJobHash({ env: { A: '1', B: '2' }, cwd: 'pkg', cmd: 'bun test', name: 'first' }))
@@ -33,18 +65,18 @@ describe('full gate contract', () => {
   })
   test('accepts exactly covered successes and returns the receipt', () => {
     const r = fixture()
-    expect(verifyReleaseReceipt(r, expected)).toEqual({ receipt: r, cleanupComplete: true, openCustody: [] })
+    expect(verifyReleaseReceipt(r, expected)).toEqual({ receipt: r, cleanupComplete: true, openCustody: [], knownFailures: [], counts: {succeeded: 2, knownFailures: 0, total: 2} })
   })
   test('preserves LOST and accepts a separately labelled independent success', () => {
     const r = reproduced()
     expect(() => verifyLostReproduction(r.jobs[0].originalLost, r.jobs[0])).not.toThrow()
-    expect(verifyReleaseReceipt(r, expected).receipt.jobs[0]!.originalLost!.status).toBe('LOST')
+    expect((verifyReleaseReceipt(r, expected).receipt.jobs[0]! as any).originalLost!.status).toBe('LOST')
   })
   test('reports original LOST open custody while preserving the independently superseded outcome', () => {
     const r = reproduced(); r.jobs[0].originalLost.cleanupComplete = false
     const result = verifyReleaseReceipt(r, expected)
     expect(result.cleanupComplete).toBe(false)
-    expect(result.receipt.jobs[0]!.originalLost!.cleanupComplete).toBe(false)
+    expect((result.receipt.jobs[0]! as any).originalLost!.cleanupComplete).toBe(false)
     expect(result.openCustody).toEqual([{ name: 'first', batchId: 'batch-1', launchIdentity: 'launch-0', statement: 'LOST, custody open, superseded by passing labelled repro of same job/commit' }])
   })
   const negatives: [string, (r: any) => void][] = [
