@@ -688,7 +688,11 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   checkWorkEndpoint('inference entry')
   // (GDP_INFER_TRACE=2: each phase's progress too, to stderr)
   if (env.GDP_INFER_TRACE === '2' && !opts.progress) opts = {...opts, progress: (phase, info) => (globalThis as unknown as {process: {stderr: {write: (s: string) => void}}}).process.stderr.write(`[infer ${phase}] ${JSON.stringify(info)}\n`)}
-  const t0 = countedSearchNow(), ms = opts.ms ?? 20000, wallUntil = opts.wall ?? t0 + ms, rule = isRule(target) ? target.withSumsOf(laws, stepLaws) : undefined
+  const t0 = countedSearchNow(), ms = opts.ms ?? 20000, wallUntil = opts.wall ?? t0 + ms
+  // Divisor declarations are mutable rule metadata. Keep a private copy even
+  // when withSumsOf would return the original rule: candidate search and returned
+  // remainder laws must not add arithmetic facts to the caller's next proof.
+  const rule = isRule(target) ? target.withDivisors().withSumsOf(laws, stepLaws) : undefined
   // The clock the budgets read (counted milliseconds since the start, or wall time where `timed`), and the stop.
   const timed = !!opts.timed, w0 = work.n, used = {tries: 0, rows: 0, evals: 0, watched: 0, erows: 0, etries: 0}
   const now = (): number => (timed ? countedSearchNow() - t0
@@ -717,7 +721,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   const m = rule ? rule.machine : target as Machine
   let proofs = 0
   // The rule (or machine) the kernel proves the candidates with: once a remainder is among them, one that declares
-  // div$k and mod$k for its divisors (rule.withDivisors leaves the caller's rule as it was until a found law needs them).
+  // div$k and mod$k for its divisors (all declarations stay on the private rule copy).
   // Only the laws proven read: a search none of whose chosen candidates is a remainder proves with the rule as it is.
   const byDivisors = new Map<string, {r?: AnyRule, m: Machine}>()
   const forLaws = (ls: Law[]): {r?: AnyRule, m: Machine} => {
