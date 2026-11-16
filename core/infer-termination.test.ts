@@ -5,7 +5,7 @@ import {proofOutput, publishProof, type ProofOutputNode} from './proof-output.ts
 import {toInterchange} from '../interchange/format.ts'
 import {checkDocument} from '../interchange/check.ts'
 import {accounts, accountsLaw} from '../examples/infer.ts'
-import {checkWorkAdmission, remainingWork} from '../kernel/prove.ts'
+import {checkWorkAdmission, fullWork, remainingWork} from '../kernel/prove.ts'
 import {withSearchWatchdog, checkWatchdog} from './search-watchdog.ts'
 
 test('completed inference metadata cleanup retains exportable proof custody', () => {
@@ -50,10 +50,14 @@ test('work and watchdog interruption retain actual partial counters and immutabl
   const r = accounts(), law = accountsLaw(r), first = proveRule(r, [law], {search: false})
   expect(first.stuck).toBe('sat')
   for (const kind of ['work-exhausted', 'wall-deadline'] as const) for (const withFirst of [true, false]) {
-    let seen: Record<string, number | string> | undefined
+    let seen: Record<string, number | string> | undefined, observedWork: number | undefined
+    const work0 = fullWork()
     const out = inferLaws(r, [law], [], {work: 1000000, ...(withFirst ? {first} : {}), progress: (phase, info) => {
       if (phase !== 'runs') return
       seen = info
+      // Sampling may change coreMeter without any legacy costs[] charge,
+      // especially when first is supplied. Compare the real independent delta.
+      observedWork = Math.max(0, fullWork() - work0)
       if (kind === 'work-exhausted') checkWorkAdmission(remainingWork() + 1, 'partial work control')
       else withSearchWatchdog(1, () => { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20); checkWatchdog('partial wall control') })
     }})
@@ -61,8 +65,11 @@ test('work and watchdog interruption retain actual partial counters and immutabl
     expect(out).toMatchObject({proven: false, checked: false, stopped: true, termination: {kind}, stats: {stopped: true}})
     expect(out.stats.samples).toBe(Number(seen!.samples))
     expect(out.stats.samples).toBeGreaterThan(0)
-    expect(out.stats.work).toBeGreaterThan(0)
+    expect(observedWork).toBeDefined()
+    expect(out.stats.work).toBe(observedWork!)
     expect(out.context?.goal).toBe(first.goal)
+    expect(out.context?.stuck).toBe(first.stuck)
+    expect(out.context?.why).toBe(first.why)
     expect(out.context?.witness).toEqual(first.witness)
   }
 })
