@@ -13,17 +13,11 @@
       "signature": {
         "failedTests": [
           "loops.test.ts :: a queue drained from its front: the fold over its places; the tasks run were due, and one left may be due (it waits behind one that isn’t)",
-          "ordered.test.ts :: a queue of numbers: the first and last items, pop(0), checked against the code; a take removes the first item",
-          "ordered.test.ts :: an order book of two lists: price-time priority proven, a self-trade found and replayed",
           "rounding.test.ts :: Java: Math.floor, Math.round and a cast of a float division, exact below their edges",
-          "rounding.test.ts :: a price on a tick: a floor and Python round, exact; the tick laws proven, a half rounding up broken",
-          "rounding.test.ts :: round(a / k) at |a| of 2^52 or more: an edge, the claim below it"
+          "rounding.test.ts :: a price on a tick: a floor and Python round, exact; the tick laws proven, a half rounding up broken"
         ],
         "diagnostics": [
           "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toEqual(expected)",
           "error: expect(received).toEqual(expected)",
           "error: expect(received).toEqual(expected)"
         ]
