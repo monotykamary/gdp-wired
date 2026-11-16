@@ -15,10 +15,12 @@ For each accepted fixture, the test enumerates the natural domain `{0,1,2}`, eve
 
 The nested `everyKey` fixture is a structural negative control: the public DSL must refuse it as a two-key law rather than silently lower it. It has no accepted lowered counterpart by design.
 
+A binder-capture mutant deliberately binds the free `key$1` parameter; the oracle rejects it on an explicit valuation. A separate lexical-scope control keeps a free occurrence outside a same-named inner binder free.
+
 A deliberately corrupted lowered law drops the existential body and replaces it with a universally quantified tautology. The bounded oracle finds a concrete disagreement, while `proveLaws` proves the mutated tautology. This demonstrates why proof success for the lowered formula alone is insufficient.
 
 ## Boundary
 
-This is finite regression testing, **not a universal equivalence theorem**. The interpreter only implements the operators used by these fixtures (natural arithmetic, map reads, conditionals, and universal binders); it does not cover flags, finite sorts, projections, all DSL constructs, arbitrary domains, kernel/Lean semantics, or source-policy parsing. Kernel and Lean gates retain their own responsibilities.
+This is finite regression testing, **not a universal equivalence theorem**. It compares the raw `Cond` captured before law lowering with the lowered `Law`; a bug in `Cond` construction that corrupts both representations identically is outside this oracle. The duplicate-label control validates fixture admission, not the production source-policy parser (covered by its separate policy-identity tests). The interpreter only implements the operators used by these fixtures (natural arithmetic, map reads, conditionals, and universal binders); it does not cover flags, finite sorts, projections, all DSL constructs, arbitrary domains, kernel/Lean semantics, or source-policy parsing. Kernel and Lean gates retain their own responsibilities.
 
 The quick CI roster invokes this test, and `supercomputer/suite.json` has the matching interactive remote job. Run the focused remote check with the lane job file/command recorded in the lane receipt.

@@ -66,7 +66,7 @@ function variablesE(e:E, out:Set<string>):void {
     case 'if': variablesC(e.c,out); variablesE(e.then,out); variablesE(e.else,out); return
     case 'mul': variablesE(e.a,out); return
     case 'proj': variablesE(e.a,out); return
-    default: variablesE(e.a,out); variablesE(e.b,out)
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': variablesE(e.a,out); variablesE(e.b,out)
   }
 }
 function variablesC(c:C, out:Set<string>):void {
@@ -74,7 +74,11 @@ function variablesC(c:C, out:Set<string>):void {
     case '<': case '<=': case '=': variablesE(c.a,out); variablesE(c.b,out); return
     case 'and': case 'or': c.xs.forEach(x=>variablesC(x,out)); return
     case 'not': variablesC(c.x,out); return
-    case 'all': variablesC(c.c,out); out.delete(c.key); c.keys?.forEach(key=>out.delete(key)); return
+    case 'all': {
+      const nested=new Set<string>()
+      variablesC(c.c,nested); nested.delete(c.key); c.keys?.forEach(key=>nested.delete(key))
+      nested.forEach(name=>out.add(name)); return
+    }
     case 'flag': return
   }
 }
@@ -120,6 +124,21 @@ test('nested one-key universals and duplicate policy labels are refused structur
   expect(nested.c.op).toBe('all')
   expect(JSON.stringify(nested.c)).toContain('"op":"all"')
   expect(()=>requireUniquePolicyNames(duplicatePolicyNames())).toThrow('duplicate policy name')
+})
+
+test('free-variable collection respects each quantifier lexical scope', () => {
+  const atom:C={op:'=',a:{op:'var',name:'x'},b:{op:'const',value:0}}
+  const scoped:C={op:'and',xs:[atom,{op:'all',key:'x',c:atom}]}
+  expect(freeVariables(scoped)).toEqual(['x'])
+})
+
+test('a lowered binder capturing a free parameter is detected', () => {
+  const fixture=surfaceFixtures().find(f=>f.id==='free-bound-collision')!
+  const mutant:Law={name:fixture.label,forall:'key$1',holds:{op:'<=',a:{op:'get',map:'A',key:{op:'var',name:'key$1'}},b:{op:'var',name:'key$1'}}}
+  const counterexample:Model={free:{'key$1':1},maps:{A:[1,1,1]}}
+  expect(surfaceMeaning(fixture,counterexample)).toBe(true)
+  expect(loweredMeaning(mutant,counterexample)).toBe(false)
+  expect(()=>assertAgreement({...fixture,lowered:mutant},[counterexample])).toThrow()
 })
 
 test('mutant lowering is detected although its substituted lowered tautology proves', () => {
