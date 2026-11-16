@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "budgetModel": "existing fullWork cost model, explicit scoped allowance; not milliseconds",
+  "migrations": [
+    {"id":"2","work":120000,"observedMaximumWork":74084.647,"batch":"20261116-192608-fhq05o","test":"research/security/policy-identity.test.ts","reason":"All original source identity/replay assertions retained; native child-process timeouts unchanged"},
+    {"id":"5","work":120000,"observedMaximumWork":74084.647,"batch":"20261116-192608-fhq05o","test":"research/security/policy-identity.test.ts","reason":"All ambiguity/order/source assertions retained; native process safety unchanged"},
+    {"id":"182","work":600000,"observedMaximumWork":369881.1207,"batch":"20261116-191741-58lq7l","test":"core/exists-support.test.ts","reason":"Internal semantic withWall wrapper reviewed separately; original proof assertion and 90s Bun watchdog retained"},
+    {"id":"175","work":6000000,"observedMaximumWork":4458500.0128,"batch":"20261116-224959-6g05id","test":"core/effect-queue.test.ts","reason":"Per-lemma/law counted support; original unchecked-source verdicts and broken control retained; outer Bun/runtime watchdogs unchanged"},
+    {"id":"176","work":6000000,"observedMaximumWork":4458500.0128,"batch":"20261116-224959-6g05id","test":"core/effect-queue.test.ts","reason":"Same required support count margin on Effect 3; no numeric milliseconds conversion"},
+    {"id":"177","work":6000000,"observedMaximumWork":4458500.0128,"batch":"20261116-224959-6g05id","test":"core/effect-queue.test.ts","reason":"Broken-source negative control retains all refusal/replay/kernel assertions under the same counted cap"},
+    {"id":"425","work":20000,"observedMaximumWork":11555.5607,"batch":"20261116-185315-7lgr6t","test":"core/infer.test.ts","reason":"Original generated law/source assertions retained; incompatible wall/ms inference modes removed, not numerically converted"}
+  ]
+}

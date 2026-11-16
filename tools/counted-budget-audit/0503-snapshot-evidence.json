@@ -1,0 +1,20 @@
+{
+  "schema":1,
+  "kind":"preintegration-static-grant-audit-not-final-migration-proof",
+  "nativeBatch":"20261116-230145-liinau",
+  "submittedTreePrefix":"8f180637ca9d",
+  "job":"reviewed-509-ledger",
+  "nativeExit":0,
+  "nativeJobSeconds":7.39,
+  "auditTests":{"pass":8,"fail":0,"expectCalls":17},
+  "ownedLint":{"errors":0,"warnings":0},
+  "rows":509,
+  "classification":{"converted":7,"already-counted":0,"watchdog-only":28,"needs-reviewed-support":474},
+  "dryRun":{"reviewed":7,"verifiedLiteralGrants":7,"blocked":474,"mode":"dry-run-only"},
+  "manifest":"0503-preintegration-manifest.json",
+  "sourceBoundPlan":"0503-preintegration-codemod-plan.json",
+  "nativeReceiptDirectory":"/tmp/bapa-0503-control/runs/budgets-audit-final",
+  "freshness":"Submitted snapshot precedes CLI233f36c74 and later scope/fixture followups. Five of seven reviewed grants are CLI-dependent static option checks, NOT evidence the old submitted CLI exercised normal-path work. Final integrated-source regeneration and actual original CLI/control tests are pending.",
+  "finalIntegrationValidated":false,
+  "releaseReady":false
+}
