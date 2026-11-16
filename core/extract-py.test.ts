@@ -210,6 +210,8 @@ class Ledger:
             n += 1
         return n + len(ys)
 `
+// Exclusive baseline timing was 57.2 s; concurrent suite load reached 83.9 s against a 60 s cap.
+// Use a 180 s wrapper (about 3x baseline); all assertions and internal proof budgets stay unchanged.
 t('a loop over a list the request carries: a fold, exact for every length', () => {
   const x = ok(py(FOLD, {entry: 'Ledger', failures: 'kept'}))
   expect(x.source).toContain('.carriesList("charge_lines", record({amount: int, refund: bool}))')
@@ -223,7 +225,7 @@ t('a loop over a list the request carries: a fold, exact for every length', () =
   expect(step(x, 'owed of no items is the spend', (b, a) => a.owed_result.eq(b.spent), b => all(b.method.is('owed'), b.owed_xs_len.eq(0)))).toMatchObject(modelOnly)
   expect(step(x, 'count of no items is the other list\'s length', (_b, a) => a.count_result.eq(_b.count_ys_len), b => all(b.method.is('count'), b.count_xs_len.eq(0)))).toMatchObject(modelOnly)
   expect(step(x, 'has_big is never true', (_b, a) => a.has_big_result.not(), b => b.method.is('has_big')).kernelProven).toBe(false)
-}, 60_000)
+}, 180_000)
 
 // A loop over a list of the state (an ordered collection, a map by place): the same fold, its passes the places up to
 // the last, each where it holds an item.
