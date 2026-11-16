@@ -17,6 +17,8 @@ export function withSearchWatchdog<T>(ms: number | undefined, run: () => T): T {
   try {
     checkWatchdog('search preflight')
     const out = run()
+    if (out !== null && (typeof out === 'object' || typeof out === 'function') && typeof (out as {then?: unknown}).then === 'function')
+      throw new TypeError('search watchdog scope requires a synchronous callback')
     checkWatchdog('search result')
     return out
   } finally { watchdogEnd = outer }
@@ -26,15 +28,4 @@ export function checkWatchdog(phase: string): void {
 }
 export function validateWatchdog(ms: number | undefined): void {
   if (ms !== undefined && (!Number.isFinite(ms) || ms < 0)) throw new RangeError('watchdogMs must be finite and nonnegative')
-}
-export function checkWatchdog(phase: string): void {
-  if (watchdogEnd !== Infinity && performance.now() >= watchdogEnd) throw new WatchdogExpired(phase)
-}
-export function withSearchWatchdog<T>(ms: number | undefined, run: () => T): T {
-  validateWatchdog(ms)
-  if (ms === undefined) return run()
-  const previous = watchdogEnd
-  watchdogEnd = Math.min(previous, performance.now() + ms)
-  try { checkWatchdog('search watchdog entry'); return run() }
-  finally { watchdogEnd = previous }
 }

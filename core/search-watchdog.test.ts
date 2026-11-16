@@ -12,6 +12,8 @@ test('explicit watchdog duration validation, immediate stop and scope restoratio
   expect(() => checkWatchdog('restored after immediate stop')).not.toThrow()
   expect(() => withSearchWatchdog(1000, () => { throw Error('caller error') })).toThrow('caller error')
   expect(() => checkWatchdog('restored after caller error')).not.toThrow()
+  expect(() => withSearchWatchdog(1000, () => Promise.resolve(1))).toThrow('synchronous callback')
+  expect(() => checkWatchdog('restored after thenable refusal')).not.toThrow()
 })
 
 test('nested watchdogs shorten but cannot renew inherited real deadlines', () => {
@@ -21,6 +23,20 @@ test('nested watchdogs shorten but cannot renew inherited real deadlines', () =>
     expect(() => checkWatchdog('outer deadline restored')).not.toThrow()
   })
   expect(() => checkWatchdog('no deadline left')).not.toThrow()
+})
+
+test('public proof and inference cannot swallow an expired ancestor watchdog', () => {
+  const r = rule('nested watchdog').state({value: 0}).step(({value}) => ({value: value.plus(1)}))
+  const laws = [r.law('nonnegative', ({value}) => value.atLeast(0))]
+  for (const watchdogMs of [undefined, 60000]) {
+    expect(() => withSearchWatchdog(1, () => { pause(); proveRule(r, laws, {watchdogMs}) })).toThrow(WatchdogExpired)
+    expect(() => withSearchWatchdog(1, () => { pause(); inferLaws(r, laws, [], {watchdogMs}) })).toThrow(WatchdogExpired)
+  }
+  withSearchWatchdog(1000, () => {
+    expect(proveRule(r, laws, {watchdogMs: 0}).termination?.kind).toBe('wall-deadline')
+    expect(inferLaws(r, laws, [], {watchdogMs: 0}).termination?.kind).toBe('wall-deadline')
+    expect(() => checkWatchdog('healthy owner after child refusal')).not.toThrow()
+  })
 })
 
 test('work-only pauses do not create watchdogs; explicit work plus watchdog stays distinct', () => {
