@@ -556,7 +556,7 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
   // (a law that can't be built is not read, with why: never the whole check aborted)
   try { if (isTwoRuns(l.expr)) two = buildTwoRuns(x, l, ctx?.others); else b = buildLaw(x, l, ctx ?? {}) } catch (e) { return {...base, verdict: 'not read', why: (e as Error).message, ms: 0} }
   const kind = two ? 'two runs' as const : b!.kind
-  if (two && work !== undefined) return {...base, kind, verdict: 'unknown', why: 'explicit work budget is not supported for two-run checks: helper preflight is not yet work-scoped', ms: 0}
+  if (two && (work !== undefined || ctx?.watchdogMs !== undefined)) return {...base, kind, verdict: 'unknown', why: `explicit ${work !== undefined ? 'work budget' : 'watchdog'} is not supported for two-run checks: helper preflight is not yet ${work !== undefined ? 'work' : 'watchdog'}-scoped`, ms: 0}
   let v: Verdict & {given?: Law[]}
   // (from any state, a law about states outside the inductive set: false from the start (a run), or true there and
   // needing a law beside it to hold from every state the laws allow)
