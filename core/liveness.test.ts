@@ -107,6 +107,8 @@ test('a request that moves the region without lowering the rank: refused (each h
   expect(st.scalars.work).toBe(3)
 })
 
+// Baseline timing was 2.75 s; the unchanged test reached 5.36 s under concurrent suite load.
+// Bound the wrapper at 20 s (3x the observed loaded time, rounded up to 5 s); proof budgets stay unchanged.
 test('weak fairness: each example\'s helpful requests proven allowed in their region (free inputs, a query by witness, empty sets)', async () => {
   const {toLean} = await import('../lean-kernel/emit.ts')
   const ex = await import('../examples/liveness.ts')
@@ -126,7 +128,7 @@ test('weak fairness: each example\'s helpful requests proven allowed in their re
   const out = toLean([{id: 'never', machine: never.machine, laws: [never.law('served at most 1', ({served}) => served.atMost(1))], liveness: [live]}])
   expect(out).toMatch(/never_live0_holds \(run/)
   expect(out).not.toMatch(/holds_wf/)
-})
+}, 20_000)
 
 // Orders by id: placing one sets it to 1, settling a placed one to 2 (the stalling variant leaves it at 1).
 const orders = (stalls = false) => rule('orders').inputs({op: oneOf('place', 'settle'), id: nat}).maps({S: 0})

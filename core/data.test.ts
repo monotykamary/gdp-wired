@@ -245,12 +245,14 @@ test('a law through the built-ins: its bridges proven first, a copy of a functio
   expect(proveData(throughBroken.leqPlus()).counterexample).toBeDefined()
 })
 
+// Three interleaved baseline/candidate pairs measured the baseline at 6.86 s median, 7.00 s max.
+// Keep the 5 s prover budget; 25 s bounds the test at 3x that measured max, rounded up to 5 s.
 test('a function that agrees with + on small values only: its bridge is not proven, and nothing false is proven through it', () => {
   // x + y up to x = 7, then 0
   const near: ReturnType<typeof define> = define('nearPlus', {x: natural, y: natural}, natural, ({x, y}) => (x as Nat).match({zero: () => y as Nat, succ: ({pred}) => when(pred.atLeast(7), 0 as number, (near(pred, y) as Nat).plus(1) as never)}))
   const v = proveData(law('nearPlus adds', {x: natural, y: natural}, ({x, y}) => (near(x, y) as Nat).eq((x as Nat).plus(y))), {ms: 5_000})
   expect(v.proven).toBe(false)
-})
+}, 25_000)
 
 test('a function that agrees with x + 1 on small values only, read inside a larger law: its bridge is tried and not proven, and nothing false is proven through it', () => {
   // n + 1 up to n = 12, then 0: the samples (naturals up to 5) and the bridge's check (up to 12) see x + 1. The law isn't
