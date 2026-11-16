@@ -15,6 +15,17 @@ test('apostrophes in names and wrapped axiom lists remain exact', () => {
   expect(() => auditLiftLog(text + text, [], names)).toThrow('expected one')
   expect(answers("diagnostic: 'not_an_answer' does not depend on any axioms\n")).toEqual([])
 })
+test('native Lake info envelopes preserve exact axiom answers and refusals', () => {
+  const lake = "info: Proofs.lean:42:0: 'lifted_source' depends on axioms: [propext, Classical.choice, Quot.sound]\ninfo: /tmp/project/Proofs.lean:43:0: 'lifted_family' does not depend on any axioms\n"
+  expect(answers(lake)).toEqual(answers(good))
+  expect(auditLiftLog(lake, [source], ['lifted_source', 'lifted_family'])).toHaveLength(2)
+  expect(() => auditLiftLog(lake.replace('propext', 'sorryAx'), [source], ['lifted_source'])).toThrow('sorryAx')
+  expect(() => auditLiftLog(lake.replace('propext', 'planted'), [source], ['lifted_source'])).toThrow('planted')
+  expect(() => auditLiftLog(lake + lake, [source], ['lifted_source'])).toThrow('expected one')
+  for (const prefix of ['diagnostic: ', 'error: Proofs.lean:42:0: ', 'info: not-a-location: ']) {
+    expect(answers(prefix + "'lifted_source' does not depend on any axioms\n")).toEqual([])
+  }
+})
 test('another theorem or duplicated answer cannot cover the source theorem', () => {
   expect(() => auditLiftLog(good.replaceAll('lifted_source', 'another'), [source], ['lifted_source'])).toThrow('lifted_source')
   expect(() => auditLiftLog(good + good, [source], ['lifted_source'])).toThrow('expected one')

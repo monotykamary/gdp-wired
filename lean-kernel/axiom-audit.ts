@@ -7,8 +7,11 @@ export function asked(source: string): string[] {
   return [...code.matchAll(/^#print axioms\s+(\S+)/gm)].map(m => m[1]!)
 }
 export function answers(out: string): {name: string, axioms: string[]}[] {
-  const deps = [...out.matchAll(/^'([^\r\n]+)' depends on axioms: \[([^\]]*)\]\r?$/gm)].map(m => ({name: m[1]!, axioms: m[2]!.split(',').map(a => a.trim()).filter(Boolean)}))
-  const none = [...out.matchAll(/^'([^\r\n]+)' does not depend on any axioms\r?$/gm)].map(m => ({name: m[1]!, axioms: []}))
+  // Lake prefixes native informational output with its source location. Strip
+  // only that exact envelope; arbitrary diagnostic text is not an axiom answer.
+  const plain = out.replace(/^info: [^\r\n]+\.lean:\d+:\d+: /gm, '')
+  const deps = [...plain.matchAll(/^'([^\r\n]+)' depends on axioms: \[([^\]]*)\]\r?$/gm)].map(m => ({name: m[1]!, axioms: m[2]!.split(',').map(a => a.trim()).filter(Boolean)}))
+  const none = [...plain.matchAll(/^'([^\r\n]+)' does not depend on any axioms\r?$/gm)].map(m => ({name: m[1]!, axioms: []}))
   return [...deps, ...none]
 }
 export function gate(out: string, sources: string[], native = false): string[] {
