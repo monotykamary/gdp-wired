@@ -14,7 +14,10 @@ test('completed inference metadata cleanup retains exportable proof custody', ()
   let capsule: ProofOutputNode | undefined
   proofOutput.on = event => { capsule = event.proof }
   try {
-    const v = inferLaws(r, laws, [], {work: 1000000})
+    const first = inferLaws(r, laws, [], {work: 1000000})
+    // A checked family completed before the new local allowance; observing a
+    // zero local allowance afterward must not taint it or lose its capsule.
+    const v = inferLaws(r, laws, [], {first, ms: 0, wall: Infinity})
     expect(v).toMatchObject({proven: true, checked: true, stats: {stopped: false}})
     expect(v.stopped).toBeUndefined(); expect(v.termination).toBeUndefined(); expect(v.stats.termination).toBeUndefined()
     publishProof(v, r.machine, laws)
