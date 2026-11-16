@@ -7,8 +7,6 @@ import {proveSteps} from './dsl.ts'
 import {buildLaw} from './laws.ts'
 import {envOf, inEnv} from './system.ts'
 setDefaultTimeout(60_000)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type A = any
 const available = (module: string) => { try { execFileSync('python3', ['-c', `import ${module}`], {stdio: 'ignore'}); return true } catch { return false } }
 const django = available('django') ? test : test.skip
 const sqlalchemy = available('sqlalchemy') ? test : test.skip
