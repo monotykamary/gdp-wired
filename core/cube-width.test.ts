@@ -15,7 +15,8 @@ test('cube-only requests do not build wider cubes before filtering them out', ()
   const law: Law = {name:'at most two',keys:['k'],holds:atMost(plus(plus(get('A',x('k')),get('B',x('k'))),get('C',x('k'))),n(2))}
   const run = (cubes: number) => {
     let made = 0
-    const out = inferLaws(m,[law],[],{cubes,ms:10000,progress:(phase,info)=>{if(phase==='join pool')made+=Number(info.made)}})
+    const out = inferLaws(m,[law],[],{cubes,ms:10000,wall:Infinity,progress:(phase,info)=>{if(phase==='join pool')made+=Number(info.made)}})
+    expect(out.stats.stopped).toBe(false)
     return {made,found:out.found}
   }
   const narrow=run(2),wide=run(3)

@@ -9,8 +9,13 @@ import {check} from '../../core/cli.ts'
 import {scoreRecall, type RecallSide} from './score.ts'
 
 // A preserved native journal admits these supported laws; it does not itself add a public replay marker.
+// These are semantic/replay controls, not 3-second deadline tests. The slowest
+// measured normal check was 3.14 s; allow ~19x headroom for VM contention while
+// the unchanged 120-second test timeout remains the outer guard.
 const sourceVerdict = (law: Awaited<ReturnType<typeof check>>['rules'][number]['laws'][number], proven: boolean) => {
-  expect(law).toMatchObject({verdict: proven ? 'proven' : 'broken', translation: 'sampled'})
+  expect(law.verdict, law.why ?? 'supported fixture law').toBe(proven ? 'proven' : 'broken')
+  expect(law.why, 'a completed fixture must not hide a timeout or other unknown reason').toBeUndefined()
+  expect(law.translation).toBe('sampled')
   if (proven) {
     expect(law.translationChecks).toBeGreaterThan(0)
     expect(law.run).toBeUndefined()
@@ -92,11 +97,11 @@ nativeTest('owned constructor family requires a complete native repair', async (
       mkdirSync(dir)
       const file = join(dir, 'OwnedFamily.java')
       writeFileSync(file, text); writeFileSync(join(dir, 'ReplayFamily.java'), driver)
-      results.push(await check([file], {entry: 'OwnedFamily', methods: ['hit'], propose: false, ms: 3000, check: {runs: 10, depth: 6, states: 20}}))
+      results.push(await check([file], {entry: 'OwnedFamily', methods: ['hit'], propose: false, ms: 60_000, check: {runs: 10, depth: 6, states: 20}}))
       const compiled = spawnSync('javac', [file, join(dir, 'ReplayFamily.java')], {encoding: 'utf8', timeout: 30_000})
       expect(compiled.status, compiled.stderr).toBe(0)
     }
-    expect(results.map(r => r.exit)).toEqual([1, 1, 0])
+    expect(results.map(r => r.exit), JSON.stringify(results.map(r => r.rules.map(rule => ({ctor: rule.ctor, laws: rule.laws.map(law => ({verdict: law.verdict, why: law.why}))}))))).toEqual([1, 1, 0])
     for (const [i, result] of results.entries()) {
       expect(result.rules.map(r => r.ctor).sort((a, b) => (a ?? '').localeCompare(b ?? ''))).toEqual(['()', '(boolean)'])
       expect(result.rules.every(r => r.ok && !!r.checked)).toBe(true)
@@ -181,11 +186,11 @@ nativeTest('owned fixed source exposes and replays its added constructor', async
       mkdirSync(dir)
       const file = join(dir, 'OwnedAdded.java')
       writeFileSync(file, text); writeFileSync(join(dir, 'ReplayAdded.java'), driver(i > 0))
-      results.push(await check([file], {entry: 'OwnedAdded', methods: ['hit'], propose: false, ms: 3000, check: {runs: 10, depth: 6, states: 20}}))
+      results.push(await check([file], {entry: 'OwnedAdded', methods: ['hit'], propose: false, ms: 60_000, check: {runs: 10, depth: 6, states: 20}}))
       const compiled = spawnSync('javac', [file, join(dir, 'ReplayAdded.java')], {encoding: 'utf8', timeout: 30_000})
       expect(compiled.status, compiled.stderr).toBe(0)
     }
-    expect(results.map(r => r.exit)).toEqual([1, 1, 0])
+    expect(results.map(r => r.exit), JSON.stringify(results.map(r => r.rules.map(rule => ({ctor: rule.ctor, laws: rule.laws.map(law => ({verdict: law.verdict, why: law.why}))}))))).toEqual([1, 1, 0])
     for (const [i, result] of results.entries()) {
       const expected = i === 0 ? ['()', '(boolean)'] : ['()', '(boolean)', '(int)']
       expect(result.rules.map(r => r.ctor).sort((a, b) => (a ?? '').localeCompare(b ?? ''))).toEqual(expected)

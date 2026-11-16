@@ -8,12 +8,14 @@ const steps = () => rule('inference input stays unchanged')
 
 test('remainder inference leaves the original facts for a second inference on the same rule', () => {
   const r = steps(), law = r.law('x is never 7', ({x}) => x.ne(7)), original = r.machine
-  const first = inferLaws(r, [law], [], {ms: 15000})
+  const first = inferLaws(r, [law], [], {ms: 15000, wall: Infinity})
+  expect(first.stats.stopped).toBe(false)
   expect(first).toMatchObject({proven: true, checked: true})
   expect(first.found.map(f => f.text)).toContain('x mod 2 = 0')
   expect(r.machine).toEqual(original)
   expect(r.machine.facts).toEqual(original.facts)
-  const second = inferLaws(r, [law], [], {ms: 15000, remainders: false})
+  const second = inferLaws(r, [law], [], {ms: 15000, wall: Infinity, remainders: false})
+  expect(second.stats.stopped).toBe(false)
   expect(second).toMatchObject({proven: true, checked: true})
   expect(second.found.map(f => f.source)).toContain("r.law('∃k. x = 2·k', ({x}) => exists(k => x.eq(k.times(2))))")
   expect(r.machine).toEqual(original)
@@ -33,7 +35,8 @@ test('inference retains existing divisor declarations without adding its own', (
 test('divisors mentioned by input laws are private to the inference call', () => {
   const r = steps(), donor = r.withDivisors(2)
   const law = donor.law('x is even', ({x}) => x.modBy(2).eq(0)), original = r.machine
-  expect(inferLaws(r, [law], [], {ms: 15000})).toMatchObject({proven: true, checked: true})
+  const result = inferLaws(r, [law], [], {ms: 15000, wall: Infinity})
+  expect(result).toMatchObject({proven: true, checked: true, stats: {stopped: false}})
   expect(r.machine).toEqual(original)
   expect(r.machine.fns).not.toHaveProperty('mod$2')
 }, 30000)

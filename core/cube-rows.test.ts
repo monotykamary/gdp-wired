@@ -24,7 +24,8 @@ test('numeric scalar transitions retain exploration even with supplied rows',()=
  const counter:Machine={...m,state:{tick:n(0)},step:{...m.step,state:{tick:plus(x('tick'),n(1))}}}
  const run=interpret(counter),start=run.init(params),rows=[{params,st:start},{params,st:run.step(params,start,{at:0})}]
  const events:{phase:string,info:Record<string,number|string>}[]=[]
- inferLaws(counter,[law],[],{cubes:2,rows,ms:1500,progress:(phase,info)=>events.push({phase,info})})
+ const result=inferLaws(counter,[law],[],{cubes:2,rows,ms:1500,wall:Infinity,progress:(phase,info)=>events.push({phase,info})})
+ expect(result.stats.stopped).toBe(false)
  expect(events.find(e=>e.phase==='runs')!.info.trials).toBeGreaterThan(0)
 },20000)
 
@@ -32,7 +33,8 @@ test('Boolean scalar control can reuse supplied reachable rows',()=>{
  const controlled:Machine={...m,state:{phase:n(0)},step:{...m.step,state:{phase:{op:'if',c:same(x('at'),n(0)),then:n(1),else:x('phase')}}}}
  const run=interpret(controlled),start=run.init(params),rows=[{params,st:start},{params,st:run.step(params,start,{at:0})}]
  const events:{phase:string,info:Record<string,number|string>}[]=[]
- inferLaws(controlled,[law],[],{cubes:2,rows,ms:1500,progress:(phase,info)=>events.push({phase,info})})
+ const result=inferLaws(controlled,[law],[],{cubes:2,rows,ms:1500,wall:Infinity,progress:(phase,info)=>events.push({phase,info})})
+ expect(result.stats.stopped).toBe(false)
  expect(events.find(e=>e.phase==='runs')!.info.trials).toBe(0)
 },20000)
 

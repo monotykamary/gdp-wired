@@ -19,7 +19,7 @@ test('constants under tuple constructors and projections are sampled, not the se
 test('a law that needs an invariant: not proven alone, proven with what the search finds, and the set checks', () => {
   for (const [r, law] of [[pool(), poolLaw()], [bucket(), bucketLaw()], [lease(), leaseLaw()]] as const) {
     expect(proveRule(r as never, [law], {search: false}).proven).toBe(false)
-    const v = inferLaws(r as never, [law], [], {ms: 15000})
+    const v = inferLaws(r as never, [law], [], {ms: 15000, wall: Infinity})
     expect(v).toMatchObject({proven: true, checked: true})
     expect(v.found.length).toBeGreaterThan(0)
     // Ended by its counted budgets, never by its wall-clock stop: what it found is the same on any machine.
@@ -30,11 +30,13 @@ test('a law that needs an invariant: not proven alone, proven with what the sear
 }, 60_000)
 
 test('what was found reads as the builder call that states it, and that call, written out, proves the law again', () => {
-  const r = pool(), v = inferLaws(r, [poolLaw(r)], [], {ms: 15000})
+  const r = pool(), v = inferLaws(r, [poolLaw(r)], [], {ms: 15000, wall: Infinity})
+  expect(v.stats.stopped).toBe(false)
   expect(v.found.map(f => f.source)).toEqual(["r.law('inUse + released <= acquired', ({inUse, acquired, released}) => inUse.plus(released).atMost(acquired))"])
   const pasted = r.law('inUse + released <= acquired', ({inUse, acquired, released}) => inUse.plus(released).atMost(acquired))
   expect(proveRule(r, [poolLaw(r), pasted])).toMatchObject({proven: true, checked: true})
-  const l = lease(), w = inferLaws(l, [leaseLaw(l)], [], {ms: 15000})
+  const l = lease(), w = inferLaws(l, [leaseLaw(l)], [], {ms: 15000, wall: Infinity})
+  expect(w.stats.stopped).toBe(false)
   expect(w.found.map(f => f.source)).toEqual(["r.law('every k: Expiry[k] <= until', ({until, Expiry}) => forall(k => Expiry.at(k).atMost(until)))"])
   const leased = l.law('every k: Expiry[k] <= until', ({until, Expiry}) => forall(k => Expiry.at(k).atMost(until)))
   expect(proveRule(l, [leaseLaw(l), leased])).toMatchObject({proven: true, checked: true})
@@ -43,7 +45,7 @@ test('what was found reads as the builder call that states it, and that call, wr
 test('an invariant over four values (the join: the samples\' hull, made inductive): one account within the total paid in', () => {
   const r = accounts(), law = accountsLaw(r)
   expect(proveRule(r, [law], {search: false}).proven).toBe(false)
-  const v = inferLaws(r, [law], [], {ms: 15000})
+  const v = inferLaws(r, [law], [], {ms: 15000, wall: Infinity})
   expect(v).toMatchObject({proven: true, checked: true, stats: {stopped: false}})
   expect(v.found.map(f => f.source)).toEqual(["r.law('a + b + c <= total', ({a, b, c, total}) => a.plus(b).plus(c).atMost(total))"])
   expect(proveRule(r, [law, ...v.found.map(f => f.law)])).toMatchObject({proven: true, checked: true})
@@ -51,7 +53,7 @@ test('an invariant over four values (the join: the samples\' hull, made inductiv
 
 test('a machine with no rule: the in-flight bound needs s + 50·p <= b + 150 or tighter', () => {
   expect(proveLaws(inflight, [inflightLoss]).proven).toBe(false)
-  const v = inferLaws(inflight, [inflightLoss], [], {ms: 15000})
+  const v = inferLaws(inflight, [inflightLoss], [], {ms: 15000, wall: Infinity})
   expect(v).toMatchObject({proven: true, checked: true, stats: {stopped: false}})
   expect(proveLaws(inflight, [inflightLoss, ...v.found.map(f => f.law)])).toMatchObject({proven: true, checked: true})
 })
@@ -60,11 +62,12 @@ test('a false law is answered with the run that breaks it; a law proven alone ne
   for (const marked of [false, true]) {
     const bad = pool('release unchecked')
     if (marked) Object.defineProperty(bad, Symbol.for('gdp-wired.source-proof.v1'), {value: true})
-    const v = inferLaws(bad, [poolLaw(bad)])
+    const v = inferLaws(bad, [poolLaw(bad)], [], {wall: Infinity})
+    expect(v.stats.stopped).toBe(false)
     expect(v.proven).toBe(false)
     expect(v.run).toBeDefined()
     expect(v.found).toEqual([])
   }
-  const r = pool(), alone = r.law('in use <= size', ({inUse, size}) => inUse.atMost(size)), w = inferLaws(r, [alone])
-  expect(w).toMatchObject({proven: true, checked: true, found: []})
+  const r = pool(), alone = r.law('in use <= size', ({inUse, size}) => inUse.atMost(size)), w = inferLaws(r, [alone], [], {wall: Infinity})
+  expect(w).toMatchObject({proven: true, checked: true, found: [], stats: {stopped: false}})
 })
