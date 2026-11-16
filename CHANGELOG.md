@@ -7,11 +7,11 @@ noted), each with the command that reproduces it.
 
 ### Fixed
 
-- A law about values in a numeric list could be proved about the list positions instead. For example, a claim that
-  every value is nonnegative could be checked only against the nonnegative positions. Present since 0.34.0; affects
-  TypeScript API users proving laws over extracted rules and `toLean` exports. The 0.50.1 CLI refused these laws
-  rather than reporting them proven. Quantified laws over scalar lists are now explicitly refused until value and
-  membership semantics are supported; laws over record items remain supported. Re-check and re-export affected laws.
+- Fixed a soundness issue in `toLean` exports of laws over lists of plain values, present since 0.34.0. A claim about
+  the values could be proved about their positions instead: for example, “every value is nonnegative” could be
+  accepted even for a list containing a negative value. The 0.50.1 CLI already refused these source proofs. Laws
+  that quantify over plain list values are now explicitly refused until they can be supported faithfully; laws
+  over record items remain supported. Re-check and re-export affected laws.
 - `toLean` now refuses source laws whose translation was rejected or was not checked, rather than exporting the
   substituted model theorem as if the source check had succeeded.
 - Corrected generated Lean proofs and axiom-report handling for ten previously failing export checks. Twelve
