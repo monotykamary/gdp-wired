@@ -32,7 +32,7 @@ test('completed inference survives owned internal bookkeeping stops, not ancesto
     inject('core/search-watchdog.ts', '    const out = run()', '\n    ;(globalThis as any).__inferAfterCallback?.(out, ms)')
     inject('core/infer.ts', '  observed.context = () => searchContext(first)', '\n  ;(globalThis as any).__inferFirst?.(first)')
     inject('core/infer.ts', '  const stats = (samples: number, candidates: number, alive: number) => {', '\n    if ((first.proven && first.checked) || first.run) (globalThis as any).__inferBoundary?.("first", observed.completed ?? first)')
-    inject('core/infer.ts', '    last = withTrees(() => search([...given, ...chosen.map(lawFor)]))', '\n    last = (globalThis as any).__diagnosticFailedCandidate?.(last) ?? last')
+    inject('core/infer.ts', '    last = withTrees(() => search([...given, ...chosen.map(lawFor)]))', '\n    last = (globalThis as any).__diagnosticFailedCandidate?.(last, observed.completed) ?? last')
     inject('core/infer.ts', '    const took = now() - began', '\n    ;(globalThis as any).__inferChecked?.(last, observed.completed)')
     inject('core/infer.ts', '  for (const f of opts.minimize === false || enumProof ? [] : [...chosen].reverse()) {', '\n    ;(globalThis as any).__inferBoundary?.("minimization", observed.completed ?? last)')
     inject('core/infer.ts', "  trace('end', {proven: true, stopped: stop(), found: chosen.map(f => textOf(f)).join('; ')})", '  ;(globalThis as any).__inferBoundary?.("final", observed.completed ?? last)\n', true)
@@ -70,9 +70,10 @@ globalThis.__inferAfterCallback=(out,ms)=>{
  catch(e){if(!(e instanceof BudgetExpired))throw e;receipt.rejectedActualWork=true;}
  expire('after callback ancestor work');
 };
-globalThis.__diagnosticFailedCandidate=last=>{
+globalThis.__diagnosticFailedCandidate=(last,completed)=>{
  if(mode!=='context')return last;
- receipt.injected={originalProven:last.proven,originalChecked:last.checked,diagnosticOnly:true};
+ receipt.injected={originalProven:last.proven,originalChecked:last.checked,hadRun:last.run!==undefined,hadCompletedFamily:completed!==undefined,diagnosticOnly:true};
+ if((last.proven&&last.checked)||last.run||completed)throw Error('diagnostic context would replace completed evidence');
  return {proven:false,checked:false,goal:'diagnostic failed candidate @step',stuck:'unknown',witness:{diagnosticLater:777}};
 };
 globalThis.__inferChecked=(last,completed)=>{receipt.lastCapture=completed?{proven:completed.proven,checked:completed.checked,found:completed.found.map(f=>f.text)}:undefined;receipt.later={proven:last.proven,checked:last.checked,goal:last.goal,stuck:last.stuck,witness:last.witness};};
@@ -151,7 +152,9 @@ finally{proofOutput.on=undefined;receipt.childReturned=childReturned;writeFileSy
         expect(receipt.boundary?.proven).toBe(true); expect(receipt.rejectedActualWork).toBe(true)
         expect(receipt.error).toBeUndefined(); expect(receipt.result).toMatchObject({proven: false, checked: false, stopped: true, termination: {kind: 'work-exhausted'}})
       } else if (mode === 'context') {
-        expect(receipt.diagnosticOnly).toBe(true); expect(receipt.injected?.diagnosticOnly).toBe(true)
+        expect(receipt.error, JSON.stringify(receipt)).toBeUndefined()
+        expect(receipt.diagnosticOnly).toBe(true)
+        expect(receipt.injected).toMatchObject({diagnosticOnly: true, originalProven: false, originalChecked: false, hadRun: false, hadCompletedFamily: false})
         expect(receipt.proofProgress).toMatchObject({goal: 'diagnostic failed candidate @step', stuck: 'unknown'})
         expect(receipt.result).toMatchObject({proven: false, checked: false, stopped: true, termination: {kind: 'wall-deadline'}})
         expect(receipt.first.stuck).toBe('sat'); expect(receipt.result.context).toEqual(receipt.expectedFirst)
