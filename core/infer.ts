@@ -1,7 +1,7 @@
 import {retainFrom} from './proof-output.ts'
 import {searchNow as countedSearchNow, checkWorkEndpoint} from './wall.ts'
 import {inWorkScope} from '../kernel/prove.ts'
-import {type SearchContext, type SearchTermination, completedSearch, searchContext, stoppedSearch} from './search-termination.ts'
+import {type SearchContext, type SearchTermination, completedSearch, completedSourceRefusal, searchContext, stoppedSearch} from './search-termination.ts'
 import {WatchdogExpired, checkWatchdog, withSearchWatchdog} from './search-watchdog.ts'
 // Invariants nobody wrote: a law that holds but isn't inductive, proven with laws the search finds. Nothing here is
 // trusted; what it finds is proven by the kernel with the rule's own laws, as laws of the same rule.
@@ -697,6 +697,9 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
     observed.snapshot = () => ({samples: 0, candidates: 0, alive: 0, proofs: 0, ms: Math.round(countedSearchNow() - enteredAt), work: Math.max(0, fullWork() - enteredWork), stopped: true})
     try {
     const out = withTrees(() => quietly(() => withDeadline(clock() + (opts.work === undefined ? (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - countedSearchNow())) : Infinity), () => inferLawsSearch(target, laws, stepLaws, opts, observed))))
+    // A completed source refusal is terminal, but never proof authority or
+    // metadata to clean up. Preserve its exact object and refusal fields.
+    if (completedSourceRefusal(out)) return out
     if (completedSearch(out)) {
       const {termination: _statsTermination, ...stats} = out.stats
       const {stopped: _stopped, termination: _termination, context: _context, ...completed} = out
