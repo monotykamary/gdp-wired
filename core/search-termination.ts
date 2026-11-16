@@ -22,7 +22,5 @@ export const searchContext = (v: SearchContext & SearchTerminationFields): Searc
 })
 export const terminationWhy = (t: SearchTermination): string =>
   `${t.kind === 'wall-deadline' ? 'wall deadline reached' : 'counted work exhausted'} (${t.phase}${t.scope === 'stage' ? '; stage allowance' : ''})`
-// Called only for an incomplete result or a caught interruption. The caller must
-// not use a late observation to relabel a completed proof/refutation.
 export const stoppedSearch = <T extends SearchContext & SearchTerminationFields>(v: T, termination: SearchTermination): T & SearchTerminationFields =>
   ({...v, stopped: true, termination, context: searchContext(v), why: terminationWhy(termination)})

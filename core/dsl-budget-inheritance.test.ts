@@ -3,7 +3,8 @@ import {nat, proveRule, proveSteps, rule, type ProveOptions} from './dsl.ts'
 import {BudgetExpired, workLedger, type WorkAdmissionSnapshot} from './work-admission.ts'
 import {compareWork, workAmount, workFromExact, workSub} from './work-amount.ts'
 import {completeWorkProfile} from './work-profile.ts'
-import {clock, wallAt, withBudget} from '../kernel/prove.ts'
+import {costs} from './solver.ts'
+import {clock, fullWork, wallAt, withBudget} from '../kernel/prove.ts'
 
 // The hook only observes the first native public-body entry and optionally
 // admits a work quantum. The original method, proof and checker still run.
@@ -139,15 +140,23 @@ if (completeWorkProfile.enabled) {
     } finally { f.close() }
   })
 } else {
-  test('legacy outer default and explicit plain-path migration behavior are unchanged', () => {
+  test('legacy defaults remain compatible while explicit plain work is authoritative', () => {
     const f = probe(() => expect(workLedger.inBudget()).toBe(false))
     try {
       const out = f.run({search: false})
       expect(out.proven).toBe(true); expect(out.checked).toBe(true)
     } finally { f.close() }
     const r = rule('legacy explicit fixture').state({x: 0}).step(({x}) => ({x}))
-    const out = proveRule(r, [r.law('zero', ({x}) => x.eq(0))], {search: {work: 1000}})
-    expect(out.proven).toBe(false); expect(out.checked).toBe(false)
-    expect(out.why).toBe('work mode: plain-path migration pending')
+    const law = r.law('zero', ({x}) => x.eq(0))
+    // Batch 20261116-194610-e9v22y observed 1_103.595 work units.
+    const before = fullWork(), out = proveRule(r, [law], {search: {work: 2_000}})
+    expect(out.proven).toBe(true); expect(out.checked).toBe(true)
+    expect(fullWork() - before).toBeLessThanOrEqual(2_000)
+    const exhausted = probe(() => { costs.fm += 2_001 })
+    try {
+      const stopped = exhausted.run({search: {work: 2_000}})
+      expect(stopped).toMatchObject({proven: false, checked: false, stuck: 'unknown'})
+      expect(stopped.why).toMatch(/^work budget/)
+    } finally { exhausted.close() }
   })
 }

@@ -1,8 +1,8 @@
 import {retainFrom} from './proof-output.ts'
 import {searchNow as countedSearchNow, checkWorkEndpoint} from './wall.ts'
 import {inWorkScope} from '../kernel/prove.ts'
-import {type SearchTermination, stoppedSearch} from './search-termination.ts'
-import {WatchdogExpired, withSearchWatchdog} from './search-watchdog.ts'
+import {type SearchContext, type SearchTermination, searchContext, stoppedSearch} from './search-termination.ts'
+import {WatchdogExpired, checkWatchdog, withSearchWatchdog} from './search-watchdog.ts'
 // Invariants nobody wrote: a law that holds but isn't inductive, proven with laws the search finds. Nothing here is
 // trusted; what it finds is proven by the kernel with the rule's own laws, as laws of the same rule.
 //   - runs: random runs from the start (params and requests by their kinds, the assumption met) give reachable states,
@@ -45,7 +45,8 @@ import {sampleStep} from './sample-step.ts'
 import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, compileC, compileE, cpair, fastStep, divisorsIn, evalC, evalE, get, hasFinite, interpret, machineTerms, fnValue, modName, n, not, partsOf as tupleOf, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, type proveRule, bool, refuteModelByRuns, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
-import {clock, counted, fullWork, searchWork, decideLaw, decideNote, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall, withSearchWork} from '../kernel/prove.ts'
+import {type WorkAmount} from './work-amount.ts'
+import {BudgetExpired, clock, counted, fullWork, searchWork, decideLaw, decideNote, machineKey, memoHits, withBudget, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall, withSearchWork} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, eachParts, obligations, plainOf, stepLawObligations, substC, tuple, tupleParts} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
@@ -64,8 +65,11 @@ type Env = Record<string, number>
 // `timed` times every budget, as before (`ms` the search's, `runsMs` the runs', 500 ms), for a benchmark under a
 // wall-clock limit (compare/chc/solve.ts); else `runsMs`, given, times the runs alone; else everything is counted.
 export type InferOptions = {
-  watchdogMs?: number // opt-in real safety bound; independent of counted/legacy search budget
-  ms?: number // the whole search's budget, counted, and its wall time, a stop (20 s)
+  watchdogMs?: number // separate opt-in real safety bound
+  /** Legacy counted-millisecond compatibility budget. Mutually exclusive with work. */
+  ms?: number
+  /** Exact full-work units, never a millisecond conversion. */
+  work?: number | WorkAmount
   runs?: number // the random runs: at least this many requests tried, and on until the samples are full (16,000; trials at most that many, or 3,000)
   runsMs?: number // the random runs by wall time instead (500 ms where `timed`)
   timed?: boolean // every budget by wall time: `ms` the search's, `runsMs` the runs'
@@ -85,7 +89,8 @@ export type InferOptions = {
 // What was found: each law as a Law (pass it with the rule's laws), how it reads, and for a rule, the builder call
 // that states it (`r.law(...)`), to paste.
 export type Found = {law: Law, text: string, source?: string}
-export type Inferred = Verdict & {found: Found[], stats: {samples: number, candidates: number, alive: number, proofs: number, ms: number, stopped: boolean, termination?: SearchTermination}}
+export type Inferred = Verdict & {found: Found[], stats: {samples: number, candidates: number, alive: number, proofs: number, ms: number, work: number, stopped: boolean, termination?: SearchTermination}}
+type InferenceObservation = {snapshot?: () => Inferred['stats'], last?: Inferred['stats'], context?: () => SearchContext, lastContext?: SearchContext}
 
 // An atom: a value the forms read, the naturals it is made of with their signs (an integer is pos − neg); a cell atom
 // is a map's cell at the law's key (its parts are maps).
@@ -681,26 +686,34 @@ function comparisons(m: Machine, laws: Law[], atoms: Atom[], coords: number[], m
 }
 
 export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
+  if (opts.work !== undefined && (opts.ms !== undefined || opts.wall !== undefined || opts.timed || opts.runsMs !== undefined)) throw new RangeError('choose an explicit work budget or a legacy ms/wall/timed budget, not both')
+  if (typeof opts.work === 'number' && (!Number.isFinite(opts.work) || opts.work < 0)) throw new RangeError('work budget must be finite and nonnegative')
   // Repeated rounds and minimization can ask the same root goal again. Keep only
   // completed trees for this search, keyed by exact hypotheses and prover modes.
-  try { return withSearchWatchdog(opts.watchdogMs, () => inferLawsWatched(target, laws, stepLaws, opts)) }
-  catch (e) {
-    if (!(e instanceof WatchdogExpired)) throw e
-    return {...stoppedSearch({...opts.first, proven: false, checked: false, stuck: 'unknown'}, e.termination), found: [], stats: {samples: 0, candidates: 0, alive: 0, proofs: 0, ms: 0, stopped: true}}
+  const started = fullWork(), observed: InferenceObservation = {}
+  let result: Inferred | undefined
+  const run = () => {
+    const out = withTrees(() => quietly(() => withDeadline(clock() + (opts.work === undefined ? (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - countedSearchNow())) : Infinity), () => inferLawsSearch(target, laws, stepLaws, opts, observed))))
+    return !(out.proven && out.checked) && !out.run && out.stats.termination ? stoppedSearch(out, out.stats.termination) : out
+  }
+  try { return withSearchWatchdog(opts.watchdogMs, () => result = opts.work === undefined ? run() : withBudget(opts.work, run)) }
+  catch (error) {
+    if (error instanceof WatchdogExpired) checkWatchdog(error.termination.phase)
+    else if (error instanceof BudgetExpired) checkWorkEndpoint(error.phase)
+    else throw error
+    const termination: SearchTermination = error instanceof WatchdogExpired ? error.termination : {kind: 'work-exhausted', phase: error.phase, scope: 'search'}
+    return {...stoppedSearch({...result, ...opts.first, proven: false, checked: false, stuck: 'unknown', ...(observed.lastContext ? {context: observed.lastContext} : {})}, termination), found: [], stats: {...(observed.last ?? result?.stats ?? {samples: 0, candidates: 0, alive: 0, proofs: 0, ms: 0, work: Math.max(0, fullWork() - started)}), stopped: true, termination}}
   }
 }
-function inferLawsWatched(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[], opts: InferOptions): Inferred {
-  const out = withTrees(() => quietly(() => withDeadline(clock() + (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - countedSearchNow())), () => inferLawsSearch(target, laws, stepLaws, opts))))
-  return !(out.proven && out.checked) && !out.run && out.stats.termination ? stoppedSearch(out, out.stats.termination) : out
+function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[], opts: InferOptions, observed: InferenceObservation): Inferred {
+  try { return withEvaluationAdmission(() => inferLawsSearchIn(target, laws, stepLaws, opts, observed)) }
+  catch (error) { observed.last = observed.snapshot?.(); observed.lastContext = observed.context?.(); throw error }
 }
-function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
-  return withEvaluationAdmission(() => inferLawsSearchIn(target, laws, stepLaws, opts))
-}
-function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[], opts: InferOptions): Inferred {
+function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[], opts: InferOptions, observed: InferenceObservation): Inferred {
   checkWorkEndpoint('inference entry')
   // (GDP_INFER_TRACE=2: each phase's progress too, to stderr)
   if (env.GDP_INFER_TRACE === '2' && !opts.progress) opts = {...opts, progress: (phase, info) => (globalThis as unknown as {process: {stderr: {write: (s: string) => void}}}).process.stderr.write(`[infer ${phase}] ${JSON.stringify(info)}\n`)}
-  const t0 = countedSearchNow(), ms = opts.ms ?? 20000, wallUntil = opts.wall ?? t0 + ms
+  const t0 = countedSearchNow(), work0 = fullWork(), ms = opts.work === undefined ? opts.ms ?? 20000 : Infinity, wallUntil = opts.work === undefined ? opts.wall ?? t0 + ms : Infinity
   // Divisor declarations are mutable rule metadata. Keep a private copy even
   // when withSumsOf would return the original rule: candidate search and returned
   // remainder laws must not add arithmetic facts to the caller's next proof.
@@ -742,6 +755,10 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   if (rule) { const ks = divisorsIn([...laws, ...stepLaws] as never); if (ks.size) rule.dividesBy(...ks) }
   const m = rule ? rule.machine : target as Machine
   let proofs = 0
+  let sampleCount = () => 0, candidateCount = () => 0, aliveCount = () => 0
+  // Read actual partial counters while their owning clock scope is still live.
+  // Before an array exists its observed population is genuinely zero.
+  observed.snapshot = () => ({samples: sampleCount(), candidates: candidateCount(), alive: aliveCount(), proofs, ms: Math.round(countedSearchNow() - t0), work: Math.max(0, fullWork() - work0), stopped: true})
   // The rule (or machine) the kernel proves the candidates with: once a remainder is among them, one that declares
   // div$k and mod$k for its divisors (all declarations stay on the private rule copy).
   // Only the laws proven read: a search none of whose chosen candidates is a remainder proves with the rule as it is.
@@ -766,12 +783,13 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     const out = stepLaws.length ? proveStepLaws(model, given, stepLaws) : (fast ? proveSetFast : proveLaws)(model, given)
     return verdictOf(out)
   }
-  const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(countedSearchNow() - t0), stopped: stop(), ...(termination ? {termination} : {})})
+  const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(countedSearchNow() - t0), work: Math.max(0, fullWork() - work0), stopped: stop(), ...(termination ? {termination} : {})})
   // The old public prover's first pass also sampled reachable counterexamples.
   // Keep that negative model evidence without invoking a source finalizer.
   const refuted = !opts.first && !opts.cubes && rule ? refuteModelByRuns(rule, laws, stepLaws) : undefined
   const first = opts.first ?? (refuted?.run ? {proven: false, checked: false, stuck: 'sat', ...refuted} as Verdict
     : opts.cubes ? {proven: false, checked: false} as Verdict : prove(laws))
+  observed.context = () => searchContext(first)
   if ((first.proven && first.checked) || first.run) return retainFrom({...first, found: [], stats: stats(0, 0, 0)}, [first])
 
   // --- runs ------------------------------------------------------------------------------------------------------------
@@ -783,6 +801,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   type Sample = {params: Env, st: State}
   // (each state once: a machine with no requests walks one path, and its copies pushed out the caller's states (opts.seen))
   const samples: Sample[] = [], cap = 3000, keys: string[] = [], held = new Set<string>()
+  sampleCount = () => samples.length
   const mapsText = (st: State) => JSON.stringify(Object.values(st.maps).map(c => [...c]))
   let offered = 0
   // (how many states offered held each value of each state variable: `rare`, below)
@@ -978,6 +997,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   }
   const sizeOf = (coef: [number, number][]) => coef.length * 100 + coef.reduce((s, [, c]) => s + Math.abs(c), 0)
   const forms: Form[] = []
+  candidateCount = () => forms.length
   const NS = rowsS.length, NK = rowsK.length
   const at = (coef: [number, number][], vals: Float64Array[], j: number) => { observeCubeTest(); let s = 0; for (const [i, c] of coef) s += c * vals[i]![j]!; return s }
   const keyNots = plain.filter(i => !atoms[i]!.param && !atoms[i]!.int && !atoms[i]!.term)
@@ -1330,6 +1350,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   walk([m.step, m.assume ?? null, ...laws.map(l => l.holds)], o => { if (o.op === 'get' && (o.key as E | undefined)?.op === 'tup') tupleMaps.add(String(o.map)) })
   const plainKeyed = (f: Form) => f.view !== undefined || !atomsIn(f).some(i => atoms[i]!.cell && tupleMaps.has(atoms[i]!.parts[0]![0]))
   let alive = forms.filter(plainKeyed).sort((p, q) => p.size - q.size).slice(0, maxCandidates)
+  aliveCount = () => alive.length
   const ctis: Point[] = []
   // (a law about keys is evaluated at every tuple of the state's keys, as watch does: counted as that many evaluations)
   const lawful = (params: Env, st: State) => {
@@ -1391,6 +1412,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   let enumSome: Law[] = []
   const goalName = (g: string) => g.replace(/ @[^@]*$/, '')
   let last: Verdict = first
+  observed.context = () => searchContext(opts.first ?? last)
   const slow = Math.max(3000, ms / 10)
   // A point a form is false at; a cell form is judged only at rows that read every map it reads.
   const reads = (f: Form, r: Env) => f.coef.every(([i]) => !atoms[i]!.cell || atoms[i]!.parts.every(([q]) => AT + q in r))

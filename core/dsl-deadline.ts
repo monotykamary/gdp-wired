@@ -6,6 +6,19 @@ import {workLedger} from './work-admission.ts'
 import {workFromNumber, workMultiply} from './work-amount.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {inProxySearch} from './search-policy.ts'
+import {BudgetExpired, checkWorkEndpoint, withBudget} from './wall.ts'
+import {type WorkAmount} from './work-amount.ts'
+
+// A bounded deterministic attempt may decline without consuming the parent's
+// remaining search. A root/ancestor refusal must still reach its own owner.
+export function withStageWork<T, F>(units: number | WorkAmount, run: () => T, refused: () => F): T | F {
+  try { return withBudget(units, run) }
+  catch (error) {
+    if (!(error instanceof BudgetExpired)) throw error
+    checkWorkEndpoint(error.phase)
+    return refused()
+  }
+}
 
 export function withStageDeadline<T, F>(until: number, run: () => T, refused: () => F): T | F {
   if (!completeWorkProfile.enabled || inProxySearch()) return withDeadline(until, run)

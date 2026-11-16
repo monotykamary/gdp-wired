@@ -19,6 +19,7 @@ import * as dsl from './dsl.ts'
 import type {Rule} from './dsl.ts'
 import {type Law, type Rand, interpret, lcg, seeded} from './machine.ts'
 import {allowed} from './watch.ts'
+import {BudgetExpired, checkWorkEndpoint} from './wall.ts'
 import * as I from './extract-ir.ts'
 import {type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, impure, memberName, normalize, placed, refuse, shapeOf, sourceOf, text, where} from './extract-read.ts'
 import {type FactoryOf, readFactory, setupOf} from './extract-shapes.ts'
@@ -544,12 +545,19 @@ function modelled(code: string, file: string, entry: string, E: Mod, opts: Effec
 // semaphore's permits given back by the fiber that took them) proven first, each with the invariants and those proven
 // before it: the proven ones, with what their search found, join the invariants every law is proven beside; the others
 // are left out (a lemma is no claim: the laws stated are).
-export function withLemmas(x: Extraction, opts: {ms?: number} = {}): {x: Extraction, proven: string[], unproven: string[]} {
+export function withLemmas(x: Extraction, opts: {ms?: number, work?: number, watchdogMs?: number} = {}): {x: Extraction, proven: string[], unproven: string[]} {
+  if (opts.work !== undefined && opts.ms !== undefined) throw new RangeError('choose a work budget or a legacy ms budget, not both')
   const lemmas = (x as {lemmas?: Law[]}).lemmas ?? [], inv = [...x.invariants ?? []], proven: string[] = [], unproven: string[] = []
   if (!x.rule) return {x, proven, unproven}
   for (const l of lemmas) {
     let v: dsl.Verdict | undefined
-    try { v = dsl.proveRule(x.rule, [...inv, l], {search: {ms: opts.ms ?? 30_000}}) } catch { v = undefined }
+    const proofOptions = {search: opts.work === undefined ? {ms: opts.ms ?? 30_000} : {work: opts.work}, ...(opts.watchdogMs === undefined ? {} : {watchdogMs: opts.watchdogMs})}
+    try { v = dsl.proveRule(x.rule, [...inv, l], proofOptions) } catch (error) {
+      // An enclosing work owner must observe its own cancellation. A helper
+      // cannot renew that authority by treating the error as a dropped lemma.
+      if (error instanceof BudgetExpired) { checkWorkEndpoint(error.phase); throw error }
+      v = undefined
+    }
     // These are mathematical supports, not source claims. The caller's marked
     // rule still requires native finalization; a native translation error is not admitted.
     if (v && ((v.proven && v.checked) || (v.kernelProven === true && v.translation === 'unchecked'))) { inv.push(l, ...(v.found?.laws ?? []).map(f => f.law)); proven.push(l.name) } else unproven.push(l.name)

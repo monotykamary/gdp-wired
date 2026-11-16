@@ -31,11 +31,11 @@ import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWal
 import {WallExpired, checkWall, checkWorkEndpoint, searchWall, withBudget, BudgetExpired} from './wall.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {workLedger} from './work-admission.ts'
-import {withStageAllowance, withStageDeadline, withStageWall} from './dsl-deadline.ts'
-import {type SearchTermination, stoppedSearch} from './search-termination.ts'
-import {WatchdogExpired, withSearchWatchdog} from './search-watchdog.ts'
+import {withStageAllowance, withStageDeadline, withStageWall, withStageWork} from './dsl-deadline.ts'
+import {type SearchTermination, searchContext, stoppedSearch} from './search-termination.ts'
+import {WatchdogExpired, checkWatchdog, withSearchWatchdog} from './search-watchdog.ts'
 import {withPublicSearchPolicy} from './search-policy.ts'
-import {workRefusalWhy} from './work-refusal.ts'
+import {captureWorkContext, workContext, workRefusalWhy} from './work-refusal.ts'
 import {type WorkAmount, workDivide, workFromNumber, workToNumber} from './work-amount.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
@@ -3016,13 +3016,16 @@ function workPlan(opts: ProveOptions): {work: number | WorkAmount | undefined, o
   const work = explicit ?? (completeWorkProfile.enabled ? ms === undefined ? completeWorkProfile.defaultUnits : ms * fullRate : undefined)
   if (work === undefined || opts.search === false) return {work, opts}
   const search = typeof opts.search === 'object' ? {...opts.search} : {}
+  // An explicit public work grant remains a work grant through every plain
+  // search phase. It must not be re-expressed as a counted-millisecond
+  // deadline: the enclosing ledger endpoint is its sole semantic authority.
+  if (explicit !== undefined) { delete search.ms; return {work, opts: {...opts, search}} }
   delete search.work
-  // Compatibility scheduling hint only; withBudget below receives the exact
-  // original amount. This display must never become the root's authority.
+  // Legacy ms compatibility keeps its historical counted-clock scheduling.
   search.ms = typeof work === 'number' ? work / fullRate : workToNumber(workDivide(work, workFromNumber(fullRate)))
   return {work, opts: {...opts, search}}
 }
-function workVerdict(opts: ProveOptions, supported: boolean, run: (opts: ProveOptions) => Verdict): Verdict {
+function workVerdict(opts: ProveOptions, run: (opts: ProveOptions) => Verdict): Verdict {
   const plan = workPlan(opts)
   // An implicit child inherits the owner's hard allowance, not a fresh default.
   // Keep workPlan's validation and scheduling hint; let the owner's refusal
@@ -3030,11 +3033,13 @@ function workVerdict(opts: ProveOptions, supported: boolean, run: (opts: ProveOp
   const implicit = typeof opts.search !== 'object' || (opts.search.work === undefined && opts.search.ms === undefined)
   if (completeWorkProfile.enabled && workLedger.inBudget() && implicit) return run(plan.opts)
   if (plan.work === undefined) return run(plan.opts)
-  if (!completeWorkProfile.enabled && !supported) return {proven: false, checked: false, stuck: 'unknown', why: 'work mode: plain-path migration pending'}
   try { return withBudget(plan.work, () => run(plan.opts)) }
   catch (error) {
     if (!(error instanceof BudgetExpired)) throw error
-    return {proven: false, checked: false, stuck: 'unknown', why: workRefusalWhy(error)}
+    // Once this child's scope has unwound, an exhausted ancestor still owns
+    // its refusal. Do not turn the parent's cancellation into a child result.
+    checkWorkEndpoint(error.phase)
+    return {proven: false, checked: false, stuck: 'unknown', why: workRefusalWhy(error), stopped: true, termination: {kind: 'work-exhausted', phase: error.phase, scope: 'search'}, ...(workContext(error) ? {context: workContext(error)} : {})}
   }
 }
 function watchdogVerdict(ms: number | undefined, run: () => Verdict): Verdict {
@@ -3042,13 +3047,14 @@ function watchdogVerdict(ms: number | undefined, run: () => Verdict): Verdict {
   try { return withSearchWatchdog(ms, () => result = run()) }
   catch (e) {
     if (!(e instanceof WatchdogExpired)) throw e
+    checkWatchdog(e.termination.phase) // an expired ancestor still owns cancellation
     return stoppedSearch({...result, proven: false, checked: false, stuck: 'unknown'}, e.termination)
   }
 }
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
   return watchdogVerdict(opts.watchdogMs, () => withModelRounds(opts.modelRounds, () => withPublicRule(outermost => {
     const captureMachine = r.machine, hasCounts = !!Object.keys(captureMachine.counts ?? {}).length
-    const result = workVerdict(opts, hasCounts, plan => withPublicSearchPolicy(hasCounts, () => proveRuleWall(r, laws, plan)))
+    const result = workVerdict(opts, plan => withPublicSearchPolicy(hasCounts, () => proveRuleWall(r, laws, plan)))
     return outermost ? publishProof(result, captureMachine, laws) : result
   })))
 }
@@ -3115,7 +3121,11 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   // Quantified witness preflight needs a counted allocation: a slow attempt must
   // not seed different memoized decisions. Other laws keep their existing budget;
   // inference's query rate is not calibrated for their whole-set preflight.
-  const out = ms === undefined ? given() : withStageWall(countedSearchNow() + ms / share, () =>
+  const explicitWork = typeof opts.search === 'object' ? opts.search.work : undefined
+  // Whole-set preflight is only one search strategy. In work mode reserve a
+  // deterministic eighth for it, rather than starving inference at the root.
+  const preflight = explicitWork === undefined ? undefined : typeof explicitWork === 'number' ? explicitWork / 8 : workDivide(explicitWork, workFromNumber(8))
+  const out = preflight !== undefined ? withStageWork(preflight, given, () => undefined) : ms === undefined ? given() : withStageWall(countedSearchNow() + ms / share, () =>
     share === 1 ? given() : counted(inferRates.work, () => withStageDeadline(clock() + ms / share, given, () => undefined)), () => undefined)
   const v: Verdict = out ? {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
     : {proven: false, checked: false, stuck: 'unknown'}
@@ -3123,7 +3133,7 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   return searched(r, laws, [], v, opts)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
-  return watchdogVerdict(opts.watchdogMs, () => workVerdict(opts, false, plan => proveStepsWall(r, laws, stepLaws, plan)))
+  return watchdogVerdict(opts.watchdogMs, () => workVerdict(opts, plan => proveStepsWall(r, laws, stepLaws, plan)))
 }
 function proveStepsWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions): Verdict {
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
@@ -3179,6 +3189,7 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   catch (e) {
     // Keep the initial SAT/goal/model before the outer catch can replace it.
     // The exception carries provenance stamped before the clock scope unwinds.
+    if (e instanceof BudgetExpired) { captureWorkContext(e, searchContext(v)); throw e }
     if ((!(e instanceof WallExpired) && !(e instanceof WatchdogExpired)) || !e.termination) throw e
     return stoppedSearch(v, e.termination)
   }
@@ -3189,7 +3200,8 @@ function searchedIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[]
   // The deeper runs; then runs over small values (keys that meet, small params), whose requests meet their
   // assumption's equalities and clocks, or near the counterexample the verdict ends at.
   // (the three within the search's budget again, on the wall: past it they stop, and the search starts as it would)
-  const ms = typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000, runsUntil = countedSearchNow() + ms
+  const explicitWork = typeof opts.search === 'object' ? opts.search.work : undefined
+  const ms = explicitWork === undefined ? (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000) : Infinity, runsUntil = explicitWork === undefined ? countedSearchNow() + ms : Infinity
   for (const b of [deeperBudget, {...deeperBudget, bound: 1, seed: 31, states: false}, {...deeperBudget, trials: 1200, seed: 41, states: false, mixed: true, ...(v.witness ? {near: v.witness} : {})}]) {
     const deeper = refuteByRuns(r, laws, stepLaws, {...b, until: runsUntil})
     if (deeper?.run) return refutedVerdict(deeper)
@@ -3199,12 +3211,11 @@ function searchedIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[]
   const m0 = r.machine, clocked = stepLaws.length > 0 || [...divisorsIn(laws.map(l => l.holds))].some(k => k >= 3600)
   const pool = clocked ? [...new Set(Object.entries(v.witness ?? {}).filter(([k, x]) => !m0.inputs.includes(k) && !m0.params.includes(k) && x > deeperBudget.bound).map(([, x]) => x))] : []
   if (pool.length) { const deeper = refuteByRuns(r, laws, stepLaws, {...deeperBudget, trials: 300, seed: 43, states: false, mixed: true, near: v.witness, pool, until: runsUntil}); if (deeper?.run) return refutedVerdict(deeper) }
-  const until = clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
-  // (the search's end on the wall too: kernel/prove.ts's withWall, past which every goal is unknown)
+  const until = explicitWork === undefined ? clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000) : Infinity
+  // Work uses only its ledger; legacy stages retain their captured real/count endpoint.
+  if (explicitWork !== undefined) return searchedUntil(r, laws, stepLaws, v, opts, until)
   return withStageWall(countedSearchNow() + Math.max(0, until - clock()), () => {
     const out = searchedUntil(r, laws, stepLaws, v, opts, until)
-    // Early incomplete fallbacks (including too little time for inference) must
-    // observe the owning endpoint before withWall restores the caller's scope.
     if (!(out.proven && out.checked) && !out.run) checkWall('search result')
     return out
   }, () => stoppedSearch(v, {kind: 'work-exhausted', phase: 'search stage', scope: 'stage'}))
@@ -3220,7 +3231,7 @@ const sameMachine = (a: Machine, b: Machine): boolean => {
   return canon(a) === canon(b)
 }
 function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions, until: number): Verdict {
-  const any = opts.from === 'any'
+  const any = opts.from === 'any', explicitWork = typeof opts.search === 'object' ? opts.search.work : undefined
   // Bounded runs (core/bmc.ts): a law broken k steps from the start, a model of the kernel's k-step goal, the run taken
   // by the interpreter. The shallow depths first, within a fortieth of the search's budget (at most 250 ms, counted in
   // the cost model's work: kernel/prove.ts's `counted` with `full`); the deeper ones only where the invariant search
@@ -3350,13 +3361,16 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   }
   let searchStop: SearchTermination | undefined
   const stageStopped = (): undefined => { searchStop = {kind: 'work-exhausted', phase: 'invariant search', scope: 'stage'}; return undefined }
-  const inf = withStageWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {join: 0} : {})}), stageStopped)
+  const inferenceBudget = explicitWork === undefined ? {ms} : {work: explicitWork}
+  const infer = () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {...inferenceBudget, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {join: 0} : {})})
+  const inf = explicitWork === undefined ? withStageWall(tailAt(), infer, stageStopped) : infer()
   if (!(inf?.proven && inf.checked)) {
     // The sum of each map the step writes (withMapSums): the search again over the rule with them, within half of what
     // is left (at most 20 s), where a law of cells against a total needs one (no ERC20 balance past the supply).
     const summed = target.withMapSums()
     if (summed && until - clock() - tail > 1000) {
-      const inf2 = withStageWall(tailAt(), () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2)}), stageStopped)
+      const infer2 = () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, explicitWork === undefined ? {ms: Math.min(20_000, (until - clock() - tail) / 2)} : {work: explicitWork})
+      const inf2 = explicitWork === undefined ? withStageWall(tailAt(), infer2, stageStopped) : infer2()
       searchStop = inf2?.termination ?? searchStop
       if (inf2?.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; const b = back(summed, found); if (!sk || (b.proven && b.checked)) return retainFrom({...(sk ? {} : verdict), ...b, proven: true, checked: true, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}, sk ? [inf2, b] : [inf2]) }
     }

@@ -49,9 +49,12 @@ export const readPool = (v: 3 | 4, bug?: 'release without acquire'): {x: Extract
 // The laws as the pool's comments state them, read through the extraction's names.
 export const poolLaws = (x: Extraction): Law[] => lawsIn(readFileSync(poolFile, 'utf8')).filter(l => l.expr).map(l => buildLaw(x, l).law as Law)
 // The pool's laws, each proven with its rule's invariants and the lemmas of its primitives' use proven first.
-export function provePool(x: Extraction, ms = 60_000): {lemmas: string[], verdicts: [string, Any][]} {
-  const w = withLemmas(x, {ms})
-  return {lemmas: w.proven, verdicts: poolLaws(w.x).map(l => [l.name, proveRule(w.x.rule!, [...w.x.invariants ?? [], l], {search: {ms}})])}
+export function provePool(x: Extraction, budget: number | {ms?: number, work?: number} = 60_000): {lemmas: string[], verdicts: [string, Any][]} {
+  const opts = typeof budget === 'number' ? {ms: budget} : budget
+  if (opts.work !== undefined && opts.ms !== undefined) throw new RangeError('choose a work budget or a legacy ms budget, not both')
+  const search = opts.work === undefined ? {ms: opts.ms ?? 60_000} : {work: opts.work}
+  const w = withLemmas(x, search)
+  return {lemmas: w.proven, verdicts: poolLaws(w.x).map(l => [l.name, proveRule(w.x.rule!, [...w.x.invariants ?? [], l], {search})])}
 }
 // Three workers at once on Effect's runtime (real fibers; a cancel first, broken), the most that held a permit at once:
 // the pool as written, its job counted in and out around the work.

@@ -11,6 +11,9 @@
 //   out.verdict          // the laws, proven of out.rule: r with its functions and lists made again with the lemmas
 //   out.found            // per function or list, the lemmas found, as source to paste into recur(...) or carriesList(...)
 import {quietly} from './cyclic.ts'
+import {BudgetExpired, checkWorkEndpoint, withBudget} from './wall.ts'
+import {type WorkAmount} from './work-amount.ts'
+import {workContext, workRefusalWhy} from './work-refusal.ts'
 import {type C, type E, type Law, type Machine, type Recurrence, type State, any, atMost, compileFunction, evalC, evalE, n, plus, prod, same, seeded, times, x} from './machine.ts'
 import {type FnDef, type Kind, type ListFold, type ListLemma, type StepLaw, type Verdict, Cond, Rule, Term, Unproven, lit, proveFold, proveSteps, recur, recurOf} from './dsl.ts'
 import {type Fold} from '../kernel/kernel.ts'
@@ -269,9 +272,25 @@ function houdiniList(r: AnyRule, part: ListPart, cands: Cand[], params: string[]
 // The laws of r, and where they aren't proven as r states them, the lemmas found for its functions and lists: all that
 // is proven first, then each dropped in turn while the laws stay proven without it.
 // `first`: the laws' verdict on r alone, when the caller has it.
-export function discover(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = [], first?: Verdict): Discovery {
-  r = r.withSumsOf(laws, stepLaws)
-  return quietly(() => discoverSearch(r, laws, stepLaws, first ?? proveSteps(r, laws, stepLaws, {search: false})))
+export type DiscoverOptions = {work?: number | WorkAmount}
+// The optional fifth argument bounds the entire discovery, including sampling,
+// candidate proofs and minimization. Nested calls keep the enclosing authority.
+export function discover(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = [], first?: Verdict, opts: DiscoverOptions = {}): Discovery {
+  const run = () => {
+    checkWorkEndpoint('discovery entry')
+    const normalized = r.withSumsOf(laws, stepLaws)
+    const result = quietly(() => discoverSearch(normalized, laws, stepLaws, first ?? proveSteps(normalized, laws, stepLaws, {search: false})))
+    checkWorkEndpoint('discovery result')
+    return result
+  }
+  if (opts.work === undefined) return run()
+  try { return withBudget(opts.work, run) }
+  catch (error) {
+    if (!(error instanceof BudgetExpired)) throw error
+    checkWorkEndpoint(error.phase)
+    return {rule: r, found: {}, verdict: {proven: false, checked: false, stuck: 'unknown', why: workRefusalWhy(error), stopped: true,
+      termination: {kind: 'work-exhausted', phase: error.phase, scope: 'search'}, ...(workContext(error) ? {context: workContext(error)} : {})}}
+  }
 }
 function discoverSearch(r: AnyRule, laws: Law[], stepLaws: StepLaw[], first: Verdict): Discovery {
   if (first.proven && first.checked) return {verdict: first, rule: r, found: {}}

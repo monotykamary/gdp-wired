@@ -1,8 +1,9 @@
 import {expect, test} from 'bun:test'
+import {tripwireGate} from './clock-tripwire-preload.ts'
 import {everyKey, exists, forall, nat, oneOf, proveRule, rule, when, yes} from './dsl.ts'
 import {cpair, evalC, interpret, type Law, type State} from './machine.ts'
 import {skolemOf, small, smallOf, witnessSupport} from './exists.ts'
-import {proveLaw, proveSetFast, withWall} from '../kernel/prove.ts'
+import {fullWork, proveLaw, proveSetFast, withWall} from '../kernel/prove.ts'
 
 // A generic row join with a forgotten input and two forwarding stages. No
 // helper invariant or ghost is supplied to the public proof request.
@@ -52,9 +53,18 @@ test('an orphan row is a genuine induction counterexample, not a reachable trace
 
 test('co-write provenance closes a renamed forwarding pipeline with nothing written', () => {
   const r = pipeline()
-  // Exclusive paired batch 20261116-161156-sqc7yk measured at most 21_383.49 ms for this test.
-  // Keep the wall and search caps aligned at 65 s (>=3x that maximum); retain the 90 s test wrapper.
-  expect(withWall(performance.now() + 65000, () => proveRule(r, [safety(r)], {search: {ms: 65000}}))).toMatchObject({proven: true, checked: true})
+  // Batch 20261116-191741-58lq7l observed 369_881.1207 normal-path units.
+  // 600_000 is a work-unit margin, not an elapsed-time conversion.
+  const before = fullWork()
+  tripwireGate.active = true
+  try {
+    const v = proveRule(r, [safety(r)], {search: {work: 600_000}})
+    expect(v).toMatchObject({proven: true, checked: true})
+    expect(fullWork() - before).toBeLessThanOrEqual(600_000)
+    const exhausted = proveRule(r, [safety(r)], {search: {work: 0}})
+    expect(exhausted).toMatchObject({proven: false, checked: false, stuck: 'unknown'})
+    expect(exhausted.why).toMatch(/^work budget/)
+  } finally { tripwireGate.active = false }
 }, 90000)
 
 test('co-write provenance rejects a missing allowing relation', () => {
