@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.lift.json",
+  "include": ["release-0501*.ts", "paxos-release*.ts", "p2-paxos-atomic-export.ts", "../protocols/ic3syn/p2-paxos-source-input.ts"]
+}

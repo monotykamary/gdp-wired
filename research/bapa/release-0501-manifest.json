@@ -1,0 +1,135 @@
+{
+  "schema": "gdp-bapa-release-replays/v1",
+  "version": "0.50.1",
+  "nativeManifest": {
+    "path": "research/bapa/lift-regression-manifest.json",
+    "sha256": "041d4eea617c1ce36f4e8af7eae71ee8ccb57b9140d4e4e3a5de627c0f705147"
+  },
+  "paxosCapsule": {
+    "path": "research/bapa/paxos-accepted-capsule",
+    "sha256": "b6fb06da57088b8c9c9a5434674b4a6d400b915ff654386070f803967b9e35de",
+    "acceptedCommit": "4a390a1b46b4965042d839cae4de273bc93e0937",
+    "sourceProvenanceCommit": "ef68e18e60b1555fe6d47c8dfc79ec0cf08b6dfa"
+  },
+  "entries": [
+    {
+      "id": "lock_server",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "lockserv",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "lockserv_automaton",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "simple_election",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "simple",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "simple_regular",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "firewall",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "consensus",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "consensus_epr",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "naive_consensus",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "toy_consensus",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "toy_consensus_epr",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "consensus_forall",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "consensus_wo_decide",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "tcommit",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "twophase",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "two_phase_commit",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "learning_switch",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "learning_switch_i4",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "client_server_ae",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "quorum_leader_election",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "majorityset_leader_election",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "sharded_kv_no_lost_keys",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "toy_consensus_forall",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "client_server_db_ae",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "sharded_kv",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "simple_decentralized_lock",
+      "format": "native-data-only-lift"
+    },
+    {
+      "id": "paxos_epr",
+      "format": "lean-source-capsule"
+    }
+  ],
+  "bounded": [
+    {
+      "id": "mldr",
+      "maxSize": 64
+    }
+  ],
+  "scope": "Encoded-source safety only; no independent TLA equivalence or new native-data-only lift support for Paxos."
+}

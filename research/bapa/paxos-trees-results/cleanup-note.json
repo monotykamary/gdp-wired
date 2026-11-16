@@ -1,0 +1,13 @@
+{
+  "supersededBatch": "20261116-073231-262jtw",
+  "supersededJob": "paxos-accept10",
+  "localClientPID": 3990914,
+  "localClientExit": 130,
+  "signal": "SIGINT",
+  "admissionClosed": true,
+  "strictCleanupReceiptComplete": false,
+  "worker": "bx_w6v5fcvr",
+  "bootID": "5043dd10-f99d-4599-b044-89b184cb8357",
+  "observation": "Read-only SSH confirmed the recorded boot and no lean or paxos-accept10 process. Controller cancellation receipt says cancel RPC failed or timed out; acknowledgement remains pending. No shared agent or VM was stopped.",
+  "proofImpact": "None: accepted STEP10 comes from separate completed source-hinted and permanent-name checks."
+}

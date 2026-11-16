@@ -1,0 +1,49 @@
+{
+  "schema": "gdp-release-privacy/v1",
+  "release": "0.50.1",
+  "status": "LOCATION_LABEL_DERIVATION_CHECKED",
+  "scope": "Paxos release tree delta only; history is retained",
+  "originalRevision": "35e2dde10020381fe5c8a084b4ab51c403c38359",
+  "acceptedProducerRevision": "4a390a1b46b4965042d839cae4de273bc93e0937",
+  "files": [
+    {
+      "path": "research/bapa/p2-paxos-accepted-results/BOAT-RECEIPT.json",
+      "originalSha256": "4ab615d6839633b8cc1a67af7415edad9d3ee3b8e29dbbfb0ce31b50e639431f",
+      "publicSha256": "38f0757bd20fefb1f05247702acfac73845a5b062235c7f84774fffb9ed93fbb",
+      "changedLabels": 4,
+      "fields": {
+        "custody.file": 2,
+        "output_files_manifest": 1,
+        "output_files_dir": 1
+      },
+      "transformation": "Replace the machine-specific home prefix with the portable tilde-home label; all other bytes are unchanged."
+    },
+    {
+      "path": "research/bapa/p2-paxos-source-provenance-results/BOAT-RECEIPT.json",
+      "originalRevision": "62ea085bb93bffa14c0a0424eaa9329f901d8a82",
+      "originalSha256": "8b94ef70a849c761348a62c9dc11dbdd09fda32b45ac6967f29b646681b9d18a",
+      "publicSha256": "c6a367d6203bf8f3e36b1c9c6929702f2a3909fdb67249cb3729068d106f2ec7",
+      "changedLabels": 4,
+      "fields": {
+        "custody.file": 2,
+        "output_files_manifest": 1,
+        "output_files_dir": 1
+      },
+      "transformation": "Replace the machine-specific home prefix with the portable tilde-home label; all other bytes are unchanged."
+    }
+  ],
+  "capsuleManifestSha256": "b6fb06da57088b8c9c9a5434674b4a6d400b915ff654386070f803967b9e35de",
+  "rawCapsuleOrSourceChanged": false,
+  "workerMountPathsChanged": false,
+  "historicalReceiptHashesRewritten": false,
+  "historyRewritten": false,
+  "notes": [
+    "The public receipt is a labels-only derivative, not the byte-identical original native receipt.",
+    "Original artifact, source, object, custody and result digests remain historical bindings; no proof or cleanup claim is strengthened.",
+    "The original receipt remains in originalRevision and the accepted producer commit.",
+    "No personal-name or email redaction was required by the added-capsule static review.",
+    "The explicitly accepted source-provenance update changes the capsule README/manifest and adds the recovered source alias; no Lean proof source changed. That update is distinct from this labels-only privacy transformation."
+  ],
+  "originalCapsuleManifestSha256": "92f8dad6b692a22a14a61ab5308d66892c3d8309d6126790cf2ef3c300f28571",
+  "sourceProvenanceRevision": "ef68e18e60b1555fe6d47c8dfc79ec0cf08b6dfa"
+}

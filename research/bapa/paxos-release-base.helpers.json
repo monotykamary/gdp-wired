@@ -1,0 +1,36 @@
+{
+  "origin": "runs/bapa-p2/lean-1/p2-lean-consensus_epr.files",
+  "exports": {
+    "base": {"manifestSha256":"5602a36e27f831aaae3330b72823400d0d3f4f23eeed8b9aca886f05477e1a55","resultsSha256":"a4542bf74897f6ed1bfd785d65c27c17463783fd8b2f24968f2e89b867d058f6","job":"p2-lean-consensus_epr","batch":"20261115-191011-70bfwt"},
+    "accepted": {"manifestSha256":"43e25a3b169a7d58789e2df3f82c8bc063969230a151961072ba5342d9ca6593","resultsSha256":"4ab615d6839633b8cc1a67af7415edad9d3ee3b8e29dbbfb0ce31b50e639431f","job":"p2-paxos-literal-resume","batch":"20261116-085542-58n6uh"}
+  },
+  "qualification": "Original retained kernel-library objects; sources must match the pinned accepted capsule. Not native CLI acceptance.",
+  "files": {
+    "lean-build.log": "89077663da5f949e89ff5e266faedb428e259e893180420c339af5148c9a5e7d",
+    "result.txt": "02de791512db1d2414012b14061d921454e3ae3c56936940e7c79798f942840a"
+  },
+  "objects": {
+    "Bridge": "98229040600fa9e9c56888e6f9db600cfe16e3183fbbe64f76a622c07a81967f",
+    "BridgeRules": "3c910375d2cf8788295c497dc8f7b3329ae7c3c71075493561ae42b874e12065",
+    "Cert": "3abdbb4009877977cedfddd06e06e892d6b87e92aca9e4d94c2aebf1727ccde3",
+    "CountMachine": "d11294b32fbfaccf3398b2dbf4e5bdbc41764a3a29dc4083e505e43b172e84b3",
+    "Count": "f82914473014771c591daa4643139be2b9ce34c3504c7a5a4f6855b684f4854d",
+    "Cyclic": "f2cadc177b1caf4e35ef6b51dadb1a33d2801cb7bdf5f52099da91317591dde4",
+    "Data": "b36a88722da26de567e0cf2846faa27f98da4ef4733c8bb4437a373ec751a925",
+    "GhostMap": "c8659144f084505675e13d6919027bb926ef54c3e8760aacb1b41c4937152a52",
+    "Ghost": "5785259bde6b9e1a22714b4653c39f0b21d82fe253a1a55dccedf3ecd7d66ed1",
+    "History": "aedac96b12d830e2dacf48af12d89fa69e5a9a1d2b9665361cf01f9e1d27129f",
+    "Kernel": "e75cb6145484be44d4e47ea1a210e54cdc140c89db690f4b83ce327750897aef",
+    "KInd": "94f02a90657349909e98043bba3d45b64b153cf1e680bb8638c0e5deb4c273fb",
+    "Live": "7281bd0d7bbe04752c5d51e404a88506176cb1a819bf5a86c6a34c8d0bbd1f3b",
+    "NonTerm": "a976d6b1443c8a8e88c61e46169f4b31576c7fc047f3e0ea7a1182b7989badc4",
+    "Progress": "75c69bcb0be6eb68683bb924831a0875cb8ed184fa56d1b4b6ca1fe9b6b288fa",
+    "QAlpha": "0bffaaa332e075b37f45a3ab196cb3a1c8d9bab06b5f363af0a274c7519fb91b",
+    "Rationals": "b55ec63797bbd6ec7cd68ed27293a0c1651a33f9388ea3b087fa6d625c407460",
+    "Refine": "952a339be431021d9d04c7da7e2949a5ec95a616ed8856c7446b254eeb578371",
+    "Sets": "d98e956ac31f012ecac423a6f32c4ddef9135775c2278108e43697d7280e2bbf",
+    "StepLaw": "c88c0511992e0ed7d7af76bce5a789f4949c0709a12379368c48905afb4c11d4",
+    "Steps": "62eeccaa2648b0ed89e220808bdf460d8efb78d3b5a0e82e53b2b2f2485f68a0",
+    "Sums": "3f7323b68aa84560435770de147c6f7842f3062743bfc135af1eaabf384d642b"
+  }
+}

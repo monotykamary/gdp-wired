@@ -87,7 +87,7 @@
       "receipt_sha256": "968439ca08f6c208fa6f52f6e594f7d37fb9732dd4e5dec616e9315abba9cfe3"
      }
     ],
-    "file": "/home/user/.local/share/supercomputer/live/custody/20261116-091127-ky3xb1.jsonl",
+    "file": "~/.local/share/supercomputer/live/custody/20261116-091127-ky3xb1.jsonl",
     "sha256": "f1570333ccdb580f669f91945fe1d47354da4b4fbbe6da4ff7e8b34ca73dfe35",
     "client_sha256": "49fb6f151e0f3aff95666ce35ea0fa02b2d9d68d644fbab3801ff43939762b84",
     "controller_code": "54202b72212f",
@@ -105,8 +105,8 @@
    },
    "owner": "2ab76afe30abacd2227d1bab602763e9dd2adfb999425575",
    "run_name": "p2-paxos-source-provenance",
-   "output_files_manifest": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/source-provenance-1/.payloads/4d6f9425262bbfd7ac034334788c434b6e64993c6465fc8bb9196d009827a2f0.payload",
-   "output_files_dir": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/source-provenance-1/p2-paxos-source-provenance.files",
+   "output_files_manifest": "~/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/source-provenance-1/.payloads/4d6f9425262bbfd7ac034334788c434b6e64993c6465fc8bb9196d009827a2f0.payload",
+   "output_files_dir": "~/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/source-provenance-1/p2-paxos-source-provenance.files",
    "controller_custody": {
     "protocol": 1,
     "controller_code": "54202b72212f",
@@ -230,7 +230,7 @@
       "receipt_sha256": "968439ca08f6c208fa6f52f6e594f7d37fb9732dd4e5dec616e9315abba9cfe3"
      }
     ],
-    "file": "/home/user/.local/share/supercomputer/live/custody/20261116-091127-ky3xb1.jsonl",
+    "file": "~/.local/share/supercomputer/live/custody/20261116-091127-ky3xb1.jsonl",
     "sha256": "f1570333ccdb580f669f91945fe1d47354da4b4fbbe6da4ff7e8b34ca73dfe35",
     "client_sha256": "49fb6f151e0f3aff95666ce35ea0fa02b2d9d68d644fbab3801ff43939762b84",
     "controller_code": "54202b72212f",

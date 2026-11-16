@@ -1,0 +1,15 @@
+[
+  {
+    "name": "paxos-release-replay",
+    "cmd": "set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bunx tsc --noEmit --target es2022 --module esnext --moduleResolution bundler --types bun --skipLibCheck --allowImportingTsExtensions research/bapa/paxos-release-replay.ts research/bapa/paxos-release-audit.ts research/bapa/paxos-release.helpers.ts research/bapa/paxos-release-replay.test.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/typecheck.log\" 2>&1; bun research/bapa/paxos-release-replay.ts --out \"$SUPERCOMPUTER_OUTPUT_DIR\"; PAXOS_REPLAY_TEST_PACKET=\"$SUPERCOMPUTER_OUTPUT_DIR\" bun test research/bapa/paxos-release-replay.test.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/tests.log\" 2>&1",
+    "cpu": 1,
+    "memory": 8,
+    "timeout": 9000,
+    "env": {
+      "PAXOS_REPLAY_ACCEPTED_DATA": "paxos-replay-accepted",
+      "PAXOS_REPLAY_BASE_DATA": "paxos-replay-base",
+      "PAXOS_REPLAY_PROVENANCE_DATA": "paxos-replay-provenance"
+    },
+    "required_agent_capabilities": {"output_files_protocol": 1, "result_files_protocol": 1}
+  }
+]

@@ -3,6 +3,15 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.50.1
+
+- **Paxos joins the every-size source-model results.** Lean checks the complete `paxos_epr` family
+  (25 entries and 50 obligations) and the original atomic-source safety law for every reachable state,
+  including size zero, without a size-64 premise. The accepted Lean-source capsule remains distinct from
+  the data-only lift CLI; no new native-CLI support is claimed.
+- **No other coverage change:** MLDR remains proven up to size 64, not unrestricted. The existing 27
+  source-model results retain their theorem and axiom checks.
+
 ## 0.50.0
 
 - **BAPA source proofs:** checked safety theorems for 27 encoded source models, including their symbolic size parameters
