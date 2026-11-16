@@ -1,7 +1,7 @@
 import {expect, test} from 'bun:test'
 import {type C, type Machine, type State, cpair, interpret} from '../../core/machine.ts'
 import {allowed} from '../../core/watch.ts'
-import {protocols} from '../protocols/ic3syn/models.ts'
+import {historicalLockServer} from './fixtures/lock-server-pre-symbolic.ts'
 import {lockServerSized} from './lock-server-sized.ts'
 
 // Change only domain guards, not the radix coefficients or the state machine.
@@ -15,8 +15,8 @@ function growGuard(c: C): C {
 const cell = (m: Machine, s: State, map: string, key: number) => s.maps[map]!.get(key) ?? s.defaults?.[map] ?? m.maps![map]!
 const pack = (c: number, s: number) => 64 * c + s
 
-test('fixed-radix cap erasure admits a two-request mutex counterexample', () => {
-  const old = protocols.find(p => p.id === 'lock_server')!.make().machine
+test('historical fixed-radix cap erasure admits a two-request mutex counterexample', () => {
+  const old = historicalLockServer().machine
   const originalBytes = JSON.stringify(old)
   const grown: Machine = {...old, assume: growGuard(old.assume!)}
   const original = interpret(old), run = interpret(grown)
