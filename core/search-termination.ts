@@ -22,5 +22,7 @@ export const searchContext = (v: SearchContext & SearchTerminationFields): Searc
 })
 export const terminationWhy = (t: SearchTermination): string =>
   `${t.kind === 'wall-deadline' ? 'wall deadline reached' : 'counted work exhausted'} (${t.phase}${t.scope === 'stage' ? '; stage allowance' : ''})`
+export const completedSearch = (v: {proven: boolean, checked: boolean, run?: unknown} | undefined): boolean =>
+  !!v && (v.proven && v.checked || v.run !== undefined)
 export const stoppedSearch = <T extends SearchContext & SearchTerminationFields>(v: T, termination: SearchTermination): T & SearchTerminationFields =>
   ({...v, stopped: true, termination, context: searchContext(v), why: terminationWhy(termination)})

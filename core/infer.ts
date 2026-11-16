@@ -1,7 +1,7 @@
 import {retainFrom} from './proof-output.ts'
 import {searchNow as countedSearchNow, checkWorkEndpoint} from './wall.ts'
 import {inWorkScope} from '../kernel/prove.ts'
-import {type SearchContext, type SearchTermination, searchContext, stoppedSearch} from './search-termination.ts'
+import {type SearchContext, type SearchTermination, completedSearch, searchContext, stoppedSearch} from './search-termination.ts'
 import {WatchdogExpired, checkWatchdog, withSearchWatchdog} from './search-watchdog.ts'
 // Invariants nobody wrote: a law that holds but isn't inductive, proven with laws the search finds. Nothing here is
 // trusted; what it finds is proven by the kernel with the rule's own laws, as laws of the same rule.
@@ -694,13 +694,20 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
   let result: Inferred | undefined
   const run = () => {
     const out = withTrees(() => quietly(() => withDeadline(clock() + (opts.work === undefined ? (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - countedSearchNow())) : Infinity), () => inferLawsSearch(target, laws, stepLaws, opts, observed))))
-    return !(out.proven && out.checked) && !out.run && out.stats.termination ? stoppedSearch(out, out.stats.termination) : out
+    if (completedSearch(out)) {
+      const {termination: _statsTermination, ...stats} = out.stats
+      const {stopped: _stopped, termination: _termination, context: _context, ...completed} = out
+      void _statsTermination; void _stopped; void _termination; void _context
+      return retainFrom({...completed, stats: {...stats, stopped: false}}, [out])
+    }
+    return out.stats.termination ? stoppedSearch({...out, context: observed.context?.() ?? searchContext(out)}, out.stats.termination) : out
   }
   try { return withSearchWatchdog(opts.watchdogMs, () => result = opts.work === undefined ? run() : withBudget(opts.work, run)) }
   catch (error) {
     if (error instanceof WatchdogExpired) checkWatchdog(error.termination.phase)
     else if (error instanceof BudgetExpired) checkWorkEndpoint(error.phase)
     else throw error
+    if (error instanceof WatchdogExpired && completedSearch(result)) return result!
     const termination: SearchTermination = error instanceof WatchdogExpired ? error.termination : {kind: 'work-exhausted', phase: error.phase, scope: 'search'}
     return {...stoppedSearch({...result, ...opts.first, proven: false, checked: false, stuck: 'unknown', ...(observed.lastContext ? {context: observed.lastContext} : {})}, termination), found: [], stats: {...(observed.last ?? result?.stats ?? {samples: 0, candidates: 0, alive: 0, proofs: 0, ms: 0, work: Math.max(0, fullWork() - started)}), stopped: true, termination}}
   }
@@ -783,7 +790,13 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     const out = stepLaws.length ? proveStepLaws(model, given, stepLaws) : (fast ? proveSetFast : proveLaws)(model, given)
     return verdictOf(out)
   }
-  const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(countedSearchNow() - t0), work: Math.max(0, fullWork() - work0), stopped: stop(), ...(termination ? {termination} : {})})
+  const stats = (samples: number, candidates: number, alive: number) => {
+    stop()
+    // This is the actual local search-budget predicate, not reported elapsed
+    // time. wall:Infinity disables only the separate scheduling stop.
+    if (!termination && now() >= until) termination = {kind: timed && stopDomain === 'real' ? 'wall-deadline' : 'work-exhausted', phase: 'inference allowance', scope: 'stage'}
+    return {samples, candidates, alive, proofs, ms: Math.round(countedSearchNow() - t0), work: Math.max(0, fullWork() - work0), stopped: stopped || termination !== undefined, ...(termination ? {termination} : {})}
+  }
   // The old public prover's first pass also sampled reachable counterexamples.
   // Keep that negative model evidence without invoking a source finalizer.
   const refuted = !opts.first && !opts.cubes && rule ? refuteModelByRuns(rule, laws, stepLaws) : undefined
@@ -1412,7 +1425,8 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   let enumSome: Law[] = []
   const goalName = (g: string) => g.replace(/ @[^@]*$/, '')
   let last: Verdict = first
-  observed.context = () => searchContext(opts.first ?? last)
+  // Keep the original first verdict immutable; later candidate failures must
+  // not replace its SAT/goal/witness provenance.
   const slow = Math.max(3000, ms / 10)
   // A point a form is false at; a cell form is judged only at rows that read every map it reads.
   const reads = (f: Form, r: Env) => f.coef.every(([i]) => !atoms[i]!.cell || atoms[i]!.parts.every(([q]) => AT + q in r))

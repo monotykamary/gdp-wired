@@ -32,7 +32,7 @@ import {WallExpired, checkWall, checkWorkEndpoint, searchWall, withBudget, Budge
 import {completeWorkProfile} from './work-profile.ts'
 import {workLedger} from './work-admission.ts'
 import {withStageAllowance, withStageDeadline, withStageWall, withStageWork} from './dsl-deadline.ts'
-import {type SearchTermination, searchContext, stoppedSearch} from './search-termination.ts'
+import {type SearchTermination, completedSearch, searchContext, stoppedSearch} from './search-termination.ts'
 import {WatchdogExpired, checkWatchdog, withSearchWatchdog} from './search-watchdog.ts'
 import {withPublicSearchPolicy} from './search-policy.ts'
 import {captureWorkContext, workContext, workRefusalWhy} from './work-refusal.ts'
@@ -3048,6 +3048,7 @@ function watchdogVerdict(ms: number | undefined, run: () => Verdict): Verdict {
   catch (e) {
     if (!(e instanceof WatchdogExpired)) throw e
     checkWatchdog(e.termination.phase) // an expired ancestor still owns cancellation
+    if (completedSearch(result)) return result!
     return stoppedSearch({...result, proven: false, checked: false, stuck: 'unknown'}, e.termination)
   }
 }
@@ -3065,7 +3066,7 @@ function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
     try {
       checkWall('rule preflight')
       const out = result = proveRuleIn(r, laws, opts)
-      checkWall('rule result')
+      if (!completedSearch(out)) checkWall('rule result')
       return out
     } catch (e) {
       if (!(e instanceof WallExpired) && !(e instanceof WatchdogExpired)) throw e
