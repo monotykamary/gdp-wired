@@ -693,6 +693,9 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
   const started = fullWork(), observed: InferenceObservation = {}
   let result: Inferred | undefined
   const run = () => {
+    const enteredAt = countedSearchNow(), enteredWork = fullWork()
+    observed.snapshot = () => ({samples: 0, candidates: 0, alive: 0, proofs: 0, ms: Math.round(countedSearchNow() - enteredAt), work: Math.max(0, fullWork() - enteredWork), stopped: true})
+    try {
     const out = withTrees(() => quietly(() => withDeadline(clock() + (opts.work === undefined ? (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - countedSearchNow())) : Infinity), () => inferLawsSearch(target, laws, stepLaws, opts, observed))))
     if (completedSearch(out)) {
       const {termination: _statsTermination, ...stats} = out.stats
@@ -701,6 +704,10 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
       return retainFrom({...completed, stats: {...stats, stopped: false}}, [out])
     }
     return out.stats.termination ? stoppedSearch({...out, context: observed.context?.() ?? searchContext(out)}, out.stats.termination) : out
+    } catch (error) {
+      observed.last ??= observed.snapshot?.(); observed.lastContext ??= observed.context?.()
+      throw error
+    }
   }
   try { return withSearchWatchdog(opts.watchdogMs, () => result = opts.work === undefined ? run() : withBudget(opts.work, run)) }
   catch (error) {
@@ -709,7 +716,7 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
     else throw error
     if (error instanceof WatchdogExpired && completedSearch(result)) return result!
     const termination: SearchTermination = error instanceof WatchdogExpired ? error.termination : {kind: 'work-exhausted', phase: error.phase, scope: 'search'}
-    return {...stoppedSearch({...result, ...opts.first, proven: false, checked: false, stuck: 'unknown', ...(observed.lastContext ? {context: observed.lastContext} : {})}, termination), found: [], stats: {...(observed.last ?? result?.stats ?? {samples: 0, candidates: 0, alive: 0, proofs: 0, ms: 0, work: Math.max(0, fullWork() - started)}), stopped: true, termination}}
+    return {...stoppedSearch({...result, ...opts.first, proven: false, checked: false, stuck: 'unknown', ...((observed.lastContext ?? observed.context?.()) ? {context: observed.lastContext ?? observed.context?.()} : {})}, termination), found: [], stats: {...(observed.last ?? result?.stats ?? {samples: 0, candidates: 0, alive: 0, proofs: 0, ms: 0, work: Math.max(0, fullWork() - started)}), stopped: true, termination}}
   }
 }
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[], opts: InferOptions, observed: InferenceObservation): Inferred {

@@ -46,9 +46,9 @@ test('local counted allowance reports exhaustion even with an infinite real wall
 test('work and watchdog interruption retain actual partial counters and immutable initial SAT context', () => {
   const r = accounts(), law = accountsLaw(r), first = proveRule(r, [law], {search: false})
   expect(first.stuck).toBe('sat')
-  for (const kind of ['work-exhausted', 'wall-deadline'] as const) {
+  for (const kind of ['work-exhausted', 'wall-deadline'] as const) for (const withFirst of [true, false]) {
     let seen: Record<string, number | string> | undefined
-    const out = inferLaws(r, [law], [], {work: 1000000, first, progress: (phase, info) => {
+    const out = inferLaws(r, [law], [], {work: 1000000, ...(withFirst ? {first} : {}), progress: (phase, info) => {
       if (phase !== 'runs') return
       seen = info
       if (kind === 'work-exhausted') checkWorkAdmission(remainingWork() + 1, 'partial work control')
