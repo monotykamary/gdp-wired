@@ -1,0 +1,2 @@
+'Bapa.PaxosEprLiteral.family_checked' depends on axioms: [propext, Quot.sound]
+'Bapa.PaxosEprLiteral.original_source_safety' depends on axioms: [propext, Classical.choice, Quot.sound]

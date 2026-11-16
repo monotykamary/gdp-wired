@@ -1,0 +1,6 @@
+'Bapa.PaxosEprLiteral.link7' depends on axioms: [propext, Quot.sound]
+'Bapa.PaxosEprLiteral.link10' depends on axioms: [propext, Quot.sound]
+'Bapa.PaxosEprLiteral.link20' depends on axioms: [propext, Quot.sound]
+'Bapa.PaxosEprLiteral.step7_checked' depends on axioms: [propext, Quot.sound]
+'Bapa.PaxosEprLiteral.step10_checked' depends on axioms: [propext, Quot.sound]
+'Bapa.PaxosEprLiteral.step20_checked' depends on axioms: [propext, Quot.sound]

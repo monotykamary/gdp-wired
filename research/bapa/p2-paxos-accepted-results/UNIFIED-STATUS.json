@@ -1,0 +1,19 @@
+{
+  "status": "SOURCE_KERNEL_CHECKED",
+  "sourceAccepted": true,
+  "source": {
+    "status": "EMITTED_NOT_CHECKED",
+    "sourcePortSha256": "3063304ae3bf8d7c7cc9870c838f7f5da7ab916a96d3729a7ca0b8db5f5b1d76",
+    "newProofSearches": 0,
+    "files": {
+      "PaxosEprAtomicDefs.lean": "0d5c2ba44b510bee1a4336108845ea040e29dddfb491e066625a95d082a68394",
+      "source-machine.json": "2624468be1e598444d16d17792f2b0807ae2799685c8c676bcb988468bb0187d",
+      "source-laws.json": "e56d78bb7d00480413affeaba1cf8cc1c057b746d099e3a256a3e7b25aa28913",
+      "basis.json": "c81d4e391f61b8fe5dd5c87e9a2b6c7ac1855b177fa07a6efae02fc7e0ed9687"
+    }
+  },
+  "familyTheorem": "Bapa.PaxosEprLiteral.family_checked",
+  "sourceTheorem": "Bapa.PaxosEprLiteral.original_source_safety",
+  "literalFamilySHA256": "b1a1eeaa52c9471c4b4cbb29c993c05cca9a775ee098c12cb2b0c82a232c2195",
+  "acceptedSourceSHA256": "f5074f0073862d4966e7095cb5749374163b369a261652379740b2856a3f61b1"
+}
