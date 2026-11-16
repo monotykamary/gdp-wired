@@ -31,11 +31,19 @@ test('owned per-lemma watchdog stops stay diagnostic data, not ancestor cancella
 })
 
 test('optional support cannot swallow an inherited work or watchdog expiry',()=>{
- expect(()=>withBudget(0,()=>withLemmas(fixture(),{work:20_000}))).toThrow(BudgetExpired)
+ const workFixture=fixture(),watchdogFixture=fixture()
+ let returnedAfterWorkHelper=false,returnedAfterWatchdogHelper=false
+ expect(()=>withBudget(0,()=>{
+  withLemmas(workFixture,{work:20_000})
+  returnedAfterWorkHelper=true
+ })).toThrow(BudgetExpired)
+ expect(returnedAfterWorkHelper).toBe(false)
  expect(()=>withSearchWatchdog(1,()=>{
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,25)
-  withLemmas(fixture(),{work:20_000,watchdogMs:60_000})
+  withLemmas(watchdogFixture,{work:20_000,watchdogMs:60_000})
+  returnedAfterWatchdogHelper=true
  })).toThrow(WatchdogExpired)
+ expect(returnedAfterWatchdogHelper).toBe(false)
  expect(()=>checkWatchdog('restored')).not.toThrow()
  expect(()=>checkWorkEndpoint('restored')).not.toThrow()
 })
