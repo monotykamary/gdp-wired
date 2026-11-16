@@ -848,8 +848,9 @@ const sumDecls = new Map<string, Sum>()
 export const declaredSum = (name: string): Sum | undefined => sumDecls.get(name)
 const fnv = (text: string): string => { let h = 0x811c9dc5; for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193) >>> 0; return h.toString(36) }
 function sumOver(map: string, at: (key: Term) => TermLike, plain: boolean): Term {
-  const probe = termOf(at(v('k$sum$'))), id = plain ? `sum$${map}` : `sum$${map}$${fnv(JSON.stringify(probe))}`, key = `${id}$k`
-  const term = substVarsE(probe, {'k$sum$': {op: 'var', name: key}}), had = sumDecls.get(id)
+  const placeholder = '?sumKey'
+  const probe = termOf(at(v(placeholder))), id = plain ? `sum$${map}` : `sum$${map}$${fnv(JSON.stringify(probe))}`, key = `${id}$k`
+  const term = substVarsE(probe, {[placeholder]: {op: 'var', name: key}}), had = sumDecls.get(id)
   if (had && JSON.stringify(had.term) !== JSON.stringify(term)) throw new Error(`${id}: two sums by one name`)
   sumDecls.set(id, {key, term})
   return v(id)
@@ -1686,7 +1687,7 @@ const markedE = (e: E): E => {
     case 'proj': return {...e, a: markedE(e.a)}
   }
 }
-const marked = (c: C): C => c.op === 'flag' ? c : c.op === 'all' ? {...c, c: marked(c.c)} : c.op === 'not' ? {op: 'not', x: marked(c.x)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(marked)} : {...c, a: markedE(c.a), b: markedE(c.b)}
+const marked = (c: C): C => c.op === 'flag' ? c : c.op === 'all' ? {...c, c: marked(c.c), ...(c.witness ? {witness: markedE(c.witness)} : {})} : c.op === 'not' ? {op: 'not', x: marked(c.x)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(marked)} : {...c, a: markedE(c.a), b: markedE(c.b)}
 
 type Spec = {
   name: string

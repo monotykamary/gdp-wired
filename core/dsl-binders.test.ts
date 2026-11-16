@@ -1,5 +1,5 @@
 import {expect,test} from 'bun:test'
-import {rule,nat,everyKey,someKey,forall,exists,Cond,Term,proveRule,proveSteps,proveDecision,proveLeadsTo} from './dsl.ts'
+import {rule,nat,everyKey,someKey,forall,exists,when,Cond,Term,proveRule,proveSteps,proveDecision,proveLeadsTo} from './dsl.ts'
 import {interpret} from './machine.ts'
 
 for(const name of ['k$1','key$1','key$2','s$1','gdp$bound$1']){
@@ -70,6 +70,20 @@ test('positive quantified decisions and keyed liveness still prove',()=>{
   expect(proveDecision(decision).proven).toBe(true)
   const live=r.leadsTo('reaches zero',{from:({s},k)=>s.gt(0).and(k.eq(k)),to:({s},k)=>s.eq(0).and(k.eq(k)),rank:({s})=>s,helpful:()=>({u:0})})
   expect(proveLeadsTo(r as never,[],live).proven).toBe(true)
+})
+test('sum placeholders preserve a same-spelled free parameter',()=>{
+  const r=rule('sum placeholder').params({'k$sum$':nat}).maps({M:0}).state({s:0}).step(()=>({}))
+  const law=r.law('sum nonnegative',env=>env.M.sum(cell=>when(env['k$sum$'].eq(0),cell,0)).atLeast(0))
+  const sums=Object.values(r.withSumsOf(law).machine.sums??{})
+  expect(sums).toHaveLength(1)
+  expect(JSON.stringify(sums[0]!.term)).toContain('"name":"k$sum$"')
+  expect(sums[0]!.key).not.toBe('k$sum$')
+})
+test('k-step witnesses rename their later-request terms too',()=>{
+  const r=rule('future witness').inputs({u:nat}).state({s:0}).step(()=>({}))
+  const law=r.stepsLaw('some future input',2,(_env,_after,rs)=>someKey(k=>k.eq(rs[1]!.u),rs[1]!.u))
+  expect(JSON.stringify(law)).not.toContain('?step')
+  expect(JSON.stringify(law)).toContain('"witness":{"op":"var","name":"u@2"}')
 })
 test('exists value binders retain witness metadata',()=>{
   const r=rule('exists boundary').state({s:0}).step(()=>({}))

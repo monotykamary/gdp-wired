@@ -11,7 +11,7 @@ Both are also present in the older lowering; the universal was reproduced on `c0
 
 ## Fix
 
-Surface quantifiers, each-writes, and least keys use `?kN`, `?keyN`, `?sN`; value existentials use `?someN`. Later-request marks use `?stepJ:name`, never user spellings. Rule declaration validation rejects the namespace before any callback can capture it. A lexical free-variable guard rejects reserved free variables, including escaped bound Terms and forged temporal marks before markedE runs. Valid generated after-state and current request marks are explicitly allowed only in their temporal context.
+Surface quantifiers, each-writes, and least keys use `?kN`, `?keyN`, `?sN`; value existentials use `?someN`. The fixed sum probe uses `?sumKey`, so a user parameter `k$sum$` is not substituted along with it. K-step renaming visits explicit quantifier witnesses as well as their bodies. Later-request marks use `?stepJ:name`, never user spellings. Rule declaration validation rejects the namespace before any callback can capture it. A lexical free-variable guard rejects reserved free variables, including escaped bound Terms and forged temporal marks before markedE runs. Valid generated after-state and current request marks are explicitly allowed only in their temporal context.
 
 The unchanged kernel also rejects reserved **bound** names. `core/dsl-binders.ts` therefore performs a final capture-avoiding alpha encoding: collect every declared and syntax name first, assign unused `gdp$bound$N` aliases, and replace exact bound identities (not JSON substrings). A user can declare `gdp$bound$1`; the adapter simply chooses another alias. Machine and law scopes are separately encoded. Existing AST substitution and nested-universal refusals remain.
 
@@ -23,7 +23,7 @@ The unchanged kernel also rejects reserved **bound** names. `core/dsl-binders.ts
 
 ## Verification actually completed
 
-* `core/dsl-binders.test.ts`: **15 pass / 0 fail**, 386ms. Covers both false proofs, old generated-name spellings, encoded-name collisions, input/state/map names, positive machine flags and each writes, valid k-step marking, forbidden colon names, escaped/raw reserved variables, duplicate declarations, quantified decisions, keyed leadsTo, and existential witness metadata.
+* `core/dsl-binders.test.ts`: **17 pass / 0 fail**, 456ms (follow-up includes sum-placeholder preservation and later-request existential witnesses). Covers both false proofs, old generated-name spellings, encoded-name collisions, input/state/map names, positive machine flags and each writes, valid k-step marking, forbidden colon names, escaped/raw reserved variables, duplicate declarations, quantified decisions, keyed leadsTo, and existential witness metadata.
 * `core/prenex-admission.test.ts`: **9 pass / 0 fail**, 476ms. Two allocation-number assumptions were replaced by semantic collision/alpha assertions.
 * A bounded local invocation of the existing `core/quantifiers.test.ts` passed its first four tests, then hit the external seven-second deadline. **Not a complete pass.** No full-suite, typecheck, lint, or focused boat result is claimed.
 * Commitlint was attempted with `bunx --no-install`; no cached CLI exists. It remains in the HELD focused job, not reported as passing.
