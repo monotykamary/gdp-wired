@@ -2,7 +2,12 @@
   "lane": "source-triage",
   "baseline": "70b660443",
   "manifest": "scripts/release-ci/known-failures.json",
-  "scope": {"jobs": 10, "manifestFailureInstances": 76, "uniqueTestSignatures": 55, "runnerDuplicates": 21},
+  "scope": {
+    "jobs": 10,
+    "manifestFailureInstances": 76,
+    "uniqueTestSignatures": 55,
+    "runnerDuplicates": 21
+  },
   "categories": {
     "source-replay-unavailable": "Fail-closed source translation refusal. The rule is source-marked but its native journal is disabled/unavailable. Current public reason: source translation unchecked: native source replay is unavailable or disabled. This is not a flaky pass and is not a Lean-export issue.",
     "actual-cyclic-translator-gap": "The cyclic route explicitly fell back/uncovered an unknown symbolic goal. Source replay is an additional finalization blocker where applicable.",
@@ -10,31 +15,334 @@
     "runner-duplicate": "Same test identifier and signature as a direct C/JVM job; retained as a job identity but not counted as a second root cause."
   },
   "jobs": [
-    {"job":"trading","definitionSha256":"84710275a4f9b51d98a140e2c6e9f919e98b21cd2421c70ca7bd21c39cf313c2","tests":[
-      {"id":"loops.test.ts :: a queue drained from its front: the fold over its places; the tasks run were due, and one left may be due (it waits behind one that isn’t)","classification":"source-replay-unavailable","secondary":"No timeout/watchdog receipt; 50.54s test duration despite check ms=30000 leaves wall-budget contribution unresolved."},
-      {"id":"ordered.test.ts :: a queue of numbers: the first and last items, pop(0), checked against the code; a take removes the first item","classification":"source-replay-unavailable"},
-      {"id":"ordered.test.ts :: an order book of two lists: price-time priority proven, a self-trade found and replayed","classification":"actual-cyclic-translator-gap","secondary":"Three explicit Book cyclic fallback/uncovered records; source-law replay is also unavailable."},
-      {"id":"rounding.test.ts :: Java: Math.floor, Math.round and a cast of a float division, exact below their edges","classification":"source-replay-unavailable"},
-      {"id":"rounding.test.ts :: a price on a tick: a floor and Python round, exact; the tick laws proven, a half rounding up broken","classification":"source-replay-unavailable"},
-      {"id":"rounding.test.ts :: round(a / k) at |a| of 2^52 or more: an edge, the claim below it","classification":"source-replay-unavailable","secondary":"Q cyclic fallback/uncovered records are present; no watchdog evidence."}
-    ]},
-    {"job":"extract-rb","definitionSha256":"ca4a2cc268fe034d2fd2984d21ba382cc0936f955a53f90312bcf7be567315d7","classification":"source-replay-unavailable","tests":["extract-rb.test.ts :: / and % of a negative floor, as Ruby's do; symbols are a choice; case/when on them","extract-rb.test.ts :: a counter with a limit: Ruby's truth (0 is true), a field nil until it is set, the last expression as the result","extract-rb.test.ts :: begin/rescue/else/ensure and a method's own rescue: another class's call may raise what a rescue catches, a raise by its class","extract-rb.test.ts :: the boundary inferred: another class's call left out or answered (tagged: Ruby states no types), a store injected, the entry"]},
-    {"job":"extract-ex","definitionSha256":"8bfb3f4ea417fda90b80fb3474abb8bc06ee5945d7193dab47b9e71f24f21e66","classification":"source-replay-unavailable","tests":["extract-ex.test.ts :: a GenServer: clauses on the message and the state, a guard, cond and raise, a cast","extract-ex.test.ts :: a plain module over a struct: immutable updates, div and rem truncating toward zero","extract-ex.test.ts :: the boundary inferred: another module's call left out or answered (tagged: Elixir states no types), the entry"]},
-    {"job":"extract-c","definitionSha256":"b287adea58d031b78816637a690e89b236eb951876157b61fb68933282bb126c","tests":[
-      {"id":"extract-c.test.ts :: C++: a class, its constructor the start (its parameters the rule's), private members, lock guards, std::min, std::array, a throw","classification":"source-replay-unavailable"},{"id":"extract-c.test.ts :: C++: a default member initializer beside a constructor that sets other fields","classification":"source-replay-unavailable"},{"id":"extract-c.test.ts :: a file that keeps its state in globals: the globals one object, its functions requests, an extern volatile the request's","classification":"source-replay-unavailable"},{"id":"extract-c.test.ts :: a fixed array is a list of its length; an index the path doesn't keep within it is refused (undefined behavior)","classification":"source-replay-unavailable"},{"id":"extract-c.test.ts :: a literal past 2^53 stored in a narrower unsigned: its value there exactly (2^53 + 1 is 1 in 32 bits)","classification":"source-replay-unavailable"},{"id":"extract-c.test.ts :: a stated failure, assert and abort are refusals; a write before one needs onError: discard","classification":"source-replay-unavailable"},{"id":"extract-c.test.ts :: a switch: labels together, a case running into the next, an enum, ?: and the file's functions inlined","classification":"source-replay-unavailable"},{"id":"extract-c.test.ts :: an out-parameter: what the function leaves in *data is its result beside the value returned; masks of promoted values","classification":"source-replay-unavailable"},{"id":"extract-c.test.ts :: bit operations with a constant: flags set, cleared, toggled and tested, composed into one form","classification":"source-replay-unavailable"},{"id":"extract-c.test.ts :: division and remainder truncate toward zero; by zero it is refused","classification":"source-replay-unavailable"},{"id":"extract-c.test.ts :: signed overflow is undefined: refused where the path doesn't exclude it, never wrapped","classification":"source-replay-unavailable"},{"id":"extract-c.test.ts :: the boundary inferred: a library call left out, another file's function answered over its declared type, the entry","classification":"actual-prover-translator-gap","secondary":"Source replay unavailable too; diagnostic kernelProven:false and cyclic fallback/uncovered for meter used-within-type goal."},{"id":"extract-c.test.ts :: unsigned arithmetic wraps; a narrow one is promoted and converted back","classification":"source-replay-unavailable"}
-    ]},
-    {"job":"extract-jvm","definitionSha256":"e4b051337f80ab71a7b1cbdff6d158d7bae472b8b94b93a92db3829a8438a65c","classification":"source-replay-unavailable","tests":["extract-jvm.test.ts :: Kotlin: an immutable data class's method returning its next value is a step to it; copy, scope functions","extract-jvm.test.ts :: Kotlin: when on an enum, a nullable Long (?:, !!, smart casts), check, @Synchronized","extract-jvm.test.ts :: a compare-and-set loop read as its first pass; an AtomicInteger as the int it holds; Math.max and min","extract-jvm.test.ts :: a map of records, Optional, a ReentrantLock's try/finally: the step atomic, one key written a step","extract-jvm.test.ts :: a switch on an enum: a case falling through into the next, the default; a static constant folded","extract-jvm.test.ts :: int wraps past MAX_VALUE as Java's does; Math.addExact traps (an ArithmeticException, kept as the result)","extract-jvm.test.ts :: the boundary inferred: a field @Autowired (a store), a constructor's injected interface (its call an answer the harness stubs), the entry","extract-jvm.test.ts :: the clock and an answered call of other code, each the request's (the check's copy of the code rewritten)"]},
-    {"job":"extract-swift","definitionSha256":"c93783131ba1782a7febd1f84dffbfa4cd23e47a0f017581510dad4db763aa25","classification":"source-replay-unavailable","tests":["extract-swift.test.ts :: a struct: + traps past UInt8 (a crash, the failure), &+ wraps, an Optional set, an enum's raw value, a throw","extract-swift.test.ts :: an actor: its methods each one step","extract-swift.test.ts :: the boundary inferred: an injected store by its keys, an answer over a protocol's declared result, the entry"]},
-    {"job":"extract-orm","definitionSha256":"d85dce9ed67edae297149d2b61869eb1cdee90bf9a77fa4ad93c36cfc414839a","classification":"source-replay-unavailable","tests":["core/extract-py-orm.test.ts :: Django model columns initialize a real row"]},
-    {"job":"extract-rs","definitionSha256":"1b2161abb82c552697e0445600fa2a09cc24eff1a83e081c20d611493f17d135","classification":"source-replay-unavailable","tests":["extract-rs.test.ts :: Rust atomic ordering: typed load and store retain invalid-order failures","extract-rs.test.ts :: a C-like enum, its discriminant, an Err returned, an atomic counter","extract-rs.test.ts :: integers of a width: + traps past it (the failure), wrapping_add wraps, checked_add is an Option","extract-rs.test.ts :: the boundary inferred: other crates' calls left out or answered (tagged: their types aren't read), the entry"]},
-    {"job":"extract-go","definitionSha256":"90414edc715f21b5e9052bf218c25c42540acc2bd07d442d57091936e97e3189","classification":"source-replay-unavailable","tests":["extract-go.test.ts :: *big.Int fields (blnk's balances): nil a state of its own, Add and Sub in place, Cmp, an error as the refusal","extract-go.test.ts :: Go's integer division truncates toward zero; conversions wrap into the narrower type","extract-go.test.ts :: a context.Context argument passed on to the package's own functions is read; one the step reads is refused","extract-go.test.ts :: a panic or an error after a write is refused, unless the caller discards what a failed call wrote","extract-go.test.ts :: a struct given by value (gitea's CreateReviewOptions, the csr options): its fields inputs; writing the copy changes nothing the caller sees","extract-go.test.ts :: a struct of uint32 counters (gobreaker's Counts): increments wrap at 2^32, a result kept","extract-go.test.ts :: a uint64 below 0 is refused (Go wraps it past the rule's 2^53); past 2^53 the runtime refuses","extract-go.test.ts :: aliasing through pointers: a copied pointer writes the object, a copied struct doesn't, an interior pointer does","extract-go.test.ts :: embedded structs: a promoted pointer method writes the embedded field, a value receiver writes a copy","extract-go.test.ts :: maps: read with a zero for a missing key, comma-ok, delete, a nil map's write panics; a range over one is refused","extract-go.test.ts :: overflow at each width: int8 wraps to −128, uint16 below 0 wraps up, int32 products wrap","extract-go.test.ts :: panics: explicit, a nil *big.Int, a division by a constant zero is Go's compile error; each a refusal, the state as it was","extract-go.test.ts :: the boundary inferred: another package's call left out, one whose value is read answered over its type, the entry"]},
-    {"job":"runner-cli-c-jvm","definitionSha256":"3d9b15351eb8e1fe4188fc782eddc64b76f2b5e11af0ea06dab9bd3cc5620ed6","classification":"runner-duplicate","tests":"All 13 exact extract-c identifiers plus all 8 exact extract-jvm identifiers above, in the manifest's runner signature; map each to the direct-job record with the same identifier. The C boundary record retains actual-prover-translator-gap; all remaining aliases retain source-replay-unavailable."}
+    {
+      "job": "trading",
+      "definitionSha256": "84710275a4f9b51d98a140e2c6e9f919e98b21cd2421c70ca7bd21c39cf313c2",
+      "tests": [
+        {
+          "id": "loops.test.ts :: a queue drained from its front: the fold over its places; the tasks run were due, and one left may be due (it waits behind one that isn’t)",
+          "classification": "source-replay-unavailable",
+          "secondary": "No timeout/watchdog receipt; 50.54s test duration despite check ms=30000 leaves wall-budget contribution unresolved."
+        },
+        {
+          "id": "ordered.test.ts :: a queue of numbers: the first and last items, pop(0), checked against the code; a take removes the first item",
+          "classification": "source-replay-unavailable"
+        },
+        {
+          "id": "ordered.test.ts :: an order book of two lists: price-time priority proven, a self-trade found and replayed",
+          "classification": "actual-cyclic-translator-gap",
+          "secondary": "Three explicit Book cyclic fallback/uncovered records; source-law replay is also unavailable."
+        },
+        {
+          "id": "rounding.test.ts :: Java: Math.floor, Math.round and a cast of a float division, exact below their edges",
+          "classification": "source-replay-unavailable"
+        },
+        {
+          "id": "rounding.test.ts :: a price on a tick: a floor and Python round, exact; the tick laws proven, a half rounding up broken",
+          "classification": "source-replay-unavailable"
+        },
+        {
+          "id": "rounding.test.ts :: round(a / k) at |a| of 2^52 or more: an edge, the claim below it",
+          "classification": "source-replay-unavailable",
+          "secondary": "Q cyclic fallback/uncovered records are present; no watchdog evidence."
+        }
+      ]
+    },
+    {
+      "job": "extract-rb",
+      "definitionSha256": "ca4a2cc268fe034d2fd2984d21ba382cc0936f955a53f90312bcf7be567315d7",
+      "classification": "source-replay-unavailable",
+      "tests": [
+        "extract-rb.test.ts :: / and % of a negative floor, as Ruby's do; symbols are a choice; case/when on them",
+        "extract-rb.test.ts :: a counter with a limit: Ruby's truth (0 is true), a field nil until it is set, the last expression as the result",
+        "extract-rb.test.ts :: begin/rescue/else/ensure and a method's own rescue: another class's call may raise what a rescue catches, a raise by its class",
+        "extract-rb.test.ts :: the boundary inferred: another class's call left out or answered (tagged: Ruby states no types), a store injected, the entry"
+      ]
+    },
+    {
+      "job": "extract-ex",
+      "definitionSha256": "8bfb3f4ea417fda90b80fb3474abb8bc06ee5945d7193dab47b9e71f24f21e66",
+      "classification": "source-replay-unavailable",
+      "tests": [
+        "extract-ex.test.ts :: a GenServer: clauses on the message and the state, a guard, cond and raise, a cast",
+        "extract-ex.test.ts :: a plain module over a struct: immutable updates, div and rem truncating toward zero",
+        "extract-ex.test.ts :: the boundary inferred: another module's call left out or answered (tagged: Elixir states no types), the entry"
+      ]
+    },
+    {
+      "job": "extract-c",
+      "definitionSha256": "b287adea58d031b78816637a690e89b236eb951876157b61fb68933282bb126c",
+      "tests": [
+        {
+          "id": "extract-c.test.ts :: C++: a class, its constructor the start (its parameters the rule's), private members, lock guards, std::min, std::array, a throw",
+          "classification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: C++: a default member initializer beside a constructor that sets other fields",
+          "classification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: a file that keeps its state in globals: the globals one object, its functions requests, an extern volatile the request's",
+          "classification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: a fixed array is a list of its length; an index the path doesn't keep within it is refused (undefined behavior)",
+          "classification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: a literal past 2^53 stored in a narrower unsigned: its value there exactly (2^53 + 1 is 1 in 32 bits)",
+          "classification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: a stated failure, assert and abort are refusals; a write before one needs onError: discard",
+          "classification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: a switch: labels together, a case running into the next, an enum, ?: and the file's functions inlined",
+          "classification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: an out-parameter: what the function leaves in *data is its result beside the value returned; masks of promoted values",
+          "classification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: bit operations with a constant: flags set, cleared, toggled and tested, composed into one form",
+          "classification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: division and remainder truncate toward zero; by zero it is refused",
+          "classification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: signed overflow is undefined: refused where the path doesn't exclude it, never wrapped",
+          "classification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: the boundary inferred: a library call left out, another file's function answered over its declared type, the entry",
+          "classification": "actual-prover-translator-gap",
+          "secondary": "Source replay unavailable too; diagnostic kernelProven:false and cyclic fallback/uncovered for meter used-within-type goal."
+        },
+        {
+          "id": "extract-c.test.ts :: unsigned arithmetic wraps; a narrow one is promoted and converted back",
+          "classification": "source-replay-unavailable"
+        }
+      ]
+    },
+    {
+      "job": "extract-jvm",
+      "definitionSha256": "e4b051337f80ab71a7b1cbdff6d158d7bae472b8b94b93a92db3829a8438a65c",
+      "classification": "source-replay-unavailable",
+      "tests": [
+        "extract-jvm.test.ts :: Kotlin: an immutable data class's method returning its next value is a step to it; copy, scope functions",
+        "extract-jvm.test.ts :: Kotlin: when on an enum, a nullable Long (?:, !!, smart casts), check, @Synchronized",
+        "extract-jvm.test.ts :: a compare-and-set loop read as its first pass; an AtomicInteger as the int it holds; Math.max and min",
+        "extract-jvm.test.ts :: a map of records, Optional, a ReentrantLock's try/finally: the step atomic, one key written a step",
+        "extract-jvm.test.ts :: a switch on an enum: a case falling through into the next, the default; a static constant folded",
+        "extract-jvm.test.ts :: int wraps past MAX_VALUE as Java's does; Math.addExact traps (an ArithmeticException, kept as the result)",
+        "extract-jvm.test.ts :: the boundary inferred: a field @Autowired (a store), a constructor's injected interface (its call an answer the harness stubs), the entry",
+        "extract-jvm.test.ts :: the clock and an answered call of other code, each the request's (the check's copy of the code rewritten)"
+      ]
+    },
+    {
+      "job": "extract-swift",
+      "definitionSha256": "c93783131ba1782a7febd1f84dffbfa4cd23e47a0f017581510dad4db763aa25",
+      "classification": "source-replay-unavailable",
+      "tests": [
+        "extract-swift.test.ts :: a struct: + traps past UInt8 (a crash, the failure), &+ wraps, an Optional set, an enum's raw value, a throw",
+        "extract-swift.test.ts :: an actor: its methods each one step",
+        "extract-swift.test.ts :: the boundary inferred: an injected store by its keys, an answer over a protocol's declared result, the entry"
+      ]
+    },
+    {
+      "job": "extract-orm",
+      "definitionSha256": "d85dce9ed67edae297149d2b61869eb1cdee90bf9a77fa4ad93c36cfc414839a",
+      "classification": "source-replay-unavailable",
+      "tests": [
+        "core/extract-py-orm.test.ts :: Django model columns initialize a real row"
+      ]
+    },
+    {
+      "job": "extract-rs",
+      "definitionSha256": "1b2161abb82c552697e0445600fa2a09cc24eff1a83e081c20d611493f17d135",
+      "classification": "source-replay-unavailable",
+      "tests": [
+        "extract-rs.test.ts :: Rust atomic ordering: typed load and store retain invalid-order failures",
+        "extract-rs.test.ts :: a C-like enum, its discriminant, an Err returned, an atomic counter",
+        "extract-rs.test.ts :: integers of a width: + traps past it (the failure), wrapping_add wraps, checked_add is an Option",
+        "extract-rs.test.ts :: the boundary inferred: other crates' calls left out or answered (tagged: their types aren't read), the entry"
+      ]
+    },
+    {
+      "job": "extract-go",
+      "definitionSha256": "90414edc715f21b5e9052bf218c25c42540acc2bd07d442d57091936e97e3189",
+      "classification": "source-replay-unavailable",
+      "tests": [
+        "extract-go.test.ts :: *big.Int fields (blnk's balances): nil a state of its own, Add and Sub in place, Cmp, an error as the refusal",
+        "extract-go.test.ts :: Go's integer division truncates toward zero; conversions wrap into the narrower type",
+        "extract-go.test.ts :: a context.Context argument passed on to the package's own functions is read; one the step reads is refused",
+        "extract-go.test.ts :: a panic or an error after a write is refused, unless the caller discards what a failed call wrote",
+        "extract-go.test.ts :: a struct given by value (gitea's CreateReviewOptions, the csr options): its fields inputs; writing the copy changes nothing the caller sees",
+        "extract-go.test.ts :: a struct of uint32 counters (gobreaker's Counts): increments wrap at 2^32, a result kept",
+        "extract-go.test.ts :: a uint64 below 0 is refused (Go wraps it past the rule's 2^53); past 2^53 the runtime refuses",
+        "extract-go.test.ts :: aliasing through pointers: a copied pointer writes the object, a copied struct doesn't, an interior pointer does",
+        "extract-go.test.ts :: embedded structs: a promoted pointer method writes the embedded field, a value receiver writes a copy",
+        "extract-go.test.ts :: maps: read with a zero for a missing key, comma-ok, delete, a nil map's write panics; a range over one is refused",
+        "extract-go.test.ts :: overflow at each width: int8 wraps to −128, uint16 below 0 wraps up, int32 products wrap",
+        "extract-go.test.ts :: panics: explicit, a nil *big.Int, a division by a constant zero is Go's compile error; each a refusal, the state as it was",
+        "extract-go.test.ts :: the boundary inferred: another package's call left out, one whose value is read answered over its type, the entry"
+      ]
+    },
+    {
+      "job": "runner-cli-c-jvm",
+      "definitionSha256": "3d9b15351eb8e1fe4188fc782eddc64b76f2b5e11af0ea06dab9bd3cc5620ed6",
+      "classification": "runner-duplicate",
+      "tests": [
+        {
+          "id": "extract-c.test.ts :: C++: a class, its constructor the start (its parameters the rule's), private members, lock guards, std::min, std::array, a throw",
+          "classification": "runner-duplicate",
+          "directJob": "extract-c",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: C++: a default member initializer beside a constructor that sets other fields",
+          "classification": "runner-duplicate",
+          "directJob": "extract-c",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: a file that keeps its state in globals: the globals one object, its functions requests, an extern volatile the request's",
+          "classification": "runner-duplicate",
+          "directJob": "extract-c",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: a fixed array is a list of its length; an index the path doesn't keep within it is refused (undefined behavior)",
+          "classification": "runner-duplicate",
+          "directJob": "extract-c",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: a literal past 2^53 stored in a narrower unsigned: its value there exactly (2^53 + 1 is 1 in 32 bits)",
+          "classification": "runner-duplicate",
+          "directJob": "extract-c",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: a stated failure, assert and abort are refusals; a write before one needs onError: discard",
+          "classification": "runner-duplicate",
+          "directJob": "extract-c",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: a switch: labels together, a case running into the next, an enum, ?: and the file's functions inlined",
+          "classification": "runner-duplicate",
+          "directJob": "extract-c",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: an out-parameter: what the function leaves in *data is its result beside the value returned; masks of promoted values",
+          "classification": "runner-duplicate",
+          "directJob": "extract-c",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: bit operations with a constant: flags set, cleared, toggled and tested, composed into one form",
+          "classification": "runner-duplicate",
+          "directJob": "extract-c",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: division and remainder truncate toward zero; by zero it is refused",
+          "classification": "runner-duplicate",
+          "directJob": "extract-c",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: signed overflow is undefined: refused where the path doesn't exclude it, never wrapped",
+          "classification": "runner-duplicate",
+          "directJob": "extract-c",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-c.test.ts :: the boundary inferred: a library call left out, another file's function answered over its declared type, the entry",
+          "classification": "runner-duplicate",
+          "directJob": "extract-c",
+          "directClassification": "actual-prover-translator-gap"
+        },
+        {
+          "id": "extract-c.test.ts :: unsigned arithmetic wraps; a narrow one is promoted and converted back",
+          "classification": "runner-duplicate",
+          "directJob": "extract-c",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-jvm.test.ts :: Kotlin: an immutable data class's method returning its next value is a step to it; copy, scope functions",
+          "classification": "runner-duplicate",
+          "directJob": "extract-jvm",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-jvm.test.ts :: Kotlin: when on an enum, a nullable Long (?:, !!, smart casts), check, @Synchronized",
+          "classification": "runner-duplicate",
+          "directJob": "extract-jvm",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-jvm.test.ts :: a compare-and-set loop read as its first pass; an AtomicInteger as the int it holds; Math.max and min",
+          "classification": "runner-duplicate",
+          "directJob": "extract-jvm",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-jvm.test.ts :: a map of records, Optional, a ReentrantLock's try/finally: the step atomic, one key written a step",
+          "classification": "runner-duplicate",
+          "directJob": "extract-jvm",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-jvm.test.ts :: a switch on an enum: a case falling through into the next, the default; a static constant folded",
+          "classification": "runner-duplicate",
+          "directJob": "extract-jvm",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-jvm.test.ts :: int wraps past MAX_VALUE as Java's does; Math.addExact traps (an ArithmeticException, kept as the result)",
+          "classification": "runner-duplicate",
+          "directJob": "extract-jvm",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-jvm.test.ts :: the boundary inferred: a field @Autowired (a store), a constructor's injected interface (its call an answer the harness stubs), the entry",
+          "classification": "runner-duplicate",
+          "directJob": "extract-jvm",
+          "directClassification": "source-replay-unavailable"
+        },
+        {
+          "id": "extract-jvm.test.ts :: the clock and an answered call of other code, each the request's (the check's copy of the code rewritten)",
+          "classification": "runner-duplicate",
+          "directJob": "extract-jvm",
+          "directClassification": "source-replay-unavailable"
+        }
+      ]
+    }
   ],
   "evidence": {
-    "originalReceipts":"/home/user/VCS/working-remote/open-source/gdp-wired-bapa-finish/runs/bapa-release-0501-final-70b660443-full/{JOB}.files/{stdout.log,stderr.log,COMMAND-RESULT.json}",
-    "diagnosticBatch":"20261116-185100-0hhylj",
-    "diagnosticOut":"/tmp/bapa-0502-control/runs/source-triage-diagnostics-01",
-    "diagnosticVerdicts":["diag-ruby-native-law-gap.files/verdict.jsonl","diag-c-native-law-gap.files/verdict.jsonl"],
-    "sourcePaths":["core/source-check.ts","core/laws.ts","core/extract-rb.test.ts","core/extract-c.test.ts","core/extract-jvm.test.ts","core/ordered.test.ts","core/loops.test.ts","core/rounding.test.ts"]
+    "originalReceipts": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-finish/runs/bapa-release-0501-final-70b660443-full/{JOB}.files/{stdout.log,stderr.log,COMMAND-RESULT.json}",
+    "diagnosticBatch": "20261116-185100-0hhylj",
+    "diagnosticOut": "/tmp/bapa-0502-control/runs/source-triage-diagnostics-01",
+    "diagnosticVerdicts": [
+      "diag-ruby-native-law-gap.files/verdict.jsonl",
+      "diag-c-native-law-gap.files/verdict.jsonl"
+    ],
+    "sourcePaths": [
+      "core/source-check.ts",
+      "core/laws.ts",
+      "core/extract-rb.test.ts",
+      "core/extract-c.test.ts",
+      "core/extract-jvm.test.ts",
+      "core/ordered.test.ts",
+      "core/loops.test.ts",
+      "core/rounding.test.ts"
+    ]
   }
 }
