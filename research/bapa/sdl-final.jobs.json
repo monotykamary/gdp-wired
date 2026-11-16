@@ -1,0 +1,24 @@
+[
+  {
+    "name": "sdl-source-receipt",
+    "cpu": 2,
+    "memory": 4,
+    "timeout": 600,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; export SDL_CHECKED_ROOT=\"$PWD/sdl-checked\" SDL_DEPENDENCY_ROOT=\"$PWD/sdl-prior\"; bunx tsc -p research/bapa/tsconfig.sdl-transport.json > \"$OUT/types.log\" 2>&1; bun test research/bapa/sdl-source-verify.test.ts > \"$OUT/tests.log\" 2>&1; bun research/bapa/sdl-source-verify.ts sdl-checked sdl-prior \"$OUT/SOURCE-CHECKED.json\" > \"$OUT/source-check.log\" 2>&1; printf '%s\\n' 'feat(bapa): transport decentralized lock and prove its source law' > \"$OUT/commit-message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$OUT/commit-message.txt\" > \"$OUT/commitlint.log\" 2>&1"
+  },
+  {
+    "name": "sdl-broken-source",
+    "cpu": 2,
+    "memory": 6,
+    "timeout": 900,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; export PATH=\"$ROOT/scripts/lean-gate:$PATH\"; export LEAN_PATH=\"$OUT:$ROOT/sdl-checked/rechecked:$ROOT/sdl-retained/lean/.lake/build/lib/lean:$ROOT/sdl-retained/lean\"; bun research/bapa/sdl-source-data.ts --broken-source; cd \"$OUT\"; lean -o \"$OUT/SdlSourceDefs.olean\" \"$OUT/SdlSourceDefs.lean\" > \"$OUT/defs.log\" 2>&1; cp \"$ROOT/research/bapa/SdlExactTransport.lean\" \"$OUT/\"; lean -o \"$OUT/SdlExactTransport.olean\" \"$OUT/SdlExactTransport.lean\" > \"$OUT/exact.log\" 2>&1; cp \"$ROOT/research/bapa/SdlSourceBridge.lean\" \"$OUT/\"; set +e; lean \"$OUT/SdlSourceBridge.lean\" > \"$OUT/broken-source.log\" 2>&1; code=$?; set -e; test \"$code\" -ne 0; grep -q 'Tactic `rfl` failed' \"$OUT/broken-source.log\"; printf '%s\\n' '{\"brokenSource\":\"send keeps the lock\",\"bridgeRefused\":true}' > \"$OUT/NEGATIVE-SOURCE.json\""
+  }
+]

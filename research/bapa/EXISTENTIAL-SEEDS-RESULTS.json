@@ -1,0 +1,69 @@
+{
+  "schema": "bapa-existential-seeds-validation/v1",
+  "batch": "20261115-223654-l2u6tl",
+  "image": "sc-f0d8daeee6c3",
+  "tree": "b388a950370e",
+  "runtime": {
+    "bun": "1.4.3",
+    "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+  },
+  "checks": {
+    "typecheck": 0,
+    "tests": 0,
+    "audit": 0,
+    "witnessAudit": 0,
+    "commitlint": 0
+  },
+  "tests": {
+    "passed": 41,
+    "failed": 0,
+    "assertions": 230
+  },
+  "audit": {
+    "protocol": "sharded_kv_no_lost_keys",
+    "noSearch": true,
+    "publicCalls": 0,
+    "sourceUnchanged": true,
+    "rematerializationChanges": true,
+    "candidates": 10,
+    "dropped": 0,
+    "fieldRowProposals": 0,
+    "witnessProposals": 1,
+    "witnessRefusals": [],
+    "witnesses": [
+      {
+        "status": "proposed",
+        "name": "a transfer in flight, or every key owned",
+        "sourceVariables": 2,
+        "targetVariables": 4,
+        "ghostMaps": {
+          "Owner$n": "seed$witness$Owner$n",
+          "TransferMsg$n21": "seed$witness$TransferMsg$n21",
+          "TransferMsg$v1": "seed$witness$TransferMsg$v1"
+        },
+        "helperMode": "guarded-equality",
+        "trusted": false
+      }
+    ],
+    "manifestSha256": "36667195635d21721fb0afc2bfc2ee29137fbcefd402641273dc68427d7b0753",
+    "captureSha256": "e41e37724663b689ed716c639694ff002c0be92e99ace6267f4ef8ad3cf8fe4f",
+    "graphManifestSha256": "81048f410d011ab1c174ba6d2168332cd1e0bdc2e203b0707a8f869cdf2ccfd1",
+    "modelsSha256": "3063304ae3bf8d7c7cc9870c838f7f5da7ab916a96d3729a7ca0b8db5f5b1d76",
+    "machineSha256": "590731414f09d66bfa47f8686b486d8bdb26985f6cfe3ba531ac388b3bc61108"
+  },
+  "witnessAudit": {
+    "status": "ok",
+    "noSearch": true,
+    "publicCalls": 0,
+    "candidates": 10,
+    "ghostMaps": 3,
+    "sourceVariables": 2,
+    "targetVariables": 4
+  },
+  "artifacts": "runs/existential-seed-02/existential-seed-gate.files",
+  "scope": {
+    "newProtocolProofPerformed": false,
+    "sourceQualifiedLeanPerformed": false,
+    "newAllSizeClaim": false
+  }
+}

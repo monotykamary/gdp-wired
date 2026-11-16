@@ -29,7 +29,7 @@ for (const p of protocols.filter(q => q.check && (!only || only.includes(q.id)))
   const keyOf = (st: any) => JSON.stringify([st.scalars, Object.keys(st.maps).sort().map(k => [k, dflt(st, k), [...st.maps[k]].filter(([, v]: any) => v !== dflt(st, k)).sort((a: any, b: any) => a[0] - b[0])])])
   const t0 = performance.now(), st0 = run.init(params), seen = new Set([keyOf(st0)]), spec = new Set<string>()
   const proj = (st: any) => { const x = c.project(read(st)); if (x !== undefined) spec.add(JSON.stringify(x)); return x }
-  let frontier = [st0], depth = 0, refused = 0, stepped = 0, bad = 0, done = true
+  let frontier = [st0], depth = 0, refused = 0, stepped = 0, bad = 0, done = true, edgeComplete = true
   const moved: Record<string, number> = {}, edge = new Set<string>(), pairs = new Set<string>(), pjs = new WeakMap<object, string | null>()
   // --edges: the distinct steps between two spec states, each a different one, inside the constraint (TLC's state graph's edges)
   const phaseEnds = (s0: any): any[] => {
@@ -44,6 +44,7 @@ for (const p of protocols.filter(q => q.check && (!only || only.includes(q.id)))
       }
       fr = nx
     }
+    if (fr.length) edgeComplete = false
     return out
   }
   const pj = (st: any) => { let x = pjs.get(st); if (x === undefined) { const y = c.project(read(st)); pjs.set(st, (x = y === undefined ? null : JSON.stringify(y))) } return x }
@@ -71,5 +72,5 @@ for (const p of protocols.filter(q => q.check && (!only || only.includes(q.id)))
     frontier = broken && bad ? [] : next
   }
   if (dump) for (const x of spec) appendFileSync(dump, x + '\n')
-  console.log(JSON.stringify({id: p.id, broken, states: spec.size, ...(edges ? {edges: pairs.size} : {}), raw: seen.size, depth, done, requests: given.length, bad, ...(c.keep ? {edge: edge.size} : {}), moved, ...(c.states ? {tlc: c.states} : {}), ms: Math.round(performance.now() - t0)}))
+  console.log(JSON.stringify({id: p.id, broken, states: spec.size, ...(edges ? {edges: pairs.size, edgeComplete} : {}), raw: seen.size, depth, done, requests: given.length, bad, ...(c.keep ? {edge: edge.size} : {}), moved, ...(c.states ? {tlc: c.states} : {}), ms: Math.round(performance.now() - t0)}))
 }

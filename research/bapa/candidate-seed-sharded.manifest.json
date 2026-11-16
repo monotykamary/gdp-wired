@@ -1,0 +1,13 @@
+{
+  "schema": "candidate-seed-manifest/v1",
+  "protocol": "sharded_kv",
+  "capture": "../../seed-capture-sharded-kv",
+  "captureSha256": "2d81751966afd9edebcaf04f5acdeadbe3ec75cccee60e0e0df633d08fdbda73",
+  "bindings": {
+    "maps": {
+      "Table": {"target":"Table", "sorts":["Node","Key"], "radix":64},
+      "Owner": {"target":"Owner", "sorts":["Key","Node"], "radix":64}
+    },
+    "domains": {"Node":"nodes", "Key":"keys"}
+  }
+}

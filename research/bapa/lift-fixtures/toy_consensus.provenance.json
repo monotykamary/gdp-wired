@@ -1,0 +1,12 @@
+{
+  "schema": "gdp-lift-fixture/v1",
+  "id": "toy_consensus",
+  "scope": "frozen-capsule-original",
+  "captureSha256": "4558a6d95c1f2462f58baffa3dd094bbe8023f6ee4f6b132f47b65b41bc44a84",
+  "sourceSha256": "fbf883447b11ce3b363c002bd0f4700b010d2a24e61953bba8213fda6133b086",
+  "encodedSourceSha256": "bdb9c66e978b4ced152cc3354ccfa32ee033cd0ef6c3e17cf91ec8b8d0120bef",
+  "allSizesProven": false,
+  "independentTlaVerification": false,
+  "noSearch": true,
+  "noLean": true
+}

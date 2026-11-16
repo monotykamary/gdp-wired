@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "files": ["existential-seed.test.ts", "candidate-seed-witness.ts", "candidate-seed-witness.test.ts", "witness-value-proxies.test.ts", "candidate-seed-manifest.ts", "proof-worker.ts", "candidate-seed-audit.ts"],
+  "include": []
+}

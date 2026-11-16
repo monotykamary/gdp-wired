@@ -1,0 +1,189 @@
+[
+  {
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1800,
+    "name": "release-types-lint",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun run check > \"$OUT/check.log\" 2>&1"
+  },
+  {
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1800,
+    "name": "release-package-smoke",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; node --version > \"$OUT/node-version.txt\"; bun run smoke > \"$OUT/smoke.log\" 2>&1"
+  },
+  {
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1800,
+    "name": "release-quick-1",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/test-shards.ts --shard 1/7 > \"$OUT/tests.log\" 2>&1"
+  },
+  {
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1800,
+    "name": "release-quick-2",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/test-shards.ts --shard 2/7 > \"$OUT/tests.log\" 2>&1"
+  },
+  {
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1800,
+    "name": "release-quick-3",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/test-shards.ts --shard 3/7 > \"$OUT/tests.log\" 2>&1"
+  },
+  {
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1800,
+    "name": "release-quick-4",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/test-shards.ts --shard 4/7 > \"$OUT/tests.log\" 2>&1"
+  },
+  {
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1800,
+    "name": "release-quick-5",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/test-shards.ts --shard 5/7 > \"$OUT/tests.log\" 2>&1"
+  },
+  {
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1800,
+    "name": "release-quick-6",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/test-shards.ts --shard 6/7 > \"$OUT/tests.log\" 2>&1"
+  },
+  {
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1800,
+    "name": "release-quick-7",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/test-shards.ts --shard 7/7 > \"$OUT/tests.log\" 2>&1"
+  },
+  {
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1800,
+    "name": "release-bapa-tests",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; GDP_EPR=0 GDP_SET_FIRST=0 bun test --timeout 120000 research/bapa > \"$OUT/tests.log\" 2>&1; for c in tsconfig.proof-witness tsconfig.sdl-transport tsconfig.p2-source-inclusion tsconfig.proof-parts tsconfig.counted-source tsconfig.model-rounds tsconfig.lift; do bunx tsc -p \"research/bapa/$c.json\" > \"$OUT/$c.log\" 2>&1; done; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/bapa/lift-commit.txt > \"$OUT/commitlint.log\" 2>&1; bun research/bapa/lift-controls-audit.ts typed-control-evidence typed-public-evidence > \"$OUT/typed-controls-audit.json\""
+  },
+  {
+    "name": "release-shared-lean",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1800,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; trap 'rm -rf \"$OUT/project/.lake\" \"$OUT/alias-control/.lake\"' EXIT; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-shared-controls.ts \"$OUT/project\" > \"$OUT/emit.log\" 2>&1; cd \"$OUT/project\"; lake build > \"$OUT/lean.log\" 2>&1; lake env lean ReleaseControls.lean >> \"$OUT/lean.log\" 2>&1; bun \"$ROOT/scripts/lean-gate/gate.ts\" \"$OUT/lean.log\" ReleaseControls.lean > \"$OUT/axioms.log\" 2>&1; cd \"$ROOT\"; bun research/bapa/lift-names-control.ts; (cd \"$OUT/alias-control\"; lake env lean Good.lean > \"$OUT/Good.log\" 2>&1); bun research/bapa/lift-names-control.ts --audit > \"$OUT/alias-audit.json\"; set +e; (cd \"$OUT/alias-control\"; lake env lean Bad.lean > \"$OUT/Bad.log\" 2>&1); bad=$?; set -e; test \"$bad\" -ne 0; grep -Ei 'type mismatch|has type' \"$OUT/Bad.log\" > \"$OUT/negative-type-error.txt\""
+  }
+]

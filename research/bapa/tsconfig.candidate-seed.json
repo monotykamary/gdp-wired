@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.json",
+  "files": [
+    "candidate-seed-restatement.ts",
+    "candidate-seed-manifest.ts",
+    "candidate-seed.test.ts",
+    "candidate-seed-public.test.ts",
+    "candidate-seed-symbolic.ts",
+    "proof-worker.ts",
+    "counted-seed.test.ts",
+    "counted-seed-symbolic.ts",
+    "sum-seed.test.ts",
+    "native-tuple-seed.test.ts",
+    "kind-seed.test.ts",
+    "field-seed.test.ts",
+    "candidate-seed-audit.ts",
+    "multi-family-seed.test.ts"
+  ],
+  "include": []
+}

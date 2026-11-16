@@ -1,0 +1,11 @@
+[
+  {
+    "name": "tcommit-certificate-transport",
+    "cmd": "set -euo pipefail; root=$PWD; out=$SUPERCOMPUTER_OUTPUT_DIR; export PATH=\"$root/scripts/lean-gate:$PATH\"; mkdir -p \"$out/rechecked\"; sha256sum transport-retained/Proofs.lean > \"$out/retained-source.sha256\"; export LEAN_PATH=\"$out/rechecked:$root/transport-retained/.lake/build/lib/lean\"; lean -o \"$out/rechecked/Proofs.olean\" transport-retained/Proofs.lean > \"$out/retained-check.log\" 2>&1; lean research/bapa/TCommitCertificateTransport.lean 2>&1 | tee \"$out/transport.log\"; cp research/bapa/TCommitCertificateTransport.lean \"$out/TCommitCertificateTransport.lean\"",
+    "cpu": 1,
+    "memory": 4,
+    "timeout": 300,
+    "env": {"SUPERCOMPUTER_CONTROLLER": "1", "SUPERCOMPUTER_NO_BUILD": "1"},
+    "required_agent_capabilities": {"output_files_protocol": 1, "result_files_protocol": 1}
+  }
+]

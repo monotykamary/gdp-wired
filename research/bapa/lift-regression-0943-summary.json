@@ -1,0 +1,43 @@
+{
+  "schema": "gdp-lift-regression-summary/v1",
+  "status": "SOURCE_CHECKED",
+  "expected": 27,
+  "accepted": [
+    "lock_server",
+    "lockserv",
+    "lockserv_automaton",
+    "simple_election",
+    "simple",
+    "simple_regular",
+    "firewall",
+    "consensus",
+    "consensus_epr",
+    "naive_consensus",
+    "toy_consensus",
+    "toy_consensus_epr",
+    "consensus_forall",
+    "consensus_wo_decide",
+    "tcommit",
+    "twophase",
+    "two_phase_commit",
+    "learning_switch",
+    "learning_switch_i4",
+    "client_server_ae",
+    "quorum_leader_election",
+    "majorityset_leader_election",
+    "sharded_kv_no_lost_keys",
+    "toy_consensus_forall",
+    "client_server_db_ae",
+    "sharded_kv",
+    "simple_decentralized_lock"
+  ],
+  "errors": [],
+  "implementationSha256": [
+    "820185a79d838ca53f6ccad3701af34583cf254add2a2bb5f7892d9a23e90738"
+  ],
+  "claimedSnapshot": [
+    "0943b55aad0ed746c88c055baf3f4ef75f6248a2"
+  ],
+  "allSizesProven": false,
+  "independentTlaVerification": false
+}

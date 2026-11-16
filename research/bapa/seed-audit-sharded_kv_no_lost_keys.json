@@ -1,0 +1,71 @@
+{
+  "schema": "candidate-seed-manifest/v1",
+  "protocol": "sharded_kv_no_lost_keys",
+  "capture": "../../seed-audit-captures/sharded_kv_no_lost_keys",
+  "captureSha256": "e41e37724663b689ed716c639694ff002c0be92e99ace6267f4ef8ad3cf8fe4f",
+  "existentials": ["a transfer in flight, or every key owned"],
+  "bindings": {
+    "maps": {
+      "Table": {
+        "target": "Table",
+        "sorts": [
+          "Node",
+          "Key"
+        ],
+        "radix": 64
+      },
+      "Owner": {
+        "target": "Owner",
+        "sorts": [
+          "Key",
+          "Node"
+        ],
+        "radix": 64
+      },
+      "TransferMsg": {
+        "target": "TransferMsg",
+        "sorts": [
+          "Node",
+          "Key",
+          "Value"
+        ],
+        "radix": 64
+      },
+      "Owned": {
+        "target": "Owned",
+        "sorts": [
+          "Key"
+        ],
+        "radix": 64
+      }
+    },
+    "domains": {
+      "Node": "nodes",
+      "Key": "keys",
+      "Value": "values"
+    },
+    "fields": {
+      "Owner$n": {
+        "relation": "Owner",
+        "keyPositions": [
+          0
+        ],
+        "valuePosition": 1
+      },
+      "TransferMsg$n21": {
+        "relation": "TransferMsg",
+        "keyPositions": [
+          1
+        ],
+        "valuePosition": 0
+      },
+      "TransferMsg$v1": {
+        "relation": "TransferMsg",
+        "keyPositions": [
+          1
+        ],
+        "valuePosition": 2
+      }
+    }
+  }
+}

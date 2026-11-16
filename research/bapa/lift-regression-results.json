@@ -1,0 +1,107 @@
+{
+  "schema": "gdp-lift-regression-infrastructure/v1",
+  "status": "SOURCE_CHECKED_AT_FROZEN_IMPLEMENTATION",
+  "allSizesProven": false,
+  "independentTlaVerification": false,
+  "finalNativeReplayLaunched": true,
+  "manifest": {
+    "path": "research/bapa/lift-regression-manifest.json",
+    "sha256": "dc6b5017190d3d2f1e3001246810d02e1c5aaea17587071b83b956935cf3aa4e",
+    "entries": 27,
+    "frozen": 27,
+    "pending": 0,
+    "revision": "0943b55aad0ed746c88c055baf3f4ef75f6248a2"
+  },
+  "preparation": {
+    "snapshot": "39ada2f2e671ff5d924ba486fb95f5816ca731b7",
+    "tree": "bdf3055cc911191e5f1670b189a218e94d2becad",
+    "batch": "20261116-032037-yao1py",
+    "output": "runs/bapa-lift-regression-fixture-frozen-03",
+    "nativeFixtureExtractions": 24,
+    "specialCurrentConstructorFixtures": 3,
+    "receiptSha256": "2a7818f58628d568aff1fff8935c987a59b27a7344d7ad8dc1d71ea4fc04a93c",
+    "noSearch": true,
+    "noLean": true
+  },
+  "typeAndUnit": {
+    "snapshot": "dc8fa5eb3776dd7e9dd5211ef670a18c195be590",
+    "tree": "ee1174a114c28c7977a0469e8631c053c1993300",
+    "batch": "20261116-032443-b8dejv",
+    "output": "runs/bapa-lift-regression-check-frozen-04",
+    "typecheckExitCode": 0,
+    "unitPassed": 14,
+    "unitFailed": 0,
+    "typeLogSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "unitLogSha256": "0b0d434913d753718ae7a098ed4f7eae01589774ff909f07f478f76b5bb017eb",
+    "noSearch": true,
+    "noLean": true
+  },
+  "priorAttempts": [
+    {
+      "snapshot": "fd3c29ae2e89ac3d23bed8dc2858fa75ff02997c",
+      "stage": "pre-admission",
+      "result": "VM capacity refusal; no job attempt",
+      "log": "/tmp/pi-fabric-shell-xU1GIw/output.log"
+    },
+    {
+      "snapshot": "59fe68838532e46c8d38728b5951b25717aa465f",
+      "output": "runs/bapa-lift-regression-fixture-frozen-02",
+      "result": "unit12 pass; extraction24 failed missing product metadata-reader callback; no emission or Lean"
+    }
+  ],
+  "remaining": [],
+  "publicManifest": {
+    "path": "research/bapa/lift-regression-manifest.json",
+    "sha256": "041d4eea617c1ce36f4e8af7eae71ee8ccb57b9140d4e4e3a5de627c0f705147",
+    "locationLabelsOnly": true,
+    "derivedFrom": {
+      "revision": "0943b55aad0ed746c88c055baf3f4ef75f6248a2",
+      "sha256": "dc6b5017190d3d2f1e3001246810d02e1c5aaea17587071b83b956935cf3aa4e"
+    }
+  },
+  "nativeReplay": {
+    "snapshot": "0943b55aad0ed746c88c055baf3f4ef75f6248a2",
+    "batch": "20261116-045157-eu17m0",
+    "uploadTree": "9b5d2b542f5a",
+    "output": "runs/bapa-lift-final-27-02",
+    "expected": 27,
+    "accepted": 27,
+    "noSearch": true,
+    "exactHistoricalTheorems": true,
+    "exactHistoricalAxioms": true,
+    "implementationSha256": "820185a79d838ca53f6ccad3701af34583cf254add2a2bb5f7892d9a23e90738",
+    "audit": {
+      "batch": "20261116-050153-bir2n9",
+      "summary": {
+        "path": "research/bapa/lift-regression-0943-summary.json",
+        "sha256": "fb58c26f507ba98d82af122365bf3dab2bb87da7fe7795a4c0ee385f1be72504"
+      }
+    }
+  },
+  "gates": {
+    "snapshot": "0943b55aad0ed746c88c055baf3f4ef75f6248a2",
+    "expected": 11,
+    "passed": 11,
+    "baseBatch": "20261116-045157-w1qdte",
+    "baseOutput": "runs/bapa-lift-final-gates-03",
+    "baseAcceptedJobs": [
+      "release-types-lint",
+      "release-package-smoke",
+      "release-quick-1",
+      "release-quick-2",
+      "release-quick-3",
+      "release-quick-4",
+      "release-quick-5",
+      "release-quick-6",
+      "release-quick-7",
+      "release-shared-lean"
+    ],
+    "correctedBapaBatch": "20261116-050701-ejikcb",
+    "correctedBapaOutput": "runs/bapa-lift-final-gates-05",
+    "correctedAcceptedJobs": [
+      "release-bapa-tests"
+    ],
+    "note": "BAPA tests and controls passed in the base batch; the added actual-commit message check was rerun using stdin and a supported directory data mount. Failed setup attempts remain retained."
+  },
+  "releaseVerification": "The final release commit is verified separately after merge, version changes and location-label redaction."
+}

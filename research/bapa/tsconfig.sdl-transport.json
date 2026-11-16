@@ -1,0 +1,1 @@
+{"extends":"../../tsconfig.json","files":["sdl-source-data.ts","sdl-source-verify.ts","sdl-source-verify.test.ts"],"include":[]}

@@ -1,0 +1,19 @@
+[
+  {
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "p3-typed-client-step",
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; trap 'rm -rf \"$OUT/project/.lake\"' EXIT; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/bapa/P3-TYPED-STEP-COMMIT.txt > \"$OUT/commitlint.log\" 2>&1; bun research/bapa/p3-client-typed.ts client-capture client-lean/Proofs.lean \"$OUT/project\" > \"$OUT/emission.log\" 2>&1; cd \"$OUT/project\"; lake build > \"$OUT/lean.log\" 2>&1; lake env lean BapaProof.lean >> \"$OUT/lean.log\" 2>&1; bun \"$ROOT/scripts/lean-gate/gate.ts\" \"$OUT/lean.log\" BapaProof.lean TypedBoundControls.lean > \"$OUT/axioms.log\" 2>&1; printf '%s\\n' 'Lean checked: typed family, preserved tree shapes, old-bound mutant, source inclusion, public existential theorem' > \"$OUT/CHECKED.txt\""
+  }
+]

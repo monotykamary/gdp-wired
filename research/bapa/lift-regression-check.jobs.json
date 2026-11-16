@@ -1,0 +1,20 @@
+[
+  {
+    "name": "lift-regression-type-and-unit",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "vm_type": "large",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; set +e; bunx tsc -p research/bapa/lift-regression.tsconfig.json > \"$OUT/types.log\" 2>&1; T=$?; bun test research/bapa/lift-regression.test.ts > \"$OUT/tests.log\" 2>&1; U=$?; printf \"types=%s tests=%s\\n\" \"$T\" \"$U\" > \"$OUT/checks.txt\"; test \"$T$U\" = 00"
+  }
+]

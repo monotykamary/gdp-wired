@@ -1,0 +1,19 @@
+[
+  {
+    "name": "inferred-alpha-controls",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1800,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; trap 'find \"$OUT\" -maxdepth 3 -type d -name .lake -exec rm -rf {} +' EXIT; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; cp lean-kernel/library.ts \"$OUT/library.ts\"; bunx tsc -p research/bapa/tsconfig.inferred-projection.json > \"$OUT/types.log\" 2>&1; bun test research/bapa/inferred-projection.test.ts research/bapa/source-projection.test.ts > \"$OUT/tests.log\" 2>&1; cp -a alpha-positive \"$OUT/seed\"; cd \"$OUT/seed\"; lake build > \"$OUT/seed.log\" 2>&1; SEED=\"$OUT/seed\"; cd \"$ROOT\"; for kind in body capture; do CASE=\"$OUT/negative-$kind\"; mkdir \"$CASE\"; bun research/bapa/inferred-alpha-control.ts capsule-twophase a562243d6ca33b6a34f6f3225d0228ab7815eb6608b67f3349318c5f5e1ff396 \"$kind\" \"$CASE/project\" > \"$CASE/emission.log\" 2>&1; cp -a \"$SEED/.lake\" \"$CASE/project/.lake\"; cd \"$CASE/project\"; if test \"$kind\" = body; then if lake build > \"$CASE/lean.log\" 2>&1; then echo 'unexpected accepted source body drift'; exit 1; fi; bun \"$ROOT/research/bapa/inferred-alpha-control.ts\" --check-body \"$CASE/project\" \"$CASE/lean.log\" > \"$CASE/rejection.log\" 2>&1; else lake build > \"$CASE/lean.log\" 2>&1; lake env lean BapaProof.lean >> \"$CASE/lean.log\" 2>&1; bun \"$ROOT/scripts/lean-gate/gate.ts\" \"$CASE/lean.log\" BapaProof.lean > \"$CASE/axioms.log\" 2>&1; fi; cd \"$ROOT\"; done; printf '%s\\n' 'feat(bapa): transport inferred and counted row binders' > \"$OUT/commit-message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$OUT/commit-message.txt\" > \"$OUT/commitlint.log\" 2>&1"
+  }
+]

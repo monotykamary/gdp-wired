@@ -73,9 +73,9 @@ for (const warm of [false, true]) test(`shared-holds metadata has a checked publ
   if (warm) publicChecked(make(name))
   publicChecked(make(name))
   if (warm && process.env.GDP_MEMO_ALPHA !== '0') {
-    expect(memoReuseStats.modelsIgnored).toBeGreaterThan(ignored)
+    expect(memoReuseStats.modelsIgnored).toBe(ignored)
     expect(memoReuseStats.coldRetries - cold).toBe(1)
-    expect(memoReuseStats.modelRetries - modelRetries).toBe(1)
+    expect(memoReuseStats.modelRetries).toBe(modelRetries)
   }
 })
 
@@ -120,19 +120,21 @@ test('renamed model payload is recomputed before the public proof', () => {
   const name = 'renamed model material regression'
   const badOf = (r: ReturnType<typeof make>) => {
     const [kind] = r.kindLaws()
-    return {...kind!, name: 'model material', keys: [...(kind!.keys ?? []), 'unused$987654']}
+    return {...kind!, name: 'model material', keys: [...(kind!.keys ?? []), 'unused$987654'], holds: {op: '=' as const, a: {op: 'get' as const, map: 'Flag', key: {op: 'var' as const, name: kind!.forall!}}, b: {op: 'const' as const, value: 0}}}
   }
-  const first = make(name), old = badOf(first), prior = proveSetFast(first.machine, [old])
+  const changing = () => make(name).step(({i, Flag}) => ({Flag: Flag.set(i, yes)}))
+  const first = changing(), old = badOf(first), prior = proveSetFast(first.machine, [old])
   expect(prior.proven).toBe(false)
   expect(JSON.stringify(prior.failed)).toContain(`${old.forall}#`)
-  const second = make(name), current = badOf(second), before = memoReuseStats.modelsIgnored
+  const second = changing(), current = badOf(second), before = memoReuseStats.modelsIgnored
   const out = proveSetFast(second.machine, [current])
   expect(out.proven).toBe(false)
   expect(memoReuseStats.modelsIgnored).toBeGreaterThan(before)
   expect(JSON.stringify(out.failed)).not.toContain(`${old.forall}#`)
   expect(JSON.stringify(out.failed)).toContain(`${current.forall}#`)
-  const publicProof = proveLaws(second.machine, [current])
-  expect(publicProof.proven && publicProof.checked && publicProof.proof && checkLaws(second.machine, [current], publicProof.proof)).toBe(true)
+  const valid = {...current, holds: second.kindLaws()[0]!.holds}
+  const publicProof = proveLaws(second.machine, [valid])
+  expect(publicProof.proven && publicProof.checked && publicProof.proof && checkLaws(second.machine, [valid], publicProof.proof)).toBe(true)
 })
 
 test('renamed-hint support follows the current law selected by widened rows', () => {

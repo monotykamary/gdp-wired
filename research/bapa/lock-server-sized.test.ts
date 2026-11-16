@@ -35,12 +35,12 @@ test('stronger unguarded uniqueness is also proved, helper given not found', () 
   expect(checkLaws(r.machine, laws, out.proof!)).toBe(true)
 }, 60_000)
 
-test('all 2x2 reachable states and transitions match the original radix port', () => {
+test('all 2x2 reachable states and transitions match the canonical tuple port', () => {
   const oldRule = protocols.find(p => p.id === 'lock_server')!.make(), old = oldRule.machine
   const fresh = lockServerSized().machine, a = interpret(old), b = interpret(fresh), params = {clients: 2, servers: 2}
-  const projectA = (st: State) => projection(old, st, (c, s) => 64 * c + s, 2, 2)
+  const projectA = (st: State) => projection(old, st, cpair, 2, 2)
   const projectB = (st: State) => projection(fresh, st, cpair, 2, 2)
-  const queue: [State, State][] = [[a.init({}), b.init(params)]], seen = new Set<string>()
+  const queue: [State, State][] = [[a.init(params), b.init(params)]], seen = new Set<string>()
   for (let i = 0; i < queue.length; i++) {
     const [sa, sb] = queue[i]!, key = JSON.stringify(projectA(sa))
     if (seen.has(key)) continue
@@ -48,8 +48,8 @@ test('all 2x2 reachable states and transitions match the original radix port', (
     expect(projectB(sb)).toEqual(projectA(sa))
     for (const op of [0, 1]) for (const c of [0, 1]) for (const s of [0, 1]) {
       const input = {op, c, s}
-      expect(allowed(fresh, b, params, sb, input)).toBe(allowed(old, a, {}, sa, input))
-      const na = a.step({}, sa, input), nb = b.step(params, sb, input)
+      expect(allowed(fresh, b, params, sb, input)).toBe(allowed(old, a, params, sa, input))
+      const na = a.step(params, sa, input), nb = b.step(params, sb, input)
       expect(projectB(nb)).toEqual(projectA(na))
       queue.push([na, nb])
     }

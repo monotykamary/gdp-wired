@@ -1,0 +1,12 @@
+[
+  {
+    "name": "retained-export-gate",
+    "cmd": "set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bunx tsc -p research/bapa/tsconfig.proof-emit.json > \"$SUPERCOMPUTER_OUTPUT_DIR/types.log\" 2>&1; bun test research/bapa/retained-export.test.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/tests.log\" 2>&1; bun research/bapa/proof-symbolic-smoke.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/capture.log\" 2>&1; SHA=$(tr -d '\\n' < \"$SUPERCOMPUTER_OUTPUT_DIR/symbolic-capture/capture-sha256.txt\"); bun research/bapa/proof-emit.ts --capture \"$SUPERCOMPUTER_OUTPUT_DIR/symbolic-capture/closure\" --sha256 \"$SHA\" --out \"$SUPERCOMPUTER_OUTPUT_DIR/project\" > \"$SUPERCOMPUTER_OUTPUT_DIR/emission.log\" 2>&1; ROOT=$PWD; cd \"$SUPERCOMPUTER_OUTPUT_DIR/project\"; lake build > \"$SUPERCOMPUTER_OUTPUT_DIR/lean-build.log\" 2>&1; bun \"$ROOT/scripts/lean-gate/gate.ts\" \"$SUPERCOMPUTER_OUTPUT_DIR/lean-build.log\" BapaProof.lean > \"$SUPERCOMPUTER_OUTPUT_DIR/axioms.log\" 2>&1; printf '%s\\n' 'feat(lean): emit retained BAPA certificates without search' > \"$SUPERCOMPUTER_OUTPUT_DIR/commit-message.txt\"; cd \"$ROOT\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$SUPERCOMPUTER_OUTPUT_DIR/commit-message.txt\" > \"$SUPERCOMPUTER_OUTPUT_DIR/commitlint.log\" 2>&1",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "env": {"BAPA_SOURCE_COMMIT": "00cc82aca75f4cb1494773beed9934cce65cc1a5", "BAPA_SOURCE_TREE": "8c1b993ecfcc7be9dc44b74ae44f26cb889d0153"},
+    "runtime": {"bun": {"version": "1.4.3", "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"}},
+    "required_agent_capabilities": {"output_files_protocol": 1, "result_files_protocol": 1}
+  }
+]

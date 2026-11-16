@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "files": ["proof-worker.ts", "proof-worker-gate.ts", "proof-worker.test.ts", "proof-capture.test.ts", "proof-codec.test.ts", "proof-projection.test.ts", "../../core/proof-output.test.ts"],
+  "include": []
+}

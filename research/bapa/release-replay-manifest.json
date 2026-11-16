@@ -1,0 +1,174 @@
+{
+  "schema": "bapa-release-manifest/v1",
+  "entries": [
+    {
+      "id": "lock_server",
+      "mode": "alpha",
+      "sha256": "74134f5c9a15808ef5521f93e42226afc1ff96397f8404daf7d9a7978411e0df",
+      "capture": "release-captures/lock_server"
+    },
+    {
+      "id": "lockserv",
+      "mode": "alpha",
+      "sha256": "f5bfd1e13863bdf318e638ae398d26629899b637914bfa6db2283d12ef7a1ee0",
+      "capture": "release-captures/lockserv"
+    },
+    {
+      "id": "lockserv_automaton",
+      "mode": "alpha",
+      "sha256": "8a0fa118813b55b492e1d79fcb056664a548d3a783885e98d83446b895c1b8f6",
+      "capture": "release-captures/lockserv_automaton"
+    },
+    {
+      "id": "simple_election",
+      "mode": "counted",
+      "sha256": "7654c0e364334f0835602b06dcfc7307fdc089d0825f92d17e16f5a67a84ff75",
+      "capture": "release-captures/simple_election"
+    },
+    {
+      "id": "simple",
+      "mode": "witness",
+      "sha256": "84c3f25567e40ceb8f610eab3925f33b4fa5c4a3b75e2a738b54468a59224bef",
+      "capture": "release-captures/simple"
+    },
+    {
+      "id": "simple_regular",
+      "mode": "witness",
+      "sha256": "7546f2449107d3b742b08a0987f741a062df57578fd036d5bc1baa5f40e01b79",
+      "capture": "release-captures/simple_regular"
+    },
+    {
+      "id": "firewall",
+      "mode": "witness",
+      "sha256": "2ed5690066d27705a905eca1dc338612f19c0ed09a59d9f16d79a956ef33c14e",
+      "capture": "release-captures/firewall"
+    },
+    {
+      "id": "consensus",
+      "mode": "alpha",
+      "sha256": "ed33f406d61ac50918cff1d69c81cbf843eebf417eb05091544a082f80def1fe",
+      "capture": "release-captures/consensus"
+    },
+    {
+      "id": "consensus_epr",
+      "mode": "counted",
+      "sha256": "98abd8ff095e7eba3e4d1aaf1f3987a34218b8e48909bcf05d16822b41f2867e",
+      "capture": "release-captures/consensus_epr"
+    },
+    {
+      "id": "naive_consensus",
+      "mode": "counted",
+      "sha256": "4f39bdba8a93ed816ace7bbf25b169e9f972cc1ce72f0801c09612d05f9cd8b4",
+      "capture": "release-captures/naive_consensus"
+    },
+    {
+      "id": "toy_consensus",
+      "mode": "counted",
+      "sha256": "4558a6d95c1f2462f58baffa3dd094bbe8023f6ee4f6b132f47b65b41bc44a84",
+      "capture": "release-captures/toy_consensus"
+    },
+    {
+      "id": "toy_consensus_epr",
+      "mode": "counted",
+      "sha256": "8891f5b5fce7789a03a6d3afecc3d8b0115e956aef0e212f0e41566e38772098",
+      "capture": "release-captures/toy_consensus_epr"
+    },
+    {
+      "id": "consensus_forall",
+      "mode": "counted",
+      "sha256": "49a2bfa9f1cc6f7d3128a03370668ed06e6fea35cfa8abfead7aedd0c8a58c6f",
+      "capture": "release-captures/consensus_forall"
+    },
+    {
+      "id": "consensus_wo_decide",
+      "mode": "counted",
+      "sha256": "30f20617cd346ecaea9ef5ba806739eaebfb05d7ce2acff0256a592a284da361",
+      "capture": "release-captures/consensus_wo_decide"
+    },
+    {
+      "id": "tcommit",
+      "mode": "alpha",
+      "sha256": "bf0e4ea650455462bff52d2a60f307ee2482227deb083a0033f778f90fa40e02",
+      "capture": "release-captures/tcommit"
+    },
+    {
+      "id": "twophase",
+      "mode": "alpha",
+      "sha256": "a562243d6ca33b6a34f6f3225d0228ab7815eb6608b67f3349318c5f5e1ff396",
+      "capture": "release-captures/twophase"
+    },
+    {
+      "id": "two_phase_commit",
+      "mode": "alpha",
+      "sha256": "11f70b04cbb150d08bff4b3069350baebb83013577ae6c1672b277d56ea9b6fc",
+      "capture": "release-captures/two_phase_commit"
+    },
+    {
+      "id": "learning_switch",
+      "mode": "alpha",
+      "sha256": "b7b74efa596b7300767692824fee0eba50f7cd2b3a2844620467eef95c0cb20f",
+      "capture": "release-captures/learning_switch"
+    },
+    {
+      "id": "learning_switch_i4",
+      "mode": "alpha",
+      "sha256": "a2ba258b5b05c03761289f21e3ea91357deec4382e633c688add5a362d1f7f31",
+      "capture": "release-captures/learning_switch_i4"
+    },
+    {
+      "id": "client_server_ae",
+      "mode": "witness",
+      "sha256": "1c6929e5f1bfecea95d106eef4a33b914764853b6d17ca752f0d1413207a352b",
+      "capture": "release-captures/client_server_ae"
+    },
+    {
+      "id": "quorum_leader_election",
+      "mode": "counted",
+      "sha256": "26190ed5247317ec80f418e9218cbce744daf79cff12ce139b67326c0f0f9c32",
+      "capture": "release-captures/quorum_leader_election"
+    },
+    {
+      "id": "majorityset_leader_election",
+      "mode": "counted",
+      "sha256": "ffd934042e82796eec2b13f7b7a81332995dd37a60d2ecfe62b44da37b8ba0dc",
+      "capture": "release-captures/majorityset_leader_election"
+    },
+    {
+      "id": "sharded_kv_no_lost_keys",
+      "mode": "witness",
+      "sha256": "c9bdfffdd16d612b310d1ca11169e3e563e6eaf34f0b4311e02919097cfa5af1",
+      "capture": "release-captures/sharded_kv_no_lost_keys"
+    },
+    {
+      "id": "toy_consensus_forall",
+      "mode": "toy",
+      "sha256": "33f1a9949fb71fec0b5c1017c0607b25517a4222de10f0634bddc9bd4d8ae84b",
+      "proofSha256": "27b6b6c2295c7e444999c16e84abd7e56e871f2d4100b39980af416a5cd7b1bf",
+      "capture": "release-captures/toy_consensus_forall",
+      "proof": "release-proofs/toy_consensus_forall/Proofs.lean"
+    },
+    {
+      "id": "client_server_db_ae",
+      "mode": "client",
+      "sha256": "e76ed2d24da036b98a98ea1edf509abe741499a2647c88f647c4d4f235cc87f0",
+      "proofSha256": "8d629dfe6d70661809e378ab21ec738a5173613cf1796473f3032942b1f7dbce",
+      "capture": "release-captures/client_server_db_ae",
+      "proof": "release-proofs/client_server_db_ae/Proofs.lean"
+    },
+    {
+      "id": "sharded_kv",
+      "mode": "alpha",
+      "sha256": "a1885c7c4098ee59f7bfb7d67fff7b379be293f7baa8343b1c8c61c34c4185b2",
+      "capture": "release-captures/sharded_kv"
+    }
+  ],
+  "excluded": [
+    "paxos_epr",
+    "mldr"
+  ],
+  "specialSdl": {
+    "id": "simple_decentralized_lock",
+    "sha256": "e123183e89e3d5e0378d9aaf3e4d00a5f7e55b3584821faf0c6fa2d739e82958",
+    "proofSha256": "95b20356ad9606abd1e4ea2489f8473c72b50451424b3ebdd2f13443528d5e2c"
+  }
+}

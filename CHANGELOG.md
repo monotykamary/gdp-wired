@@ -3,6 +3,33 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.50.0
+
+- **BAPA source proofs:** checked safety theorems for 27 encoded source models, including their symbolic size parameters
+  and declared assumptions. These results are not extrapolated from tests through size 64 and do not automatically
+  establish equivalence to a separate implementation or specification.
+- **One proof-lifting command:** `gdp-wired lift` turns a retained proof capsule and source model into a self-contained
+  Lean project, without new invariant search or a handwritten proof for each protocol. It selects the required bound
+  substitution, key translation, inclusion, simulation, or witness-renaming steps from the supplied data.
+- **Complete, checked results:** public safety laws, quantifiers, witnesses, and supporting proof families are
+  preserved. Successful checks produce hash-bound `SOURCE_CHECKED` receipts; `--emit-only` does not claim acceptance.
+  Unsupported transformations, incomplete families, changed inputs, and unapproved axioms are refused.
+- **Compatibility:** historical theorem names can be preserved through checked aliases. Cut-free Lean exports retain
+  their existing format.
+
+Unrestricted source-model coverage:
+
+| Group | Models |
+|---|---|
+| Locks and elections | `lock_server`, `lockserv`, `lockserv_automaton`, `simple_election`, `quorum_leader_election`, `majorityset_leader_election`, `simple_decentralized_lock` |
+| Consensus | `consensus`, `consensus_epr`, `naive_consensus`, `toy_consensus`, `toy_consensus_epr`, `consensus_forall`, `consensus_wo_decide`, `toy_consensus_forall` |
+| Transactions and switches | `tcommit`, `twophase`, `two_phase_commit`, `learning_switch`, `learning_switch_i4` |
+| Client and witness models | `simple`, `simple_regular`, `firewall`, `client_server_ae`, `client_server_db_ae` |
+| Sharded models | `sharded_kv`, `sharded_kv_no_lost_keys` |
+
+**Remaining bounds:** Paxos (`paxos_epr`) and MLDR remain proven up to size 64, not unrestricted. This release does not
+claim unrestricted proofs for all 29 benchmark protocols.
+
 ## 0.49.0
 
 - **IC3Syn: all 29 protocols proven with nothing written** and kernel-checked (0.45.0: 22 of 29 within 60 s), at larger

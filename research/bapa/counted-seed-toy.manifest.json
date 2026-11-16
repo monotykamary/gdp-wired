@@ -1,0 +1,15 @@
+{
+  "schema":"candidate-seed-manifest/v1",
+  "protocol":"toy_consensus_forall",
+  "capture":"../../seed-audit-captures/toy_consensus_forall",
+  "captureSha256":"33f1a9949fb71fec0b5c1017c0607b25517a4222de10f0634bddc9bd4d8ae84b",
+  "bindings": {
+    "domains":{"Node":"size","Value":"values"},
+    "maps":{
+      "Vote":{"target":"Vote","sorts":["Node"],"radix":64},
+      "Decided":{"target":"Decided","sorts":["Value"],"radix":64},
+      "members$Decided":{"target":"retainedVotes","sorts":["Value"],"radix":64}
+    }
+  },
+  "countBindings":{"members$Decided":{"target":"retainedVotes","jSort":"Value","keySort":"Node"}}
+}

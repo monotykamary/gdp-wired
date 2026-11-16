@@ -121,9 +121,10 @@ for (const confirmed of [false, true]) test(confirmed ? 'confirmed strict models
     expect(first?.proven).toBe(false)
     const asked = models
     expect(asked).toBeGreaterThan(0)
-    // Ordinary callers keep their old cache policy, including unconfirmed models.
+    // Only confirmed models can enter the shared negative cache.
     expect(proveSetFast(machine, set).proven).toBe(false)
-    expect(models).toBe(asked)
+    if (confirmed) expect(models).toBe(asked)
+    else expect(models).toBeGreaterThan(asked)
     const strict = withStrict(() => decideLaw(machine, set, 0))
     if (confirmed) {
       expect(strict).toMatchObject({proven: false, stuck: 'sat'})
@@ -152,12 +153,13 @@ test('public fast proveRule cache does not contaminate strict decisions', () => 
   }
   try {
     const raw = proveRule(r as never, set, {fast: true, search: false})
-    expect(raw).toMatchObject({proven: false, checked: false, stuck: 'sat', witness: {'Src[node:1]': 1001}})
+    expect(raw).toMatchObject({proven: false, checked: false, stuck: 'unknown'})
+    expect(raw.witness).toBeUndefined()
     expect(raw.run).toBeUndefined()
     const asked = models
     expect(asked).toBeGreaterThan(0)
-    expect(proveRule(r as never, set, {fast: true, search: false}).witness).toEqual(raw.witness)
-    expect(models).toBe(asked)
+    expect(proveRule(r as never, set, {fast: true, search: false})).toMatchObject({stuck: 'unknown'})
+    expect(models).toBeGreaterThan(asked)
     // A plain public decision uses grow, not the law-decision memo, and remains independently checked.
     expect(proveDecision(r.decide('public cache independent decision', () => [], ({node}) => node.atMost(node)))).toMatchObject({proven: true, checked: true})
     const all = [...r.kindLaws(), ...set]

@@ -1,0 +1,10 @@
+[
+  {
+    "name": "candidate-seed-fixtures",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "runtime": {"bun": {"version": "1.4.3", "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"}},
+    "cmd": "set -euo pipefail; bun install --frozen-lockfile; bunx tsc -p research/bapa/tsconfig.candidate-seed.json; bun test research/bapa/candidate-seed.test.ts research/bapa/candidate-seed-public.test.ts research/bapa/proof-worker.test.ts; bun research/bapa/candidate-seed-symbolic.ts; printf '%s\\n' 'feat(bapa): seed symbolic candidates from retained families' > \"$SUPERCOMPUTER_OUTPUT_DIR/commit-message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$SUPERCOMPUTER_OUTPUT_DIR/commit-message.txt\""
+  }
+]

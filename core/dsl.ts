@@ -1,3 +1,4 @@
+import {retainFrom, retainCounted, publishProof, withPublicRule} from './proof-output.ts'
 import {searchNow as countedSearchNow} from './wall.ts'
 // Typed builders for machines, decisions and loops: names are declared once and come back as typed values, so a
 // misspelled name, a law that reads a request, or a step that sets an undeclared variable is a TypeScript error, and
@@ -17,13 +18,15 @@ import {searchNow as countedSearchNow} from './wall.ts'
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
+import {proveCandidateSeeds} from './candidate-seeds.ts'
+import {proveCountedCandidateSeeds} from './counted-candidate-seeds.ts'
 import {type TranslationFields, inheritSource, translationVerdict} from './source-check.ts'
 import {env as knobs} from './solver.ts'
 import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, fnCall, hasFinite, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, sourceFreeFn, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
-import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withWall} from '../kernel/prove.ts'
+import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withModelRounds, type ModelRoundPolicy, withWall} from '../kernel/prove.ts'
 import {WallExpired, checkWall, checkWorkEndpoint, searchWall, withBudget, BudgetExpired} from './wall.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {workLedger} from './work-admission.ts'
@@ -2802,7 +2805,15 @@ export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?
 // (`stuck: 'sat'`, `witness`), reachable or not.
 // `fast`: the laws proven as a set by kernel/prove.ts's proveSetFast (a search's set proof, asked again after a drop: what
 // was settled before kept where it stands), not proveLaws; no cyclic certificate.
-export type ProveOptions = {search?: boolean | {ms?: number, work?: number | WorkAmount, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean}
+export type CandidateSeedAudit = {status:'checked'|'inconclusive',kind?:'usual'|'counted',kept:string[],dropped:{name:string,goal?:string,stuck?:'sat',reason?:string}[],reason?:string}
+export type ProveOptions = {search?: boolean | {ms?: number, work?: number | WorkAmount, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean,
+  // Opt-in refinement policy; never renews the caller's work or wall budget.
+  modelRounds?: ModelRoundPolicy,
+  // Proposals only: every retained member and public goal is checked together.
+  // A failed seed attempt falls through with no additional assumptions.
+  candidateSeeds?: {kind?:'usual'|'counted',laws:Law[],counts?:NonNullable<Machine['counts']>,
+    witnesses?:Record<string,import('./machine.ts').SomeWitness>,ghosts?:Pick<Ghosted,'vars'|'maps'>,report?:(audit:CandidateSeedAudit)=>void}}
+
 // A verdict that isn't a checked proof, as the error a lemma, a guard or a gate is refused with (the verdict on `.verdict`).
 export class Unproven extends Error {
   constructor(what: string, readonly verdict: Verdict) {
@@ -2938,7 +2949,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
   return undefined
 }
 // The kernel's report as a verdict: its first goal left unproven, with its counterexample and why.
-export const verdictOf = (out: Report): Verdict => ({proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})})
+export const verdictOf = (out: Report): Verdict => retainFrom(({proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}), [out])
 const refutedVerdict = (out: NonNullable<ReturnType<typeof refuteByRuns>>): Verdict => ({proven: false, checked: false, goal: out.goal, stuck: 'sat', witness: out.witness, ...(out.run ? {run: out.run} : {})})
 // The divisors some laws read (modBy, divBy), noted on the rule so its machine declares them: a law may come from
 // another instance of the same rule (a factory called twice).
@@ -2972,8 +2983,11 @@ function workVerdict(opts: ProveOptions, supported: boolean, run: (opts: ProveOp
   }
 }
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
-  const hasCounts = !!Object.keys(r.machine.counts ?? {}).length
-  return workVerdict(opts, hasCounts, plan => withPublicSearchPolicy(hasCounts, () => proveRuleWall(r, laws, plan)))
+  return withModelRounds(opts.modelRounds, () => withPublicRule(outermost => {
+    const captureMachine = r.machine, hasCounts = !!Object.keys(captureMachine.counts ?? {}).length
+    const result = workVerdict(opts, hasCounts, plan => withPublicSearchPolicy(hasCounts, () => proveRuleWall(r, laws, plan)))
+    return outermost ? publishProof(result, captureMachine, laws) : result
+  }))
 }
 function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions): Verdict {
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
@@ -2990,11 +3004,31 @@ function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   }
   // One absolute wall for setup, sampling, generation and proof, not a fresh
   // allowance for each phase. Nested callers can only shorten it.
-  return translationVerdict(r, laws, ms === undefined ? run() : withWall(searchWall(ms), run))
+  const result = ms === undefined ? run() : withWall(searchWall(ms), run)
+  return retainFrom(translationVerdict(r, laws, result), [result])
 }
 function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions): Verdict {
-  r = r.withSumsOf(laws)
+  r = r.withSumsOf(laws, opts.candidateSeeds?.laws ?? [])
   noting(r, laws)
+  if(opts.candidateSeeds) {
+    if(opts.search === false || opts.from === 'any') throw Error('candidate seeds require reachable-state search')
+    const machine = r.machine, extraCounts = opts.candidateSeeds.counts ?? {}
+    if(opts.candidateSeeds.kind === 'counted' || Object.keys(machine.counts ?? {}).length || Object.keys(extraCounts).length) {
+      const reserved = new Set([...Object.keys(machine.maps ?? {}),...Object.keys(machine.counts ?? {}),...Object.keys(machine.state),...Object.keys(machine.fns ?? {}),...(machine.inputMaps ?? []),...machine.params,...machine.inputs])
+      if(Object.keys(extraCounts).some(n=>reserved.has(n))) throw Error('candidate count declaration must not override the source')
+      const producer = {...machine,counts:{...machine.counts,...extraCounts}}
+      const seeded = proveCountedCandidateSeeds(producer,withKinds(r,laws),opts.candidateSeeds.laws,typeof opts.search === 'object' ? opts.search.ms ?? 60_000 : 60_000)
+      opts.candidateSeeds.report?.({status:seeded.status,kind:'counted',kept:seeded.status === 'checked' ? seeded.kept.map(l=>l.name) : [],
+        dropped:seeded.status === 'checked' ? seeded.dropped.map(l=>({name:l.name,reason:'not retained by counted admission'})) : [],
+        ...(seeded.status === 'inconclusive' ? {reason:seeded.reason} : {})})
+      if(seeded.status === 'checked') return retainCounted({proven:true,checked:true,found:{laws:seeded.closure.laws.map(l=>({text:l.name}))}} as unknown as Verdict,seeded.closure)
+    } else {
+      const seeded = proveCandidateSeeds(machine,withKinds(r,laws),opts.candidateSeeds.laws,opts.candidateSeeds.witnesses,opts.candidateSeeds.ghosts)
+      opts.candidateSeeds.report?.({status:seeded.status,kept:seeded.kept.map(l=>l.name),dropped:seeded.dropped,
+        ...(seeded.status === 'inconclusive' ? {reason:seeded.reason} : {})})
+      if(seeded.status === 'checked') return retainFrom(verdictOf(seeded.closure),[seeded.closure],{kind:'inference',original:machine,laws})
+    }
+  }
   const refuted = refuteByRuns(r, laws)
   checkWorkEndpoint('refutation result')
   // A state the laws allow whose step breaks one, with no run to it (a wide rule's: what the kernel's step goal would end
@@ -3004,7 +3038,7 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   // A rule with counts: its goals are the counted ones (core/counts.ts searches them; the kernel checks the set).
   if (r.machine.counts && Object.keys(r.machine.counts).length) {
     const c = searchCounted(r.machine, withKinds(r, laws), typeof opts.search === 'object' ? opts.search.ms ?? 60_000 : 60_000)
-    return {proven: c.proven, checked: c.proven, ...(c.why ? {why: c.why} : {}), found: {laws: c.laws.map(l => ({text: l.name}))}} as unknown as Verdict
+    return retainCounted({proven: c.proven, checked: c.proven, ...(c.why ? {why: c.why} : {}), found: {laws: c.laws.map(l => ({text: l.name}))}} as unknown as Verdict, c)
   }
   // (with a search budget, the laws as given within it on the wall: a step goal of hundreds of hypotheses has a second
   // each by its own budget, so the search would never start)
@@ -3020,6 +3054,7 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
     share === 1 ? given() : counted(inferRates.work, () => withStageDeadline(clock() + ms / share, given, () => undefined)), () => undefined)
   const v: Verdict = out ? {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
     : {proven: false, checked: false, stuck: 'unknown'}
+  if (out) retainFrom(v, [out])
   return searched(r, laws, [], v, opts)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
@@ -3130,7 +3165,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   const {fns, lists} = r.parts
   if (lists.length || fns.some(([, d]) => recurOf(d))) {
     const d = withStageDeadline(until, () => discover(r, laws, stepLaws, v), () => undefined)
-    if (d?.verdict.proven && d.verdict.checked) return {...d.verdict, found: {lemmas: d.found}}
+    if (d?.verdict.proven && d.verdict.checked) return retainFrom({...d.verdict, found: {lemmas: d.found}}, [d.verdict])
     if (d && Object.keys(d.found).length) (rule = d.rule, lemmas = d.found)
   }
   // Functions known by their facts alone (not a recurrence): lemmas about them, fitted to their values and proven from
@@ -3150,7 +3185,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
     if (fresh.length) {
       // (counted, as the laws' own search: the same verdict on any machine)
       const given = [...withKinds(rule, laws), ...fresh.map(f => f.law)], out = counted(fullRate, () => withStageDeadline(clock() + share, () => (stepLaws.length ? proveStepLaws(fm, given, stepLaws) : proveLaws(fm, given)), () => undefined), true)
-      if (out?.proven && out.checked) return {proven: true, checked: true, found: {laws: fresh, ...(lemmas ? {lemmas} : {})}, assumes: reachableBy(fresh)}
+      if (out?.proven && out.checked) return retainFrom({proven: true, checked: true, found: {laws: fresh, ...(lemmas ? {lemmas} : {})}, assumes: reachableBy(fresh)}, [out])
     }
   }
   let ms = until - clock() - tail
@@ -3159,7 +3194,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   if (!stepLaws.length && laws.some(l => l.some?.length) && laws.every(l => !l.some?.length || !l.forall)) {
     let c: Verdict | undefined
     try { c = withStageWall(countedSearchNow() + ms / 2, () => withStageDeadline(clock() + ms / 2, () => someCone(rule, laws, ms / 2), () => undefined), () => undefined) } catch (e) { if (e instanceof BudgetExpired) throw e; if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: cone failed: ${String((e as Error).stack ?? e).slice(0, 600)}`) }
-    if (c) return {...c, found: {...c.found, ...(lemmas ? {lemmas} : {})}}
+    if (c) return retainFrom({...c, found: {...c.found, ...(lemmas ? {lemmas} : {})}}, [c])
     if ((ms = until - clock() - tail) < 500) return v
   }
   // (the search's own wall ends where the tail begins: the last bounded runs keep it)
@@ -3186,11 +3221,11 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
     if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: back: plain ${plain ? `${plain.proven} ${plain.checked}` : 'none'}, machine ${sameMachine(over.machine, ghostedMachine(G))}`)
     if (plain?.proven && plain.checked && sameMachine(over.machine, ghostedMachine(G))
       && laws.filter(l => l.some?.length).every(l => { const q = sk.plains[l.name]; return !!q && ls.includes(q.plain) && someOfGhostsOk(G, l, q.plain, q.sub) }))
-      return {proven: true, checked: true, witnesses: sk.witnesses}
+      return retainFrom({proven: true, checked: true, witnesses: sk.witnesses}, [plain], {kind: 'skolem', original: G.orig, laws, G, plains: sk.plains, family: ls})
     // (proveSome over the original: the found laws that read no ghost map)
     const own = found.filter(f => Object.keys(sk.maps).every(mp => !JSON.stringify(f.law.holds).includes(`"map":${JSON.stringify(mp)}`)))
     const out = proveSome(rule.machine, [...withKinds(rule, laws), ...fresh.map(f => f.law), ...own.map(f => f.law)], {mapMs: Math.max(5_000, (until - clock()) / 2)})
-    return {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
+    return retainFrom({...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}, [out])
   }
   // (the plain law's candidate supports, exists.ts's ghostSupports: Houdini within half of what is left, each with the
   // rest assumed, the failing dropped, until none fails; then the set through `back`, the ∃ verdict as the search's)
@@ -3226,7 +3261,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
         }
         const b = back(target, keep.map(law => ({law})), native)
         if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: ghost supports set: ${b.proven ? 'proven' : `${b.goal} ${b.stuck} ${b.why ?? ''}`}`)
-        if (b.proven && b.checked) { const found = keep.map(law => ({law, text: law.name})); return {...b, proven: true, checked: true, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])} }
+        if (b.proven && b.checked) { const found = keep.map(law => ({law, text: law.name})); return retainFrom({...b, proven: true, checked: true, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}, [b]) }
         break
       }
       keep = keep.filter(c => !drop.includes(c))
@@ -3239,7 +3274,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
     const summed = target.withMapSums()
     if (summed && until - clock() - tail > 1000) {
       const inf2 = withStageWall(tailAt(), () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2)}), () => undefined)
-      if (inf2?.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; const b = back(summed, found); if (!sk || (b.proven && b.checked)) return {...(sk ? {} : verdict), ...b, proven: true, checked: true, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])} }
+      if (inf2?.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; const b = back(summed, found); if (!sk || (b.proven && b.checked)) return retainFrom({...(sk ? {} : verdict), ...b, proven: true, checked: true, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}, sk ? [inf2, b] : [inf2]) }
     }
     // (a step law's ghost: at most 10 s of it, as its goals cost more than the laws')
     const deep = bounded(Math.max(0, Math.min(until - clock(), ghosted && !laws.length ? 10_000 : Infinity)), Math.max(1, reached), true)
@@ -3250,7 +3285,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   void _stats
   const b = back(target, found)
   if (sk && !(b.proven && b.checked)) return {...v, ...b, why: [v.why, 'the set found over the ghost maps is not proven with the laws as stated'].filter(Boolean).join('; ')}
-  return {...(sk ? {proven: true, checked: true} : verdict), ...b, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}
+  return retainFrom({...(sk ? {proven: true, checked: true} : verdict), ...b, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}, sk ? [inf, b] : [inf])
 }
 // A law with "there exists" about no key, which the join can't take as its goal: its witness core/exists.ts's ghostOf;
 // then core/counts.ts's pipeline: the candidates, the engine's template two keys at the bound value's places, framed by
@@ -3278,7 +3313,7 @@ function someCone(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws0: Law[],
   if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: cone ${kept.length} of ${set.length} kept: ${kept.map(l => l.name).join('; ').slice(0, 2000)}`)
   if (clock() > until) return undefined
   const v = verdictOf(proveSome(m, [...laws, ...kept.filter(c => !laws.some(l => l.name === c.name))]))
-  return v.proven && v.checked ? {...v, found: {laws: kept.map(l => ({law: l, text: l.name}))}, ...withAssumes(kept.map(l => ({text: l.name})))} : undefined
+  return v.proven && v.checked ? retainFrom({...v, found: {laws: kept.map(l => ({law: l, text: l.name}))}, ...withAssumes(kept.map(l => ({text: l.name})))}, [v]) : undefined
 }
 // What a verdict proven with these found laws rests on: the states reachable from init (each found law is proven so).
 const reachableBy = (found: {text: string}[]): Assumes => ({states: 'reachable', laws: found.map(f => f.text)})

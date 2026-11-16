@@ -4,7 +4,7 @@ import type {Goal,Instances} from '../../kernel/kernel.ts'
 import {withModels} from '../../kernel/prove.ts'
 export function withProtocolPatterns<T>(machine:Machine,laws:Law[],instances:Instances,goal:Goal,ask:()=>T):T{
   let calls=0
-  const out=withModels(machine,laws,instances,()=>[goal],()=>{if(++calls!==1)throw Error('unexpected extra query');return ask()},()=>undefined,()=>true)
+  const out=withModels(machine,laws,instances,()=>[goal],()=>{if(++calls!==1)throw Error('unexpected extra query');return ask()},()=>undefined,()=>true,()=>{throw Error('unexpected model refinement')})
   if(calls!==1||out.inst!==instances)throw Error('unexpected refinement')
   return out.result
 }

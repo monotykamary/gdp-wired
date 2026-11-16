@@ -1,0 +1,1 @@
+[{"name":"invariant-semantic-sums","cpu":2,"memory":8192,"timeout":1200,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1},"cmd":"set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bun lean-kernel/lift-simulation/check-lemmas.ts"}]

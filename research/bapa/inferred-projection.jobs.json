@@ -1,0 +1,53 @@
+[
+  {
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "inferred-unit",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bunx tsc -p research/bapa/tsconfig.inferred-projection.json > \"$OUT/types.log\" 2>&1; bun test research/bapa/inferred-projection.test.ts research/bapa/source-projection.test.ts > \"$OUT/tests.log\" 2>&1; printf '%s\\n' 'feat(bapa): project same-machine inferred families' > \"$OUT/commit-message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$OUT/commit-message.txt\" > \"$OUT/commitlint.log\" 2>&1"
+  },
+  {
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "inferred-lockserv",
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun research/bapa/proof-emit.ts --capture inferred-lockserv --sha256 f5bfd1e13863bdf318e638ae398d26629899b637914bfa6db2283d12ef7a1ee0 --out \"$OUT/project\" --projection alpha > \"$OUT/emission.log\" 2>&1; cd \"$OUT/project\"; lake build > \"$OUT/lean.log\" 2>&1; bun \"$ROOT/scripts/lean-gate/gate.ts\" \"$OUT/lean.log\" BapaProof.lean > \"$OUT/axioms.log\" 2>&1"
+  },
+  {
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "inferred-lockserv_automaton",
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun research/bapa/proof-emit.ts --capture inferred-lockserv_automaton --sha256 8a0fa118813b55b492e1d79fcb056664a548d3a783885e98d83446b895c1b8f6 --out \"$OUT/project\" --projection alpha > \"$OUT/emission.log\" 2>&1; cd \"$OUT/project\"; lake build > \"$OUT/lean.log\" 2>&1; bun \"$ROOT/scripts/lean-gate/gate.ts\" \"$OUT/lean.log\" BapaProof.lean > \"$OUT/axioms.log\" 2>&1"
+  }
+]

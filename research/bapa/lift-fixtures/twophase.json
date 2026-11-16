@@ -1,0 +1,690 @@
+{
+  "schema": "gdp-lift-source/v1",
+  "id": "twophase",
+  "machine": {
+    "name": "two phase",
+    "params": [
+      "size"
+    ],
+    "inputs": [
+      "op",
+      "rm"
+    ],
+    "state": {
+      "tm": {
+        "op": "const",
+        "value": 0
+      },
+      "commitMsg": {
+        "op": "const",
+        "value": 0
+      },
+      "abortMsg": {
+        "op": "const",
+        "value": 0
+      }
+    },
+    "maps": {
+      "Rm": 0,
+      "TmPrepared": 0,
+      "PreparedMsg": 0
+    },
+    "step": {
+      "flags": {
+        "allPrepared": {
+          "op": "all",
+          "key": "k$1",
+          "c": {
+            "op": "or",
+            "xs": [
+              {
+                "op": "not",
+                "x": {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "k$1"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                }
+              },
+              {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "TmPrepared",
+                  "key": {
+                    "op": "var",
+                    "name": "k$1"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              }
+            ]
+          }
+        },
+        "rcvPrepared": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "tm"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "PreparedMsg",
+                "key": {
+                  "op": "var",
+                  "name": "rm"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            }
+          ]
+        },
+        "tmCommits": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "tm"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "flag",
+              "name": "allPrepared"
+            }
+          ]
+        },
+        "tmAborts": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 2
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "tm"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            }
+          ]
+        },
+        "prepares": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 3
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "Rm",
+                "key": {
+                  "op": "var",
+                  "name": "rm"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            }
+          ]
+        },
+        "choosesAbort": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 4
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "Rm",
+                "key": {
+                  "op": "var",
+                  "name": "rm"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            }
+          ]
+        },
+        "rcvCommit": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 5
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "commitMsg"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "not",
+              "x": {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "Rm",
+                  "key": {
+                    "op": "var",
+                    "name": "rm"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 2
+                }
+              }
+            }
+          ]
+        },
+        "rcvAbort": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 6
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "abortMsg"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "not",
+              "x": {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "Rm",
+                  "key": {
+                    "op": "var",
+                    "name": "rm"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 3
+                }
+              }
+            }
+          ]
+        }
+      },
+      "state": {
+        "tm": {
+          "op": "if",
+          "c": {
+            "op": "flag",
+            "name": "tmCommits"
+          },
+          "then": {
+            "op": "const",
+            "value": 1
+          },
+          "else": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "tmAborts"
+            },
+            "then": {
+              "op": "const",
+              "value": 2
+            },
+            "else": {
+              "op": "var",
+              "name": "tm"
+            }
+          }
+        },
+        "commitMsg": {
+          "op": "if",
+          "c": {
+            "op": "flag",
+            "name": "tmCommits"
+          },
+          "then": {
+            "op": "const",
+            "value": 1
+          },
+          "else": {
+            "op": "var",
+            "name": "commitMsg"
+          }
+        },
+        "abortMsg": {
+          "op": "if",
+          "c": {
+            "op": "flag",
+            "name": "tmAborts"
+          },
+          "then": {
+            "op": "const",
+            "value": 1
+          },
+          "else": {
+            "op": "var",
+            "name": "abortMsg"
+          }
+        }
+      },
+      "maps": {
+        "Rm": {
+          "key": {
+            "op": "var",
+            "name": "rm"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "prepares"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "if",
+              "c": {
+                "op": "or",
+                "xs": [
+                  {
+                    "op": "flag",
+                    "name": "choosesAbort"
+                  },
+                  {
+                    "op": "flag",
+                    "name": "rcvAbort"
+                  }
+                ]
+              },
+              "then": {
+                "op": "const",
+                "value": 3
+              },
+              "else": {
+                "op": "if",
+                "c": {
+                  "op": "flag",
+                  "name": "rcvCommit"
+                },
+                "then": {
+                  "op": "const",
+                  "value": 2
+                },
+                "else": {
+                  "op": "get",
+                  "map": "Rm",
+                  "key": {
+                    "op": "var",
+                    "name": "rm"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "TmPrepared": {
+          "key": {
+            "op": "var",
+            "name": "rm"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "rcvPrepared"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "rcvPrepared"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "TmPrepared",
+                        "key": {
+                          "op": "var",
+                          "name": "rm"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "PreparedMsg": {
+          "key": {
+            "op": "var",
+            "name": "rm"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "prepares"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "prepares"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "PreparedMsg",
+                        "key": {
+                          "op": "var",
+                          "name": "rm"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        }
+      }
+    },
+    "assume": {
+      "op": "and",
+      "xs": [
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 7
+          }
+        },
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "rm"
+          },
+          "b": {
+            "op": "var",
+            "name": "size"
+          }
+        }
+      ]
+    }
+  },
+  "laws": [
+    {
+      "name": "commit and abort exclude",
+      "forall": "key$2",
+      "keys": [
+        "key$3"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$3"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "Rm",
+                    "key": {
+                      "op": "var",
+                      "name": "key$2"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 3
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "Rm",
+                    "key": {
+                      "op": "var",
+                      "name": "key$3"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 2
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

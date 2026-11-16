@@ -1,0 +1,3 @@
+[
+ {"name":"sharded-kv-tuple-certificate-replay","cmd":"python3 research/bapa/tuple-replay.py","cpu":1,"memory":6,"timeout":3000,"env":{"SUPERCOMPUTER_CONTROLLER":"1","SUPERCOMPUTER_NO_BUILD":"1"},"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}
+]

@@ -1,0 +1,29 @@
+{
+  "schema": "candidate-seed-manifest/v1",
+  "protocol": "lock_server",
+  "capture": "../../seed-audit-captures/lock_server",
+  "captureSha256": "eb4f9e3d76280d713501e26553064d23bec73c249912710b1fd1728cf1a1a9bf",
+  "bindings": {
+    "maps": {
+      "Link": {
+        "target": "Link",
+        "sorts": [
+          "Client",
+          "Server"
+        ],
+        "radix": 64
+      },
+      "Semaphore": {
+        "target": "Semaphore",
+        "sorts": [
+          "Server"
+        ],
+        "radix": 64
+      }
+    },
+    "domains": {
+      "Client": "clients",
+      "Server": "servers"
+    }
+  }
+}

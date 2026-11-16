@@ -1361,6 +1361,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     type Pool = {fg: Goal, keys: string[], wits: (string | undefined)[], chosen?: Set<string>, cap?: number}
     type Selection = {chosen: Set<string>, cap: number, previous: Pick<CountCert, 'reads' | 'insts' | 'picks'>, decls: Parameters<typeof certFor>[1], reserve: ReturnType<typeof reservationState>, stable: ReturnType<typeof stableState>}
     const selections = new Map<string, Selection>()
+    const reservationRenamings = new Map<string, ReturnType<typeof reservePool>['record']['renamed']>()
     const poolCache = new Map<string, {key: string, value: ReturnType<typeof grammarPool>}>()
     const memberSources = new Map<string,MemberHint[]>()
     // Demand-driven ranges (Fable b89dd77a / Lane B): retain a goal's demand
@@ -1406,7 +1407,13 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
           selection = {chosen: new Set(ids(pick)), cap: Math.min(10, pick.insts.length + 2), previous: pick, decls, reserve: reservationState(goal, [m, ls, goal], pool), stable: stableState([m, ls, goal])}
           selections.set(goal.name, selection)
         }
-        const full = reservePool(goal, decls, pool0, selection.previous, selection.decls, selection.chosen, selection.reserve, pool, reservation).full
+        const reserved = reservePool(goal, decls, pool0, selection.previous, selection.decls, selection.chosen, selection.reserve, pool, reservation)
+        const full = reserved.full
+        if(reserved.record.renamed.length){
+          const prior=reservationRenamings.get(goal.name)??[]
+          reservationRenamings.set(goal.name,[...prior,...reserved.record.renamed])
+          countsDump.on?.({phase:'reservation-alpha',law:law.name,goal:goal.name,renamings:reserved.record.renamed})
+        }
         const keys = ids(full), lazyRoom = selection.chosen.size < selection.cap
         const view = chosenView(full, selection.chosen, selection.cap)
         const c = withRanges(goal, decls, selectedCertificate(goal, decls, view, selection.stable, lazyRoom), full.reads)
@@ -1616,7 +1623,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && houdini && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); again = true; break }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) return refuted(gg, o.witness, at)
         if (!o || !('tree' in o)) return {stuck: gg ? (o as {stuck?: string}).stuck ?? '' : ''}
-        certs[goal.name] = {reads: c.reads, insts: c.insts, tree: o.tree, ...('picks' in c && c.picks.length ? {picks: c.picks} : {})}
+        certs[goal.name] = {...(reservationRenamings.get(goal.name)?.length ? {proposalProvenance:{kind:'reservation-alpha',renamings:reservationRenamings.get(goal.name)}} : {}),reads: c.reads, insts: c.insts, tree: o.tree, ...('picks' in c && c.picks.length ? {picks: c.picks} : {})}
       }
       if (!again) return {proof: {instances: at, certs}}
     }

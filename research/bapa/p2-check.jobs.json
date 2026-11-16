@@ -1,0 +1,10 @@
+[
+  {
+    "name": "bapa-p2-port-controls",
+    "cmd": "unset GDP_CYCLIC_LOG; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1 && bun test research/bapa/consensus-sized.test.ts && bunx tsc -p research/bapa/tsconfig.p2.json && bunx oxlint --type-aware --deny-warnings --disable-nested-config research/bapa/consensus-sized.test.ts research/protocols/ic3syn/models.ts && bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/bapa/P2-PORT-COMMIT.txt",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "required_agent_capabilities": {"output_files_protocol": 1, "result_files_protocol": 1}
+  }
+]

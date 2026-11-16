@@ -1,0 +1,12 @@
+{
+  "schema": "gdp-lift-fixture/v1",
+  "id": "firewall",
+  "scope": "frozen-capsule-original",
+  "captureSha256": "2ed5690066d27705a905eca1dc338612f19c0ed09a59d9f16d79a956ef33c14e",
+  "sourceSha256": "cc82d075b67abd1a64f0c68876ca862ed0de9ca9c1dc3b2a62f8a6a3471814ab",
+  "encodedSourceSha256": "b7c19bb392c9945212389755650c46cf180e23ed3b0619465299576bdf942c68",
+  "allSizesProven": false,
+  "independentTlaVerification": false,
+  "noSearch": true,
+  "noLean": true
+}

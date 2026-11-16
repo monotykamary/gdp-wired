@@ -1,0 +1,13 @@
+[
+  {
+    "name": "typed-controls-only",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; trap 'rm -rf \"$OUT/controls/.lake\"' EXIT; bun lean-kernel/lift-typed/controls-from-project.ts checked-project; cd \"$OUT/controls\"; lake build CertificateBoundSubstitution TypedSource QAlpha RowAlpha > \"$OUT/dependencies.log\" 2>&1; lake env lean TypedControls.lean > \"$OUT/typed-controls.log\" 2>&1; lake env lean -o .lake/build/lib/lean/DataOnly.olean DataOnly.lean > \"$OUT/data.log\" 2>&1; lake env lean FullRoleControl.lean > \"$OUT/full-role-control.log\" 2>&1; cd \"$ROOT\"; bun lean-kernel/lift-typed/controls-audit.ts > \"$OUT/audit.log\" 2>&1"
+  }
+]

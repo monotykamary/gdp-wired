@@ -1,0 +1,13 @@
+[
+  {
+    "name": "cutoff-feasibility",
+    "cmd": "set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bunx tsc --noEmit -p research/bapa/tsconfig.cutoff.json > \"$SUPERCOMPUTER_OUTPUT_DIR/typecheck.log\" 2>&1; bunx oxlint --type-aware --deny-warnings research/bapa/cutoff-negative.test.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/lint.log\" 2>&1; bun test research/bapa/cutoff-negative.test.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/tests.log\" 2>&1; export PATH=\"$PWD/scripts/lean-gate:$PATH\"; lean research/bapa/CutoffObstruction.lean > \"$SUPERCOMPUTER_OUTPUT_DIR/lean.log\" 2>&1; printf '%s\\n' 'docs(bapa): record cutoff obstruction and retained proof inventory' > \"$SUPERCOMPUTER_OUTPUT_DIR/commit-message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$SUPERCOMPUTER_OUTPUT_DIR/commit-message.txt\" > \"$SUPERCOMPUTER_OUTPUT_DIR/commitlint.log\" 2>&1; printf '%s\\n' 'runtime negative/positive controls, inventory, types, lint, standalone Lean and commitlint passed; proof searches=0' > \"$SUPERCOMPUTER_OUTPUT_DIR/result.txt\"",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 300,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  }
+]

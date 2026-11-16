@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": [],
+  "files": [
+    "./lift-regression.ts",
+    "./lift-regression-worker.ts",
+    "./lift-regression-manifest.ts",
+    "./lift-regression-report.ts",
+    "./lift-regression-prepare.ts",
+    "./lift-regression-prepare-all.ts",
+    "./lift-regression.test.ts"
+  ]
+}

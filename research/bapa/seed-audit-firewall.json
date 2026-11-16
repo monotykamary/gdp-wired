@@ -1,0 +1,50 @@
+{
+  "schema": "candidate-seed-manifest/v1",
+  "protocol": "firewall",
+  "capture": "../../seed-audit-captures/firewall",
+  "captureSha256": "0d65e7fc04cacd716180a8927e4050249fe3323ff23b4331f577ed3be38432ab",
+  "bindings": {
+    "maps": {
+      "Internal": {
+        "target": "Internal",
+        "sorts": [
+          "Node"
+        ],
+        "radix": 64
+      },
+      "Sent": {
+        "target": "Sent",
+        "sorts": [
+          "Node",
+          "Node"
+        ],
+        "radix": 64
+      },
+      "AllowedIn": {
+        "target": "AllowedIn",
+        "sorts": [
+          "Node"
+        ],
+        "radix": 64
+      }
+    },
+    "domains": {
+      "Node": "size"
+    },
+    "fields": {
+      "AllowedIn$w": {
+        "relation": "Sent",
+        "keyPositions": [
+          1
+        ],
+        "valuePosition": 0
+      }
+    },
+    "variables": {
+      "key$3": {
+        "sort": "Node",
+        "radix": 64
+      }
+    }
+  }
+}

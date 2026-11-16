@@ -1,0 +1,1 @@
+[{"name":"skt-source-bridge","cmd":"python3 research/bapa/skt-source-check.py SktSourceInvariant SktSourceBridge","cpu":2,"memory":6,"timeout":1400,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}]

@@ -1,0 +1,1 @@
+{"extends":"../../tsconfig.json","files":["reservation-alpha-public.test.ts","../../core/count-support.test.ts"],"include":[]}

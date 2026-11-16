@@ -1,0 +1,1 @@
+[{"name":"skt-source-data","cmd":"bun install --frozen-lockfile >/dev/null && bun research/bapa/skt-source-data.ts","cpu":2,"memory":4,"timeout":180,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}]

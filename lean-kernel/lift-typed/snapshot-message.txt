@@ -1,0 +1,1 @@
+test(lift): freeze typed substitution development check

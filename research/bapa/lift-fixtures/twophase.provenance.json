@@ -1,0 +1,12 @@
+{
+  "schema": "gdp-lift-fixture/v1",
+  "id": "twophase",
+  "scope": "frozen-capsule-original",
+  "captureSha256": "a562243d6ca33b6a34f6f3225d0228ab7815eb6608b67f3349318c5f5e1ff396",
+  "sourceSha256": "ed2e3233a1c0a9354646ccdd98eff9706fb17ddf6b7fb9cea7a0bb4e6d7eb6dd",
+  "encodedSourceSha256": "b51fdd979974600228f3e1e7cde26f828d29ccf82f2bd83edf0e298182c1cbd3",
+  "allSizesProven": false,
+  "independentTlaVerification": false,
+  "noSearch": true,
+  "noLean": true
+}

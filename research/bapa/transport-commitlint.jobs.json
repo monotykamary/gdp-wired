@@ -1,0 +1,11 @@
+[
+  {
+    "name": "transport-commitlint",
+    "cmd": "set -euo pipefail; for msg in research/bapa/transport-commit.txt research/bapa/tcommit-transport-commit.txt research/bapa/numeric-transport-commit.txt research/bapa/cutoff-transport-commit.txt research/bapa/control-transport-commit.txt; do bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$msg\"; done > \"$SUPERCOMPUTER_OUTPUT_DIR/commitlint.log\" 2>&1; printf 'five transport commit messages accepted\\n' > \"$SUPERCOMPUTER_OUTPUT_DIR/result.txt\"",
+    "cpu": 1,
+    "memory": 2,
+    "timeout": 180,
+    "env": {"SUPERCOMPUTER_CONTROLLER": "1", "SUPERCOMPUTER_NO_BUILD": "1"},
+    "required_agent_capabilities": {"output_files_protocol": 1, "result_files_protocol": 1}
+  }
+]

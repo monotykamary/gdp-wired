@@ -1,0 +1,19 @@
+[
+  {
+    "name": "counted-source-gate",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1800,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; trap 'find \"$OUT\" -maxdepth 3 -type d -name .lake -exec rm -rf {} +' EXIT; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bunx tsc -p research/bapa/tsconfig.counted-source.json > \"$OUT/types.log\" 2>&1; BAPA_COUNTED_SOURCE_TINY=\"$OUT/tiny\" bun test research/bapa/counted-source-data.test.ts research/bapa/proof-counted-source.test.ts research/bapa/proof-source-verify.test.ts > \"$OUT/tests.log\" 2>&1; cd \"$OUT/tiny\"; lake build > \"$OUT/tiny-lean.log\" 2>&1; lake env lean BapaProof.lean >> \"$OUT/tiny-lean.log\" 2>&1; bun \"$ROOT/scripts/lean-gate/gate.ts\" \"$OUT/tiny-lean.log\" BapaProof.lean > \"$OUT/tiny-axioms.log\" 2>&1; cd \"$ROOT\"; for item in simple_election:7654c0e364334f0835602b06dcfc7307fdc089d0825f92d17e16f5a67a84ff75 toy_consensus:4558a6d95c1f2462f58baffa3dd094bbe8023f6ee4f6b132f47b65b41bc44a84 quorum_leader_election:26190ed5247317ec80f418e9218cbce744daf79cff12ce139b67326c0f0f9c32; do id=${item%%:*}; sha=${item#*:}; CASE=\"$OUT/$id\"; mkdir \"$CASE\"; bun research/bapa/proof-counted-source.ts --capture \"counted-$id\" --sha256 \"$sha\" --out \"$CASE/project\" > \"$CASE/emission.log\" 2>&1; cp -a \"$OUT/tiny/.lake\" \"$CASE/project/.lake\"; cd \"$CASE/project\"; lake build > \"$CASE/lean.log\" 2>&1; lake env lean BapaProof.lean >> \"$CASE/lean.log\" 2>&1; bun \"$ROOT/research/bapa/proof-source-verify.ts\" \"$CASE/project\" \"$CASE/lean.log\" \"$CASE/SOURCE-CHECKED.json\" > \"$CASE/source-check.log\" 2>&1; cd \"$ROOT\"; done; printf '%s\\n' 'feat(bapa): check counted-family source correspondence' > \"$OUT/commit-message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$OUT/commit-message.txt\" > \"$OUT/commitlint.log\" 2>&1"
+  }
+]

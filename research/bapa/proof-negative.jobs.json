@@ -1,0 +1,12 @@
+[
+  {
+    "name": "proof-negative-gate",
+    "cmd": "set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bunx tsc -p research/bapa/tsconfig.proof-worker.json > \"$SUPERCOMPUTER_OUTPUT_DIR/types.log\" 2>&1; bun test core/proof-output.test.ts research/bapa/proof-worker.test.ts research/bapa/proof-capture.test.ts research/bapa/proof-codec.test.ts research/bapa/proof-projection.test.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/tests.log\" 2>&1; set +e; bun research/bapa/proof-worker.ts --only consensus --broken > \"$SUPERCOMPUTER_OUTPUT_DIR/broken.log\" 2>&1; code=$?; set -e; test \"$code\" -eq 1; bun -e 'const fs=require(\"node:fs\"), p=process.env.SUPERCOMPUTER_OUTPUT_DIR+\"/consensus-broken/\", r=JSON.parse(fs.readFileSync(p+\"result.json\")), v=JSON.parse(fs.readFileSync(p+\"verdict.json\")); if(r.variant!==\"broken\"||r.publicCalls!==1||r.proven||r.checked||r.status!==\"not-verified\"||r.outputError||v.stuck!==\"sat\"||(!v.witness&&!v.run))process.exit(32); console.log(JSON.stringify({variant:r.variant,calls:r.publicCalls,proven:r.proven,checked:r.checked,stuck:v.stuck,run:!!v.run,witness:!!v.witness}))' > \"$SUPERCOMPUTER_OUTPUT_DIR/control.json\"; printf '%s\\n' 'feat(research): add same-profile broken BAPA worker mode' > \"$SUPERCOMPUTER_OUTPUT_DIR/commit-message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$SUPERCOMPUTER_OUTPUT_DIR/commit-message.txt\" > \"$SUPERCOMPUTER_OUTPUT_DIR/commitlint.log\" 2>&1",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 900,
+    "env": {"BAPA_SOURCE_COMMIT": "b9acea744fd60166e4cd324d92e462c1d738b52d", "BAPA_SOURCE_TREE": "79f60b5235eb7108157d1ac640adacfcb322c4fc"},
+    "runtime": {"bun": {"version": "1.4.3", "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"}},
+    "required_agent_capabilities": {"output_files_protocol": 1, "result_files_protocol": 1}
+  }
+]

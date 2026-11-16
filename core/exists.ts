@@ -1,3 +1,4 @@
+import {retainFrom} from './proof-output.ts'
 import {traceNow as countedTraceNow, BudgetExpired} from './wall.ts'
 import {withReachabilityWork, reachState, reachEdge} from './work-observe.ts'
 import {requestQuotient} from './request-quotient.ts'
@@ -992,7 +993,7 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
   for (const [i, p] of plans) { const f = choose(i, p, 0); if (f) return f }
   for (let pass = 1; ; pass++) {
     const {machine, laws: plain, ghosts} = current(), t0 = countedTraceNow()
-    const out = (opts.whole ?? proveLaws)(machine, plain), done = {...out, laws: out.laws ?? plain, machine, ghosts, witnesses: Object.fromEntries([...plans.values()].map(p => [p.law.name, describe(p, cases)]))}
+    const out = (opts.whole ?? proveLaws)(machine, plain), done = retainFrom({...out, laws: out.laws ?? plain, machine, ghosts, witnesses: Object.fromEntries([...plans.values()].map(p => [p.law.name, describe(p, cases)]))}, [out], {kind: 'witness', original: m, laws, machine, plain, ghosts, plans, cases})
     if (log) console.error(`exists: pass ${pass} the whole set: ${out.proven ? 'proven' : `${out.failed?.goal} ${out.failed?.stuck}`} (${Math.round(countedTraceNow() - t0)} ms)`)
     const j = out.proven || !out.failed || pass > 8 ? undefined : [...plans.keys()].find(k => out.failed!.goal.startsWith(`${laws[k]!.name} @`))
     if (j === undefined) return done

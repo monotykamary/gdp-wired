@@ -1,0 +1,13 @@
+[
+  {
+    "name": "native-tlc-gate",
+    "cmd": "set -euo pipefail; python3 -m unittest discover -s research/protocols/ic3syn -p test_tlc_native.py -v > \"$SUPERCOMPUTER_OUTPUT_DIR/tests.log\" 2>&1; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; python3 research/protocols/ic3syn/tlc_native.py --only consensus --ms 120000 > \"$SUPERCOMPUTER_OUTPUT_DIR/worker.log\" 2>&1; printf '%s\\n' 'feat(research): add native TLC cross-check worker' > \"$SUPERCOMPUTER_OUTPUT_DIR/commit-message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$SUPERCOMPUTER_OUTPUT_DIR/commit-message.txt\" > \"$SUPERCOMPUTER_OUTPUT_DIR/commitlint.log\" 2>&1",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 1200,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  }
+]

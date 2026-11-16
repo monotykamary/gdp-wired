@@ -1,0 +1,19 @@
+[
+  {
+    "name": "p2-toy-source-inclusion",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1800,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; trap 'rm -rf \"$OUT/project/.lake\"' EXIT; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bunx tsc -p research/bapa/tsconfig.p2-source-inclusion.json > \"$OUT/types.log\" 2>&1; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/bapa/p2-source-inclusion-commit.txt > \"$OUT/commitlint.log\" 2>&1; bun research/bapa/p2-toy-inclusion.ts p2-fixed-capture p2-fixed-lean/Proofs.lean \"$OUT/project\" > \"$OUT/emission.log\" 2>&1; cd \"$OUT/project\"; lake build > \"$OUT/lean.log\" 2>&1; lake env lean BapaProof.lean >> \"$OUT/lean.log\" 2>&1; lake env lean SourceInclusionControls.lean >> \"$OUT/lean.log\" 2>&1; bun \"$ROOT/research/bapa/proof-source-verify.ts\" \"$OUT/project\" \"$OUT/lean.log\" \"$OUT/SOURCE-CHECKED.json\" > \"$OUT/source-check.log\" 2>&1"
+  }
+]

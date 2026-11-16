@@ -1,0 +1,52 @@
+{
+  "schema": "gdp-release-privacy/v1",
+  "release": "0.50.0",
+  "scope": "release tree delta only",
+  "originalRevision": "0943b55aad0ed746c88c055baf3f4ef75f6248a2",
+  "status": "LOCATION_LABEL_DERIVATION_CHECKED",
+  "changedLabels": 109,
+  "files": [
+    {
+      "path": "research/bapa/cutoff-inventory.json",
+      "field": "rows[*].receipt",
+      "changedLabels": 29,
+      "originalSha256": "eb8ce9bf7d0451998fa777bcc114a1fce69ff16af0394ca902a6251ebc389b0b",
+      "publicSha256": "3f78453c981200f396e5f4f0c32181947b87725ab45a9ecf49f2576b802ce42f"
+    },
+    {
+      "path": "research/bapa/lift-regression-inputs.json",
+      "field": "[*].capture.origin",
+      "changedLabels": 27,
+      "originalSha256": "62100e3c0e1447675d0443606c9cbb0f677600665d7469c8ec684607ecae0b91",
+      "publicSha256": "3bb028d584f6452b0fff58f05aed0586996a373e931bd16f13c72d206a3979d3"
+    },
+    {
+      "path": "research/bapa/lift-regression-manifest.json",
+      "field": "entries[*].capture.origin",
+      "changedLabels": 27,
+      "originalSha256": "dc6b5017190d3d2f1e3001246810d02e1c5aaea17587071b83b956935cf3aa4e",
+      "publicSha256": "041d4eea617c1ce36f4e8af7eae71ee8ccb57b9140d4e4e3a5de627c0f705147"
+    },
+    {
+      "path": "research/bapa/release-replay-inputs.json",
+      "field": "[*].from",
+      "changedLabels": 26,
+      "originalSha256": "19afb8266e4c34efb02dabee878424e43007e2c62c83ab13a7bb29c815b6e320",
+      "publicSha256": "562e8d754fd35786394f925ee57037a40fe03a8ab2de4e6d2afc57f76d1e3737"
+    }
+  ],
+  "rawCapsuleOrSourceChanged": false,
+  "workerMountPathsChanged": false,
+  "historicalReceiptHashesRewritten": false,
+  "historyRewritten": false,
+  "notes": [
+    "Sibling origins are relative to the submission checkout; home labels require explicit expansion on the submission host.",
+    "Use exact private input overrides when needed; workers still consume the unchanged relative mount paths and pinned bytes.",
+    "Historical receipts bind the original manifest at originalRevision. The current public manifest is a separately hashed redacted view.",
+    "No confirmed personal-name redactions were identified in the added documentation."
+  ],
+  "publicManifest": {
+    "path": "research/bapa/lift-regression-manifest.json",
+    "sha256": "041d4eea617c1ce36f4e8af7eae71ee8ccb57b9140d4e4e3a5de627c0f705147"
+  }
+}

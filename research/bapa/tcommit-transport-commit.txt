@@ -1,0 +1,1 @@
+feat(bapa): lift retained tcommit certificate without search

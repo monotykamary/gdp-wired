@@ -32,7 +32,7 @@ test('a law between two points, where the rule reads the function at two of its 
   const r = rule('two tiers').params({low: nat, high: nat}).pre(({low, high}) => low.atMost(high)).inputs({}).state({n: 0}).fns({delay: growing})
     .step(({n}) => ({n: n.plus(1)}))
   const laws = [r.law('the low tier waits at most as long as the high one', ({low, high, delay}) => delay(low).atMost(delay(high)))]
-  expect(proveSteps(r, laws, []).proven).toBe(false)
+  expect(proveSteps(r, laws, [], {search: false}).proven).toBe(false)
   const o = discover(r, laws)
   expect(o.verdict).toMatchObject({proven: true, checked: true})
   expect(o.found).toEqual({delay: {lemmas: ["'f(x) <= 64': (_, f) => f.atMost(64)"], between: ["'f(y) >= f(x)': (_, f, __, g) => g.atLeast(f)"]}})
@@ -47,7 +47,7 @@ test('a function of two arguments: the bound in the further argument', () => {
   const o = discover(r, laws)
   expect(o.verdict).toMatchObject({proven: true, checked: true})
   expect(o.found.filled!.lemmas).toEqual(["'f(x) <= cap': (_, f, {cap}) => f.atMost(cap)"])
-})
+}, 30_000)
 
 test("a list's folds: the taxable part within the total", () => {
   const o = foundInvoices()

@@ -1,0 +1,24 @@
+{
+  "schema": "gdp-lift-fixture/v1",
+  "id": "client_server_db_ae",
+  "scope": "current-accepted-source",
+  "origin": "lean-kernel/lift-typed/runs/product-02/typed-product.files/source.json",
+  "originSha256": "78ec86bda3072bcf8bf741c4cc2db5fff774904449d5aab7af42866b141f32d1",
+  "sourceSha256": "8b8e9add995034551cb10c99ad1c52c1e6ce290705ac18f324d4c009a8503f6f",
+  "namingOnlyChanges": {
+    "id": "client_server_db_ae",
+    "theorems": {
+      "family": "p3_family",
+      "source": [
+        "bapa_client_server_db_ae_source"
+      ]
+    }
+  },
+  "historicalEncodedSourceMatches": false,
+  "historicalDifference": "Fresh constructor binder names k$1/some$2 vs historical k$2/some$1. No AST normalization performed.",
+  "sourceAcceptance": "PENDING_NATIVE_SOURCE_BRIDGE",
+  "allSizesProven": false,
+  "independentTlaVerification": false,
+  "noSearch": true,
+  "noLean": true
+}

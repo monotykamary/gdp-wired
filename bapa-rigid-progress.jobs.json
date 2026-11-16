@@ -1,0 +1,4 @@
+[
+ {"name":"rigid-encoding-bridge","cmd":"bash scripts/bapa-rigid-encoding.sh","cpu":2,"memory":4096,"timeout":600,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}},
+ {"name":"rigid-instance-validation","cmd":"bash scripts/bapa-rigid-instance.sh","cpu":2,"memory":4096,"timeout":300,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}
+]

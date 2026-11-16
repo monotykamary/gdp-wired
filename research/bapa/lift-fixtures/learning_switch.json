@@ -1,0 +1,1805 @@
+{
+  "schema": "gdp-lift-source/v1",
+  "id": "learning_switch",
+  "machine": {
+    "name": "learning switch",
+    "params": [
+      "size"
+    ],
+    "inputs": [
+      "op",
+      "ps",
+      "pd",
+      "sw0",
+      "sw1",
+      "nondet"
+    ],
+    "state": {},
+    "maps": {
+      "T": 0,
+      "P": 0
+    },
+    "step": {
+      "flags": {
+        "noRoute": {
+          "op": "all",
+          "key": "k$1",
+          "c": {
+            "op": "or",
+            "xs": [
+              {
+                "op": "not",
+                "x": {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "k$1"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                }
+              },
+              {
+                "op": "or",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "k$1"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "sw1"
+                    }
+                  },
+                  {
+                    "op": "not",
+                    "x": {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 1
+                      },
+                      "b": {
+                        "op": "get",
+                        "map": "T",
+                        "key": {
+                          "op": "tup",
+                          "a": {
+                            "op": "var",
+                            "name": "ps"
+                          },
+                          "b": {
+                            "op": "tup",
+                            "a": {
+                              "op": "var",
+                              "name": "sw1"
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "k$1"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "news": {
+          "op": "=",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        },
+        "forwards": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "P",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "ps"
+                  },
+                  "b": {
+                    "op": "tup",
+                    "a": {
+                      "op": "var",
+                      "name": "pd"
+                    },
+                    "b": {
+                      "op": "tup",
+                      "a": {
+                        "op": "var",
+                        "name": "sw0"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "sw1"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "learns": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "var",
+                    "name": "op"
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                },
+                {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 1
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "P",
+                    "key": {
+                      "op": "tup",
+                      "a": {
+                        "op": "var",
+                        "name": "ps"
+                      },
+                      "b": {
+                        "op": "tup",
+                        "a": {
+                          "op": "var",
+                          "name": "pd"
+                        },
+                        "b": {
+                          "op": "tup",
+                          "a": {
+                            "op": "var",
+                            "name": "sw0"
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "sw1"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "not",
+              "x": {
+                "op": "=",
+                "a": {
+                  "op": "var",
+                  "name": "ps"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "sw1"
+                }
+              }
+            },
+            {
+              "op": "flag",
+              "name": "noRoute"
+            }
+          ]
+        }
+      },
+      "maps": {
+        "T": {
+          "each": "k$2",
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 1
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "T",
+                    "key": {
+                      "op": "tup",
+                      "a": {
+                        "op": "proj",
+                        "k": 0,
+                        "a": {
+                          "op": "var",
+                          "name": "k$2"
+                        }
+                      },
+                      "b": {
+                        "op": "tup",
+                        "a": {
+                          "op": "proj",
+                          "k": 0,
+                          "a": {
+                            "op": "proj",
+                            "k": 1,
+                            "a": {
+                              "op": "var",
+                              "name": "k$2"
+                            }
+                          }
+                        },
+                        "b": {
+                          "op": "proj",
+                          "k": 1,
+                          "a": {
+                            "op": "proj",
+                            "k": 1,
+                            "a": {
+                              "op": "var",
+                              "name": "k$2"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "learns"
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "proj",
+                        "k": 0,
+                        "a": {
+                          "op": "var",
+                          "name": "k$2"
+                        }
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "ps"
+                      }
+                    },
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "=",
+                        "a": {
+                          "op": "proj",
+                          "k": 0,
+                          "a": {
+                            "op": "proj",
+                            "k": 1,
+                            "a": {
+                              "op": "var",
+                              "name": "k$2"
+                            }
+                          }
+                        },
+                        "b": {
+                          "op": "proj",
+                          "k": 1,
+                          "a": {
+                            "op": "proj",
+                            "k": 1,
+                            "a": {
+                              "op": "var",
+                              "name": "k$2"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "op": "<",
+                      "a": {
+                        "op": "proj",
+                        "k": 0,
+                        "a": {
+                          "op": "proj",
+                          "k": 1,
+                          "a": {
+                            "op": "var",
+                            "name": "k$2"
+                          }
+                        }
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "size"
+                      }
+                    },
+                    {
+                      "op": "<",
+                      "a": {
+                        "op": "proj",
+                        "k": 1,
+                        "a": {
+                          "op": "proj",
+                          "k": 1,
+                          "a": {
+                            "op": "var",
+                            "name": "k$2"
+                          }
+                        }
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "size"
+                      }
+                    },
+                    {
+                      "op": "or",
+                      "xs": [
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "or",
+                              "xs": [
+                                {
+                                  "op": "=",
+                                  "a": {
+                                    "op": "proj",
+                                    "k": 0,
+                                    "a": {
+                                      "op": "proj",
+                                      "k": 1,
+                                      "a": {
+                                        "op": "var",
+                                        "name": "k$2"
+                                      }
+                                    }
+                                  },
+                                  "b": {
+                                    "op": "var",
+                                    "name": "sw1"
+                                  }
+                                },
+                                {
+                                  "op": "<=",
+                                  "a": {
+                                    "op": "const",
+                                    "value": 1
+                                  },
+                                  "b": {
+                                    "op": "get",
+                                    "map": "T",
+                                    "key": {
+                                      "op": "tup",
+                                      "a": {
+                                        "op": "var",
+                                        "name": "ps"
+                                      },
+                                      "b": {
+                                        "op": "tup",
+                                        "a": {
+                                          "op": "proj",
+                                          "k": 0,
+                                          "a": {
+                                            "op": "proj",
+                                            "k": 1,
+                                            "a": {
+                                              "op": "var",
+                                              "name": "k$2"
+                                            }
+                                          }
+                                        },
+                                        "b": {
+                                          "op": "var",
+                                          "name": "sw1"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "op": "or",
+                              "xs": [
+                                {
+                                  "op": "=",
+                                  "a": {
+                                    "op": "var",
+                                    "name": "sw0"
+                                  },
+                                  "b": {
+                                    "op": "proj",
+                                    "k": 1,
+                                    "a": {
+                                      "op": "proj",
+                                      "k": 1,
+                                      "a": {
+                                        "op": "var",
+                                        "name": "k$2"
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "op": "<=",
+                                  "a": {
+                                    "op": "const",
+                                    "value": 1
+                                  },
+                                  "b": {
+                                    "op": "get",
+                                    "map": "T",
+                                    "key": {
+                                      "op": "tup",
+                                      "a": {
+                                        "op": "var",
+                                        "name": "ps"
+                                      },
+                                      "b": {
+                                        "op": "tup",
+                                        "a": {
+                                          "op": "var",
+                                          "name": "sw0"
+                                        },
+                                        "b": {
+                                          "op": "proj",
+                                          "k": 1,
+                                          "a": {
+                                            "op": "proj",
+                                            "k": 1,
+                                            "a": {
+                                              "op": "var",
+                                              "name": "k$2"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "op": "<",
+                          "a": {
+                            "op": "const",
+                            "value": 0
+                          },
+                          "b": {
+                            "op": "const",
+                            "value": 0
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "P": {
+          "each": "k$3",
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "news"
+                    },
+                    {
+                      "op": "or",
+                      "xs": [
+                        {
+                          "op": "<=",
+                          "a": {
+                            "op": "const",
+                            "value": 1
+                          },
+                          "b": {
+                            "op": "get",
+                            "map": "P",
+                            "key": {
+                              "op": "tup",
+                              "a": {
+                                "op": "proj",
+                                "k": 0,
+                                "a": {
+                                  "op": "var",
+                                  "name": "k$3"
+                                }
+                              },
+                              "b": {
+                                "op": "tup",
+                                "a": {
+                                  "op": "proj",
+                                  "k": 0,
+                                  "a": {
+                                    "op": "proj",
+                                    "k": 1,
+                                    "a": {
+                                      "op": "var",
+                                      "name": "k$3"
+                                    }
+                                  }
+                                },
+                                "b": {
+                                  "op": "tup",
+                                  "a": {
+                                    "op": "proj",
+                                    "k": 0,
+                                    "a": {
+                                      "op": "proj",
+                                      "k": 1,
+                                      "a": {
+                                        "op": "proj",
+                                        "k": 1,
+                                        "a": {
+                                          "op": "var",
+                                          "name": "k$3"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "b": {
+                                    "op": "proj",
+                                    "k": 1,
+                                    "a": {
+                                      "op": "proj",
+                                      "k": 1,
+                                      "a": {
+                                        "op": "proj",
+                                        "k": 1,
+                                        "a": {
+                                          "op": "var",
+                                          "name": "k$3"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "=",
+                              "a": {
+                                "op": "proj",
+                                "k": 0,
+                                "a": {
+                                  "op": "var",
+                                  "name": "k$3"
+                                }
+                              },
+                              "b": {
+                                "op": "var",
+                                "name": "ps"
+                              }
+                            },
+                            {
+                              "op": "=",
+                              "a": {
+                                "op": "proj",
+                                "k": 0,
+                                "a": {
+                                  "op": "proj",
+                                  "k": 1,
+                                  "a": {
+                                    "op": "var",
+                                    "name": "k$3"
+                                  }
+                                }
+                              },
+                              "b": {
+                                "op": "var",
+                                "name": "pd"
+                              }
+                            },
+                            {
+                              "op": "=",
+                              "a": {
+                                "op": "proj",
+                                "k": 0,
+                                "a": {
+                                  "op": "proj",
+                                  "k": 1,
+                                  "a": {
+                                    "op": "proj",
+                                    "k": 1,
+                                    "a": {
+                                      "op": "var",
+                                      "name": "k$3"
+                                    }
+                                  }
+                                }
+                              },
+                              "b": {
+                                "op": "var",
+                                "name": "ps"
+                              }
+                            },
+                            {
+                              "op": "=",
+                              "a": {
+                                "op": "proj",
+                                "k": 1,
+                                "a": {
+                                  "op": "proj",
+                                  "k": 1,
+                                  "a": {
+                                    "op": "proj",
+                                    "k": 1,
+                                    "a": {
+                                      "op": "var",
+                                      "name": "k$3"
+                                    }
+                                  }
+                                }
+                              },
+                              "b": {
+                                "op": "var",
+                                "name": "ps"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "news"
+                      }
+                    },
+                    {
+                      "op": "or",
+                      "xs": [
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "flag",
+                              "name": "forwards"
+                            },
+                            {
+                              "op": "or",
+                              "xs": [
+                                {
+                                  "op": "and",
+                                  "xs": [
+                                    {
+                                      "op": "=",
+                                      "a": {
+                                        "op": "proj",
+                                        "k": 0,
+                                        "a": {
+                                          "op": "var",
+                                          "name": "k$3"
+                                        }
+                                      },
+                                      "b": {
+                                        "op": "var",
+                                        "name": "nondet"
+                                      }
+                                    },
+                                    {
+                                      "op": "<=",
+                                      "a": {
+                                        "op": "const",
+                                        "value": 1
+                                      },
+                                      "b": {
+                                        "op": "get",
+                                        "map": "P",
+                                        "key": {
+                                          "op": "tup",
+                                          "a": {
+                                            "op": "proj",
+                                            "k": 0,
+                                            "a": {
+                                              "op": "var",
+                                              "name": "k$3"
+                                            }
+                                          },
+                                          "b": {
+                                            "op": "tup",
+                                            "a": {
+                                              "op": "proj",
+                                              "k": 0,
+                                              "a": {
+                                                "op": "proj",
+                                                "k": 1,
+                                                "a": {
+                                                  "op": "var",
+                                                  "name": "k$3"
+                                                }
+                                              }
+                                            },
+                                            "b": {
+                                              "op": "tup",
+                                              "a": {
+                                                "op": "proj",
+                                                "k": 0,
+                                                "a": {
+                                                  "op": "proj",
+                                                  "k": 1,
+                                                  "a": {
+                                                    "op": "proj",
+                                                    "k": 1,
+                                                    "a": {
+                                                      "op": "var",
+                                                      "name": "k$3"
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              "b": {
+                                                "op": "proj",
+                                                "k": 1,
+                                                "a": {
+                                                  "op": "proj",
+                                                  "k": 1,
+                                                  "a": {
+                                                    "op": "proj",
+                                                    "k": 1,
+                                                    "a": {
+                                                      "op": "var",
+                                                      "name": "k$3"
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "and",
+                                  "xs": [
+                                    {
+                                      "op": "=",
+                                      "a": {
+                                        "op": "proj",
+                                        "k": 0,
+                                        "a": {
+                                          "op": "var",
+                                          "name": "k$3"
+                                        }
+                                      },
+                                      "b": {
+                                        "op": "var",
+                                        "name": "ps"
+                                      }
+                                    },
+                                    {
+                                      "op": "=",
+                                      "a": {
+                                        "op": "proj",
+                                        "k": 0,
+                                        "a": {
+                                          "op": "proj",
+                                          "k": 1,
+                                          "a": {
+                                            "op": "var",
+                                            "name": "k$3"
+                                          }
+                                        }
+                                      },
+                                      "b": {
+                                        "op": "var",
+                                        "name": "pd"
+                                      }
+                                    },
+                                    {
+                                      "op": "=",
+                                      "a": {
+                                        "op": "proj",
+                                        "k": 0,
+                                        "a": {
+                                          "op": "proj",
+                                          "k": 1,
+                                          "a": {
+                                            "op": "proj",
+                                            "k": 1,
+                                            "a": {
+                                              "op": "var",
+                                              "name": "k$3"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "b": {
+                                        "op": "var",
+                                        "name": "sw1"
+                                      }
+                                    },
+                                    {
+                                      "op": "<",
+                                      "a": {
+                                        "op": "proj",
+                                        "k": 1,
+                                        "a": {
+                                          "op": "proj",
+                                          "k": 1,
+                                          "a": {
+                                            "op": "proj",
+                                            "k": 1,
+                                            "a": {
+                                              "op": "var",
+                                              "name": "k$3"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "b": {
+                                        "op": "var",
+                                        "name": "size"
+                                      }
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "not",
+                              "x": {
+                                "op": "flag",
+                                "name": "forwards"
+                              }
+                            },
+                            {
+                              "op": "<=",
+                              "a": {
+                                "op": "const",
+                                "value": 1
+                              },
+                              "b": {
+                                "op": "get",
+                                "map": "P",
+                                "key": {
+                                  "op": "tup",
+                                  "a": {
+                                    "op": "proj",
+                                    "k": 0,
+                                    "a": {
+                                      "op": "var",
+                                      "name": "k$3"
+                                    }
+                                  },
+                                  "b": {
+                                    "op": "tup",
+                                    "a": {
+                                      "op": "proj",
+                                      "k": 0,
+                                      "a": {
+                                        "op": "proj",
+                                        "k": 1,
+                                        "a": {
+                                          "op": "var",
+                                          "name": "k$3"
+                                        }
+                                      }
+                                    },
+                                    "b": {
+                                      "op": "tup",
+                                      "a": {
+                                        "op": "proj",
+                                        "k": 0,
+                                        "a": {
+                                          "op": "proj",
+                                          "k": 1,
+                                          "a": {
+                                            "op": "proj",
+                                            "k": 1,
+                                            "a": {
+                                              "op": "var",
+                                              "name": "k$3"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "b": {
+                                        "op": "proj",
+                                        "k": 1,
+                                        "a": {
+                                          "op": "proj",
+                                          "k": 1,
+                                          "a": {
+                                            "op": "proj",
+                                            "k": 1,
+                                            "a": {
+                                              "op": "var",
+                                              "name": "k$3"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        }
+      }
+    },
+    "pre": {
+      "op": "<=",
+      "a": {
+        "op": "const",
+        "value": 1
+      },
+      "b": {
+        "op": "var",
+        "name": "size"
+      }
+    },
+    "assume": {
+      "op": "and",
+      "xs": [
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 2
+          }
+        },
+        {
+          "op": "and",
+          "xs": [
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "ps"
+              },
+              "b": {
+                "op": "var",
+                "name": "size"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "pd"
+              },
+              "b": {
+                "op": "var",
+                "name": "size"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "sw0"
+              },
+              "b": {
+                "op": "var",
+                "name": "size"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "sw1"
+              },
+              "b": {
+                "op": "var",
+                "name": "size"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "nondet"
+              },
+              "b": {
+                "op": "var",
+                "name": "size"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "relations": {
+      "T": [
+        "Node",
+        "Node",
+        "Node"
+      ],
+      "P": [
+        "Node",
+        "Node",
+        "Node",
+        "Node"
+      ]
+    }
+  },
+  "laws": [
+    {
+      "name": "the table is transitive",
+      "forall": "key$2",
+      "keys": [
+        "key$3",
+        "key$4",
+        "key$5"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 0
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 0
+                  }
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "and",
+                      "xs": [
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "<",
+                              "a": {
+                                "op": "var",
+                                "name": "key$2"
+                              },
+                              "b": {
+                                "op": "var",
+                                "name": "size"
+                              }
+                            },
+                            {
+                              "op": "<",
+                              "a": {
+                                "op": "var",
+                                "name": "key$3"
+                              },
+                              "b": {
+                                "op": "var",
+                                "name": "size"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "op": "<",
+                          "a": {
+                            "op": "var",
+                            "name": "key$4"
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "size"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "op": "<",
+                      "a": {
+                        "op": "var",
+                        "name": "key$5"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "size"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "or",
+                  "xs": [
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "var",
+                        "name": "key$3"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "key$4"
+                      }
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 1
+                      },
+                      "b": {
+                        "op": "get",
+                        "map": "T",
+                        "key": {
+                          "op": "tup",
+                          "a": {
+                            "op": "var",
+                            "name": "key$2"
+                          },
+                          "b": {
+                            "op": "tup",
+                            "a": {
+                              "op": "var",
+                              "name": "key$3"
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "key$4"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "or",
+                  "xs": [
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "var",
+                        "name": "key$4"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "key$5"
+                      }
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 1
+                      },
+                      "b": {
+                        "op": "get",
+                        "map": "T",
+                        "key": {
+                          "op": "tup",
+                          "a": {
+                            "op": "var",
+                            "name": "key$2"
+                          },
+                          "b": {
+                            "op": "tup",
+                            "a": {
+                              "op": "var",
+                              "name": "key$4"
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "key$5"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "op": "or",
+            "xs": [
+              {
+                "op": "=",
+                "a": {
+                  "op": "var",
+                  "name": "key$3"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "key$5"
+                }
+              },
+              {
+                "op": "<=",
+                "a": {
+                  "op": "const",
+                  "value": 1
+                },
+                "b": {
+                  "op": "get",
+                  "map": "T",
+                  "key": {
+                    "op": "tup",
+                    "a": {
+                      "op": "var",
+                      "name": "key$2"
+                    },
+                    "b": {
+                      "op": "tup",
+                      "a": {
+                        "op": "var",
+                        "name": "key$3"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "key$5"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "the table is antisymmetric",
+      "forall": "key$7",
+      "keys": [
+        "key$8",
+        "key$9"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 0
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 0
+                  }
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "and",
+                      "xs": [
+                        {
+                          "op": "<",
+                          "a": {
+                            "op": "var",
+                            "name": "key$7"
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "size"
+                          }
+                        },
+                        {
+                          "op": "<",
+                          "a": {
+                            "op": "var",
+                            "name": "key$8"
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "size"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "op": "<",
+                      "a": {
+                        "op": "var",
+                        "name": "key$9"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "size"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "or",
+                  "xs": [
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "var",
+                        "name": "key$8"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "key$9"
+                      }
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 1
+                      },
+                      "b": {
+                        "op": "get",
+                        "map": "T",
+                        "key": {
+                          "op": "tup",
+                          "a": {
+                            "op": "var",
+                            "name": "key$7"
+                          },
+                          "b": {
+                            "op": "tup",
+                            "a": {
+                              "op": "var",
+                              "name": "key$8"
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "key$9"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "or",
+                  "xs": [
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "var",
+                        "name": "key$9"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "key$8"
+                      }
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 1
+                      },
+                      "b": {
+                        "op": "get",
+                        "map": "T",
+                        "key": {
+                          "op": "tup",
+                          "a": {
+                            "op": "var",
+                            "name": "key$7"
+                          },
+                          "b": {
+                            "op": "tup",
+                            "a": {
+                              "op": "var",
+                              "name": "key$9"
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "key$8"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "op": "=",
+            "a": {
+              "op": "var",
+              "name": "key$8"
+            },
+            "b": {
+              "op": "var",
+              "name": "key$9"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "the table is a chain above each node",
+      "forall": "key$11",
+      "keys": [
+        "key$12",
+        "key$13",
+        "key$14"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 0
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 0
+                  }
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "and",
+                      "xs": [
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "<",
+                              "a": {
+                                "op": "var",
+                                "name": "key$11"
+                              },
+                              "b": {
+                                "op": "var",
+                                "name": "size"
+                              }
+                            },
+                            {
+                              "op": "<",
+                              "a": {
+                                "op": "var",
+                                "name": "key$12"
+                              },
+                              "b": {
+                                "op": "var",
+                                "name": "size"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "op": "<",
+                          "a": {
+                            "op": "var",
+                            "name": "key$13"
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "size"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "op": "<",
+                      "a": {
+                        "op": "var",
+                        "name": "key$14"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "size"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "or",
+                  "xs": [
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "var",
+                        "name": "key$12"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "key$13"
+                      }
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 1
+                      },
+                      "b": {
+                        "op": "get",
+                        "map": "T",
+                        "key": {
+                          "op": "tup",
+                          "a": {
+                            "op": "var",
+                            "name": "key$11"
+                          },
+                          "b": {
+                            "op": "tup",
+                            "a": {
+                              "op": "var",
+                              "name": "key$12"
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "key$13"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "or",
+                  "xs": [
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "var",
+                        "name": "key$12"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "key$14"
+                      }
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 1
+                      },
+                      "b": {
+                        "op": "get",
+                        "map": "T",
+                        "key": {
+                          "op": "tup",
+                          "a": {
+                            "op": "var",
+                            "name": "key$11"
+                          },
+                          "b": {
+                            "op": "tup",
+                            "a": {
+                              "op": "var",
+                              "name": "key$12"
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "key$14"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "op": "or",
+            "xs": [
+              {
+                "op": "or",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "key$13"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "key$14"
+                    }
+                  },
+                  {
+                    "op": "<=",
+                    "a": {
+                      "op": "const",
+                      "value": 1
+                    },
+                    "b": {
+                      "op": "get",
+                      "map": "T",
+                      "key": {
+                        "op": "tup",
+                        "a": {
+                          "op": "var",
+                          "name": "key$11"
+                        },
+                        "b": {
+                          "op": "tup",
+                          "a": {
+                            "op": "var",
+                            "name": "key$13"
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "key$14"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "op": "or",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "key$14"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "key$13"
+                    }
+                  },
+                  {
+                    "op": "<=",
+                    "a": {
+                      "op": "const",
+                      "value": 1
+                    },
+                    "b": {
+                      "op": "get",
+                      "map": "T",
+                      "key": {
+                        "op": "tup",
+                        "a": {
+                          "op": "var",
+                          "name": "key$11"
+                        },
+                        "b": {
+                          "op": "tup",
+                          "a": {
+                            "op": "var",
+                            "name": "key$14"
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "key$13"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

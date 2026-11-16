@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type CountCert, type CountDecl, type CountedGoal, type CountInst, type FrameCut, type MonoCut, type LinCut, type LemmaCut, framePath, lemmaPath, checkMC, checkCounted, checkCountedLaws, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, cellParts, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+import {type CountCert, type CountDecl, type CountedGoal, type CountInst, type FrameCut, type MonoCut, type LinCut, type LemmaCut, framePath, lemmaPath, checkMC, checkCounted, checkCountedLaws, checkLaws, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, cellParts, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {chooseLevels, clock, grow, minimal, proveBuilt, proveLaws, proveSetFast, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {exactNat, leanConnective, leanSurface, leanTerms} from './lean-terms.ts'
@@ -14,6 +14,7 @@ import {allowNode, certMs, closingInsts, reqTS, withWitness, foldNodes, certMode
 import type {Fact} from '../kernel/cyclic.ts'
 import {leanLibrary} from './library.ts'
 import {legacyFamilyLibrary} from './legacy-family-library.ts'
+import {legacyFamilyOrder} from './legacy-family-order.ts'
 import {proveKInduction} from '../core/kind.ts'
 import {quantifiedRenames} from './qalpha.ts'
 import {countsForReads} from '../core/count-facts.ts'
@@ -441,7 +442,7 @@ example : checkCounted ${id}_goal ${instsLit(t.insts)} ${id}_tab ${id}_tree ${id
 // instances and the tree. The count maps go to Lean as maps the request carries, each with its post name. `tampers`:
 // certificates kernel.ts refuses, which Lean computes to false.
 export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>},
-    tampers: {what: string, certs: Record<string, CountCert>}[] = []): string {
+    tampers: {what: string, certs: Record<string, CountCert>}[] = [], options: {extraVars?: string[], extraMaps?: string[], after?: (basis: {vars: readonly string[], maps: readonly string[], ix: (name: string) => number, mx: (name: string) => number, machine: (m: Machine) => string, condition: (c: C) => string, decls: (counts: Machine['counts']) => string}) => string} = {}): string {
   const obl = countedObligations(m, laws, proof.instances), counts = Object.entries(m.counts ?? {})
   const sm: Machine = {...m, counts: undefined, inputMaps: [...(m.inputMaps ?? []), ...counts.map(([cn]) => cn)]}
   const named = machineNames(sm, laws, [], [], {})
@@ -457,10 +458,14 @@ export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {inst
   // checker alpha-renames colliding local binders; QAlpha proves its original semantics.
   const renames = quantifiedRenames(sm, laws, [...vars, ...maps])
   vars.push(...renames.map(r => r.fresh))
+  for (const v of options.extraVars ?? []) if (!vars.includes(v)) vars.push(v)
+  for (const map of options.extraMaps ?? []) if (!maps.includes(map)) maps.push(map)
   const checked = renames.length ? `${id}_checkedMachine` : `${id}_machine`
   const {e, c} = leanTerms(vars, maps, id)
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
   const mx = (name: string) => { const j = maps.indexOf(name); if (j < 0) throw new Error(`${id}: no map for ${name}`); return j }
+  const decls = (ds: Machine['counts']) => list(Object.entries(ds ?? {}).map(([cn, d]) => `⟨${mx(cn)}, ${mx(postName(cn))}, ${ix(d.j)}, ${ix(d.key)}, ${e(d.below)}, ${e(d.body)}, ${ix(d.lo ?? d.j)}, ${d.base ?? 0}⟩`))
+  const after = options.after?.({vars, maps, ix, mx, machine: mm => machineLit(mm, {e, c}, ix, mx), condition: c, decls}) ?? ''
   const lawIx = (name: string) => laws.findIndex(l => l.name === name)
   const facts = m.facts ?? [], facts1 = facts.filter(f => !f.keys?.length), factsN = facts.filter(f => f.keys?.length)
   const tuples = (keys: E[], n2: number) => Array.from({length: Math.floor(keys.length / n2)}, (_, t) => keys.slice(t * n2, t * n2 + n2))
@@ -526,7 +531,7 @@ theorem ${id}_check : ${withAux ? 'checkCMachineF' : 'checkCMachine'} ${checked}
 theorem ${id}_laws : ∀ ρ M, CReach ${id}_machine ${id}_decls ρ M → ∀ ce ∈ ${id}_proof, ce.e.Holds ρ (withCnt ${id}_decls ρ M) :=
   ${renames.length ? `QAlpha.${withAux ? 'cmachineF_sound' : 'cmachine_sound'} ${id}_machine ${id}_renames ${id}_decls ${id}_proof (by ${checkBy}) ${id}_check` : `${withAux ? 'cmachineF_sound' : 'cmachine_sound'} ${id}_machine ${id}_decls ${id}_proof ${id}_check`}${tampers.map(t => `
 -- TAMPERED: ${t.what}. Lean computes the check to false, as kernel.ts refuses it.
-example : ${withAux ? 'checkCMachineF' : 'checkCMachine'} ${checked} ${id}_decls ${list(entries(t.certs))} = false := by ${checkBy}`).join('')}`
+example : ${withAux ? 'checkCMachineF' : 'checkCMachine'} ${checked} ${id}_decls ${list(entries(t.certs))} = false := by ${checkBy}`).join('')}${after}`
 }
 
 // Whole machines through Kern.machine_sound: Lean builds the goals from the machine; the trees are the kernel's.
@@ -811,7 +816,7 @@ theorem ${id}_laws : ∀ maps ρ, evalC ρ maps ${id}_fold.pre = true → ∀ t,
 // witness terms in place (some_of_subst) or over the machine's ghosts at every reachable state of the machine without
 // them (some_of_ghost); and `<id>.lawN` the same over named variables, each bound natural as w1, w2, ... (`lit`: the
 // condition printer, for P's literal).
-export function readable(id: string, laws: Law[], vars: string[], maps: string[], reach: {binders: string, hyp: string, call: string, have?: (j: number) => string, lit?: (c: C) => string, eLit?: (e: E) => string, ghosts?: boolean}): string {
+export function readable(id: string, laws: Law[], vars: string[], maps: string[], reach: {binders: string, hyp: string, call: string, have?: (j: number) => string, lit?: (c: C) => string, eLit?: (e: E) => string, ghosts?: boolean, explicitExistentials?: ReadonlySet<string>}): string {
   for (const name of [...vars, ...maps]) if (name === 'ρ' || name === 'μ' || name.includes('«') || name.includes('»')) throw new Error(`${id}: the name ${name} can't be a Lean abbreviation here`)
   const q = (name: string) => `«${name}»`
   // Division and remainder by a constant (div$k, mod$k): Lean's x / k and x % k, under the hypothesis that the map is
@@ -960,7 +965,11 @@ ${plain}`
   return `namespace ${id}
 ${[...vars.filter(v => used.has(v)).map(v => `abbrev ${q(v)} : Nat := ${vars.indexOf(v)}`), ...maps.filter(mp => used.has(mp)).map(mp => `abbrev ${q(mp)} : Nat := ${maps.indexOf(mp)}`)].join('\n')}
 ${laws.map((law, j) => {
-    if (law.ex) return someOf(law, j)
+    if (law.ex) {
+      if (reach.explicitExistentials?.has(law.name) && (law.keys?.length || (law.forall && law.ex.ghost)))
+        return '-- Multi-key existential source theorem is emitted by the explicit ghost-substitution projection.'
+      return someOf(law, j)
+    }
     if (JSON.stringify(law.holds).includes('"op":"if"')) return `-- ${law.name}: its terms read an if, so no plain statement here (${id}_laws holds it)`
     const hyps = arithBinders(law), names = arithIn(law).map(hypName)
     // Proof terms retain neutral Boolean children; surface statements omit them.
@@ -1153,13 +1162,13 @@ function machineNames(m: Machine, laws: Law[], allSteps: StepLaw[], stepLaws: St
 // A tampered twin: its k, the base depths it keeps (indices into the k-step laws' base), the law, and kernel.ts's answer.
 export type KindLean = {kl: KInduction, start: {goal: Goal, tree: Tree, inst: Instances}, tampers?: {what: string, k: number, base: number[], law?: C, expect: boolean}[]}
 export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], tamper?: {what: string, machine: Machine}, simp?: string[], free?: string[],
-    ghosts?: string[], after?: (ix: (name: string) => number, mx: (name: string) => number, lit: (m: Machine) => string) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
+    ghosts?: string[], after?: (ix: (name: string) => number, mx: (name: string) => number, lit: (m: Machine) => string, c: (condition: C) => string) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
     // (ghost maps: `given` is kernel.ts's ghostedMachine(ghosted), exported as GhostMap.lean's SGhostedM; `forallSome`, the
     // laws read ∀∃, each with the ghost map it reads, at the key term `at`, read as the variable `as`)
     ghosted?: Ghosted, forallSome?: {law: string, map: string, at: E, as: string}[],
     // (`ghostSubst`: a law with "there exists" as kernel.ts's someOfGhostsOk admits it, read by forall_some_of_ghostsubst:
     // the plain law `law` (proven) is `body` with each bound name at its term in `sub`; the bound names given in `free`)
-    ghostSubst?: {law: string, body: C, sub: Record<string, E>}[],
+    ghostSubst?: {law: string, body: C, sub: Record<string, E>, boundGhosts?: boolean}[],
     refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}, loop?: {loop: Loop, tamper?: {what: string, loop: Loop}}, noFacts?: boolean,
     kind?: KindLean,
     // (core/conformance.ts's twins: a sums machine tampered, with kernel.ts's answer; the cover goals' trees as found; a
@@ -1360,9 +1369,9 @@ theorem ${id}_some${j} : ∀ ρ M, SReach ${id}_gm.orig ρ M → ∀ v, ∃ val,
       if (!law) throw new Error(`${id}: ${gs.law}: no such law`)
       const sigma = list(Object.entries(gs.sub).map(([x, t]) => `(${ix(x)}, ${e(t)})`))
       return `
-/-- ${law.name}, read ∃: for every value of its keys, some natural for each of ${Object.keys(gs.sub).join(', ')} (at the ghosts' terms) where its body holds; no ghost read. -/
+/-- ${law.name}, read ∃: for every value of its keys, some natural for each of ${Object.keys(gs.sub).join(', ')} (at the ghosts' terms) where its body holds; no unbound ghost read. -/
 theorem ${id}_ex${j} : ∀ ρ M, SReach ${id}_gm.orig ρ M → ExHolds (${c(gs.body)}) ${id}_e${li}.law.key ${list(Object.keys(gs.sub).map(x => String(ix(x))))} M ${id}_e${li}.keys2 ρ :=
-  forall_some_of_ghostsubst ${id}_gm ${id}_gmOk ${id}_proof ${id}_check ${id}_e${li} (${memOf(li)}) ${sigma} (${c(gs.body)})
+  ${gs.boundGhosts ? 'forall_some_of_ghostsubst_bound' : 'forall_some_of_ghostsubst'} ${id}_gm ${id}_gmOk ${id}_proof ${id}_check ${id}_e${li} (${memOf(li)}) ${sigma} (${c(gs.body)})
     (by ${checkBy}) (by ${checkBy}) (by ${checkBy})`
     }).join('')}`
   }})
@@ -1582,10 +1591,10 @@ def ${id}_proof : List SEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
 theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by ${checkBy}
 theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_proof, e.Holds ρ M :=
   smachine_sound ${id}_machine ${id}_proof ${id}_check
-${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e, ghosts: !rf && !gm && gv.length > 0})}${sm ? sumsBlock() : ''}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
+${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e, ghosts: !rf && !gm && gv.length > 0, explicitExistentials: new Set((opts.ghostSubst ?? []).map(g => g.law))})}${sm ? sumsBlock() : ''}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
-example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix, mx, lit)}` : ''}`
+example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix, mx, lit, c)}` : ''}`
 }
 
 // --- the cyclic certificate's export (GDP_CERT=cyclic) -------------------------------------------------------------
@@ -1604,12 +1613,14 @@ example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : '
 // is made with no cyclic certificate of its own (quietly): the export makes the certificate it exports from the usual
 // trees (cycMachineProof), and the usual export reads the trees, so a certificate made here is never read.
 const usualMade = new Map<string, ReturnType<typeof proveStepLaws>>()
+let retainedOnly = false
 // Where the usual proof fails and there are no step laws, the search's own set proof (proveSetFast: per-law instances
 // of each law's sort, a refutation's core widened to its goal, its trees checked by checkLaws): the laws the engine
 // proved that way (ring's) go to Lean from the trees that proof made, which Lean checks as any (`certReport.fast`).
 function proveStepLawsOnce(m: Machine, laws: Law[], stepLaws: StepLaw[]): ReturnType<typeof proveStepLaws> {
   const key = JSON.stringify([m, laws, stepLaws]), had = usualMade.get(key)
   if (had) return had
+  if (retainedOnly) throw new Error('retained-only export requested an uncaptured family; search is forbidden')
   // (with no step laws, the usual proof within usualMs of the cost model's clock (GDP_LEAN_USUAL_MS, 60 s): past it, the
   // fast one; wo's set with its ghost ran the usual proof 8 minutes and more)
   const fastToo = !stepLaws.length && !laws.some(l => l.some?.length)
@@ -1623,6 +1634,36 @@ function proveStepLawsOnce(m: Machine, laws: Law[], stepLaws: StepLaw[]): Return
 }
 // A proof made elsewhere (core/kind.ts's k-induction search), as the one the export reads for these step laws.
 export const seedStepProof = (m: Machine, laws: Law[], stepLaws: StepLaw[], r: ReturnType<typeof proveStepLaws>) => { usualMade.set(JSON.stringify([m, laws, stepLaws]), r) }
+// Captured-data entry points: validate and export only the supplied certificates.
+// These APIs may extend kernel term interning; use a fresh process for capsule
+// replay. Only exporter mode/cache globals are restored, not kernel term state.
+function retainedShape(id: string, m: Machine, laws: Law[]): void {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(id)) throw new Error('invalid retained Lean identifier')
+  if (Object.keys(m.fns ?? {}).length) throw new Error('retained function declarations require separate qualification')
+  if (m.history || m.sums && Object.keys(m.sums).length) throw new Error('retained history/sums projection requires separate qualification')
+  if (laws.some(l => l.some?.length)) throw new Error('retained export needs the already-resolved witness family')
+}
+export function retainedCMachineToLean(id: string, m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}, options: NonNullable<Parameters<typeof cmachineToLean>[5]> = {}): string {
+  retainedShape(id, m, laws)
+  if (!checkCountedLaws(m, laws, proof)) throw new Error('captured counted family does not check')
+  const old = checkBy
+  checkBy = 'decide +kernel'
+  try { return cmachineToLean(id, m, laws, proof, [], options) } finally { checkBy = old }
+}
+export function retainedSMachineToLean(id: string, m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, trees: Record<string, Tree>},
+    projection: Pick<NonNullable<Parameters<typeof smachineToLean>[3]>, 'ghosts' | 'ghosted' | 'ghostSubst' | 'forallSome' | 'free' | 'after'> = {}): string {
+  retainedShape(id, m, laws)
+  if (!checkLaws(m, laws, proof)) throw new Error('captured usual family does not check')
+  const old = checkBy, oldRetained = retainedOnly, oldCache = [...usualMade]
+  try {
+    usualMade.clear(); retainedOnly = true; checkBy = 'decide +kernel'
+    seedStepProof(m, laws, [], {proven: true, checked: true, nodes: 0, leaves: 0, proof: {laws: proof, instances: {}, perStep: {}, trees: {}}})
+    return smachineToLean(id, m, laws, projection)
+  } finally {
+    usualMade.clear(); for (const [key, value] of oldCache) usualMade.set(key, value)
+    retainedOnly = oldRetained; checkBy = old
+  }
+}
 const envOf = () => (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
 export const cyclicCerts = certMode
 let certsOn = false, cycTexts = 0
@@ -2345,16 +2386,20 @@ ${theorems.map(t => `#print axioms ${t}`).join('\n')}
 export {rationalsToLean} from './qlean.ts'
 
 // A Lake project that builds the twin and the file: `lake build` in its folder checks every proof.
-export function leanProject(file: string, opts: {name?: string} = {}): Record<string, string> {
+export function leanProject(file: string, opts: {name?: string, currentFamily?: boolean} = {}): Record<string, string> {
   const name = opts.name ?? 'Proofs'
   // Only generated cut-family declarations need the new family library. Merely
   // mentioning CEntryF in a comment or identifier must not change a cut-free project.
   const cutFamily = /^(?:noncomputable )?def [^\s:]+ : List CEntryF :=/m.test(file)
-  const library = cutFamily ? leanLibrary : {...leanLibrary, ...legacyFamilyLibrary}
+  const oldNames:ReadonlySet<string> = new Set(legacyFamilyOrder)
+  const modernNames = new Set(Object.keys(leanLibrary).filter(n => !oldNames.has(n)).map(n => n.slice(0, -5)))
+  const modernImport = [...file.matchAll(/^\s*import\s+([^\n]+)/gm)].some(m => m[1]!.split(/\s+/).some(n => modernNames.has(n)))
+  const current = opts.currentFamily === true || cutFamily || modernImport || file.includes('RowAlpha.') || file.includes('forall_some_of_ghostsubst_bound')
+  const library = current ? leanLibrary : Object.fromEntries(legacyFamilyOrder.map(n => [n, legacyFamilyLibrary[n] ?? leanLibrary[n]!]))
   const modules = [...Object.keys(library).map(f => f.replace(/\.lean$/, '')), name]
   return {
     ...library,
-    [`${name}.lean`]: file,
+    [`${name}.lean`]: (file.includes('RowAlpha.') ? 'import RowAlpha\n' : '') + (file.includes('forall_some_of_ghostsubst_bound') ? 'import BoundGhost\n' : '') + file,
     'lean-toolchain': 'leanprover/lean4:v4.34.0\n',
     'lakefile.lean': `import Lake
 open Lake DSL

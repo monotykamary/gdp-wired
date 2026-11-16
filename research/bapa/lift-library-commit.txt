@@ -1,0 +1,9 @@
+feat(lean): promote generic certificate transport library
+
+Ship the generic source inclusion, finite simulation, bound substitution,
+radix transport, and counted-family modules through leanLibrary. Keep
+protocol-specific proof artifacts out of the product library.
+
+A fresh isolated Lean 4.34.0 project checked all 26 dependency modules.
+The only source adjustment removes a research-only import dependency.
+This is library closure evidence, not full lift-pipeline acceptance.

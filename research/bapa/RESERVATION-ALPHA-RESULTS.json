@@ -1,0 +1,17 @@
+{
+  "schema": "bapa-reservation-alpha-validation/v1",
+  "batch": "20261115-231624-emjq9p",
+  "tree": "17590e7f6ac5",
+  "image": "sc-f0d8daeee6c3",
+  "bun": "1.4.3",
+  "checks": {"typecheck": 0, "unit": 0, "public": 0, "direct": 0, "compatibility": 0, "commitlint": 0},
+  "tests": {"passed": 54, "failed": 0, "assertions": 972},
+  "publicSeededAdmission": "checked",
+  "nativeFamilyRechecked": true,
+  "certificateProvenanceRetained": true,
+  "selectedPickCaptureRefused": true,
+  "leasedHypothesisCaptureRefused": true,
+  "crossRunAudit": {"p2InstrumentedOccurrences": 10, "otherWorkerLogsMatched": 0, "otherWorkerLogsInstrumentSwallowedExceptions": false},
+  "protocolReruns": 0,
+  "artifacts": "runs/reservation-alpha-06/reservation-alpha-gate.files/"
+}

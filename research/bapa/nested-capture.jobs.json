@@ -1,0 +1,23 @@
+[
+  {
+    "name": "nested-capture-gate",
+    "cpu": 2,
+    "memory": 24576,
+    "timeout": 1800,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "env": {
+      "BAPA_SOURCE_COMMIT": "7ab80d35ba16050c39653ed9153c7d0f091ea2ce",
+      "BAPA_SOURCE_TREE": "236fac6e1f4dd1e86d182cb2cab64e0606cb5e43"
+    },
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bunx tsc -p research/bapa/tsconfig.nested-capture.json > \"$OUT/types.log\" 2>&1; bun test core/proof-output.test.ts research/bapa/proof-worker.test.ts research/bapa/proof-capture.test.ts research/bapa/proof-codec.test.ts research/bapa/proof-projection.test.ts > \"$OUT/tests.log\" 2>&1; bun research/bapa/nested-capture-smoke.ts on > \"$OUT/on.log\" 2>&1; bun research/bapa/nested-capture-smoke.ts off > \"$OUT/off.log\" 2>&1; bun research/bapa/nested-capture-smoke.ts compare > \"$OUT/parity.json\" 2>&1; printf '%s\\n' 'fix(bapa): publish only outer proof capture events' > \"$OUT/commit-message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$OUT/commit-message.txt\" > \"$OUT/commitlint.log\" 2>&1"
+  }
+]

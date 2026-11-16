@@ -1,0 +1,98 @@
+{
+  "schema": "candidate-seed-manifest/v1",
+  "protocol": "client_server_db_ae",
+  "capture": "../../seed-capture-client_server_db_ae",
+  "captureSha256": "e76ed2d24da036b98a98ea1edf509abe741499a2647c88f647c4d4f235cc87f0",
+  "bindings": {
+    "maps": {
+      "Match": {
+        "target": "Match",
+        "sorts": [
+          "Request",
+          "Response"
+        ],
+        "radix": 64
+      },
+      "RequestSent": {
+        "target": "RequestSent",
+        "sorts": [
+          "Node",
+          "Request"
+        ],
+        "radix": 64
+      },
+      "ResponseSent": {
+        "target": "ResponseSent",
+        "sorts": [
+          "Node",
+          "Response"
+        ],
+        "radix": 64
+      },
+      "ResponseReceived": {
+        "target": "ResponseReceived",
+        "sorts": [
+          "Node",
+          "Response"
+        ],
+        "radix": 64
+      },
+      "DbRequestSent": {
+        "target": "DbRequestSent",
+        "sorts": [
+          "DbRequestId",
+          "Request"
+        ],
+        "radix": 64
+      },
+      "DbResponseSent": {
+        "target": "DbResponseSent",
+        "sorts": [
+          "DbRequestId",
+          "Response"
+        ],
+        "radix": 64
+      },
+      "T": {
+        "target": "T",
+        "sorts": [
+          "DbRequestId",
+          "Node"
+        ],
+        "radix": 64
+      }
+    },
+    "domains": {
+      "Node": "nodes",
+      "Request": "requestSize",
+      "Response": "responses",
+      "DbRequestId": "ids"
+    }
+  },
+  "existentials": [
+    "a received response was matched"
+  ],
+  "ghostBindings": {
+    "ResponseSent$w": {
+      "sorts": [
+        "Node",
+        "Response"
+      ],
+      "valueSort": "Request"
+    },
+    "DbResponseSent$g": {
+      "sorts": [
+        "DbRequestId",
+        "Response"
+      ],
+      "valueSort": "Request"
+    },
+    "DbRequestSent$g": {
+      "sorts": [
+        "DbRequestId",
+        "Request"
+      ],
+      "valueSort": "Node"
+    }
+  }
+}

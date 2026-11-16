@@ -1,0 +1,13 @@
+[
+  {
+    "name": "typed-legacy-inspect",
+    "cmd": "bun lean-kernel/lift-typed/inspect.ts typed-client typed-toy typed-sdl",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 300,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  }
+]

@@ -1,0 +1,5 @@
+test(bapa): gate the accepted integration tree
+
+Run the full CI quick shards, typecheck/lint, package smoke, and BAPA
+regressions remotely. Retained protocol replay is a separate no-search
+gate; no protocol proof search or reseed is added.

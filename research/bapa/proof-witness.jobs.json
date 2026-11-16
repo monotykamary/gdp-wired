@@ -1,0 +1,70 @@
+[
+  {
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "witness-unit",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; cp lean-kernel/library.ts \"$OUT/library.ts\"; bunx tsc -p research/bapa/tsconfig.proof-witness.json > \"$OUT/types.log\" 2>&1; bun test research/bapa/proof-witness.test.ts research/bapa/source-projection.test.ts > \"$OUT/tests.log\" 2>&1; printf '%s\\n' 'feat(bapa): export retained witness source laws' > \"$OUT/commit-message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$OUT/commit-message.txt\" > \"$OUT/commitlint.log\" 2>&1"
+  },
+  {
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "witness-simple",
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; cp lean-kernel/library.ts \"$OUT/library.ts\"; bun research/bapa/proof-emit.ts --capture witness-simple --sha256 84c3f25567e40ceb8f610eab3925f33b4fa5c4a3b75e2a738b54468a59224bef --out \"$OUT/project\" --projection witness > \"$OUT/emission.log\" 2>&1; cd \"$OUT/project\"; lake build > \"$OUT/lean.log\" 2>&1; lake env lean BapaProof.lean >> \"$OUT/lean.log\" 2>&1; bun \"$ROOT/scripts/lean-gate/gate.ts\" \"$OUT/lean.log\" BapaProof.lean > \"$OUT/axioms.log\" 2>&1; bun \"$ROOT/research/bapa/witness-source-verify.ts\" \"$OUT/project\" \"$OUT/lean.log\" \"$OUT/SOURCE-CHECKED.json\" > \"$OUT/source-check.log\" 2>&1; rm -rf \"$OUT/project/.lake\""
+  },
+  {
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "witness-simple_regular",
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; cp lean-kernel/library.ts \"$OUT/library.ts\"; bun research/bapa/proof-emit.ts --capture witness-simple_regular --sha256 7546f2449107d3b742b08a0987f741a062df57578fd036d5bc1baa5f40e01b79 --out \"$OUT/project\" --projection witness > \"$OUT/emission.log\" 2>&1; cd \"$OUT/project\"; lake build > \"$OUT/lean.log\" 2>&1; lake env lean BapaProof.lean >> \"$OUT/lean.log\" 2>&1; bun \"$ROOT/scripts/lean-gate/gate.ts\" \"$OUT/lean.log\" BapaProof.lean > \"$OUT/axioms.log\" 2>&1; bun \"$ROOT/research/bapa/witness-source-verify.ts\" \"$OUT/project\" \"$OUT/lean.log\" \"$OUT/SOURCE-CHECKED.json\" > \"$OUT/source-check.log\" 2>&1; rm -rf \"$OUT/project/.lake\""
+  },
+  {
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "witness-client_server_ae",
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; cp lean-kernel/library.ts \"$OUT/library.ts\"; bun research/bapa/proof-emit.ts --capture witness-client_server_ae --sha256 1c6929e5f1bfecea95d106eef4a33b914764853b6d17ca752f0d1413207a352b --out \"$OUT/project\" --projection witness > \"$OUT/emission.log\" 2>&1; cd \"$OUT/project\"; lake build > \"$OUT/lean.log\" 2>&1; lake env lean BapaProof.lean >> \"$OUT/lean.log\" 2>&1; bun \"$ROOT/scripts/lean-gate/gate.ts\" \"$OUT/lean.log\" BapaProof.lean > \"$OUT/axioms.log\" 2>&1; bun \"$ROOT/research/bapa/witness-source-verify.ts\" \"$OUT/project\" \"$OUT/lean.log\" \"$OUT/SOURCE-CHECKED.json\" > \"$OUT/source-check.log\" 2>&1; rm -rf \"$OUT/project/.lake\""
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "name": "tuple-row-fixtures",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 600,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "cmd": "set -euo pipefail; bun install --frozen-lockfile; bunx tsc -p research/bapa/tsconfig.counted-source.json; bun test core/quorum-laws.test.ts core/field-loaded.test.ts core/field-laws.test.ts core/count-lifted-shape.test.ts; printf '%s\\n' 'feat(bapa): generate quorum candidates for native tuple rows' > \"$SUPERCOMPUTER_OUTPUT_DIR/commit-message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$SUPERCOMPUTER_OUTPUT_DIR/commit-message.txt\""
+  }
+]

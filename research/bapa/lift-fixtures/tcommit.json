@@ -1,0 +1,380 @@
+{
+  "schema": "gdp-lift-source/v1",
+  "id": "tcommit",
+  "machine": {
+    "name": "tcommit",
+    "params": [
+      "size"
+    ],
+    "inputs": [
+      "op",
+      "rm"
+    ],
+    "state": {},
+    "maps": {
+      "St": 0
+    },
+    "step": {
+      "flags": {
+        "canCommit": {
+          "op": "all",
+          "key": "k$1",
+          "c": {
+            "op": "or",
+            "xs": [
+              {
+                "op": "not",
+                "x": {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "k$1"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                }
+              },
+              {
+                "op": "or",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "get",
+                      "map": "St",
+                      "key": {
+                        "op": "var",
+                        "name": "k$1"
+                      }
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  },
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "get",
+                      "map": "St",
+                      "key": {
+                        "op": "var",
+                        "name": "k$1"
+                      }
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 2
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "notCommitted": {
+          "op": "all",
+          "key": "k$2",
+          "c": {
+            "op": "or",
+            "xs": [
+              {
+                "op": "not",
+                "x": {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "k$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                }
+              },
+              {
+                "op": "not",
+                "x": {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "St",
+                    "key": {
+                      "op": "var",
+                      "name": "k$2"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 2
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "prepares": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "St",
+                "key": {
+                  "op": "var",
+                  "name": "rm"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            }
+          ]
+        },
+        "commits": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "St",
+                "key": {
+                  "op": "var",
+                  "name": "rm"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "flag",
+              "name": "canCommit"
+            }
+          ]
+        },
+        "aborts": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 2
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "get",
+                "map": "St",
+                "key": {
+                  "op": "var",
+                  "name": "rm"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "flag",
+              "name": "notCommitted"
+            }
+          ]
+        }
+      },
+      "maps": {
+        "St": {
+          "key": {
+            "op": "var",
+            "name": "rm"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "prepares"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "if",
+              "c": {
+                "op": "flag",
+                "name": "commits"
+              },
+              "then": {
+                "op": "const",
+                "value": 2
+              },
+              "else": {
+                "op": "if",
+                "c": {
+                  "op": "flag",
+                  "name": "aborts"
+                },
+                "then": {
+                  "op": "const",
+                  "value": 3
+                },
+                "else": {
+                  "op": "get",
+                  "map": "St",
+                  "key": {
+                    "op": "var",
+                    "name": "rm"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "assume": {
+      "op": "and",
+      "xs": [
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 3
+          }
+        },
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "rm"
+          },
+          "b": {
+            "op": "var",
+            "name": "size"
+          }
+        }
+      ]
+    }
+  },
+  "laws": [
+    {
+      "name": "commit and abort exclude",
+      "forall": "key$2",
+      "keys": [
+        "key$3"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$3"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "St",
+                    "key": {
+                      "op": "var",
+                      "name": "key$2"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 3
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "St",
+                    "key": {
+                      "op": "var",
+                      "name": "key$3"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 2
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

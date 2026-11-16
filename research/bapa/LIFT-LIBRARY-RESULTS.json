@@ -1,0 +1,153 @@
+{
+  "schema": "gdp-lift-library-check/v1",
+  "status": "LEAN_CLOSURE_CHECKED",
+  "noSearch": true,
+  "leanVersion": "4.34.0",
+  "baseCommit": "e001da4dd3bd8f30683a12f8d8a81bfec1e624ad",
+  "batch": "20261116-030113-p5tiu7",
+  "moduleCount": 26,
+  "sourceManifest": {
+    "roots": [
+      "SourceInclusion",
+      "CountedSourceBridge",
+      "CountedNoninterference",
+      "CountedSourceProjection",
+      "FiniteSimulation",
+      "CertificateBoundErasure",
+      "CertificateBoundSubstitution",
+      "RadixKeySyntax",
+      "RadixBinderExpansion",
+      "RadixCertificateTable",
+      "RadixTupleSyntax",
+      "RadixEqualityTree",
+      "CertificateBooleanCleanup",
+      "RadixCertificateTransport",
+      "FamilyParts"
+    ],
+    "closure": [
+      {
+        "module": "Cert",
+        "sha256": "50a87237d8d7cb48b30a59c5cb9c3ae83aa06b1570aa111212dac0d5870a1434"
+      },
+      {
+        "module": "Kernel",
+        "sha256": "aa21ce0ef5f7639c2051e41fe9b4ca20424e0a488141c3273e04812db055a8d9"
+      },
+      {
+        "module": "Progress",
+        "sha256": "b2fad40773aada19da36b9f9097f6b2fe0ea3dddbb8dbdea3d002864a1a68795"
+      },
+      {
+        "module": "StepLaw",
+        "sha256": "0ba35897f0ba41590b9a7d20740b98a0d6eeeba45f341a0c7ba28fa631f26867"
+      },
+      {
+        "module": "Steps",
+        "sha256": "a7097faf87a50126a1d238328ea50b9d27f106fb1975e54a1cfd6fcf9b961003"
+      },
+      {
+        "module": "Sets",
+        "sha256": "835861159c3a09508548f327035cd7d5eda19de4bfc7aa7ef9fb92c09afd90b0"
+      },
+      {
+        "module": "Count",
+        "sha256": "10a23b5c37a536078ec4b41cb3a49a08c4cf7bb5a04f84ad769f3ec6ab6fa831"
+      },
+      {
+        "module": "CountMachine",
+        "sha256": "0aeceeae61e7b7346c13cbea98a4b87fc4fe6a26689477c7b3bee5f332317255"
+      },
+      {
+        "module": "Live",
+        "sha256": "616b42f009e353e9c80099744e7a3fc4cccdf2149bdbd5128831eb2abeca671e"
+      },
+      {
+        "module": "Ghost",
+        "sha256": "e0870a6337c21e2be173f27d21b445362fb218af6db1b5c2ab7a32386b166ba5"
+      },
+      {
+        "module": "GhostMap",
+        "sha256": "ea3162c1fec134c59ce1ceb11020c40ac6102a11ec995b03941f4a31506056b2"
+      },
+      {
+        "module": "CountedSourceProjection",
+        "sha256": "7ed867e8a39e1033b66abc67560d28bd69aceffa9cfa7ccc62535cf79a1f6788"
+      },
+      {
+        "module": "CountedNoninterference",
+        "sha256": "068dab802341c545167558d4c724854fe05b1417fdd974fc0d5947742560ba4d"
+      },
+      {
+        "module": "CountedSourceBridge",
+        "sha256": "f806b7df11bb07bd63d927b5dca39028a3f45aa6e8c5c633f764903285ccba5a"
+      },
+      {
+        "module": "SourceInclusion",
+        "sha256": "c2f20d4c1b9e3d2d29cecce3ff15af280599e3173224f7d6710f37ec3055054d"
+      },
+      {
+        "module": "FiniteSimulation",
+        "sha256": "9f777d950ec4c4fb23d5ac227d57f4bb582b918ff8867a01bd59627982795740"
+      },
+      {
+        "module": "CertificateBoundErasure",
+        "sha256": "c4c29e58f64fcc4543453d926b36e9a5b1fb6e8845ac7d4a116bfa22d5238014"
+      },
+      {
+        "module": "CertificateBoundSubstitution",
+        "sha256": "d347f6ccd493eeda4e4fdec5c7e97c193fe891dc054e57b594d427983a369bfc"
+      },
+      {
+        "module": "RadixKeySyntax",
+        "sha256": "476fab551315635452d482c448f4766b94a6d1094d04abe7d04147e6772ed7b9"
+      },
+      {
+        "module": "RadixBinderExpansion",
+        "sha256": "2c54798067dab647092eecdb1b3f1c01e278206ce2bebea8e476d9701336432b"
+      },
+      {
+        "module": "RadixCertificateTable",
+        "sha256": "6cd2f97a01db3a72a3bc9638c265407e3aadea5b95474d61f5c393e7e4618012"
+      },
+      {
+        "module": "RadixTupleSyntax",
+        "sha256": "ae344e8bce489c52fc488a624841d4e31c9ea8b3d25a33e1a0eab39caf8977da"
+      },
+      {
+        "module": "RadixEqualityTree",
+        "sha256": "bd45b45f65ae700813e735bddf4f7e4f0d9206134d8bc59b07c41867cf43bc9d"
+      },
+      {
+        "module": "CertificateBooleanCleanup",
+        "sha256": "59f33070b1f87e5c7c56a89949906486bca5946b288f8070a2dbccf117eba873"
+      },
+      {
+        "module": "RadixCertificateTransport",
+        "sha256": "47d90a877a30d51cc58293d511f5910e98b9d119ad07629e08635e219a9a95cc"
+      },
+      {
+        "module": "FamilyParts",
+        "sha256": "c4b94e9f077d47f294a0111bbc17388f84b9eb8e6268c8713a24f7079e4e0b81"
+      }
+    ],
+    "approvedDifference": {
+      "file": "CertificateBooleanCleanup.lean",
+      "old": "import BoundErasureReplay",
+      "new": "import CertificateBoundErasure"
+    }
+  },
+  "verification": {
+    "freshProject": true,
+    "isolatedImports": true,
+    "axiomGate": true,
+    "nativeExitCode": 0,
+    "generatorCheck": "PASS",
+    "sourceCopies": "All 15 unchanged except CertificateBooleanCleanup import redirected from BoundErasureReplay to CertificateBoundErasure"
+  },
+  "priorAttempt": {
+    "batch": "20261116-025621-s44gga",
+    "status": "FAILED_BEFORE_CERT",
+    "reason": "Lean source was outside the working root; corrected by running in the fresh project"
+  },
+  "scope": "Product generic Lean library closure only; not a 27-protocol pipeline acceptance"
+}

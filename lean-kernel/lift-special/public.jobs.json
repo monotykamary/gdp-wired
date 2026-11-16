@@ -1,0 +1,7 @@
+[
+  {
+    "name":"bound-inclusion-public-toy","cpu":2,"memory":8192,"timeout":3600,
+    "required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1},
+    "cmd":"set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; trap 'if [ -d \"$OUT/project/.lake\" ]; then rm -rf \"$OUT/project/.lake\"; fi' EXIT; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun lean-kernel/lift-special/run-public.ts lift-input research/bapa/lift-fixtures/toy_consensus_forall.json --out \"$OUT/project\" --sha256 33f1a9949fb71fec0b5c1017c0607b25517a4222de10f0634bddc9bd4d8ae84b --timeout-ms 1800000 --json > \"$OUT/public.log\" 2>&1"
+  }
+]

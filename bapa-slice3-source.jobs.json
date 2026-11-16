@@ -1,0 +1,3 @@
+[
+ {"name":"original-naive-consensus","cmd":"set -euo pipefail; curl -fsSL --retry 2 https://raw.githubusercontent.com/will62794/endive/8b6f2abd1988eeb308f965813635e9871f253e2d/benchmarks/naive_consensus.tla -o \"$SUPERCOMPUTER_OUTPUT_DIR/naive_consensus.tla\"; sha256sum \"$SUPERCOMPUTER_OUTPUT_DIR/naive_consensus.tla\" > \"$SUPERCOMPUTER_OUTPUT_DIR/SOURCE.sha256\"","cpu":2,"memory":1024,"timeout":120,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}
+]

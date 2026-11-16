@@ -1,0 +1,475 @@
+{
+  "schema": "gdp-lift-source/v1",
+  "id": "simple_regular",
+  "machine": {
+    "name": "simple regular",
+    "params": [
+      "n"
+    ],
+    "inputs": [
+      "op",
+      "self",
+      "v"
+    ],
+    "state": {},
+    "maps": {
+      "X": 0,
+      "Y": 0,
+      "Pc": 0
+    },
+    "step": {
+      "flags": {
+        "a1s": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "Pc",
+                "key": {
+                  "op": "var",
+                  "name": "self"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            }
+          ]
+        },
+        "a2s": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "Pc",
+                "key": {
+                  "op": "var",
+                  "name": "self"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            }
+          ]
+        },
+        "bs": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 2
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "Pc",
+                "key": {
+                  "op": "var",
+                  "name": "self"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 2
+              }
+            },
+            {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "var",
+                        "name": "v"
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "get",
+                        "map": "X",
+                        "key": {
+                          "op": "if",
+                          "c": {
+                            "op": "=",
+                            "a": {
+                              "op": "var",
+                              "name": "self"
+                            },
+                            "b": {
+                              "op": "const",
+                              "value": 0
+                            }
+                          },
+                          "then": {
+                            "op": "sub",
+                            "a": {
+                              "op": "var",
+                              "name": "n"
+                            },
+                            "b": {
+                              "op": "const",
+                              "value": 1
+                            }
+                          },
+                          "else": {
+                            "op": "sub",
+                            "a": {
+                              "op": "var",
+                              "name": "self"
+                            },
+                            "b": {
+                              "op": "const",
+                              "value": 1
+                            }
+                          }
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "var",
+                        "name": "v"
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 1
+                      },
+                      "b": {
+                        "op": "get",
+                        "map": "X",
+                        "key": {
+                          "op": "if",
+                          "c": {
+                            "op": "=",
+                            "a": {
+                              "op": "var",
+                              "name": "self"
+                            },
+                            "b": {
+                              "op": "const",
+                              "value": 0
+                            }
+                          },
+                          "then": {
+                            "op": "sub",
+                            "a": {
+                              "op": "var",
+                              "name": "n"
+                            },
+                            "b": {
+                              "op": "const",
+                              "value": 1
+                            }
+                          },
+                          "else": {
+                            "op": "sub",
+                            "a": {
+                              "op": "var",
+                              "name": "self"
+                            },
+                            "b": {
+                              "op": "const",
+                              "value": 1
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "maps": {
+        "X": {
+          "key": {
+            "op": "var",
+            "name": "self"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "a1s"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "if",
+              "c": {
+                "op": "flag",
+                "name": "a2s"
+              },
+              "then": {
+                "op": "const",
+                "value": 2
+              },
+              "else": {
+                "op": "get",
+                "map": "X",
+                "key": {
+                  "op": "var",
+                  "name": "self"
+                }
+              }
+            }
+          }
+        },
+        "Y": {
+          "key": {
+            "op": "var",
+            "name": "self"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "bs"
+            },
+            "then": {
+              "op": "var",
+              "name": "v"
+            },
+            "else": {
+              "op": "get",
+              "map": "Y",
+              "key": {
+                "op": "var",
+                "name": "self"
+              }
+            }
+          }
+        },
+        "Pc": {
+          "key": {
+            "op": "var",
+            "name": "self"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "a1s"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "if",
+              "c": {
+                "op": "flag",
+                "name": "a2s"
+              },
+              "then": {
+                "op": "const",
+                "value": 2
+              },
+              "else": {
+                "op": "if",
+                "c": {
+                  "op": "flag",
+                  "name": "bs"
+                },
+                "then": {
+                  "op": "const",
+                  "value": 3
+                },
+                "else": {
+                  "op": "get",
+                  "map": "Pc",
+                  "key": {
+                    "op": "var",
+                    "name": "self"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "pre": {
+      "op": "<=",
+      "a": {
+        "op": "const",
+        "value": 1
+      },
+      "b": {
+        "op": "var",
+        "name": "n"
+      }
+    },
+    "assume": {
+      "op": "and",
+      "xs": [
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 3
+          }
+        },
+        {
+          "op": "and",
+          "xs": [
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "self"
+              },
+              "b": {
+                "op": "var",
+                "name": "n"
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "var",
+                "name": "v"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "laws": [
+    {
+      "name": "some process not done, or some y is 1",
+      "holds": {
+        "op": "and",
+        "xs": [
+          {
+            "op": "<",
+            "a": {
+              "op": "var",
+              "name": "some$1"
+            },
+            "b": {
+              "op": "var",
+              "name": "n"
+            }
+          },
+          {
+            "op": "or",
+            "xs": [
+              {
+                "op": "not",
+                "x": {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "Pc",
+                    "key": {
+                      "op": "var",
+                      "name": "some$1"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 3
+                  }
+                }
+              },
+              {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "Y",
+                  "key": {
+                    "op": "var",
+                    "name": "some$1"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "some": [
+        "some$1"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+{"extends":"../../tsconfig.json","files":["native-ghost-seeds.test.ts","native-ghost-public.test.ts","native-ghost-seeds.ts","witness-value-proxies.test.ts","candidate-seed-manifest.ts","proof-worker.ts","candidate-seed-audit.ts","assert-db-witness-audit.ts"],"include":[]}

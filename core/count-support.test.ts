@@ -465,7 +465,19 @@ test('regenerated cold binders cannot steal a selected witness owner',()=>{
  expect(canonical.full.insts.map(i=>i.wit)).toEqual(['leased','secondOwner']);expect(mcGoal(g.hyps,ds,canonical.full)).toBeDefined()
  const duplicate={...previous,reads,insts:[selected,cold]}
  expect(()=>reservePool(g,ds,pool,duplicate,ds,new Set(ids(duplicate)),reservationState(g,[g,ds],1000))).toThrow(UnsupportedCountProposal)
- expect(()=>reservePool(g,ds,pool,previous,ds,chosen,reservationState(g,[g,ds,x('leased')],1000))).toThrow('owned witness capture/source')
+ const fresh=reservePool(g,ds,pool,previous,ds,chosen,reservationState(g,[g,ds,x('leased')],1000))
+ expect(fresh.record.renamed.some(r=>r.from==='leased'&&r.reason==='source-freshness')).toBe(true)
+ expect(fresh.full.insts.some(i=>i.wit==='leased')).toBe(false)
+ const optional=reservePool(g,ds,dependent,previous,ds,chosen,reservationState(g,[g,ds,x('leased')],1000))
+ expect(optional.full.picks[0]![1][0]).toEqual(x(optional.full.insts[0]!.wit))
+ expect(dependent.full.picks[0]![1][0]).toEqual(x('leased'))
+ const picked={...previous,picks:[['a',[x('leased')]]] as [string,E[]][]}
+ const pickedPool={...pool,full:{...pool.full,picks:picked.picks}}
+ expect(()=>reservePool(g,ds,pickedPool,picked,ds,new Set(ids(picked)),reservationState(g,[g,ds,x('leased')],1000))).toThrow('owned witness capture/source')
+ const captured={...g,hyps:[same(x('leased'),z),...g.hyps]},owned=reservationState(g,[g,ds,x('leased')],1000)
+ // A prior lease plus a new PRE occurrence is a real dependency, not a fresh binder.
+ owned.ownership.leases.set([...chosen][0]!,{wit:'leased',identity:JSON.stringify([five,0,[[1,'count',z,ds[0]]]])})
+ expect(()=>reservePool(captured,ds,pool,previous,ds,chosen,owned)).toThrow('owned witness capture/source')
 })
 
 test('present vacuous source survives an idempotent second seed',()=>{
