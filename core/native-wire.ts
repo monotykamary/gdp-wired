@@ -1,3 +1,9 @@
+import {nativeSnapshot} from './source-check.ts'
+
+// Bindings are retained directly by the journal. Snapshot the decoder's mutable
+// canonical objects before any later state/binding frame can update them.
+export const snapshotNativeBindings = (decode: (wire: unknown) => unknown, wire: unknown): Record<string, unknown> => nativeSnapshot(decode(wire)) as Record<string, unknown>
+
 // Decode identity-bearing snapshots returned by the real native harness. This
 // is observation transport only: no model values or proof results are supplied.
 export function nativeWireDecoder(maxObjects=100000, maxNodes=10000):(wire:unknown)=>unknown {

@@ -1,5 +1,5 @@
 import {expect,test} from 'bun:test'
-import {nativeWireDecoder} from './native-wire.ts'
+import {nativeWireDecoder,snapshotNativeBindings} from './native-wire.ts'
 import {nativeSame,nativeSnapshot} from './source-check.ts'
 const object=(id:string,items:unknown[])=>({kind:'object',id,items})
 const array=(id:string,items:unknown[])=>({kind:'array',id,items})
@@ -14,6 +14,28 @@ test('native wire retains real identity but snapshots keep historical values',()
   expect(nativeSame(before.items[0],after.items[0])).toBe(true)
   const distinct=nativeSnapshot(decode(frame('4',2))) as {items:{n:number}[]}
   expect(nativeSame(after.items[0],distinct.items[0])).toBe(false)
+})
+
+test('native binding journal rows retain history when later calls update aliased source state',()=>{
+  const decode=nativeWireDecoder()
+  const state=(n:number)=>wire(object('1',[['item',object('3',[['n',n]])]]))
+  const bindings=(id:string,n:number)=>wire(object(id,[['arg',object('3',[['n',n]])]]))
+  const before=nativeSnapshot(decode(state(7))) as {item:{n:number}}
+  const first=snapshotNativeBindings(decode,bindings('2',7)) as {arg:{n:number}}
+  // The actual input object is also state and is reused by a later call. Both
+  // later frames mutate the decoder's canonical id 3, not the saved journal.
+  const after=nativeSnapshot(decode(state(8))) as {item:{n:number}}
+  const second=snapshotNativeBindings(decode,bindings('4',8)) as {arg:{n:number}}
+  expect(first.arg.n).toBe(7)
+  expect(second.arg.n).toBe(8)
+  expect(before.item.n).toBe(7)
+  expect(after.item.n).toBe(8)
+  expect(nativeSame(first.arg,before.item)).toBe(true)
+  expect(nativeSame(first.arg,after.item)).toBe(true)
+  expect(nativeSame(first.arg,second.arg)).toBe(true)
+  const distinct=snapshotNativeBindings(decode,wire(object('5',[['arg',object('6',[['n',8]])]]))) as {arg:{n:number}}
+  expect(nativeSame(second.arg,distinct.arg)).toBe(false)
+  expect(first.arg.n).toBe(7)
 })
 
 test('native wire preserves aliases without prototype mutation',()=>{

@@ -28,7 +28,7 @@ import * as I from './extract-ir.ts'
 import type {B, K, L, N} from './extract-ir.ts'
 import {type Arg, type Event, type Layout, type Fold, type LeastRead, type MapDecl, type Model, Refusal, type Term, type Var, mergeOps, mergeWrites} from './extract-read.ts'
 import {type Extraction, type Name, fromModel} from './extract.ts'
-import {nativeWireDecoder} from './native-wire.ts'
+import {nativeWireDecoder, snapshotNativeBindings} from './native-wire.ts'
 import type {Rule} from './dsl.ts'
 import {type Sorts, nonneg} from './extract-print.ts'
 import {type CodeSide, type Coverage, type Evidence, type Snap, HarnessFailure, Outside, constantsOf, draw, drive, evalTerm, noEvidence, retried, tiesIn} from './extract-check.ts'
@@ -4743,7 +4743,9 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
       ...(bindingDecoder ? {nativeBindings: () => {
         if (nativeBindings?.error) throw new Error(`native parameter capture: ${nativeBindings.error}`)
         if (!nativeBindings?.snapshot) return undefined
-        return bindingDecoder(nativeBindings.snapshot) as Record<string, unknown>
+        // The decoder keeps canonical identities and mutates them on later
+        // frames. Journal rows must retain history, not references to that cache.
+        return snapshotNativeBindings(bindingDecoder, nativeBindings.snapshot)
       }} : {}),
       args: (inputs, e) => { inputsNow = inputs; return (read.args[e.call] ?? []).map(([n, a]) => [n, build(a, inputs)]) },
       setNow: n => { now = n },
