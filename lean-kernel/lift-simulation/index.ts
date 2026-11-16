@@ -116,19 +116,31 @@ export function tryRadixSimulation({id,bundle,providedSourceAST:source,options}:
   for(const n of ['RadixKeySyntax','RadixBinderExpansion','RadixCertificateTable','RadixTupleSyntax','CertificateBoundErasure','CertificateBooleanCleanup','RadixEqualityTree','RadixCertificateTransport','FiniteSimulation','SourceInclusion'])project[n+'.lean']=leanSource(n)
   for(const n of ['RadixSumTransport','InvariantSimulation','SemanticSums'])project[n+'.lean']=leanSource(n)
   const requiredTheorems:string[]=[],printed=(n:string)=>{requiredTheorems.push(n);return '\n#print axioms '+n+'\n'}
-  project[defs+'.lean']=prefix(['Sums','RadixSumTransport'])+retained+'\n'+extra+`
+  project[defs+'.lean']=prefix(['Lean','Sums','RadixSumTransport'])+retained+'\n'+extra+`
 def ${id}_plan : Bapa.RadixSumTransport.Plan := ⟨${p.radix}, ${layoutLit}, ${freshBase}, ${sumFlags}⟩
 def ${id}_outcome := Bapa.RadixSumTransport.translate ${id}_plan ${id}_old_sums ${raw}_proof
 def ${id}_created : Bool := match ${id}_outcome with | .ok _ => true | .error _ => false
-def ${id}_proof : List SEntry := match ${id}_outcome with | .ok p => p.2 | .error _ => []
+def ${id}_derived_proof : List SEntry := match ${id}_outcome with | .ok p => p.2 | .error _ => []
+-- Materialize the closed candidate, rather than exposing the implementation of
+-- its translator in the checked family's type. Reduction is only an untrusted
+-- term producer: the kernel checks both the literal and proof_eq below.
+open Lean Meta Elab Term in
+elab "${id}_literal% " t:term : term => do
+  let value ← instantiateMVars (← elabTerm t none)
+  withTransparency .all <| Meta.reduce value
+
+def ${id}_proof : List SEntry := ${id}_literal% ${id}_derived_proof
 `
-  const familyTheorem=id+'_laws'
+  // A checked family is the complete checker equality, not its semantic
+  // consequence. Keep that consequence independently required as well.
+  const familyTheorem=id+'_check',semanticLawsTheorem=id+'_semantic_laws'
   project[id+'_Family.lean']=prefix([defs])+`theorem ${id}_translation_succeeded : ${id}_created = true := by decide +kernel
 theorem ${id}_translation_target : (Bapa.RadixSumTransport.target ${id}_plan ${id}_old_sums) = .ok ${id}_target_data := by rfl
+theorem ${id}_proof_eq : ${id}_proof = ${id}_derived_proof := by with_unfolding_all rfl
 theorem ${id}_family_size : ${id}_proof.length = ${p.producer.laws.length} := by decide +kernel
 theorem ${id}_check : checkSMachine ${id}_target_data.plain ${id}_proof = true := by decide +kernel
-theorem ${familyTheorem} : ∀ ρ M, SReach ${id}_target_data.plain ρ M → ∀ e ∈ ${id}_proof, e.Holds ρ M := smachine_sound _ _ ${id}_check
-`+[id+'_translation_succeeded',id+'_translation_target',id+'_family_size',id+'_check',familyTheorem].map(printed).join('')
+theorem ${semanticLawsTheorem} : ∀ ρ M, SReach ${id}_target_data.plain ρ M → ∀ e ∈ ${id}_proof, e.Holds ρ M := smachine_sound _ _ ${id}_check
+`+[id+'_translation_succeeded',id+'_translation_target',id+'_proof_eq',id+'_family_size',familyTheorem,semanticLawsTheorem].map(printed).join('')
   // Explicit law snapshots avoid normalizing complete certificate trees in
   // every semantic bridge. Equality remains a separate kernel obligation.
   let shapes='',fresh=freshBase

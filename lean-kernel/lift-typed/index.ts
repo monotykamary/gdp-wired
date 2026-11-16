@@ -90,7 +90,8 @@ export function tryTypedBoundSubstitution({id,bundle,providedSourceAST:source,op
  for(const [f,q]of Object.entries(leaf.machine.step.flags??{}))if(q.op==='all'){free.add('?'+f);boundOf(q).forEach(k=>free.add(k));witnessesOf(f,q).forEach(k=>free.add(k))}
  source.laws.forEach(l=>[l.forall,...(l.keys??[]),...(l.some??[])].forEach(k=>{if(k)free.add(k)}))
  alpha?.renames.forEach(r=>{free.add(r.old);free.add(r.fresh)});alpha?.rows.forEach(r=>{free.add(r.old);free.add(r.fresh)})
- const raw=id+'_retained',sourceTheorems=source.laws.map((_,j)=>id+'_source_law'+j+'_holds'),familyTheorem=id+'_laws'
+ // The historical family interface is checker acceptance, not semantic soundness.
+ const raw=id+'_retained',sourceTheorems=source.laws.map((_,j)=>id+'_source_law'+j+'_holds'),familyTheorem=id+'_check'
  let extra=''
  const emitted=retainedSMachineToLean(raw,leaf.machine,leaf.laws,leaf.proof,{free:[...free],after:(ix,mx,lit,c)=>{
   const typing=(s:Record<string,string>)=>`⟨${list(roles.sizes.map(ix))}, ${list(Object.entries(s).map(([v,p])=>`(${ix(v)}, ${ix(p)})`))}, ${list(Object.entries(roles.values).map(([m,p])=>`(${mx(m)}, ${ix(p)})`))}⟩`
@@ -194,7 +195,7 @@ ${body}`
  }})
  const stop=emitted.indexOf(`\ntheorem ${raw}_check :`)
  if(stop<0||!extra)throw Error('current complete family emitter layout changed')
- const requiredTheorems=[id+'_options_complete',id+'_shape_preserved',id+'_check',familyTheorem,id+'_alpha_valid',id+'_rows_valid',id+'_ghosts_valid',id+'_inclusion',...source.laws.map((_,j)=>id+'_public'+j+'_implication'),...sourceTheorems,...(source.laws.length===1?[id+'_source']:[]),id+'_source_machine_reach',id+'_source_machineAssume_eq',id+'_targetAssume_eq',id+'_view_eq',id+'_next_eq',...source.laws.flatMap((_,j)=>[id+'_public'+j+'_strong_eq',id+'_public'+j+'_weak_eq']),'Kern.TypedSource.ex_of_holds']
+ const requiredTheorems=[id+'_options_complete',id+'_shape_preserved',familyTheorem,id+'_laws',id+'_alpha_valid',id+'_rows_valid',id+'_ghosts_valid',id+'_inclusion',...source.laws.map((_,j)=>id+'_public'+j+'_implication'),...sourceTheorems,...(source.laws.length===1?[id+'_source']:[]),id+'_source_machine_reach',id+'_source_machineAssume_eq',id+'_targetAssume_eq',id+'_view_eq',id+'_next_eq',...source.laws.flatMap((_,j)=>[id+'_public'+j+'_strong_eq',id+'_public'+j+'_weak_eq']),'Kern.TypedSource.ex_of_holds']
  const body='import QAlpha\nimport RowAlpha\nimport CertificateBoundSubstitution\nimport TypedSource\nopen Kern Bapa.CertificateBoundSubstitution\nset_option maxRecDepth '+options.recursionDepth+'\nset_option maxHeartbeats '+options.heartbeats+'\n'+emitted.slice(0,stop)+'\n'+extra+'\n'+requiredTheorems.map(t=>'#print axioms '+t).join('\n')+'\n'
  const project=liftProject(body,{name:'BapaProof'})
  const modules=Object.keys(project).filter(n=>n.endsWith('.lean')&&n!=='lakefile.lean').map(n=>n.slice(0,-5))
