@@ -22,6 +22,8 @@ noted), each with the command that reproduces it.
 
 - A law with a forall nested inside another forall (positive position) was proven as a weaker law with both variables equal, e.g. forall a. forall b. M[a] <= M[b] became M[k] <= M[k]. Such laws are now refused with a typed error pointing to the two-key form forall((a, b) => ...). Present since 0.3.0. If you wrote such a law, rewrite it in the two-key form and re-prove.
 
+- A quantifier's generated variable could capture a parameter, input or state of the same name (e.g. a parameter k inside everyKey(k => ...)), so the law was proven about the wrong variable. Generated variables are now capture-avoiding. Present since 0.3.0; re-prove laws whose quantified variable shares a name with a declaration.
+
 ## 0.50.0
 
 - **BAPA source proofs:** checked safety theorems for 27 encoded source models, including their symbolic size parameters
