@@ -30,6 +30,37 @@ not just ordered containers. The former fallback reconstructed names like
 parameter instead of the actual state. No proof or translation acceptance
 predicate is bypassed by this repair.
 
+The Python wire encoder supports `None`, booleans, strings, whole numeric values
+in the exact ±(2^53−1) range, lists, dictionaries with supported string/numeric
+keys (not boolean keys), and objects whose selected fields are available through
+`vars()` / `__dict__`, recursively within the existing node/identity bounds.
+Actual datetimes, slot-only objects, bytes/tuples/sets without supported
+`__dict__` observations, non-integral floats and unsafe integers are **not**
+claimed as native observation support. A reader may still extract/replay such
+code; a registered law demanding the unsupported observations must remain
+`translation:unchecked`, `proven:false`, `checked:false` with the capture reason.
+The nonordered-datetime regression requires this refusal on a real registered
+step law and still requires its checked kernel proof; it does not fall back to
+model timestamps or silently weaken native acceptance. That new control is
+source-only pending the operational admission hold, not claimed verified.
+
+Binding capture supports real Python functions and bound methods. It rejects
+`__signature__`, `__wrapped__`, and `__text_signature__` metadata on the
+underlying function and uses `follow_wrapped=False`. This is an observation
+fence, not a claim that the frontend always refuses decorators:
+`extract-step.ts` callFunc explicitly permits inferred transparent decorators
+(~1173–1178) unless strict. `__text_signature__` is included because Python
+inspect can consult it even without wrapper traversal. Native runtime defaults
+from the genuine function remain authoritative; the omitted-None-default
+control verifies a PArg `dflt`, an actually omitted native kwarg, and the
+`apply_defaults()` binding from the native witness. A numeric default in the
+original credit test alone did **not** establish omission coverage. These new
+metadata/default controls are likewise awaiting post-hold boat validation.
+
+The mutable-alias regression exercises the exact adapter snapshot helper with
+shared state/input native IDs across successive frames; it is a transport-unit
+regression, not an assertion that a frontend aliasing program has been proven.
+
 Unsupported snapshots (out-of-range integers, non-integral floats, unavailable
 object fields, unsupported object kinds, bounds) still make the journal
 incomplete and source admission `proven:false`, `checked:false`,

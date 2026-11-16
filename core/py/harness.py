@@ -643,7 +643,12 @@ def call(req):
   # Bind the actual callable's Python signature, before the method can mutate
   # its arguments. Never reconstruct native law inputs from the symbolic IR.
   try:
-    bound = inspect.signature(fn).bind(**kwargs)
+    native_fn = fn.__func__ if isinstance(fn, types.MethodType) else fn
+    if not isinstance(native_fn, types.FunctionType):
+      raise ValueError('unsupported native callable for parameter capture')
+    if any(dict.__contains__(native_fn.__dict__, name) for name in ('__signature__', '__wrapped__', '__text_signature__')):
+      raise ValueError('customized native signature metadata is unsupported')
+    bound = inspect.signature(fn, follow_wrapped=False).bind(**kwargs)
     bound.apply_defaults()
     native_bindings = {'snapshot': native_state(types.SimpleNamespace(**bound.arguments), select=False)}
   except Exception as e:
