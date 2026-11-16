@@ -81,6 +81,10 @@ Counter.credit.__signature__ = inspect.Signature([
     return n
 Counter.credit.__wrapped__ = fabricated`],
   ['__text_signature__', `Counter.credit.__text_signature__ = '($self, n=999)'`],
+  ['__dict__ membership-hidden __text_signature__', `class Hidden(dict):
+    def __contains__(self, key):
+        return False
+Counter.credit.__dict__ = Hidden(__text_signature__='($self, n=999)')`],
 ]) test(`Python native bindings refuse customized ${metadata} on the underlying method`, () => {
   const x = extract(false, `${code}\n${suffix}\n`)
   expect(x.evidence!.requests).toBeGreaterThan(0)
