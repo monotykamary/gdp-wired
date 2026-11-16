@@ -27,7 +27,7 @@ export async function replayPaxos(out:string,root=process.cwd()):Promise<PaxosRe
    })
   }catch(error){problem=error}
   finally{for(const fd of fds)closeSync(fd);commands.push({label,argv,cwd:sourceEmission?'root':'project',environment:{LEAN_PATH:'project/checked',LEAN_NUM_THREADS:'1',GDP_LEAN_NATIVE:'0',...(sourceEmission?{SUPERCOMPUTER_OUTPUT_DIR:'source-reproduction'}:{})},exitCode,signal,stdout,stderr,stdoutSha256:hashFile(join(out,stdout)),stderrSha256:hashFile(join(out,stderr))});save()}
-  assert(!problem&&exitCode===0&&signal===null,'native command failed '+label+': '+String(problem??exitCode))
+  assert(!problem&&exitCode===0&&signal===null,'native command failed '+label+': '+(problem instanceof Error?problem.message:typeof problem==='string'?problem:String(exitCode)))
   return readFileSync(join(out,stdout),'utf8')
  }
  try{

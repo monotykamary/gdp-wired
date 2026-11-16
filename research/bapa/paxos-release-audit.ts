@@ -66,7 +66,7 @@ export function auditPaxosReplay(directory:string,root=process.cwd()):PaxosRepla
  const reproduction=Object.fromEntries(REPRODUCED.map(n=>[n,files[n]!]))
  exactObject(r.sourceReproductionFiles,reproduction,'source reproduction inventory');verifyFiles(join(directory,'source-reproduction'),reproduction)
  for(const name of REPRODUCED)assert(readFileSync(join(directory,'source-reproduction',name)).equals(readFileSync(join(project,name))),'source reproduction bytes changed '+name)
- const {base,objects,reused,reachable}=expectedReuse(root,files)
+ const {base,reused,reachable}=expectedReuse(root,files)
  exactObject(r.reused,reused,'reused source-object provenance')
  exactObject(r.originalExports,verifyOriginalExports(join(directory,'provenance'),root,files),'original export provenance')
  checkedFile(directory,'provenance/CHECKED.json',CHECKED)
