@@ -21,7 +21,7 @@ const runs = (cmds: string) => cmds.split(/\s+/).filter(Boolean).map((f): Unit =
 
 const units: Unit[] = [
   {name: 'scripts/gen-lean-library.ts --check', dir: '.', args: ['scripts/gen-lean-library.ts', '--check'], test: false},
-  ...tests('core', `exports.test.ts proof-output.test.ts guarded.test.ts cli.test.ts lift-cli.test.ts security.test.ts solver.test.ts rand.test.ts dsl.test.ts dsl-binders.test.ts prenex-admission.test.ts sums.test.ts
+  ...tests('core', `exports.test.ts proof-output.test.ts guarded.test.ts cli.test.ts lift-cli.test.ts security.test.ts solver.test.ts rand.test.ts dsl.test.ts dsl-binders.test.ts dsl-binder-groups.test.ts prenex-admission.test.ts sums.test.ts
     arith.test.ts compare.test.ts mutate.test.ts mutate-terms.test.ts runtime-default.test.ts conformance.test.ts compose.test.ts relational.test.ts quantifiers.test.ts functions.test.ts
     keyterms.test.ts lists.test.ts liveness.test.ts sizes.test.ts values.test.ts rationals.test.ts builders.test.ts
     gdp.test.ts datatypes.test.ts lemmas.test.ts discover.test.ts infer.test.ts infer-input.test.ts cyclic.test.ts cycles.test.ts
