@@ -13,7 +13,7 @@ const propose=(m:Machine,context:Law[],target:Law,end:number)=>{
  const out=countedAttempts(m,[target],new Set(context),end).traced(target,context,1,Math.max(0,end-clock()),false)
  return 'proof'in out?out.proof:undefined
 }
-mock.module('../../core/count-strategies.ts',()=>({...original,prepareCountStrategyMachine:(m:Machine)=>m,selectedCountStrategies:(_m:Machine,f:Law[])=>f,proposeCountStrategiesForClosing:propose,proveCountStrategies:propose,proposeCountStrategyKindForClosing:(_kind:unknown,...args:Parameters<typeof propose>)=>propose(...args)}))
+await mock.module('../../core/count-strategies.ts',()=>({...original,prepareCountStrategyMachine:(m:Machine)=>m,selectedCountStrategies:(_m:Machine,f:Law[])=>f,proposeCountStrategiesForClosing:propose,proveCountStrategies:propose,proposeCountStrategyKindForClosing:(_kind:unknown,...args:Parameters<typeof propose>)=>propose(...args)}))
 const v=(name:string)=>({op:'var' as const,name}),n=(value:number)=>({op:'const' as const,value})
 test('public seeded count proof freshens a source-bound witness and retains its provenance',()=>{
  const r=rule('reservation alpha public').params({size:nat}).inputs({key:nat}).assume(({key,size})=>key.lt(size)).state({started:0}).maps({Cell:0})

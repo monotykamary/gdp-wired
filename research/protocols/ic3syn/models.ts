@@ -941,7 +941,6 @@ const mldrRequests = (inp: any, r?: Read) => {
 }
 
 // --- the protocols, with their safety laws, their instances and their TLC cfgs --------------------------------------
-const one = (name: string, map: string) => (r: any) => [r.law(name, (env: any) => forall((a, b) => lt(a, b).and(env[map].at(a), env[map].at(b)).implies(a.eq(b))))]
 const mutex = (r: any) => [r.law('one holder', ({size, HoldsLock}: any) => forall((a, b) => all(sizedSort('Node', size).has(a), sizedSort('Node', size).has(b), HoldsLock.at(a), HoldsLock.at(b)).implies(a.eq(b))))]
 const N3 = range(3), N2 = range(2), N4 = range(4)
 

@@ -94,7 +94,7 @@ test('native tuple row proposals match packed rows after pair-key normalization'
     if (isPair) normalized.keys = ['b$quorum', ...(normalized.keys ?? [])]
     expect(normalized).toEqual(expected)
   }
-  expect(Object.values(native.counts).some(d => JSON.stringify(d.body).includes('\"op\":\"proj\"'))).toBe(true)
+  expect(Object.values(native.counts).some(d => JSON.stringify(d.body).includes('"op":"proj"'))).toBe(true)
   expect(native.laws.some(l => l.name.includes('no quorum eligible/3'))).toBe(true)
   expect(native.laws.some(l => l.name.includes('stored guard change') && l.name.includes('disabled'))).toBe(true)
   const checkedShape = {...nativeMachine, counts: {...nativeMachine.counts, ...native.counts}}

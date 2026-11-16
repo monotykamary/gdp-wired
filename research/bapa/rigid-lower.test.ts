@@ -38,7 +38,7 @@ test('binding supplies immutable functions but retains symbolic abstract sizes',
 test('binding rejects lookalikes before calling any user-supplied lookup', () => {
   const p = rigidMinimal(), instance = valid()
   let called = false
-  const fake = {...instance, read: () => { called = true; return 1 }, witness: () => { called = true; return 0 }}
+  const fake = Object.assign({}, instance, {read: () => { called = true; return 1 }, witness: () => { called = true; return 0 }})
   expect(() => p.bind(fake as any)).toThrow('returned by validation')
   expect(called).toBe(false)
   expect(() => p.bind(Object.create(Object.getPrototypeOf(instance)))).toThrow('returned by validation')

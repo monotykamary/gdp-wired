@@ -1,5 +1,5 @@
 import {expect,test} from 'bun:test'
-import {type Machine,type Law,type E,get,n,x,same} from '../core/machine.ts'
+import {type Machine,type Law,get,n,x,same} from '../core/machine.ts'
 import {type Goal} from './kernel.ts'
 import {modelInstances,withModels,withWall,type ModelConfirmation} from './prove.ts'
 const m:Machine={name:'confirmation',params:[],inputs:[],state:{},maps:{A:0},step:{}}

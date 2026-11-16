@@ -1,18 +1,10 @@
-// Isolated test: force only the untrusted ordinary pass-one proposer.
-// The public entry point, proof construction and final native checker stay real.
-import {expect,mock,test} from 'bun:test'
+// Ordinary public path: proof construction and final native checker stay real.
+import {expect,test} from 'bun:test'
 import {nat,proveRule,rule} from '../../core/dsl.ts'
-import {countsDump,countedAttempts} from '../../core/counts.ts'
-import * as strategies from '../../core/count-strategies.ts'
+import {countsDump} from '../../core/counts.ts'
 import {proofOutput,type PublicProofOutput} from '../../core/proof-output.ts'
 import {checkCountedLaws} from '../../kernel/kernel.ts'
-import {clock} from '../../kernel/prove.ts'
-import type {Law,Machine} from '../../core/machine.ts'
-const original={...strategies}
-const propose=(m:Machine,context:Law[],target:Law,end:number)=>{
- const out=countedAttempts(m,[target],new Set(context),end).traced(target,context,1,Math.max(0,end-clock()),false)
- return 'proof'in out?out.proof:undefined
-}
+import type {Law} from '../../core/machine.ts'
 // Ordinary public path, no module mocks.
 const v=(name:string)=>({op:'var' as const,name}),n=(value:number)=>({op:'const' as const,value})
 test('public seeded count proof freshens a source-bound witness and retains its provenance',()=>{

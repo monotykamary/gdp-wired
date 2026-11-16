@@ -19,7 +19,7 @@ export function verifyCountedSourceProject(directory:string,log:string){
  const errors=gate(log,[readFileSync(join(root,'BapaProof.lean'),'utf8')],false)
  if(errors.length)throw Error(errors.join('; '))
  const found=new Set(answers(log).map(x=>x.name))
- for(const name of wanted)if(!found.has(name as string))throw Error('missing exact theorem axiom output: '+name)
+ for(const name of wanted)if(!found.has(name as string))throw Error('missing exact theorem axiom output: '+String(name))
  if(!log.includes('Build completed successfully')||/\berror:/.test(log))throw Error('no clean completed Lean build in log')
  return {schema:'bapa-source-check/v1',status:'SOURCE_CHECKED',inputSha256:r.inputSha256,emissionSha256:sha(raw),leanLogSha256:sha(log),identity:r.identity,sourceProjection:r.sourceProjection,checkedTheorems:wanted,files:r.files,leanVersion:r.leanVersion}
 }

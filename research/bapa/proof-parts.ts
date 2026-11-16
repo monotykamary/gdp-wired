@@ -9,7 +9,8 @@ export type GeneratedPart={module:string,role:string,text:string,sha256:string}
 export type CountedParts={status:'EMITTED_NOT_CHECKED',files:GeneratedPart[],frontiers:{law:string,phase:'start'|'step',frontier:Frontier}[],familySize:number,primaryObligations:number,finalModule:string}
 const sha=(s:string)=>createHash('sha256').update(s).digest('hex')
 const list=(xs:string[])=>'['+xs.join(', ')+']'
-const address=(s:string)=>list([...s].map(x=>x==='1'?'true':'false'))
+// Frontier addresses contain only the ASCII branch digits 0 and 1.
+const address=(s:string)=>list(s.split('').map(x=>x==='1'?'true':'false'))
 // Lean constructor data only; brackets/tuples nested inside each entry must not
 // be mistaken for the outer list. The emitter emits no string literals here.
 export function splitEntryData(text:string):string[] {
