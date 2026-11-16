@@ -1269,7 +1269,15 @@
  "timeout": 180
  },
  {
- "name": "surface-lowering",
+ "name": "native-observation-controls",
+"cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/jvm/jvm-setup.sh && bun test --timeout 180000 core/extract-step-native.test.ts core/extract-jvm-native.test.ts core/native-wire.test.ts 2>&1",
+"cwd": ".",
+"cpu": 2.0,
+"memory": 4096,
+"timeout": 600
+},
+{
+"name": "surface-lowering",
 "cmd": "export PATH=$PWD/scripts/lean-gate:$PATH; bun install --frozen-lockfile >/dev/null 2>&1 && bun test research/security/surface-lowering.test.ts research/security/ordered-source-refusal.test.ts core/native-wire.test.ts lean-kernel/source-translation.test.ts 2>&1",
 "cwd": ".",
 "cpu": 1.0,
