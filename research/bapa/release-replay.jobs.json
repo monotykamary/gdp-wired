@@ -466,5 +466,23 @@
     },
     "name": "replay-simple_decentralized_lock",
     "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-sdl.ts > \"$OUT/replay.log\" 2>&1"
+  },
+  {
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 7200,
+    "vm_type": "large",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "replay-sharded_kv",
+    "cmd": "set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library-gen.log\" 2>&1; bun research/bapa/release-replay.ts sharded_kv > \"$OUT/replay.log\" 2>&1"
   }
 ]

@@ -20,6 +20,10 @@ The first accepted-bridge import exposed missing historical source-port commits 
 
 The earlier gate at `18171bbe3` is a baseline diagnostic, not a final single-tree release gate. Final replay/gates must use the completed source integration plus the sealed replay manifest.
 
+## Additional accepted sharded source
+
+User-authorized acceptance `38073baae` adds the original sharded_kv source as the 27th replay. The selected builder and safety law are taken from that exact lane revision; the already integrated no-lost builder is unchanged. Paxos and MLDR definitions and in-progress work are not imported. The sealed progress capsule is `a1885c7c4098ee59f7bfb7d67fff7b379be293f7baa8343b1c8c61c34c4185b2`, using the ordinary inferred-alpha route. This is a source-as-encoded acceptance, not a new cutoff theorem. The earlier 26-case admission remains immutable and is reported separately from this extension.
+
 ## Release verification policy
 
 The next gate must replay the 26 accepted protocol receipts on one integration source tree. Inputs must be bound by SHA-256. Existing proof terms/capsules are reused without protocol search or reseeding; no new source acceptance is inferred from a partial/structural receipt. The remaining sharded_kv, Paxos, and MLDR work stays outside the acceptance count. The exact replay inventory and outcomes will be recorded separately. Integration alone is not a successful replay or a release claim.

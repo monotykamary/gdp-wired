@@ -154,10 +154,15 @@
       "proofSha256": "8d629dfe6d70661809e378ab21ec738a5173613cf1796473f3032942b1f7dbce",
       "capture": "release-captures/client_server_db_ae",
       "proof": "release-proofs/client_server_db_ae/Proofs.lean"
+    },
+    {
+      "id": "sharded_kv",
+      "mode": "alpha",
+      "sha256": "a1885c7c4098ee59f7bfb7d67fff7b379be293f7baa8343b1c8c61c34c4185b2",
+      "capture": "release-captures/sharded_kv"
     }
   ],
   "excluded": [
-    "sharded_kv",
     "paxos_epr",
     "mldr"
   ],

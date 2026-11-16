@@ -148,5 +148,11 @@
     "from": "/home/user/.local/state/r4-launcher/release049-f-capture-bound-input-v6/results-full/capture-f41-full-client_server_db_ae-normal.files/certificate",
     "to": "release-captures/client_server_db_ae",
     "sha256": "e76ed2d24da036b98a98ea1edf509abe741499a2647c88f647c4d4f235cc87f0"
+  },
+  {
+    "id": "sharded_kv",
+    "from": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p4/runs/bapa-p4-sharded-progress/sharded-progress-seed.files/sharded_kv/closure",
+    "to": "release-captures/sharded_kv",
+    "sha256": "a1885c7c4098ee59f7bfb7d67fff7b379be293f7baa8343b1c8c61c34c4185b2"
   }
 ]

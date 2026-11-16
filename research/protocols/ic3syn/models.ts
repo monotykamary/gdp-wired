@@ -156,32 +156,35 @@ const lockservAutomaton = (bug?: Bug) => rule('lockserv automaton')
 // Table[n·N + k] (v + 1; 0 is Nil), k \in owner[n] is Owner[k·N + n], <<n, k, v>> \in transfer_msg TransferMsg[n·N² + k·N + v].
 // Init's owner, any relation with one owner a key (and, no lost keys, an owner for each of the keys 0 .. keys − 1), is
 // set by `own` requests before `start` (Owned, read by `start` alone, says which keys have one).
-const shardedKv = (noLost: boolean) => (bug?: Bug) => ((noLost ? rule('sharded kv no lost keys').params({keys: nat}).pre(({keys}) => keys.atMost(N)) : rule('sharded kv')) as any)
+const shardedKv = (noLost: boolean) => (bug?: Bug) => rule(noLost ? 'sharded kv no lost keys' : 'sharded kv')
+  .params({nodes: nat, keys: nat, values: nat}).sorts('Node', 'Key', 'Value')
   .inputs({op: oneOf('own', 'start', 'reshard', 'recv_transfer_msg', 'put'), n: nat, k: nat, v: nat, n2: nat})
-  .assume(({n, k, v, n2, keys}: any) => lt(n, v, n2).and(k.lt(noLost ? keys : N)))
+  .assume(({n, k, v, n2, nodes, keys, values}) => all(sizedSort('Node', nodes).has(n), sizedSort('Node', nodes).has(n2),
+    sizedSort('Key', keys).has(k), sizedSort('Value', values).has(v)))
   .state({started: 0})
-  .maps({Table: 0, Owner: rel, TransferMsg: rel, ...(noLost ? {Owned: rel} : {})})
-  .flags(({k, keys, Owner, Owned}: any) => ({
-    unowned: everyKey(m => m.lt(N).implies(Owner.at(pk(k, m)).not())),
-    allOwned: noLost ? everyKey(m => m.lt(keys).implies(Owned.at(m))) : yes,
+  .maps({Table: 0, Owned: rel}).relations({Owner: ['Key', 'Node'], TransferMsg: ['Node', 'Key', 'Value']})
+  .flags(({k, keys, nodes, Owner, Owned}) => ({
+    unowned: everyKey(m => sizedSort('Node', nodes).has(m).implies(Owner.has(k, m).not())),
+    allOwned: noLost ? everyKey(m => sizedSort('Key', keys).has(m).implies(Owned.at(m))) : yes,
   }))
-  .flags(({op, n, k, v, started, unowned, allOwned, Table, Owner, TransferMsg}: any) => ({
+  .flags(({op, n, k, v, started, unowned, allOwned, Table, Owner, TransferMsg}) => ({
     owns: op.is('own').and(started.eq(0), unowned),
     starts: op.is('start').and(started.eq(0), allOwned),
-    // Reshard(k, v, n_old, n_new) is (n, k, v, n2)
-    reshards: op.is('reshard').and(started.eq(1), Table.at(pk(n, k)).eq(v.plus(1))),
-    receives: op.is('recv_transfer_msg').and(started.eq(1), TransferMsg.at(pk3(n, k, v))),
-    puts: op.is('put').and(started.eq(1), bug && !noLost ? yes : Owner.at(pk(k, n))),
+    reshards: op.is('reshard').and(started.eq(1), Table.at(new Term(tuple([n.e, k.e]))).eq(v.plus(1))),
+    receives: op.is('recv_transfer_msg').and(started.eq(1), TransferMsg.has(n, k, v)),
+    puts: op.is('put').and(started.eq(1), bug && !noLost ? yes : Owner.has(k, n)),
   }))
-  .step(({n, k, v, n2, owns, starts, reshards, receives, puts, started, Table, Owner, TransferMsg, Owned}: any) => ({
+  .step(({n, k, v, n2, owns, starts, reshards, receives, puts, started, Table, Owner, TransferMsg, Owned}) => ({
     started: when(starts, 1, started),
-    Table: Table.set(pk(n, k), when(reshards, 0, when(receives.or(puts), v.plus(1), Table.at(pk(n, k))))),
-    Owner: Owner.set(pk(k, n), when(owns.or(receives), yes, when(reshards, no, Owner.at(pk(k, n))))),
-    TransferMsg: TransferMsg.each((z: Term) => when(reshards.and(z.eq(pk3(n2, k, v))), bug && noLost ? TransferMsg.at(z) : yes, when(receives.and(z.eq(pk3(n, k, v))), no, TransferMsg.at(z)))),
-    ...(noLost ? {Owned: Owned.set(k, when(owns, yes, Owned.at(k)))} : {}),
+    Table: Table.set(new Term(tuple([n.e, k.e])), when(reshards, 0, when(receives.or(puts), v.plus(1), Table.at(new Term(tuple([n.e, k.e])))))),
+    Owner: {...Owner.add([k, n]), value: when(owns.or(receives), 1, when(reshards, 0, Owner.at(k, n))).e},
+    TransferMsg: TransferMsg.each((a, b, c) => reshards.and(a.eq(n2), b.eq(k), c.eq(v))
+      .and(bug && noLost ? TransferMsg.has(a, b, c) : yes)
+      .or(TransferMsg.has(a, b, c).and(reshards.and(a.eq(n2), b.eq(k), c.eq(v)).not(), receives.and(a.eq(n), b.eq(k), c.eq(v)).not()))),
+    Owned: Owned.set(k, when(owns, yes, Owned.at(k))),
   }))
 
-// Accepted p4 no-lost port, isolated from the still-in-progress sharded_kv builder above.
+// Accepted p4 no-lost port, kept unchanged when adding the accepted sharded_kv port above.
 const shardedNoLost = (bug?: Bug) => {
   const noLost = true
   return rule('sharded kv no lost keys')
@@ -995,12 +998,13 @@ export const protocols: Protocol[] = [
     laws: r => [noLost
       ? r.law('a transfer in flight, or every key owned', ({nodes, keys, values, started, Owner, TransferMsg}: any) => forall(k => k.lt(keys).and(started.eq(1)).implies(
         exists(x => x.lt(nodes).and(Owner.has(k, x))).or(exists(n => exists(j => exists(v => all(n.lt(nodes), j.lt(keys), v.lt(values), TransferMsg.has(n, j, v)))))))))
-      : r.law('one value per key', ({Table}: any) => forall((a, b, k, v, u) => lt(a, b, k, v, u).and(Table.at(pk(a, k)).eq(v.plus(1)), Table.at(pk(b, k)).eq(u.plus(1))).implies(a.eq(b).and(v.eq(u)))))],
+      : r.law('one value per key', ({nodes, keys, values, Table}: any) => forall((a, b, k, v, u) => all(a.lt(nodes), b.lt(nodes), k.lt(keys), v.lt(values), u.lt(values),
+        Table.at(new Term(tuple([a.e, k.e]))).eq(v.plus(1)), Table.at(new Term(tuple([b.e, k.e]))).eq(u.plus(1))).implies(a.eq(b).and(v.eq(u)))))],
     bad: noLost
       ? r => r.scalar('started') === 1 && !N2.some(n => N2.some(k => N2.some(v => r.cell('TransferMsg', tk(n, k, v))))) && N2.some(k => !N2.some(n => r.cell('Owner', tk(k, n))))
-      : r => N2.some(k => N2.flatMap(n => r.cell('Table', n * N + k) ? [n] : []).length > 1),
-    check: {params: noLost ? {nodes: 2, keys: 2, values: 2} : {}, inputs: {op: range(5), n: N2, k: N2, v: N2, n2: N2},
-      project: r => r.scalar('started') ? (noLost ? [cells(r, 'Table', N2.flatMap(a => N2.map(b => tk(a, b)))), cells(r, 'Owner', N2.flatMap(a => N2.map(b => tk(a, b)))), cells(r, 'TransferMsg', N2.flatMap(a => N2.flatMap(b => N2.map(c => tk(a, b, c)))))] : [cells(r, 'Table', pairs(N2, N2)), cells(r, 'Owner', pairs(N2, N2)), cells(r, 'TransferMsg', triples(N2, N2, N2))]) : undefined,
+      : r => N2.some(k => N2.flatMap(n => r.cell('Table', tk(n, k)) ? [n] : []).length > 1),
+    check: {params: {nodes: 2, keys: 2, values: 2}, inputs: {op: range(5), n: N2, k: N2, v: N2, n2: N2},
+      project: r => r.scalar('started') ? [cells(r, 'Table', N2.flatMap(a => N2.map(b => tk(a, b)))), cells(r, 'Owner', N2.flatMap(a => N2.map(b => tk(a, b)))), cells(r, 'TransferMsg', N2.flatMap(a => N2.flatMap(b => N2.map(c => tk(a, b, c)))))] : undefined,
       tlc: tlc(noLost ? 'sharded_kv_no_lost_keys' : 'sharded_kv', consts({Node: nodes(2), Key: nodes(2, 'k'), Value: nodes(2, 'v')}, {Nil: 'Nil'}), 'Safety')}})),
   {id: 'lockserv', ic3syn: 'pyv-lockserv', file: 'lockserv.tla', source: 'Endive benchmarks/lockserv.tla (mypyvy\'s lockserv)', safety: 'holds_lock[x] /\\ holds_lock[y] => x = y',
     make: lockserv, bug: 'recv_lock without server_holds_lock', laws: mutex, bad: r => twoDistinct(r, 'HoldsLock', N3),
