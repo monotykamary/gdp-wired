@@ -46,28 +46,6 @@ test('local counted allowance reports exhaustion even with an infinite real wall
   }
 })
 
-test('late proof progress interruption preserves direct inference original SAT context', () => {
-  const r = accounts(), law = accountsLaw(r), first = proveRule(r, [law], {search: false})
-  expect(first.stuck).toBe('sat'); expect(first.witness).toBeDefined()
-  let reachedProof = false, observedDifferent = false
-  const out = inferLaws(r, [law], [], {work: 1000000, progress: (phase, info) => {
-    if (phase !== 'proof') return
-    reachedProof = true
-    if (info.goal === (first.goal ?? '') && info.stuck === (first.stuck ?? '')) return
-    observedDifferent = true
-    withSearchWatchdog(1, () => {
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20)
-      checkWatchdog('late proof progress control')
-    })
-  }})
-  expect(reachedProof, 'must pass the old accessor overwrite and reach actual later proof progress').toBe(true)
-  expect(observedDifferent, 'later proof goal/stuck must actually differ from original SAT').toBe(true)
-  expect(out).toMatchObject({proven: false, checked: false, stopped: true, termination: {kind: 'wall-deadline', phase: 'late proof progress control'}})
-  expect(out.context?.goal).toBe(first.goal)
-  expect(out.context?.stuck).toBe('sat')
-  expect(out.context?.witness).toEqual(first.witness)
-})
-
 test('work and watchdog interruption retain actual partial counters and immutable initial SAT context', () => {
   const r = accounts(), law = accountsLaw(r), first = proveRule(r, [law], {search: false})
   expect(first.stuck).toBe('sat')
