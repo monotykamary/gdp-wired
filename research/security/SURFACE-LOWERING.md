@@ -34,7 +34,7 @@ The exact scalar bound is every sequence over values `{0,1,2}` at sizes `0`, `1`
 
 A separate positional-substitution mutant writes the known bad shape explicitly: it uses list positions for both the post-membership query and the `<=` comparison. The independent source evaluator rejects that mutant at `[2,1] -> [1]`; this control prevents a vacuous oracle from accepting the positional interpretation.
 
-Record cases use an `Item` class with no `__eq__`, so their source membership control is object identity: `[a,b] -> [b]` does not retain `a`, while `[a,a] -> [a]` does. Current Python extraction honestly refuses the `Item` append (`one object in two places`) instead of inventing an aliasing model. The gate asserts that refusal and does not fabricate a lowered record law. If support is later added, the explicit refusal must be replaced by a source-to-lowered comparison, not removed.
+Record cases use an `Item` class with no `__eq__`, so their source membership control is object identity: `[a,b] -> [b]` does not retain `a`, while `[a,a] -> [a]` does. Current Python extraction honestly refuses this supplied-`Item` argument append (`one object in two places`) instead of inventing an aliasing model. Freshly constructed record items remain supported and are checked by the separate native positive control. The gate asserts that refusal and does not fabricate a lowered record law. If support is later added, the explicit refusal must be replaced by a source-to-lowered comparison, not removed.
 
 ### Previous blind spot and limit
 

@@ -3,6 +3,24 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.50.2
+
+### Fixed
+
+- A law about values in a numeric list could be proved about the list positions instead. For example, a claim that
+  every value is nonnegative could be checked only against the nonnegative positions. Present since 0.34.0; affects
+  TypeScript API users proving laws over extracted rules and `toLean` exports. The 0.50.1 CLI refused these laws
+  rather than reporting them proven. Quantified laws over scalar lists are now explicitly refused until value and
+  membership semantics are supported; laws over record items remain supported. Re-check and re-export affected laws.
+- `toLean` now refuses source laws whose translation was rejected or was not checked, rather than exporting the
+  substituted model theorem as if the source check had succeeded.
+- Corrected generated Lean proofs and axiom-report handling for ten previously failing export checks. Twelve
+  inherited jobs remain recorded as failures; they are not claimed to pass.
+- Source validation no longer loses its native observations when recording timing details. Python ordered-list
+  observations preserve the actual values and object identities instead of using symbolic positions as native data.
+- Proof search now rejects arithmetic intermediates outside the exact integer range, matching the proof checker's
+  existing restriction instead of proposing a certificate that the checker rejects.
+
 ## 0.50.1
 
 - **Paxos joins the every-size source-model results.** Lean checks the complete `paxos_epr` family
