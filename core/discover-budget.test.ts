@@ -143,3 +143,26 @@ test('a watchdog expiring after actual BudgetExpired cannot relabel work during 
   }finally{now.mockRestore();hook.mockRestore()}
  }
 })
+
+test('an owned discovery watchdog cannot hide exhausted ancestor work before child return',()=>{
+ const {r,law}=fixture()
+ let childEntered=false,returnedAfterChild=false,time=0,lateWatchdogReads=0
+ const now=spyOn(performance,'now').mockImplementation(()=>{if(time===100)lateWatchdogReads++;return time})
+ const hook=spyOn(r,'withSumsOf').mockImplementation(()=>{
+  childEntered=true
+  if(completeWorkProfile.enabled)workLedger.start('ticks',10_001)
+  else costs.fm+=10_001 // default mode must reach the own-watchdog-first path
+  time=100
+  return r
+ })
+ try{
+  expect(()=>withBudget(10,()=>{
+   discover(r,[law],[],undefined,{work:20_000,watchdogMs:10})
+   returnedAfterChild=true
+  })).toThrow(BudgetExpired)
+  expect(childEntered).toBe(true)
+  expect(returnedAfterChild).toBe(false)
+  if(!completeWorkProfile.enabled)expect(lateWatchdogReads).toBeGreaterThan(0)
+ }finally{now.mockRestore();hook.mockRestore()}
+ expect(()=>checkWorkEndpoint('restored')).not.toThrow()
+})

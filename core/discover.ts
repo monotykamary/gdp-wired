@@ -311,6 +311,7 @@ export function discover(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = [], firs
   catch (error) {
     if (!(error instanceof WatchdogExpired)) throw error
     checkWatchdog(error.termination.phase) // an expired ancestor must not return through this helper
+    checkBudget(error.termination.phase) // neither may a work owner hidden by the child's own watchdog
     // The final scope guard may observe expiry after the synchronous request
     // already finished. No search was interrupted then; retain its real result.
     if (completed) return completed
