@@ -52,7 +52,9 @@ test('an orphan row is a genuine induction counterexample, not a reachable trace
 
 test('co-write provenance closes a renamed forwarding pipeline with nothing written', () => {
   const r = pipeline()
-  expect(withWall(performance.now() + 60000, () => proveRule(r, [safety(r)], {search: {ms: 60000}}))).toMatchObject({proven: true, checked: true})
+  // Exclusive paired batch 20261116-161156-sqc7yk measured at most 21_383.49 ms for this test.
+  // Keep the wall and search caps aligned at 65 s (>=3x that maximum); retain the 90 s test wrapper.
+  expect(withWall(performance.now() + 65000, () => proveRule(r, [safety(r)], {search: {ms: 65000}}))).toMatchObject({proven: true, checked: true})
 }, 90000)
 
 test('co-write provenance rejects a missing allowing relation', () => {

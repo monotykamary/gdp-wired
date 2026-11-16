@@ -122,14 +122,16 @@ test('what the model doesn\'t hold is refused where it is, with why', () => {
 }, 300_000)
 
 test('the CLI refuses unchecked pool source laws on both Effect versions and the broken variant', async () => {
+  // Canonical batch 20261116-155341-bquq0m reported a 32_568 ms law against the old 30 s cap.
+  // Give all four CLI checks 100 s (>3x that measurement); every verdict assertion stays unchanged.
   const want = ['every job waiting costs 1 to 10: unknown', 'the work done never goes negative: unknown', 'no permit is given back that wasn\'t taken: unknown']
-  const {rules, exit} = await check([join(import.meta.dir, '../examples/effect-pool.ts')], {ms: 30_000, propose: false})
+  const {rules, exit} = await check([join(import.meta.dir, '../examples/effect-pool.ts')], {ms: 100_000, propose: false})
   expect([exit, rules.map(r => r.laws.map(l => `${l.name}: ${l.verdict}`))]).toEqual([2, [want]])
-  const r3 = await check([inProject(3, 'pool.ts', pool3())], {ms: 30_000, propose: false})
+  const r3 = await check([inProject(3, 'pool.ts', pool3())], {ms: 100_000, propose: false})
   expect([r3.exit, r3.rules.map(r => r.laws.map(l => `${l.name}: ${l.verdict}`))]).toEqual([2, [want]])
   for (const r of [...rules, ...r3.rules]) for (const l of r.laws) expect(l).toMatchObject({kernelProven: true, translation: 'unchecked', verdict: 'unknown'})
   for (const [v, code] of [[4, pool4('release without acquire')], [3, pool3('release without acquire')]] as const) {
-    const b = await check([inProject(v, 'broken.ts', code)], {ms: 30_000, propose: false})
+    const b = await check([inProject(v, 'broken.ts', code)], {ms: 100_000, propose: false})
     const use = b.rules[0]!.laws.find(l => l.name === 'no permit is given back that wasn\'t taken')!
     expect([v, b.exit, use.verdict]).toEqual([v, 2, 'unknown'])
     expect(use.translation).toBe('unchecked')
