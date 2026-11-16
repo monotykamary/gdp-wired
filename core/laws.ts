@@ -41,6 +41,10 @@ export type LawText = {name: string, expr: string, where?: string, line?: number
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Built = {kind: 'law' | 'step', law: any, method?: string}
 export class LawError extends Error {}
+export class ScalarListQuantifierError extends LawError {
+  readonly shape = 'scalar-ordered-list-quantification'
+  constructor() { super('forall over a scalar ordered list is not supported: list values and membership must not be replaced by position keys') }
+}
 
 // --- reading the code's text -------------------------------------------------------------------------------------------
 // Every law stated in a file's text, with its line.
@@ -271,6 +275,9 @@ function read(e: X, c: Ctx, names: Name[], dry: boolean): unknown {
     const overs = chain.map(f => {
       const over = val(f.over, c, names, dry)
       if (over.t !== 'map') throw new LawError(`forall ${f.v} in ...: over a map (a dict, a Map, a hash) or a list`)
+      // Record identity is represented by its stable key. A scalar value is not:
+      // neither its comparisons nor membership may silently use that position.
+      if (over.n.map?.ordered && over.n.map.scalar !== false) throw new ScalarListQuantifierError()
       return {over, env: f.over.k === 'old' || !c.step ? c.b : c.a}
     })
     if (dry) { for (const f of chain) c.keys.set(f.v, new Term({op: 'const', value: 0})); return cond(val(body, c, names, true), c.strictOptional) }

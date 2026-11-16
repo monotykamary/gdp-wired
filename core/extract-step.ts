@@ -28,6 +28,7 @@ import * as I from './extract-ir.ts'
 import type {B, K, L, N} from './extract-ir.ts'
 import {type Arg, type Event, type Layout, type Fold, type LeastRead, type MapDecl, type Model, Refusal, type Term, type Var, mergeOps, mergeWrites} from './extract-read.ts'
 import {type Extraction, type Name, fromModel} from './extract.ts'
+import {nativeWireDecoder} from './native-wire.ts'
 import type {Rule} from './dsl.ts'
 import {type Sorts, nonneg} from './extract-print.ts'
 import {type CodeSide, type Coverage, type Evidence, type Snap, HarnessFailure, Outside, constantsOf, draw, drive, evalTerm, noEvidence, retried, tiesIn} from './extract-check.ts'
@@ -4678,6 +4679,7 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
     }
     const hi = ask({op: 'hello', ...h.hello, naiveUtc: read.naiveUtc, leaves: read.leaves, ctor: read.ctor, answers: read.answers, kept: read.kept, cls: read.cls ?? null, stores: read.stores, arms: read.arms, discard: opts.onError === 'discard', ...(read.inject ? {inject: read.inject} : {}), ...(read.globals ? {globals: read.globals} : {}), ...(read.inert ? {inert: read.inert} : {}), ...(opts.fields ? {fields: opts.fields} : {})})
     if (hi.error) return {...empty, mismatch: `the code doesn't load with the check's harness: ${JSON.stringify(hi.error)}`}
+    const native = hi.nativeSnapshot === 1 && read.leaves.some(l => l.ordered) ? nativeWireDecoder() : undefined
     const num = (x: unknown, at: string): number => { const n = Number(x); if (typeof x === 'string' && Number.isSafeInteger(n) && String(n) === x) return n; throw new Outside(`${at} is ${String(x)}`) }
     const toSnap = (s: Record<string, unknown>): Snap => {
       const leaves: Record<string, Raw> = {}, maps: Snap['maps'] = {}
@@ -4729,6 +4731,11 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
         }
         return {ok: true, value: o}
       },
+      ...(native ? {nativeState: (self: unknown) => {
+        const result = ask({op: 'native', id: self})
+        if (result.error) throw new Error(`native snapshot: ${JSON.stringify(result.error)}`)
+        return native(result.snapshot)
+      }} : {}),
       args: (inputs, e) => { inputsNow = inputs; return (read.args[e.call] ?? []).map(([n, a]) => [n, build(a, inputs)]) },
       setNow: n => { now = n },
       coverage: () => (coverage ??= closeAndCount()),
@@ -4831,7 +4838,7 @@ export function stepNames(read: StepRead): Name[] {
   const out: Name[] = [], m = read.model, at = (code: string) => out.find(n => n.code === code && n.role === 'state')
   for (const l of read.leaves) {
     const code = l.path.join('.')
-    if (l.kind === 'map') out.push({code: l.orm ? l.name : l.store ?? code, rule: l.name, role: 'state', map: {fields: m.maps.find(d => d.name === l.name)?.fields.map(f => f.name) ?? [], ...(l.orm ? {store: l.orm.rec, tpl: '{}'} : l.store ? {store: l.store, tpl: l.tpl ?? '{}'} : {}), ...(l.ordered ? {ordered: true} : {})}})
+    if (l.kind === 'map') out.push({code: l.orm ? l.name : l.store ?? code, rule: l.name, role: 'state', map: {fields: m.maps.find(d => d.name === l.name)?.fields.map(f => f.name) ?? [], ...(l.orm ? {store: l.orm.rec, tpl: '{}'} : l.store ? {store: l.store, tpl: l.tpl ?? '{}'} : {}), ...(l.ordered ? {ordered: true, scalar: m.maps.find(d => d.name === l.name)?.scalar === true} : {})}})
     else if (l.kind === 'none') { const n = at(code); if (n) n.none = l.name; else out.push({code, rule: '', role: 'state', none: l.name}) }
     else if (l.kind !== 'frame') out.push({code, rule: l.name, role: 'state'})
   }

@@ -112,7 +112,7 @@ export type Extraction = {
 // qualified name), a method's result, whether the step failed. `none`: the rule's flag for the code's value being
 // None, nil or null; `map`: a map's cell fields (`value` for a map of scalars) and, for a store, its key's template.
 export type Name = {code: string, rule: string, role: 'state' | 'param' | 'input' | 'answer' | 'result' | 'failed' | 'method' | 'clock' | 'const',
-  method?: string, none?: string, value?: number, map?: {fields: string[], store?: string, tpl?: string, ordered?: boolean}}
+  method?: string, none?: string, value?: number, map?: {fields: string[], store?: string, tpl?: string, ordered?: boolean, scalar?: boolean}}
 // The names of a model read from TypeScript (the state's layout, each request's arguments, each method's result).
 export function namesOf(m: Model): Name[] {
   const out: Name[] = [], fields = (n: string) => m.maps.find(d => d.name === n)?.fields.map(f => f.name) ?? []

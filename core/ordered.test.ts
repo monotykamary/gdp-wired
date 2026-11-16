@@ -112,13 +112,16 @@ const QUEUE = `class Queue:
         return self.items[-1]
 `
 
-t('a queue of numbers: the first and last items, pop(0), checked against the code; a take removes the first item', async () => {
+t('a queue of numbers: native FIFO operations checked; scalar-list source quantifiers refused', async () => {
   const f = file(QUEUE), x = extractPython(f, {check: {runs: 40, depth: 8, states: 80}})
   if (!x.ok) throw new Error(JSON.stringify(x.refusals))
   expect(x.evidence!.mismatch).toBeUndefined()
   expect(x.evidence!.requests).toBeGreaterThan(100)
   const {rules} = await check([f], {ms: 20_000, propose: false})
-  expect(rules[0]!.laws.map(l => [l.name, l.verdict])).toEqual([['a take removes the first item', 'proven'], ['a take keeps the others', 'proven']])
+  // Numeric values are not their insertion positions: [2, 1] falsifies the first
+  // claim. Both quantified scalar-list shapes stay unsupported, not proven.
+  expect(rules[0]!.laws.map(l => [l.name, l.verdict])).toEqual([['a take removes the first item', 'not read'], ['a take keeps the others', 'not read']])
+  for (const law of rules[0]!.laws) expect(law.why).toContain('scalar ordered list')
 }, 300_000)
 
 t('refused, each where it is: a list read past its first and last place, a lambda elsewhere, a least read after a write', () => {

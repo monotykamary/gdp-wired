@@ -12,6 +12,7 @@ CUR = {}
 EFF = {}
 HIT = set()
 S = {}
+NATIVE_OBJECTS = {}
 
 def datetime_in(v, unit):
   epoch = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc if unit == 'datetime-utc' else None)
@@ -591,7 +592,7 @@ def hello(req):
   S['cls'] = getattr(mod, req['cls'].rpartition('.')[2]) if req.get('cls') else None
   S['loop'] = asyncio.new_event_loop()
   asyncio.set_event_loop(S['loop'])
-  return {'ok': True}
+  return {'ok': True, 'nativeSnapshot': 1}
 
 def make(args):
   global OBJ_STORES
@@ -659,6 +660,38 @@ def call(req):
     if after.get(k) != before[k]: return {'frame': k}
   return {'out': tag(out), **({'err': err} if err is not None else {}), **({'effects': dict(EFF)} if EFF else {})}
 
+# Native observation transport for ordered containers. Retain real references
+# so Python cannot recycle an address and manufacture cross-snapshot identity.
+def native_state(obj):
+  seen = set()
+  count = [0]
+  def encode(value, names=None):
+    count[0] += 1
+    if count[0] > 10000: raise ValueError('native snapshot exceeds node bound')
+    if value is None or isinstance(value, (str, bool)): return value
+    if isinstance(value, (int, float)):
+      if not (-9007199254740991 <= value <= 9007199254740991) or int(value) != value:
+        raise ValueError('native snapshot number is outside exact integer range')
+      return int(value)
+    address = id(value)
+    if address not in NATIVE_OBJECTS:
+      if len(NATIVE_OBJECTS) >= 100000: raise ValueError('native snapshot exceeds identity bound')
+      NATIVE_OBJECTS[address] = (value, str(len(NATIVE_OBJECTS) + 1))
+    ident = NATIVE_OBJECTS[address][1]
+    if ident in seen: return {'kind': 'ref', 'id': ident}
+    seen.add(ident)
+    if isinstance(value, list):
+      return {'kind': 'array', 'id': ident, 'items': [encode(x) for x in value]}
+    if isinstance(value, dict):
+      if any(not isinstance(k, (str, int, float)) or isinstance(k, bool) for k in value):
+        raise ValueError('unsupported native snapshot map key')
+      return {'kind': 'map', 'id': ident, 'items': [[encode(k), encode(v)] for k, v in value.items()]}
+    fields = vars(value)
+    if names is not None: fields = {name: fields[name] for name in names}
+    return {'kind': 'object', 'id': ident, 'items': [[k, encode(v)] for k, v in fields.items()]}
+  roots = sorted({l['path'][0] for l in S['leaves'] if l.get('path') and l['kind'] != 'frame'})
+  return {'version': 1, 'root': encode(obj, roots)}
+
 def main():
   fin = open(sys.argv[1], 'r'); fout = open(sys.argv[2], 'w')
   for line in fin:
@@ -683,6 +716,7 @@ def main():
       elif op == 'get':
         obj, stores = OBJS[req['id']]
         res = {'state': state_of(obj, stores)}
+      elif op == 'native': res = {'snapshot': native_state(OBJS[req['id']][0])}
       elif op == 'call': res = call(req)
       elif op == 'coverage': res = {'hit': sorted(HIT)}
       else: res = {'error': f"no op {op}"}
