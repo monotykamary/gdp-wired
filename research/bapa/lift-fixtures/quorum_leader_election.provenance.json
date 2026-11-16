@@ -1,0 +1,12 @@
+{
+  "schema": "gdp-lift-fixture/v1",
+  "id": "quorum_leader_election",
+  "scope": "frozen-capsule-original",
+  "captureSha256": "26190ed5247317ec80f418e9218cbce744daf79cff12ce139b67326c0f0f9c32",
+  "sourceSha256": "abeb5da5eeb400a05190cb8b07c952900ea145b8327da0250d02223e750194e9",
+  "encodedSourceSha256": "491bae117f2bf24defbc6df7b964499aa5787a6f48e156377b215ce8df5670ee",
+  "allSizesProven": false,
+  "independentTlaVerification": false,
+  "noSearch": true,
+  "noLean": true
+}

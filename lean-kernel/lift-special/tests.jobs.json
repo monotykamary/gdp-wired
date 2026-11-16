@@ -1,0 +1,12 @@
+[
+  {
+    "name":"bound-inclusion-unit-native","cpu":2,"memory":8192,"timeout":1800,
+    "required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1},
+    "cmd":"set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun lean-kernel/lift-special/export-source-fixture.ts \"$OUT/current-toy-source.json\" > \"$OUT/source-fixture.log\"; status=0; bunx tsc -p lean-kernel/lift-special/tsconfig.json > \"$OUT/types.log\" 2>&1 || status=$?; BOUND_INCLUSION_TINY=\"$OUT/project\" bun test lean-kernel/lift-special/bound-inclusion.test.ts > \"$OUT/tests.log\" 2>&1; cd \"$OUT/project\"; lake build > \"$OUT/lean.log\" 2>&1; lake env lean BapaProof.lean >> \"$OUT/lean.log\" 2>&1; rm -rf .lake; exit $status"
+  },
+  {
+    "name":"structural-weakening-native","cpu":2,"memory":8192,"timeout":1800,
+    "required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1},
+    "cmd":"set -euo pipefail; OUT=$SUPERCOMPUTER_OUTPUT_DIR; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun lean-kernel/lift-special/prepare-helper.ts \"$OUT/project\"; cd \"$OUT/project\"; lake build > \"$OUT/lean.log\" 2>&1; lake env lean BapaProof.lean >> \"$OUT/lean.log\" 2>&1; lake env lean StructuralWeakening.lean >> \"$OUT/lean.log\" 2>&1; rm -rf .lake"
+  }
+]

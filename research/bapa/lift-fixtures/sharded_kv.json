@@ -1,0 +1,1052 @@
+{
+  "schema": "gdp-lift-source/v1",
+  "id": "sharded_kv",
+  "machine": {
+    "name": "sharded kv",
+    "params": [
+      "nodes",
+      "keys",
+      "values"
+    ],
+    "inputs": [
+      "op",
+      "n",
+      "k",
+      "v",
+      "n2"
+    ],
+    "state": {
+      "started": {
+        "op": "const",
+        "value": 0
+      }
+    },
+    "maps": {
+      "Table": 0,
+      "Owned": 0,
+      "Owner": 0,
+      "TransferMsg": 0
+    },
+    "step": {
+      "flags": {
+        "unowned": {
+          "op": "all",
+          "key": "k$3",
+          "c": {
+            "op": "or",
+            "xs": [
+              {
+                "op": "not",
+                "x": {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "k$3"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "nodes"
+                  }
+                }
+              },
+              {
+                "op": "not",
+                "x": {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 1
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "Owner",
+                    "key": {
+                      "op": "tup",
+                      "a": {
+                        "op": "var",
+                        "name": "k"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "k$3"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "allOwned": {
+          "op": "<=",
+          "a": {
+            "op": "const",
+            "value": 0
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        },
+        "owns": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "flag",
+              "name": "unowned"
+            }
+          ]
+        },
+        "starts": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "flag",
+              "name": "allOwned"
+            }
+          ]
+        },
+        "reshards": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 2
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "Table",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "n"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "k"
+                  }
+                }
+              },
+              "b": {
+                "op": "add",
+                "a": {
+                  "op": "var",
+                  "name": "v"
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              }
+            }
+          ]
+        },
+        "receives": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 3
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "TransferMsg",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "n"
+                  },
+                  "b": {
+                    "op": "tup",
+                    "a": {
+                      "op": "var",
+                      "name": "k"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "v"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "puts": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 4
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "Owner",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "k"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "n"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "state": {
+        "started": {
+          "op": "if",
+          "c": {
+            "op": "flag",
+            "name": "starts"
+          },
+          "then": {
+            "op": "const",
+            "value": 1
+          },
+          "else": {
+            "op": "var",
+            "name": "started"
+          }
+        }
+      },
+      "maps": {
+        "Table": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "n"
+            },
+            "b": {
+              "op": "var",
+              "name": "k"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "reshards"
+            },
+            "then": {
+              "op": "const",
+              "value": 0
+            },
+            "else": {
+              "op": "if",
+              "c": {
+                "op": "or",
+                "xs": [
+                  {
+                    "op": "flag",
+                    "name": "receives"
+                  },
+                  {
+                    "op": "flag",
+                    "name": "puts"
+                  }
+                ]
+              },
+              "then": {
+                "op": "add",
+                "a": {
+                  "op": "var",
+                  "name": "v"
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              },
+              "else": {
+                "op": "get",
+                "map": "Table",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "n"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "k"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Owner": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "k"
+            },
+            "b": {
+              "op": "var",
+              "name": "n"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "flag",
+                  "name": "owns"
+                },
+                {
+                  "op": "flag",
+                  "name": "receives"
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "if",
+              "c": {
+                "op": "flag",
+                "name": "reshards"
+              },
+              "then": {
+                "op": "const",
+                "value": 0
+              },
+              "else": {
+                "op": "get",
+                "map": "Owner",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "k"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "n"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "TransferMsg": {
+          "each": "k$4",
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "and",
+                      "xs": [
+                        {
+                          "op": "flag",
+                          "name": "reshards"
+                        },
+                        {
+                          "op": "=",
+                          "a": {
+                            "op": "proj",
+                            "k": 0,
+                            "a": {
+                              "op": "var",
+                              "name": "k$4"
+                            }
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "n2"
+                          }
+                        },
+                        {
+                          "op": "=",
+                          "a": {
+                            "op": "proj",
+                            "k": 0,
+                            "a": {
+                              "op": "proj",
+                              "k": 1,
+                              "a": {
+                                "op": "var",
+                                "name": "k$4"
+                              }
+                            }
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "k"
+                          }
+                        },
+                        {
+                          "op": "=",
+                          "a": {
+                            "op": "proj",
+                            "k": 1,
+                            "a": {
+                              "op": "proj",
+                              "k": 1,
+                              "a": {
+                                "op": "var",
+                                "name": "k$4"
+                              }
+                            }
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "v"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 1
+                      },
+                      "b": {
+                        "op": "get",
+                        "map": "TransferMsg",
+                        "key": {
+                          "op": "tup",
+                          "a": {
+                            "op": "proj",
+                            "k": 0,
+                            "a": {
+                              "op": "var",
+                              "name": "k$4"
+                            }
+                          },
+                          "b": {
+                            "op": "tup",
+                            "a": {
+                              "op": "proj",
+                              "k": 0,
+                              "a": {
+                                "op": "proj",
+                                "k": 1,
+                                "a": {
+                                  "op": "var",
+                                  "name": "k$4"
+                                }
+                              }
+                            },
+                            "b": {
+                              "op": "proj",
+                              "k": 1,
+                              "a": {
+                                "op": "proj",
+                                "k": 1,
+                                "a": {
+                                  "op": "var",
+                                  "name": "k$4"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "and",
+                        "xs": [
+                          {
+                            "op": "flag",
+                            "name": "reshards"
+                          },
+                          {
+                            "op": "=",
+                            "a": {
+                              "op": "proj",
+                              "k": 0,
+                              "a": {
+                                "op": "var",
+                                "name": "k$4"
+                              }
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "n2"
+                            }
+                          },
+                          {
+                            "op": "=",
+                            "a": {
+                              "op": "proj",
+                              "k": 0,
+                              "a": {
+                                "op": "proj",
+                                "k": 1,
+                                "a": {
+                                  "op": "var",
+                                  "name": "k$4"
+                                }
+                              }
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "k"
+                            }
+                          },
+                          {
+                            "op": "=",
+                            "a": {
+                              "op": "proj",
+                              "k": 1,
+                              "a": {
+                                "op": "proj",
+                                "k": 1,
+                                "a": {
+                                  "op": "var",
+                                  "name": "k$4"
+                                }
+                              }
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "v"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "and",
+                        "xs": [
+                          {
+                            "op": "flag",
+                            "name": "receives"
+                          },
+                          {
+                            "op": "=",
+                            "a": {
+                              "op": "proj",
+                              "k": 0,
+                              "a": {
+                                "op": "var",
+                                "name": "k$4"
+                              }
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "n"
+                            }
+                          },
+                          {
+                            "op": "=",
+                            "a": {
+                              "op": "proj",
+                              "k": 0,
+                              "a": {
+                                "op": "proj",
+                                "k": 1,
+                                "a": {
+                                  "op": "var",
+                                  "name": "k$4"
+                                }
+                              }
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "k"
+                            }
+                          },
+                          {
+                            "op": "=",
+                            "a": {
+                              "op": "proj",
+                              "k": 1,
+                              "a": {
+                                "op": "proj",
+                                "k": 1,
+                                "a": {
+                                  "op": "var",
+                                  "name": "k$4"
+                                }
+                              }
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "v"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "Owned": {
+          "key": {
+            "op": "var",
+            "name": "k"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "owns"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "owns"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "Owned",
+                        "key": {
+                          "op": "var",
+                          "name": "k"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        }
+      }
+    },
+    "assume": {
+      "op": "and",
+      "xs": [
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 5
+          }
+        },
+        {
+          "op": "and",
+          "xs": [
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "n"
+              },
+              "b": {
+                "op": "var",
+                "name": "nodes"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "n2"
+              },
+              "b": {
+                "op": "var",
+                "name": "nodes"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "k"
+              },
+              "b": {
+                "op": "var",
+                "name": "keys"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "v"
+              },
+              "b": {
+                "op": "var",
+                "name": "values"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "relations": {
+      "Owner": [
+        "Key",
+        "Node"
+      ],
+      "TransferMsg": [
+        "Node",
+        "Key",
+        "Value"
+      ]
+    }
+  },
+  "laws": [
+    {
+      "name": "one value per key",
+      "forall": "key$2",
+      "keys": [
+        "key$3",
+        "key$4",
+        "key$5",
+        "key$6"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "nodes"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$3"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "nodes"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$4"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "keys"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$5"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "values"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$6"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "values"
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "Table",
+                    "key": {
+                      "op": "tup",
+                      "a": {
+                        "op": "var",
+                        "name": "key$2"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "key$4"
+                      }
+                    }
+                  },
+                  "b": {
+                    "op": "add",
+                    "a": {
+                      "op": "var",
+                      "name": "key$5"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "Table",
+                    "key": {
+                      "op": "tup",
+                      "a": {
+                        "op": "var",
+                        "name": "key$3"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "key$4"
+                      }
+                    }
+                  },
+                  "b": {
+                    "op": "add",
+                    "a": {
+                      "op": "var",
+                      "name": "key$6"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "op": "and",
+            "xs": [
+              {
+                "op": "=",
+                "a": {
+                  "op": "var",
+                  "name": "key$2"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "key$3"
+                }
+              },
+              {
+                "op": "=",
+                "a": {
+                  "op": "var",
+                  "name": "key$5"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "key$6"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

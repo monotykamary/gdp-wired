@@ -1,0 +1,21 @@
+{
+  "schema": "gdp-lift-fixture/v1",
+  "id": "simple_decentralized_lock",
+  "scope": "current-accepted-source",
+  "origin": "lean-kernel/lift-simulation/runs/frozen-snapshot-01/radix-shape-and-generic-lemmas-frozen.files/source.json",
+  "originSha256": "98529865da3a5cf745d7689b49abf025e56bb5b32f4b8080dd694a8dca564753",
+  "sourceSha256": "3247b33c6304cedcdd23cb990c6c1b8616b13e28e3e6781f5ccedadac4bddb2c",
+  "namingOnlyChanges": {
+    "theorems": {
+      "family": "Bapa.SdlConcrete.Checked.family",
+      "source": [
+        "bapa_simple_decentralized_lock_source_law"
+      ]
+    }
+  },
+  "sourceAcceptance": "PENDING_NATIVE_SOURCE_BRIDGE",
+  "allSizesProven": false,
+  "independentTlaVerification": false,
+  "noSearch": true,
+  "noLean": true
+}

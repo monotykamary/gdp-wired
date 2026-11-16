@@ -1,0 +1,6 @@
+feat(lean): add a unified retained-proof lift pipeline
+
+Select source transports structurally from data-only retained capsules.
+Ship the generic transport proofs in the product Lean library.
+Preserve complete families, source laws, names, and strict axiom checks.
+Add hash-bound regression fixtures and installed-package coverage.

@@ -1,0 +1,233 @@
+{
+  "schema": "gdp-lift-source/v1",
+  "id": "consensus",
+  "machine": {
+    "name": "consensus",
+    "params": [
+      "values"
+    ],
+    "inputs": [
+      "v"
+    ],
+    "state": {},
+    "maps": {
+      "Chosen": 0
+    },
+    "step": {
+      "flags": {
+        "none": {
+          "op": "all",
+          "key": "k$1",
+          "c": {
+            "op": "or",
+            "xs": [
+              {
+                "op": "not",
+                "x": {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "k$1"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "values"
+                  }
+                }
+              },
+              {
+                "op": "not",
+                "x": {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "Chosen",
+                    "key": {
+                      "op": "var",
+                      "name": "k$1"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "chooses": {
+          "op": "flag",
+          "name": "none"
+        }
+      },
+      "maps": {
+        "Chosen": {
+          "key": {
+            "op": "var",
+            "name": "v"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "chooses"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "chooses"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "Chosen",
+                        "key": {
+                          "op": "var",
+                          "name": "v"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        }
+      }
+    },
+    "assume": {
+      "op": "<",
+      "a": {
+        "op": "var",
+        "name": "v"
+      },
+      "b": {
+        "op": "var",
+        "name": "values"
+      }
+    }
+  },
+  "laws": [
+    {
+      "name": "at most one value chosen",
+      "forall": "key$2",
+      "keys": [
+        "key$3"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "values"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$3"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "values"
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "Chosen",
+                    "key": {
+                      "op": "var",
+                      "name": "key$2"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "Chosen",
+                    "key": {
+                      "op": "var",
+                      "name": "key$3"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "op": "=",
+            "a": {
+              "op": "var",
+              "name": "key$2"
+            },
+            "b": {
+              "op": "var",
+              "name": "key$3"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+[
+  {
+    "name": "typed-public",
+    "cpu": 2,
+    "memory": 16384,
+    "timeout": 2700,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cmd": "set -euo pipefail; ROOT=$PWD; OUT=$SUPERCOMPUTER_OUTPUT_DIR; trap 'rm -rf \"$OUT/project/.lake\"' EXIT; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts > \"$OUT/library.log\" 2>&1; bun lean-kernel/lift-typed/public-test.ts > \"$OUT/public.log\" 2>&1; cd \"$OUT/project\"; lake env lean TypedControls.lean > \"$OUT/typed-controls.log\" 2>&1; lake env lean FullRoleControl.lean > \"$OUT/full-role-control.log\" 2>&1; printf \"PUBLIC_CLI_AND_NEGATIVE_CONTROLS_CHECKED\\n\" > \"$OUT/SUCCESS.txt\""
+  }
+]

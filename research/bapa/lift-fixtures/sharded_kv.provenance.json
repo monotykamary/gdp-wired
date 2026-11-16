@@ -1,0 +1,12 @@
+{
+  "schema": "gdp-lift-fixture/v1",
+  "id": "sharded_kv",
+  "scope": "frozen-capsule-original",
+  "captureSha256": "a1885c7c4098ee59f7bfb7d67fff7b379be293f7baa8343b1c8c61c34c4185b2",
+  "sourceSha256": "0492659f026b113e299c09a2e0746e0a776f8147ae5503337f9ab62f4599c185",
+  "encodedSourceSha256": "f815a1dd4bb39b8a2a89ae60d29527593c5dc5d44874bfd33566e6c51bd13c51",
+  "allSizesProven": false,
+  "independentTlaVerification": false,
+  "noSearch": true,
+  "noLean": true
+}

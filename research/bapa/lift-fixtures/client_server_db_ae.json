@@ -1,0 +1,934 @@
+{
+  "schema": "gdp-lift-source/v1",
+  "id": "client_server_db_ae",
+  "machine": {
+    "name": "client server db ae",
+    "params": [
+      "nodes",
+      "requestSize",
+      "responses",
+      "ids"
+    ],
+    "inputs": [
+      "op",
+      "n",
+      "r",
+      "p",
+      "i"
+    ],
+    "state": {
+      "started": {
+        "op": "const",
+        "value": 0
+      }
+    },
+    "maps": {
+      "Match": 0,
+      "RequestSent": 0,
+      "ResponseSent": 0,
+      "ResponseReceived": 0,
+      "DbRequestSent": 0,
+      "DbResponseSent": 0,
+      "T": 0
+    },
+    "step": {
+      "flags": {
+        "noneWithId": {
+          "op": "all",
+          "key": "k$1",
+          "c": {
+            "op": "or",
+            "xs": [
+              {
+                "op": "not",
+                "x": {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "k$1"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "nodes"
+                  }
+                }
+              },
+              {
+                "op": "not",
+                "x": {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 1
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "T",
+                    "key": {
+                      "op": "tup",
+                      "a": {
+                        "op": "var",
+                        "name": "i"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "k$1"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "matches": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            }
+          ]
+        },
+        "starts": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            }
+          ]
+        },
+        "requests": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 2
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            }
+          ]
+        },
+        "receives": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 3
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "ResponseSent",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "n"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "p"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "serverRequests": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 4
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "RequestSent",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "n"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "r"
+                  }
+                }
+              }
+            },
+            {
+              "op": "flag",
+              "name": "noneWithId"
+            }
+          ]
+        },
+        "dbResponds": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 5
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "DbRequestSent",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "i"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "r"
+                  }
+                }
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "Match",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "r"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "p"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "serverResponds": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 6
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "DbResponseSent",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "i"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "p"
+                  }
+                }
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "T",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "i"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "n"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "state": {
+        "started": {
+          "op": "if",
+          "c": {
+            "op": "flag",
+            "name": "starts"
+          },
+          "then": {
+            "op": "const",
+            "value": 1
+          },
+          "else": {
+            "op": "var",
+            "name": "started"
+          }
+        }
+      },
+      "maps": {
+        "Match": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "r"
+            },
+            "b": {
+              "op": "var",
+              "name": "p"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "matches"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "Match",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "r"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "p"
+                }
+              }
+            }
+          }
+        },
+        "RequestSent": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "n"
+            },
+            "b": {
+              "op": "var",
+              "name": "r"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "requests"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "RequestSent",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "n"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "r"
+                }
+              }
+            }
+          }
+        },
+        "ResponseSent": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "n"
+            },
+            "b": {
+              "op": "var",
+              "name": "p"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "serverResponds"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "ResponseSent",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "n"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "p"
+                }
+              }
+            }
+          }
+        },
+        "ResponseReceived": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "n"
+            },
+            "b": {
+              "op": "var",
+              "name": "p"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "receives"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "ResponseReceived",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "n"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "p"
+                }
+              }
+            }
+          }
+        },
+        "DbRequestSent": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "i"
+            },
+            "b": {
+              "op": "var",
+              "name": "r"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "serverRequests"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "DbRequestSent",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "i"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "r"
+                }
+              }
+            }
+          }
+        },
+        "DbResponseSent": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "i"
+            },
+            "b": {
+              "op": "var",
+              "name": "p"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "dbResponds"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "DbResponseSent",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "i"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "p"
+                }
+              }
+            }
+          }
+        },
+        "T": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "i"
+            },
+            "b": {
+              "op": "var",
+              "name": "n"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "serverRequests"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "T",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "i"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "n"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "assume": {
+      "op": "and",
+      "xs": [
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 7
+          }
+        },
+        {
+          "op": "and",
+          "xs": [
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "n"
+              },
+              "b": {
+                "op": "var",
+                "name": "nodes"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "r"
+              },
+              "b": {
+                "op": "var",
+                "name": "requestSize"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "p"
+              },
+              "b": {
+                "op": "var",
+                "name": "responses"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "i"
+              },
+              "b": {
+                "op": "var",
+                "name": "ids"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "relations": {
+      "Match": [
+        "Request",
+        "Response"
+      ],
+      "RequestSent": [
+        "Node",
+        "Request"
+      ],
+      "ResponseSent": [
+        "Node",
+        "Response"
+      ],
+      "ResponseReceived": [
+        "Node",
+        "Response"
+      ],
+      "DbRequestSent": [
+        "DbRequestId",
+        "Request"
+      ],
+      "DbResponseSent": [
+        "DbRequestId",
+        "Response"
+      ],
+      "T": [
+        "DbRequestId",
+        "Node"
+      ]
+    }
+  },
+  "laws": [
+    {
+      "name": "a received response was matched",
+      "forall": "key$2",
+      "keys": [
+        "key$3"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "nodes"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$3"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "responses"
+                  }
+                },
+                {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 1
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "ResponseReceived",
+                    "key": {
+                      "op": "tup",
+                      "a": {
+                        "op": "var",
+                        "name": "key$2"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "key$3"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "op": "and",
+            "xs": [
+              {
+                "op": "<",
+                "a": {
+                  "op": "var",
+                  "name": "some$2"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "requestSize"
+                }
+              },
+              {
+                "op": "<=",
+                "a": {
+                  "op": "const",
+                  "value": 1
+                },
+                "b": {
+                  "op": "get",
+                  "map": "RequestSent",
+                  "key": {
+                    "op": "tup",
+                    "a": {
+                      "op": "var",
+                      "name": "key$2"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "some$2"
+                    }
+                  }
+                }
+              },
+              {
+                "op": "<=",
+                "a": {
+                  "op": "const",
+                  "value": 1
+                },
+                "b": {
+                  "op": "get",
+                  "map": "Match",
+                  "key": {
+                    "op": "tup",
+                    "a": {
+                      "op": "var",
+                      "name": "some$2"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "key$3"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "some": [
+        "some$2"
+      ]
+    }
+  ],
+  "theorems": {
+    "family": "p3_family",
+    "source": [
+      "bapa_client_server_db_ae_source"
+    ]
+  }
+}

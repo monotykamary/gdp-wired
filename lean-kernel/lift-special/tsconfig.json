@@ -1,0 +1,1 @@
+{"compilerOptions":{"target":"esnext","module":"preserve","moduleResolution":"bundler","allowImportingTsExtensions":true,"noEmit":true,"strict":true,"skipLibCheck":true,"types":["node","bun"]},"files":["index.ts","structural.ts","bound-inclusion.test.ts"]}

@@ -799,6 +799,7 @@ function printRule(r: RuleOut, o: Opts) {
 const label = (n: Name) => (n.role === 'answer' ? `${n.code.split('.').pop()}(...)` : n.role === 'input' && n.method ? `${n.method}(${n.code})` : n.role === 'result' && n.method ? `${n.method}() result` : n.code)
 
 const USAGE = `gdp-wired check <file|dir>... [--entry X] [--mode standalone] [--methods a,b] [--failures kept] [--on-error discard] [--json] [--ms 10000] [--no-propose] [--clock s|ms] [--cert <dir>] [--from any] [--require-review] [--security]
+gdp-wired lift <capsule> <source.json> [--out DIR] [--emit-only] [--sha256 HASH] [--json]
 gdp-wired mutate <config.json> [--json]
 gdp-wired draft <file> --clause <text> | --clause-file <file> --cite <ref> [--llm <command> | --answer <file>] [--by <who>]
 
@@ -852,6 +853,7 @@ async function draft(target: string, o: Opts): Promise<number> {
 // Every target's rules and their laws, and the exit code (1: a stated law broken; 2: one not checked, or with
 // --require-review, one cited unreviewed).
 export async function main(argv: string[]): Promise<number> {
+  if (argv[0] === 'lift') return (await import('./lift-cli.ts')).liftMain(argv.slice(1))
   const {cmd, targets, o} = args(argv)
   if (cmd === 'mutate' && targets.length === 1) {
     const {checkMutations} = await import('./mutate.ts')

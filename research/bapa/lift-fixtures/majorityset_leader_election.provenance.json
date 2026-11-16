@@ -1,0 +1,12 @@
+{
+  "schema": "gdp-lift-fixture/v1",
+  "id": "majorityset_leader_election",
+  "scope": "frozen-capsule-original",
+  "captureSha256": "ffd934042e82796eec2b13f7b7a81332995dd37a60d2ecfe62b44da37b8ba0dc",
+  "sourceSha256": "639c6e0741eae711bcd08d1f685bb9df4e8d6f45ec7540ff53d35c3acec13fce",
+  "encodedSourceSha256": "cb7b76d5730ecb3840ecd6ea5d3b9479c160e55af8900876ef4c84a6b2191e55",
+  "allSizesProven": false,
+  "independentTlaVerification": false,
+  "noSearch": true,
+  "noLean": true
+}

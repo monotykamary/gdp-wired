@@ -1,0 +1,1285 @@
+{
+  "schema": "gdp-lift-source/v1",
+  "id": "two_phase_commit",
+  "machine": {
+    "name": "two-phase commit",
+    "params": [
+      "size"
+    ],
+    "inputs": [
+      "op",
+      "n",
+      "w"
+    ],
+    "state": {
+      "abortFlag": {
+        "op": "const",
+        "value": 0
+      }
+    },
+    "maps": {
+      "VoteYes": 0,
+      "VoteNo": 0,
+      "Alive": 1,
+      "GoCommit": 0,
+      "GoAbort": 0,
+      "DecideCommit": 0,
+      "DecideAbort": 0
+    },
+    "step": {
+      "flags": {
+        "noGo": {
+          "op": "all",
+          "key": "k$1",
+          "c": {
+            "op": "or",
+            "xs": [
+              {
+                "op": "not",
+                "x": {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "k$1"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                }
+              },
+              {
+                "op": "and",
+                "xs": [
+                  {
+                    "op": "not",
+                    "x": {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "GoCommit",
+                        "key": {
+                          "op": "var",
+                          "name": "k$1"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  },
+                  {
+                    "op": "not",
+                    "x": {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "GoAbort",
+                        "key": {
+                          "op": "var",
+                          "name": "k$1"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "allYes": {
+          "op": "all",
+          "key": "k$2",
+          "c": {
+            "op": "or",
+            "xs": [
+              {
+                "op": "not",
+                "x": {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "k$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                }
+              },
+              {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "VoteYes",
+                  "key": {
+                    "op": "var",
+                    "name": "k$2"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              }
+            ]
+          }
+        },
+        "v1": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "Alive",
+                "key": {
+                  "op": "var",
+                  "name": "n"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "not",
+              "x": {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "VoteNo",
+                  "key": {
+                    "op": "var",
+                    "name": "n"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              }
+            },
+            {
+              "op": "not",
+              "x": {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "DecideCommit",
+                  "key": {
+                    "op": "var",
+                    "name": "n"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              }
+            },
+            {
+              "op": "not",
+              "x": {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "DecideAbort",
+                  "key": {
+                    "op": "var",
+                    "name": "n"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              }
+            }
+          ]
+        },
+        "v2": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "Alive",
+                "key": {
+                  "op": "var",
+                  "name": "n"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "not",
+              "x": {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "VoteYes",
+                  "key": {
+                    "op": "var",
+                    "name": "n"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              }
+            },
+            {
+              "op": "not",
+              "x": {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "DecideCommit",
+                  "key": {
+                    "op": "var",
+                    "name": "n"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              }
+            },
+            {
+              "op": "not",
+              "x": {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "DecideAbort",
+                  "key": {
+                    "op": "var",
+                    "name": "n"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              }
+            }
+          ]
+        },
+        "fails": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 2
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "Alive",
+                "key": {
+                  "op": "var",
+                  "name": "n"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            }
+          ]
+        },
+        "g1": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 3
+              }
+            },
+            {
+              "op": "flag",
+              "name": "noGo"
+            },
+            {
+              "op": "flag",
+              "name": "allYes"
+            }
+          ]
+        },
+        "g2": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 4
+              }
+            },
+            {
+              "op": "flag",
+              "name": "noGo"
+            },
+            {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "VoteNo",
+                    "key": {
+                      "op": "var",
+                      "name": "w"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                },
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "=",
+                    "a": {
+                      "op": "get",
+                      "map": "Alive",
+                      "key": {
+                        "op": "var",
+                        "name": "w"
+                      }
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "commits": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 5
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "Alive",
+                "key": {
+                  "op": "var",
+                  "name": "n"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "GoCommit",
+                "key": {
+                  "op": "var",
+                  "name": "n"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            }
+          ]
+        },
+        "aborts": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 6
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "Alive",
+                "key": {
+                  "op": "var",
+                  "name": "n"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "GoAbort",
+                "key": {
+                  "op": "var",
+                  "name": "n"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            }
+          ]
+        }
+      },
+      "state": {
+        "abortFlag": {
+          "op": "if",
+          "c": {
+            "op": "or",
+            "xs": [
+              {
+                "op": "flag",
+                "name": "v2"
+              },
+              {
+                "op": "flag",
+                "name": "fails"
+              }
+            ]
+          },
+          "then": {
+            "op": "const",
+            "value": 1
+          },
+          "else": {
+            "op": "var",
+            "name": "abortFlag"
+          }
+        }
+      },
+      "maps": {
+        "VoteYes": {
+          "key": {
+            "op": "var",
+            "name": "n"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "v1"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "v1"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "VoteYes",
+                        "key": {
+                          "op": "var",
+                          "name": "n"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "VoteNo": {
+          "key": {
+            "op": "var",
+            "name": "n"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "v2"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "v2"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "VoteNo",
+                        "key": {
+                          "op": "var",
+                          "name": "n"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "Alive": {
+          "key": {
+            "op": "var",
+            "name": "n"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "fails"
+                    },
+                    {
+                      "op": "<",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "fails"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "Alive",
+                        "key": {
+                          "op": "var",
+                          "name": "n"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "GoCommit": {
+          "each": "k$3",
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "and",
+                      "xs": [
+                        {
+                          "op": "flag",
+                          "name": "g1"
+                        },
+                        {
+                          "op": "<",
+                          "a": {
+                            "op": "var",
+                            "name": "k$3"
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "size"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "and",
+                        "xs": [
+                          {
+                            "op": "flag",
+                            "name": "g1"
+                          },
+                          {
+                            "op": "<",
+                            "a": {
+                              "op": "var",
+                              "name": "k$3"
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "size"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "GoCommit",
+                        "key": {
+                          "op": "var",
+                          "name": "k$3"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "GoAbort": {
+          "each": "k$4",
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "and",
+                      "xs": [
+                        {
+                          "op": "flag",
+                          "name": "g2"
+                        },
+                        {
+                          "op": "<",
+                          "a": {
+                            "op": "var",
+                            "name": "k$4"
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "size"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "and",
+                        "xs": [
+                          {
+                            "op": "flag",
+                            "name": "g2"
+                          },
+                          {
+                            "op": "<",
+                            "a": {
+                              "op": "var",
+                              "name": "k$4"
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "size"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "GoAbort",
+                        "key": {
+                          "op": "var",
+                          "name": "k$4"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "DecideCommit": {
+          "key": {
+            "op": "var",
+            "name": "n"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "commits"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "commits"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "DecideCommit",
+                        "key": {
+                          "op": "var",
+                          "name": "n"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "DecideAbort": {
+          "key": {
+            "op": "var",
+            "name": "n"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "or",
+                      "xs": [
+                        {
+                          "op": "flag",
+                          "name": "v2"
+                        },
+                        {
+                          "op": "flag",
+                          "name": "aborts"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "or",
+                        "xs": [
+                          {
+                            "op": "flag",
+                            "name": "v2"
+                          },
+                          {
+                            "op": "flag",
+                            "name": "aborts"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "DecideAbort",
+                        "key": {
+                          "op": "var",
+                          "name": "n"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        }
+      }
+    },
+    "assume": {
+      "op": "and",
+      "xs": [
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 7
+          }
+        },
+        {
+          "op": "and",
+          "xs": [
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "n"
+              },
+              "b": {
+                "op": "var",
+                "name": "size"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "w"
+              },
+              "b": {
+                "op": "var",
+                "name": "size"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "laws": [
+    {
+      "name": "commit and abort agree",
+      "forall": "key$2",
+      "keys": [
+        "key$3"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$3"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "op": "and",
+            "xs": [
+              {
+                "op": "or",
+                "xs": [
+                  {
+                    "op": "not",
+                    "x": {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "DecideCommit",
+                        "key": {
+                          "op": "var",
+                          "name": "key$2"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  },
+                  {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "not",
+                        "x": {
+                          "op": "=",
+                          "a": {
+                            "op": "get",
+                            "map": "DecideAbort",
+                            "key": {
+                              "op": "var",
+                              "name": "key$3"
+                            }
+                          },
+                          "b": {
+                            "op": "const",
+                            "value": 1
+                          }
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "VoteYes",
+                          "key": {
+                            "op": "var",
+                            "name": "key$3"
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "op": "or",
+                "xs": [
+                  {
+                    "op": "not",
+                    "x": {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "DecideAbort",
+                        "key": {
+                          "op": "var",
+                          "name": "key$2"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  },
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "abortFlag"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

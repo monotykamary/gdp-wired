@@ -1,0 +1,412 @@
+{
+  "schema": "gdp-lift-source/v1",
+  "id": "lock_server",
+  "machine": {
+    "name": "lock server",
+    "params": [
+      "clients",
+      "servers"
+    ],
+    "inputs": [
+      "op",
+      "c",
+      "s"
+    ],
+    "state": {},
+    "maps": {
+      "Semaphore": 1,
+      "Link": 0
+    },
+    "step": {
+      "flags": {
+        "connects": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "Semaphore",
+                "key": {
+                  "op": "var",
+                  "name": "s"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            }
+          ]
+        },
+        "disconnects": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "Link",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "c"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "s"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "maps": {
+        "Link": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "c"
+            },
+            "b": {
+              "op": "var",
+              "name": "s"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "connects"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "if",
+              "c": {
+                "op": "flag",
+                "name": "disconnects"
+              },
+              "then": {
+                "op": "const",
+                "value": 0
+              },
+              "else": {
+                "op": "get",
+                "map": "Link",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "c"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "s"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Semaphore": {
+          "key": {
+            "op": "var",
+            "name": "s"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "connects"
+                    },
+                    {
+                      "op": "<",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "connects"
+                      }
+                    },
+                    {
+                      "op": "or",
+                      "xs": [
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "flag",
+                              "name": "disconnects"
+                            },
+                            {
+                              "op": "<=",
+                              "a": {
+                                "op": "const",
+                                "value": 0
+                              },
+                              "b": {
+                                "op": "const",
+                                "value": 0
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "not",
+                              "x": {
+                                "op": "flag",
+                                "name": "disconnects"
+                              }
+                            },
+                            {
+                              "op": "=",
+                              "a": {
+                                "op": "get",
+                                "map": "Semaphore",
+                                "key": {
+                                  "op": "var",
+                                  "name": "s"
+                                }
+                              },
+                              "b": {
+                                "op": "const",
+                                "value": 1
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        }
+      }
+    },
+    "assume": {
+      "op": "and",
+      "xs": [
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 2
+          }
+        },
+        {
+          "op": "and",
+          "xs": [
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "c"
+              },
+              "b": {
+                "op": "var",
+                "name": "clients"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "s"
+              },
+              "b": {
+                "op": "var",
+                "name": "servers"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "relations": {
+      "Link": [
+        "Client",
+        "Server"
+      ]
+    }
+  },
+  "laws": [
+    {
+      "name": "one client per server",
+      "forall": "key$2",
+      "keys": [
+        "key$3",
+        "key$4"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "clients"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$3"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "clients"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$4"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "servers"
+                  }
+                },
+                {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 1
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "Link",
+                    "key": {
+                      "op": "tup",
+                      "a": {
+                        "op": "var",
+                        "name": "key$2"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "key$4"
+                      }
+                    }
+                  }
+                },
+                {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 1
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "Link",
+                    "key": {
+                      "op": "tup",
+                      "a": {
+                        "op": "var",
+                        "name": "key$3"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "key$4"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "op": "=",
+            "a": {
+              "op": "var",
+              "name": "key$2"
+            },
+            "b": {
+              "op": "var",
+              "name": "key$3"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

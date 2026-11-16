@@ -1,0 +1,742 @@
+{
+  "schema": "gdp-lift-source/v1",
+  "id": "lockserv_automaton",
+  "machine": {
+    "name": "lockserv automaton",
+    "params": [
+      "size"
+    ],
+    "inputs": [
+      "op",
+      "n"
+    ],
+    "state": {
+      "held": {
+        "op": "const",
+        "value": 0
+      }
+    },
+    "maps": {
+      "LockMsg": 0,
+      "UnlockMsg": 0,
+      "GrantMsg": 0,
+      "HoldsLock": 0
+    },
+    "step": {
+      "flags": {
+        "locks": {
+          "op": "=",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        },
+        "unlocks": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "HoldsLock",
+                "key": {
+                  "op": "var",
+                  "name": "n"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            }
+          ]
+        },
+        "recvLock": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 2
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "LockMsg",
+                "key": {
+                  "op": "var",
+                  "name": "n"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "held"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            }
+          ]
+        },
+        "recvGrant": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 3
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "GrantMsg",
+                "key": {
+                  "op": "var",
+                  "name": "n"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            }
+          ]
+        },
+        "recvUnlock": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 4
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "UnlockMsg",
+                "key": {
+                  "op": "var",
+                  "name": "n"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            }
+          ]
+        }
+      },
+      "state": {
+        "held": {
+          "op": "if",
+          "c": {
+            "op": "flag",
+            "name": "recvLock"
+          },
+          "then": {
+            "op": "const",
+            "value": 1
+          },
+          "else": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "recvUnlock"
+            },
+            "then": {
+              "op": "const",
+              "value": 0
+            },
+            "else": {
+              "op": "var",
+              "name": "held"
+            }
+          }
+        }
+      },
+      "maps": {
+        "LockMsg": {
+          "key": {
+            "op": "var",
+            "name": "n"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "locks"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "locks"
+                      }
+                    },
+                    {
+                      "op": "or",
+                      "xs": [
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "flag",
+                              "name": "recvLock"
+                            },
+                            {
+                              "op": "<",
+                              "a": {
+                                "op": "const",
+                                "value": 0
+                              },
+                              "b": {
+                                "op": "const",
+                                "value": 0
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "not",
+                              "x": {
+                                "op": "flag",
+                                "name": "recvLock"
+                              }
+                            },
+                            {
+                              "op": "=",
+                              "a": {
+                                "op": "get",
+                                "map": "LockMsg",
+                                "key": {
+                                  "op": "var",
+                                  "name": "n"
+                                }
+                              },
+                              "b": {
+                                "op": "const",
+                                "value": 1
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "UnlockMsg": {
+          "key": {
+            "op": "var",
+            "name": "n"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "unlocks"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "unlocks"
+                      }
+                    },
+                    {
+                      "op": "or",
+                      "xs": [
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "flag",
+                              "name": "recvUnlock"
+                            },
+                            {
+                              "op": "<",
+                              "a": {
+                                "op": "const",
+                                "value": 0
+                              },
+                              "b": {
+                                "op": "const",
+                                "value": 0
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "not",
+                              "x": {
+                                "op": "flag",
+                                "name": "recvUnlock"
+                              }
+                            },
+                            {
+                              "op": "=",
+                              "a": {
+                                "op": "get",
+                                "map": "UnlockMsg",
+                                "key": {
+                                  "op": "var",
+                                  "name": "n"
+                                }
+                              },
+                              "b": {
+                                "op": "const",
+                                "value": 1
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "GrantMsg": {
+          "key": {
+            "op": "var",
+            "name": "n"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "recvLock"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "recvLock"
+                      }
+                    },
+                    {
+                      "op": "or",
+                      "xs": [
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "flag",
+                              "name": "recvGrant"
+                            },
+                            {
+                              "op": "<",
+                              "a": {
+                                "op": "const",
+                                "value": 0
+                              },
+                              "b": {
+                                "op": "const",
+                                "value": 0
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "not",
+                              "x": {
+                                "op": "flag",
+                                "name": "recvGrant"
+                              }
+                            },
+                            {
+                              "op": "=",
+                              "a": {
+                                "op": "get",
+                                "map": "GrantMsg",
+                                "key": {
+                                  "op": "var",
+                                  "name": "n"
+                                }
+                              },
+                              "b": {
+                                "op": "const",
+                                "value": 1
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "HoldsLock": {
+          "key": {
+            "op": "var",
+            "name": "n"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "unlocks"
+                    },
+                    {
+                      "op": "<",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "unlocks"
+                      }
+                    },
+                    {
+                      "op": "or",
+                      "xs": [
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "flag",
+                              "name": "recvGrant"
+                            },
+                            {
+                              "op": "<=",
+                              "a": {
+                                "op": "const",
+                                "value": 0
+                              },
+                              "b": {
+                                "op": "const",
+                                "value": 0
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "not",
+                              "x": {
+                                "op": "flag",
+                                "name": "recvGrant"
+                              }
+                            },
+                            {
+                              "op": "=",
+                              "a": {
+                                "op": "get",
+                                "map": "HoldsLock",
+                                "key": {
+                                  "op": "var",
+                                  "name": "n"
+                                }
+                              },
+                              "b": {
+                                "op": "const",
+                                "value": 1
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        }
+      }
+    },
+    "assume": {
+      "op": "and",
+      "xs": [
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 5
+          }
+        },
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "n"
+          },
+          "b": {
+            "op": "var",
+            "name": "size"
+          }
+        }
+      ]
+    }
+  },
+  "laws": [
+    {
+      "name": "one holder",
+      "forall": "key$2",
+      "keys": [
+        "key$3"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$3"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "HoldsLock",
+                    "key": {
+                      "op": "var",
+                      "name": "key$2"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "HoldsLock",
+                    "key": {
+                      "op": "var",
+                      "name": "key$3"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "op": "=",
+            "a": {
+              "op": "var",
+              "name": "key$2"
+            },
+            "b": {
+              "op": "var",
+              "name": "key$3"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

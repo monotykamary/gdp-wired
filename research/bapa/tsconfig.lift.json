@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["../../lean-kernel/lift/**/*.ts", "../../lean-kernel/lift-special/**/*.ts", "../../lean-kernel/lift-typed/**/*.ts", "../../lean-kernel/lift-simulation/**/*.ts", "lift-regression*.ts"],
+  "files": [
+    "../../core/lift-cli.ts",
+    "../../core/lift-cli.test.ts",
+    "../../lean-kernel/lift.ts",
+    "../../lean-kernel/axiom-audit.ts",
+    "../../lean-kernel/axiom-audit.test.ts",
+    "../../lean-kernel/lift-legacy.ts",
+    "../../lean-kernel/lift-legacy.test.ts",
+    "../../lean-kernel/lift-names.ts",
+    "../../lean-kernel/lift-names.test.ts"
+  ]
+}

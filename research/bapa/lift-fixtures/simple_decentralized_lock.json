@@ -1,0 +1,592 @@
+{
+  "schema": "gdp-lift-source/v1",
+  "id": "simple_decentralized_lock",
+  "machine": {
+    "name": "simple decentralized lock",
+    "params": [
+      "size"
+    ],
+    "inputs": [
+      "op",
+      "src",
+      "dst"
+    ],
+    "state": {
+      "started": {
+        "op": "const",
+        "value": 0
+      }
+    },
+    "maps": {
+      "HasLock": 0,
+      "Message": 0
+    },
+    "step": {
+      "flags": {
+        "inits": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            }
+          ]
+        },
+        "sends": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "HasLock",
+                "key": {
+                  "op": "var",
+                  "name": "src"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            }
+          ]
+        },
+        "recvs": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 2
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "Message",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "src"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "dst"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "state": {
+        "started": {
+          "op": "if",
+          "c": {
+            "op": "flag",
+            "name": "inits"
+          },
+          "then": {
+            "op": "const",
+            "value": 1
+          },
+          "else": {
+            "op": "var",
+            "name": "started"
+          }
+        }
+      },
+      "maps": {
+        "Message": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "src"
+            },
+            "b": {
+              "op": "var",
+              "name": "dst"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "sends"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "if",
+              "c": {
+                "op": "flag",
+                "name": "recvs"
+              },
+              "then": {
+                "op": "const",
+                "value": 0
+              },
+              "else": {
+                "op": "get",
+                "map": "Message",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "src"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "dst"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "HasLock": {
+          "each": "k$1",
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "and",
+                      "xs": [
+                        {
+                          "op": "flag",
+                          "name": "inits"
+                        },
+                        {
+                          "op": "=",
+                          "a": {
+                            "op": "var",
+                            "name": "k$1"
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "src"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "and",
+                        "xs": [
+                          {
+                            "op": "flag",
+                            "name": "inits"
+                          },
+                          {
+                            "op": "=",
+                            "a": {
+                              "op": "var",
+                              "name": "k$1"
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "src"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "op": "or",
+                      "xs": [
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "and",
+                              "xs": [
+                                {
+                                  "op": "flag",
+                                  "name": "sends"
+                                },
+                                {
+                                  "op": "=",
+                                  "a": {
+                                    "op": "var",
+                                    "name": "k$1"
+                                  },
+                                  "b": {
+                                    "op": "var",
+                                    "name": "src"
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "op": "<",
+                              "a": {
+                                "op": "const",
+                                "value": 0
+                              },
+                              "b": {
+                                "op": "const",
+                                "value": 0
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "not",
+                              "x": {
+                                "op": "and",
+                                "xs": [
+                                  {
+                                    "op": "flag",
+                                    "name": "sends"
+                                  },
+                                  {
+                                    "op": "=",
+                                    "a": {
+                                      "op": "var",
+                                      "name": "k$1"
+                                    },
+                                    "b": {
+                                      "op": "var",
+                                      "name": "src"
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "op": "or",
+                              "xs": [
+                                {
+                                  "op": "and",
+                                  "xs": [
+                                    {
+                                      "op": "and",
+                                      "xs": [
+                                        {
+                                          "op": "flag",
+                                          "name": "recvs"
+                                        },
+                                        {
+                                          "op": "=",
+                                          "a": {
+                                            "op": "var",
+                                            "name": "k$1"
+                                          },
+                                          "b": {
+                                            "op": "var",
+                                            "name": "dst"
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "op": "<=",
+                                      "a": {
+                                        "op": "const",
+                                        "value": 0
+                                      },
+                                      "b": {
+                                        "op": "const",
+                                        "value": 0
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "and",
+                                  "xs": [
+                                    {
+                                      "op": "not",
+                                      "x": {
+                                        "op": "and",
+                                        "xs": [
+                                          {
+                                            "op": "flag",
+                                            "name": "recvs"
+                                          },
+                                          {
+                                            "op": "=",
+                                            "a": {
+                                              "op": "var",
+                                              "name": "k$1"
+                                            },
+                                            "b": {
+                                              "op": "var",
+                                              "name": "dst"
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    {
+                                      "op": "=",
+                                      "a": {
+                                        "op": "get",
+                                        "map": "HasLock",
+                                        "key": {
+                                          "op": "var",
+                                          "name": "k$1"
+                                        }
+                                      },
+                                      "b": {
+                                        "op": "const",
+                                        "value": 1
+                                      }
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        }
+      }
+    },
+    "assume": {
+      "op": "and",
+      "xs": [
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 3
+          }
+        },
+        {
+          "op": "and",
+          "xs": [
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "src"
+              },
+              "b": {
+                "op": "var",
+                "name": "size"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "dst"
+              },
+              "b": {
+                "op": "var",
+                "name": "size"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "relations": {
+      "Message": [
+        "Node",
+        "Node"
+      ]
+    }
+  },
+  "laws": [
+    {
+      "name": "one node holds the lock",
+      "forall": "key$2",
+      "keys": [
+        "key$3"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$3"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "HasLock",
+                    "key": {
+                      "op": "var",
+                      "name": "key$2"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "HasLock",
+                    "key": {
+                      "op": "var",
+                      "name": "key$3"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "op": "=",
+            "a": {
+              "op": "var",
+              "name": "key$2"
+            },
+            "b": {
+              "op": "var",
+              "name": "key$3"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "theorems": {
+    "family": "Bapa.SdlConcrete.Checked.family",
+    "source": [
+      "bapa_simple_decentralized_lock_source_law"
+    ]
+  }
+}

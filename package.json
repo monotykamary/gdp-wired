@@ -48,6 +48,10 @@
       "types": "./dist/lean-kernel/emit.d.ts",
       "default": "./dist/lean-kernel/emit.js"
     },
+    "./lift": {
+      "types": "./dist/lean-kernel/lift.d.ts",
+      "default": "./dist/lean-kernel/lift.js"
+    },
     "./kernel": {
       "types": "./dist/kernel/kernel.d.ts",
       "default": "./dist/kernel/kernel.js"

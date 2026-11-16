@@ -1,0 +1,38 @@
+[
+  {
+    "cpu": 2,
+    "memory": 16384,
+    "timeout": 3600,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-fixture-prepare",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun research/bapa/lift-regression-prepare-all.ts > \"$OUT/prepare.log\" 2>&1"
+  },
+  {
+    "cpu": 1,
+    "memory": 4096,
+    "timeout": 300,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-regression-unit",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun test research/bapa/lift-regression.test.ts > \"$OUT/tests.log\" 2>&1"
+  }
+]

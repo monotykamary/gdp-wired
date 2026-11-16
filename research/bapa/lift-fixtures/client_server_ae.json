@@ -1,0 +1,611 @@
+{
+  "schema": "gdp-lift-source/v1",
+  "id": "client_server_ae",
+  "machine": {
+    "name": "client server ae",
+    "params": [
+      "nodes",
+      "requestSize",
+      "responses"
+    ],
+    "inputs": [
+      "op",
+      "n",
+      "r",
+      "p"
+    ],
+    "state": {
+      "started": {
+        "op": "const",
+        "value": 0
+      }
+    },
+    "maps": {
+      "Match": 0,
+      "RequestSent": 0,
+      "ResponseSent": 0,
+      "ResponseReceived": 0
+    },
+    "step": {
+      "flags": {
+        "matches": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            }
+          ]
+        },
+        "starts": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            }
+          ]
+        },
+        "requests": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 2
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            }
+          ]
+        },
+        "receives": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 4
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "ResponseSent",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "n"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "p"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "responds": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 3
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "RequestSent",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "n"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "r"
+                  }
+                }
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "Match",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "r"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "p"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "state": {
+        "started": {
+          "op": "if",
+          "c": {
+            "op": "flag",
+            "name": "starts"
+          },
+          "then": {
+            "op": "const",
+            "value": 1
+          },
+          "else": {
+            "op": "var",
+            "name": "started"
+          }
+        }
+      },
+      "maps": {
+        "Match": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "r"
+            },
+            "b": {
+              "op": "var",
+              "name": "p"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "matches"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "Match",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "r"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "p"
+                }
+              }
+            }
+          }
+        },
+        "RequestSent": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "n"
+            },
+            "b": {
+              "op": "var",
+              "name": "r"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "requests"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "RequestSent",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "n"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "r"
+                }
+              }
+            }
+          }
+        },
+        "ResponseSent": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "n"
+            },
+            "b": {
+              "op": "var",
+              "name": "p"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "responds"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "ResponseSent",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "n"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "p"
+                }
+              }
+            }
+          }
+        },
+        "ResponseReceived": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "n"
+            },
+            "b": {
+              "op": "var",
+              "name": "p"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "receives"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "ResponseReceived",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "n"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "p"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "assume": {
+      "op": "and",
+      "xs": [
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 5
+          }
+        },
+        {
+          "op": "and",
+          "xs": [
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "n"
+              },
+              "b": {
+                "op": "var",
+                "name": "nodes"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "r"
+              },
+              "b": {
+                "op": "var",
+                "name": "requestSize"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "p"
+              },
+              "b": {
+                "op": "var",
+                "name": "responses"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "relations": {
+      "Match": [
+        "Request",
+        "Response"
+      ],
+      "RequestSent": [
+        "Node",
+        "Request"
+      ],
+      "ResponseSent": [
+        "Node",
+        "Response"
+      ],
+      "ResponseReceived": [
+        "Node",
+        "Response"
+      ]
+    }
+  },
+  "laws": [
+    {
+      "name": "a received response was matched",
+      "forall": "key$2",
+      "keys": [
+        "key$3"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "nodes"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$3"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "responses"
+                  }
+                },
+                {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 1
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "ResponseReceived",
+                    "key": {
+                      "op": "tup",
+                      "a": {
+                        "op": "var",
+                        "name": "key$2"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "key$3"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "op": "and",
+            "xs": [
+              {
+                "op": "<",
+                "a": {
+                  "op": "var",
+                  "name": "some$1"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "requestSize"
+                }
+              },
+              {
+                "op": "<=",
+                "a": {
+                  "op": "const",
+                  "value": 1
+                },
+                "b": {
+                  "op": "get",
+                  "map": "RequestSent",
+                  "key": {
+                    "op": "tup",
+                    "a": {
+                      "op": "var",
+                      "name": "key$2"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "some$1"
+                    }
+                  }
+                }
+              },
+              {
+                "op": "<=",
+                "a": {
+                  "op": "const",
+                  "value": 1
+                },
+                "b": {
+                  "op": "get",
+                  "map": "Match",
+                  "key": {
+                    "op": "tup",
+                    "a": {
+                      "op": "var",
+                      "name": "some$1"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "key$3"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "some": [
+        "some$1"
+      ]
+    }
+  ]
+}

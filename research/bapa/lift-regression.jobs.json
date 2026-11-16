@@ -1,0 +1,488 @@
+[
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-lock_server",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts lock_server > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-lockserv",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts lockserv > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-lockserv_automaton",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts lockserv_automaton > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-simple_election",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts simple_election > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-simple",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts simple > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-simple_regular",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts simple_regular > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-firewall",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts firewall > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-consensus",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts consensus > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-consensus_epr",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts consensus_epr > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-naive_consensus",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts naive_consensus > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-toy_consensus",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts toy_consensus > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-toy_consensus_epr",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts toy_consensus_epr > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-consensus_forall",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts consensus_forall > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-consensus_wo_decide",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts consensus_wo_decide > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-tcommit",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts tcommit > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-twophase",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts twophase > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-two_phase_commit",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts two_phase_commit > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-learning_switch",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts learning_switch > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-learning_switch_i4",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts learning_switch_i4 > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-client_server_ae",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts client_server_ae > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-quorum_leader_election",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts quorum_leader_election > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-majorityset_leader_election",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts majorityset_leader_election > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-sharded_kv_no_lost_keys",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts sharded_kv_no_lost_keys > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-toy_consensus_forall",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts toy_consensus_forall > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-client_server_db_ae",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts client_server_db_ae > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-sharded_kv",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts sharded_kv > \"$OUT/worker.log\" 2>&1"
+  },
+  {
+    "cpu": 4,
+    "memory": 28672,
+    "timeout": 7200,
+    "vm_type": "xlarge",
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "name": "lift-simple_decentralized_lock",
+    "cmd": "set -euo pipefail; OUT=\"$SUPERCOMPUTER_OUTPUT_DIR\"; bun install --frozen-lockfile > \"$OUT/install.log\" 2>&1; bun scripts/gen-lean-library.ts --check > \"$OUT/library-gen.log\" 2>&1; LIFT_REGRESSION_NATIVE=1 bun research/bapa/lift-regression-worker.ts simple_decentralized_lock > \"$OUT/worker.log\" 2>&1"
+  }
+]

@@ -1,0 +1,1027 @@
+{
+  "schema": "gdp-lift-source/v1",
+  "id": "consensus_wo_decide",
+  "machine": {
+    "name": "consensus wo decide",
+    "params": [
+      "size"
+    ],
+    "inputs": [
+      "op",
+      "i",
+      "j"
+    ],
+    "state": {
+      "started": {
+        "op": "const",
+        "value": 0
+      }
+    },
+    "maps": {
+      "Voted": 0,
+      "Leader": 0,
+      "VotingQuorum": 0,
+      "VoteRequestMsg": 0,
+      "VoteMsg": 0,
+      "Votes": 0
+    },
+    "inputMaps": [
+      "Q"
+    ],
+    "counts": {
+      "members": {
+        "j": "members$x",
+        "key": "members$k",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "body": {
+          "op": "if",
+          "c": {
+            "op": "<=",
+            "a": {
+              "op": "const",
+              "value": 1
+            },
+            "b": {
+              "op": "get",
+              "map": "Q",
+              "key": {
+                "op": "var",
+                "name": "members$k"
+              }
+            }
+          },
+          "then": {
+            "op": "const",
+            "value": 1
+          },
+          "else": {
+            "op": "const",
+            "value": 0
+          }
+        }
+      }
+    },
+    "step": {
+      "flags": {
+        "quorumVotes": {
+          "op": "all",
+          "key": "k$1",
+          "c": {
+            "op": "or",
+            "xs": [
+              {
+                "op": "not",
+                "x": {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 1
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "Q",
+                    "key": {
+                      "op": "var",
+                      "name": "k$1"
+                    }
+                  }
+                }
+              },
+              {
+                "op": "<=",
+                "a": {
+                  "op": "const",
+                  "value": 1
+                },
+                "b": {
+                  "op": "get",
+                  "map": "Votes",
+                  "key": {
+                    "op": "tup",
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "k$1"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "votingQuorumVotes": {
+          "op": "all",
+          "key": "k$2",
+          "c": {
+            "op": "or",
+            "xs": [
+              {
+                "op": "not",
+                "x": {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "VotingQuorum",
+                    "key": {
+                      "op": "var",
+                      "name": "k$2"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                }
+              },
+              {
+                "op": "<=",
+                "a": {
+                  "op": "const",
+                  "value": 1
+                },
+                "b": {
+                  "op": "get",
+                  "map": "Votes",
+                  "key": {
+                    "op": "tup",
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "k$2"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "inits": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            }
+          ]
+        },
+        "requests": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            }
+          ]
+        },
+        "votes": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 2
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "not",
+              "x": {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "Voted",
+                  "key": {
+                    "op": "var",
+                    "name": "i"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "VoteRequestMsg",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "j"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "i"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "receives": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 3
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "<=",
+              "a": {
+                "op": "const",
+                "value": 1
+              },
+              "b": {
+                "op": "get",
+                "map": "VoteMsg",
+                "key": {
+                  "op": "tup",
+                  "a": {
+                    "op": "var",
+                    "name": "j"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "i"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "chooses": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 4
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "flag",
+              "name": "quorumVotes"
+            }
+          ]
+        },
+        "leads": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 5
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "started"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "flag",
+              "name": "votingQuorumVotes"
+            }
+          ]
+        },
+        "all$1": {
+          "op": "all",
+          "key": "k$4",
+          "c": {
+            "op": "and",
+            "xs": [
+              {
+                "op": "<=",
+                "a": {
+                  "op": "get",
+                  "map": "Q",
+                  "key": {
+                    "op": "var",
+                    "name": "k$4"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              },
+              {
+                "op": "or",
+                "xs": [
+                  {
+                    "op": "not",
+                    "x": {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 1
+                      },
+                      "b": {
+                        "op": "get",
+                        "map": "Q",
+                        "key": {
+                          "op": "var",
+                          "name": "k$4"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "op": "<",
+                    "a": {
+                      "op": "var",
+                      "name": "k$4"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "size"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "state": {
+        "started": {
+          "op": "if",
+          "c": {
+            "op": "flag",
+            "name": "inits"
+          },
+          "then": {
+            "op": "const",
+            "value": 1
+          },
+          "else": {
+            "op": "var",
+            "name": "started"
+          }
+        }
+      },
+      "maps": {
+        "VoteRequestMsg": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "i"
+            },
+            "b": {
+              "op": "var",
+              "name": "j"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "requests"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "VoteRequestMsg",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "i"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "j"
+                }
+              }
+            }
+          }
+        },
+        "VoteMsg": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "i"
+            },
+            "b": {
+              "op": "var",
+              "name": "j"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "votes"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "VoteMsg",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "i"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "j"
+                }
+              }
+            }
+          }
+        },
+        "Votes": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "i"
+            },
+            "b": {
+              "op": "var",
+              "name": "j"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "receives"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "Votes",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "i"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "j"
+                }
+              }
+            }
+          }
+        },
+        "VotingQuorum": {
+          "each": "k$3",
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "or",
+                      "xs": [
+                        {
+                          "op": "flag",
+                          "name": "inits"
+                        },
+                        {
+                          "op": "flag",
+                          "name": "chooses"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 1
+                      },
+                      "b": {
+                        "op": "get",
+                        "map": "Q",
+                        "key": {
+                          "op": "var",
+                          "name": "k$3"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "or",
+                        "xs": [
+                          {
+                            "op": "flag",
+                            "name": "inits"
+                          },
+                          {
+                            "op": "flag",
+                            "name": "chooses"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "VotingQuorum",
+                        "key": {
+                          "op": "var",
+                          "name": "k$3"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "Voted": {
+          "key": {
+            "op": "var",
+            "name": "i"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "votes"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "votes"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "Voted",
+                        "key": {
+                          "op": "var",
+                          "name": "i"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "Leader": {
+          "key": {
+            "op": "var",
+            "name": "i"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "leads"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "leads"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "Leader",
+                        "key": {
+                          "op": "var",
+                          "name": "i"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        }
+      }
+    },
+    "assume": {
+      "op": "and",
+      "xs": [
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 6
+          }
+        },
+        {
+          "op": "and",
+          "xs": [
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "i"
+              },
+              "b": {
+                "op": "var",
+                "name": "size"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "j"
+              },
+              "b": {
+                "op": "var",
+                "name": "size"
+              }
+            },
+            {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "or",
+                    "xs": [
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "var",
+                          "name": "op"
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "var",
+                          "name": "op"
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 4
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "all$1"
+                    },
+                    {
+                      "op": "<",
+                      "a": {
+                        "op": "var",
+                        "name": "size"
+                      },
+                      "b": {
+                        "op": "mul",
+                        "k": 2,
+                        "a": {
+                          "op": "get",
+                          "map": "members",
+                          "key": {
+                            "op": "const",
+                            "value": 0
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "relations": {
+      "VoteRequestMsg": [
+        "Node",
+        "Node"
+      ],
+      "VoteMsg": [
+        "Node",
+        "Node"
+      ],
+      "Votes": [
+        "Node",
+        "Node"
+      ]
+    }
+  },
+  "laws": [
+    {
+      "name": "one leader",
+      "forall": "key$2",
+      "keys": [
+        "key$3"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$3"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "size"
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "Leader",
+                    "key": {
+                      "op": "var",
+                      "name": "key$2"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "Leader",
+                    "key": {
+                      "op": "var",
+                      "name": "key$3"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "op": "=",
+            "a": {
+              "op": "var",
+              "name": "key$2"
+            },
+            "b": {
+              "op": "var",
+              "name": "key$3"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

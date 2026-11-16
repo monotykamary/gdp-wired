@@ -1,0 +1,21 @@
+{
+  "schema": "gdp-lift-fixture/v1",
+  "id": "toy_consensus_forall",
+  "scope": "current-accepted-source",
+  "origin": "lean-kernel/lift-special/runs/frozen-snapshot-03/bound-inclusion-unit-native.files/current-toy-source.json",
+  "originSha256": "88e5d2ddf6a0ae0d7eef276e12105f7a8402420ac3fafef9830b4ca6bd2e5303",
+  "sourceSha256": "c3db4a2c439a60a39d56521c899d85618734afea5c0ebc961ab5850ca8cb98e5",
+  "namingOnlyChanges": {
+    "theorems": {
+      "family": "bapa_toy_consensus_forall_transported_laws",
+      "source": [
+        "bapa_toy_consensus_forall_source_law0_holds"
+      ]
+    }
+  },
+  "sourceAcceptance": "PENDING_NATIVE_SOURCE_BRIDGE",
+  "allSizesProven": false,
+  "independentTlaVerification": false,
+  "noSearch": true,
+  "noLean": true
+}

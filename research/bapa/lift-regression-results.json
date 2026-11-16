@@ -1,0 +1,56 @@
+{
+  "schema": "gdp-lift-regression-infrastructure/v1",
+  "status": "FIXTURES_FROZEN_NATIVE_REPLAY_PENDING",
+  "allSizesProven": false,
+  "independentTlaVerification": false,
+  "finalNativeReplayLaunched": false,
+  "manifest": {
+    "path": "research/bapa/lift-regression-manifest.json",
+    "sha256": "dc6b5017190d3d2f1e3001246810d02e1c5aaea17587071b83b956935cf3aa4e",
+    "entries": 27,
+    "frozen": 27,
+    "pending": 0
+  },
+  "preparation": {
+    "snapshot": "39ada2f2e671ff5d924ba486fb95f5816ca731b7",
+    "tree": "bdf3055cc911191e5f1670b189a218e94d2becad",
+    "batch": "20261116-032037-yao1py",
+    "output": "runs/bapa-lift-regression-fixture-frozen-03",
+    "nativeFixtureExtractions": 24,
+    "specialCurrentConstructorFixtures": 3,
+    "receiptSha256": "2a7818f58628d568aff1fff8935c987a59b27a7344d7ad8dc1d71ea4fc04a93c",
+    "noSearch": true,
+    "noLean": true
+  },
+  "typeAndUnit": {
+    "snapshot": "dc8fa5eb3776dd7e9dd5211ef670a18c195be590",
+    "tree": "ee1174a114c28c7977a0469e8631c053c1993300",
+    "batch": "20261116-032443-b8dejv",
+    "output": "runs/bapa-lift-regression-check-frozen-04",
+    "typecheckExitCode": 0,
+    "unitPassed": 14,
+    "unitFailed": 0,
+    "typeLogSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "unitLogSha256": "0b0d434913d753718ae7a098ed4f7eae01589774ff909f07f478f76b5bb017eb",
+    "noSearch": true,
+    "noLean": true
+  },
+  "priorAttempts": [
+    {
+      "snapshot": "fd3c29ae2e89ac3d23bed8dc2858fa75ff02997c",
+      "stage": "pre-admission",
+      "result": "VM capacity refusal; no job attempt",
+      "log": "/tmp/pi-fabric-shell-xU1GIw/output.log"
+    },
+    {
+      "snapshot": "59fe68838532e46c8d38728b5951b25717aa465f",
+      "output": "runs/bapa-lift-regression-fixture-frozen-02",
+      "result": "unit12 pass; extraction24 failed missing product metadata-reader callback; no emission or Lean"
+    }
+  ],
+  "remaining": [
+    "Parent review/final source freeze",
+    "One unified 27-case native replay batch on that frozen tree",
+    "Re-audit downloaded projects/logs with lift-regression-report.ts"
+  ]
+}

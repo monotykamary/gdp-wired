@@ -21,7 +21,7 @@ const runs = (cmds: string) => cmds.split(/\s+/).filter(Boolean).map((f): Unit =
 
 const units: Unit[] = [
   {name: 'scripts/gen-lean-library.ts --check', dir: '.', args: ['scripts/gen-lean-library.ts', '--check'], test: false},
-  ...tests('core', `exports.test.ts proof-output.test.ts guarded.test.ts cli.test.ts security.test.ts solver.test.ts rand.test.ts dsl.test.ts sums.test.ts
+  ...tests('core', `exports.test.ts proof-output.test.ts guarded.test.ts cli.test.ts lift-cli.test.ts security.test.ts solver.test.ts rand.test.ts dsl.test.ts sums.test.ts
     arith.test.ts compare.test.ts mutate.test.ts mutate-terms.test.ts runtime-default.test.ts conformance.test.ts compose.test.ts relational.test.ts quantifiers.test.ts functions.test.ts
     keyterms.test.ts lists.test.ts liveness.test.ts sizes.test.ts values.test.ts rationals.test.ts builders.test.ts
     gdp.test.ts datatypes.test.ts lemmas.test.ts discover.test.ts infer.test.ts cyclic.test.ts cycles.test.ts
@@ -75,6 +75,14 @@ const units: Unit[] = [
     work-public-exact.test.ts work-refusal.test.ts`),
   ...tests('core/count-recovery', 'conditional-check-cache.test.ts conditional-cuts.test.ts conditional-proof.test.ts derivability-closure.test.ts empty-count-source.test.ts field-bound-budget.test.ts leaf-allowance.test.ts member-inclusions.test.ts pre-state-source.test.ts rename-proof.test.ts row-demand.test.ts scalar-guards.test.ts source-witness-instances.test.ts member-premises.test.ts action-guard.test.ts row-cases.test.ts natural-cases.test.ts carried-case.test.ts live-dependencies.test.ts field-bound-lemmas.test.ts boolean-core.test.ts key-closure.test.ts lift-count-proxies.test.ts rebase-path.test.ts fold-path.test.ts frame-lemmas.test.ts guard-cases.test.ts field-only.test.ts source-memo.test.ts field-demand.test.ts'),
   ...tests('kernel', 'cdcl-root.test.ts frame-cut.test.ts lemma-cut.test.ts tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts epr-clock.test.ts epr-image.test.ts triggers.test.ts share.test.ts model-sequence.test.ts model-confirmation.test.ts model-rounds.test.ts model-values.test.ts prove-paths.test.ts prove-memo.test.ts prover-rows.test.ts prover-row-cache.test.ts tree-reuse.test.ts'),
+  ...tests('lean-kernel', 'axiom-audit.test.ts lift-legacy.test.ts lift-names.test.ts frame-export.test.ts linear-export.test.ts'),
+  ...tests('lean-kernel/lift', `counted-source-data.test.ts generic-lift.test.ts pipeline.test.ts prelude.test.ts
+    proof-capture.test.ts proof-codec.test.ts proof-counted-source.test.ts proof-parts.test.ts
+    proof-projection.test.ts proof-witness.test.ts source-projection.test.ts project.test.ts`),
+  ...tests('lean-kernel/lift-special', 'bound-inclusion.test.ts'),
+  ...tests('lean-kernel/lift-typed', 'roles.test.ts'),
+  ...tests('lean-kernel/lift-simulation', 'shape.test.ts'),
+  ...tests('research/bapa', 'lift-regression.test.ts'),
   ...tests('research/query', 'goal-pack.test.ts'),
   ...tests('research/translation-fuzz', 'model.test.ts'),
   ...runs('research/translation-fuzz/smoke.ts'),

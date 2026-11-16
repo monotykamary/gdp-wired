@@ -1,0 +1,1704 @@
+{
+  "schema": "gdp-lift-regression/v1",
+  "allSizesProven": false,
+  "scope": "native fixtures freeze capsule.original; special fixtures must equal current accepted encoded source machine/laws. Source lifting is not independent TLA verification.",
+  "independentTlaVerification": false,
+  "entries": [
+    {
+      "id": "lock_server",
+      "capture": {
+        "path": "release-captures/lock_server",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p1/runs/bapa-p1/seeded-01/p1-seeded-lock_server.files/lock_server/closure",
+        "sha256": "74134f5c9a15808ef5521f93e42226afc1ff96397f8404daf7d9a7978411e0df"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-lock_server.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/lock_server.json",
+        "sha256": "54edc1b0d5218d10e660755ba4726c8d4634eb958a9612d748dbab845c586a2a",
+        "publicLawNames": [
+          "one client per server"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/lock_server.provenance.json",
+          "sha256": "1e1735b1310bd663a3c4c50c178a19e54eb25a6f1d5323065c578315ebb7b406"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-lock_server.files/RELEASE-REPLAY.json",
+          "sha256": "2789af4f7a0588f3c8e007f3dd0fbd9b7b00a3bd7143988a8f793ceed1ab09d2"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-lock_server.files/project/EMITTED.json",
+          "sha256": "dfbd147b82719ac5ef70aca60e88783acafb0e8461bb3cbf1f299425518d3295"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-lock_server.files/lean.stdout.log",
+            "sha256": "6b416a1ade63f2db3cfeb6f7aa811b0b004d487308458ecceec98b34412b16ea"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-lock_server.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_lock_server_laws",
+        "sourceTheorems": [
+          "bapa_lock_server_source_laws",
+          "bapa_lock_server_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_lock_server_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_lock_server_source_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_lock_server_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "lockserv",
+      "capture": {
+        "path": "release-captures/lockserv",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p1/runs/bapa-p1/search-01-recovered/p1-search-lockserv.files/lockserv/closure",
+        "sha256": "f5bfd1e13863bdf318e638ae398d26629899b637914bfa6db2283d12ef7a1ee0"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-lockserv.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/lockserv.json",
+        "sha256": "3c8f119e5083fdf95d7a631f22fe556c4237eedaf91cf17105741c24cfdf7899",
+        "publicLawNames": [
+          "one holder"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/lockserv.provenance.json",
+          "sha256": "fa4d8a32b085a90b714b9a7e25da229cd4ae18f5d8d8b75cdc8b30c9f8956aee"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-lockserv.files/RELEASE-REPLAY.json",
+          "sha256": "203f2942757ffab199e37a40b9a6b66efcc3f98600e02a85b6493e16f21e4905"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-lockserv.files/project/EMITTED.json",
+          "sha256": "7b02cfea2e0138efbfe132c10d02adb47b625c0f9639973b8e8549302d36e404"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-lockserv.files/lean.stdout.log",
+            "sha256": "c0a4c013be66b2bb76ac77f5d1cd719c652dea3d08ee1138b3bc4380db8846d9"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-lockserv.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_lockserv_laws",
+        "sourceTheorems": [
+          "bapa_lockserv_source_laws",
+          "bapa_lockserv_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_lockserv_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_lockserv_source_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_lockserv_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "lockserv_automaton",
+      "capture": {
+        "path": "release-captures/lockserv_automaton",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p1/runs/bapa-p1/search-01-recovered/p1-search-lockserv_automaton.files/lockserv_automaton/closure",
+        "sha256": "8a0fa118813b55b492e1d79fcb056664a548d3a783885e98d83446b895c1b8f6"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-lockserv_automaton.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/lockserv_automaton.json",
+        "sha256": "8592b69d05f74c3ff67d8fea76dddf5e7b25875b42b80b895dc73ad69b3219be",
+        "publicLawNames": [
+          "one holder"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/lockserv_automaton.provenance.json",
+          "sha256": "2852792b31cd26ee1264b321cb7d0eb5f2607fec7816a0385ba4c2a2ef66f6a5"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-lockserv_automaton.files/RELEASE-REPLAY.json",
+          "sha256": "465b01b414c3fb26910559766699d65dd9ac17fe5413905f262b44efda194e19"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-lockserv_automaton.files/project/EMITTED.json",
+          "sha256": "b75a09c740a27579467e792cb54e86b744b593b121c77bb77b632f77afc3c1c6"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-lockserv_automaton.files/lean.stdout.log",
+            "sha256": "9fd206960b216bea504e3e5545a67994e44f5bf6481f29cbf0f4910caf271b7d"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-lockserv_automaton.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_lockserv_automaton_laws",
+        "sourceTheorems": [
+          "bapa_lockserv_automaton_source_laws",
+          "bapa_lockserv_automaton_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_lockserv_automaton_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_lockserv_automaton_source_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_lockserv_automaton_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "simple_election",
+      "capture": {
+        "path": "release-captures/simple_election",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p1/runs/bapa-p1/search-01-recovered/p1-search-simple_election.files/simple_election/closure",
+        "sha256": "7654c0e364334f0835602b06dcfc7307fdc089d0825f92d17e16f5a67a84ff75"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-simple_election.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/simple_election.json",
+        "sha256": "2863ac9382798b83e0361b7e21bffb863f20648c60e2fed8dd71b5129e28525d",
+        "publicLawNames": [
+          "one leader"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/simple_election.provenance.json",
+          "sha256": "c1c0fdb83645161b8016ed9ce57bd1e50f576acf67bb74c49280614fed618de3"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-simple_election.files/RELEASE-REPLAY.json",
+          "sha256": "c89e40e699a9e5b2492a367ff3e7063c092e292d94e6543c5147b211715866d0"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-simple_election.files/project/EMITTED.json",
+          "sha256": "ba2d527d2235ae2a63929f28b4e7de5cdabc5b68302fd7bd10ea2107c68d6937"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-simple_election.files/lean.stdout.log",
+            "sha256": "9e4f8ccc93186b0cd504b8f699d32ca7f7c59e295b1426a0d1b0b72d70544995"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-simple_election.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_simple_election_laws",
+        "sourceTheorems": [
+          "bapa_simple_election_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_simple_election_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_simple_election_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "simple",
+      "capture": {
+        "path": "release-captures/simple",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p1/runs/bapa-p1/search-01-recovered/p1-search-simple.files/simple/closure",
+        "sha256": "84c3f25567e40ceb8f610eab3925f33b4fa5c4a3b75e2a738b54468a59224bef"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-simple.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/simple.json",
+        "sha256": "f7c88a39e4db39954f2ba4924d03f0ff40a0c158350ae0451f1fb7be53b326d1",
+        "publicLawNames": [
+          "some process not done, or some y is 1"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/simple.provenance.json",
+          "sha256": "698b814294c493a1277b8d695e77de291affb7fccfa587f43d735aa5520bbf5f"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-simple.files/RELEASE-REPLAY.json",
+          "sha256": "374389800bb3236663d5c0d3971441e2986eb33aa4c24b875e8e0700322271cf"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-simple.files/project/EMITTED.json",
+          "sha256": "5f597f1820538c3d8e7ae8c4b8e69c03ec55b96a2710445ff1192f7c0aa7c418"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-simple.files/lean.stdout.log",
+            "sha256": "e51c461419f2217ca7ad7780ff64bef52dac4b718440e91d55733fa795996711"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-simple.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_simple_laws",
+        "sourceTheorems": [
+          "bapa_simple_ex0"
+        ],
+        "axioms": {
+          "bapa_simple_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_simple_ex0": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "simple_regular",
+      "capture": {
+        "path": "release-captures/simple_regular",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p1/runs/bapa-p1/search-01-recovered/p1-search-simple_regular.files/simple_regular/closure",
+        "sha256": "7546f2449107d3b742b08a0987f741a062df57578fd036d5bc1baa5f40e01b79"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-simple_regular.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/simple_regular.json",
+        "sha256": "a8f322c0f78befd0ac6fd6ad8b2aee025b04bcd5645eaf22cd7bae5bfe63af2d",
+        "publicLawNames": [
+          "some process not done, or some y is 1"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/simple_regular.provenance.json",
+          "sha256": "1d4e9a0229ac0587930ebd1716aa1ae43e8d0b0d1cbdc79ab75126b3859b72c1"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-simple_regular.files/RELEASE-REPLAY.json",
+          "sha256": "8103130637936fe9ec9ca8d475ed48ef6421bb00a7a9db0fe51655ddebd48c13"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-simple_regular.files/project/EMITTED.json",
+          "sha256": "a1c45ec20592e3ec6e49ceb0069f95459065dc3b3949ae317cdcd321b5f1e638"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-simple_regular.files/lean.stdout.log",
+            "sha256": "b91302611d4c543f376a1170f9ffc4d45598b9ca1486f0cc7dff47e9f19c60cc"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-simple_regular.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_simple_regular_laws",
+        "sourceTheorems": [
+          "bapa_simple_regular_ex0"
+        ],
+        "axioms": {
+          "bapa_simple_regular_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_simple_regular_ex0": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "firewall",
+      "capture": {
+        "path": "release-captures/firewall",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p1/runs/bapa-p1/historical-seeds/symbolic-firewall",
+        "sha256": "2ed5690066d27705a905eca1dc338612f19c0ed09a59d9f16d79a956ef33c14e"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-firewall.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/firewall.json",
+        "sha256": "cc82d075b67abd1a64f0c68876ca862ed0de9ca9c1dc3b2a62f8a6a3471814ab",
+        "publicLawNames": [
+          "a sender to the inside was sent to from the inside"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/firewall.provenance.json",
+          "sha256": "03c992400b89a011a87184f311f810873c87c36c7c562e29d690d2d3a3637e26"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-firewall.files/RELEASE-REPLAY.json",
+          "sha256": "5f43567a354b8ad81a5c9f06f8ff4a93ae489cad4cb27ab5ba45f7a1e37887b7"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-firewall.files/project/EMITTED.json",
+          "sha256": "e3e82c8f7bc22d0f26049ab7f6c69677b8ba4f8e1ae519df152088579ed16652"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-firewall.files/lean.stdout.log",
+            "sha256": "b7dc8d525cfef24d6c26e7812e8d9118108935fe230bf0be941596a26ea9bdb0"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-firewall.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_firewall_laws",
+        "sourceTheorems": [
+          "bapa_firewall_ex0"
+        ],
+        "axioms": {
+          "bapa_firewall_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_firewall_ex0": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "consensus",
+      "capture": {
+        "path": "release-captures/consensus",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/search-1-recovered/p2-search-consensus.files/consensus/closure",
+        "sha256": "ed33f406d61ac50918cff1d69c81cbf843eebf417eb05091544a082f80def1fe"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-consensus.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/consensus.json",
+        "sha256": "7a26d7eac53c63d49689fd6a461922338f7070ef38dd17dfa50a3a1ddca94275",
+        "publicLawNames": [
+          "at most one value chosen"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/consensus.provenance.json",
+          "sha256": "8b7aae546b55c6036bf7cd1dd9db68fa67f2395e3b97ecb218ca1f25f51f3a49"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-consensus.files/RELEASE-REPLAY.json",
+          "sha256": "bd07ee498a13ac348e65054652a5c6de1faa9ea3a251794d26abdad81e22bba2"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-consensus.files/project/EMITTED.json",
+          "sha256": "c1ff8ac30b0c1504801d564c121ae52a39c6d46500faf7406ef0e9a44e7a9310"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-consensus.files/lean.stdout.log",
+            "sha256": "9f40c5bf2c4fc3ae5400a0682484fa02f11df3850b3a5b1ce1c9e670fc739c72"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-consensus.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_consensus_laws",
+        "sourceTheorems": [
+          "bapa_consensus_source_laws",
+          "bapa_consensus_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_consensus_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_consensus_source_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_consensus_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "consensus_epr",
+      "capture": {
+        "path": "release-captures/consensus_epr",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/search-1-recovered/p2-search-consensus_epr.files/consensus_epr/closure",
+        "sha256": "98abd8ff095e7eba3e4d1aaf1f3987a34218b8e48909bcf05d16822b41f2867e"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-consensus_epr.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/consensus_epr.json",
+        "sha256": "a1d0dbce2e43690accc2dff6ff41b208122cddb0930413cf0b784e035c3aa69d",
+        "publicLawNames": [
+          "one value decided"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/consensus_epr.provenance.json",
+          "sha256": "c1de6f7b321c496f297917846be9ad0fa55cd3a05d46db57ba61b350dc7a1064"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-consensus_epr.files/RELEASE-REPLAY.json",
+          "sha256": "7c8062be086b0df3cc1e062ad3279124d90ef28fbd93fc87df735f7b13809aab"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-consensus_epr.files/project/EMITTED.json",
+          "sha256": "8557bb9032ee25cbf4cbf94277708b0790bc482d6a8df8597a2fdfc04dfb525d"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-consensus_epr.files/lean.stdout.log",
+            "sha256": "5a544aeaefee8e8793a9572134840a390d3fb7d881c4ff74f1604f8cb109f956"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-consensus_epr.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_consensus_epr_laws",
+        "sourceTheorems": [
+          "bapa_consensus_epr_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_consensus_epr_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_consensus_epr_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "naive_consensus",
+      "capture": {
+        "path": "release-captures/naive_consensus",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/search-1-recovered/p2-search-naive_consensus.files/naive_consensus/closure",
+        "sha256": "4f39bdba8a93ed816ace7bbf25b169e9f972cc1ce72f0801c09612d05f9cd8b4"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-naive_consensus.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/naive_consensus.json",
+        "sha256": "565a8ba93a82cdb2eeb0bc321f2b049d2a014f9779bed77425de590ec06e887b",
+        "publicLawNames": [
+          "one value decided"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/naive_consensus.provenance.json",
+          "sha256": "48ec1ee4ee3a0ba40339f88523000baefe7f7df786a1a667c8edc366e4002468"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-naive_consensus.files/RELEASE-REPLAY.json",
+          "sha256": "ea373af925d7f1ec0eea6f8d8bc37d9e24a36b2820098fe42a38af71742c8c92"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-naive_consensus.files/project/EMITTED.json",
+          "sha256": "eb5a2c3da82273f6621e9bb61b8ced47d4c2d111f4d8344b33573f70b6356621"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-naive_consensus.files/lean.stdout.log",
+            "sha256": "6611da6e45ebeb005e5190fdc9731bce05e78734efac99db456cc5a2f802eba0"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-naive_consensus.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_naive_consensus_laws",
+        "sourceTheorems": [
+          "bapa_naive_consensus_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_naive_consensus_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_naive_consensus_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "toy_consensus",
+      "capture": {
+        "path": "release-captures/toy_consensus",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/search-1-recovered/p2-search-toy_consensus.files/toy_consensus/closure",
+        "sha256": "4558a6d95c1f2462f58baffa3dd094bbe8023f6ee4f6b132f47b65b41bc44a84"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-toy_consensus.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/toy_consensus.json",
+        "sha256": "fbf883447b11ce3b363c002bd0f4700b010d2a24e61953bba8213fda6133b086",
+        "publicLawNames": [
+          "one value decided"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/toy_consensus.provenance.json",
+          "sha256": "b8ad3a70bd7b0ffc8ff1a6fc7d100bf8ef298cdc12ab25fd03ee361d045d45ca"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-toy_consensus.files/RELEASE-REPLAY.json",
+          "sha256": "472f49a2c34d46a6dda131dafdd0106eef62693945302bc42b0bc2ad88c62261"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-toy_consensus.files/project/EMITTED.json",
+          "sha256": "b3a8be560c7924a22c68bcbca7cc58f2e00c6f34d84cdad7ba42234b2eae1e3b"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-toy_consensus.files/lean.stdout.log",
+            "sha256": "75d5132c33d2322b6c03ca807304972e92e232ada003f8a0a5a10fe093ccd2d9"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-toy_consensus.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_toy_consensus_laws",
+        "sourceTheorems": [
+          "bapa_toy_consensus_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_toy_consensus_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_toy_consensus_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "toy_consensus_epr",
+      "capture": {
+        "path": "release-captures/toy_consensus_epr",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/search-1-recovered/p2-search-toy_consensus_epr.files/toy_consensus_epr/closure",
+        "sha256": "8891f5b5fce7789a03a6d3afecc3d8b0115e956aef0e212f0e41566e38772098"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-toy_consensus_epr.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/toy_consensus_epr.json",
+        "sha256": "5170a4b865421e7a557bc24747978088b6bee2bd2dc24597b59b56e9d174c51d",
+        "publicLawNames": [
+          "one value decided"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/toy_consensus_epr.provenance.json",
+          "sha256": "ee64e6f4ec6a6d5032b28e56f9de8ffc7ad0a32995a1f7211dca79ae112aebd4"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-toy_consensus_epr.files/RELEASE-REPLAY.json",
+          "sha256": "b62f3d2301aa096d0d88f5645d99be9d47c0517cc9d0fafb2fd780e56d627380"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-toy_consensus_epr.files/project/EMITTED.json",
+          "sha256": "b9cce0813b033a454b024db5b91771916b319f2bd3a3fb62f44dd25930ef40d5"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-toy_consensus_epr.files/lean.stdout.log",
+            "sha256": "6b86da09efc555d8dbfd93c4a30e81c7332c53c9f6de92cb487ade3ee5567dcb"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-toy_consensus_epr.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_toy_consensus_epr_laws",
+        "sourceTheorems": [
+          "bapa_toy_consensus_epr_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_toy_consensus_epr_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_toy_consensus_epr_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "consensus_forall",
+      "capture": {
+        "path": "release-captures/consensus_forall",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/search-1-recovered/p2-search-consensus_forall.files/consensus_forall/closure",
+        "sha256": "49a2bfa9f1cc6f7d3128a03370668ed06e6fea35cfa8abfead7aedd0c8a58c6f"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-consensus_forall.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/consensus_forall.json",
+        "sha256": "4c08e7b9dbb9a3e576722305fd7fef2a4c6ed091bb6aacebb4621b1b3c1c39f5",
+        "publicLawNames": [
+          "one value decided"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/consensus_forall.provenance.json",
+          "sha256": "514451d4e0dc4105b102ddcd134e35fd3288d5b8098136616092413f24107001"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-consensus_forall.files/RELEASE-REPLAY.json",
+          "sha256": "c612cad2e26e42725b2cd6cd9614e6aa9e0496220b475ccda37f4d867d0ac155"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-consensus_forall.files/project/EMITTED.json",
+          "sha256": "279a89d1f6e176b4b93ba74804a7839206838608a7dd491da16c5cf5de9ab2f6"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-consensus_forall.files/lean.stdout.log",
+            "sha256": "4cc9b27c3b9a2ef710ac419f5b28fa795b9fed7141511078234ab07926475fd5"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-consensus_forall.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_consensus_forall_laws",
+        "sourceTheorems": [
+          "bapa_consensus_forall_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_consensus_forall_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_consensus_forall_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "consensus_wo_decide",
+      "capture": {
+        "path": "release-captures/consensus_wo_decide",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/search-1-recovered/p2-search-consensus_wo_decide.files/consensus_wo_decide/closure",
+        "sha256": "30f20617cd346ecaea9ef5ba806739eaebfb05d7ce2acff0256a592a284da361"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-consensus_wo_decide.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/consensus_wo_decide.json",
+        "sha256": "bd19ce021574a02e19bfa7f57d12aff45279d3090e2dda166e39d83beba9720a",
+        "publicLawNames": [
+          "one leader"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/consensus_wo_decide.provenance.json",
+          "sha256": "52e42e0b5433b60c3eb1acf175837bf16e2e80f9919bb071319ab4b47b46f4a7"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-consensus_wo_decide.files/RELEASE-REPLAY.json",
+          "sha256": "ad5977c8dcfa4aa2b891a467753f36284139d6fcfbf1460ca094b22dcf7c38c7"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-consensus_wo_decide.files/project/EMITTED.json",
+          "sha256": "28ea80e420d895563612877e49acd6fde603d764721fb07986f639ef0792ed2b"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-consensus_wo_decide.files/lean.stdout.log",
+            "sha256": "d3c0171e850f41883f2b37716c33e2e0491a9ef26cd205c21daf37f220f5f078"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-consensus_wo_decide.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_consensus_wo_decide_laws",
+        "sourceTheorems": [
+          "bapa_consensus_wo_decide_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_consensus_wo_decide_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_consensus_wo_decide_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "tcommit",
+      "capture": {
+        "path": "release-captures/tcommit",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p3/runs/bapa-p3/search-v1/p3-search-tcommit.files/tcommit/closure",
+        "sha256": "bf0e4ea650455462bff52d2a60f307ee2482227deb083a0033f778f90fa40e02"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-tcommit.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/tcommit.json",
+        "sha256": "9859a228d6474200e148b4cf026f1510eb32e42650098862dadce4dd0d93d39d",
+        "publicLawNames": [
+          "commit and abort exclude"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/tcommit.provenance.json",
+          "sha256": "d62217d30d44a3b3cdff0823b2b934bb2bbf0eb2929a9723fcd8fdba321e95ba"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-tcommit.files/RELEASE-REPLAY.json",
+          "sha256": "7de6804f58f5e059f7f04edad665514d94b29c9857f9eed107ef2a75ac8c7a39"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-tcommit.files/project/EMITTED.json",
+          "sha256": "530076ac21e6eb5e356c0bfce39fe9bd00393016a524f6a6c4a944d443d61b72"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-tcommit.files/lean.stdout.log",
+            "sha256": "c89ea62fb040bf687d016210030a7630e581fa43a0d1645367cdd7d0a9411e49"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-tcommit.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_tcommit_laws",
+        "sourceTheorems": [
+          "bapa_tcommit_source_laws",
+          "bapa_tcommit_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_tcommit_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_tcommit_source_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_tcommit_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "twophase",
+      "capture": {
+        "path": "release-captures/twophase",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p3/runs/bapa-p3/search-v1/p3-search-twophase.files/twophase/closure",
+        "sha256": "a562243d6ca33b6a34f6f3225d0228ab7815eb6608b67f3349318c5f5e1ff396"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-twophase.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/twophase.json",
+        "sha256": "ed2e3233a1c0a9354646ccdd98eff9706fb17ddf6b7fb9cea7a0bb4e6d7eb6dd",
+        "publicLawNames": [
+          "commit and abort exclude"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/twophase.provenance.json",
+          "sha256": "d14a4cbb220e9fb1c2e3ac28a672d9495c1750b916ec330e36185e5521930978"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-twophase.files/RELEASE-REPLAY.json",
+          "sha256": "aa5ba11641922e79393f99d97ae44386345b53c4aff7ab57e4245a2d7064441a"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-twophase.files/project/EMITTED.json",
+          "sha256": "ceb6b3a6a6c333937cf212499f9f068deb2930efc83cde0eabed7a91690105c6"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-twophase.files/lean.stdout.log",
+            "sha256": "b81159ad9cb36590f1663c0b566e6bb6d641826c4447b7d2db042f73c4f4048d"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-twophase.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_twophase_laws",
+        "sourceTheorems": [
+          "bapa_twophase_source_laws",
+          "bapa_twophase_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_twophase_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_twophase_source_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_twophase_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "two_phase_commit",
+      "capture": {
+        "path": "release-captures/two_phase_commit",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p3/runs/bapa-p3/search-v1/p3-search-two_phase_commit.files/two_phase_commit/closure",
+        "sha256": "11f70b04cbb150d08bff4b3069350baebb83013577ae6c1672b277d56ea9b6fc"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-two_phase_commit.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/two_phase_commit.json",
+        "sha256": "d857cab831d9f6e8ef3ed7e7eea861220465a577aad1802eeab0d2a08e1eb4f4",
+        "publicLawNames": [
+          "commit and abort agree"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/two_phase_commit.provenance.json",
+          "sha256": "302e3b8e74bdfa415ba329b4bf0cbb04d725ca02a322076cd93b479a1ea93173"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-two_phase_commit.files/RELEASE-REPLAY.json",
+          "sha256": "5a67d90b5369f3674f6f2f4966774d7b1849a267d9ae91ddbd58afd9ae3a0afa"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-two_phase_commit.files/project/EMITTED.json",
+          "sha256": "d35ec4ee8c475fe4f2046fad977f1ddd04ff7a804c0e68dff9a03adfe81c8e59"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-two_phase_commit.files/lean.stdout.log",
+            "sha256": "fdb9be385fa6b447b49378640714e5aa8c3c655ab8d10d8dea1595290170317c"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-two_phase_commit.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_two_phase_commit_laws",
+        "sourceTheorems": [
+          "bapa_two_phase_commit_source_laws",
+          "bapa_two_phase_commit_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_two_phase_commit_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_two_phase_commit_source_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_two_phase_commit_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "learning_switch",
+      "capture": {
+        "path": "release-captures/learning_switch",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p3/runs/bapa-p3/search-v1/p3-search-learning_switch.files/learning_switch/closure",
+        "sha256": "b7b74efa596b7300767692824fee0eba50f7cd2b3a2844620467eef95c0cb20f"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-learning_switch.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/learning_switch.json",
+        "sha256": "f02bffaaf8af2747387071919b710e7588c70e25b200db35e36fba7b1df34bbf",
+        "publicLawNames": [
+          "the table is transitive",
+          "the table is antisymmetric",
+          "the table is a chain above each node"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/learning_switch.provenance.json",
+          "sha256": "f4885f14c8c996417e2bcc5383f5bc6e6bc4df0a650fd75387e384a8329c2b7e"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-learning_switch.files/RELEASE-REPLAY.json",
+          "sha256": "dc23271ecfd3e17e16843b124490b83bd64d7979803d9f9736d9271be5c09b4b"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-learning_switch.files/project/EMITTED.json",
+          "sha256": "368da8a6123d90b94e8fb866f6da0cbafb6e9c919583ccb98ab0c3cbe7330595"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-learning_switch.files/lean.stdout.log",
+            "sha256": "29f292916df3be75060c67f166f669b8cfa8fe9d06e16e17c14e407a2d5fec77"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-learning_switch.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_learning_switch_laws",
+        "sourceTheorems": [
+          "bapa_learning_switch_source_laws",
+          "bapa_learning_switch_source_law0_holds",
+          "bapa_learning_switch_source_law1_holds",
+          "bapa_learning_switch_source_law2_holds"
+        ],
+        "axioms": {
+          "bapa_learning_switch_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_learning_switch_source_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_learning_switch_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_learning_switch_source_law1_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_learning_switch_source_law2_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "learning_switch_i4",
+      "capture": {
+        "path": "release-captures/learning_switch_i4",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p3/runs/bapa-p3/search-v1/p3-search-learning_switch_i4.files/learning_switch_i4/closure",
+        "sha256": "a2ba258b5b05c03761289f21e3ea91357deec4382e633c688add5a362d1f7f31"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-learning_switch_i4.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/learning_switch_i4.json",
+        "sha256": "bbdfc84140a0732e1d601af7bead86f38d8d998b5351adf077a5577a4bfbdb04",
+        "publicLawNames": [
+          "route_tc is transitive",
+          "route_tc is antisymmetric",
+          "route_tc is a chain above each node"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/learning_switch_i4.provenance.json",
+          "sha256": "eb0cd6856bcabaeb08ed233dc1bd52ecfac665578deec0e6f05bd235c6705a33"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-learning_switch_i4.files/RELEASE-REPLAY.json",
+          "sha256": "43c2c2b21c438be8feb50dca324ce77fc0a4c2f4965ad1d2de012b1c947ccacf"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-learning_switch_i4.files/project/EMITTED.json",
+          "sha256": "a0a6af27f717210672c3a998941263774e75bc836650a0958e8076c33ab0095c"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-learning_switch_i4.files/lean.stdout.log",
+            "sha256": "9889c4993c94d34e9c9414d8e412f0ef913ec1a5a21964128cac3f8f94f2c981"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-learning_switch_i4.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_learning_switch_i4_laws",
+        "sourceTheorems": [
+          "bapa_learning_switch_i4_source_laws",
+          "bapa_learning_switch_i4_source_law0_holds",
+          "bapa_learning_switch_i4_source_law1_holds",
+          "bapa_learning_switch_i4_source_law2_holds"
+        ],
+        "axioms": {
+          "bapa_learning_switch_i4_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_learning_switch_i4_source_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_learning_switch_i4_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_learning_switch_i4_source_law1_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_learning_switch_i4_source_law2_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "client_server_ae",
+      "capture": {
+        "path": "release-captures/client_server_ae",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p3/runs/bapa-p3/search-v1/p3-search-client_server_ae.files/client_server_ae/closure",
+        "sha256": "1c6929e5f1bfecea95d106eef4a33b914764853b6d17ca752f0d1413207a352b"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-client_server_ae.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/client_server_ae.json",
+        "sha256": "c2958de18ea3a00fb9fdc3fc9cbad36a5de81d8289d66df51ab253ee7071540e",
+        "publicLawNames": [
+          "a received response was matched"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/client_server_ae.provenance.json",
+          "sha256": "4f7a7a7fd1c653d09bb1b1668abd2dd31dd8a49d66b21ecbd64766a5013cbdc6"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-client_server_ae.files/RELEASE-REPLAY.json",
+          "sha256": "304d6ca0de55baa343d0c572e89bb12c3b2716fee1fcb35e865eae6f9367af6d"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-client_server_ae.files/project/EMITTED.json",
+          "sha256": "4f48bebc837738c0960b0ba37e5da481b3efdc26b970d14eb8fb81b4d16a9f17"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-client_server_ae.files/lean.stdout.log",
+            "sha256": "6c78e7ee22ad222a3f1046b2dc08d787e7fa7d398f9d0dd2023e6add7fa3bcfb"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-client_server_ae.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_client_server_ae_laws",
+        "sourceTheorems": [
+          "bapa_client_server_ae_ex0"
+        ],
+        "axioms": {
+          "bapa_client_server_ae_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_client_server_ae_ex0": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "quorum_leader_election",
+      "capture": {
+        "path": "release-captures/quorum_leader_election",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p4/runs/bapa-p4-search-recovered/quorum_leader_election.files/quorum_leader_election/closure",
+        "sha256": "26190ed5247317ec80f418e9218cbce744daf79cff12ce139b67326c0f0f9c32"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-quorum_leader_election.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/quorum_leader_election.json",
+        "sha256": "abeb5da5eeb400a05190cb8b07c952900ea145b8327da0250d02223e750194e9",
+        "publicLawNames": [
+          "one leader"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/quorum_leader_election.provenance.json",
+          "sha256": "b07e83b848dc8dab7c99c4913bad7c9d38c21e88e4dfa994a2e552fdcf1b1b2c"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-quorum_leader_election.files/RELEASE-REPLAY.json",
+          "sha256": "f5db16e9b3b67f1a32f132b7082189a8efe10a5eec523524509ef89bb6faa305"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-quorum_leader_election.files/project/EMITTED.json",
+          "sha256": "fa1234a7a283d5a0467187225fc36acd203e8024bf73290e83c8467aaff3fd00"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-quorum_leader_election.files/lean.stdout.log",
+            "sha256": "5f1c463bb36bd612d2693b8a5f66cd9e26fe9ad74ab8d22bb4f2d3b7d5a0bfd6"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-quorum_leader_election.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_quorum_leader_election_laws",
+        "sourceTheorems": [
+          "bapa_quorum_leader_election_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_quorum_leader_election_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_quorum_leader_election_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "majorityset_leader_election",
+      "capture": {
+        "path": "release-captures/majorityset_leader_election",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p4/runs/bapa-p4-search-recovered/majorityset_leader_election.files/majorityset_leader_election/closure",
+        "sha256": "ffd934042e82796eec2b13f7b7a81332995dd37a60d2ecfe62b44da37b8ba0dc"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-majorityset_leader_election.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/majorityset_leader_election.json",
+        "sha256": "639c6e0741eae711bcd08d1f685bb9df4e8d6f45ec7540ff53d35c3acec13fce",
+        "publicLawNames": [
+          "one leader"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/majorityset_leader_election.provenance.json",
+          "sha256": "51966a57d9bd7b9a04d265eea7668e681ef6fb762007008af09ecf22a2639c39"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-majorityset_leader_election.files/RELEASE-REPLAY.json",
+          "sha256": "3a3f8c08a0e01af0b9378add93ef77144c8508bf2904a900a2cb4763b342ac9b"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-majorityset_leader_election.files/project/EMITTED.json",
+          "sha256": "75708430cffc7ba0ef04fcd4cc26fcf2ed6862ab9e2ccd5d68d753a48abc9dce"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-majorityset_leader_election.files/lean.stdout.log",
+            "sha256": "3efcae4e27f245a0ba65736cbda3b4dc3d80e31a718c519c6d308c7f9333df95"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-majorityset_leader_election.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_majorityset_leader_election_laws",
+        "sourceTheorems": [
+          "bapa_majorityset_leader_election_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_majorityset_leader_election_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_majorityset_leader_election_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "sharded_kv_no_lost_keys",
+      "capture": {
+        "path": "release-captures/sharded_kv_no_lost_keys",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p4/runs/bapa-p4-no-lost-existential/sharded-no-lost-existential.files/sharded_kv_no_lost_keys/closure",
+        "sha256": "c9bdfffdd16d612b310d1ca11169e3e563e6eaf34f0b4311e02919097cfa5af1"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-sharded_kv_no_lost_keys.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/sharded_kv_no_lost_keys.json",
+        "sha256": "b2fab1e8b1c9ba6c3ac4bdd0a62e887bbc82192757ff86c597a1ec13ca7757cb",
+        "publicLawNames": [
+          "a transfer in flight, or every key owned"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/sharded_kv_no_lost_keys.provenance.json",
+          "sha256": "7e34adcac1008d609755e196ebe2d4054612cb84a07b6420d3a51824503d43b2"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-sharded_kv_no_lost_keys.files/RELEASE-REPLAY.json",
+          "sha256": "d99e190150cdd5dda365c208d8e93222d54a80e0db3d2cdd6a499199d1146495"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-sharded_kv_no_lost_keys.files/project/EMITTED.json",
+          "sha256": "a6633767810f388ea593b50b510d8c2e2a291b7a4ba8ede785a14f8413f96340"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-sharded_kv_no_lost_keys.files/lean.stdout.log",
+            "sha256": "25e6f63143899f9d46b5c1f1f2d3b7a0fd2932005ac74b496e313ffe76e4d423"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-sharded_kv_no_lost_keys.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_sharded_kv_no_lost_keys_laws",
+        "sourceTheorems": [
+          "bapa_sharded_kv_no_lost_keys_ex0"
+        ],
+        "axioms": {
+          "bapa_sharded_kv_no_lost_keys_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_sharded_kv_no_lost_keys_ex0": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "toy_consensus_forall",
+      "capture": {
+        "path": "release-captures/toy_consensus_forall",
+        "origin": "/home/user/.local/state/r4-launcher/release049-f-capture-bound-input-v6/results-full/capture-f41-full-toy_consensus_forall-normal.files/certificate",
+        "sha256": "33f1a9949fb71fec0b5c1017c0607b25517a4222de10f0634bddc9bd4d8ae84b"
+      },
+      "baselineDirectory": "runs/bapa-toy-reproduction-02/toy-reproduction-2-independent-d9942n.files",
+      "sourceScope": "current-accepted-source",
+      "baselineSource": {
+        "machine": "project/source-machine.json",
+        "laws": "project/source-laws.json"
+      },
+      "source": {
+        "path": "research/bapa/lift-fixtures/toy_consensus_forall.json",
+        "sha256": "c3db4a2c439a60a39d56521c899d85618734afea5c0ebc961ab5850ca8cb98e5",
+        "publicLawNames": [
+          "one value decided"
+        ],
+        "status": "FROZEN",
+        "historicalEncodedSourceMatches": true,
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/toy_consensus_forall.provenance.json",
+          "sha256": "45dae8e478769c2fb6d6e02e6eabbcc8a6cf3b0a62d3a4c35dcff9c6c9b8d6d2"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-toy-reproduction-02/toy-reproduction-2-independent-d9942n.files/RELEASE-REPLAY.json",
+          "sha256": "5ef0c9314a2fc44f9ae393171242b30b060b7de9f08d9f225840f9fa129127b6"
+        },
+        "emission": {
+          "path": "runs/bapa-toy-reproduction-02/toy-reproduction-2-independent-d9942n.files/project/EMITTED.json",
+          "sha256": "01766a7c8d8621f5e3990523f7a8e2949f8fc36fd411af97f4f836fa7fab4fea"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-toy-reproduction-02/toy-reproduction-2-independent-d9942n.files/lean.stdout.log",
+            "sha256": "b406b62ce6ef1787833e45ff7ec7266616ceb269452e7a9188150730a79ef87b"
+          },
+          {
+            "path": "runs/bapa-toy-reproduction-02/toy-reproduction-2-independent-d9942n.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_toy_consensus_forall_transported_laws",
+        "sourceTheorems": [
+          "bapa_toy_consensus_forall_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_toy_consensus_forall_transported_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_toy_consensus_forall_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "client_server_db_ae",
+      "capture": {
+        "path": "release-captures/client_server_db_ae",
+        "origin": "/home/user/.local/state/r4-launcher/release049-f-capture-bound-input-v6/results-full/capture-f41-full-client_server_db_ae-normal.files/certificate",
+        "sha256": "e76ed2d24da036b98a98ea1edf509abe741499a2647c88f647c4d4f235cc87f0"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-client_server_db_ae.files",
+      "sourceScope": "current-accepted-source",
+      "familyTheorem": "p3_family",
+      "sourceTheorems": [
+        "bapa_client_server_db_ae_source"
+      ],
+      "baselineSource": {
+        "machine": "project/source-machine.json",
+        "laws": "project/source-laws.json"
+      },
+      "source": {
+        "path": "research/bapa/lift-fixtures/client_server_db_ae.json",
+        "sha256": "8b8e9add995034551cb10c99ad1c52c1e6ce290705ac18f324d4c009a8503f6f",
+        "publicLawNames": [
+          "a received response was matched"
+        ],
+        "status": "FROZEN",
+        "historicalEncodedSourceMatches": false,
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/client_server_db_ae.provenance.json",
+          "sha256": "d403ecad76e03459086f82638f656f1802d3ea294990cbe2cd45bb5ad68cd5fa"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-client_server_db_ae.files/RELEASE-REPLAY.json",
+          "sha256": "bab9580711366b6cba1e65f5ef7db08052d2b821a77ae7d0c64fb35ecccee175"
+        },
+        "emission": {
+          "path": "runs/bapa-release-replay-01/replay-client_server_db_ae.files/project/EMITTED.json",
+          "sha256": "d2639407ae25c10bad0e4e93c65c40a38d37e5f289ae6b8d78f349187585a5f6"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-client_server_db_ae.files/lean.stdout.log",
+            "sha256": "f339649a9d4a83036556f835e09dd3f9f1420132ec5c67c28b3893755754ab73"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-client_server_db_ae.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "p3_family",
+        "sourceTheorems": [
+          "bapa_client_server_db_ae_source"
+        ],
+        "axioms": {
+          "p3_family": [
+            "propext"
+          ],
+          "bapa_client_server_db_ae_source": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "sharded_kv",
+      "capture": {
+        "path": "release-captures/sharded_kv",
+        "origin": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p4/runs/bapa-p4-sharded-progress/sharded-progress-seed.files/sharded_kv/closure",
+        "sha256": "a1885c7c4098ee59f7bfb7d67fff7b379be293f7baa8343b1c8c61c34c4185b2"
+      },
+      "baselineDirectory": "runs/bapa-release-sharded-01/replay-sharded_kv.files",
+      "sourceScope": "frozen-capsule-original",
+      "source": {
+        "path": "research/bapa/lift-fixtures/sharded_kv.json",
+        "sha256": "0492659f026b113e299c09a2e0746e0a776f8147ae5503337f9ab62f4599c185",
+        "publicLawNames": [
+          "one value per key"
+        ],
+        "status": "FROZEN",
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/sharded_kv.provenance.json",
+          "sha256": "a465f3e46e30dfeae4c523dd05a9586551ad660c98c01d67000557b74cf44c26"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-sharded-01/replay-sharded_kv.files/RELEASE-REPLAY.json",
+          "sha256": "05ae54ac450a3bac6317d160e7047a2613b034eb54148e27538752382d6594e4"
+        },
+        "emission": {
+          "path": "runs/bapa-release-sharded-01/replay-sharded_kv.files/project/EMITTED.json",
+          "sha256": "b90f7881ec65f60c34d1b19a2e5dd32f1febf2f0015ee5130b23ae876e7358e7"
+        },
+        "logs": [
+          {
+            "path": "runs/bapa-release-sharded-01/replay-sharded_kv.files/lean.stdout.log",
+            "sha256": "463e17d324f6841f9b85788fdd8e224f272395ff289079f66e55c43925d929ac"
+          },
+          {
+            "path": "runs/bapa-release-sharded-01/replay-sharded_kv.files/lean.stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "familyTheorem": "bapa_sharded_kv_laws",
+        "sourceTheorems": [
+          "bapa_sharded_kv_source_laws",
+          "bapa_sharded_kv_source_law0_holds"
+        ],
+        "axioms": {
+          "bapa_sharded_kv_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_sharded_kv_source_laws": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ],
+          "bapa_sharded_kv_source_law0_holds": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    },
+    {
+      "id": "simple_decentralized_lock",
+      "capture": {
+        "path": "release-captures/simple_decentralized_lock",
+        "origin": "/home/user/.local/state/r4-launcher/release049-f-capture-bound-input-v6/results-full/capture-f41-full-simple_decentralized_lock-normal.files/certificate",
+        "sha256": "e123183e89e3d5e0378d9aaf3e4d00a5f7e55b3584821faf0c6fa2d739e82958"
+      },
+      "baselineDirectory": "runs/bapa-release-replay-01/replay-simple_decentralized_lock.files",
+      "sourceScope": "current-accepted-source",
+      "familyTheorem": "Bapa.SdlConcrete.Checked.family",
+      "sourceTheorems": [
+        "bapa_simple_decentralized_lock_source_law"
+      ],
+      "baselineSource": {
+        "combined": "SOURCE-DATA.json"
+      },
+      "source": {
+        "path": "research/bapa/lift-fixtures/simple_decentralized_lock.json",
+        "sha256": "3247b33c6304cedcdd23cb990c6c1b8616b13e28e3e6781f5ccedadac4bddb2c",
+        "publicLawNames": [
+          "one node holds the lock"
+        ],
+        "status": "FROZEN",
+        "historicalEncodedSourceMatches": true,
+        "provenance": {
+          "path": "research/bapa/lift-fixtures/simple_decentralized_lock.provenance.json",
+          "sha256": "d503b1244fe0242600f1dd6918c091e00ebb918d0fd92d6b198ce1d6d966b017"
+        }
+      },
+      "baseline": {
+        "receipt": {
+          "path": "runs/bapa-release-replay-01/replay-simple_decentralized_lock.files/RELEASE-REPLAY.json",
+          "sha256": "0f694fb19e670c380f38e2d5c25267e09b66e385a75aedd5c9b43991cee3cd7c"
+        },
+        "emission": null,
+        "logs": [
+          {
+            "path": "runs/bapa-release-replay-01/replay-simple_decentralized_lock.files/Checks.log",
+            "sha256": "215dc191b355a4e42eab31115e2a4e658b036660b9244b19b85892fd87d1c8bb"
+          },
+          {
+            "path": "runs/bapa-release-replay-01/replay-simple_decentralized_lock.files/SdlSourceBridge.log",
+            "sha256": "cf0cab81acc309c9fe67a5f31b2b8e7dca5d9bcf8655994a0230852bf76a36d6"
+          }
+        ],
+        "familyTheorem": "Bapa.SdlConcrete.Checked.family",
+        "sourceTheorems": [
+          "bapa_simple_decentralized_lock_source_law"
+        ],
+        "axioms": {
+          "Bapa.SdlConcrete.Checked.family": [
+            "propext"
+          ],
+          "bapa_simple_decentralized_lock_source_law": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      },
+      "pending": []
+    }
+  ]
+}

@@ -25,6 +25,8 @@ cat > smoke.mjs <<'JS'
 import {everyKey, min, nat, proveRule, recur, rule, variant, when} from 'gdp-wired'
 import {interpret} from 'gdp-wired/machine'
 import {leanProject, toLean} from 'gdp-wired/lean'
+import {lift} from 'gdp-wired/lift'
+if (typeof lift !== 'function') throw new Error('gdp-wired/lift: missing product entry point')
 const budget = rule('budget').params({b: nat, m: nat}).inputs({c: nat}).state({s: 0})
   .step(({c, s, b, m}) => ({s: when(s.lt(b), s.plus(min(c, m)), s)}))
 const v = proveRule(budget, [budget.law('spend stays within b + m', ({s, b, m}) => s.atMost(b.plus(m)))])
@@ -102,6 +104,28 @@ if (noRs.ok || !noRs.refusals.length) throw new Error(`gdp-wired/extract-rs with
 console.log(`node ${process.version}: proven, kernel accepts; compiled spend 110; Lean project of ${Object.keys(project).length} files; a gate minted once; a recurrence's lemma used`)
 JS
 node smoke.mjs
+# The installed Node CLI consumes only data. The tiny fixture uses hand-built
+# constant-contradiction certificates, never invariant discovery or search.
+mkdir "$work/lift-input"
+bun "$root/lean-kernel/lift/pipeline-fixture.ts" prepare "$work/lift-input"
+node node_modules/gdp-wired/dist/core/cli.js lift "$work/lift-input/capture" "$work/lift-input/source.json" \
+  --out "$work/lift-output" --emit-only --json > lift.json
+node --input-type=module - "$work/lift-output" <<'JS'
+import {createHash} from 'node:crypto'
+import {readFileSync} from 'node:fs'
+import {join} from 'node:path'
+const directory = process.argv[2], m = JSON.parse(readFileSync('lift.json', 'utf8'))
+if (m.status !== 'EMITTED_NOT_CHECKED' || m.leanExecuted !== false || m.allSizesProven !== false ||
+    m.sourceProjection.sourceTheorems.length !== 1) throw new Error('packaged lift made an invalid acceptance claim')
+for (const file of ['StructuralWeakening', 'TypedSource', 'InvariantSimulation', 'SemanticSums', 'RadixSumTransport']) {
+  if (!m.files[file + '.lean']) throw new Error('packaged lift missing promoted module: ' + file)
+}
+for (const [file, expected] of Object.entries(m.files)) {
+  const actual = createHash('sha256').update(readFileSync(join(directory, file))).digest('hex')
+  if (actual !== expected) throw new Error('packaged lift file hash mismatch: ' + file)
+}
+console.log(`node ${process.version}: packaged lift emitted ${Object.keys(m.files).length} hash-bound files; no source acceptance claimed`)
+JS
 # The CLI, as npx runs it: a TypeScript class with one law stated in a comment (proven) and one broken (exit 1).
 cat > wallet.ts <<'TS'
 export class Wallet {
@@ -125,6 +149,8 @@ import {bool, forall, fun, nat, proveRule, proveSteps, record, recur, rule, vari
 import type {Machine} from 'gdp-wired/machine'
 import {check} from 'gdp-wired/kernel'
 import {type LeanItem, toLean} from 'gdp-wired/lean'
+import {lift, type LiftManifest} from 'gdp-wired/lift'
+const liftAPI: (capsule: string, source: string, out: string) => LiftManifest = lift
 import {product} from 'gdp-wired/compose'
 import {type Mint, guard} from 'gdp-wired/gdp'
 import {defineProof} from '@gdp-ts/core'
@@ -149,7 +175,7 @@ const pay = fun('pay').inputs({p: variant({card: {amount: nat}, cash: {}}), who:
   .returns(({p, who}) => ({ok: p.match({card: c => c.amount.atMost(who.limit), cash: () => p.is('cash')})}))
 const ok: boolean = pay.run({p: {tag: 'card', amount: 3}, who: {limit: 5}}).ok
 const steps = recur('steps', {zero: 0, next: (_, y) => y.plus(1)}, {'at most x': (x, y) => y.atMost(x)})
-export {v, s, m, check, text, mint, ok, steps, effectRead, service, pyRead, goRead}
+export {v, s, m, check, text, mint, ok, steps, effectRead, service, pyRead, goRead, liftAPI}
 TS
 printf '{"compilerOptions":{"strict":true,"noEmit":true,"module":"nodenext","moduleResolution":"nodenext","target":"es2022","lib":["es2022"],"types":[],"skipLibCheck":false},"files":["consumer.ts"]}\n' > tsconfig.json
 npx tsc -p tsconfig.json

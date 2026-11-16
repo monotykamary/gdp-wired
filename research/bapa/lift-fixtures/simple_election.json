@@ -1,0 +1,682 @@
+{
+  "schema": "gdp-lift-source/v1",
+  "id": "simple_election",
+  "machine": {
+    "name": "simple election",
+    "params": [
+      "size",
+      "proposers"
+    ],
+    "inputs": [
+      "op",
+      "a",
+      "p"
+    ],
+    "state": {},
+    "maps": {
+      "Start": 0,
+      "Promised": 0,
+      "Leader": 0,
+      "Promise": 0
+    },
+    "inputMaps": [
+      "Q"
+    ],
+    "counts": {
+      "members": {
+        "j": "members$x",
+        "key": "members$k",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "body": {
+          "op": "if",
+          "c": {
+            "op": "<=",
+            "a": {
+              "op": "const",
+              "value": 1
+            },
+            "b": {
+              "op": "get",
+              "map": "Q",
+              "key": {
+                "op": "var",
+                "name": "members$k"
+              }
+            }
+          },
+          "then": {
+            "op": "const",
+            "value": 1
+          },
+          "else": {
+            "op": "const",
+            "value": 0
+          }
+        }
+      }
+    },
+    "step": {
+      "flags": {
+        "chosenAt": {
+          "op": "all",
+          "key": "k$1",
+          "c": {
+            "op": "or",
+            "xs": [
+              {
+                "op": "not",
+                "x": {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 1
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "Q",
+                    "key": {
+                      "op": "var",
+                      "name": "k$1"
+                    }
+                  }
+                }
+              },
+              {
+                "op": "<=",
+                "a": {
+                  "op": "const",
+                  "value": 1
+                },
+                "b": {
+                  "op": "get",
+                  "map": "Promise",
+                  "key": {
+                    "op": "tup",
+                    "a": {
+                      "op": "var",
+                      "name": "p"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "k$1"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "sends1a": {
+          "op": "=",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        },
+        "sends1b": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "Start",
+                "key": {
+                  "op": "var",
+                  "name": "p"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "not",
+              "x": {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "Promised",
+                  "key": {
+                    "op": "var",
+                    "name": "a"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              }
+            }
+          ]
+        },
+        "decides": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 2
+              }
+            },
+            {
+              "op": "flag",
+              "name": "chosenAt"
+            }
+          ]
+        },
+        "all$1": {
+          "op": "all",
+          "key": "k$2",
+          "c": {
+            "op": "and",
+            "xs": [
+              {
+                "op": "<=",
+                "a": {
+                  "op": "get",
+                  "map": "Q",
+                  "key": {
+                    "op": "var",
+                    "name": "k$2"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              },
+              {
+                "op": "or",
+                "xs": [
+                  {
+                    "op": "not",
+                    "x": {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 1
+                      },
+                      "b": {
+                        "op": "get",
+                        "map": "Q",
+                        "key": {
+                          "op": "var",
+                          "name": "k$2"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "op": "<",
+                    "a": {
+                      "op": "var",
+                      "name": "k$2"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "size"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "maps": {
+        "Promise": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "p"
+            },
+            "b": {
+              "op": "var",
+              "name": "a"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "sends1b"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "Promise",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "p"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "a"
+                }
+              }
+            }
+          }
+        },
+        "Start": {
+          "key": {
+            "op": "var",
+            "name": "p"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "sends1a"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "sends1a"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "Start",
+                        "key": {
+                          "op": "var",
+                          "name": "p"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "Promised": {
+          "key": {
+            "op": "var",
+            "name": "a"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "sends1b"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "sends1b"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "Promised",
+                        "key": {
+                          "op": "var",
+                          "name": "a"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "Leader": {
+          "key": {
+            "op": "var",
+            "name": "p"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "decides"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "decides"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "Leader",
+                        "key": {
+                          "op": "var",
+                          "name": "p"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        }
+      }
+    },
+    "assume": {
+      "op": "and",
+      "xs": [
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 3
+          }
+        },
+        {
+          "op": "and",
+          "xs": [
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "a"
+              },
+              "b": {
+                "op": "var",
+                "name": "size"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "p"
+              },
+              "b": {
+                "op": "var",
+                "name": "proposers"
+              }
+            },
+            {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "op"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 2
+                    }
+                  }
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "all$1"
+                    },
+                    {
+                      "op": "<",
+                      "a": {
+                        "op": "var",
+                        "name": "size"
+                      },
+                      "b": {
+                        "op": "mul",
+                        "k": 2,
+                        "a": {
+                          "op": "get",
+                          "map": "members",
+                          "key": {
+                            "op": "const",
+                            "value": 0
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "relations": {
+      "Promise": [
+        "Proposer",
+        "Acceptor"
+      ]
+    }
+  },
+  "laws": [
+    {
+      "name": "one leader",
+      "forall": "key$2",
+      "keys": [
+        "key$3"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "proposers"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$3"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "proposers"
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "Leader",
+                    "key": {
+                      "op": "var",
+                      "name": "key$2"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "Leader",
+                    "key": {
+                      "op": "var",
+                      "name": "key$3"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "op": "=",
+            "a": {
+              "op": "var",
+              "name": "key$2"
+            },
+            "b": {
+              "op": "var",
+              "name": "key$3"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

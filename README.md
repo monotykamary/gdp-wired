@@ -578,6 +578,10 @@ const soon = retry.law('the next try is at most 64 after the last request', ({ne
   `leanProject(file)` a Lake project with the twin, so `lake build` checks them. Each law comes as the twin's theorem and
   as a plain statement over named variables, e.g. `theorem budget.law0 (h : SReach budget_machine ρ μ) : ρ «s» ≤
   (ρ «b» + ρ «m»)`, for a Lean development to cite.
+- **Retained proof lifting** (`gdp-wired/lift`): `gdp-wired lift capsule source.json --out proof` generates a fresh
+  Lean project from a data-only proof capsule and source model, without invariant search. The default command checks
+  the source laws in Lean; `--emit-only` does not claim acceptance. See [the lift guide](docs/lift.md) for supported
+  transports, hash-bound receipts, and the boundary between an encoded source theorem and an external specification.
 - **Composition** (`gdp-wired/compose`): `product(a, b)`, `interleave(a, b)`, `refinement(impl, spec, {relation, witness, stutter})`,
   `steps(spec, k)` (k spec steps as one, each skippable) and `ghost(m, {name: ever(...) | count(...) | total(m, map, name)})`
   build plain machines from machines (each side's state named `a_x`, `b_x`). A refinement's laws are the relation, proven

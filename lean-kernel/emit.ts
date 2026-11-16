@@ -14,6 +14,7 @@ import {allowNode, certMs, closingInsts, reqTS, withWitness, foldNodes, certMode
 import type {Fact} from '../kernel/cyclic.ts'
 import {leanLibrary} from './library.ts'
 import {legacyFamilyLibrary} from './legacy-family-library.ts'
+import {legacyFamilyOrder} from './legacy-family-order.ts'
 import {proveKInduction} from '../core/kind.ts'
 import {quantifiedRenames} from './qalpha.ts'
 import {countsForReads} from '../core/count-facts.ts'
@@ -2385,12 +2386,16 @@ ${theorems.map(t => `#print axioms ${t}`).join('\n')}
 export {rationalsToLean} from './qlean.ts'
 
 // A Lake project that builds the twin and the file: `lake build` in its folder checks every proof.
-export function leanProject(file: string, opts: {name?: string} = {}): Record<string, string> {
+export function leanProject(file: string, opts: {name?: string, currentFamily?: boolean} = {}): Record<string, string> {
   const name = opts.name ?? 'Proofs'
   // Only generated cut-family declarations need the new family library. Merely
   // mentioning CEntryF in a comment or identifier must not change a cut-free project.
   const cutFamily = /^(?:noncomputable )?def [^\s:]+ : List CEntryF :=/m.test(file)
-  const library = cutFamily ? leanLibrary : {...leanLibrary, ...legacyFamilyLibrary}
+  const oldNames:ReadonlySet<string> = new Set(legacyFamilyOrder)
+  const modernNames = new Set(Object.keys(leanLibrary).filter(n => !oldNames.has(n)).map(n => n.slice(0, -5)))
+  const modernImport = [...file.matchAll(/^\s*import\s+([^\n]+)/gm)].some(m => m[1]!.split(/\s+/).some(n => modernNames.has(n)))
+  const current = opts.currentFamily === true || cutFamily || modernImport || file.includes('RowAlpha.') || file.includes('forall_some_of_ghostsubst_bound')
+  const library = current ? leanLibrary : Object.fromEntries(legacyFamilyOrder.map(n => [n, legacyFamilyLibrary[n] ?? leanLibrary[n]!]))
   const modules = [...Object.keys(library).map(f => f.replace(/\.lean$/, '')), name]
   return {
     ...library,

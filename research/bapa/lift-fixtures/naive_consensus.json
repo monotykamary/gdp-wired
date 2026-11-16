@@ -1,0 +1,687 @@
+{
+  "schema": "gdp-lift-source/v1",
+  "id": "naive_consensus",
+  "machine": {
+    "name": "naive consensus",
+    "params": [
+      "size",
+      "values"
+    ],
+    "inputs": [
+      "op",
+      "n",
+      "v"
+    ],
+    "state": {},
+    "maps": {
+      "Voted": 0,
+      "Decide": 0,
+      "Decision": 0,
+      "Vote": 0
+    },
+    "inputMaps": [
+      "Q"
+    ],
+    "counts": {
+      "members": {
+        "j": "members$x",
+        "key": "members$k",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "body": {
+          "op": "if",
+          "c": {
+            "op": "<=",
+            "a": {
+              "op": "const",
+              "value": 1
+            },
+            "b": {
+              "op": "get",
+              "map": "Q",
+              "key": {
+                "op": "var",
+                "name": "members$k"
+              }
+            }
+          },
+          "then": {
+            "op": "const",
+            "value": 1
+          },
+          "else": {
+            "op": "const",
+            "value": 0
+          }
+        }
+      }
+    },
+    "step": {
+      "flags": {
+        "allVote": {
+          "op": "all",
+          "key": "k$1",
+          "c": {
+            "op": "or",
+            "xs": [
+              {
+                "op": "not",
+                "x": {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 1
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "Q",
+                    "key": {
+                      "op": "var",
+                      "name": "k$1"
+                    }
+                  }
+                }
+              },
+              {
+                "op": "<=",
+                "a": {
+                  "op": "const",
+                  "value": 1
+                },
+                "b": {
+                  "op": "get",
+                  "map": "Vote",
+                  "key": {
+                    "op": "tup",
+                    "a": {
+                      "op": "var",
+                      "name": "v"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "k$1"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "casts": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "not",
+              "x": {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "Voted",
+                  "key": {
+                    "op": "var",
+                    "name": "n"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              }
+            }
+          ]
+        },
+        "collects": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "flag",
+              "name": "allVote"
+            }
+          ]
+        },
+        "learns": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 2
+              }
+            },
+            {
+              "op": "=",
+              "a": {
+                "op": "get",
+                "map": "Decide",
+                "key": {
+                  "op": "var",
+                  "name": "v"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            }
+          ]
+        },
+        "all$1": {
+          "op": "all",
+          "key": "k$2",
+          "c": {
+            "op": "and",
+            "xs": [
+              {
+                "op": "<=",
+                "a": {
+                  "op": "get",
+                  "map": "Q",
+                  "key": {
+                    "op": "var",
+                    "name": "k$2"
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              },
+              {
+                "op": "or",
+                "xs": [
+                  {
+                    "op": "not",
+                    "x": {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 1
+                      },
+                      "b": {
+                        "op": "get",
+                        "map": "Q",
+                        "key": {
+                          "op": "var",
+                          "name": "k$2"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "op": "<",
+                    "a": {
+                      "op": "var",
+                      "name": "k$2"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "size"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "maps": {
+        "Vote": {
+          "key": {
+            "op": "tup",
+            "a": {
+              "op": "var",
+              "name": "v"
+            },
+            "b": {
+              "op": "var",
+              "name": "n"
+            }
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "casts"
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "get",
+              "map": "Vote",
+              "key": {
+                "op": "tup",
+                "a": {
+                  "op": "var",
+                  "name": "v"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "n"
+                }
+              }
+            }
+          }
+        },
+        "Voted": {
+          "key": {
+            "op": "var",
+            "name": "n"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "casts"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "casts"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "Voted",
+                        "key": {
+                          "op": "var",
+                          "name": "n"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "Decide": {
+          "key": {
+            "op": "var",
+            "name": "v"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "collects"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "collects"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "Decide",
+                        "key": {
+                          "op": "var",
+                          "name": "v"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "Decision": {
+          "key": {
+            "op": "var",
+            "name": "v"
+          },
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "learns"
+                    },
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "learns"
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "Decision",
+                        "key": {
+                          "op": "var",
+                          "name": "v"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        }
+      }
+    },
+    "assume": {
+      "op": "and",
+      "xs": [
+        {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "op"
+          },
+          "b": {
+            "op": "const",
+            "value": 3
+          }
+        },
+        {
+          "op": "and",
+          "xs": [
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "n"
+              },
+              "b": {
+                "op": "var",
+                "name": "size"
+              }
+            },
+            {
+              "op": "<",
+              "a": {
+                "op": "var",
+                "name": "v"
+              },
+              "b": {
+                "op": "var",
+                "name": "values"
+              }
+            },
+            {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "op"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  }
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "all$1"
+                    },
+                    {
+                      "op": "<",
+                      "a": {
+                        "op": "var",
+                        "name": "size"
+                      },
+                      "b": {
+                        "op": "mul",
+                        "k": 2,
+                        "a": {
+                          "op": "get",
+                          "map": "members",
+                          "key": {
+                            "op": "const",
+                            "value": 0
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "relations": {
+      "Vote": [
+        "Value",
+        "Node"
+      ]
+    }
+  },
+  "laws": [
+    {
+      "name": "one value decided",
+      "forall": "key$2",
+      "keys": [
+        "key$3"
+      ],
+      "holds": {
+        "op": "or",
+        "xs": [
+          {
+            "op": "not",
+            "x": {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "values"
+                  }
+                },
+                {
+                  "op": "<",
+                  "a": {
+                    "op": "var",
+                    "name": "key$3"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "values"
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "Decision",
+                    "key": {
+                      "op": "var",
+                      "name": "key$2"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "Decision",
+                    "key": {
+                      "op": "var",
+                      "name": "key$3"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "op": "=",
+            "a": {
+              "op": "var",
+              "name": "key$2"
+            },
+            "b": {
+              "op": "var",
+              "name": "key$3"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
