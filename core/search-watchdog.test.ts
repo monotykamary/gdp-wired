@@ -29,8 +29,15 @@ test('public proof and inference cannot swallow an expired ancestor watchdog', (
   const r = rule('nested watchdog').state({value: 0}).step(({value}) => ({value: value.plus(1)}))
   const laws = [r.law('nonnegative', ({value}) => value.atLeast(0))]
   for (const watchdogMs of [undefined, 60000]) {
-    expect(() => withSearchWatchdog(1, () => { pause(); proveRule(r, laws, {watchdogMs}) })).toThrow(WatchdogExpired)
-    expect(() => withSearchWatchdog(1, () => { pause(); inferLaws(r, laws, [], {watchdogMs}) })).toThrow(WatchdogExpired)
+    let proofReturned = false, inferenceReturned = false
+    expect(() => withSearchWatchdog(1, () => {
+      pause(); proveRule(r, laws, {watchdogMs}); proofReturned = true
+    })).toThrow(WatchdogExpired)
+    expect(proofReturned, 'proveRule must propagate before returning, not rely on the owner completion guard').toBe(false)
+    expect(() => withSearchWatchdog(1, () => {
+      pause(); inferLaws(r, laws, [], {watchdogMs}); inferenceReturned = true
+    })).toThrow(WatchdogExpired)
+    expect(inferenceReturned, 'inferLaws must propagate before returning, not rely on the owner completion guard').toBe(false)
   }
   withSearchWatchdog(1000, () => {
     expect(proveRule(r, laws, {watchdogMs: 0}).termination?.kind).toBe('wall-deadline')
