@@ -18,6 +18,10 @@ noted), each with the command that reproduces it.
 - **Clean example checks:** the counted, keyed, and JevFabric Lean examples compile their `QAlpha` and
   `BridgeRules` prerequisites explicitly, rather than depending on cached objects from another job.
 
+### Fixed
+
+- A law with a forall nested inside another forall (positive position) was proven as a weaker law with both variables equal, e.g. forall a. forall b. M[a] <= M[b] became M[k] <= M[k]. Such laws are now refused with a typed error pointing to the two-key form forall((a, b) => ...). Present since 0.3.0. If you wrote such a law, rewrite it in the two-key form and re-prove.
+
 ## 0.50.0
 
 - **BAPA source proofs:** checked safety theorems for 27 encoded source models, including their symbolic size parameters
