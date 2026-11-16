@@ -4679,7 +4679,10 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
     }
     const hi = ask({op: 'hello', ...h.hello, naiveUtc: read.naiveUtc, leaves: read.leaves, ctor: read.ctor, answers: read.answers, kept: read.kept, cls: read.cls ?? null, stores: read.stores, arms: read.arms, discard: opts.onError === 'discard', ...(read.inject ? {inject: read.inject} : {}), ...(read.globals ? {globals: read.globals} : {}), ...(read.inert ? {inert: read.inert} : {}), ...(opts.fields ? {fields: opts.fields} : {})})
     if (hi.error) return {...empty, mismatch: `the code doesn't load with the check's harness: ${JSON.stringify(hi.error)}`}
-    const native = hi.nativeSnapshot === 1 && read.leaves.some(l => l.ordered) ? nativeWireDecoder() : undefined
+    const decodeNative = hi.nativeSnapshot === 1 || hi.nativeBindings === 1 ? nativeWireDecoder() : undefined
+    const native = hi.nativeSnapshot === 1 ? decodeNative : undefined
+    const bindingDecoder = hi.nativeBindings === 1 ? decodeNative : undefined
+    let nativeBindings: {snapshot?: unknown, error?: string} | undefined
     const num = (x: unknown, at: string): number => { const n = Number(x); if (typeof x === 'string' && Number.isSafeInteger(n) && String(n) === x) return n; throw new Outside(`${at} is ${String(x)}`) }
     const toSnap = (s: Record<string, unknown>): Snap => {
       const leaves: Record<string, Raw> = {}, maps: Snap['maps'] = {}
@@ -4710,6 +4713,7 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
       snapOf: self => { const res = ask({op: 'get', id: self}); if (res.error) throw new Error(JSON.stringify(res.error)); return toSnap(res.state as Record<string, unknown>) },
       call: (self, e, args) => {
         const res = ask({op: 'call', id: self, m: e.call, a: args, now, answers: answersOf(e.call)}) as {out?: unknown, err?: string, frame?: string, bad?: string, outside?: string}
+        nativeBindings = (res as {nativeBindings?: typeof nativeBindings}).nativeBindings
         if (res.outside !== undefined) return {ok: false, outside: true, error: res.outside}
         if (res.frame) throw new Error(`the code changes ${res.frame}, a field the rule leaves out`)
         if (res.bad !== undefined) return {ok: false, error: `the code can't be given it (${res.bad})`}
@@ -4735,6 +4739,11 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
         const result = ask({op: 'native', id: self})
         if (result.error) throw new Error(`native snapshot: ${JSON.stringify(result.error)}`)
         return native(result.snapshot)
+      }} : {}),
+      ...(bindingDecoder ? {nativeBindings: () => {
+        if (nativeBindings?.error) throw new Error(`native parameter capture: ${nativeBindings.error}`)
+        if (!nativeBindings?.snapshot) return undefined
+        return bindingDecoder(nativeBindings.snapshot) as Record<string, unknown>
       }} : {}),
       args: (inputs, e) => { inputsNow = inputs; return (read.args[e.call] ?? []).map(([n, a]) => [n, build(a, inputs)]) },
       setNow: n => { now = n },
