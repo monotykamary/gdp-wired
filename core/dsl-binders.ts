@@ -1,7 +1,23 @@
-// Reserved surface identities cannot equal user declarations. Kernel.scope also
-// rejects reserved *bound* names, so the final DSL boundary alpha-encodes them
-// to fresh plain names. No kernel code or trusted axiom is changed.
-export const binder=(kind:string,index:number):string=>`?${kind}${index}`
+// Private generated identities carry provenance in memory, not in their spelling.
+// At the public machine/law boundary retain the historical readable name unless
+// it collides with a declared or free identifier. Symbols never enter JSON/Lean.
+const origin = Symbol('generated variable')
+const issued = new Map<string,string>()
+export const internalName=(token:string,legacy:string):string=>{issued.set(token,legacy);return token}
+export const binder=(kind:string,index:number):string=>internalName(`?${kind}${index}`,`${kind}$${index}`)
+const identity=(name:string):{root:string,legacy:string,suffix:string}|undefined=>{
+  const end=name.search(/[.$]/),root=end<0?name:name.slice(0,end),legacy=issued.get(root)
+  return legacy===undefined?undefined:{root,legacy,suffix:name.slice(root.length)}
+}
+export function variable(name:string):{op:'var',name:string} {
+  const out={op:'var' as const,name}
+  if(identity(name))Object.defineProperty(out,origin,{value:true,enumerable:true})
+  return out
+}
+export function copyVariable<T extends object>(from:object,to:T):T {
+  if((from as Record<symbol,unknown>)[origin])Object.defineProperty(to,origin,{value:true,enumerable:true})
+  return to
+}
 export const reservedName=(name:string):boolean=>name==='1'||/[*[\],:#?~'⟦⟧⟨⟩|]/.test(name)
 export function plainDeclaration(what:string,name:string):void {
   if(reservedName(name))throw new Error(`${what}: the name ${name} is reserved (1, or * [ ] , : # ? ~ ' ⟦ ⟧ ⟨ ⟩ |)`)
@@ -15,50 +31,50 @@ const bindings=(node:Record<string,unknown>):string[]=>[
 ]
 export function guardReserved(value:unknown,allowedFree:string[]=[]):void {
   const allowed=new Set(allowedFree)
-  const check=(x:unknown,scope:Set<string>):void=>{
+  const check=(x:unknown):void=>{
     if(!x||typeof x!=='object')return
-    if(Array.isArray(x)){x.forEach(v=>check(v,scope));return}
-    const node=x as Record<string,unknown>,inner=new Set([...scope,...bindings(node)])
-    if(node.op==='var'&&typeof node.name==='string'&&reservedName(node.name)&&!inner.has(node.name)&&!allowed.has(node.name))
+    if(Array.isArray(x)){x.forEach(check);return}
+    const node=x as Record<string,unknown>
+    if(node.op==='var'&&typeof node.name==='string'&&reservedName(node.name)&&!allowed.has(node.name)&&!(node as Record<symbol,unknown>)[origin])
       throw Error(`law or rule reads free reserved name ${node.name}`)
-    for(const [key,v] of Object.entries(node))check(v,node.op==='all'&&key==='witness'?scope:inner)
+    Object.values(node).forEach(check)
   }
-  check(value,new Set())
+  check(value)
 }
-// Collect first: every user/free name, even a later occurrence, excludes an
-// alias. Replace only exact identities, never substrings or rendered code.
 export function encodeBinders<T>(value:T,declared:string[],allowedFree:string[]=[]):T {
-  const used=new Set(declared),boundNames=new Set<string>()
+  guardReserved(value,allowedFree)
+  const used=new Set([...declared,...allowedFree]),groups=new Map<string,{legacy:string,parts:Set<string>}>()
+  const generated=(name:string):boolean=>{
+    const id=identity(name)
+    if(!id)return false
+    const group=groups.get(id.root)??{legacy:id.legacy,parts:new Set<string>()}
+    group.parts.add(id.suffix);groups.set(id.root,group);return true
+  }
   const collect=(x:unknown):void=>{
-    if(typeof x==='string'){used.add(x);return}
     if(!x||typeof x!=='object')return
     if(Array.isArray(x)){x.forEach(collect);return}
     const node=x as Record<string,unknown>
-    for(const n of bindings(node))if(n.startsWith('?')){
-      if(!/^\?(?:k|key|s|some)\d+(?:\$.*)?$/.test(n))throw Error(`unowned reserved binder ${n}`)
-      boundNames.add(n)
+    for(const n of bindings(node))if(!generated(n))used.add(n)
+    if(node.op==='var'&&typeof node.name==='string'){
+      if(!(node as Record<symbol,unknown>)[origin]||!generated(node.name))used.add(node.name)
     }
-    for(const [k,v] of Object.entries(node)){used.add(k);collect(v)}
+    if(typeof node.map==='string')used.add(node.map)
+    if(node.op==='flag'&&typeof node.name==='string')used.add(node.name)
+    Object.values(node).forEach(collect)
   }
-  collect(value);guardReserved(value,allowedFree)
-  if(!boundNames.size)return value
+  collect(value)
+  if(!groups.size)return value
   const names=new Map<string,string>();let next=0
-  for(const n of boundNames){
-    if(names.has(n))continue
-    // Integer witnesses are one signed value encoded by stem/stem$neg.
-    // Search/decoding and Lean export use this relationship, so rename the
-    // whole group together and exclude collisions with either fresh member.
-    const stem=n.endsWith('$neg')?n.slice(0,-4):n
-    const group=[stem,`${stem}$neg`].filter(part=>boundNames.has(part))
-    let fresh:string
-    do{fresh=`gdp$bound$${++next}`}while(used.has(fresh)||group.some(part=>used.has(fresh+part.slice(stem.length))))
-    for(const part of group){const alias=fresh+part.slice(stem.length);used.add(alias);names.set(part,alias)}
+  for(const [root,group]of groups){
+    const suffixes=[...group.parts]
+    let fresh=group.legacy
+    if(suffixes.some(s=>used.has(fresh+s)))do{fresh=`gdp$bound$${++next}`}while(used.has(fresh)||suffixes.some(s=>used.has(fresh+s)))
+    for(const suffix of suffixes){const alias=fresh+suffix;used.add(alias);names.set(root+suffix,alias)}
   }
   const rewrite=(x:unknown):unknown=>{
     if(typeof x==='string')return names.get(x)??x
     if(!x||typeof x!=='object')return x
     if(Array.isArray(x))return x.map(rewrite)
-    // Runtime capabilities / Maps / Sets are not syntax trees.
     if(Object.getPrototypeOf(x)!==Object.prototype&&Object.getPrototypeOf(x)!==null)return x
     return Object.fromEntries(Object.entries(x).map(([k,v])=>[names.get(k)??k,rewrite(v)]))
   }

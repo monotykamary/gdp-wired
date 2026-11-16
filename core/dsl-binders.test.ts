@@ -54,7 +54,12 @@ test('reserved free names in a manually built law are refused',()=>{
   expect(()=>r.law('forged',forged)).toThrow('free reserved')
   expect(()=>r.stepLaw('forged',forged)).toThrow('free reserved')
   expect(()=>r.decide('forged',forged,forged)).toThrow('free reserved')
-  expect(()=>r.law('escaped binder',()=>{let escaped:Term|undefined;everyKey(k=>{escaped=k;return k.eq(k)});return escaped!.eq(0)})).toThrow('free reserved')
+  const escaped=r.law('escaped binder',()=>{let key:Term|undefined;everyKey(k=>{key=k;return k.eq(k)});return key!.eq(0)})
+  // Generated provenance is not forged user spelling; an escaped variable must
+  // nevertheless never prove (the kernel can refuse its unbound scope).
+  let proven=false
+  try{proven=proveRule(r as never,[escaped],{search:false}).proven}catch{}
+  expect(proven).toBe(false)
 })
 test('a forged reserved name cannot be laundered by markedE',()=>{
   const r=rule('forged temporal variable').inputs({u:nat}).state({s:0}).step(({u})=>({s:u}))

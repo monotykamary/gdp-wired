@@ -17,7 +17,7 @@ import {searchNow as countedSearchNow} from './wall.ts'
 //
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
-import {binder, encodeBinders, guardReserved, plainDeclaration} from './dsl-binders.ts'
+import {binder, copyVariable, encodeBinders, guardReserved, internalName, plainDeclaration, variable} from './dsl-binders.ts'
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {proveCandidateSeeds} from './candidate-seeds.ts'
 import {proveCountedCandidateSeeds} from './counted-candidate-seeds.ts'
@@ -242,7 +242,7 @@ export abstract class Kind<V> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from(init: Raw | ((p: any) => unknown)): Init<V> { return {kind: this, init} }
 }
-const v = (name: string) => new Term({op: 'var', name}, scope?.vars[name])
+const v = (name: string) => new Term(variable(name), scope?.vars[name])
 // Concrete values for the builders to carry (crossCheck): variables by name, maps' cells, the keys a condition at every
 // key is decided over (undefined: not decided), flags by name.
 type Scope = {vars: Record<string, number>, maps: Record<string, {cells: ReadonlyMap<number, number>, dflt: number}>, keys?: number[], flags: Record<string, boolean>}
@@ -848,8 +848,12 @@ const sumDecls = new Map<string, Sum>()
 export const declaredSum = (name: string): Sum | undefined => sumDecls.get(name)
 const fnv = (text: string): string => { let h = 0x811c9dc5; for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193) >>> 0; return h.toString(36) }
 function sumOver(map: string, at: (key: Term) => TermLike, plain: boolean): Term {
-  const placeholder = '?sumKey'
-  const probe = termOf(at(v(placeholder))), id = plain ? `sum$${map}` : `sum$${map}$${fnv(JSON.stringify(probe))}`, key = `${id}$k`
+  const placeholder = internalName('?sumKey', 'k$sum$')
+  const probe = termOf(at(v(placeholder)))
+  // Hash the old spelling, never the private token; the actual substitution
+  // still distinguishes a same-spelled free user parameter.
+  const legacyProbe = substVarsE(probe, {[placeholder]: {op: 'var', name: 'k$sum$'}})
+  const id = plain ? `sum$${map}` : `sum$${map}$${fnv(JSON.stringify(legacyProbe))}`, key = `${id}$k`
   const term = substVarsE(probe, {[placeholder]: {op: 'var', name: key}}), had = sumDecls.get(id)
   if (had && JSON.stringify(had.term) !== JSON.stringify(term)) throw new Error(`${id}: two sums by one name`)
   sumDecls.set(id, {key, term})
@@ -1388,7 +1392,11 @@ const substKey = (c: C, from: string, to: string): C => {
       if (bound.includes(to) && freeKey(node.c, from))
         throw new QuantifierAdmissionError('binder-capture', `renaming ${from} to ${to} would capture an inner binder; use forall((i, j) => ...)`)
     }
-    if (node.op === 'var' && node.name === from) return {...node, name: to}
+    if (node.op === 'var') {
+      if (node.name !== from) return node
+      guardReserved(node) // A user-written reserved name must not be laundered by substitution.
+      return variable(to)
+    }
     return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, walk(v)]))
   }
   return walk(c) as C
@@ -1678,7 +1686,7 @@ const withSource = <T extends object>(x: T, src: Sources): T => (sources.set(x, 
 const markedName = (name: string) => { const m = /^\?step(\d+):(.*)$/.exec(name); return m ? `${m[2]}@${m[1]}` : name }
 const markedE = (e: E): E => {
   switch (e.op) {
-    case 'var': return {op: 'var', name: markedName(e.name)}
+    case 'var': return copyVariable(e, {op: 'var', name: markedName(e.name)})
     case 'const': return e
     case 'mul': return {...e, a: markedE(e.a)}
     case 'if': return {op: 'if', c: marked(e.c), then: markedE(e.then), else: markedE(e.else)}
