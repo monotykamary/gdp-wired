@@ -1,0 +1,47 @@
+[
+  {
+    "name": "extract-c",
+    "cmd": "set -o pipefail; ( bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/c/clang-setup.sh && cd core && bun test extract-c.test.ts 2>&1 ) 2>&1 | tee \"$SUPERCOMPUTER_OUTPUT_DIR/native.log\"; rc=${PIPESTATUS[0]}; printf '{\"exitCode\":%s}\n' \"$rc\" > \"$SUPERCOMPUTER_OUTPUT_DIR/COMMAND-RESULT.json\"; exit \"$rc\"",
+    "timeout": 900,
+    "cwd": ".",
+    "cpu": 1,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "extract-jvm",
+    "cmd": "set -o pipefail; ( bun install --frozen-lockfile > /tmp/bun-install.log 2>&1 || { echo bun install failed; tail -20 /tmp/bun-install.log; exit 1; }; . research/langs/jvm/jvm-setup.sh && cd core && bun test extract-jvm.test.ts 2>&1 ) 2>&1 | tee \"$SUPERCOMPUTER_OUTPUT_DIR/native.log\"; rc=${PIPESTATUS[0]}; printf '{\"exitCode\":%s}\n' \"$rc\" > \"$SUPERCOMPUTER_OUTPUT_DIR/COMMAND-RESULT.json\"; exit \"$rc\"",
+    "timeout": 900,
+    "cwd": ".",
+    "cpu": 1,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "runner-cli-c-jvm",
+    "cmd": "set -o pipefail; ( bun install --frozen-lockfile >/dev/null 2>&1 && clang --version | head -1 && javac -version 2>&1 && cd core && bun test --timeout 300000 exports.test.ts cli.test.ts extract-c.test.ts extract-jvm.test.ts 2>&1 ) 2>&1 | tee \"$SUPERCOMPUTER_OUTPUT_DIR/native.log\"; rc=${PIPESTATUS[0]}; printf '{\"exitCode\":%s}\n' \"$rc\" > \"$SUPERCOMPUTER_OUTPUT_DIR/COMMAND-RESULT.json\"; exit \"$rc\"",
+    "timeout": 1200,
+    "cpu": 2,
+    "image": "runner",
+    "cwd": ".",
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "fixtures-c-jvm-lint",
+    "cmd": "set -o pipefail; ( bun install --frozen-lockfile >/dev/null 2>&1 && bunx oxlint --type-aware --deny-warnings --disable-nested-config core/extract-c.test.ts core/extract-jvm.test.ts ) 2>&1 | tee \"$SUPERCOMPUTER_OUTPUT_DIR/native.log\"; rc=${PIPESTATUS[0]}; printf '{\"exitCode\":%s}\n' \"$rc\" > \"$SUPERCOMPUTER_OUTPUT_DIR/COMMAND-RESULT.json\"; exit \"$rc\"",
+    "timeout": 180,
+    "cwd": ".",
+    "cpu": 1,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  }
+]
