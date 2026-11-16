@@ -1,0 +1,59 @@
+{
+  "schema": "bapa-model-round-policy-validation/v1",
+  "batch": "20261116-003619-chqbhn",
+  "tree": "8f8284cdadb5",
+  "image": "sc-f0d8daeee6c3",
+  "bun": "1.4.3",
+  "checks": {
+    "typecheck": 0,
+    "policyAndWorkerTests": 0,
+    "retainedLawRegression": 0,
+    "kernel": 0,
+    "public": 0,
+    "commitlint": 0
+  },
+  "testExecutions": {
+    "kernel": {
+      "passed": 289,
+      "assertions": 2309247
+    },
+    "policyAndWorker": {
+      "passed": 43,
+      "assertions": 239
+    },
+    "public": {
+      "passed": 2,
+      "assertions": 17
+    }
+  },
+  "defaults": {
+    "modelRounds": 4,
+    "work": 24000000000,
+    "profile049Unchanged": true
+  },
+  "retainedLaw": {
+    "result": {
+      "proven": true
+    },
+    "unconfirmedRounds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "workBudget": 24000000000,
+    "actual": {
+      "numerator": "45663553073146437594787",
+      "denominator": "36028797018963968"
+    },
+    "sourceFixture": "research/bapa/fixtures/retained7-model.json",
+    "publicCalls": 0,
+    "protocolReseeds": 0,
+    "individualLawOnly": true
+  },
+  "checkersUnchanged": true,
+  "allSizeClaim": false,
+  "artifacts": "runs/model-rounds-05/model-rounds-gate.files"
+}

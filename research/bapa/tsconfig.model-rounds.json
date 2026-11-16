@@ -1,0 +1,1 @@
+{"extends":"../../tsconfig.json","files":["../../kernel/model-rounds.test.ts","model-rounds-probe.ts","proof-worker.test.ts","../../kernel/model-confirmation.test.ts"],"include":[]}

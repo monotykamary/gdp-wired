@@ -26,7 +26,7 @@ import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type L
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
-import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withWall} from '../kernel/prove.ts'
+import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withModelRounds, type ModelRoundPolicy, withWall} from '../kernel/prove.ts'
 import {WallExpired, checkWall, checkWorkEndpoint, searchWall, withBudget, BudgetExpired} from './wall.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {workLedger} from './work-admission.ts'
@@ -2807,6 +2807,8 @@ export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?
 // was settled before kept where it stands), not proveLaws; no cyclic certificate.
 export type CandidateSeedAudit = {status:'checked'|'inconclusive',kind?:'usual'|'counted',kept:string[],dropped:{name:string,goal?:string,stuck?:'sat',reason?:string}[],reason?:string}
 export type ProveOptions = {search?: boolean | {ms?: number, work?: number | WorkAmount, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean,
+  // Opt-in refinement policy; never renews the caller's work or wall budget.
+  modelRounds?: ModelRoundPolicy,
   // Proposals only: every retained member and public goal is checked together.
   // A failed seed attempt falls through with no additional assumptions.
   candidateSeeds?: {kind?:'usual'|'counted',laws:Law[],counts?:NonNullable<Machine['counts']>,
@@ -2981,11 +2983,11 @@ function workVerdict(opts: ProveOptions, supported: boolean, run: (opts: ProveOp
   }
 }
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
-  return withPublicRule(outermost => {
+  return withModelRounds(opts.modelRounds, () => withPublicRule(outermost => {
     const captureMachine = r.machine, hasCounts = !!Object.keys(captureMachine.counts ?? {}).length
     const result = workVerdict(opts, hasCounts, plan => withPublicSearchPolicy(hasCounts, () => proveRuleWall(r, laws, plan)))
     return outermost ? publishProof(result, captureMachine, laws) : result
-  })
+  }))
 }
 function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions): Verdict {
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined

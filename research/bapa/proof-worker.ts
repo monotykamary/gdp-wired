@@ -47,26 +47,33 @@ export function writeReceipt(path:string,report:Record<string,unknown>):Record<s
   try {writeFileSync(path,JSON.stringify(report,null,2)+'\n');return report}
   catch(error) {return {...report,status:'not-verified',receiptWriteError:error instanceof Error?error.message:String(error)}}
 }
-export type WorkerOptions = {id: string, out: string, work?: string, broken?: boolean, seedManifest?: string, sourceCommit: string, sourceTree: string}
+export function workerModelRounds(value: string | undefined): number | 'progress' | undefined {
+  if (value === undefined || value === 'progress') return value
+  const n = /^(0|[1-9][0-9]*)$/.test(value) ? Number(value) : NaN
+  if (!Number.isSafeInteger(n)) throw Error('model rounds must be a nonnegative safe integer or progress')
+  return n
+}
+export type WorkerOptions = {id: string, out: string, work?: string, broken?: boolean, seedManifest?: string, modelRounds?: number|'progress', sourceCommit: string, sourceTree: string}
 export function proofStatus(verdict:{proven:boolean,checked:boolean}, retention:{complete:boolean,projection?:{kind:string}}, broken:boolean):string {
   if (broken && verdict.proven && verdict.checked) return 'unexpected-broken-proof'
   if (!verdict.proven || !verdict.checked || !retention.complete) return 'not-verified'
   return retention.projection?.kind === 'same-machine' ? 'captured' : 'captured-unqualified'
 }
-export function parseWorkerArgs(args:string[]):{id:string,out?:string,work?:string,broken:boolean,seedManifest?:string} {
-  const known=new Set(['--only','--out','--work','--seed-candidates']), values:Record<string,string>={}
+export function parseWorkerArgs(args:string[]):{id:string,out?:string,work?:string,broken:boolean,seedManifest?:string,modelRounds?:number|'progress'} {
+  const known=new Set(['--only','--out','--work','--seed-candidates','--model-rounds']), values:Record<string,string>={}
   let broken=false
   for(let i=0;i<args.length;){
     const key=args[i++]!
     if(key==='--broken'){if(broken)throw Error('duplicate --broken');broken=true;continue}
     const value=args[i++]
-    if(!known.has(key)||values[key]!==undefined||!value||value.startsWith('--'))throw Error('usage: proof-worker.ts --only ID [--out NEW_DIR] [--work DIAGNOSTIC_UNITS] [--broken] [--seed-candidates MANIFEST]')
+    if(!known.has(key)||values[key]!==undefined||!value||value.startsWith('--'))throw Error('usage: proof-worker.ts --only ID [--out NEW_DIR] [--work DIAGNOSTIC_UNITS] [--broken] [--seed-candidates MANIFEST] [--model-rounds N|progress]')
     values[key]=value
   }
   const id=values['--only']
   if(!id||!/^[a-z][a-z0-9_]*$/.test(id))throw Error('one exact --only ID required; no fanout')
   workBudget(values['--work'],id)
-  return {id,out:values['--out'],work:values['--work'],broken,...(values['--seed-candidates'] ? {seedManifest:values['--seed-candidates']} : {})}
+  const modelRounds=workerModelRounds(values['--model-rounds'])
+  return {id,out:values['--out'],work:values['--work'],broken,...(modelRounds === undefined ? {} : {modelRounds}),...(values['--seed-candidates'] ? {seedManifest:values['--seed-candidates']} : {})}
 }
 export async function runProofWorker(options: WorkerOptions): Promise<Record<string, unknown>> {
   if (!/^[a-z][a-z0-9_]*$/.test(options.id)) throw Error('one exact protocol ID required')
@@ -74,6 +81,7 @@ export async function runProofWorker(options: WorkerOptions): Promise<Record<str
   for (const key of ['sourceCommit', 'sourceTree'] as const)
     if (!/^[0-9a-f]{40}$/.test(options[key])) throw Error(`launcher must supply ${key}`)
   const units = workBudget(options.work, options.id)
+  const modelRounds = workerModelRounds(options.modelRounds === undefined ? undefined : String(options.modelRounds))
   mkdirSync(options.out, {recursive: false})
   const started = Date.now(), invocation = randomUUID()
   let cleared: string[] = [], returned: {proven:boolean,checked:boolean} | undefined
@@ -82,7 +90,8 @@ export async function runProofWorker(options: WorkerOptions): Promise<Record<str
   const receipt = (result: Record<string, unknown>) => {
     const report = {schema: 'bapa-search/v1', protocol: options.id, invocation, variant: options.broken ? 'broken' : 'positive',
       sourceReference: {commit: options.sourceCommit, tree: options.sourceTree, assurance: 'launcher-supplied; content manifest retained'},
-      profile: options.work === undefined ? '0.49-generous' : '0.49-flags-diagnostic-work-override',
+      profile: modelRounds !== undefined ? '0.49-flags-model-rounds-override' : options.work === undefined ? '0.49-generous' : '0.49-flags-diagnostic-work-override',
+      ...(modelRounds === undefined ? {} : {modelRounds}),
       workBudget: String(units), elapsedMs: Date.now() - started, clearedFlagNames: cleared,
       publicCalls: 1, givenHelpers: false, secondSearch: false,
       ...(seedHash ? {candidateSeeding:{manifestSha256:seedHash,...seedSummary,native:nativeSeedAudits}} : {}),
@@ -99,7 +108,7 @@ export async function runProofWorker(options: WorkerOptions): Promise<Record<str
     if(options.seedManifest) seedHash = hash(readFileSync(options.seedManifest))
     writeFileSync(join(options.out, 'source-files.json'), JSON.stringify(sources, null, 2) + '\n')
     const identity: CaptureIdentity = {protocol: options.id, invocation, sourceCommit: options.sourceCommit, sourceTree: options.sourceTree,
-      driverSha256: hash(readFileSync(fileURLToPath(import.meta.url))), inputSha256: hash(JSON.stringify({id: options.id, variant: options.broken ? 'broken' : 'positive', sources,...(seedHash ? {candidateSeedSha256:seedHash} : {})})),
+      driverSha256: hash(readFileSync(fileURLToPath(import.meta.url))), inputSha256: hash(JSON.stringify({id: options.id, variant: options.broken ? 'broken' : 'positive', sources,...(modelRounds === undefined ? {} : {modelRounds}),...(seedHash ? {candidateSeedSha256:seedHash} : {})})),
       runtimeSha256, profileSha256: hash(readFileSync(profilePath)), workBudget: String(units), flags: {...profile049}}
     writeFileSync(join(options.out, 'identity.json'), JSON.stringify(identity, null, 2) + '\n')
     // NOTHING from core/kernel/registry is imported before installProfile.
@@ -131,7 +140,7 @@ export async function runProofWorker(options: WorkerOptions): Promise<Record<str
     const before = workAdmissionSnapshot()
     const captured = captureFinalInvocation(join(options.out, 'closure'), identity, {laws}, () => {
       publicCalls++
-      return proveRule(r, laws, {search: {work: units},...(candidateSeeds ? {candidateSeeds} : {})})
+      return proveRule(r, laws, {search: {work: units},...(modelRounds === undefined ? {} : {modelRounds}),...(candidateSeeds ? {candidateSeeds} : {})})
     })
     returned = captured.verdict
     const after = workAdmissionSnapshot()

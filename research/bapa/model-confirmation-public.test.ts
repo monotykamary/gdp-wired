@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs'
 import {Cond,Term,nat,proveRule,rule,type MapWrite} from '../../core/dsl.ts'
 import {evalC,evalE,type E,type Law,type Machine,type State} from '../../core/machine.ts'
 import {obligations} from '../../kernel/kernel.ts'
-import {eprScope,keyValue,lawInstances,modelInstances,queryHook,type ModelConfirmation} from '../../kernel/prove.ts'
+import {eprScope,effectiveModelRounds,keyValue,lawInstances,modelInstances,queryHook,type ModelConfirmation} from '../../kernel/prove.ts'
 import {patternsOf} from '../../kernel/epr.ts'
 const fixture=JSON.parse(readFileSync(new URL('./fixtures/retained7-model.json',import.meta.url),'utf8')) as {machine:Machine,family:Law[],index:number,witness:Record<string,number>}
 const {machine:m,family,index,witness:w}=fixture,target=family[index]!
@@ -40,18 +40,19 @@ test('public proveRule keeps retained:7 when its replayed CTI refinement is unse
  expect(source.step).toEqual(m.step);expect(source.assume).toEqual(m.assume)
  const publicLaws=family.slice(0,2),candidates=[target,...family.slice(2).filter(l=>l!==target)],ordered=[...publicLaws,...candidates]
  const inst=lawInstances(source,ordered,2),full=obligations(source,ordered,{[target.name]:inst},2).find(g=>g.name.endsWith(' @step'))!
- const seen:number[]=[],audits:any[]=[],stop=new Error('stop after real public candidate audit'),old=queryHook.on
+ const seen:number[]=[],policies:(number|'progress')[]=[],audits:any[]=[],stop=new Error('stop after real public candidate audit'),old=queryHook.on
  queryHook.on=q=>{
   old?.(q)
   if(!q.goal.name.endsWith(' @step'))return
   const isTarget=q.goal.name===`${target.name} @step`
-  if(isTarget)seen.push(q.goal.hyps.length)
+  if(isTarget){seen.push(q.goal.hyps.length);policies.push(effectiveModelRounds())}
   for(const k of Object.keys(q.out))delete (q.out as unknown as Record<string,unknown>)[k]
   Object.assign(q.out,isTarget&&q.goal.hyps.length<=full.hyps.length?{stuck:'sat',witness:{...w}}:{stuck:'unknown',why:'forced unsettled refined query'})
  }
  try{
-  expect(()=>proveRule(r as never,publicLaws,{search:true,candidateSeeds:{laws:candidates,report:a=>{audits.push(a);throw stop}}})).toThrow(stop)
+  expect(()=>proveRule(r as never,publicLaws,{search:true,modelRounds:8,candidateSeeds:{laws:candidates,report:a=>{audits.push(a);throw stop}}})).toThrow(stop)
   expect(seen.length).toBeGreaterThan(0)
+  expect(policies.every(p=>p===8)).toBe(true)
   expect(audits).toHaveLength(1)
   expect(audits[0]).toMatchObject({status:'inconclusive',dropped:[]})
   expect(audits[0].kept).toContain(target.name)

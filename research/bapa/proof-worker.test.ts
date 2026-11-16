@@ -33,6 +33,16 @@ test('candidate manifest is explicit, single-use and separate from the work budg
   for(const args of [['--only','a','--seed-candidates'],['--only','a','--seed-candidates','a.json','--seed-candidates','b.json']]) expect(()=>parseWorkerArgs(args)).toThrow()
   expect(defaultWork('sharded_kv')).toBe(24_000_000_000)
 })
+test('model rounds are an explicit recorded opt-in, separate from the unchanged work profile',()=>{
+ expect(parseWorkerArgs(['--only','sharded_kv','--model-rounds','12']).modelRounds).toBe(12)
+ expect(parseWorkerArgs(['--only','sharded_kv','--model-rounds','progress']).modelRounds).toBe('progress')
+ expect(parseWorkerArgs(['--only','sharded_kv']).modelRounds).toBeUndefined()
+ expect(defaultWork('sharded_kv')).toBe(24_000_000_000)
+ for(const value of ['-1','1.5','NaN','Infinity','9007199254740992','01'])expect(()=>parseWorkerArgs(['--only','a','--model-rounds',value])).toThrow()
+ const env:NodeJS.ProcessEnv={GDP_MODEL_ROUNDS:'progress'}
+ expect(installProfile(env)).toContain('GDP_MODEL_ROUNDS')
+ expect(env.GDP_MODEL_ROUNDS).toBeUndefined()
+})
 test('a checked proof of the registered broken variant is never an accepted worker result', () => {
   const retention={complete:true,projection:{kind:'same-machine'}}
   expect(proofStatus({proven:true,checked:true},retention,true)).toBe('unexpected-broken-proof')

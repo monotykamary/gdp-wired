@@ -1313,6 +1313,22 @@ export const keyValue = (cell: string, w: Record<string, number>): number | unde
 // the values the goal's keys take, and each tuple where one fails added, as the goal's terms with those values, to its
 // instances. None found: the model is one on every tuple of the goal's keys. Untrusted: it chooses instances only.
 export const modelRounds = 4
+export type ModelRoundPolicy = number | 'progress'
+let scopedModelRounds: ModelRoundPolicy | undefined
+export function validateModelRounds(value: unknown): ModelRoundPolicy {
+  if (value === 'progress' || typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return value
+  throw new RangeError('modelRounds must be a nonnegative safe integer or progress')
+}
+export function effectiveModelRounds(): ModelRoundPolicy {
+  if (scopedModelRounds !== undefined) return scopedModelRounds
+  const value = env.GDP_MODEL_ROUNDS
+  return value === undefined ? modelRounds : validateModelRounds(/^(0|[1-9][0-9]*)$/.test(value) ? Number(value) : value)
+}
+export function withModelRounds<T>(value: ModelRoundPolicy | undefined, f: () => T): T {
+  const policy = value === undefined ? effectiveModelRounds() : validateModelRounds(value), old = scopedModelRounds
+  scopedModelRounds = policy
+  try { return f() } finally { scopedModelRounds = old }
+}
 // A condition as the disjuncts it is the or of (¬(a ∧ b) as ¬a, ¬b).
 // (GDP_MODEL_CUTS=0: every tuple evaluated whole, for comparing)
 const modelCuts = env.GDP_MODEL_CUTS !== '0'
@@ -1474,21 +1490,25 @@ function modelsLoop<T>(m: Machine, laws: Law[], inst: Instances, goalOf: (i: Ins
   modelOf: (t: T) => {goal: Goal, w: Record<string, number>} | undefined, settled: (t: T) => boolean,
   unknown: (t: T, why: string) => T): {result: T, inst: Instances} {
   let at = inst, cap = 0
+  const rounds = effectiveModelRounds()
+  // Progress may use the caller's existing bounded allowance, never a new one.
+  // Without an outer endpoint, retain the old finite local work share.
+  const progressBudget = rounds === 'progress' && (inBudget() || Number.isFinite(wallAt()) || Number.isFinite(withinDeadline(Infinity)))
   for (let round = 0; ; round++) {
-    const c0 = costNow(), result = round ? within(Math.max(0, cap), () => ask(goalOf(at))) : ask(goalOf(at))
+    const c0 = costNow(), result = round && !progressBudget ? within(Math.max(0, cap), () => ask(goalOf(at))) : ask(goalOf(at))
     if (round) cap -= costNow() - c0; else cap = Math.max(modelFloor, modelShare * (costNow() - c0))
     const abandon = (why: string) => ({result: unknown(result, `unconfirmed model: ${why}`), inst: at})
     if (!settled(result)) return abandon('refinement unsettled')
     const mw = modelOf(result)
     if (!mw) return {result, inst: at}
     if (pastWall()) return abandon('wall reached')
-    if (cap <= 0) return abandon('work share exhausted')
+    if (!progressBudget && cap <= 0) return abandon('work share exhausted')
     const confirmation: ModelConfirmation = {confirmed: false}
     const more = modelInstances(m, laws, at, mw.goal, mw.w, undefined, false, confirmation)
     if (modelsTrace) console.error(`[models] round ${round} ${mw.goal.name}: ${confirmation.confirmed ? 'confirmed' : confirmation.why}, cap ${Math.round(cap)}`)
     if (confirmation.confirmed) return {result, inst: at}
     if (pastWall()) return abandon('wall reached')
-    if (round >= modelRounds) return abandon('round limit reached')
+    if (rounds !== 'progress' && round >= rounds) return abandon('round limit reached')
     if (!more || sameInstances(at, more)) return abandon(confirmation.why ?? 'no eligible progress')
     at = more
   }
@@ -1936,16 +1956,18 @@ const pointed = <T>(laws: Law[], f: () => T): T => {
 type Decided = {proven: true, uses: string[]} | {proven: false, goal: string, stuck: 'sat', witness: Record<string, number>, diagram?: Diagram} | undefined
 // (a probe's hook: each decision with its machine, set, index and ms)
 export const decideLawHook: {on?: (m: Machine, laws: Law[], i: number, out: Decided, ms: number) => void} = {}
-export function decideLaw(m: Machine, laws: Law[], i: number, rounds = modelRounds): Decided {
-  if (!decideLawHook.on) return decideLaw0(m, laws, i, rounds)
-  const t0 = traceNow(), out = decideLaw0(m, laws, i, rounds)
-  decideLawHook.on(m, laws, i, out, traceNow() - t0)
-  return out
+export function decideLaw(m: Machine, laws: Law[], i: number, rounds = effectiveModelRounds()): Decided {
+  return withModelRounds(rounds, () => {
+    if (!decideLawHook.on) return decideLaw0(m, laws, i, rounds)
+    const t0 = traceNow(), out = decideLaw0(m, laws, i, rounds)
+    decideLawHook.on(m, laws, i, out, traceNow() - t0)
+    return out
+  })
 }
 // (why decideLaw last answered nothing: `refuted`, the abstraction refuted a goal whose core's proof didn't finish, a
 // goal the CDCL search after it would find no quicker)
 export const decideNote: {refuted: boolean, hint?: {goal: string, witness: Record<string,number>}} = {refuted: false}
-function decideLaw0(m: Machine, laws: Law[], i: number, rounds: number): Decided {
+function decideLaw0(m: Machine, laws: Law[], i: number, rounds: ModelRoundPolicy): Decided {
   decideNote.refuted = false; delete decideNote.hint
   if (!fastShape(m, laws)) return undefined
   return withPatterns(m, laws, () => {
@@ -2009,8 +2031,8 @@ function checkMemoLaw(m: Machine, laws: Law[], i: number, cached: Settled): Sett
   }
   return {text: textOfLaw(laws[i]!), context: memoContext(m, laws), inst: cached.inst, proofs}
 }
-function memoOf(m: Machine): Memo {
-  const key = textsOfMachine(m).text
+function memoOf(m: Machine, rounds = effectiveModelRounds()): Memo {
+  const key = `${textsOfMachine(m).text}\0model-rounds:${rounds}`
   let memo = memos.get(key)
   if (!memo) { if (memos.size >= memoCap) memos.clear(); memos.set(key, (memo = {proven: new Map(), models: new Map()})) }
   return memo
@@ -2018,8 +2040,8 @@ function memoOf(m: Machine): Memo {
 const stands = (p: Proof1, byName: Map<string, Law>): boolean => [...p.uses].every(([n, t]) => { const l = byName.get(n); return !!l && textOfLaw(l) === t })
 // Law i settled, from what was kept where it still stands (a proof whose support is in the set, a model of a set holding
 // this one): else its goals settled again, those whose proofs stand kept.
-function settled(m: Machine, laws: Law[], i: number, rounds: number, usual: boolean, consumer: MemoConsumer = 'decision', attempt: MemoAttempt = memoAttempt()): Settled | Unsettled | undefined {
-  const law = laws[i]!, memo = memoOf(m), byName = new Map(laws.map(l => [l.name, l])), text = textOfLaw(law)
+function settled(m: Machine, laws: Law[], i: number, rounds: ModelRoundPolicy, usual: boolean, consumer: MemoConsumer = 'decision', attempt: MemoAttempt = memoAttempt()): Settled | Unsettled | undefined {
+  const law = laws[i]!, memo = memoOf(m, rounds), byName = new Map(laws.map(l => [l.name, l])), text = textOfLaw(law)
   if (attempt.fresh.has(law.name)) return attempt.fresh.get(law.name)
   const was = !attempt.cold.has(law.name) ? memo.proven.get(law.name) : undefined
   let prev = was?.text === text ? was : undefined
@@ -2039,7 +2061,7 @@ function settled(m: Machine, laws: Law[], i: number, rounds: number, usual: bool
     discardMemo(memo, law.name, attempt, 'seed'); prev = undefined
   }
   memoHits.miss++
-  const mo = !attempt.cold.has(law.name) && rounds === modelRounds ? memo.models.get(law.name) : undefined
+  const mo = !attempt.cold.has(law.name) ? memo.models.get(law.name) : undefined
   if (mo && (!strict(usual) || mo.strict) && mo.text === text && laws.every(l => mo.set.get(l.name) === textOfLaw(l))) {
     if (exactMemoContext(mo.context, m, laws)) { memoReuseStats.modelHits++; return mo.model }
     // A renamed negative is only a hint. Do not let it bypass the one native cold attempt.
@@ -2049,7 +2071,7 @@ function settled(m: Machine, laws: Law[], i: number, rounds: number, usual: bool
   const out = settle(m, laws, i, rounds, usual, prev)
   const cap = <T>(x: Map<string, T>) => { if (x.size >= 4096) x.clear(); return x }
   if (out && 'proofs' in out) cap(memo.proven).set(law.name, out)
-  else if (out?.stuck === 'sat' && rounds === modelRounds) cap(memo.models).set(law.name, {text, context: memoContext(m, laws), model: out, strict: strict(usual), set: new Map(laws.map(l => [l.name, textOfLaw(l)]))})
+  else if (out?.stuck === 'sat') cap(memo.models).set(law.name, {text, context: memoContext(m, laws), model: out, strict: strict(usual), set: new Map(laws.map(l => [l.name, textOfLaw(l)]))})
   if (attempt.cold.has(law.name)) attempt.fresh.set(law.name, out)
   return out
 }
@@ -2086,7 +2108,7 @@ function sourcesOf(m: Machine, laws: Law[], inst: Instances, goal: Goal, used: I
 // again (the instances only grow). From `prev`, its instances (unless a law about keys is new since) and the proofs that
 // still stand. The proofs with their support, or the goal not proven (a model with its diagram, or unknown), or
 // undefined where the EPR path alone can't say (not `usual`).
-function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boolean, prev?: Settled): Settled | Unsettled | undefined {
+function settle(m: Machine, laws: Law[], i: number, rounds: ModelRoundPolicy, usual: boolean, prev?: Settled): Settled | Unsettled | undefined {
   const law = laws[i]!, byName = new Map(laws.map(l => [l.name, l]))
   // (decideLaw's and the fast set proof's: each law's keys of its sort alone, `bySort`; proveLaw's and the join's as they
   // were. The fast set proof is checked over the tuples its proofs read, and the usual proof follows where it fails)
@@ -2101,7 +2123,7 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
   const end = withinDeadline(Infinity)
   for (let round = 0; ; round++) {
     let more: Instances | undefined
-    const late = round > rounds ? () => pastWall() || pastEprCap() || clock() > end : () => pastWall() || pastEprCap()
+    const late = rounds !== 'progress' && round > rounds ? () => pastWall() || pastEprCap() || clock() > end : () => pastWall() || pastEprCap()
     for (const g of obligations(m, laws, {[law.name]: inst}, i)) {
       if (proofs[g.name]) continue
       if (late()) return unknown(g, 'unconfirmed model: search end reached')
@@ -2127,10 +2149,11 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
         decideNote.hint = {goal: g.name, witness: o.witness!}
         return unknown(g, `unconfirmed model: ${why}`)
       }
-      const capped = !(round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end))
+      const capped = rounds !== 'progress' && !(round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end))
       if (capped || pastWall()) return unconfirmed(capped ? 'round limit reached' : 'wall reached')
       const confirmation: ModelConfirmation = {confirmed: false}
       const raw = modelInstances(m, laws, inst, g, o.witness, undefined, true, confirmation)
+      if (modelsTrace) console.error(`[models] settle round ${round} ${g.name}: ${confirmation.confirmed ? 'confirmed' : confirmation.why}`)
       if (confirmation.confirmed) return {goal: g.name, stuck: 'sat', witness: o.witness, ...(o.diagram ? {diagram: o.diagram} : {}), why: 'a confirmed model'}
       more = raw && bySort(m, laws, raw)
       if (pastWall()) return unconfirmed('wall reached')
@@ -2165,7 +2188,7 @@ export function proveSetFast(m: Machine, laws: Law[]): Report & {proof?: {instan
     const run = (): ReturnType<typeof proveSetFast> => {
     const at: Settled[] = []
     for (let i = 0; i < laws.length; i++) {
-      const out = settled(m, laws, i, modelRounds, true, 'set', attempt)!
+      const out = settled(m, laws, i, effectiveModelRounds(), true, 'set', attempt)!
       if (!('proofs' in out)) return {proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: out.goal, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {}), ...(out.diagram ? {diagram: out.diagram} : {})}}
       at.push(out)
     }
@@ -2210,7 +2233,7 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
   // proof, which widens and checks; wo's "a leader has the voting quorum's votes" from its 40-law set, 0.45 s there
   // against 25 s to unknown here)
   return withPatterns(m, laws, () => {
-    const out = eprScope.patterns && fastShape(m, laws) ? settled(m, laws, i, modelRounds, false, 'law') : undefined
+    const out = eprScope.patterns && fastShape(m, laws) ? settled(m, laws, i, effectiveModelRounds(), false, 'law') : undefined
     if (out && 'proofs' in out) return {proven: true}
     if (out?.stuck === 'sat') return {proven: false, goal: out.goal, stuck: 'sat', ...(out.witness ? {witness: out.witness} : {}), ...(out.diagram ? {diagram: out.diagram} : {})}
     return pointed(laws, () => proveOne(m, laws, i))

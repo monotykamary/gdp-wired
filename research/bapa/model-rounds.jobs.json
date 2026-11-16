@@ -1,0 +1,19 @@
+[
+  {
+    "name": "model-rounds-gate",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 1200,
+    "runtime": {
+      "bun": {
+        "version": "1.4.3",
+        "sha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+      }
+    },
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    },
+    "cmd": "set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; set +e; bunx tsc -p research/bapa/tsconfig.model-rounds.json > \"$SUPERCOMPUTER_OUTPUT_DIR/types.log\" 2>&1; T=$?; bun test --timeout 120000 kernel/model-rounds.test.ts kernel/model-confirmation.test.ts kernel/model-sequence.test.ts kernel/prove-memo.test.ts research/bapa/proof-worker.test.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/tests.log\" 2>&1; U=$?; bun research/bapa/model-rounds-probe.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/probe.log\" 2>&1; P=$?; bun test --timeout 120000 $(find ./kernel -maxdepth 1 -name '*.test.ts' | sort) > \"$SUPERCOMPUTER_OUTPUT_DIR/kernel.log\" 2>&1; K=$?; GDP_EPR=0 GDP_SET_FIRST=0 bun test --timeout 120000 research/bapa/model-confirmation-public.test.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/public.log\" 2>&1; R=$?; printf '%s\\n' 'feat(prove): configure model refinement rounds' > \"$SUPERCOMPUTER_OUTPUT_DIR/message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$SUPERCOMPUTER_OUTPUT_DIR/message.txt\" > \"$SUPERCOMPUTER_OUTPUT_DIR/commitlint.log\" 2>&1; L=$?; printf 'kernel=%s public=%s lint=%s\\n' \"$K\" \"$R\" \"$L\" > \"$SUPERCOMPUTER_OUTPUT_DIR/extra-checks.txt\"; printf 'types=%s tests=%s probe=%s\\n' \"$T\" \"$U\" \"$P\" > \"$SUPERCOMPUTER_OUTPUT_DIR/checks.txt\"; test \"$T$U$P$K$R$L\" = 000000"
+  }
+]
