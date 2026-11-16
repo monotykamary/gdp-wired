@@ -1,0 +1,254 @@
+{
+ "rows": {
+  "p2-paxos-source-provenance": {
+   "strict_once": true,
+   "max_attempts": 1,
+   "attempts": 1,
+   "attempt": 1,
+   "launch_identity": "eb219af9f4df4cd841cf13868d1ccb803c4cb058a1988eb5",
+   "vm": "bx_ft5xf7q5",
+   "boot_id": "4548050b-6a48-4eb5-ab4a-c9b6566b82ad",
+   "placement": {
+    "boot_id": "4548050b-6a48-4eb5-ab4a-c9b6566b82ad",
+    "attempt": 1,
+    "agent_version": "399761b5e53f",
+    "agent_capabilities": {
+     "output_files_protocol": 1,
+     "result_files_protocol": 1,
+     "runtime_pins_protocol": 1,
+     "resource_limits_protocol": 1,
+     "owned_rpc_idempotency_protocol": 1
+    },
+    "vm": "bx_ft5xf7q5",
+    "type": "default",
+    "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+    "vcpus": 2,
+    "vm_vcpus": 4,
+    "exclusive": false,
+    "co_tenants": 1
+   },
+   "terminal": true,
+   "identity_unavailable": false,
+   "custody": {
+    "batch": "20261116-091127-ky3xb1",
+    "max_attempts": 1,
+    "reconnect_count": 0,
+    "event_count": 7,
+    "events": [
+     {
+      "event": "preflight_attempt",
+      "time": 1794820296.6402223,
+      "sequence": 1,
+      "client_sha256": "49fb6f151e0f3aff95666ce35ea0fa02b2d9d68d644fbab3801ff43939762b84"
+     },
+     {
+      "event": "preflight_complete",
+      "time": 1794820296.9540823,
+      "sequence": 2,
+      "client_sha256": "49fb6f151e0f3aff95666ce35ea0fa02b2d9d68d644fbab3801ff43939762b84",
+      "controller_code": "54202b72212f"
+     },
+     {
+      "event": "admission_attempt",
+      "time": 1794820303.9286835,
+      "sequence": 3,
+      "items": [
+       "p2-paxos-source-provenance"
+      ]
+     },
+     {
+      "event": "admission_ack",
+      "time": 1794820304.378781,
+      "sequence": 4
+     },
+     {
+      "event": "close_attempt",
+      "time": 1794820407.7271802,
+      "sequence": 5
+     },
+     {
+      "event": "placement_binding",
+      "time": 1794820408.0081968,
+      "sequence": 6,
+      "placement": {
+       "name": "p2-paxos-source-provenance",
+       "launch_identity": "eb219af9f4df4cd841cf13868d1ccb803c4cb058a1988eb5",
+       "attempt": 1,
+       "run_name": "p2-paxos-source-provenance",
+       "vm": "bx_ft5xf7q5",
+       "boot_id": "4548050b-6a48-4eb5-ab4a-c9b6566b82ad"
+      }
+     },
+     {
+      "event": "close_receipt",
+      "time": 1794820408.0103896,
+      "sequence": 7,
+      "cleanup_complete": true,
+      "receipt_sha256": "968439ca08f6c208fa6f52f6e594f7d37fb9732dd4e5dec616e9315abba9cfe3"
+     }
+    ],
+    "file": "/home/user/.local/share/supercomputer/live/custody/20261116-091127-ky3xb1.jsonl",
+    "sha256": "f1570333ccdb580f669f91945fe1d47354da4b4fbbe6da4ff7e8b34ca73dfe35",
+    "client_sha256": "49fb6f151e0f3aff95666ce35ea0fa02b2d9d68d644fbab3801ff43939762b84",
+    "controller_code": "54202b72212f",
+    "export_file": "runs/bapa-p2/source-provenance-1/custody/20261116-091127-ky3xb1.jsonl"
+   },
+   "status": "SUCCEEDED",
+   "name": "p2-paxos-source-provenance",
+   "code": 0,
+   "seconds": 1.61,
+   "output_files_ref": {
+    "version": 1,
+    "sha256": "4d6f9425262bbfd7ac034334788c434b6e64993c6465fc8bb9196d009827a2f0",
+    "bytes": 1693,
+    "format": "json"
+   },
+   "owner": "2ab76afe30abacd2227d1bab602763e9dd2adfb999425575",
+   "run_name": "p2-paxos-source-provenance",
+   "output_files_manifest": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/source-provenance-1/.payloads/4d6f9425262bbfd7ac034334788c434b6e64993c6465fc8bb9196d009827a2f0.payload",
+   "output_files_dir": "/home/user/VCS/working-remote/open-source/gdp-wired-bapa-p2/runs/bapa-p2/source-provenance-1/p2-paxos-source-provenance.files",
+   "controller_custody": {
+    "protocol": 1,
+    "controller_code": "54202b72212f",
+    "agent_version": "399761b5e53f",
+    "max_attempts": 1
+   },
+   "batch": "20261116-091127-ky3xb1",
+   "out": "",
+   "err": ""
+  }
+ },
+ "cleanup": {
+  "created": 0,
+  "resumed": 0,
+  "leased_running": 0,
+  "warm": 0,
+  "topped_up": 0,
+  "not_resumed": 0,
+  "failed": 0,
+  "held_s": 0,
+  "ready_held_s": 0,
+  "busy_s": 0,
+  "idle_vm_s": 0,
+  "bring_up_s": 0,
+  "idle_tail_s": 0,
+  "kept_for_demand": 0,
+  "let_go_early": 0,
+  "unused": 0,
+  "tree_from_seed": 0,
+  "vms": 1,
+  "starts": 0,
+  "preempted": 0,
+  "scheduled": "interactive",
+  "account_day": null,
+  "types": [
+   "large"
+  ],
+  "idle_s": 60,
+  "project": "gdp-wired",
+  "batches": {
+   "20261116-091127-ky3xb1": {
+    "ok": true,
+    "complete": true,
+    "cleanup_complete": true,
+    "admission_closed": true,
+    "journals_retained": true,
+    "strict_once": true,
+    "max_attempts": 1,
+    "attempts": [
+     {
+      "name": "p2-paxos-source-provenance",
+      "attempt": 1,
+      "run_name": "p2-paxos-source-provenance",
+      "vm": "bx_ft5xf7q5",
+      "boot_id": "4548050b-6a48-4eb5-ab4a-c9b6566b82ad",
+      "launch_identity": "eb219af9f4df4cd841cf13868d1ccb803c4cb058a1988eb5",
+      "cleanup_complete": true
+     }
+    ],
+    "unlaunched": [],
+    "pending": [],
+    "batch": "20261116-091127-ky3xb1"
+   }
+  },
+  "custody": {
+   "20261116-091127-ky3xb1": {
+    "batch": "20261116-091127-ky3xb1",
+    "max_attempts": 1,
+    "reconnect_count": 0,
+    "event_count": 7,
+    "events": [
+     {
+      "event": "preflight_attempt",
+      "time": 1794820296.6402223,
+      "sequence": 1,
+      "client_sha256": "49fb6f151e0f3aff95666ce35ea0fa02b2d9d68d644fbab3801ff43939762b84"
+     },
+     {
+      "event": "preflight_complete",
+      "time": 1794820296.9540823,
+      "sequence": 2,
+      "client_sha256": "49fb6f151e0f3aff95666ce35ea0fa02b2d9d68d644fbab3801ff43939762b84",
+      "controller_code": "54202b72212f"
+     },
+     {
+      "event": "admission_attempt",
+      "time": 1794820303.9286835,
+      "sequence": 3,
+      "items": [
+       "p2-paxos-source-provenance"
+      ]
+     },
+     {
+      "event": "admission_ack",
+      "time": 1794820304.378781,
+      "sequence": 4
+     },
+     {
+      "event": "close_attempt",
+      "time": 1794820407.7271802,
+      "sequence": 5
+     },
+     {
+      "event": "placement_binding",
+      "time": 1794820408.0081968,
+      "sequence": 6,
+      "placement": {
+       "name": "p2-paxos-source-provenance",
+       "launch_identity": "eb219af9f4df4cd841cf13868d1ccb803c4cb058a1988eb5",
+       "attempt": 1,
+       "run_name": "p2-paxos-source-provenance",
+       "vm": "bx_ft5xf7q5",
+       "boot_id": "4548050b-6a48-4eb5-ab4a-c9b6566b82ad"
+      }
+     },
+     {
+      "event": "close_receipt",
+      "time": 1794820408.0103896,
+      "sequence": 7,
+      "cleanup_complete": true,
+      "receipt_sha256": "968439ca08f6c208fa6f52f6e594f7d37fb9732dd4e5dec616e9315abba9cfe3"
+     }
+    ],
+    "file": "/home/user/.local/share/supercomputer/live/custody/20261116-091127-ky3xb1.jsonl",
+    "sha256": "f1570333ccdb580f669f91945fe1d47354da4b4fbbe6da4ff7e8b34ca73dfe35",
+    "client_sha256": "49fb6f151e0f3aff95666ce35ea0fa02b2d9d68d644fbab3801ff43939762b84",
+    "controller_code": "54202b72212f",
+    "export_file": "runs/bapa-p2/source-provenance-1/custody/20261116-091127-ky3xb1.jsonl"
+   }
+  },
+  "cleanup_validation": {
+   "20261116-091127-ky3xb1": true
+  },
+  "cleanup_complete": true,
+  "phases": {
+   "jobs_s": 111.0,
+   "collect_s": 0.1,
+   "harvest_s": 0.0,
+   "close_s": 0.3
+  },
+  "dollars_so_far": null,
+  "batch": "20261116-091127-ky3xb1",
+  "image": "sc-f0d8daeee6c3"
+ }
+}

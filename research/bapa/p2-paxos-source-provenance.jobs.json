@@ -1,0 +1,10 @@
+[
+  {
+    "name": "p2-paxos-source-provenance",
+    "cmd": "set -euo pipefail; bun install --frozen-lockfile > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bun research/bapa/p2-paxos-atomic-export.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/emission.log\" 2>&1; for f in PaxosEprAtomicDefs.lean source-machine.json source-laws.json basis.json SOURCE-EMISSION.json; do cmp \"$SUPERCOMPUTER_OUTPUT_DIR/$f\" \"research/bapa/paxos-accepted-capsule/$f\"; done; cp research/protocols/ic3syn/p2-paxos-source-input.ts \"$SUPERCOMPUTER_OUTPUT_DIR/p2-paxos-source-input.ts\"; sha256sum research/protocols/ic3syn/p2-paxos-source-input.ts research/protocols/ic3syn/common.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/SOURCE-PORT.sha256\"; printf 'PASS: all four emitted artifacts and SOURCE-EMISSION.json match accepted capsule byte for byte\\n' > \"$SUPERCOMPUTER_OUTPUT_DIR/REPRODUCTION.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/bapa/p2-paxos-source-provenance-commit.txt > \"$SUPERCOMPUTER_OUTPUT_DIR/commitlint.log\" 2>&1",
+    "cpu": 1,
+    "memory": 4,
+    "timeout": 600,
+    "required_agent_capabilities": {"output_files_protocol": 1, "result_files_protocol": 1}
+  }
+]

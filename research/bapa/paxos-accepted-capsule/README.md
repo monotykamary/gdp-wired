@@ -14,7 +14,10 @@ The complete family theorem is composed from every actual checker conjunct.
 
 Accepted batch: 20261116-085542-58n6uh.
 Evidence is adjacent in `../p2-paxos-accepted-results/`.
-`SHA256SUMS` binds this capsule's sources and original source JSON.
+`SHA256SUMS` binds this capsule's sources, original source JSON, and the
+exact TypeScript source port at `../../protocols/ic3syn/p2-paxos-source-input.ts`
+plus its pinned `common.ts`. These relative source paths must ship alongside
+the capsule; see `../PAXOS-SOURCE-PROVENANCE.md` for their recovery and replay.
 The preserved kernel sources are from the retained producer's Lean project,
 not an edited kernel. Toolchain is pinned in `lean-toolchain`.
 
