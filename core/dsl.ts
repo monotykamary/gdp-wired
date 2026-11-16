@@ -28,7 +28,7 @@ import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withModelRounds, type ModelRoundPolicy, withWall} from '../kernel/prove.ts'
-import {WallExpired, checkWall, checkWorkEndpoint, searchWall, withBudget, BudgetExpired} from './wall.ts'
+import {WallExpired, checkWall, checkBudget, checkWorkEndpoint, searchWall, withBudget, BudgetExpired} from './wall.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {workLedger} from './work-admission.ts'
 import {withStageAllowance, withStageDeadline, withStageWall, withStageWork, remainingStageWork} from './dsl-deadline.ts'
@@ -3038,7 +3038,7 @@ function workVerdict(opts: ProveOptions, run: (opts: ProveOptions) => Verdict): 
     if (!(error instanceof BudgetExpired)) throw error
     // Once this child's scope has unwound, an exhausted ancestor still owns
     // its refusal. Do not turn the parent's cancellation into a child result.
-    checkWorkEndpoint(error.phase)
+    checkBudget(error.phase) // work-only: this call's own watchdog is still installed
     return {proven: false, checked: false, stuck: 'unknown', why: workRefusalWhy(error), stopped: true, termination: {kind: 'work-exhausted', phase: error.phase, scope: 'search'}, ...(workContext(error) ? {context: workContext(error)} : {})}
   }
 }
@@ -3048,6 +3048,7 @@ function watchdogVerdict(ms: number | undefined, run: () => Verdict): Verdict {
   catch (e) {
     if (!(e instanceof WatchdogExpired)) throw e
     checkWatchdog(e.termination.phase) // an expired ancestor still owns cancellation
+    checkBudget(e.termination.phase) // an owned clock must not hide exhausted ancestor work
     if (completedSearch(result) || result?.stopped && result.termination) return result!
     return stoppedSearch({...result, proven: false, checked: false, stuck: 'unknown'}, e.termination)
   }
