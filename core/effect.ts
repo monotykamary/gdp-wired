@@ -20,6 +20,7 @@ import type {Rule} from './dsl.ts'
 import {type Law, type Rand, interpret, lcg, seeded} from './machine.ts'
 import {allowed} from './watch.ts'
 import {BudgetExpired, checkWorkEndpoint} from './wall.ts'
+import {WatchdogExpired} from './search-watchdog.ts'
 import * as I from './extract-ir.ts'
 import {type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, impure, memberName, normalize, placed, refuse, shapeOf, sourceOf, text, where} from './extract-read.ts'
 import {type FactoryOf, readFactory, setupOf} from './extract-shapes.ts'
@@ -545,24 +546,34 @@ function modelled(code: string, file: string, entry: string, E: Mod, opts: Effec
 // semaphore's permits given back by the fiber that took them) proven first, each with the invariants and those proven
 // before it: the proven ones, with what their search found, join the invariants every law is proven beside; the others
 // are left out (a lemma is no claim: the laws stated are).
-export function withLemmas(x: Extraction, opts: {ms?: number, work?: number, watchdogMs?: number} = {}): {x: Extraction, proven: string[], unproven: string[]} {
+export type LemmaAttempt = {name: string, verdict?: dsl.Verdict, failure?: {name: string, message: string}}
+// work and watchdogMs are PER LEMMA, like the legacy ms option, not a
+// whole-call grant. Every child is clamped to any enclosing work/watchdog
+// scope; callers needing a shared total can wrap this synchronous helper.
+export function withLemmas(x: Extraction, opts: {ms?: number, work?: number, watchdogMs?: number} = {}): {x: Extraction, proven: string[], unproven: string[], attempts: LemmaAttempt[]} {
   if (opts.work !== undefined && opts.ms !== undefined) throw new RangeError('choose a work budget or a legacy ms budget, not both')
   const lemmas = (x as {lemmas?: Law[]}).lemmas ?? [], inv = [...x.invariants ?? []], proven: string[] = [], unproven: string[] = []
-  if (!x.rule) return {x, proven, unproven}
+  const attempts: LemmaAttempt[] = []
+  if (!x.rule) return {x, proven, unproven, attempts}
   for (const l of lemmas) {
-    let v: dsl.Verdict | undefined
+    let v: dsl.Verdict | undefined, failure: LemmaAttempt['failure']
     const proofOptions = {search: opts.work === undefined ? {ms: opts.ms ?? 30_000} : {work: opts.work}, ...(opts.watchdogMs === undefined ? {} : {watchdogMs: opts.watchdogMs})}
     try { v = dsl.proveRule(x.rule, [...inv, l], proofOptions) } catch (error) {
       // An enclosing work owner must observe its own cancellation. A helper
       // cannot renew that authority by treating the error as a dropped lemma.
       if (error instanceof BudgetExpired) { checkWorkEndpoint(error.phase); throw error }
+      if (error instanceof WatchdogExpired) throw error
+      failure = {name: error instanceof Error ? error.name : typeof error, message: error instanceof Error ? error.message : String(error)}
       v = undefined
     }
+    // Keep local optional-lemma stops separate from the eventual source-law
+    // verdict. An owned refusal is data, never an invented ancestor expiry.
+    attempts.push({name: l.name, ...(v ? {verdict: v} : {failure})})
     // These are mathematical supports, not source claims. The caller's marked
     // rule still requires native finalization; a native translation error is not admitted.
     if (v && ((v.proven && v.checked) || (v.kernelProven === true && v.translation === 'unchecked'))) { inv.push(l, ...(v.found?.laws ?? []).map(f => f.law)); proven.push(l.name) } else unproven.push(l.name)
   }
-  return {x: {...x, invariants: inv}, proven, unproven}
+  return {x: {...x, invariants: inv}, proven, unproven, attempts}
 }
 
 // --- many fibers: a method that is several steps ---------------------------------------------------------------------
