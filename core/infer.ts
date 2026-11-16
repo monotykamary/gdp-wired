@@ -46,7 +46,7 @@ import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request
 import {type StepLaw, type Verdict, type proveRule, bool, refuteModelByRuns, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
 import {type WorkAmount} from './work-amount.ts'
-import {BudgetExpired, clock, counted, fullWork, searchWork, decideLaw, decideNote, machineKey, memoHits, withBudget, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall, withSearchWork} from '../kernel/prove.ts'
+import {BudgetExpired, checkBudget, clock, counted, fullWork, searchWork, decideLaw, decideNote, machineKey, memoHits, withBudget, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall, withSearchWork} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, eachParts, obligations, plainOf, stepLawObligations, substC, tuple, tupleParts} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
@@ -90,7 +90,7 @@ export type InferOptions = {
 // that states it (`r.law(...)`), to paste.
 export type Found = {law: Law, text: string, source?: string}
 export type Inferred = Verdict & {found: Found[], stats: {samples: number, candidates: number, alive: number, proofs: number, ms: number, work: number, stopped: boolean, termination?: SearchTermination}}
-type InferenceObservation = {snapshot?: () => Inferred['stats'], last?: Inferred['stats'], context?: () => SearchContext, lastContext?: SearchContext}
+type InferenceObservation = {snapshot?: () => Inferred['stats'], last?: Inferred['stats'], context?: () => SearchContext, lastContext?: SearchContext, completed?: Inferred}
 
 // An atom: a value the forms read, the naturals it is made of with their signs (an integer is pos − neg); a cell atom
 // is a map's cell at the law's key (its parts are maps).
@@ -706,15 +706,23 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
     return out.stats.termination ? stoppedSearch({...out, context: observed.context?.() ?? searchContext(out)}, out.stats.termination) : out
     } catch (error) {
       observed.last ??= observed.snapshot?.(); observed.lastContext ??= observed.context?.()
+      // A watchdog must not hide a rejected work admission while this work
+      // owner is still active. This check does not admit or execute new work.
+      if (error instanceof WatchdogExpired) checkBudget(error.termination.phase)
       throw error
     }
   }
   try { return withSearchWatchdog(opts.watchdogMs, () => result = opts.work === undefined ? run() : withBudget(opts.work, run)) }
   catch (error) {
-    if (error instanceof WatchdogExpired) checkWatchdog(error.termination.phase)
+    if (error instanceof WatchdogExpired) { checkBudget(error.termination.phase); checkWatchdog(error.termination.phase) }
     else if (error instanceof BudgetExpired) checkWorkEndpoint(error.phase)
     else throw error
-    if (error instanceof WatchdogExpired && (completedSearch(result) || result?.stopped && result.termination)) return result!
+    if (error instanceof WatchdogExpired) {
+      if (completedSearch(result) || result?.stopped && result.termination) return result!
+      // Retained before final statistics/trace polls: those observations may
+      // throw before the outer result assignment ever receives the verdict.
+      if (observed.completed) return observed.completed
+    }
     const termination: SearchTermination = error instanceof WatchdogExpired ? error.termination : {kind: 'work-exhausted', phase: error.phase, scope: 'search'}
     return {...stoppedSearch({...result, ...opts.first, proven: false, checked: false, stuck: 'unknown', ...((observed.lastContext ?? observed.context?.()) ? {context: observed.lastContext ?? observed.context?.()} : {})}, termination), found: [], stats: {...(observed.last ?? result?.stats ?? {samples: 0, candidates: 0, alive: 0, proofs: 0, ms: 0, work: Math.max(0, fullWork() - started)}), stopped: true, termination}}
   }
@@ -797,6 +805,8 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     const out = stepLaws.length ? proveStepLaws(model, given, stepLaws) : (fast ? proveSetFast : proveLaws)(model, given)
     return verdictOf(out)
   }
+  const completedStats = (samples: number, candidates: number, alive: number): Inferred['stats'] =>
+    ({samples, candidates, alive, proofs, ms: Math.round(countedSearchNow() - t0), work: Math.max(0, fullWork() - work0), stopped: false})
   const stats = (samples: number, candidates: number, alive: number) => {
     stop()
     // This is the actual local search-budget predicate, not reported elapsed
@@ -810,7 +820,10 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   const first = opts.first ?? (refuted?.run ? {proven: false, checked: false, stuck: 'sat', ...refuted} as Verdict
     : opts.cubes ? {proven: false, checked: false} as Verdict : prove(laws))
   observed.context = () => searchContext(first)
-  if ((first.proven && first.checked) || first.run) return retainFrom({...first, found: [], stats: stats(0, 0, 0)}, [first])
+  if ((first.proven && first.checked) || first.run) {
+    const completed = observed.completed = retainFrom({...first, found: [], stats: completedStats(0, 0, 0)}, [first])
+    return retainFrom({...completed, stats: stats(0, 0, 0)}, [completed])
+  }
 
   // --- runs ------------------------------------------------------------------------------------------------------------
   const run = interpret(m), stepSample = sampleStep(m, run), rand = seeded(17), kinds = rule ? rule.kindsOfState() : []
@@ -3507,11 +3520,16 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   }
   // A cell form's mirror, −Σ ≤ −d beside Σ ≤ d under the same guard (its text).
   const mirrorText = (f: Form): string | undefined => (!f.cells || f.mod || f.cong || f.never || f.nevers || f.cube || f.unreachable || f.also || !f.coef.length ? undefined : textOf({...f, coef: f.coef.map(([i, c]) => [i, -c]), d: -f.d}))
-  if (enumProof) last = enumProof
+  // Keep the checked family and its exact supports/custody before any local
+  // progress, minimization, trace or statistics observation can stop us. A
+  // later actual work refusal still propagates; this is not budget authority.
+  const captureCompleted = (): Inferred => observed.completed = retainFrom({...last, found: [...chosen.map(f => { const law = lawFor(f), text = law.name, source = sourceOf(f, text); return {law, text, ...(source ? {source} : {})} }), ...(enumProof ? enumSome : []).map(law => ({law, text: law.name}))], stats: completedStats(samples.length, forms.length, alive.length)}, [last], {kind: 'inference', original: m, laws})
+  if (enumProof) { last = enumProof; captureCompleted() }
   for (let iter = 0; iter < 300 && !enumProof && now() < until && !stop(); iter++) {
     const began = now(), wall = countedSearchNow()
     // (each law proven alone, then the set as a whole: the same goals, grown once)
     last = withTrees(() => search([...given, ...chosen.map(lawFor)]))
+    if (last.proven && last.checked) captureCompleted()
     const took = now() - began
     opts.progress?.('proof', {chosen: chosen.length, goal: last.goal ?? '', stuck: last.stuck ?? '', ms: Math.round(countedSearchNow() - wall), counted: Math.round(took)})
     if (last.proven && last.checked) break
@@ -3548,7 +3566,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     for (const f of alive.filter(g => g.cong).slice(0, 4)) {
       if (now() > until || stop()) break
       const v = prove([...laws, lawFor(f)])
-      if (v.proven && v.checked) { chosen = [f]; last = v; break }
+      if (v.proven && v.checked) { chosen = [f]; last = v; captureCompleted(); break }
     }
   }
   trace('kernel', {chosen: chosen.length, proven: !!(last.proven && last.checked)})
@@ -3557,10 +3575,11 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   for (const f of opts.minimize === false || enumProof ? [] : [...chosen].reverse()) {
     if (now() > until || stop()) break
     const without = chosen.filter(g => g !== f), v = prove([...laws, ...without.map(lawFor)])
-    if (v.proven && v.checked) (chosen = without, last = v)
+    if (v.proven && v.checked) { chosen = without; last = v; captureCompleted() }
   }
   const kept = chosen.flatMap(f => (f.mod ? [f.mod.k] : []))
   if (kept.length) rule?.dividesBy(...kept)
+  const completed = captureCompleted()
   trace('end', {proven: true, stopped: stop(), found: chosen.map(f => textOf(f)).join('; ')})
-  return retainFrom({...last, found: [...chosen.map(f => { const law = lawFor(f), text = law.name, source = sourceOf(f, text); return {law, text, ...(source ? {source} : {})} }), ...(enumProof ? enumSome : []).map(law => ({law, text: law.name}))], stats: stats(samples.length, forms.length, alive.length)}, [last], {kind: 'inference', original: m, laws})
+  return retainFrom({...completed, stats: stats(samples.length, forms.length, alive.length)}, [completed])
 }
