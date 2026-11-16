@@ -298,7 +298,10 @@ export function discover(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = [], firs
     try { return withBudget(opts.work, run) }
     catch (error) {
       if (!(error instanceof BudgetExpired)) throw error
-      checkWorkEndpoint(error.phase)
+      // Only work authority is checked here: an OWN watchdog may have
+      // expired after the actual BudgetExpired. Record its work cause before
+      // the outer safety scope unwinds/rechecks any ancestor watchdog.
+      checkBudget(error.phase)
       const context = workContext(error) ?? (initial ? searchContext(initial) : undefined)
       return {rule: r, found: {}, verdict: {proven: false, checked: false, stuck: 'unknown', why: workRefusalWhy(error), stopped: true,
         termination: {kind: 'work-exhausted', phase: error.phase, scope: 'search'}, ...(context ? {context} : {})}}

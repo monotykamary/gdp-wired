@@ -1,7 +1,7 @@
 import {expect,spyOn,test} from 'bun:test'
 import {discover} from './discover.ts'
 import {nat,proveRule,rule,type Verdict} from './dsl.ts'
-import {BudgetExpired,checkWorkEndpoint,withBudget} from '../kernel/prove.ts'
+import {BudgetExpired,checkBudget,checkWorkEndpoint,withBudget} from '../kernel/prove.ts'
 import {WatchdogExpired,checkWatchdog,withSearchWatchdog} from './search-watchdog.ts'
 import {costs} from './solver.ts'
 import {completeWorkProfile} from './work-profile.ts'
@@ -107,22 +107,39 @@ test('completed discovery evidence survives a late own watchdog observer, never 
  }
 })
 
-test('a late owned discovery watchdog cannot overwrite an actual earlier work refusal',()=>{
- const {r,law}=fixture()
- let childEntered=false,reads=0
- const lastHealthyRead=completeWorkProfile.enabled?4:6
- const now=spyOn(performance,'now').mockImplementation(()=>++reads<=lastHealthyRead?0:100)
- const hook=spyOn(r,'withSumsOf').mockImplementation(()=>{
-  childEntered=true
-  if(completeWorkProfile.enabled)workLedger.start('ticks',10_001)
-  else costs.fm+=10_001
-  return r
- })
- try{
-  const out=discover(r,[law],[],undefined,{work:10,watchdogMs:10})
-  expect(childEntered).toBe(true)
-  expect(reads).toBeGreaterThan(lastHealthyRead)
-  expect(out.verdict).toMatchObject({proven:false,checked:false,stopped:true,termination:{kind:'work-exhausted'}})
-  expect(out.verdict.why).toMatch(/^work budget/)
- }finally{now.mockRestore();hook.mockRestore()}
+test('a watchdog expiring after actual BudgetExpired cannot relabel work during inner recovery',()=>{
+ for(const ancestor of [false,true]){
+  const {r,law}=fixture()
+  let childEntered=false,returnedAfterChild=false,time=0,actualWorkError:BudgetExpired|undefined
+  const now=spyOn(performance,'now').mockImplementation(()=>time)
+  const hook=spyOn(r,'withSumsOf').mockImplementation(()=>{
+   childEntered=true
+   try{
+    if(completeWorkProfile.enabled)workLedger.start('ticks',10_001)
+    else costs.fm+=10_001
+    checkBudget('actual discovery child work stop')
+   }catch(error){
+    if(error instanceof BudgetExpired){actualWorkError=error;time=100}
+    throw error
+   }
+   return r
+  })
+  try{
+   const child=()=>discover(r,[law],[],undefined,{work:10,watchdogMs:ancestor?60_000:10})
+   if(ancestor){
+    expect(()=>withSearchWatchdog(10,()=>{
+     child()
+     returnedAfterChild=true
+    })).toThrow(WatchdogExpired)
+    expect(returnedAfterChild).toBe(false)
+   }else{
+    const out=child()
+    expect(out.verdict).toMatchObject({proven:false,checked:false,stopped:true,termination:{kind:'work-exhausted',phase:actualWorkError?.phase}})
+    expect(out.verdict.why).toMatch(/^work budget/)
+   }
+   expect(childEntered).toBe(true)
+   expect(actualWorkError).toBeInstanceOf(BudgetExpired)
+   expect(time).toBe(100)
+  }finally{now.mockRestore();hook.mockRestore()}
+ }
 })
