@@ -1,0 +1,19 @@
+{
+ "slowdown-development-paired-9950x": {
+  "agent_version": "cbac3fdb0be1",
+  "agent_capabilities": {
+   "output_files_protocol": 1,
+   "result_files_protocol": 1,
+   "runtime_pins_protocol": 1,
+   "resource_limits_protocol": 1,
+   "owned_rpc_idempotency_protocol": 1
+  },
+  "vm": "bx_ssauu6pn",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 6,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}

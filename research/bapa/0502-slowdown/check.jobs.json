@@ -1,0 +1,12 @@
+[
+  {
+    "name": "slowdown-harness-targeted-check",
+    "cmd": "bun install --frozen-lockfile && bunx tsc --noEmit --target ESNext --module Preserve --moduleResolution Bundler --allowImportingTsExtensions --skipLibCheck --types bun research/bapa/0502-slowdown/runner.ts research/bapa/0502-slowdown/instrument-binders.ts research/bapa/0502-slowdown/summarize.ts && bash -n research/bapa/0502-slowdown/run-paired.sh",
+    "cpu": 2,
+    "memory": 12288,
+    "timeout": 900,
+    "vm_type": "large",
+    "cpu_model": "AMD Ryzen 9 9950X 16-Core Processor",
+    "cpu_model_max_fruitless": 64
+  }
+]

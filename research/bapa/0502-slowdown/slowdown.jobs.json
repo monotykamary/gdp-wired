@@ -1,0 +1,13 @@
+[
+  {
+    "name": "slowdown-development-paired-9950x",
+    "cmd": "bash research/bapa/0502-slowdown/run-paired.sh",
+    "cpu": 2,
+    "memory": 12288,
+    "timeout": 1800,
+    "vm_type": "large",
+    "cpu_model": "AMD Ryzen 9 9950X 16-Core Processor",
+    "cpu_model_max_fruitless": 64,
+    "required_agent_capabilities": {"output_files_protocol": 1, "result_files_protocol": 1}
+  }
+]

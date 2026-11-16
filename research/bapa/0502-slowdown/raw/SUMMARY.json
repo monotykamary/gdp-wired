@@ -1,0 +1,669 @@
+{
+  "schema": "gdp-0502-slowdown-summary/v1",
+  "observationCount": 26,
+  "assertionsAllPassed": true,
+  "primary": [
+    {
+      "control": "c149",
+      "pairs": [
+        {
+          "candidate": {
+            "label": "policy-c149-1",
+            "head": "70b6604435910194a91ed2749f4f03cb2e116d62"
+          },
+          "baseline": {
+            "label": "policy-c149-2",
+            "head": "c149b540bc28f9ec752cf9e5f6f299d69613d885"
+          }
+        },
+        {
+          "candidate": {
+            "label": "policy-c149-4",
+            "head": "70b6604435910194a91ed2749f4f03cb2e116d62"
+          },
+          "baseline": {
+            "label": "policy-c149-3",
+            "head": "c149b540bc28f9ec752cf9e5f6f299d69613d885"
+          }
+        },
+        {
+          "candidate": {
+            "label": "policy-c149-5",
+            "head": "70b6604435910194a91ed2749f4f03cb2e116d62"
+          },
+          "baseline": {
+            "label": "policy-c149-6",
+            "head": "c149b540bc28f9ec752cf9e5f6f299d69613d885"
+          }
+        }
+      ],
+      "stats": {
+        "lawMs": {
+          "candidate": [
+            2868,
+            2422,
+            2499
+          ],
+          "baseline": [
+            2870,
+            2328,
+            3114
+          ],
+          "candidateMedian": 2499,
+          "baselineMedian": 2870,
+          "medianRatio": 0.8707317073170732,
+          "pairedGeometricMeanRatio": 0.941409739371185,
+          "paired95LogT": [
+            0.6653506636180577,
+            1.3320078356330796
+          ],
+          "candidateMean": 2596.3333333333335,
+          "candidateSampleSd": 238.39952460802712,
+          "baselineMean": 2770.6666666666665,
+          "baselineSampleSd": 402.3050252399706
+        },
+        "checkWallMs": {
+          "candidate": [
+            3881.1033989999996,
+            3455.689445,
+            3911.9812409999995
+          ],
+          "baseline": [
+            4075.451895,
+            3345.131267,
+            4364.049728999999
+          ],
+          "candidateMedian": 3881.1033989999996,
+          "baselineMedian": 4075.451895,
+          "medianRatio": 0.9523124058368991,
+          "pairedGeometricMeanRatio": 0.9589648427693093,
+          "paired95LogT": [
+            0.8035212998296442,
+            1.144479393218991
+          ],
+          "candidateMean": 3749.591361666666,
+          "candidateSampleSd": 254.9943386565657,
+          "baselineMean": 3928.210963666667,
+          "baselineSampleSd": 525.1748536878375
+        },
+        "loweringRenamingResidualMs": {
+          "candidate": [
+            1013.1033989999996,
+            1033.689445,
+            1412.9812409999995
+          ],
+          "baseline": [
+            1205.4518950000001,
+            1017.1312670000002,
+            1250.0497289999994
+          ],
+          "candidateMedian": 1033.689445,
+          "baselineMedian": 1205.4518950000001,
+          "medianRatio": 0.8575119830891301,
+          "pairedGeometricMeanRatio": 0.9883452749650098,
+          "paired95LogT": [
+            0.6806767304768675,
+            1.4350812049374997
+          ],
+          "candidateMean": 1153.258028333333,
+          "candidateSampleSd": 225.16228973986603,
+          "baselineMean": 1157.544297,
+          "baselineSampleSd": 123.62890416366427
+        },
+        "ioWriteMs": {
+          "candidate": [
+            0.24908899999964262,
+            0.25786499999988166,
+            0.5213379999999859
+          ],
+          "baseline": [
+            0.23946300000000065,
+            0.290165000000016,
+            0.5735799999998932
+          ],
+          "candidateMedian": 0.25786499999988166,
+          "baselineMedian": 0.290165000000016,
+          "medianRatio": 0.8886840246062325,
+          "pairedGeometricMeanRatio": 0.9436181702495314,
+          "paired95LogT": [
+            0.7637408847372006,
+            1.165860397183609
+          ],
+          "candidateMean": 0.3427639999998367,
+          "candidateSampleSd": 0.15471186008525978,
+          "baselineMean": 0.3677359999999699,
+          "baselineSampleSd": 0.18005967747659854
+        },
+        "testMs": {
+          "candidate": [
+            14221.53,
+            12129.65,
+            12417.53
+          ],
+          "baseline": [
+            11725.8,
+            10838.83,
+            14330.86
+          ],
+          "candidateMedian": 12417.53,
+          "baselineMedian": 11725.8,
+          "medianRatio": 1.0589921369970494,
+          "pairedGeometricMeanRatio": 1.0555469525414567,
+          "paired95LogT": [
+            0.6824017380397437,
+            1.6327323142818042
+          ],
+          "candidateMean": 12922.903333333334,
+          "candidateSampleSd": 1133.8175065385672,
+          "baselineMean": 12298.496666666666,
+          "baselineSampleSd": 1815.0907647369415
+        },
+        "processWallMs": {
+          "candidate": [
+            14632.945994999998,
+            12426.304508999998,
+            12704.854565000001
+          ],
+          "baseline": [
+            12056.227308000001,
+            11154.444050999999,
+            14714.934102000001
+          ],
+          "candidateMedian": 12704.854565000001,
+          "baselineMedian": 12056.227308000001,
+          "medianRatio": 1.0538001847866287,
+          "pairedGeometricMeanRatio": 1.0529520481091705,
+          "paired95LogT": [
+            0.6780983232348533,
+            1.6350254493009648
+          ],
+          "candidateMean": 13254.701689666666,
+          "candidateSampleSd": 1201.6927882417458,
+          "baselineMean": 12641.868487,
+          "baselineSampleSd": 1851.081857650515
+        }
+      }
+    },
+    {
+      "control": "c96",
+      "pairs": [
+        {
+          "candidate": {
+            "label": "policy-c96-2",
+            "head": "70b6604435910194a91ed2749f4f03cb2e116d62"
+          },
+          "baseline": {
+            "label": "policy-c96-1",
+            "head": "96bf476ed811081ba3d3084ab11ebe19351cd27d"
+          }
+        },
+        {
+          "candidate": {
+            "label": "policy-c96-3",
+            "head": "70b6604435910194a91ed2749f4f03cb2e116d62"
+          },
+          "baseline": {
+            "label": "policy-c96-4",
+            "head": "96bf476ed811081ba3d3084ab11ebe19351cd27d"
+          }
+        },
+        {
+          "candidate": {
+            "label": "policy-c96-6",
+            "head": "70b6604435910194a91ed2749f4f03cb2e116d62"
+          },
+          "baseline": {
+            "label": "policy-c96-5",
+            "head": "96bf476ed811081ba3d3084ab11ebe19351cd27d"
+          }
+        }
+      ],
+      "stats": {
+        "lawMs": {
+          "candidate": [
+            2650,
+            1421,
+            1229
+          ],
+          "baseline": [
+            2664,
+            1338,
+            1361
+          ],
+          "candidateMedian": 1421,
+          "baselineMedian": 1361,
+          "medianRatio": 1.0440852314474651,
+          "pairedGeometricMeanRatio": 0.9844215792817793,
+          "paired95LogT": [
+            0.8037914489344143,
+            1.2056433880210455
+          ],
+          "candidateMean": 1766.6666666666667,
+          "candidateSampleSd": 770.9891914503947,
+          "baselineMean": 1787.6666666666667,
+          "baselineSampleSd": 759.014053449166
+        },
+        "checkWallMs": {
+          "candidate": [
+            3832.7508930000004,
+            2401.195923,
+            1792.3773490000003
+          ],
+          "baseline": [
+            3828.3951570000004,
+            1919.891635,
+            2008.996929
+          ],
+          "candidateMedian": 2401.195923,
+          "baselineMedian": 2008.996929,
+          "medianRatio": 1.1952213009082207,
+          "pairedGeometricMeanRatio": 1.0376039827883323,
+          "paired95LogT": [
+            0.6772960490253684,
+            1.5895885213673886
+          ],
+          "candidateMean": 2675.4413883333336,
+          "candidateSampleSd": 1047.4678902981716,
+          "baselineMean": 2585.7612403333337,
+          "baselineSampleSd": 1077.0743829896162
+        },
+        "loweringRenamingResidualMs": {
+          "candidate": [
+            1182.7508930000004,
+            980.1959230000002,
+            563.3773490000003
+          ],
+          "baseline": [
+            1164.3951570000004,
+            581.891635,
+            647.9969289999999
+          ],
+          "candidateMedian": 980.1959230000002,
+          "baselineMedian": 647.9969289999999,
+          "medianRatio": 1.512655198092768,
+          "pairedGeometricMeanRatio": 1.1415546358474158,
+          "paired95LogT": [
+            0.48352271831190957,
+            2.695110151544307
+          ],
+          "candidateMean": 908.774721666667,
+          "candidateSampleSd": 315.80316298558887,
+          "baselineMean": 798.0945736666667,
+          "baselineSampleSd": 318.9428874994111
+        },
+        "ioWriteMs": {
+          "candidate": [
+            0.31397800000000586,
+            0.18082099999995904,
+            0.1446519999999154
+          ],
+          "baseline": [
+            0.23134300000005226,
+            0.15023199999993864,
+            0.5068240000000088
+          ],
+          "candidateMedian": 0.18082099999995904,
+          "baselineMedian": 0.23134300000005226,
+          "medianRatio": 0.7816143129462235,
+          "pairedGeometricMeanRatio": 0.7754113993825963,
+          "paired95LogT": [
+            0.08984057519569823,
+            6.69255330325697
+          ],
+          "candidateMean": 0.21315033333329345,
+          "candidateSampleSd": 0.0891723775299338,
+          "baselineMean": 0.2961329999999999,
+          "baselineSampleSd": 0.18691648319773038
+        },
+        "testMs": {
+          "candidate": [
+            9573.44,
+            7764.27,
+            6906.2
+          ],
+          "baseline": [
+            11440.59,
+            6951.24,
+            6586.42
+          ],
+          "candidateMedian": 7764.27,
+          "baselineMedian": 6951.24,
+          "medianRatio": 1.1169618657966063,
+          "pairedGeometricMeanRatio": 0.9933048545082802,
+          "paired95LogT": [
+            0.6812408799430816,
+            1.448319622381076
+          ],
+          "candidateMean": 8081.303333333333,
+          "candidateSampleSd": 1361.5891102800927,
+          "baselineMean": 8326.083333333334,
+          "baselineSampleSd": 2703.4029001673675
+        },
+        "processWallMs": {
+          "candidate": [
+            9893.97998,
+            8022.804661,
+            7091.6741010000005
+          ],
+          "baseline": [
+            11746.322197999998,
+            7148.219740999999,
+            6792.672755000001
+          ],
+          "candidateMedian": 8022.804661,
+          "baselineMedian": 7148.219740999999,
+          "medianRatio": 1.1223500328317624,
+          "pairedGeometricMeanRatio": 0.9956388614283659,
+          "paired95LogT": [
+            0.6871402027315315,
+            1.4426411647080943
+          ],
+          "candidateMean": 8336.152914,
+          "candidateSampleSd": 1427.1895128584374,
+          "baselineMean": 8562.404897999999,
+          "baselineSampleSd": 2763.0780743118503
+        }
+      }
+    }
+  ],
+  "unsoundHistoricalDiagnosticOnly": {
+    "control": "c08",
+    "pairs": [
+      {
+        "candidate": {
+          "label": "policy-c08-2",
+          "head": "70b6604435910194a91ed2749f4f03cb2e116d62"
+        },
+        "baseline": {
+          "label": "policy-c08-1",
+          "head": "c08bb385bbb1afc8dbf6ce1fc8aa8d838b9eb3a5"
+        }
+      },
+      {
+        "candidate": {
+          "label": "policy-c08-3",
+          "head": "70b6604435910194a91ed2749f4f03cb2e116d62"
+        },
+        "baseline": {
+          "label": "policy-c08-4",
+          "head": "c08bb385bbb1afc8dbf6ce1fc8aa8d838b9eb3a5"
+        }
+      },
+      {
+        "candidate": {
+          "label": "policy-c08-6",
+          "head": "70b6604435910194a91ed2749f4f03cb2e116d62"
+        },
+        "baseline": {
+          "label": "policy-c08-5",
+          "head": "c08bb385bbb1afc8dbf6ce1fc8aa8d838b9eb3a5"
+        }
+      }
+    ],
+    "stats": {
+      "lawMs": {
+        "candidate": [
+          1878,
+          1496,
+          2142
+        ],
+        "baseline": [
+          1444,
+          1873,
+          1593
+        ],
+        "candidateMedian": 1878,
+        "baselineMedian": 1593,
+        "medianRatio": 1.1789077212806027,
+        "pairedGeometricMeanRatio": 1.1178288149985691,
+        "paired95LogT": [
+          0.5417603976121599,
+          2.306446290922205
+        ],
+        "candidateMean": 1838.6666666666667,
+        "candidateSampleSd": 324.79121498792625,
+        "baselineMean": 1636.6666666666667,
+        "baselineSampleSd": 217.80801944219897
+      },
+      "checkWallMs": {
+        "candidate": [
+          2642.086815,
+          2081.092514,
+          3022.2388090000004
+        ],
+        "baseline": [
+          2052.266971,
+          2524.965402,
+          2271.938852
+        ],
+        "candidateMedian": 2642.086815,
+        "baselineMedian": 2271.938852,
+        "medianRatio": 1.1629216220648528,
+        "pairedGeometricMeanRatio": 1.1217440494236457,
+        "paired95LogT": [
+          0.5772725019766672,
+          2.179749958830047
+        ],
+        "candidateMean": 2581.806046,
+        "candidateSampleSd": 473.4600463412731,
+        "baselineMean": 2283.057075,
+        "baselineSampleSd": 236.54526592065562
+      },
+      "loweringRenamingResidualMs": {
+        "candidate": [
+          764.0868150000001,
+          585.0925139999999,
+          880.2388090000004
+        ],
+        "baseline": [
+          608.266971,
+          651.9654019999998,
+          678.9388520000002
+        ],
+        "candidateMedian": 764.0868150000001,
+        "baselineMedian": 651.9654019999998,
+        "medianRatio": 1.1719744830876782,
+        "pairedGeometricMeanRatio": 1.1348525498782893,
+        "paired95LogT": [
+          0.6838694260487632,
+          1.8832400761156736
+        ],
+        "candidateMean": 743.1393793333335,
+        "candidateSampleSd": 148.6839942926396,
+        "baselineMean": 646.3904083333333,
+        "baselineSampleSd": 35.66425530986279
+      },
+      "ioWriteMs": {
+        "candidate": [
+          0.2222499999999883,
+          0.11912399999993539,
+          0.22348000000006607
+        ],
+        "baseline": [
+          0.11535600000000557,
+          0.20609900000003023,
+          0.16651399999999228
+        ],
+        "candidateMedian": 0.2222499999999883,
+        "baselineMedian": 0.16651399999999228,
+        "medianRatio": 1.3347226059070023,
+        "pairedGeometricMeanRatio": 1.1433283118771185,
+        "paired95LogT": [
+          0.24641942906958275,
+          5.304775007699011
+        ],
+        "candidateMean": 0.18828466666666324,
+        "candidateSampleSd": 0.05989805159886029,
+        "baselineMean": 0.1626563333333427,
+        "baselineSampleSd": 0.045494331584652985
+      },
+      "testMs": {
+        "candidate": [
+          7535.22,
+          7937.62,
+          12589.93
+        ],
+        "baseline": [
+          8070.78,
+          7656.76,
+          8800.84
+        ],
+        "candidateMedian": 7937.62,
+        "baselineMedian": 8070.78,
+        "medianRatio": 0.9835009751226028,
+        "pairedGeometricMeanRatio": 1.1145724286399132,
+        "paired95LogT": [
+          0.6414809558800422,
+          1.9365683225623007
+        ],
+        "candidateMean": 9354.256666666666,
+        "candidateSampleSd": 2809.389236121142,
+        "baselineMean": 8176.126666666667,
+        "baselineSampleSd": 579.2695415204681
+      },
+      "processWallMs": {
+        "candidate": [
+          7764.223284,
+          8162.360844000001,
+          13044.509263999998
+        ],
+        "baseline": [
+          8263.745825000002,
+          7906.810843000001,
+          8996.872056
+        ],
+        "candidateMedian": 8162.360844000001,
+        "baselineMedian": 8263.745825000002,
+        "medianRatio": 0.9877313529303763,
+        "pairedGeometricMeanRatio": 1.1203590739838007,
+        "paired95LogT": [
+          0.6355615096551027,
+          1.974953542008854
+        ],
+        "candidateMean": 9657.031130666666,
+        "candidateSampleSd": 2940.388487433131,
+        "baselineMean": 8389.142908000002,
+        "baselineSampleSd": 555.7442607354923
+      }
+    }
+  },
+  "largerCase": {
+    "control": "c149",
+    "pairs": [
+      {
+        "candidate": {
+          "label": "exists-c149-1",
+          "head": "70b6604435910194a91ed2749f4f03cb2e116d62"
+        },
+        "baseline": {
+          "label": "exists-c149-2",
+          "head": "c149b540bc28f9ec752cf9e5f6f299d69613d885"
+        }
+      },
+      {
+        "candidate": {
+          "label": "exists-c149-4",
+          "head": "70b6604435910194a91ed2749f4f03cb2e116d62"
+        },
+        "baseline": {
+          "label": "exists-c149-3",
+          "head": "c149b540bc28f9ec752cf9e5f6f299d69613d885"
+        }
+      },
+      {
+        "candidate": {
+          "label": "exists-c149-5",
+          "head": "70b6604435910194a91ed2749f4f03cb2e116d62"
+        },
+        "baseline": {
+          "label": "exists-c149-6",
+          "head": "c149b540bc28f9ec752cf9e5f6f299d69613d885"
+        }
+      }
+    ],
+    "stats": {
+      "testMs": {
+        "candidate": [
+          25154.15,
+          26675.31,
+          26763.9
+        ],
+        "baseline": [
+          24026.65,
+          25154.81,
+          23842.42
+        ],
+        "candidateMedian": 26675.31,
+        "baselineMedian": 24026.65,
+        "medianRatio": 1.110238422751403,
+        "pairedGeometricMeanRatio": 1.0761380172850867,
+        "paired95LogT": [
+          0.9813617792162176,
+          1.1800673887780648
+        ],
+        "candidateMean": 26197.78666666667,
+        "candidateSampleSd": 904.9006387628054,
+        "baselineMean": 24341.293333333335,
+        "baselineSampleSd": 710.5224827078555
+      },
+      "processWallMs": {
+        "candidate": [
+          25234.668233999997,
+          26767.485255,
+          26861.431467
+        ],
+        "baseline": [
+          24130.834295999997,
+          25254.239547,
+          23935.589645
+        ],
+        "candidateMedian": 26767.485255,
+        "baselineMedian": 24130.834295999997,
+        "medianRatio": 1.1092648072858824,
+        "pairedGeometricMeanRatio": 1.0754606390702623,
+        "paired95LogT": [
+          0.9798456883173721,
+          1.1804058536764102
+        ],
+        "candidateMean": 26287.861651999996,
+        "candidateSampleSd": 913.3010207353221,
+        "baselineMean": 24440.221162666665,
+        "baselineSampleSd": 711.6878290096842
+      }
+    }
+  },
+  "binderCounts": [
+    {
+      "label": "c149-count",
+      "head": "c149b540bc28f9ec752cf9e5f6f299d69613d885",
+      "binder": {
+        "calls": 28,
+        "collectVisits": 5548,
+        "generated": 0,
+        "groups": 0,
+        "generatedParts": 0,
+        "collisionGroups": 0,
+        "collisionAttempts": 0,
+        "rewriteVisits": 0
+      },
+      "lawMs": 2150,
+      "checkWallMs": 3023.7551620000004
+    },
+    {
+      "label": "r70-count",
+      "head": "70b6604435910194a91ed2749f4f03cb2e116d62",
+      "binder": {
+        "calls": 28,
+        "collectVisits": 5548,
+        "generated": 0,
+        "groups": 0,
+        "generatedParts": 0,
+        "collisionGroups": 0,
+        "collisionAttempts": 0,
+        "rewriteVisits": 0
+      },
+      "lawMs": 2197,
+      "checkWallMs": 3087.6364719999997
+    }
+  ]
+}

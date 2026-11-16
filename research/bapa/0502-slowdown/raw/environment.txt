@@ -1,0 +1,15 @@
+commit=
+bun=1.4.3
+cpu=model name	: AMD Ryzen 9 9950X 16-Core Processor
+70b6604435910194a91ed2749f4f03cb2e116d62
+d79da41f4337cabc6fad76eae043c3a9edc8ebb43e3cd7fc18d73991e8a34c7e  /tmp/tmp.udF2I8lao4/r70/research/security/policy-identity.test.ts
+0464703aaeab05cb68eda60f26eedd5766adb919ba74da3b7c6e6d93a6d79093  /tmp/tmp.udF2I8lao4/r70/core/exists-support.test.ts
+c149b540bc28f9ec752cf9e5f6f299d69613d885
+7340dc5da119f78edeb34f9322abc0b9103f774997ba624a74ab1b3e6e425ac4  /tmp/tmp.udF2I8lao4/r149/research/security/policy-identity.test.ts
+6fca0ae8da173d48f040576aa44ed005d05fd19419cb288b1a5fa02f3e990a35  /tmp/tmp.udF2I8lao4/r149/core/exists-support.test.ts
+96bf476ed811081ba3d3084ab11ebe19351cd27d
+7340dc5da119f78edeb34f9322abc0b9103f774997ba624a74ab1b3e6e425ac4  /tmp/tmp.udF2I8lao4/r96/research/security/policy-identity.test.ts
+6fca0ae8da173d48f040576aa44ed005d05fd19419cb288b1a5fa02f3e990a35  /tmp/tmp.udF2I8lao4/r96/core/exists-support.test.ts
+c08bb385bbb1afc8dbf6ce1fc8aa8d838b9eb3a5
+7340dc5da119f78edeb34f9322abc0b9103f774997ba624a74ab1b3e6e425ac4  /tmp/tmp.udF2I8lao4/r08/research/security/policy-identity.test.ts
+6fca0ae8da173d48f040576aa44ed005d05fd19419cb288b1a5fa02f3e990a35  /tmp/tmp.udF2I8lao4/r08/core/exists-support.test.ts
