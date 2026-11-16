@@ -1,0 +1,8 @@
+[
+  {
+    "name":"binder-focused",
+    "cmd":"set -euo pipefail; out=\"$SUPERCOMPUTER_OUTPUT_DIR\"; git rev-parse HEAD > \"$out/source.txt\"; bun --version > \"$out/runtime.txt\"; bun install --frozen-lockfile > \"$out/install.log\" 2>&1; bunx tsc -p research/binder-tsconfig.json > \"$out/types.log\" 2>&1; bunx oxlint --type-aware --deny-warnings --disable-nested-config core/dsl.ts core/dsl-binders.ts core/dsl-binders.test.ts core/prenex-admission.test.ts > \"$out/lint.log\" 2>&1; bun test core/dsl-binders.test.ts core/prenex-admission.test.ts core/quantifiers.test.ts core/dsl.test.ts core/exists.test.ts core/exists-support.test.ts core/liveness.test.ts > \"$out/tests.log\" 2>&1; for file in examples/*.ts; do bun -e \"await import('./$file')\" >> \"$out/examples.log\" 2>&1; done; git log -1 --format=%B > \"$out/commit-message.txt\"; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$out/commit-message.txt\" > \"$out/commitlint.log\" 2>&1",
+    "cpu":2,"memory":4096,"timeout":900,
+    "required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}
+  }
+]

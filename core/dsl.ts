@@ -17,6 +17,7 @@ import {searchNow as countedSearchNow} from './wall.ts'
 //
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
+import {binder, encodeBinders, guardReserved, plainDeclaration} from './dsl-binders.ts'
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {proveCandidateSeeds} from './candidate-seeds.ts'
 import {proveCountedCandidateSeeds} from './counted-candidate-seeds.ts'
@@ -786,7 +787,7 @@ let boundCounter = 0
 // on its own, and compared with another only plainly (i < j, i <= j, i = j); the runtimes decide it on every tuple of
 // a few keys per breakpoint, so it costs the square of the cells (the cube, over three keys).
 export const everyKey = (f: (key: Term, key2: Term, key3: Term) => Cond): Cond => {
-  const names = Array.from({length: Math.max(1, f.length)}, () => `k$${++boundCounter}`), g = f as (...ks: Term[]) => Cond
+  const names = Array.from({length: Math.max(1, f.length)}, () => binder('k', ++boundCounter)), g = f as (...ks: Term[]) => Cond
   const ok = (picked: Term[]): boolean | undefined => (picked.length === names.length ? g(...picked).ok : everyOk(scope?.keys, k => ok([...picked, keyTerm(k)])))
   return new Cond({op: 'all', key: names[0]!, ...(names.length > 1 ? {keys: names.slice(1)} : {}), c: g(...names.map(v)).c}, ok([]))
 }
@@ -797,7 +798,7 @@ export const desc = (t: IntLike): {desc: IntLike} => ({desc: t})
 // Some key where f holds, in a law or a step law's conclusion (¬∀k. ¬f(k)): proven through a witness, a term naming the
 // key, given here or found by the prover among a few candidates (kernel/prove.ts).
 export const someKey = (f: (key: Term) => Cond, witness?: TermLike): Cond => {
-  const key = `s$${++boundCounter}`
+  const key = binder('s', ++boundCounter)
   const none = everyOk(scope?.keys, k => f(keyTerm(k)).not().ok)
   return new Cond({op: 'not', x: {op: 'all', key, c: f(v(key)).not().c, ...(witness === undefined ? {} : {witness: termOf(witness)})}}, none === undefined ? undefined : !none)
 }
@@ -816,7 +817,7 @@ export function exists(f: (x: Term) => Cond, witness?: ExistsWitness<Term>): Con
 export function exists<V>(kind: Kind<V>, f: (x: V) => Cond, witness?: ExistsWitness<V>): Cond
 export function exists(a: unknown, b?: unknown, c?: unknown): Cond {
   const [kind, f, w] = (a instanceof Kind ? [a, b, c] : [nat, a, b]) as [Kind<unknown>, (x: unknown) => Cond, unknown]
-  const name = `some$${++boundCounter}`, value = kind.value(name), body = all(...kind.assume(name), f(value))
+  const name = binder('some', ++boundCounter), value = kind.value(name), body = all(...kind.assume(name), f(value))
   const store = (x: unknown): Record<string, E> => Object.fromEntries(Object.entries(kind.store(name, x)).map(([n, t]) => [n, termOf(t)]))
   const ghost = typeof w === 'object' && w !== null && 'step' in w && 'start' in w && typeof (w as {step: unknown}).step === 'function'
   const given = w === undefined ? {} : ghost
@@ -833,7 +834,7 @@ function pulledOut(cs: Cond[], what: string, prefix?: string): {cs: C[], vars: s
   if (prefix !== undefined) bs.forEach((b, i) => b.vars.forEach(n => { ren[n] = {op: 'var', name: n.endsWith('$neg') ? `${prefix}${i}$neg` : `${prefix}${i}`} }))
   const r = (c: C) => (prefix === undefined ? c : substVars(c, ren))
   const vars = bs.flatMap(b => b.vars.map(n => (prefix === undefined ? n : (ren[n] as {name: string}).name)))
-  const out = cs.map(c => r(c.c)), stray = out.flatMap(c => namesIn(c)).filter(n => n.startsWith('some$') && !vars.includes(n) && !/^some\$[ap]\d/.test(n))
+  const out = cs.map(c => r(c.c)), stray = out.flatMap(c => namesIn(c)).filter(n => n.startsWith('?some') && !vars.includes(n) && !/^some\$[ap]\d/.test(n))
   if (stray.length) throw new Error(`${what}: ${stray[0]} is bound by an exists(...) whose condition was taken apart; keep it whole (and, or, not, implies)`)
   return {cs: out, vars, bodies: bs.map(b => ({vars: b.vars.map(n => (prefix === undefined ? n : (ren[n] as {name: string}).name)), body: r(b.body)}))}
 }
@@ -871,7 +872,7 @@ export class MapRef {
   // key's cell plus `by` where `c` holds (the counter every cap keeps).
   bump(key: TermLike, c: Cond = yes, by: TermLike = 1): MapWrite { return this.set(key, when(c, this.at(key).plus(by), this.at(key))) }
   // Every key at once: the value at each key, the key read only as a map's key (Other.at(k)).
-  each(f: (key: Term) => TermLike): MapWrite { const each = `k$${++boundCounter}`; return {map: this.name, each, value: termOf(f(v(each))), concrete: {at: f}} }
+  each(f: (key: Term) => TermLike): MapWrite { const each = binder('k', ++boundCounter); return {map: this.name, each, value: termOf(f(v(each))), concrete: {at: f}} }
   // As a set (cells 0 or 1): a member, and, as whole flags, every member of this one in another, none shared, the same.
   has(key: TermLike): Cond { return this.at(key).atLeast(1) }
   subsetOf(other: MapRef): Cond { return everyKey(k => this.at(k).atMost(other.at(k))) }
@@ -901,7 +902,7 @@ export class RelRef {
   has(...xs: TermLike[]): Cond { return this.at(...xs).atLeast(1) }
   // The relation after the step: each tuple in it where f holds (its parts as f reads them).
   each(f: (...xs: Term[]) => Cond): MapWrite {
-    const each = `k$${++boundCounter}`, n = this.sorts.length, k = v(each)
+    const each = binder('k', ++boundCounter), n = this.sorts.length, k = v(each)
     const parts = n === 1 ? [k] : Array.from({length: n}, (_, i) => new Term(part(k.e, i, n)))
     return {map: this.name, each, value: when(f(...parts), 1, 0).e}
   }
@@ -930,7 +931,7 @@ export class ListRef {
   removeAt(i: TermLike, when: Cond = yes): ListOp { return {when, at: k => when_(k.lt(i), this.at(k), this.at(k.plus(1))), len: this.len.minus(1)} }
   // The updates for the step: the first operation whose condition holds, else the list as it was.
   apply(...ops: ListOp[]): Record<string, TermLike | MapWrite> {
-    const each = `k$${++boundCounter}`
+    const each = binder('k', ++boundCounter)
     const at = (k: Term) => ops.reduceRight<Term>((acc, op) => when_(op.when, op.at(k), acc), this.at(k))
     const len = ops.reduceRight<Term>((acc, op) => when_(op.when, op.len, acc), this.len)
     return {[this.name]: {map: this.name, each, value: at(v(each)).e, concrete: {at}}, [`${this.name}_len`]: len}
@@ -972,7 +973,7 @@ export function sizedSort(name: string, size: TermLike) {
   if (!name) throw new Error('a sized sort needs a name')
   const below = termOf(size)
   const every = (f: (key: Term) => Cond): Cond => {
-    const key = `k$${++boundCounter}`
+    const key = binder('k', ++boundCounter)
     const body = f(v(key))
     if (body.ex?.length || hasAll(body.c)) throw new Error('a finite sort body must be unquantified in this slice')
     const c: C = {op: 'all', key, finite: name, c: {op: 'or', xs: [{op: 'not', x: {op: '<', a: v(key).e, b: below}}, body.c]}}
@@ -1222,7 +1223,7 @@ export type Forall = {readonly forall: (key: Term, ...more: Term[]) => Cond}
 // With two parameters or more, about every two keys or more: forall((i, j) => i.lt(j).implies(...)).
 export function forall(f: (key: Term, key2: Term, key3: Term, key4: Term, key5: Term, key6: Term) => Cond): Forall { return {forall: f as Forall['forall']} }
 // The keys a law's callback names: one, or two when it takes two.
-const keysFor = (out: Forall): [string, string[]] => [`key$${++keyCounter}`, Array.from({length: Math.max(0, out.forall.length - 1)}, () => `key$${++keyCounter}`)]
+const keysFor = (out: Forall): [string, string[]] => [binder('key', ++keyCounter), Array.from({length: Math.max(0, out.forall.length - 1)}, () => binder('key', ++keyCounter))]
 export type Relation = {readonly when: Cond, readonly holds: Cond}
 // For histories: `holds` (a <= b, homogeneous over sums and queries) wherever `when` (params and plain inputs) holds.
 export const relation = (holds: Cond, whenever: Cond = yes): Relation => ({when: whenever, holds})
@@ -1673,7 +1674,7 @@ const skolemsOf = new WeakMap<object, {params: {vars: string[], body: C}[], inpu
 const withSource = <T extends object>(x: T, src: Sources): T => (sources.set(x, src), x)
 // A k-step law's later requests are built over marked names (j:name, which no rule can declare: ':' is reserved); the
 // kernel reads them as name@j.
-const markedName = (name: string) => { const m = /^(\d+):(.*)$/.exec(name); return m ? `${m[2]}@${m[1]}` : name }
+const markedName = (name: string) => { const m = /^\?step(\d+):(.*)$/.exec(name); return m ? `${m[2]}@${m[1]}` : name }
 const markedE = (e: E): E => {
   switch (e.op) {
     case 'var': return {op: 'var', name: markedName(e.name)}
@@ -1928,7 +1929,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // A law about the params, the state, the maps and the sums (not a request): `forall` for every key of a map.
   law(name: string, f: (env: P & S & M & Su) => Cond | Forall): Law { return withSource(this.lawOf(name, f(this.env({flags: false, inputs: false, queries: false}) as never)), {law: f as never}) }
   private lawOf(name: string, out: Cond | Forall): Law {
-    const key = `key$${++keyCounter}`
+    const key = binder('key', ++keyCounter)
     if (out instanceof Cond) { const p = prenex(out.c, `law ${name}`, key); return this.divides(this.someOf(name, out, p ? {name, forall: key, holds: p, ...(out.c.op === 'all' && out.c.finite !== undefined ? {finite: out.c.finite} : {})} : {name, holds: out.c})) }
     const [k1, more] = keysFor(out), inner = out.forall(v(k1), ...more.map(v)), holds = inner.c
     if (hasFinite(holds)) throw new Error(`law ${name}: a finite universal is one whole law, not inside forall`)
@@ -1949,7 +1950,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // What a law, a step law or a decision divides by, noted so the machine declares it (Spec.arith).
   private divides<T extends object>(x: T): T {
     if (this.spec.arith) divisorsIn([x as never], this.spec.arith)
-    return x
+    const names = this.names().map(([n]) => n)
+    return encodeBinders(x, names, 'then' in x ? names.map(n => `${n}'`) : [])
   }
   // The same rule declaring every sum over a map's keys these read (laws, step laws, a liveness, a decision's goal), as
   // each prover entry takes it; this rule itself unchanged. The rule where they read none it doesn't already declare.
@@ -1991,7 +1993,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const env = this.env() as never
     const after = this.afterEnv()
     const out = then(env, after as never), w = when ? {when: when(env).c} : {}
-    const key = `key$${++keyCounter}`, src: Sources = {step: {then: then as never, ...(when ? {when: when as never} : {})}}
+    const key = binder('key', ++keyCounter), src: Sources = {step: {then: then as never, ...(when ? {when: when as never} : {})}}
     if (out instanceof Cond) { const p = prenex(out.c, `step law ${name}`, key); return withSource(this.divides(p ? {name, forall: key, then: p, ...w} : {name, then: out.c, ...w}), src) }
     const [k1, more] = keysFor(out), c = out.forall(v(k1), ...more.map(v)).c
     return withSource(this.divides(more.length ? {name, forall: k1, keys: more, then: c, ...w} : {name, forall: k1, then: prenex(c, `step law ${name}`, k1, true) ?? c, ...w}), src)
@@ -2005,7 +2007,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const env = this.env() as never
     const after = this.afterEnv()
     // The j-th request's values over marked names, renamed to the kernel's input@j once built.
-    const mark = (j: number) => `${j}:`
+    const mark = (j: number) => `?step${j}:`
     const requests = Array.from({length: k}, (_, j) => {
       if (j === 0) return Object.fromEntries([...this.spec.inputs.map(([n]) => n), ...this.spec.queries.map(([n]) => n)].map(n => [n, (env as Record<string, unknown>)[n]]))
       return Object.fromEntries([...this.spec.inputs.map(([n, kind]) => [n, kind.value(n, mark(j + 1))]), ...this.spec.queries.map(([n]) => [n, v(`${mark(j + 1)}${n}`)])])
@@ -2014,10 +2016,15 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const whens = when ? Array.from({length: k}, (_, j) => when(env, j)) : []
     while (whens.length && whens.at(-1) === undefined) whens.pop()
     const w = whens.length ? {when: whens.map(c => (c ?? lit(0).atMost(0)).c)} : {}
-    const key = `key$${++keyCounter}`
-    if (out instanceof Cond) { const p = prenex(out.c, `step law ${name}`, key); return this.divides(p ? {name, steps: k, forall: key, then: marked(p), ...w} : {name, steps: k, then: marked(out.c), ...w}) }
+    const key = binder('key', ++keyCounter)
+    const allowedMarks = [...this.names().map(([n]) => `${n}'`), ...namesIn(requests as unknown as C)]
+    const markLaw = (c: C, keys: string[] = []) => {
+      guardReserved({...(keys.length ? {forall: keys[0], keys: keys.slice(1)} : {}), then: c}, allowedMarks)
+      return marked(c)
+    }
+    if (out instanceof Cond) { const p = prenex(out.c, `step law ${name}`, key); return this.divides(p ? {name, steps: k, forall: key, then: markLaw(p, [key]), ...w} : {name, steps: k, then: markLaw(out.c), ...w}) }
     const [k1, more] = keysFor(out), c = out.forall(v(k1), ...more.map(v)).c
-    return this.divides(more.length ? {name, steps: k, forall: k1, keys: more, then: marked(c), ...w} : {name, steps: k, forall: k1, then: marked(prenex(c, `step law ${name}`, k1, true) ?? c), ...w})
+    return this.divides(more.length ? {name, steps: k, forall: k1, keys: more, then: markLaw(c, [k1, ...more]), ...w} : {name, steps: k, forall: k1, then: markLaw(prenex(c, `step law ${name}`, k1, true) ?? c, [k1]), ...w})
   }
 
   // "Whenever `from` holds, `to` holds later", in every run that takes each helpful request infinitely often: proven by
@@ -2044,7 +2051,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     fairness?: 'weak' | 'strong', levels?: number[]}): KeyedLiveness {
     const env = this.env({flags: false, inputs: false, queries: false}) as never
     const fs = [spec.from, spec.to, spec.rank, ...(typeof spec.helpful === 'function' ? [spec.helpful] : spec.helpful.flatMap(h => [h.when, h.request]))]
-    const forall = fs.some(f => f && f.length > 1) ? `key$${++keyCounter}` : undefined, key = (forall ? v(forall) : undefined) as Term
+    const forall = fs.some(f => f && f.length > 1) ? binder('key', ++keyCounter) : undefined, key = (forall ? v(forall) : undefined) as Term
     const req = (f: (env: never, key: Term) => Record<string, TermLike>) => Object.fromEntries(Object.entries(f(env, key)).map(([n, t]) => [n, termOf(t)]))
     const r = spec.rank ? spec.rank(env, key) : [], rank = Array.isArray(r) ? r.map(termOf) : termOf(r)
     const base = {name, from: spec.from(env, key).c, to: spec.to(env, key).c, rank, ...(spec.fairness === 'strong' ? {fairness: 'strong' as const} : {}), ...(spec.levels ? {levels: spec.levels} : {}), ...(forall ? {forall} : {})}
@@ -2162,6 +2169,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   private distinct(): void {
     const seen = new Map<string, string>()
     for (const [n, what] of this.names()) {
+      plainDeclaration(this.spec.name, n)
       const had = seen.get(n)
       if (had) throw new Error(`${this.spec.name}: ${n} is ${had} and ${had === what ? 'declared again' : what}; give each a name of its own`)
       seen.set(n, what)
@@ -2214,7 +2222,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     // The least keys: inputs the runtimes find, assumed least.
     const leasts: Record<string, Least> = {}, leastAssume: Cond[] = []
     for (const [n, f] of s.leasts ?? []) {
-      const d = (f as (env: never) => LeastDef)(env as never), key = `k$${++boundCounter}`, best = (env[n] as Maybe<Term>)
+      const d = (f as (env: never) => LeastDef)(env as never), key = binder('k', ++boundCounter), best = (env[n] as Maybe<Term>)
       const parts = (k: Term) => d.by(k).map(b => (typeof b === 'object' && !(b instanceof Term) && !(b instanceof Int) && 'desc' in b ? {t: Int.of(b.desc), desc: true} : {t: Int.of(b as IntLike), desc: false}))
       const zero = (e: E) => e.op === 'const' && e.value === 0
       leasts[n] = {some: `${n}$some`, key, where: d.where(v(key)).c, by: parts(v(key)).map(b => ({e: b.t.pos.e, ...(zero(b.t.neg.e) ? {} : {neg: b.t.neg.e}), ...(b.desc ? {desc: true} : {})}))}
@@ -2270,7 +2278,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     // (each sum a state variable from 0 the step never sets: sumMachine sets it, exact)
     const sums = sumsIn(machineTerms(m), s.sumsRead ?? [])
     const out = withArithmetic(sums ? {...m, state: {...m.state, ...Object.fromEntries(Object.keys(sums).map(n => [n, {op: 'const', value: 0} as E]))}, sums} : m, [], s.arith ?? [])
-    return s.ghost ? s.ghost(out) : out
+    const encoded = encodeBinders(out, this.names().map(([n]) => n))
+    return s.ghost ? s.ghost(encoded) : encoded
   }
   // The same rule with ghosts its machine gains (the search's, over a law with "there exists" made plain: skolemOf).
   withGhosts(ghost: (m: Machine) => Machine): this { return this.with({ghost}) }

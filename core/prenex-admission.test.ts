@@ -43,14 +43,18 @@ test('substitution preserves occurrences owned by a shadowing negative binder',(
 })
 test('a free user variable cannot be captured by a generated law key',()=>{
  const anchor=make().law('anchor',({M})=>everyKey(a=>M.at(a).atLeast(0)))
- const collision='key$'+(Number(anchor.forall!.slice(4))+1)
+ const collision=anchor.forall!
  const r=rule('collision').maps({M:0}).state({[collision]:1})
- refused(()=>r.law('capture',env=>everyKey(a=>env.M.at(a).atLeast(0)).and(env[collision]!.eq(1))),'binder-capture')
+ const law=r.law('capture',env=>everyKey(a=>env.M.at(a).atLeast(0)).and(env[collision]!.eq(1)))
+ expect(law.forall).not.toBe(collision)
+ expect(proveRule(r as never,[law],{search:false}).proven).toBe(true)
 })
-test('renaming refuses capture by a differently named inner binder',()=>{
- const anchor=make().law('anchor',({M})=>everyKey(a=>M.at(a).atLeast(0))),target='key$'+(Number(anchor.forall!.slice(4))+1)
+test('boundary encoding avoids a differently named inner binder',()=>{
+ const target='gdp$bound$1'
  const read=(name:string)=>({op:'get' as const,map:'M',key:{op:'var' as const,name}})
- refused(()=>make().law('inner capture',()=>new Cond({op:'all',key:'outer',c:{op:'not',x:{op:'all',key:target,c:{op:'<=',a:read('outer'),b:read(target)}}}})),'binder-capture')
+ const law=make().law('inner capture',()=>new Cond({op:'all',key:'outer',c:{op:'not',x:{op:'all',key:target,c:{op:'<=',a:read('outer'),b:read(target)}}}}))
+ expect(law.forall).not.toBe(target)
+ expect(law.holds).toMatchObject({op:'not',x:{op:'all',key:target}})
 })
 test('AST substitution handles quoted names without textual replacement',()=>{
  const name='a"\\b',r=make(),law=r.law('quoted binder',()=>new Cond({op:'all',key:name,c:{op:'=',a:{op:'get',map:'M',key:{op:'var',name}},b:{op:'get',map:'M',key:{op:'var',name}}}}))

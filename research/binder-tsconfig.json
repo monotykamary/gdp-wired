@@ -1,0 +1,1 @@
+{"extends":"../tsconfig.json","include":[],"files":["../core/dsl-binders.test.ts","../core/prenex-admission.test.ts"]}
