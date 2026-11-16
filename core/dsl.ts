@@ -1333,21 +1333,38 @@ export function nameQuantifiers(m: Machine): Machine {
 // is two keys at once. A quantifier under a not is some key (someKey), left for the prover's witness.
 const hasForall = (c: C, positive = true): boolean => c.op === 'all' ? positive || hasForall(c.c, positive) : c.op === 'not' ? hasForall(c.x, !positive) : c.op === 'and' || c.op === 'or' ? c.xs.some(y => hasForall(y, positive)) : false
 const hasAll = (c: C | E) => JSON.stringify(c).includes('"op":"all"')
-function prenex(c: C, what: string, key: string): C | undefined {
+export class QuantifierAdmissionError extends Error {
+  readonly kind = 'quantifier-admission' as const
+  constructor(readonly code: 'nested-universal' | 'binder-capture', reason: string) {
+    super(reason); this.name = 'QuantifierAdmissionError'
+  }
+}
+function freeKey(value: unknown, name: string): boolean {
+  if (!value || typeof value !== 'object') return false
+  if (Array.isArray(value)) return value.some(v => freeKey(v, name))
+  const node = value as Record<string, unknown>
+  if (node.op === 'var') return node.name === name
+  if (node.op === 'all' && [node.key, ...(Array.isArray(node.keys) ? node.keys : [])].includes(name)) return false
+  return Object.values(node).some(v => freeKey(v, name))
+}
+function prenex(c: C, what: string, key: string, alreadyBound = false): C | undefined {
   if (hasFinite(c) && (what.startsWith('step law') || (c.op !== 'all' && hasForall(c))))
     throw new Error(`${what}: a finite universal is one whole law in this slice (not nested or a step law)`)
+  if (!alreadyBound && hasForall(c) && freeKey(c, key))
+    throw new QuantifierAdmissionError('binder-capture', `${what}: generated law key ${key} would capture a free variable; rename it`)
   let found = false
-  const walk = (d: C, positive: boolean): C => {
+  const walk = (d: C, positive: boolean, insideUniversal: boolean): C => {
     switch (d.op) {
       case 'all':
         if (d.keys?.length) throw new Error(`${what}: a condition at every two keys in a law is the law's own keys (forall((i, j) => ...))`)
         if (!positive) return d
+        if (insideUniversal) throw new QuantifierAdmissionError('nested-universal', `${what}: nested universal keys are two keys at once; name them together with forall((i, j) => ...), not nested everyKey calls`)
         found = true
-        return walk(substKey(d.c, d.key, key), positive)
-      case 'not': return {op: 'not', x: walk(d.x, !positive)}
+        return walk(substKey(d.c, d.key, key), positive, true)
+      case 'not': return {op: 'not', x: walk(d.x, !positive, insideUniversal)}
       case 'and': case 'or': {
         if ((d.op === 'or') === positive && d.xs.some(y => hasForall(y, positive)) && d.xs.filter(y => hasForall(y, positive) || namesIn(y).includes(key)).length > 1) throw new Error(`${what}: a condition at every key in an or beside another part that reads a key is two keys at once`)
-        return {op: d.op, xs: d.xs.map(y => walk(y, positive))}
+        return {op: d.op, xs: d.xs.map(y => walk(y, positive, insideUniversal))}
       }
       case 'flag': return d
       case '<': case '<=': case '=':
@@ -1355,10 +1372,25 @@ function prenex(c: C, what: string, key: string): C | undefined {
         return d
     }
   }
-  const out = walk(c, true)
+  const out = walk(c, true, alreadyBound)
   return found ? out : undefined
 }
-const substKey = (c: C, from: string, to: string): C => JSON.parse(JSON.stringify(c).replaceAll(`"op":"var","name":"${from}"`, `"op":"var","name":"${to}"`)) as C
+const substKey = (c: C, from: string, to: string): C => {
+  const walk = (value: unknown): unknown => {
+    if (!value || typeof value !== 'object') return value
+    if (Array.isArray(value)) return value.map(walk)
+    const node = value as Record<string, unknown>
+    if (node.op === 'all') {
+      const bound = [node.key, ...(Array.isArray(node.keys) ? node.keys : [])]
+      if (bound.includes(from)) return value // An inner binder shadows this occurrence.
+      if (bound.includes(to) && freeKey(node.c, from))
+        throw new QuantifierAdmissionError('binder-capture', `renaming ${from} to ${to} would capture an inner binder; use forall((i, j) => ...)`)
+    }
+    if (node.op === 'var' && node.name === from) return {...node, name: to}
+    return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, walk(v)]))
+  }
+  return walk(c) as C
+}
 
 // --- functions from outside ------------------------------------------------------------------------------------------
 
@@ -1900,7 +1932,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     if (out instanceof Cond) { const p = prenex(out.c, `law ${name}`, key); return this.divides(this.someOf(name, out, p ? {name, forall: key, holds: p, ...(out.c.op === 'all' && out.c.finite !== undefined ? {finite: out.c.finite} : {})} : {name, holds: out.c})) }
     const [k1, more] = keysFor(out), inner = out.forall(v(k1), ...more.map(v)), holds = inner.c
     if (hasFinite(holds)) throw new Error(`law ${name}: a finite universal is one whole law, not inside forall`)
-    return this.divides(this.someOf(name, inner, more.length ? {name, forall: k1, keys: more, holds} : {name, forall: k1, holds: prenex(holds, `law ${name}`, k1) ?? holds}))
+    return this.divides(this.someOf(name, inner, more.length ? {name, forall: k1, keys: more, holds} : {name, forall: k1, holds: prenex(holds, `law ${name}`, k1, true) ?? holds}))
   }
   // A law's existentials (exists), pulled out before it: `some` its naturals, `witness` the ones given (a ghost's step
   // read with the step's own values).
@@ -1962,7 +1994,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const key = `key$${++keyCounter}`, src: Sources = {step: {then: then as never, ...(when ? {when: when as never} : {})}}
     if (out instanceof Cond) { const p = prenex(out.c, `step law ${name}`, key); return withSource(this.divides(p ? {name, forall: key, then: p, ...w} : {name, then: out.c, ...w}), src) }
     const [k1, more] = keysFor(out), c = out.forall(v(k1), ...more.map(v)).c
-    return withSource(this.divides(more.length ? {name, forall: k1, keys: more, then: c, ...w} : {name, forall: k1, then: prenex(c, `step law ${name}`, k1) ?? c, ...w}), src)
+    return withSource(this.divides(more.length ? {name, forall: k1, keys: more, then: c, ...w} : {name, forall: k1, then: prenex(c, `step law ${name}`, k1, true) ?? c, ...w}), src)
   }
 
   // A law about k steps in a row (k from 2 to 64): `then(first, last, requests)` relates what the first step reads to the
@@ -1985,7 +2017,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const key = `key$${++keyCounter}`
     if (out instanceof Cond) { const p = prenex(out.c, `step law ${name}`, key); return this.divides(p ? {name, steps: k, forall: key, then: marked(p), ...w} : {name, steps: k, then: marked(out.c), ...w}) }
     const [k1, more] = keysFor(out), c = out.forall(v(k1), ...more.map(v)).c
-    return this.divides(more.length ? {name, steps: k, forall: k1, keys: more, then: marked(c), ...w} : {name, steps: k, forall: k1, then: marked(prenex(c, `step law ${name}`, k1) ?? c), ...w})
+    return this.divides(more.length ? {name, steps: k, forall: k1, keys: more, then: marked(c), ...w} : {name, steps: k, forall: k1, then: marked(prenex(c, `step law ${name}`, k1, true) ?? c), ...w})
   }
 
   // "Whenever `from` holds, `to` holds later", in every run that takes each helpful request infinitely often: proven by
