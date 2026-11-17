@@ -152,7 +152,7 @@ for (const [name, config] of Object.entries(unitConfig)) {
   Object.assign(unit, config)
 }
 
-// The units that run a native toolchain (python3, Ruby, a JDK, kotlinc, Go, Rust, Swift, clang, zstd, git's own repos):
+// The units that run a native toolchain (python3, Ruby, a JDK, kotlinc, Go, Rust, Swift, clang, zstd, solc, anvil):
 // CI runs them on GitHub's ubuntu-24.04 image, the toolchains they are checked against (clang 18.1.3, JDK 17), and every
 // other unit, the portable set, on boat, where none is installed: a boat shard puts a stub of each such tool first on the
 // PATH and fails if any unit called one (a unit that needs a toolchain belongs here, not skipped there).
