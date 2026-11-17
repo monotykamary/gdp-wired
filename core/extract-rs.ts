@@ -123,7 +123,12 @@ function nativeValue(t: SType, x: string, mod: SModule, depth = 0): string {
   if (t.k === 'int') return `native_int(&(${t.unit === 'instant' ? `of_inst(*(${x}))` : t.unit === 'duration' ? `(${x}).as_nanos()` : `*(${x})`}).to_string())?`
   if (t.k === 'bool') return `json!(*(${x}))`
   if (t.k === 'str') return `json!(${x})`
-  if (t.k === 'choice') return `json!(match ${x} { ${t.values.map(v => `${t.enum}::${v} => ${JSON.stringify(v)}`).join(', ')} })`
+  if (t.k === 'choice') {
+    // std Ordering is non-exhaustive even though the reader knows five variants.
+    // A future variant must refuse capture, never borrow a known label.
+    const other = t.enum === '::std::sync::atomic::Ordering' ? ', _ => return Err("unsupported native atomic ordering".into())' : ''
+    return `json!(match ${x} { ${t.values.map(v => `${t.enum}::${v} => ${JSON.stringify(v)}`).join(', ')}${other} })`
+  }
   if (t.k === 'opt') return `match ${x} { Some(__v${depth}) => ${nativeValue(t.of, `__v${depth}`, mod, depth + 1)}, None => Value::Null }`
   if (t.k === 'none') return 'Value::Null'
   if (t.k === 'rec') {
