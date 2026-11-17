@@ -65,6 +65,28 @@ quota/litellm-py/team_max_budget_check: extracted in 7300 ms (reads litellm/prox
 - **the rule and the code differ**: the extractor read your code wrong somewhere: a bug in gdp-wired, and the rule is
   not adopted. Please report it with the request it prints.
 
+## Native MaxIterations regression (explicit opt-in)
+
+`max-iterations-native.test.ts` extracts the **real pinned source**, not the committed generated rule or a
+hand-written handler. It requires `LITELLM_SRC` (a clean checkout at `PIN.commit`) and `LITELLM_PYTHON` (a Python with
+that checkout's proxy dependencies available). Missing inputs or a wrong/modified pin fail; there is no skip. Keep it
+out of ordinary core shards and run it in the dedicated native integration job after provisioning those inputs:
+
+```sh
+# Through supercomputer, with the checkout and Python paths supplied to the remote job:
+# jobs file: research/langs/litellm/native.jobs.json
+LITELLM_SRC=/path/to/litellm LITELLM_PYTHON=/path/to/python \
+  timeout -s KILL 240 bun test research/langs/litellm/max-iterations-native.test.ts
+```
+
+The suite requires all four `buildLaw` source interpretations to return public `proven && checked`, positive
+`translationChecks`, and `translation: 'sampled'` (never universal source equivalence). It keeps a false counter law
+and a deliberately false symbolic lowering: both must be refused, the latter by the independent native evaluation.
+The boundary remains the spec's answered session/limit and stated in-memory store (Redis/TTL excluded), not an
+end-to-end proof of LiteLLM or its real cache implementation. Set `GDP_LITELLM_RESULT` to write a JSON receipt.
+Unaffected specs retain their original DSL callbacks. Old MaxIterations callback-only A/B proofs remain UNKNOWN
+(no registered native interpretation), even after the native capture repair; metadata repair alone is not admission.
+
 ## Results at the pin (v1.106.6, 61c6ab7)
 
 See `results.md` beside this file (the Modal run, the verdicts, and what each refutation is).

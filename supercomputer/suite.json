@@ -1792,5 +1792,17 @@
     "output_files_protocol": 1,
     "result_files_protocol": 1
   }
+},
+{
+  "name": "python-litellm-regression",
+  "cmd": "bash scripts/release-ci/python-litellm-regression.sh",
+  "cwd": ".",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1200,
+  "required_agent_capabilities": {
+    "output_files_protocol": 1,
+    "result_files_protocol": 1
+  }
 }
 ]

@@ -14,7 +14,7 @@ export const PIN = {repo: 'BerriAI/litellm', tag: 'v1.106.6', commit: '61c6ab783
 type X = any
 type R = {stepLaw: (name: string, then: (b: X, a: X) => Cond, when?: (b: X) => Cond) => StepLaw}
 // A law: its name, kind and intent (as the corpus's), and the step law on the extracted rule.
-export type PyLaw = {name: string, kind: 'step' | 'access', intent: 'docs' | 'tests' | 'inferred', why: string, law: (r: R) => StepLaw}
+export type PyLaw = {name: string, kind: 'step' | 'access', intent: 'docs' | 'tests' | 'inferred', why: string, expr?: string, law: (r: R) => StepLaw}
 export type PySpec = {
   id: string, domain: 'quota' | 'rate limit' | 'circuit breaker',
   file: string, reads: string, summary: string,
@@ -83,6 +83,13 @@ const STORE = (value: 'int' | 'float') => ({internal_usage_cache: {get: ['async_
 const HOOK_SKIP = ['verbose_proxy_logger', 'resolve_llm_provider_for_rate_limit', 'with_service_target', 'os.getenv', 'ProxyRateLimitError', 'log_redis_failure']
 const ITER = 'internal_usage_cache_session_iterations_count', SPENT = 'internal_usage_cache_session_budget_spend'
 const sessionGiven = (b: X, limit: string) => all(b.get_session_id_none.not(), b[`${limit}_none`].not())
+// Native law text uses source call names and the real store key, never the lowered map or request encodings.
+// A missing source cell is None, whereas the DSL map defaults its numeric value to zero: state both cases.
+// Keep the DSL callbacks below for corpus consumers that still intentionally work on the extracted model alone.
+const ITER_SID = '_get_session_id(...)', ITER_MAX = '_get_max_iterations(...)'
+const ITER_GIVEN = `(${ITER_SID} is not None and ${ITER_MAX} is not None)`
+const ITER_CELL = 'internal_usage_cache[`{session_iterations:${_get_session_id(...)}}:count`]'
+const ITER_OLD = `old(${ITER_CELL})`
 SPECS.push(
   {id: 'rate limit/litellm-py/MaxIterationsHandler', domain: 'rate limit', file: 'litellm/proxy/hooks/max_iterations_limiter.py',
     reads: 'litellm/proxy/hooks/max_iterations_limiter.py: _PROXY_MaxIterationsHandler.__init__, async_pre_call_hook, _make_cache_key, _increment_and_get, _in_memory_increment (_get_session_id and _get_max_iterations answered)',
@@ -92,12 +99,16 @@ SPECS.push(
     needs: REDIS_OFF,
     laws: [
       {name: 'a call is admitted only while its session is below max_iterations', kind: 'access', intent: 'docs', why: 'max_iterations_limiter.py:3-8 "When the count exceeds max_iterations ... returns 429"',
+        expr: `${ITER_GIVEN} and not failed implies ((${ITER_OLD} is None and 0 < ${ITER_MAX}) or (${ITER_OLD} is not None and ${ITER_OLD} < ${ITER_MAX}))`,
         law: r => r.stepLaw('a call is admitted only while its session is below max_iterations', (b, a) => a.failed.not().implies(lt(b[ITER].at(b.get_session_id.id).value, b.get_max_iterations)), b => sessionGiven(b, 'get_max_iterations'))},
       {name: 'a session at its max_iterations is refused', kind: 'access', intent: 'docs', why: 'max_iterations_limiter.py:3-8',
+        expr: `${ITER_GIVEN} and ((${ITER_OLD} is None and 0 >= ${ITER_MAX}) or (${ITER_OLD} is not None and ${ITER_OLD} >= ${ITER_MAX})) implies failed`,
         law: r => r.stepLaw('a session at its max_iterations is refused', (_b, a) => a.failed, b => all(sessionGiven(b, 'get_max_iterations'), atLeast(b[ITER].at(b.get_session_id.id).value, b.get_max_iterations)))},
       {name: 'every call of a limited session counts one, refused or not', kind: 'step', intent: 'inferred', why: '_in_memory_increment: the counter is incremented before the check',
+        expr: `${ITER_GIVEN} implies ((${ITER_OLD} is None and ${ITER_CELL} == 1) or (${ITER_OLD} is not None and ${ITER_CELL} == ${ITER_OLD} + 1))`,
         law: r => r.stepLaw('every call of a limited session counts one, refused or not', (b, a) => a[ITER].at(b.get_session_id.id).value.eq(b[ITER].at(b.get_session_id.id).value.plus(1)), b => sessionGiven(b, 'get_max_iterations'))},
       {name: 'a call with no session or no max_iterations is admitted and counts nothing', kind: 'step', intent: 'docs', why: 'async_pre_call_hook: "if session_id is None: return None" and "if max_iterations is None: return None"',
+        expr: `(${ITER_SID} is None or ${ITER_MAX} is None) implies not failed and ${ITER_CELL} == ${ITER_OLD}`,
         law: r => r.stepLaw('a call with no session or no max_iterations is admitted and counts nothing', (b, a) => all(a.failed.not(), a[ITER].at(b.get_session_id.id).value.eq(b[ITER].at(b.get_session_id.id).value)), b => sessionGiven(b, 'get_max_iterations').not())},
     ]},
   {id: 'quota/litellm-py/MaxBudgetPerSessionHandler', domain: 'quota', file: 'litellm/proxy/hooks/max_budget_per_session_limiter.py',

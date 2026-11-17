@@ -13,6 +13,11 @@ EFF = {}
 HIT = set()
 S = {}
 NATIVE_OBJECTS = {}
+NATIVE_INVOCATION = [0]
+NATIVE_EVENTS = [None]
+NATIVE_EVENT_ERROR = [None]
+NATIVE_CALL_TYPES = {}
+NATIVE_SOURCE_CODES = {}
 
 def datetime_in(v, unit):
   epoch = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc if unit == 'datetime-utc' else None)
@@ -524,6 +529,26 @@ def raised(r):
   except Exception:
     e = cls.__new__(cls); e.args = ('gdp: raised where the request says',); return e
 
+# Only actual, invocation-local outcomes are evidence. Repeated calls must agree.
+def native_record(key, value=None, error=None):
+  events = NATIVE_EVENTS[0]
+  if events is None: return
+  try:
+    if error is not None:
+      outcome, kind = {'kind': 'raised', 'raised': type(error).__name__}, type(error)
+    else:
+      if type(value) not in (type(None), bool, str, int, float):
+        raise ValueError('unsupported native external-call value')
+      if type(value) in (int, float) and (not (-9007199254740991 <= value <= 9007199254740991) or int(value) != value):
+        raise ValueError('native external-call value is outside exact integer range')
+      outcome, kind = {'kind': 'returned', 'value': value}, type(value)
+    if key in events['calls'] and (events['calls'][key] != outcome or NATIVE_CALL_TYPES[key] is not kind):
+      raise ValueError('native external call returned inconsistent values in one invocation')
+    events['calls'][key] = outcome
+    NATIVE_CALL_TYPES[key] = kind
+  except Exception as e:
+    NATIVE_EVENT_ERROR[0] = NATIVE_EVENT_ERROR[0] or f'{type(e).__name__}: {e}'[:300]
+
 def stub(key, is_async, orig=None):
   # (orig: a call left out, run as it is unless the request says it raises)
   def value(a_, k_):
@@ -534,10 +559,22 @@ def stub(key, is_async, orig=None):
     return build(a, {})
   if is_async:
     async def f(*a, **k):
-      v = value(a, k)
-      return (await v) if orig is not None and inspect.isawaitable(v) else v
+      try:
+        v = value(a, k)
+        v = (await v) if orig is not None and inspect.isawaitable(v) else v
+      except Exception as e:
+        native_record(key, error=e)
+        raise
+      native_record(key, value=v)
+      return v
     return f
-  def g(*a, **k): return value(a, k)
+  def g(*a, **k):
+    try: v = value(a, k)
+    except Exception as e:
+      native_record(key, error=e)
+      raise
+    native_record(key, value=v)
+    return v
   return g
 
 def patch_target(p):
@@ -558,7 +595,7 @@ def hello(req):
   S['root'] = os.path.realpath(req['root'])
   # Only files the reader actually used, including imported bases; never arbitrary repository imports.
   S['sources'] = {os.path.realpath(os.path.join(S['root'], name)): name for name, _ in req['arms']}
-  REAL.clear(); HIT.clear()
+  REAL.clear(); HIT.clear(); NATIVE_SOURCE_CODES.clear()
   sys.path.insert(0, req['root'])
   if os.environ.get('DJANGO_SETTINGS_MODULE'):
     import django
@@ -592,7 +629,7 @@ def hello(req):
   S['cls'] = getattr(mod, req['cls'].rpartition('.')[2]) if req.get('cls') else None
   S['loop'] = asyncio.new_event_loop()
   asyncio.set_event_loop(S['loop'])
-  return {'ok': True, 'nativeSnapshot': 1, 'nativeBindings': 1, 'nativeEquality': 'scalar'}
+  return {'ok': True, 'nativeSnapshot': 1, 'nativeBindings': 1, 'nativeObservations': 1, 'nativeEquality': 'scalar'}
 
 def make(args):
   global OBJ_STORES
@@ -626,6 +663,47 @@ def set_globals(stores):
     if isinstance(table, ORMTable): table.install()
   for g in S.get('globals') or []: setattr(importlib.import_module(g['mod']), g['name'], stores[g['name']])
 
+def native_callable(fn, method):
+  native_fn = fn.__func__ if isinstance(fn, types.MethodType) else fn
+  seen = set()
+  while True:
+    if not isinstance(native_fn, types.FunctionType):
+      raise ValueError('unsupported native callable for parameter capture')
+    if id(native_fn) in seen or len(seen) >= 32:
+      raise ValueError('customized native signature metadata is unsupported')
+    seen.add(id(native_fn))
+    if any(dict.__contains__(native_fn.__dict__, name) for name in ('__signature__', '__text_signature__')):
+      raise ValueError('customized native signature metadata is unsupported')
+    if not dict.__contains__(native_fn.__dict__, '__wrapped__'): break
+    native_fn = dict.__getitem__(native_fn.__dict__, '__wrapped__')
+  expected = (S.get('nativeMethods') or {}).get(method)
+  if len(seen) > 1 and expected is None:
+    raise ValueError('customized native signature metadata is unsupported')
+  if expected is not None and (os.path.realpath(native_fn.__code__.co_filename) != os.path.realpath(os.path.join(S['root'], expected['file'])) or native_fn.__code__.co_name != method or native_fn.__code__.co_firstlineno != expected['line']):
+    raise ValueError('customized native signature metadata is unsupported')
+  if len(seen) > 1:
+    file = os.path.realpath(native_fn.__code__.co_filename)
+    if file not in NATIVE_SOURCE_CODES:
+      with open(file, 'rb') as source: compiled = compile(source.read(), native_fn.__code__.co_filename, 'exec', dont_inherit=True)
+      codes = []
+      def collect(code):
+        codes.append(code)
+        for value in code.co_consts:
+          if isinstance(value, types.CodeType): collect(value)
+      collect(compiled)
+      NATIVE_SOURCE_CODES[file] = codes
+    candidates = [code for code in NATIVE_SOURCE_CODES[file] if code.co_name == method and code.co_firstlineno == expected['line']]
+    if len(candidates) != 1 or candidates[0] != native_fn.__code__:
+      raise ValueError('customized native signature metadata is unsupported')
+  # A wrapper chain nominates a candidate only. Inspect genuine code/defaults;
+  # invocation below must observe this exact code with unchanged arguments.
+  fresh = types.FunctionType(native_fn.__code__, native_fn.__globals__, native_fn.__name__, native_fn.__defaults__, native_fn.__closure__)
+  fresh.__kwdefaults__ = native_fn.__kwdefaults__
+  receiver = fn.__self__ if isinstance(fn, types.MethodType) else None
+  receiver_name = next(iter(inspect.signature(fresh).parameters), None) if isinstance(fn, types.MethodType) else None
+  signature = inspect.signature(types.MethodType(fresh, receiver) if receiver_name is not None else fresh, follow_wrapped=False)
+  return native_fn.__code__, signature, receiver_name, receiver
+
 def call(req):
   obj, stores = OBJS[req['id']]
   global OBJ_STORES
@@ -640,22 +718,41 @@ def call(req):
   try: kwargs = fixed_args(req['a'], {})
   except OverflowError as e:
     return {'outside': f'argument outside the declared runtime domain: {e}'}
-  # Bind the actual callable's Python signature, before the method can mutate
-  # its arguments. Never reconstruct native law inputs from the symbolic IR.
+  # Snapshot call-bound values before a wrapper/body can mutate them. Admission
+  # also requires the source method's real entry frame, never just __wrapped__.
+  target, entered = None, None
   try:
-    native_fn = fn.__func__ if isinstance(fn, types.MethodType) else fn
-    if not isinstance(native_fn, types.FunctionType):
-      raise ValueError('unsupported native callable for parameter capture')
-    if any(dict.__contains__(native_fn.__dict__, name) for name in ('__signature__', '__wrapped__', '__text_signature__')):
-      raise ValueError('customized native signature metadata is unsupported')
-    bound = inspect.signature(fn, follow_wrapped=False).bind(**kwargs)
+    target, signature, receiver_name, receiver = native_callable(fn, req['m'])
+    bound = signature.bind(**kwargs)
     bound.apply_defaults()
     native_bindings = {'snapshot': native_state(types.SimpleNamespace(**bound.arguments), select=False)}
   except Exception as e:
+    target = None
     native_bindings = {'error': f'{type(e).__name__}: {e}'[:300]}
+  def capture(frame, event, arg):
+    nonlocal entered, native_bindings
+    if event == 'call' and frame.f_code is target:
+      if entered is not None and frame is not entered:
+        native_bindings = {'error': 'native source method entered more than once in one invocation'}
+      elif entered is None:
+        entered = frame
+        try:
+          if receiver_name is not None and frame.f_locals.get(receiver_name) is not receiver:
+            raise ValueError('native source method receiver differs from the called receiver')
+          values = {name: frame.f_locals[name] for name in bound.arguments}
+          actual = native_state(types.SimpleNamespace(**values), select=False)
+          if json.dumps(actual['root']['items']) != json.dumps(native_bindings['snapshot']['root']['items']):
+            raise ValueError('decorator changed native arguments before source method entry')
+        except Exception as e:
+          native_bindings = {'error': f'{type(e).__name__}: {e}'[:300]}
+    return tracer(frame, event, arg)
   before = frames(obj if S['cls'] is not None else None)
   snap = state_of(obj, stores) if S.get('discard') and S['cls'] is not None else None
-  sys.settrace(tracer)
+  NATIVE_INVOCATION[0] += 1
+  NATIVE_EVENTS[0] = {'invocation': NATIVE_INVOCATION[0], 'calls': {}}
+  NATIVE_EVENT_ERROR[0] = None
+  NATIVE_CALL_TYPES.clear()
+  sys.settrace(capture)
   try:
     with pinned(): out = run(fn(**kwargs))
     err = None
@@ -667,11 +764,22 @@ def call(req):
       with open(os.environ['GDP_HARNESS_LOG'], 'a') as f: f.write(f"{req['m']} {json.dumps(req.get('answers'))}\n{traceback.format_exc()}\n")
   finally:
     sys.settrace(None)
+  if target is not None and entered is None:
+    native_bindings = {'error': 'native source method entry was not observed'}
+  try:
+    if NATIVE_EVENT_ERROR[0]: native_observations = {'error': NATIVE_EVENT_ERROR[0]}
+    else:
+      events = NATIVE_EVENTS[0]
+      calls = types.SimpleNamespace(**{key: types.SimpleNamespace(**value) for key, value in events['calls'].items()})
+      native_observations = {'snapshot': native_state(types.SimpleNamespace(invocation=events['invocation'], calls=calls), select=False)}
+  except Exception as e:
+    native_observations = {'error': f'{type(e).__name__}: {e}'[:300]}
+  finally: NATIVE_EVENTS[0] = None
   if err is not None and snap is not None: set_state(obj, stores, snap)
   after = frames(obj if S['cls'] is not None else None)
   for k in before:
     if after.get(k) != before[k]: return {'frame': k}
-  return {'out': tag(out), 'nativeBindings': native_bindings, **({'err': err} if err is not None else {}), **({'effects': dict(EFF)} if EFF else {})}
+  return {'out': tag(out), 'nativeBindings': native_bindings, 'nativeObservations': native_observations, **({'err': err} if err is not None else {}), **({'effects': dict(EFF)} if EFF else {})}
 
 # Native observation transport for ordered containers. Retain real references
 # so Python cannot recycle an address and manufacture cross-snapshot identity.
@@ -679,6 +787,7 @@ def native_state(obj, select=True):
   seen = set()
   count = [0]
   def encode(value, names=None):
+    if type(value) is FakeStore: value = value.data
     count[0] += 1
     if count[0] > 10000: raise ValueError('native snapshot exceeds node bound')
     if value is None or isinstance(value, (str, bool)): return value
@@ -706,7 +815,7 @@ def native_state(obj, select=True):
     fields = vars(value)
     if names is not None: fields = {name: fields[name] for name in names}
     return {'kind': 'object', 'id': ident, 'items': [[k, encode(v)] for k, v in fields.items()]}
-  roots = sorted({l['path'][0] for l in S['leaves'] if l.get('path') and l['kind'] != 'frame'})
+  roots = sorted({l['path'][0] for l in S['leaves'] if l.get('path') and l['kind'] != 'frame'} | {l['store'].split('.')[0] for l in S['leaves'] if l.get('store')})
   return {'version': 1, 'root': encode(obj, roots if select else None)}
 
 def main():

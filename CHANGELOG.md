@@ -3,6 +3,22 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.50.5
+
+### Fixed
+
+- Restore Python native parameter capture for ordinary `functools.wraps`
+  methods, including the pinned LiteLLM `_PROXY_MaxIterationsHandler`. A wrapped
+  target must match the source and actually execute with unchanged call-bound
+  arguments; forged metadata, missing/repeated entries and changed receivers or
+  inputs remain refused. Native evidence is still sampled, not source equivalence.
+- Give that unit's four laws independently interpreted source expressions and
+  capture the actual scalar outcomes of its answered native calls. The older
+  model-only callback results do not bypass source-law admission.
+- Require positive and deceptive-wrapper regressions plus the actual pinned
+  LiteLLM unit in the canonical release gate; keep the new Python tests in the
+  native CI set. Existing known-failure policy and proof acceptance are unchanged.
+
 ## 0.50.4
 
 ### Added

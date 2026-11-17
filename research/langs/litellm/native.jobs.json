@@ -1,0 +1,9 @@
+[
+ {
+  "name": "litellm-maxiterations-native",
+  "cmd": "test -n \"$LITELLM_SRC\" && test -n \"$LITELLM_PYTHON\" && timeout -s KILL 240 bun test research/langs/litellm/max-iterations-native.test.ts",
+  "cwd": ".",
+  "cpu": 2.0,
+  "timeout": 300
+ }
+]

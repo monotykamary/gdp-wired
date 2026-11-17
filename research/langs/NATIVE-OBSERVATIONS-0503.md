@@ -12,8 +12,12 @@ companion with public proven and checked, or remain blocked.
 
 ## Python adapter
 
-The harness binds the actual callable with `inspect.signature(fn).bind`, applies
-its defaults, and snapshots the resulting arguments **before** invocation.
+As repaired in 0.50.5, the harness derives a signature from a fresh function
+containing the actual candidate code/defaults, applies its defaults, and
+snapshots the resulting arguments **before** invocation. For a wrapped callable,
+the candidate must match the reader's source filename/name/first line. Its actual
+entry frame must then execute with the same arguments and receiver; metadata
+alone is never evidence of transparent forwarding.
 It returns the existing bounded, identity-bearing native wire format. The host
 uses one decoder for state and argument observations so real object identity is
 not confused with value equality or symbolic map positions. Binding rows are
@@ -44,10 +48,14 @@ step law and still requires its checked kernel proof; it does not fall back to
 model timestamps or silently weaken native acceptance. That new control is
 source-only pending the operational admission hold, not claimed verified.
 
-Binding capture supports real Python functions and bound methods. It rejects
-`__signature__`, `__wrapped__`, and `__text_signature__` metadata on the
-underlying function and uses `follow_wrapped=False`. This is an observation
-fence, not a claim that the frontend always refuses decorators:
+Binding capture supports real Python functions and bound methods. The original
+0.50.3 fence rejected all `__wrapped__` metadata; that regressed ordinary
+`functools.wraps` methods and is repaired in 0.50.5. `__signature__` and
+`__text_signature__` remain refused; wrapped chains are bounded, checked against
+source identity, and admitted only after actual frame/argument validation.
+Missing, repeated distinct, wrong-receiver or input-transforming entries fail
+closed. Async resumption of the same frame does not count as another call.
+This is an observation fence, not a claim that the frontend always refuses decorators:
 `extract-step.ts` callFunc explicitly permits inferred transparent decorators
 (~1173–1178) unless strict. `__text_signature__` is included because Python
 inspect can consult it even without wrapper traversal. Native runtime defaults
@@ -68,6 +76,20 @@ incomplete and source admission `proven:false`, `checked:false`,
 input or protocol envelope substitutes for missing native bindings. Explicitly
 disabled replay remains refused. Tests retain a corrupted symbolic-law control
 that must fail with a real native witness.
+
+### 0.50.5 external-call observations and LiteLLM regression
+
+The Python harness records scalar returned/raised outcomes only when a stated
+external call actually executes. Missing calls remain absent, repeated outcomes
+must agree in value and runtime type, and unsupported values or inconsistent
+outcomes fail closed. A native invocation counter prevents stale observation
+reuse. The stated FakeStore is observed through its actual dictionary, including
+absence, not by rebuilding symbolic cells.
+
+The four MaxIterations laws now have registered source text. The old committed
+callback-only corpus results are historical model results and are not a source
+admission shortcut. The real pinned upstream source, transparent wrapper
+controls, and replay-equivalent deceptive wrappers are mandatory release tests.
 
 ## JVM scalar bindings
 

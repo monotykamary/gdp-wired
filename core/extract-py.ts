@@ -73,6 +73,15 @@ export function extractPython(at: string | FileURL, opts: PyOptions = {}): Extra
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
     throw e
   }
-  const harness = (): Harness => ({cmd: opts.python ?? 'python3', args: [here('harness.py')], env: {PYTHONDONTWRITEBYTECODE: '1', ...(opts.djangoSettings ? {DJANGO_SETTINGS_MODULE: opts.djangoSettings} : {})}, hello: {root: mod.root, path: mod.path, module: mod.module}})
+  const harness = (read: StepRead): Harness => {
+    const methods = read.cls ? mod.recs[read.cls]?.methods : Object.fromEntries(mod.entries.flatMap(e => e.k === 'func' ? [[mod.funcs[e.id]!.name, e.id]] : []))
+    const nativeMethods = Object.fromEntries(Object.keys(read.args).flatMap(name => {
+      const id = methods?.[name], f = id ? mod.funcs[id] : undefined
+      if (!f) return []
+      const decorators = f.decorators.map(d => Number(/:(\d+):\d+$/.exec(d.p)?.[1])).filter(Number.isFinite)
+      return [[name, {file: f.span[0], line: Math.min(f.span[1], ...decorators)}]]
+    }))
+    return {cmd: opts.python ?? 'python3', args: [here('harness.py')], env: {PYTHONDONTWRITEBYTECODE: '1', ...(opts.djangoSettings ? {DJANGO_SETTINGS_MODULE: opts.djangoSettings} : {})}, hello: {root: mod.root, path: mod.path, module: mod.module, nativeMethods}}
+  }
   return extractStep(mod, harness, opts)
 }

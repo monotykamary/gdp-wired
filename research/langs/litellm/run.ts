@@ -12,6 +12,7 @@
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs'
 import {join, resolve} from 'node:path'
 import {proveSteps} from '../../../core/dsl.ts'
+import {buildLaw} from '../../../core/laws.ts'
 import {extractPython, readPython} from '../../../core/extract-py.ts'
 import {sweep, unitsOf} from '../sweep.ts'
 import {assumed} from '../../../core/extract-step.ts'
@@ -56,8 +57,8 @@ for (const s of SPECS.filter(x => !only || x.id === only)) {
     const t1 = performance.now()
     let verdict: Out['laws'][number]['verdict'] = 'error', witness: unknown, why: string | undefined
     try {
-      const v = proveSteps(x.rule as never, x.invariants ?? [], [l.law(x.rule as never)], {search: {ms}})
-      verdict = v.proven ? 'proven' : v.witness || v.run ? 'refuted' : 'unknown'
+      const v = proveSteps(x.rule as never, x.invariants ?? [], [l.expr ? buildLaw(x, {name: l.name, expr: l.expr, method: 'async_pre_call_hook'}).law : l.law(x.rule as never)], {search: {ms}})
+      verdict = v.proven && v.checked ? 'proven' : v.witness || v.run ? 'refuted' : 'unknown'
       witness = v.witness ?? v.run
       why = v.why
     } catch (e) { why = (e as Error).message }

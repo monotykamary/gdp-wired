@@ -28,7 +28,7 @@ const units: Unit[] = [
     keyterms.test.ts lists.test.ts liveness.test.ts sizes.test.ts values.test.ts rationals.test.ts builders.test.ts
     gdp.test.ts datatypes.test.ts lemmas.test.ts discover.test.ts discover-budget.test.ts infer.test.ts infer-input.test.ts cyclic.test.ts cycles.test.ts
     nonterm.test.ts data.test.ts data-synth.test.ts hypothesis.test.ts seqs.test.ts abstract.test.ts search.test.ts invoices.test.ts
-    folds.test.ts trees.test.ts pairs.test.ts chart.test.ts chart-provenance.test.ts xstate.test.ts extract.test.ts extract-standalone.test.ts extract-ci-method-scope.test.ts source-check.test.ts source-completion.test.ts native-observations.test.ts source-diagnostic.test.ts extract-absence.test.ts extract-choice-joins.test.ts extract-standalone-prototype.test.ts extract-standalone-regression.test.ts extract-py.test.ts extract-step-native.test.ts extract-py-mro.test.ts extract-py-hasattr.test.ts extract-orm.test.ts extract-py-orm.test.ts extract-sol.test.ts sol-concrete.test.ts effect.test.ts
+    folds.test.ts trees.test.ts pairs.test.ts chart.test.ts chart-provenance.test.ts xstate.test.ts extract.test.ts extract-standalone.test.ts extract-ci-method-scope.test.ts source-check.test.ts source-completion.test.ts native-observations.test.ts source-diagnostic.test.ts extract-absence.test.ts extract-choice-joins.test.ts extract-standalone-prototype.test.ts extract-standalone-regression.test.ts extract-py.test.ts extract-step-native.test.ts extract-py-decorator.test.ts extract-py-mro.test.ts extract-py-hasattr.test.ts extract-orm.test.ts extract-py-orm.test.ts extract-sol.test.ts sol-concrete.test.ts effect.test.ts
     effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts effect-schema.test.ts calendar.test.ts count-facts.test.ts count-ranges.test.ts count-write-frames.test.ts counts-completion-order.test.ts count-completion.test.ts count-witness.test.ts count-unions.test.ts count-witness-flags.test.ts count-focused.test.ts count-cases.test.ts count-focus-proof.test.ts count-recovery-order.test.ts count-cert-grow.test.ts field-laws.test.ts count-cubes.test.ts finite-tiny.test.ts finite-tiny-houdini.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts carry.test.ts scan-prefix.test.ts
     runtime-keys.test.ts sample-step.test.ts small-counts.test.ts cube-rows.test.ts quorum-laws.test.ts wall.test.ts count-demand.test.ts count-cert-transport.test.ts count-tier-budget.test.ts work-admission-perf.test.ts i6-meter.test.ts prover-row-budget.test.ts count-attempt-expiration.test.ts common-counted.test.ts hard-cap.test.ts work-observe.test.ts
     lemma-cuts.test.ts count-support.test.ts count-admission.test.ts counts-preflight.test.ts counts-structured.test.ts relevance.test.ts support-order.test.ts`),
@@ -144,6 +144,7 @@ const unitConfig: Record<string, UnitConfig> = {
   'core/cli-deadline.test.ts': {...rootProcess, timeoutMs: 300000},
   'core/cli-two-run-budget.test.ts': {...rootProcess, timeoutMs: 120000},
   'core/extract-step-native.test.ts': {...rootProcess, timeoutMs: 180000},
+  'core/extract-py-decorator.test.ts': {...rootProcess, timeoutMs: 180000},
   'core/inherited-wall.test.ts': rootProcess,
   'core/common-counted.test.ts': rootProcess,
   // Its child allows 120s; the outer Bun default 5s must not kill that child first.
@@ -187,7 +188,7 @@ const native = new Set([
   'core/extract-py.test.ts', 'core/extract-py-mro.test.ts', 'core/extract-py-hasattr.test.ts', 'core/extract-py-orm.test.ts',
   'core/extract-sol.test.ts', 'core/sol-concrete.test.ts', 'research/security/score.test.ts', 'research/query/goal-pack.test.ts',
   'gates/bar.test.ts', 'research/security/surface-lowering.test.ts', 'research/security/mutants/mutants.test.ts',
-  'research/security/mutants-upstream/upstream.test.ts', 'core/cli-deadline.test.ts', 'core/extract-step-native.test.ts',
+  'research/security/mutants-upstream/upstream.test.ts', 'core/cli-deadline.test.ts', 'core/extract-step-native.test.ts', 'core/extract-py-decorator.test.ts',
 ])
 for (const name of native) if (!units.some(u => u.name === name)) throw new Error(`native set has no quick unit: ${name}`)
 
