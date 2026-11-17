@@ -20,6 +20,7 @@ test('Python snapshots preserve set contents and aliases across mutations', () =
   const boundary = harness.indexOf('\ndef main():')
   expect(boundary).toBeGreaterThan(0)
   const result = run('python3', 'py', harness.slice(0, boundary) + `
+S['leaves'] = []
 class State: pass
 s = State()
 s.values = set()

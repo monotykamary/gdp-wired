@@ -95,6 +95,16 @@ test('real wall interruption keeps constructor IDs and SAT context; completed na
   // gdp: law only allowed changes: value != old(value) implies allowed
   public void hit(boolean allowed) { if (guarded && !allowed) return; value++; }
 }\n`
+  // Keep inference through guarded only for the intentional SAT pause. The
+  // direct guards below have the same behavior from either constructor, but
+  // leave the short watchdog to exercise post-completion bookkeeping.
+  const controlSource = (fixed: boolean) => `public class OwnedDeadline {
+  public int value = 0;
+  public OwnedDeadline() {}
+  public OwnedDeadline(boolean choice) {}
+  // gdp: law only allowed changes: value != old(value) implies allowed
+  public void hit(boolean allowed) { ${fixed ? 'if (!allowed) return; ' : ''}value++; }
+}\n`
   const driver = `public class ReplayDeadline {
   public static void main(String[] args) {
     OwnedDeadline x = args[0].equals("()") ? new OwnedDeadline() : new OwnedDeadline(Boolean.parseBoolean(args[1]));
@@ -154,12 +164,12 @@ process.exitCode=result.exit;
     type Result = Awaited<ReturnType<typeof check>>
     const results: {mode: string, sourceHash: string, nativeExit: number | null, result: Result, observations: {deadline: {domain: string, end: number}}[]}[] = []
     for (const [version, fixed] of [['broken', false], ['fixed', true]] as const) {
-      const dir = join(root, version); mkdirSync(dir)
-      const file = join(dir, 'OwnedDeadline.java'), text = source(fixed)
-      writeFileSync(file, text); writeFileSync(join(dir, 'ReplayDeadline.java'), driver)
-      const compile = spawnSync('javac', [file, join(dir, 'ReplayDeadline.java')], {encoding: 'utf8', timeout: 30000})
-      expect(compile.status, compile.stderr).toBe(0)
       for (const mode of fixed ? ['completed', 'pause', 'late-proven'] : ['completed', 'late-broken']) {
+        const dir = join(root, `${version}-${mode}`); mkdirSync(dir)
+        const file = join(dir, 'OwnedDeadline.java'), text = mode === 'pause' ? source(fixed) : controlSource(fixed)
+        writeFileSync(file, text); writeFileSync(join(dir, 'ReplayDeadline.java'), driver)
+        const compile = spawnSync('javac', [file, join(dir, 'ReplayDeadline.java')], {encoding: 'utf8', timeout: 30000})
+        expect(compile.status, compile.stderr).toBe(0)
         const resultFile = join(root, `${version}-${mode}.json`)
         const child = spawnSync(process.execPath, [join(worker, 'diagnostic.ts')], {cwd: worker, env: {...cleanEnv(), DEADLINE_MODE: mode, DEADLINE_SOURCE: file, DEADLINE_RESULT: resultFile}, encoding: 'utf8', timeout: 150000})
         expect(child.signal, child.stderr).toBeNull()
@@ -169,7 +179,7 @@ process.exitCode=result.exit;
           writeFileSync(join(evidence, 'results.json'), JSON.stringify(results, null, 2))
           writeFileSync(join(evidence, `${version}-${mode}.stdout`), child.stdout)
           writeFileSync(join(evidence, `${version}-${mode}.stderr`), child.stderr)
-          writeFileSync(join(evidence, `${version}.java`), text)
+          writeFileSync(join(evidence, `${version}-${mode}.java`), text)
           writeFileSync(join(evidence, 'ReplayDeadline.java'), driver)
         }
         expect(child.status, child.stderr).toBe(mode === 'pause' ? 2 : fixed ? 0 : 1)
