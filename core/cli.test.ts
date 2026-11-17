@@ -787,21 +787,30 @@ class Counter:
 }, 180_000)
 
 ;(TOOLS.python!() ? test : test.skip)('Python set laws refuse mixed Boolean and integer key semantics', async () => {
-  const dir = files({'sets.py': `class IntSet:
-    # gdp: law Boolean membership is not an integer key: true not in members
+  // A constant positive key keeps the machine supported; an unconstrained int would be refused first.
+  const source = `class IntSet:
+    # gdp: law Integer membership is observed: 1 not in members
     def __init__(self):
         self.members: set[int] = set()
 
-    def add(self, key: int) -> None:
-        self.members.add(key)
-`})
-  const result = await check([`${dir}/sets.py`], {ms: 5000, propose: false, check: {runs: 4, depth: 2, states: 8}})
+    def add(self) -> None:
+        self.members.add(1)
+`
+  const dir = files({'sets.py': source})
+  const options = {ms: 5000, propose: false, check: {runs: 4, depth: 2, states: 8}}
+  const integer = await check([`${dir}/sets.py`], options)
+  expect(integer.rules[0]!.ok).toBe(true)
+  expect(integer.rules[0]!.refusals).toEqual([])
+  sampledBreak(integer.rules[0]!.laws[0]!)
+  expect(integer.exit).toBe(1)
+  writeFileSync(`${dir}/sets.py`, source.replace('Integer membership is observed: 1 not in members', 'Boolean membership is not an integer key: true not in members'))
+  const result = await check([`${dir}/sets.py`], options)
   const rule = result.rules.find(r => r.entry === 'IntSet')!
-  expect(rule.ok).toBe(false)
-  expect(rule.refusals.map(r => r.what).join('\n')).toContain('a cond where a number is read')
+  expect(rule.ok).toBe(true)
+  expect(rule.refusals).toEqual([])
   const law = rule.laws.find(l => l.name === 'Boolean membership is not an integer key')!
   expect(law.verdict).toBe('not read')
-  expect(law.why).toBe('the rule was refused')
+  expect(law.why).toBe('a cond where a number is read')
   expect(law.cert).toBeUndefined()
   expect(law.run).toBeUndefined()
   expect(law.translationChecks).toBeUndefined()
