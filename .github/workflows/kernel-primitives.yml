@@ -10,6 +10,8 @@ on:
       - 'core/machine.ts'
       - 'research/kernel-primitives/**'
       - 'kernel/mutants.ts'
+      - 'lean-kernel/**'
+      - 'scripts/gen-lean-library.ts'
       - '.github/workflows/kernel-primitives.yml'
   push:
     paths:
@@ -20,6 +22,8 @@ on:
       - 'core/machine.ts'
       - 'research/kernel-primitives/**'
       - 'kernel/mutants.ts'
+      - 'lean-kernel/**'
+      - 'scripts/gen-lean-library.ts'
       - '.github/workflows/kernel-primitives.yml'
 jobs:
   native-differential:
@@ -48,3 +52,27 @@ jobs:
           bun research/kernel-primitives/mutant-gate.ts
       - name: Compare actual native probe output with imported kernel
         run: bun research/kernel-primitives/probes/run.ts
+  generic-lean:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      - name: Install pinned dependencies
+        run: bun install --frozen-lockfile
+      - name: Install the packaged Lean toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o "$RUNNER_TEMP/elan-init.sh"
+          sh "$RUNNER_TEMP/elan-init.sh" -y --default-toolchain leanprover/lean4:v4.34.0
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Check generic word machine proofs and prior 21 claims
+        env:
+          SUPERCOMPUTER_OUTPUT_DIR: ${{ runner.temp }}/generic-word-lean
+        run: bash research/kernel-primitives/generic-packaged-gate.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: generic-word-lean
+          path: ${{ runner.temp }}/generic-word-lean

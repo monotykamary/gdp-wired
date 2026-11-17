@@ -5,9 +5,9 @@
 import {type C, type E, type Law, type Machine, type Recurrence} from '../core/machine.ts'
 export {primitiveFunctionLean, toLeanIntegerPrimitive, primitiveSpecimenLean} from './integer-primitives.ts'
 export {wordReads, wordDigitLean, wordKeyPartsLean, wordMapOverlayLean} from './word-division-export.ts'
-// Restricted scalar q/r/c digit-range lane (8/16/32/64); all other intrinsic machines fail closed below.
+// Legacy restricted scalar digit-range convenience lane; generic words use WordSReach below.
 export {q8RangeMachineToLean, wordDigitRangeMachineToLean} from './word-division-lower.ts'
-import {wordReads} from './word-division-export.ts'
+import {wordReads, wordMachineBridgeLean, wordSchemaMapNames} from './word-division-export.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
 import {type CountCert, type CountDecl, type CountedGoal, type CountInst, type FrameCut, type MonoCut, type LinCut, type LemmaCut, framePath, lemmaPath, checkMC, checkCounted, checkCountedLaws, checkLaws, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, cellParts, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
@@ -843,11 +843,11 @@ export function readable(id: string, laws: Law[], vars: string[], maps: string[]
         case 'sub': return `(${t(e.a)} - ${t(e.b)})`
         case 'mul': return `(${e.k} * ${t(e.a)})`
         case 'prod': return `(${t(e.a)} * ${t(e.b)})`
-        case 'min': case 'max': return `(${e.op} ${t(e.a)} ${t(e.b)})`
+        case 'min': case 'max': return `(${e.op} (${t(e.a)}) (${t(e.b)}))`
         case 'if': return `(if ${p(e.c)} then ${t(e.then)} else ${t(e.else)})`
         case 'get': { const a = plain ? arithOf(e.map) : undefined; return a ? `(${t(e.key)} ${a.op} ${a.k})` : `(μ ${q(e.map)} (${t(e.key)}))` }
-        case 'tup': return `(Kern.cpair ${t(e.a)} ${t(e.b)})`
-        case 'proj': return `(Kern.pickP ${e.k} ${t(e.a)})`
+        case 'tup': return `(Kern.cpair (${t(e.a)}) (${t(e.b)}))`
+        case 'proj': return `(Kern.pickP ${e.k} (${t(e.a)}))`
       }
     }
     const p = (c: C): string => {
@@ -1182,6 +1182,11 @@ export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {s
     // liveness under strong fairness tampered, with kernel.ts's answer)
     sumTampers?: {what: string, m: Machine, covers?: Record<string, E[]>, coverLaws?: Law[], expect: boolean}[], coverTrees?: Record<string, Tree>,
     liveTampers?: {what: string, l: Liveness, expect: boolean}[]} = {}): string {
+  const words = wordReads([given, laws, opts]).length > 0
+  // Higher-level temporal/refinement bridges require their own framed-world proof.
+  // Never route them through the arbitrary-map soundness theorem by accident.
+  if (words && (given.history || given.sums || opts.refined || opts.ghosted || opts.ghosts?.length || opts.kind || opts.loop || opts.liveness?.length || opts.tamper || opts.ghostSubst?.length))
+    throw new Error(`${id}: word export supports generic SMachine invariants; this auxiliary bridge needs a concrete-world theorem`)
   const hm = given.history ? {...given, history: {...given.history, prune: undefined}} : undefined
   const hplain = hm ? historyMachine(hm) : undefined, stepLaws = opts.stepLaws ?? [], rf = opts.refined, gv = opts.ghosts ?? []
   // A machine with sums goes as its plain machine too (kernel.ts's sumMachine), built in Lean (Sums.lean's
@@ -1220,8 +1225,8 @@ export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {s
   // The machine's own step laws, one step or k (Sets.lean's skstep_sound).
   if (!rf) stepLaws.forEach((sl, j) => claims.push({steps: [sl], allows: [], render: h => `-- Step law${(sl.steps ?? 1) > 1 ? ` over ${sl.steps} steps` : ''}: ${sl.name}
 def ${id}_step${j} : SKStep := ${skLit(h, sl)}
-theorem ${id}_step${j}_holds : SKStepHolds ${id}_machine ${id}_step${j} :=
-  skstep_sound ${id}_machine ${id}_proof ${id}_step${j} ${id}_check (by ${checkBy})`}))
+theorem ${id}_step${j}_holds : ${words ? `Kern.WordSMachine.WordSKStepHolds ${id}_word ${id}_step${j}` : `SKStepHolds ${id}_machine ${id}_step${j}`} :=
+  ${words ? `Kern.WordSMachine.word_skstep_sound ${id}_word ${id}_proof ${id}_step${j} ${id}_word_extra ${id}_check ${id}_word_extra_sound (by ${checkBy})` : `skstep_sound ${id}_machine ${id}_proof ${id}_step${j} ${id}_check (by ${checkBy})`}`}))
   // k-induction (KInd.lean's kind_sound): Lean builds each base goal's and the step's whens and then from the law; the
   // trees, instances and names are the k-step laws' kernel.ts made (kInductionSteps), the start goal's tree its own.
   const kd = opts.kind
@@ -1452,7 +1457,10 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   const named = machineNames(m, laws, allSteps, stepLaws, {...opts, ...(hm ? {record: hm.history.record} : {})})
   const sumNames = sm ? Object.entries(sm.sums!).flatMap(([s2, sum]) => { const {flag, x} = sumParts(s2); return [s2, sum.key, `?${flag}`, `w?${flag}`, x] }) : []
   const vars = [...new Set([...named.vars, ...sumNames, ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? []), ...covers.flat(), ...(opts.kind ? [opts.kind.start.goal] : [])].flatMap(g => g.hyps.flatMap(varsOf))])]
-  const mapNames = [...new Set([...named.maps, ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!)])]
+  // A computation irrelevant to a proved law is still part of the source machine.
+  // Include its getter namespace and all native schema helpers, not only goal reads.
+  const sourceTerms = words ? [m, laws, allSteps] : []
+  const mapNames = [...new Set([...named.maps, ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals, ...sourceTerms]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!), ...wordSchemaMapNames(sourceTerms)])]
   const enc = (g: Goal, tree: Tree) => encode({name: `${id}: ${g.name}`, goal: g, tree}, false, true, vars, mapNames)
   const {e, c} = leanTerms(vars, mapNames, id)
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
@@ -1595,10 +1603,14 @@ def ${id}_machine : SMachine := ${id}_hist.plain` : sm ? sumsDef() : lp0 ? `def 
 def ${id}_machine : SMachine := ${id}_loop.machine` : `def ${id}_machine : SMachine := ${lit(m)}`}
 ${entries.join('\n')}
 def ${id}_proof : List SEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
-theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by ${checkBy}
+${words ? `${wordMachineBridgeLean(id, [m, laws, goalsL, goalsS], vars, mapNames)}
+theorem ${id}_check : Kern.WordSMachine.checkSMachineWithFacts ${id}_machine ${id}_proof ${id}_word_extra = true := by ${checkBy}
+theorem ${id}_laws : ∀ ρ M, Kern.WordReach.WordSReach ${id}_word ρ M → ∀ e ∈ ${id}_proof, e.Holds ρ M :=
+  Kern.WordSMachine.concrete_smachine_sound ${id}_word ${id}_proof ${id}_word_extra ${id}_check ${id}_word_extra_sound` : `theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by ${checkBy}
 theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_proof, e.Holds ρ M :=
-  smachine_sound ${id}_machine ${id}_proof ${id}_check
-${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e, ghosts: !rf && !gm && gv.length > 0, explicitExistentials: new Set((opts.ghostSubst ?? []).map(g => g.law))})}${sm ? sumsBlock() : ''}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
+  smachine_sound ${id}_machine ${id}_proof ${id}_check`}
+
+${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: words ? `Kern.WordReach.WordSReach ${id}_word ρ μ` : `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e, ghosts: !rf && !gm && gv.length > 0, explicitExistentials: new Set((opts.ghostSubst ?? []).map(g => g.law))})}${sm ? sumsBlock() : ''}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
 example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix, mx, lit, c)}` : ''}`
@@ -1755,6 +1767,7 @@ function cycMachineProofBy(m: Machine, laws: Law[], allSteps: StepLaw[], allows:
 export function cycMachineToLean(id: string, given: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], simp?: string[], free?: string[],
     ghosts?: string[], after?: (ix: (name: string) => number) => string, loop?: {loop: Loop}, noFacts?: boolean,
     refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number, step: StepLaw}} = {}): {text: string} | {why: string} {
+  if (wordReads([given, laws, opts]).length) return {why: 'word primitives require the concrete SMachine export route'}
   const hm = given.history ? {...given, history: {...given.history, prune: undefined}} : undefined
   const hplain = hm ? historyMachine(hm) : undefined, m = hplain ? hplain.machine : given
   const stepLaws = opts.stepLaws ?? [], gv = opts.ghosts ?? [], lp0 = opts.loop
@@ -2251,14 +2264,11 @@ export type LeanItem =
 // `cyclic`: each machine, loop and fold the cyclic route covers from cyclic certificates (see cycMachineToLean); defaults
 // to GDP_CERT=cyclic. `certReport` then says which items went which way.
 export function toLean(items: LeanItem[], opts: {title?: string, native?: boolean, cyclic?: boolean} = {}): string {
-  // Kernel.goal inserts facts about intrinsic maps before the negated conclusion.
-  // Lean's checkIn permits only goal-derived hypotheses; printing those extra
-  // rows would silently claim facts of arbitrary maps. Validate exact tuple
-  // shapes, then fail closed for the general SMachine route until all generated
-  // guarded facts are discharged against WordDivision.value. The separate
-  // wordDigitRangeMachineToLean proves restricted scalar-machine certificates;
-  // it is not a substitute for this generic Sets.checkSMachine bridge.
-  if (wordReads(items).length) throw new Error('generic word division SMachine export requires proved Lean discharge for generated guarded facts; restricted scalar word-digit machine export and concrete semantic gates are available')
+  // Generic intrinsic machines use the same serialized certificates, with every
+  // extra hypothesis constructed and discharged by WordFacts under WordSReach.
+  // Other item kinds need their own concrete-world simulation, never SReach.
+  for (const item of items) if (wordReads(item).length && !('machine' in item))
+    throw new Error('word primitives require the concrete SMachine export route')
   // Admit source-derived models before changing exporter state or emitting any text.
   // Ordinary typed DSL machines have no provenance entry and pass unchanged.
   for (const item of items) {
@@ -2337,7 +2347,7 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
       // (a machine with sums has no cyclic twin: the usual trees, Sums.lean)
       // (nor a liveness under strong fairness: Live.lean's sleads_sf_soundA reads the usual step laws)
       const sums = !!(m.sums && Object.keys(m.sums).length), sf = (item.liveness ?? []).some(strongly)
-      const cyc = certsOn && !sums && !sf ? cycMachineToLean(id, m, item.laws, mopts) : undefined
+      const cyc = certsOn && !sums && !sf && !wordReads([m, item.laws, item.stepLaws, item.liveness]).length ? cycMachineToLean(id, m, item.laws, mopts) : undefined
       if (cyc && 'text' in cyc) certReport.cyclic.push(item.id); else if (cyc) certReport.usual.push({id: item.id, why: cyc.why})
       parts.push(`-- ${item.id}\n${defs}${cyc && 'text' in cyc ? cyc.text : smachineToLean(id, m, item.laws, mopts)}`)
       theorems.push(`${id}_laws`, ...item.laws.flatMap((l, j) => (l.ex ? [`${id}.some${j}`] : [])), ...(m.history ? [`${id}_hlaws`] : []), ...(sums ? [`${id}_exact`, `${id}_own`] : []), ...(item.stepLaws ?? []).map((_, j) => `${id}_step${j}_holds`), ...(item.liveness ?? []).map((_, j) => `${id}_live${j}_holds`))
@@ -2394,7 +2404,7 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   }
   // The file the items need: Live.lean for a liveness or a loop, Sets.lean (which imports Steps.lean) for any machine.
   return `import History
-${items.some(item => 'countedGoal' in item || 'countedMachine' in item) ? 'import QAlpha\n' : ''}${items.some(item => 'machine' in item && item.machine.sums && Object.keys(item.machine.sums).length) ? 'import Sums\n' : ''}${items.some(item => 'neverEnds' in item) ? 'import NonTerm\n' : ''}${items.some(item => 'kInduction' in item) ? 'import KInd\n' : ''}${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && (item.ghosts?.length || item.laws.some(l => l.some?.length))) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
+${wordReads(items).length ? 'import WordFacts\nimport WordSMachine\n' : ''}${items.some(item => 'countedGoal' in item || 'countedMachine' in item) ? 'import QAlpha\n' : ''}${items.some(item => 'machine' in item && item.machine.sums && Object.keys(item.machine.sums).length) ? 'import Sums\n' : ''}${items.some(item => 'neverEnds' in item) ? 'import NonTerm\n' : ''}${items.some(item => 'kInduction' in item) ? 'import KInd\n' : ''}${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && (item.ghosts?.length || item.laws.some(l => l.some?.length))) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0

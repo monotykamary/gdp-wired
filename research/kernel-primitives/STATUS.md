@@ -1,10 +1,27 @@
-# Kernel primitives continuation — BLOCKED / DO NOT ADMIT / NO RELEASE
+# Kernel primitives — READY FOR RELEASE REVIEW (native acceptance)
+
+The generic Lean blocker is closed: **105/105 public generic declarations**
+across22 fixtures, plus the prior **21/21** wrap/helper claims, compiled from
+shipped `leanProject` sources with only standard axioms. Concrete `WordSReach`,
+reserved-map preservation, all generated facts, and one/k-step frame discharge
+are proved generically. Native204241-rpfl85; final statics204339-pt7gfa:
+44tests/1,648assertions, scoped types/lint/roster/library freshness PASS.
+
+See `GENERIC-LEAN.md` for exact scopes, negative controls and receipts.
+Feature-branch GitHub CI/final commit are recorded externally after push in
+`/tmp/kp3-CONTINUATION-FINAL.md`. No release, main push/merge, reader change,
+history rewrite, or resumed rule/lift work. TS kernel/prover unchanged from
+607ff0171; prior probe, mutant and performance numbers below are baseline
+receipts, not rerun claims. Higher temporal/ghost/refinement/history/sum bridges
+remain explicitly fail-closed, not silently admitted.
+
+## Previous continuation (historical numeric/performance baseline)
 
 Continuation of checkpoint5f9bd81dd on the SAME `feat/kernel-primitives-checkpoint`
 branch, based on6119535b7. No reader changes, main push/merge, history rewrite,
 or release. The stopped rule-first and checkpointed lift streams stay stopped.
 
-## Current result (2026-11-17)
+## Previous continuation baseline (2026-11-17, commit607ff0171)
 
 - **u64 identity repaired and kernel-accepted.** The minimal captured leaf hit
   `-65536 * 281474976710656 = -2^64` at certificate step86. The checker correctly
@@ -41,20 +58,15 @@ or release. The stopped rule-first and checkpointed lift streams stay stopped.
   final source SHA/URLs are recorded externally after the branch push in
   `/tmp/kp2-CONTINUATION-FINAL.md`, not inferred from native tests.
 
-## Exact remaining release blocker
+## Previous generic Lean blocker — RESOLVED
 
-Generic `toLean` still fails closed for intrinsic `SMachine` laws. `SReach.start`
-permits arbitrary initial values at undeclared reserved map indices. Its writes
-and carries need not preserve them. Therefore deriving word facts for arbitrary
-SReach maps is FALSE, even though the actual helper arithmetic is proved.
-
-Needed: a concrete `WordSReach`/word-map overlay simulation and reserved-index
-preservation theorem (or verified immutable-fn lowering with tuple-key
-isomorphism), followed by checkInWithFacts soundness at all sStartGoal/sStepGoal/
-sKGoal framed views. Discharge every generated fact; do not assume it. Full
-actual signed/mode frontend-lowering equivalence is not claimed. Scalar
-`Kern.Reach` fixes maps; its restricted checked exporter is sound but does not
-remove this blocker. **Do not mark READY FOR RELEASE REVIEW.**
+The arbitrary-map objection was correct: ordinary `SReach` does not fix native
+helper maps. The new `WordSReach` concrete overlay, reserved-map preservation,
+complete `WordFacts.facts_sound`, and original-guard-preserving invariant/k-step
+checkers discharge this obstruction generically. Public machine certificates
+and readable laws were rechecked end to end. See `GENERIC-LEAN.md` for scope
+and the exact native receipt. No arbitrary-map premise or kernel weakening was
+used; full frontend/lowering equivalence is still not a blanket claim.
 
 ## Custody qualification
 

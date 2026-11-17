@@ -172,5 +172,5 @@ if (args.length === 2 && args[0] === '--standalone') {
     'WordDivisionBridge.checkWithFacts_sound', 'WordDivisionBridge.quotient_digit_bound',
     'WordDivisionBridge.remainder_digit_bound', 'WordDivisionBridge.carry_digit_bound',
     'actual_wrap_certified_range', 'certified_q8_division_range', 'certified_q64_division_range', ...moreClaims])
-  console.log(JSON.stringify({checked: rows.length, strictStandardAxioms: true, scope: 'closed transitions, concrete reachability, and fully checked scalar q/r/c machines at widths 8/16/32/64; generic intrinsic SMachine certificates remain unavailable'}))
+  console.log(JSON.stringify({checked: rows.length, strictStandardAxioms: true, scope: 'closed transitions, concrete reachability, and fully checked scalar q/r/c machines at widths 8/16/32/64; this fixed baseline gate does not cover generic intrinsic SMachine certificates; those are checked separately by generic-lean-gate.ts'}))
 } else throw new Error('usage: lean-machine-gate.ts OUTPUT | --audit OUTPUT LOG')
