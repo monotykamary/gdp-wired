@@ -796,9 +796,12 @@ class Counter:
         self.members.add(key)
 `})
   const result = await check([`${dir}/sets.py`], {ms: 5000, propose: false, check: {runs: 4, depth: 2, states: 8}})
-  const law = result.rules.flatMap(r => r.laws).find(l => l.name === 'Boolean membership is not an integer key')!
+  const rule = result.rules.find(r => r.entry === 'IntSet')!
+  expect(rule.ok).toBe(false)
+  expect(rule.refusals.map(r => r.what).join('\n')).toContain('a cond where a number is read')
+  const law = rule.laws.find(l => l.name === 'Boolean membership is not an integer key')!
   expect(law.verdict).toBe('not read')
-  expect(law.why).toContain('a cond where a number is read')
+  expect(law.why).toBe('the rule was refused')
   expect(law.cert).toBeUndefined()
   expect(law.run).toBeUndefined()
   expect(law.translationChecks).toBeUndefined()
