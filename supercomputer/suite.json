@@ -1780,5 +1780,17 @@
 "cwd": "lean-kernel",
 "cpu": 2.0,
 "timeout": 1200
+},
+{
+  "name": "agent-consult-release",
+  "cmd": "set -euo pipefail; export GDP_WORK_FULL=1; timeout -k 10s 300s bunx tsc -p core/agent-consult/tsconfig.json --noEmit > \"$SUPERCOMPUTER_OUTPUT_DIR/agent-typecheck.log\" 2>&1; timeout -k 10s 240s bun scripts/build.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/agent-build.log\" 2>&1; timeout -k 10s 300s bun test core/agent-consult/workspace.test.ts core/agent-consult.test.ts research/agent-tools/protocol.test.ts research/agent-tools/service.test.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/agent-focused.log\" 2>&1; timeout -k 15s 900s bash scripts/release-ci/agent-consult-packed.sh",
+  "cwd": ".",
+  "cpu": 4,
+  "memory": 8192,
+  "timeout": 1800,
+  "required_agent_capabilities": {
+    "output_files_protocol": 1,
+    "result_files_protocol": 1
+  }
 }
 ]

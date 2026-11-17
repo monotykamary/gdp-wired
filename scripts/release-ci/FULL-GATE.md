@@ -2,9 +2,10 @@
 
 The quick CI shards are not the release gate. A release needs a reviewed native
 execution of **every job in `supercomputer/suite.json` at the exact final Git
-commit**, with all Git submodules provisioned at their gitlink commits. The
-current suite has 245 jobs; coverage is derived from the committed suite rather
-than a hard-coded count. Adding a job automatically adds a release obligation.
+commit**, with all Git submodules provisioned at their gitlink commits. Coverage is derived from the committed suite rather than a hard-coded count.
+Adding a job automatically adds a release obligation. The 0.50.4 suite adds an
+agent-consult pipeline that compiles, builds, runs focused tests and validates
+the actual installed package; the prior canonical jobs remain unchanged.
 
 `publish.yml` requires both the usual checks and the external `release-full-gate`
 commit status with a committed, digest-bound receipt. No self-hosted runner or

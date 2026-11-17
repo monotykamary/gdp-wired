@@ -3,6 +3,32 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.50.4
+
+### Added
+
+- Package the agent consultation library (`gdp-wired/agent-consult`) and installed
+  `gdp-wired-agent-consult` stdio MCP command. Five data-only tools (`prove`,
+  `why_not`, `suggest`, `check_change`, `status`) expose existing checked scalar
+  model proofs, bounded real traces, checked helper supports and revision-local
+  evidence. This adds no new proof engine or native conformance certification.
+- Add the sixth tool, `check`, for Python and plain TypeScript/JavaScript source
+  through the existing CLI engine. It is disabled without explicit server-owned
+  trusted roots; callers cannot grant roots. Root containment is a trust grant,
+  **not an OS sandbox**: extraction/replay can execute project code and imports
+  with worker permissions, including access outside the root. No transitive import
+  confinement, atomic snapshot or descendant-process sandbox is claimed.
+
+### Scope
+
+- Python/TypeScript source-law journals are sampled, not exhaustive source
+  equivalence. Unchecked translation remains unknown even with a model proof;
+  `ok` alone is not proof. Retain per-law checked evidence and actual native runs.
+- Counted-work profiles remain provisional existing-engine accounting, not CPU
+  instruction limits. Initialization, filesystem/hash work, unmetered parsing,
+  interpreter runtime and project execution are excluded; byte/API caps are
+  separate and candidate/sample counts are hints. Refusal or exhaustion is unknown.
+
 ## 0.50.3
 
 ### Fixed
