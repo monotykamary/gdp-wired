@@ -59,6 +59,44 @@ test('Python source laws use the executed scalar answer, not its request envelop
   expect(v.translationChecks).toBeGreaterThan(0)
 })
 
+test('Python kept exceptions retain the actual native failure flag', () => {
+  const x = extract(`class Counter:
+    def __init__(self):
+        self.total = 0
+    def credit(self, n: int):
+        if n < 0:
+            raise ValueError("negative")
+        self.total += n
+        return n
+`, {failures: 'kept'})
+  const v = prove(x, step(x, 'failed == (n < 0)'))
+  expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  expect(v.translationChecks).toBeGreaterThan(0)
+  const broken = step(x, 'failed == false')
+  broken.then = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
+  const refused = prove(x, broken)
+  expect(refused).toMatchObject({proven: false, checked: false, kernelProven: true, translation: 'error', stuck: 'translation-error'})
+  expect(refused.translationWitness?.failed).toBe(true)
+})
+
+test('Python exceptions caught by the source are not native failures', () => {
+  const x = extract(`class Counter:
+    def __init__(self):
+        self.total = 0
+    def credit(self, n: int):
+        try:
+            if n < 0:
+                raise ValueError("negative")
+        except ValueError:
+            return 0
+        self.total += n
+        return n
+`, {failures: 'kept'})
+  const v = prove(x, step(x, 'failed == false'))
+  expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  expect(v.translationChecks).toBeGreaterThan(0)
+})
+
 const transparent = `from functools import wraps
 
 def transparent(fn):

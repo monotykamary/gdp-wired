@@ -14,7 +14,9 @@ noted), each with the command that reproduces it.
   inputs remain refused. Native evidence is still sampled, not source equivalence.
 - Give that unit's four laws independently interpreted source expressions and
   capture the actual scalar outcomes of its answered native calls. The older
-  model-only callback results do not bypass source-law admission.
+  model-only callback results do not bypass source-law admission. Native store
+  snapshots include the actual backing maps, and kept exceptions retain the
+  runtime failure flag rather than being recorded as successful calls.
 - Require positive and deceptive-wrapper regressions plus the actual pinned
   LiteLLM unit in the canonical release gate; keep the new Python tests in the
   native CI set. Existing known-failure policy and proof acceptance are unchanged.

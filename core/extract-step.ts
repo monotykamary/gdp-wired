@@ -4731,8 +4731,8 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
         const value = (x: unknown): unknown => { const t = x as {n?: string, s?: string, o?: string} | null; if (t && typeof t === 'object') { if (t.n !== undefined) return num(t.n, `${e.call}'s result`); if (t.s !== undefined) return t.s; return `<${t.o}>` } return x }
         const out = res.out
         const rk = m.results?.[e.call]
-        if (!rk) return {ok: true, value: undefined}
-        if (rk.k === 'scalar') return {ok: true, value: value(out)}
+        if (!rk) return {ok: true, value: undefined, nativeFailed: failed}
+        if (rk.k === 'scalar') return {ok: true, value: value(out), nativeFailed: failed}
         const o: Record<string, unknown> = {}
         for (const [f] of (rk as {fields: [string, string][]}).fields) {
           if (f === 'failed') o.failed = failed
@@ -4740,7 +4740,7 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
           if (f === 'none') o.none = !failed && (out === null || out === undefined) && kind === 'maybe'
           if (f.startsWith('effect:')) o[f] = !!(res as {effects?: Record<string, boolean>}).effects?.[f.slice(7)]
         }
-        return {ok: true, value: o}
+        return {ok: true, value: o, nativeFailed: failed}
       },
       ...(native ? {nativeState: (self: unknown) => {
         const result = ask({op: 'native', id: self})

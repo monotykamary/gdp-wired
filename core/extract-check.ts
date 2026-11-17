@@ -346,7 +346,8 @@ export type CodeSide = {
   at: (snap: Snap, params: Record<string, Raw>) => unknown,
   snapOf: (self: unknown, params: Record<string, Raw>) => Snap,
   // (outside: the code can't be given the request, an answer outside the type of the call it answers: not compared)
-  call: (self: unknown, e: Ev, args: unknown[]) => {ok: true, value: unknown} | {ok: false, error: string, outside?: true},
+  // nativeFailed is the runtime's uncaught exception, separate from any returned user field.
+  call: (self: unknown, e: Ev, args: unknown[]) => {ok: true, value: unknown, nativeFailed?: boolean} | {ok: false, error: string, outside?: true},
   reduce?: (snap: Snap, e: Ev, args: unknown[], params: Record<string, Raw>) => {refused: string} | {snap: Snap} | {problem: string},
   // The request's arguments, the time it is made at, the code's own initial state (a problem where it differs).
   args: (inputs: Record<string, Raw>, e: Ev) => unknown[], setNow: (n: number) => void, init?: (snap: Snap, params: Record<string, Raw>) => string | undefined,
@@ -511,19 +512,19 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
     const nowVar = m.inputs.find(v => v.note?.startsWith('Date.now()'))
     if (nowVar) code.setNow(inputs[nowVar.name] as number)
     // The code.
-    let res: {refused: string} | {snap: Snap, out?: Raw, self?: object} | {outside: string}
+    let res: {refused: string} | {snap: Snap, out?: Raw, self?: object, nativeFailed?: boolean} | {outside: string}
     try {
       if (standalone) {
         const c = code.call(undefined, e, args)
         if (!c.ok && c.outside) { next.stop = true; ev.outside++; return undefined }
         // Result fields in a prover witness are not state held by a pure
         // function. Compare the returned value below, never carry those fields.
-        res = c.ok ? {snap: {leaves: {}, maps: {}}, out: c.value as Raw} : {refused: c.error}
+        res = c.ok ? {snap: {leaves: {}, maps: {}}, out: c.value as Raw, nativeFailed: c.nativeFailed} : {refused: c.error}
       } else if (isClass) {
         const self = side.self!, c = code.call(self, e, args)
         if (!c.ok && c.outside) { next.stop = true; ev.outside++; return undefined }
         if (!c.ok) res = {refused: c.error}
-        else res = {snap: code.snapOf(self, params), out: c.value as Raw, self}
+        else res = {snap: code.snapOf(self, params), out: c.value as Raw, self, nativeFailed: c.nativeFailed}
       } else {
         const c = code.reduce!(side.snap, e, args, params)
         if ('problem' in c) return `${where}: ${c.problem}`
@@ -606,7 +607,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
       })
       const rk = m.results?.[e.call]
       journal.observations.push({where, method: e.call, before, after, params: {...params}, inputs: {...inputs}, bindings: bindings ?? fallback,
-        args: nativeArgs ?? [], result, failed: false, ...(observed ? {observed} : {}), ...(code.nativeEquality ? {nativeEquality: code.nativeEquality} : {}), legacyResult: !standalone && rk?.k === 'rec' && rk.fields.some(([field]) => field === 'value')})
+        args: nativeArgs ?? [], result, failed: res.nativeFailed ?? false, ...(observed ? {observed} : {}), ...(code.nativeEquality ? {nativeEquality: code.nativeEquality} : {}), legacyResult: !standalone && rk?.k === 'rec' && rk.fields.some(([field]) => field === 'value')})
     }
     next.side = afterSide
     next.st = (rule as {st: State}).st
@@ -752,7 +753,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
           const observed = capture(() => code.nativeObservations ? nativeSnapshot(code.nativeObservations(event)) : undefined) as NativeExecutionObservation | undefined
           if (code.nativeObservations && !observed) { journal.reason ??= 'independent native execution observations unavailable'; return }
           if (!journal.reason) journal.observations.push({where: `exhaustive native input ${++ordinal}`, method: event.call,
-            before: {}, after: {}, params: {}, inputs: {}, bindings, args: savedArgs, result, failed: false, ...(observed ? {observed} : {}), ...(code.nativeEquality ? {nativeEquality: code.nativeEquality} : {})})
+            before: {}, after: {}, params: {}, inputs: {}, bindings, args: savedArgs, result, failed: returned.nativeFailed ?? false, ...(observed ? {observed} : {}), ...(code.nativeEquality ? {nativeEquality: code.nativeEquality} : {})})
           return
         }
         for (const value of finite![at]!) visit(at + 1, [...args, value])
