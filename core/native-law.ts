@@ -138,7 +138,7 @@ export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) =>
             if (!selected) return unsupported(`native value of ${e.head} is unavailable`)
             const parts = selected.code.split('.'), root = parts[0]!
             consumed = parts.length - 1
-            const sources = selected.role === 'state' ? [state] : selected.role === 'param' ? [observation.params] : selected.role === 'input' ? [observation.bindings, observation.inputs] : selected.role === 'const' ? [constants] : [observation.bindings]
+            const sources = selected.role === 'state' ? [state] : selected.role === 'param' ? [observation.params] : selected.role === 'input' ? [observation.bindings] : selected.role === 'const' ? [constants] : [observation.bindings]
             const source = sources.find(s => object(s) && Object.hasOwn(s, root))
             if (!object(source)) return unsupported(`native value of ${selected.code} is unavailable`)
             value = source[root]

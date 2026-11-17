@@ -26,6 +26,7 @@ test('declared source names take precedence over native pseudo values', () => {
   const input: Name[] = [...names, {code: 'failed', rule: 'arg', role: 'input', method: 'grant'}]
   expect(check('failed == 3', {...row, bindings: {failed: 3}}, input)).toBe(true)
   expect(check('failed == 2', {...row, bindings: {failed: 3}}, input)).toBe(false)
+  expect(() => check('failed == 3', {...row, bindings: {}, inputs: {failed: 3}}, input)).toThrow('unavailable')
   const param: Name[] = [{code: 'result', rule: 'p', role: 'param'}]
   expect(check('result == 4', {...row, params: {result: 4}, result: 9}, param)).toBe(true)
   expect(() => check('result == 9', {...row, params: {}, result: 9}, param)).toThrow('unavailable')
@@ -115,6 +116,7 @@ test('the native observation sequence rejects stale, undeclared and inexact valu
 test('foreign structural equality is refused instead of evaluated as JS identity', () => {
   const row = {...observation(), nativeEquality: 'scalar' as const, after: {a: {}, b: {}, n: 1}}
   expect(() => evaluate('a != b', row)).toThrow('foreign container equality')
+  expect(() => evaluate('a == b', {...row, after: {a: new Set([1]), b: new Set([1])}})).toThrow('foreign container equality')
   expect(evaluate('n == 1', row)).toBe(true)
   expect(evaluate('a != nil and nil != b', row)).toBe(true)
   expect(evaluate('a == nil or nil == b', row)).toBe(false)
