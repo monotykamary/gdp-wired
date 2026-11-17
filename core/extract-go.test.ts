@@ -9,6 +9,43 @@ import {mkdirSync, mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {extractGo, type GoExtraction, type GoOptions} from './extract-go.ts'
 import {no, proveRule, proveSteps} from './dsl.ts'
+import {buildLaw} from './laws.ts'
+// The original callbacks below test model lowering. A checked kernel proof is
+// mandatory, but an unregistered callback is never a native source proof. Each
+// has a same-source registered companion in nativeClaims (not a generic law).
+const modelOnly = {
+  proven: false, checked: false, kernelProven: true, translation: 'unchecked',
+  why: 'source translation unchecked: a source proof contains a law with no native interpretation',
+}
+const nativeClaims: Record<string, {expr: string, method?: string}> = {
+  'onRequest at 2^32 − 1 wraps to 0': {expr: 'old(Requests) == 4294967295 implies Requests == 0', method: 'onRequest'},
+  'onRequest below 2^32 − 1 adds 1': {expr: 'old(Requests) < 4294967295 implies Requests == old(Requests) + 1', method: 'onRequest'},
+  'int8 127 + 1 is −128': {expr: 'old(A) == 127 implies A == -128', method: 'IncA'},
+  'uint16 0 − 1 is 65535': {expr: 'old(B) == 0 and d == 1 implies B == 65535', method: 'SubB'},
+  'int32 2^30 · 2 is −2^31': {expr: 'old(C) == 1073741824 implies C == -2147483648', method: 'Twice'},
+  'a copied pointer writes the object': {expr: 'N == 5', method: 'ViaPointer'},
+  'a copied struct leaves the object': {expr: 'N == old(N) and M == 7', method: 'ViaCopy'},
+  'an interior pointer writes the nested field': {expr: 'old(Sub.X) < 1000 implies Sub.X == old(Sub.X) + 1', method: 'ViaInterior'},
+  'a pointer chosen by a condition writes the one it is': {expr: 'c implies M == 1 and N == old(N)', method: 'ViaChoice'},
+  'Bump on a nil map is refused (a panic)': {expr: 'old(Seen) == nil implies false', method: 'Bump'},
+  'Check refuses a negative value': {expr: 'v < 0 implies false', method: 'Check'},
+  'Move never leaves N below 0': {expr: 'old(N) >= 0 implies N >= 0', method: 'Move'},
+  'a refused take changes nothing': {expr: 'not o.Allow implies N == old(N)', method: 'Take'},
+  '−7 / 2 is −3': {expr: 'old(N) == -7 implies N == -3', method: 'Half'},
+  '−7 % 3 is −1': {expr: 'old(N) == -7 implies N == -1', method: 'Rem'},
+  'int8(200) is −56': {expr: 'v == 200 implies B == -56', method: 'Narrow'},
+  'uint8(−1) is 255': {expr: 'v == -1 implies U == 255', method: 'Unsigned'},
+  'Hit counts a request': {expr: 'old(Counts.Requests) < 100 and old(Age) < 100 implies Counts.Requests == old(Counts.Requests) + 1', method: 'Hit'},
+  'a value receiver leaves the object': {expr: 'Counts.Requests == old(Counts.Requests)', method: 'Copy'},
+}
+const native = (x: GoExtraction, name: string, expr: string, method?: string) => {
+  const b = buildLaw(x, {name, expr, ...(method ? {method} : {})})
+  const v = b.kind === 'step'
+    ? proveSteps(x.rule!, x.invariants ?? [], [b.law])
+    : proveRule(x.rule!, [...(x.invariants ?? []), b.law])
+  expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  expect(v.translationChecks).toBeGreaterThan(0)
+}
 
 const hasGo = (() => { try { execFileSync('go', ['version'], {stdio: 'ignore'}); return true } catch { return false } })()
 const t = hasGo ? test : test.skip
@@ -31,11 +68,21 @@ const refused = (x: GoExtraction, why: RegExp) => {
   expect(x.ok).toBe(false)
   expect(x.refusals.map(r => r.what).join('; ')).toMatch(why)
 }
+// Do not retire a callback if an equivalent native-positive companion cannot
+// be observed. Its original positive requirement remains an honest failure.
+const unpairedStep = (x: GoExtraction, name: string, then: (b: any, a: any) => any, when: (b: any) => any) => {
+  const r = x.rule! as any
+  const v = proveSteps(r, x.invariants ?? [], [r.stepLaw(name, then, when)])
+  if (!v.proven) throw new Error(`${name}: ${JSON.stringify({goal: v.goal, stuck: v.stuck, witness: v.witness})}`)
+}
 // A step law of the extracted rule, proven (with the rule's own invariants beside it).
 const step = (x: GoExtraction, name: string, then: (b: any, a: any) => any, when: (b: any) => any) => {
   const r = x.rule! as any
   const v = proveSteps(r, x.invariants ?? [], [r.stepLaw(name, then, when)])
-  if (!v.proven) throw new Error(`${name}: ${JSON.stringify({goal: v.goal, stuck: v.stuck, witness: v.witness})}`)
+  expect(v).toMatchObject(modelOnly)
+  const claim = nativeClaims[name]
+  if (!claim) throw new Error(`missing equivalent native law: ${name}`)
+  native(x, `${name} (native)`, claim.expr, claim.method)
 }
 
 // --- wall-clock projections -----------------------------------------------------------------------------------------
@@ -128,7 +175,13 @@ func (c *Counts) validRequests() uint32 {
   step(x, 'onRequest at 2^32 − 1 wraps to 0', (_, a) => a.Requests.eq(0), b => b.method.is('onRequest').and(b.Requests.eq(4294967295)))
   step(x, 'onRequest below 2^32 − 1 adds 1', (b, a) => a.Requests.eq(b.Requests.plus(1)), b => b.method.is('onRequest').and(b.Requests.lt(4294967295)))
   const r = x.rule! as any
-  expect(proveRule(r, [...x.invariants!, r.law('validRequests is at most Requests', ({validRequests_result, Requests}: any) => validRequests_result.atMost(Requests))]).proven).toBe(true)
+  // readGo resets each output to its zero outside its own method (the writes
+  // loop in extract-go.ts). Initially and after other methods this is 0 <=
+  // uint32 Requests; on validRequests it is exactly the actual return bound.
+  // This reset argument, not an assumed retained-result history, justifies
+  // the equivalent method-local native companion.
+  expect(proveRule(r, [...x.invariants!, r.law('validRequests is at most Requests', ({validRequests_result, Requests}: any) => validRequests_result.atMost(Requests))])).toMatchObject(modelOnly)
+  native(x, 'validRequests is at most Requests (native)', 'result <= Requests', 'validRequests')
 }, 600_000)
 
 t('overflow at each width: int8 wraps to −128, uint16 below 0 wraps up, int32 products wrap', () => {
@@ -155,7 +208,8 @@ func (l *L) Add(d uint64)  { l.N += d }`, 'L'))
   expect(x.notes.join('\n')).toMatch(/below 0 is refused/)
   // The rule refuses the step Go would wrap: Take(d) with d > N.
   const r = x.rule! as any
-  expect(proveSteps(r, x.invariants ?? [], [r.stepLaw('Take never takes N below 0', (_: any, a: any) => a.N.atLeast(0), (b: any) => b.method.is('Take'))]).proven).toBe(true)
+  expect(proveSteps(r, x.invariants ?? [], [r.stepLaw('Take never takes N below 0', (_: any, a: any) => a.N.atLeast(0), (b: any) => b.method.is('Take'))])).toMatchObject(modelOnly)
+  native(x, 'Take never takes N below 0 (native)', 'N >= 0', 'Take')
 }, 600_000)
 
 t('*big.Int fields (blnk\'s balances): nil a state of its own, Add and Sub in place, Cmp, an error as the refusal', () => {
@@ -195,7 +249,11 @@ func (b *Bal) Debit1(x *big.Int) error {
 	return nil
 }`, 'Bal'))
   const r = x.rule! as any
-  expect(proveRule(r, [...x.invariants!, r.law('Net is Credit − Debit once set', ({Net, Credit, Debit, Net_nil}: any) => Net_nil.or(Net.eq(Credit.minus(Debit))))]).proven).toBe(true)
+  expect(proveRule(r, [...x.invariants!, r.law('Net is Credit − Debit once set', ({Net, Credit, Debit, Net_nil}: any) => Net_nil.or(Net.eq(Credit.minus(Debit))))])).toMatchObject(modelOnly)
+  // big.Int fields here denote their numeric values (the callback's math),
+  // NOT Go *big.Int pointer equality. Nil remains a distinct native null;
+  // pointer-to-pointer equality is unsupported, and aliasing controls stay.
+  native(x, 'Net is Credit − Debit once set (native)', 'Net == nil or Net == Credit - Debit')
 }, 600_000)
 
 // --- overflow: a wrong model of it is caught by the check -------------------------------------------------------------
@@ -348,7 +406,15 @@ func (p *P) Check(v int64) {
 }
 func (p *P) Grow(d *big.Int) { p.X.Add(p.X, d) }`, 'P'))
   step(x, 'Check refuses a negative value', () => no, b => b.method.is('Check').and(b.Check_v.lt(0)))
-  step(x, 'Grow on a nil X is refused (a nil dereference)', () => no, b => b.method.is('Grow').and(b.X_nil))
+  // Grow has no successful reachable call: X starts nil and nothing sets it.
+  // Current native journals exclude refusing calls, so retain the original
+  // positive assertion as BLOCKED rather than pretend a vacuous observation.
+  const nilGrow = buildLaw(x, {name: 'nil Grow has no admitted step', expr: 'old(X) == nil implies false', method: 'Grow'})
+  expect(proveSteps(x.rule!, x.invariants ?? [], [nilGrow.law])).toMatchObject({
+    proven: false, checked: false, kernelProven: true, translation: 'unchecked',
+    why: 'source translation unchecked: no native observation of Grow',
+  })
+  unpairedStep(x, 'Grow on a nil X is refused (a nil dereference)', () => no, b => b.method.is('Grow').and(b.X_nil))
 }, 600_000)
 
 t('a panic or an error after a write is refused, unless the caller discards what a failed call wrote', () => {
@@ -391,7 +457,8 @@ func (q *Q) Take(ctx context.Context, n int64) bool { return q.take(ctx, n) }
 func (q *Q) Reset(_ context.Context) { q.Used = 0 }`, 'Q', {methods: ['Take', 'Reset']}))
   expect(x.notes.join(' ')).toMatch(/a context.Context, passed on/)
   const r = x.rule! as any
-  expect(proveRule(r, [...(x.invariants ?? []), r.law('within the limit', ({Used, Limit}: any) => Used.atMost(Limit).or(Used.eq(0)))]).proven).toBe(true)
+  expect(proveRule(r, [...(x.invariants ?? []), r.law('within the limit', ({Used, Limit}: any) => Used.atMost(Limit).or(Used.eq(0)))])).toMatchObject(modelOnly)
+  native(x, 'within the limit (native)', 'Used <= Limit or Used == 0')
   // read: its methods are another package's code, and a function of another package takes it as its own
   refused(go('import "context"\ntype Q struct{ N int64 }\nfunc (q *Q) Inc(ctx context.Context) { if ctx.Err() == nil { q.N++ } }', 'Q'), /ctx.Err\(\): a method of context/)
   refused(go('import "context"\ntype Q struct{ N int64 }\nfunc (q *Q) Inc(ctx context.Context) { if ctx != nil { q.N++ } }', 'Q'), /compared with a nil/)
@@ -515,7 +582,8 @@ func (q *Q) Left() int64 { return q.Cap - q.Used }`, undefined as never))
   expect(notes).toMatch(/log.Println .*left out \(tagged: gdp: skip/)
   expect(notes).toMatch(/unicode\/utf8.RuneCountInString .*answered by the request \(inferred: its value is read; assumes .* may return any int\)/)
   const r = x.rule! as any
-  expect(proveSteps(r, x.invariants ?? [], [r.stepLaw('never past its cap', (_b: any, a: any) => a.Used.atMost(a.Cap), (b: any) => b.Used.atMost(b.Cap))]).proven).toBe(true)
+  expect(proveSteps(r, x.invariants ?? [], [r.stepLaw('never past its cap', (_b: any, a: any) => a.Used.atMost(a.Cap), (b: any) => b.Used.atMost(b.Cap))])).toMatchObject(modelOnly)
+  native(x, 'never past its cap (native)', 'old(Used) <= old(Cap) implies Used <= Cap')
 }, 600_000)
 
 // The check's build (the code with the harness): a compiler failing with nothing to say of the code (killed, past

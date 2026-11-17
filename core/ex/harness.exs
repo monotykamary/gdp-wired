@@ -8,15 +8,151 @@
 Code.require_file("json.exs", __DIR__)
 import Bitwise
 
+# Immutable BEAM values have structural equality, not JS identity. Fresh wire IDs
+# never unify equal maps. Container equality must be refused by native-law;
+# this transport supports scalar/property laws only (nativeEquality: scalar).
+defmodule GdpNative do
+  @table :gdp_native_observations
+  def init, do: :ets.new(@table, [:named_table, :public, :set])
+  def begin_call(mod, fun) do
+    :ets.delete_all_objects(@table)
+    invocation = Process.get(:gdp_native_invocation, 0) + 1
+    if invocation > 9007199254740991, do: raise(ArgumentError, "native invocation exceeds exact integer range")
+    Process.put(:gdp_native_invocation, invocation)
+    :ets.insert(@table, [{:target, {mod, fun}}, {:invocation, invocation}])
+  end
+  defp error(message), do: :ets.insert_new(@table, {:error, message})
+  def capture(mod, fun, bindings, names) do
+    if :ets.lookup(@table, :target) == [{:target, {mod, fun}}] and :ets.insert_new(@table, {:entered, true}) do
+      result = try do
+        actual = Map.take(Map.new(bindings), names) |> Map.new(fn {k, v} -> {Atom.to_string(k), v} end)
+        %{"snapshot" => snapshot(actual, :object)}
+      rescue e -> %{"error" => Exception.message(e)} end
+      :ets.insert(@table, {:bindings, result})
+    end
+    :ok
+  end
+  # Instrument the original function head, not the reader's argument labels.
+  # The first instruction runs after pattern matching, guards and defaults.
+  def instrument(ast) do
+    Macro.prewalk(ast, fn
+      {kind, meta, [head, body]} = node when kind in [:def, :defp] and is_list(body) ->
+        plain = case head do {:when, _, [h | _]} -> h; h -> h end
+        case plain do
+          {name, _, args} when is_list(args) ->
+            request = if name in [:handle_call, :handle_cast], do: Enum.take(args, 1), else: Enum.drop(args, 1)
+            names = Enum.flat_map(request, &parameter_names/1) |> Enum.uniq()
+            body = Keyword.update!(body, :do, fn original ->
+              quote do
+                GdpNative.capture(__MODULE__, unquote(name), binding(), unquote(names))
+                unquote(original)
+              end
+            end)
+            {kind, meta, [head, body]}
+          _ -> node
+        end
+      node -> node
+    end)
+  end
+  defp parameter_names({:\\, _, [pattern, _default]}), do: parameter_names(pattern)
+  defp parameter_names(pattern) do
+    {_, names} = Macro.prewalk(pattern, [], fn
+      {name, _, context} = node, acc when is_atom(name) and (is_atom(context) or is_nil(context)) ->
+        {node, if(String.starts_with?(Atom.to_string(name), "_"), do: acc, else: [name | acc])}
+      node, acc -> {node, acc}
+    end)
+    names
+  end
+  defp scalar(value) when is_nil(value) or is_boolean(value), do: value
+  defp scalar(value) when is_atom(value), do: Atom.to_string(value)
+  defp scalar(value) when is_binary(value) do
+    if not String.valid?(value) or Regex.match?(~r/[\x00-\x08\x0b\x0c\x0e-\x1f]/, value), do: raise(ArgumentError, "unsupported native binary")
+    value
+  end
+  defp scalar(value) when is_integer(value) and abs(value) <= 9007199254740991, do: value
+  defp scalar(value) when is_float(value) and abs(value) <= 9007199254740991 and trunc(value) == value, do: trunc(value)
+  defp scalar(_), do: raise(ArgumentError, "unsupported native scalar observation")
+  def snapshot(value, root_kind \\ :value) do
+    {root, _} = encode(value, root_kind, 0)
+    %{"version" => 1, "root" => root}
+  end
+  defp encode(_, _, count) when count >= 10000, do: raise(ArgumentError, "native snapshot exceeds node bound")
+  defp encode(value, kind, count) when is_map(value) do
+    if Map.get(value, :__struct__) in [Date, Time, DateTime, NaiveDateTime, MapSet, Range, Regex], do: raise(ArgumentError, "unsupported native snapshot struct")
+    fields = if is_struct(value), do: Map.from_struct(value), else: value
+    object = kind in [:object, :records] or is_struct(value)
+    {items, count} = Enum.map_reduce(fields, count + 1, fn {k, v}, n ->
+      key = if object and is_atom(k), do: Atom.to_string(k), else: k
+      if not (is_binary(key) or (not object and is_integer(key))), do: raise(ArgumentError, "unsupported native map key")
+      {key, n} = encode(key, :value, n)
+      {v, n} = encode(v, if(kind == :records, do: :records, else: :value), n)
+      {[key, v], n}
+    end)
+    {%{"id" => Integer.to_string(:erlang.unique_integer([:positive, :monotonic])), "kind" => if(object, do: "object", else: "map"), "items" => items}, count}
+  end
+  defp encode(value, _, count) when is_list(value) do
+    {items, count} = Enum.map_reduce(value, count + 1, &encode(&1, :value, &2))
+    {%{"id" => Integer.to_string(:erlang.unique_integer([:positive, :monotonic])), "kind" => "array", "items" => items}, count}
+  end
+  defp encode(value, _, count), do: {scalar(value), count + 1}
+  defp record(key, outcome) do
+    if :ets.member(@table, :target) do
+      inserted = :ets.insert_new(@table, {{:call, key}, outcome})
+      if not inserted and :ets.lookup(@table, {:call, key}) != [{{:call, key}, outcome}], do: error("inconsistent native call #{key}")
+    end
+    :ok
+  end
+  def answered(key, call) do
+    try do
+      value = call.()
+      try do record(key, %{"kind" => "returned", "value" => scalar(value)}) rescue e -> error(Exception.message(e)) end
+      value
+    rescue e ->
+      record(key, %{"kind" => "raised", "raised" => inspect(e.__struct__)})
+      reraise e, __STACKTRACE__
+    catch kind, reason ->
+      error("unsupported native call outcome #{kind}")
+      :erlang.raise(kind, reason, __STACKTRACE__)
+    end
+  end
+  def clock(value) do
+    if :ets.member(@table, :target) do
+      try do
+        actual = scalar(value)
+        if not :ets.insert_new(@table, {:clock, actual}) and :ets.lookup(@table, :clock) != [{:clock, actual}], do: error("inconsistent native clock reads")
+      rescue e -> error(Exception.message(e)) end
+    end
+    :ok
+  end
+  def finish_call do
+    bindings = case :ets.lookup(@table, :bindings) do [{_, b}] -> b; _ -> %{"error" => "native function entry was not observed"} end
+    observed = case :ets.lookup(@table, :error) do
+      [{_, message}] -> %{"error" => message}
+      [] ->
+        calls = Map.new(for {{:call, key}, outcome} <- :ets.tab2list(@table), do: {key, outcome})
+        [{:invocation, invocation}] = :ets.lookup(@table, :invocation)
+        base = %{"invocation" => invocation, "calls" => calls}
+        frame = case :ets.lookup(@table, :clock) do [{_, clock}] -> Map.put(base, "clock", clock); [] -> base end
+        %{"snapshot" => snapshot(frame, :records)}
+    end
+    :ets.delete(@table, :target)
+    %{"nativeBindings" => bindings, "nativeObservations" => observed}
+  end
+end
+
 defmodule GdpClock do
-  def now, do: :persistent_term.get(:gdp_now, 0)
+  def now do
+    value = :persistent_term.get(:gdp_now, 0)
+    GdpNative.clock(value)
+    value
+  end
   def int(_ \\ nil), do: now()
   def utc_now(_ \\ nil), do: DateTime.from_unix!(now())
 end
 
 # An answered call's value: the request's input for it, None (nil) where it says so; every process reads it.
 defmodule GdpAnswer do
-  def a(key), do: (case Map.get(:persistent_term.get(:gdp_ans, %{}), key) do nil -> nil; %{"none" => true} -> nil; spec -> GdpHarness.arg(spec) end)
+  def a(key), do: GdpNative.answered(key, fn -> case Map.get(:persistent_term.get(:gdp_ans, %{}), key) do nil -> nil; %{"none" => true} -> nil; spec -> GdpHarness.arg(spec) end end)
 end
 
 defmodule GdpHarness do
@@ -37,9 +173,10 @@ defmodule GdpHarness do
         end
       x -> x
     end)
-    Code.compile_quoted(ast, req["path"])
+    GdpNative.init()
+    Code.compile_quoted(GdpNative.instrument(ast), req["path"])
     Process.put(:s, req |> Map.put("mod", Module.concat([req["module"]])))
-    %{"ok" => true}
+    %{"ok" => true, "nativeSnapshot" => 1, "nativeBindings" => 1, "nativeObservations" => 1, "nativeEquality" => "scalar"}
   end
   def s(k), do: Process.get(:s)[k]
   def leaf_t(l), do: (case l["t"] do %{"k" => "opt", "of" => o} -> o; t -> t || %{} end)
@@ -163,12 +300,17 @@ lines |> Enum.each(fn line ->
       "at" ->
         (try do o = GdpHarness.make(req["a"]) |> GdpHarness.set(req["state"]); i = :ets.info(objs, :size) + 1; :ets.insert(objs, {i, o}); %{"id" => i} rescue e -> %{"bad" => Exception.message(e)} catch :exit, r -> %{"bad" => inspect(r)} end)
       "get" -> [{_, o}] = :ets.lookup(objs, req["id"]); %{"state" => GdpHarness.state_of(GdpHarness.get(o))}
+      "native" -> [{_, o}] = :ets.lookup(objs, req["id"]); %{"snapshot" => GdpNative.snapshot(GdpHarness.get(o), :object)}
       "call" ->
         :persistent_term.put(:gdp_ans, req["answers"] || %{})
         [{_, o}] = :ets.lookup(objs, req["id"])
+        msg = GdpHarness.s("msgs")[req["m"]]
+        fun = case msg["kind"] do "handle_call" -> :handle_call; "handle_cast" -> :handle_cast; _ -> String.to_atom(msg["fun"]) end
+        GdpNative.begin_call(GdpHarness.s("mod"), fun)
         {o2, r} = GdpHarness.call(o, req["m"], req["a"])
         :ets.insert(objs, {req["id"], o2})
-        case r do {:err, e} -> %{"out" => nil, "err" => e}; v -> %{"out" => GdpHarness.tag(v)} end
+        result = case r do {:err, e} -> %{"out" => nil, "err" => e}; v -> %{"out" => GdpHarness.tag(v)} end
+        Map.merge(result, GdpNative.finish_call())
       "coverage" -> %{"hit" => []}
       op -> %{"error" => "no op #{op}"}
     end

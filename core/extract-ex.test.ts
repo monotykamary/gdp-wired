@@ -4,10 +4,35 @@
 // div and rem truncating, and the refusals. Skipped where elixir isn't installed.
 import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
-import {mkdtempSync, writeFileSync} from 'node:fs'
+import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
-import {proveSteps} from './dsl.ts'
+import {proveRule, proveSteps} from './dsl.ts'
+import {buildLaw} from './laws.ts'
+import {nativeWireDecoder} from './native-wire.ts'
 import {type ExOptions, extractElixir} from './extract-ex.ts'
+
+// The original callbacks below test model lowering. A checked kernel proof is
+// mandatory, but an unregistered callback is never a native source proof. Each
+// has a same-source registered companion in nativeClaims (not a generic law).
+const modelOnly = {
+  proven: false, checked: false, kernelProven: true, translation: 'unchecked',
+  why: 'source translation unchecked: a source proof contains a law with no native interpretation',
+}
+const nativeClaims: Record<string, {expr: string, method?: string}> = {
+  'an open counter under its limit counts a hit': {expr: 'old(mode) == :open and old(limit) > old(count) implies count == old(count) + 1', method: 'hit'},
+  'a closed counter counts nothing': {expr: 'old(mode) == :closed implies count == old(count)', method: 'hit'},
+  'a reset reopens it': {expr: 'mode == :open', method: 'reset'},
+  'the half and the rest make k again': {expr: 'half + half + rest == k', method: 'split'},
+  'never past its cap': {expr: 'old(used) <= old(cap) implies used <= cap'},
+}
+const native = (x: ReturnType<typeof ex>, name: string, expr: string, method?: string) => {
+  const b = buildLaw(x, {name, expr, ...(method ? {method} : {})})
+  const v = b.kind === 'step'
+    ? proveSteps(x.rule!, x.invariants ?? [], [b.law])
+    : proveRule(x.rule!, [...(x.invariants ?? []), b.law])
+  expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  expect(v.translationChecks).toBeGreaterThan(0)
+}
 
 const hasElixir = (() => { try { execFileSync('elixir', ['-e', ':ok'], {stdio: 'ignore'}); return true } catch { return false } })()
 const t = hasElixir ? test : test.skip
@@ -26,7 +51,10 @@ const ok = (x: ReturnType<typeof ex>) => {
 const step = (x: ReturnType<typeof ex>, name: string, then: (b: any, a: any) => any, when: (b: any) => any) => {
   const r = x.rule! as never as {stepLaw: (n: string, t: unknown, w: unknown) => never}
   const v = proveSteps(r as never, x.invariants ?? [], [r.stepLaw(name, then, when)])
-  if (!v.proven) throw new Error(`${name}: ${JSON.stringify({goal: v.goal, witness: v.witness})}`)
+  expect(v).toMatchObject(modelOnly)
+  const claim = nativeClaims[name]
+  if (!claim) throw new Error(`missing equivalent native law: ${name}`)
+  native(x, `${name} (native)`, claim.expr, claim.method)
 }
 
 t('a GenServer: clauses on the message and the state, a guard, cond and raise, a cast', () => {
@@ -94,6 +122,85 @@ end`, undefined as never))
   expect(notes).toMatch(/Metrics.count .*left out \(inferred/)
   expect(notes).toMatch(/Quota.bonus .*answered by the request \(tagged/)
   step(x, 'never past its cap', (_b, a) => a.used.atMost(a.cap), b => b.used.atMost(b.cap))
+}, 60_000)
+
+t('native Elixir source bindings retain entry arguments and reject corrupted lowering or disabled replay', () => {
+  const source = `defmodule Counter do
+    defstruct total: 0
+    def credit(s, n), do: %{s | total: s.total + n}
+  end`
+  const x = ok(ex(source, 'Counter'))
+  native(x, 'credit uses entry n', 'total == old(total) + n', 'credit')
+  const bad = buildLaw(x, {name: 'corrupted native credit', expr: 'total == old(total) + n + 1', method: 'credit'})
+  if (bad.kind !== 'step') throw Error('expected step law')
+  bad.law.then = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
+  const rejected = proveSteps(x.rule!, x.invariants ?? [], [bad.law], {search: false})
+  expect(rejected).toMatchObject({proven: false, checked: false, kernelProven: true, translation: 'error', stuck: 'translation-error'})
+  expect(rejected.translationWitness?.bindings).toHaveProperty('n')
+  expect(rejected.translationWitness?.after).toHaveProperty('total')
+  const disabled = ex(source, 'Counter', {check: {runs: 0, states: 0, probes: false}})
+  expect(disabled.ok).toBe(true)
+  const law = buildLaw(disabled, {name: 'disabled credit', expr: 'total == old(total) + n', method: 'credit'})
+  expect(proveSteps(disabled.rule!, disabled.invariants ?? [], [law.law], {search: false})).toMatchObject({
+    proven: false, checked: false, kernelProven: true, translation: 'unchecked',
+    why: 'source translation unchecked: source replay or native-law cross-check was disabled',
+  })
+}, 60_000)
+
+const elixirWire = (source: string, requests: Record<string, unknown>[], hello: Record<string, unknown> = {}) => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-exwire-`)
+  try {
+    const file = `${dir}/case.ex`, input = `${dir}/in.jsonl`, output = `${dir}/out.jsonl`
+    writeFileSync(file, source)
+    writeFileSync(input, [
+      {op: 'hello', path: file, module: 'NativeFixture', cls: 'NativeFixture', shape: 'pure', leaves: [], answers: [],
+        msgs: {credit: {kind: 'pure', fun: 'credit', n: 1}}, ...hello}, ...requests,
+    ].map(r => JSON.stringify(r)).join('\n') + '\n')
+    execFileSync('elixir', [new URL('./ex/harness.exs', import.meta.url).pathname, input, output], {stdio: 'pipe'})
+    return readFileSync(output, 'utf8').trim().split('\n').map(line => JSON.parse(line) as Record<string, unknown>)
+  } finally { rmSync(dir, {recursive: true, force: true}) }
+}
+t('Elixir native wire captures genuine omitted defaults and original parameter names, not protocol labels', () => {
+  const rows = elixirWire(String.raw`defmodule NativeFixture do
+    defstruct total: 0
+    def credit(s, n \\ 7), do: %{s | total: s.total + n}
+  end`, [
+    {op: 'new', a: []}, {op: 'call', id: 1, m: 'credit', a: []}, {op: 'native', id: 1},
+    {op: 'call', id: 1, m: 'credit', a: [['forged_name', {in: 3}]]}, {op: 'native', id: 1},
+  ])
+  expect(rows[0]).toMatchObject({nativeSnapshot: 1, nativeBindings: 1, nativeObservations: 1, nativeEquality: 'scalar'})
+  const decode = nativeWireDecoder()
+  expect(decode((rows[2]!.nativeBindings as {snapshot: unknown}).snapshot)).toEqual({n: 7})
+  expect(decode(rows[3]!.snapshot)).toEqual({total: 7})
+  expect(decode((rows[4]!.nativeBindings as {snapshot: unknown}).snapshot)).toEqual({n: 3})
+  expect(decode(rows[5]!.snapshot)).toEqual({total: 10})
+  expect(decode((rows[2]!.nativeObservations as {snapshot: unknown}).snapshot)).toMatchObject({invocation: 1, calls: {}})
+  expect(decode((rows[4]!.nativeObservations as {snapshot: unknown}).snapshot)).toMatchObject({invocation: 2, calls: {}})
+}, 60_000)
+
+t('Elixir observed answers capture converted native returns and omit calls not reached in the next invocation', () => {
+  const rows = elixirWire(`defmodule Quota do
+      def bonus(n), do: n
+    end
+    defmodule NativeFixture do
+      defstruct total: 0
+      def credit(s, n) do
+        if n == 0 do
+          s
+        else
+          %{s | total: s.total + Quota.bonus(n)}
+        end
+      end
+    end`, [
+    {op: 'new', a: []},
+    {op: 'call', id: 1, m: 'credit', a: [['wrong', {in: 1}]], answers: {'Quota.bonus': {in: '3'}}},
+    {op: 'call', id: 1, m: 'credit', a: [['wrong', {in: 0}]], answers: {'Quota.bonus': {in: '999'}}},
+  ], {answers: [{key: 'Quota.bonus', patch: {mod: 'Quota', path: ['bonus']}}]})
+  const decode = nativeWireDecoder()
+  expect(decode((rows[2]!.nativeObservations as {snapshot: unknown}).snapshot)).toEqual({
+    invocation: 1, calls: {'Quota.bonus': {kind: 'returned', value: 3}},
+  })
+  expect(decode((rows[3]!.nativeObservations as {snapshot: unknown}).snapshot)).toEqual({invocation: 2, calls: {}})
 }, 60_000)
 
 // The reader fuzz's misreads (core/extract-fuzz.ts): a function a module of the file doesn't define, a map updated

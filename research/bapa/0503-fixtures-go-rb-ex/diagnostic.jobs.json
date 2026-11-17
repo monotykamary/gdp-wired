@@ -1,0 +1,46 @@
+[
+  {
+    "name": "extract-go",
+    "cmd": "set +e\nmkdir -p \"$SUPERCOMPUTER_OUTPUT_DIR\"\nprintf '%s\\n' 'bun install --frozen-lockfile >/dev/null 2>&1 && . research/extract/go-setup.sh && cd core && bun test extract-go.test.ts 2>&1' > \"$SUPERCOMPUTER_OUTPUT_DIR/command.txt\"\n( bun install --frozen-lockfile >/dev/null 2>&1 && . research/extract/go-setup.sh && cd core && bun test extract-go.test.ts 2>&1 ) > \"$SUPERCOMPUTER_OUTPUT_DIR/native.log\" 2>&1\ncode=$?\nprintf '{\"exit\":%s,\"kind\":\"interactive diagnostic; not a strict gate\"}\\n' \"$code\" > \"$SUPERCOMPUTER_OUTPUT_DIR/COMMAND-RESULT.json\"\nexit \"$code\"",
+    "cpu": 2,
+    "timeout": 1200,
+    "cwd": ".",
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "extract-rb",
+    "cmd": "set +e\nmkdir -p \"$SUPERCOMPUTER_OUTPUT_DIR\"\nprintf '%s\\n' 'bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/ruby/ruby-setup.sh && cd core && bun test extract-rb.test.ts 2>&1' > \"$SUPERCOMPUTER_OUTPUT_DIR/command.txt\"\n( bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/ruby/ruby-setup.sh && cd core && bun test extract-rb.test.ts 2>&1 ) > \"$SUPERCOMPUTER_OUTPUT_DIR/native.log\" 2>&1\ncode=$?\nprintf '{\"exit\":%s,\"kind\":\"interactive diagnostic; not a strict gate\"}\\n' \"$code\" > \"$SUPERCOMPUTER_OUTPUT_DIR/COMMAND-RESULT.json\"\nexit \"$code\"",
+    "cpu": 1,
+    "timeout": 900,
+    "cwd": ".",
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "extract-ex",
+    "cmd": "set +e\nmkdir -p \"$SUPERCOMPUTER_OUTPUT_DIR\"\nprintf '%s\\n' 'bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/elixir/elixir-setup.sh && cd core && bun test extract-ex.test.ts 2>&1' > \"$SUPERCOMPUTER_OUTPUT_DIR/command.txt\"\n( bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/elixir/elixir-setup.sh && cd core && bun test extract-ex.test.ts 2>&1 ) > \"$SUPERCOMPUTER_OUTPUT_DIR/native.log\" 2>&1\ncode=$?\nprintf '{\"exit\":%s,\"kind\":\"interactive diagnostic; not a strict gate\"}\\n' \"$code\" > \"$SUPERCOMPUTER_OUTPUT_DIR/COMMAND-RESULT.json\"\nexit \"$code\"",
+    "cpu": 1,
+    "timeout": 900,
+    "cwd": ".",
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "owned-lint",
+    "cmd": "set +e\nmkdir -p \"$SUPERCOMPUTER_OUTPUT_DIR\"\nprintf '%s\\n' 'bun install --frozen-lockfile >/dev/null 2>&1 && bunx oxlint --type-aware --deny-warnings --disable-nested-config core/extract-go.test.ts core/extract-rb.test.ts core/extract-ex.test.ts' > \"$SUPERCOMPUTER_OUTPUT_DIR/command.txt\"\n( bun install --frozen-lockfile >/dev/null 2>&1 && bunx oxlint --type-aware --deny-warnings --disable-nested-config core/extract-go.test.ts core/extract-rb.test.ts core/extract-ex.test.ts ) > \"$SUPERCOMPUTER_OUTPUT_DIR/native.log\" 2>&1\ncode=$?\nprintf '{\"exit\":%s,\"kind\":\"interactive diagnostic; not a strict gate\"}\\n' \"$code\" > \"$SUPERCOMPUTER_OUTPUT_DIR/COMMAND-RESULT.json\"\nexit \"$code\"",
+    "cpu": 1,
+    "timeout": 300,
+    "cwd": ".",
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  }
+]
