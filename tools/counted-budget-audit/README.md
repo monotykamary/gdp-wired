@@ -17,7 +17,10 @@ that row's original grants. Current AST options are separate evidence; a
 retired millisecond literal is never treated as a work measurement.
 
 The codemod is intentionally **dry-run only**. `reviewed-migrations.json` lists
-specific IDs, observed work maxima and native batch evidence. Its output binds
+specific active IDs, observed work maxima and native batch evidence. The three
+unverified Effect grants are retained separately as `deferredMigrations`, not
+passed to the edit planner; the unchanged509-row census retains their history.
+Its output binds
 the original ledger and current source files by SHA-256, verifies already-applied
 reviewed grants, and produces explicit edit plans/blockers for anything else.
 There is no `ms * N`, generic numeric substitution, or blanket auto-apply path.

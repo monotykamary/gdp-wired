@@ -3,7 +3,7 @@ import {mkdtempSync,writeFileSync,rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {audit,parseInventory} from './audit.ts'
-import {migrationPlan} from './codemod.ts'
+import {migrationPlan,type Reviewed} from './codemod.ts'
 const header='file\tcallLine\tcallee\tbudgetMs\tclockDomain\tquickShard\tsuiteJobs\tprofileClock\tprofileConflict\tcertainty\ttestName\timportSource\tbudgetGrants'
 const row=(callee:string,grants:object[]=[],module='./dsl.ts',testName='<file-helper>')=>parseInventory(header+'\n'+['fixture.ts','1',callee,'10','unknown','null','[]','','false','source',testName,JSON.stringify({name:callee,module}),JSON.stringify(grants)].join('\t'))
 async function fixture(source:string,callee:string,grants:object[]=[],module?:string,testName?:string){
@@ -42,6 +42,21 @@ test('reviewed codemod never invents work from elapsed values or missing measure
  expect(migrationPlan([entry],[])[0]).toMatchObject({action:'blocked'})
  expect(()=>migrationPlan([entry],[{...reviewed,work:99}])).toThrow('invalid counted baseline')
  expect(()=>migrationPlan([entry],[{...reviewed,id:'missing'}])).toThrow('missing candidate')
+})
+
+test('deferred Effect grants cannot become current reviewed edit plans',async()=>{
+ const configured=await Bun.file(join(import.meta.dir,'reviewed-migrations.json')).json() as {
+  migrations:Reviewed[],deferredMigrations:(Reviewed&{deferralReason:string,failedNativeAttempt:{batch:string,exitCode:number,completed:boolean}})[]
+ }
+ expect(new Set(configured.migrations.map(r=>r.id))).toEqual(new Set(['2','5','182','425']))
+ expect(new Set(configured.deferredMigrations.map(r=>r.id))).toEqual(new Set(['175','176','177']))
+ const sample=await fixture('proveRule(r,ls,{search:{work:123}})','proveRule')
+ for(const deferred of configured.deferredMigrations){
+  expect(deferred.failedNativeAttempt).toEqual({batch:'20261116-225959-jf6ui1',exitCode:124,completed:false})
+  expect(deferred.deferralReason).toContain('Deferred for0.50.3')
+  const entry={...sample,id:deferred.id,file:deferred.test}
+  expect(migrationPlan([entry],configured.migrations.filter(r=>r.id===deferred.id))[0]).toMatchObject({action:'blocked'})
+ }
 })
 
 test('a unique named-test anchor tolerates line drift but ambiguous helpers do not',async()=>{
