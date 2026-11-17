@@ -3,6 +3,8 @@
 //   bun scripts/test-shards.ts --shard 2/7           shard 2 of 7
 //   bun scripts/test-shards.ts --list [--shard i/N]  the units (each shard's, with its estimate, given --shard i/N or N)
 //   bun scripts/test-shards.ts --measure out.json [--shard i/N]   each unit alone, its seconds written to out.json
+//   bun scripts/test-shards.ts --set native|portable [--shard i/N]  only the units that run a native toolchain, or only
+//                                                    the others (each set sharded alone; the two sets together are all)
 // A unit is a test file or script, with explicit per-file process configuration where required. Consecutive compatible
 // test files share one `bun test`; isolated/profile-specific units never share its module cache. The shards
 // are balanced on test-shards.json's seconds (measured on boat, each unit alone: --measure), longest first onto the
@@ -13,7 +15,7 @@ import {join} from 'node:path'
 import {assertTestRoster, coreKernelTests, longSuiteTests} from './test-roster.ts'
 
 type UnitConfig = {rootCwd?: boolean, isolated?: boolean, env?: Record<string, string | undefined>, timeoutMs?: number}
-type Unit = {name: string, dir: string, args: string[], test: boolean} & UnitConfig
+type Unit = {name: string, dir: string, args: string[], test: boolean, file?: string} & UnitConfig
 const root = join(import.meta.dir, '..')
 const tests = (dir: string, files: string) => files.split(/\s+/).filter(Boolean).map((f): Unit =>
   ({name: dir === '.' ? f : `${dir}/${f}`, dir, args: [f], test: true}))
@@ -162,7 +164,34 @@ for (const [name, config] of Object.entries(unitConfig)) {
   Object.assign(unit, config)
 }
 
-assertTestRoster(coreKernelTests(root), units.filter(u => u.test).map(u => u.name),
+// Long test files run as several units, each in its own process: the tests whose names match one of the patterns
+// (bun test -t), then every other test of the file (a lookahead that refuses the patterns: a test added to the file runs
+// there, none is lost). A shard's floor is then the longest part, not the whole file.
+const parts: Record<string, string[]> = {
+  'core/effect-queue.test.ts': ['^each primitive', '^each rule beside', '^the pool ', '^a failure in withPermits', '^the CLI refuses'],
+}
+for (const [name, patterns] of Object.entries(parts)) {
+  const k = units.findIndex(u => u.name === name), u = units[k]
+  if (!u?.test || u.rootCwd) throw new Error(`parts: no quick test unit in its own directory: ${name}`)
+  const rest = `^(?!${patterns.map(p => p.replace(/^\^/, '')).join('|')})`
+  units.splice(k, 1, ...[...patterns, rest].map((p): Unit => ({...u, name: `${name} -t ${p}`, args: [...u.args, '-t', p], isolated: true, file: name})))
+}
+
+// The units that run a native toolchain (python3, Ruby, a JDK, kotlinc, Go, Rust, Swift, clang, zstd, solc, anvil):
+// CI runs them on GitHub's ubuntu-24.04 image, the toolchains they are checked against (clang 18.1.3, JDK 17), and every
+// other unit, the portable set, on boat, where none is installed: a boat shard puts a stub of each such tool first on the
+// PATH and fails if any unit called one (a unit that needs a toolchain belongs here, not skipped there).
+const native = new Set([
+  'core/agent-consult/workspace.test.ts',
+  'core/cli.test.ts', 'core/exports.test.ts', 'core/relational.test.ts', 'core/calendar.test.ts',
+  'core/extract-py.test.ts', 'core/extract-py-mro.test.ts', 'core/extract-py-hasattr.test.ts', 'core/extract-py-orm.test.ts',
+  'core/extract-sol.test.ts', 'core/sol-concrete.test.ts', 'research/security/score.test.ts', 'research/query/goal-pack.test.ts',
+  'gates/bar.test.ts', 'research/security/surface-lowering.test.ts', 'research/security/mutants/mutants.test.ts',
+  'research/security/mutants-upstream/upstream.test.ts', 'core/cli-deadline.test.ts', 'core/extract-step-native.test.ts',
+])
+for (const name of native) if (!units.some(u => u.name === name)) throw new Error(`native set has no quick unit: ${name}`)
+
+assertTestRoster(coreKernelTests(root), units.filter(u => u.test && (!u.file || units.find(v => v.file === u.file) === u)).map(u => u.file ?? u.name),
   longSuiteTests(JSON.parse(readFileSync(join(root, 'supercomputer/suite.json'), 'utf8'))))
 
 const timingsFile = join(import.meta.dir, 'test-shards.json')
@@ -192,7 +221,10 @@ function shards(n: number): Unit[][] {
 const estimate = (us: Unit[]) => us.reduce((t, u) => t + (seconds[u.name] ?? 0), 0)
 const argv = process.argv.slice(2)
 const flag = (f: string) => { const i = argv.indexOf(f); return i < 0 ? undefined : argv[i + 1] }
-const shard = flag('--shard')
+const shard = flag('--shard'), set = flag('--set')
+if (set !== undefined && set !== 'native' && set !== 'portable') throw new Error(`--set native or portable: ${JSON.stringify(set)}`)
+// (the set before the shards: each set is balanced over its own shards; `units` stays in the suite's order)
+if (set !== undefined) units.splice(0, units.length, ...units.filter(u => native.has(u.name) === (set === 'native')))
 let mine = units
 if (shard !== undefined) {
   const m = /^(\d+)\/(\d+)$/.exec(shard)
