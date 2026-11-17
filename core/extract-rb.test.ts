@@ -325,6 +325,15 @@ t('Ruby observed calls retain actual subclass names, reset uncalled keys and rej
       def hit; Remote.ping; Remote.ping; 0; end
     end`, [{op: 'new', a: []}, {op: 'call', id: 1, m: 'hit', a: []}], patch)
   expect(conflict[2]!.nativeObservations).toEqual({error: 'ArgumentError: inconsistent native call Remote.ping'})
+  const typeConflict = rubyWire(`module Remote
+      @calls = 0
+      def self.ping; @calls += 1; @calls == 1 ? :same : "same"; end
+    end
+    class NativeFixture
+      def initialize; @n = 0; end
+      def hit; Remote.ping; Remote.ping; 0; end
+    end`, [{op: 'new', a: []}, {op: 'call', id: 1, m: 'hit', a: []}], patch)
+  expect(typeConflict[2]!.nativeObservations).toEqual({error: 'ArgumentError: inconsistent native call type Remote.ping'})
 }, 30_000)
 
 // The adversarial round (research/langs/adversarial): no false checked proof; what reaches the rule's state, refused.

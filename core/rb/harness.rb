@@ -87,6 +87,7 @@ end
 # returned/raised. Missing calls stay absent; repeated inconsistent reads refuse.
 NATIVE_EVENTS = [nil]
 NATIVE_EVENT_ERROR = [nil]
+NATIVE_CALL_TYPES = {}
 def native_scalar(value)
   return value if native_same?(value, nil) || native_same?(value, true) || native_same?(value, false)
   return NATIVE_COPY_STRING.call(value).freeze if native_is?(value, String)
@@ -97,9 +98,14 @@ def native_scalar(value)
   end
   raise ArgumentError, "unsupported native observation value #{native_class(value)}"
 end
-def native_record(key, outcome)
+def native_record(key, outcome, native_type = nil)
   return unless (events = NATIVE_EVENTS[0])
   before = events['calls'][key]
+  previous_type = NATIVE_CALL_TYPES[key]
+  if native_type && previous_type && !native_same?(native_type, previous_type)
+    raise ArgumentError, "inconsistent native call type #{key}"
+  end
+  NATIVE_CALL_TYPES[key] = native_type if native_type
   raise ArgumentError, "inconsistent native call #{key}" if before && before != outcome
   events['calls'][key] = outcome
 rescue StandardError => e
@@ -109,7 +115,7 @@ def native_call(key)
   value = yield
   if NATIVE_EVENTS[0]
     begin
-      native_record(key, {'kind' => 'returned', 'value' => native_scalar(value)})
+      native_record(key, {'kind' => 'returned', 'value' => native_scalar(value)}, native_class(value))
     rescue StandardError => e
       NATIVE_EVENT_ERROR[0] ||= "#{e.class}: #{e.message}"[0, 300]
     end
@@ -314,6 +320,7 @@ def call(req)
   raise ArgumentError, 'native invocation exceeds exact integer range' if NATIVE_INVOCATION[0] > 9007199254740991
   NATIVE_EVENTS[0] = {'invocation' => NATIVE_INVOCATION[0], 'calls' => {}}
   NATIVE_EVENT_ERROR[0] = nil
+  NATIVE_CALL_TYPES.clear
   m = obj.method(req['m'])
   pos, kw = call_args(m, req['a'])
   before = frames(obj)
