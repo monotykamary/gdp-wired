@@ -57,34 +57,50 @@ test('all saved upstream witnesses reproduce independently on both original and 
   expect(() => verify(forged)).toThrow('mutation edit changed')
 }, 60_000)
 
-test('the fresh pinned Python corpus cannot count a refused or unchecked baseline as strict recall', async () => {
+test('strict upstream verification rejects refused, unchecked and unproven baselines', () => {
+  const document = JSON.parse(readFileSync(join(import.meta.dir, 'measurement.json'), 'utf8')) as {rows: Row[]}
+  for (const kind of ['refused', 'unchecked', 'unproven'] as const) {
+    const rows = structuredClone(document.rows), baseline = rows[0]!.baseline
+    baseline.fullyRead = kind !== 'refused'
+    baseline.exit = 2
+    baseline.claims[0]!.verdict = kind === 'refused' ? 'not read' : 'unknown'
+    if (kind !== 'unproven') baseline.claims[0]!.translation = kind === 'refused' ? 'error' : 'unchecked'
+    expect(() => verify(rows)).toThrow('clean baseline not fully proven')
+  }
+})
+
+test('the fresh pinned Python corpus detects mutants only against proven native baselines', async () => {
+  let total = 0
   for (const c of cases) {
     const row = await measure(c)
-    expect(row.baseline.exit).toBe(2)
+    expect(row.baseline.exit).toBe(0)
+    expect(row.baseline.fullyRead).toBe(true)
     expect(row.baseline.claims).toHaveLength(c.policies.length)
-    if (c.id === 'ailice-gas') {
-      // The preserved journal now exposes a native failure-observation mismatch.
-      // A kernel proof cannot promote that source-translation error into recall.
-      expect(row.baseline.fullyRead).toBe(false)
-      expect(row.baseline.claims[0]).toMatchObject({verdict: 'not read', translation: 'error', kernelProven: true, why: expect.stringContaining('false in the native code')})
-      expect(row.baseline.claims[0]!.translationChecks).toBeGreaterThan(0)
-      expect(row.baseline.claims[0]!.translationWitness).toMatchObject({failed: false, legacyResult: true})
-    } else {
-      expect(c.id).toBe('codeagent-iterations')
-      // Native private state is still unavailable; keep the baseline unchecked.
-      expect(row.baseline.fullyRead).toBe(true)
-      expect(row.baseline.claims[0]).toMatchObject({verdict: 'unknown', translation: 'unchecked', kernelProven: true, why: expect.stringContaining('native value of _consumed is unavailable')})
+    expect(row.baseline.rules.every(r => r.refusals.length === 0)).toBe(true)
+    for (const [i, policy] of c.policies.entries()) {
+      const claim = row.baseline.claims[i]!
+      expect(claim).toMatchObject({name: policy.name, expr: policy.expr, verdict: 'proven', translation: 'sampled'})
+      expect(claim.translationChecks).toBeGreaterThan(0)
     }
-    // Mutant breaks can now be source-sampled, but neither invalid baseline is
-    // eligible for strict recall. Do not manufacture a clean baseline proof.
-    expect(row.mutants.every(m => !m.detected && m.side.fullyRead)).toBe(true)
+    expect(row.mutants.length).toBeGreaterThan(0)
+    total += row.mutants.length
     for (const mutant of row.mutants) {
+      expect(mutant.detected).toBe(true)
       expect(mutant.side.exit).toBe(1)
+      expect(mutant.side.fullyRead).toBe(true)
       expect(mutant.side.claims).toHaveLength(c.policies.length)
-      for (const law of mutant.side.claims) {
-        expect(law).toMatchObject({verdict: 'broken', translation: 'sampled'})
+      for (const [i, policy] of c.policies.entries()) {
+        const law = mutant.side.claims[i]!
+        expect(law).toMatchObject({name: policy.name, expr: policy.expr, verdict: 'broken', translation: 'sampled'})
         expect(law.run!.length).toBeGreaterThan(0)
+        const replay = mutant.replays.find(r => r.policy.name === policy.name && r.policy.expr === policy.expr)
+        expect(replay).toBeDefined()
+        expect(replay!.mutant).toMatchObject({ok: true, broken: true})
+        expect(replay!.parent).toMatchObject({ok: true, broken: false})
+        expect(replay!.mutant.steps.length).toBeGreaterThan(0)
+        expect(replay!.parent.steps.length).toBeGreaterThan(0)
       }
     }
   }
+  expect(total).toBe(9)
 }, 180_000)

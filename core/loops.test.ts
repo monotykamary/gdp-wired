@@ -41,7 +41,7 @@ class Queue:
         return spent
 `
 
-t('a queue drained from its front: the fold over its places; the tasks run were due, and one left may be due (it waits behind one that isn’t)', async () => {
+t('a queue fold: kernel law proven, foreign-object membership unchecked, and a due task may remain', async () => {
   const f = file('queue.py', QUEUE)
   const x = extractPython(f, {check: {runs: 60, depth: 6, states: 80}})
   if (!x.ok) throw new Error(JSON.stringify(x.refusals))
@@ -49,7 +49,11 @@ t('a queue drained from its front: the fold over its places; the tasks run were 
   expect(x.source).toContain('.carriesList("loop$0"')
   const {rules} = await check([f], {ms: 30_000, propose: false})
   const v = Object.fromEntries(rules[0]!.laws.map(l => [l.name, l]))
-  expect(v['the tasks run were due']!.verdict).toBe('proven')
+  // The kernel proof is retained, but Python object equality has no admitted native interpretation.
+  const due = v['the tasks run were due']!
+  expect(due).toMatchObject({verdict: 'unknown', translation: 'unchecked', kernelProven: true, why: expect.stringContaining('native law cannot interpret foreign container equality or object keys')})
+  expect(due.run).toBeUndefined()
+  expect(due.cert).toBeUndefined()
   expect(v['no task left is due']!.verdict).not.toBe('proven')
 }, 600_000)
 
