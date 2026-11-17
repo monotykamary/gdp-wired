@@ -78,6 +78,7 @@ test('the native observation sequence rejects stale, undeclared and inexact valu
   const accept = nativeObservationSequence(new Set(['Quota.ttl']))
   expect(accept(observation().observed).invocation).toBe(1)
   expect(() => accept(observation().observed)).toThrow('stale or repeated')
+  expect(() => validateNativeObservations({...observation().observed, error: 'conflicting actual reads'}, new Set(['Quota.ttl']))).toThrow('native observation unavailable')
   const second = {...observation().observed!, invocation: 2, calls: {}}
   expect(accept(second).calls).toEqual({})
   expect(() => validateNativeObservations({invocation: 3, calls: {'Wrong.ttl': {kind: 'returned', value: 6}}}, new Set(['Quota.ttl']))).toThrow('unbound call')
