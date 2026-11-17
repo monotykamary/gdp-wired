@@ -44,7 +44,8 @@ S.replace({'leaves' => [], 'discard' => false, 'clocks' => []})
 OBJS[1] = EntryRace.new
 result = call({'id' => 1, 'm' => 'hit', 'a' => []})
 bindings = result.fetch('nativeBindings').fetch('snapshot').fetch('root').fetch('items').to_h
-raise 'foreign same-method entry was captured' unless bindings['value'] == 7 && result['out'] == 7
+raise 'foreign same-method entry was captured' unless bindings['value'] == 7
+raise 'actual return changed' unless result['out'] == {'n' => '7'}
 puts 'NATIVE_SCOPE_OK'
 `)
   expect(result.status, result.stderr).toBe(0)
