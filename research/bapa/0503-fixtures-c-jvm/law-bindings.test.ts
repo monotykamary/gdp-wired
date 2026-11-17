@@ -1,6 +1,6 @@
 // Source-name lowering controls only: these inspect builder expressions, not native proofs.
 import {expect, test} from 'bun:test'
-import {bool, int, nat, oneOf, rule} from '../../../core/dsl.ts'
+import {Int, bool, int, nat, oneOf, rule} from '../../../core/dsl.ts'
 import type {Extraction, Name} from '../../../core/extract.ts'
 import {buildLaw} from '../../../core/laws.ts'
 
@@ -29,7 +29,7 @@ test('scalar fixed-list lowering retains before/after values and before indices'
   const put = buildLaw(x, {name: 'write at old head', expr: 'buf[old(head)] == x', method: 'put'})
   expect(put.law.then).toEqual(lists.stepLaw('expected', (b, a) => a.buf.at(b.head).eq(b.x)).then)
   const out = buildLaw(x, {name: 'return old item', expr: 'result.data == old(buf[head])', method: 'put'})
-  expect(out.law.then).toEqual(lists.stepLaw('expected', (b, a) => a.output.eq(b.buf.at(b.head))).then)
+  expect(out.law.then).toEqual(lists.stepLaw('expected', (b, a) => Int.of(a.output).eq(b.buf.at(b.head))).then)
   // No map-position or object-identity equality is invented for this new name.
   expect(() => buildLaw(x, {name: 'not scalar', expr: 'buf == old(buf)', method: 'put'})).toThrow('a list where a number is read')
 })
