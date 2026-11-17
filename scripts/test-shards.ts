@@ -160,7 +160,8 @@ const native = new Set([
   'core/cli.test.ts', 'core/exports.test.ts', 'core/relational.test.ts', 'core/calendar.test.ts',
   'core/extract-py.test.ts', 'core/extract-py-mro.test.ts', 'core/extract-py-hasattr.test.ts', 'core/extract-py-orm.test.ts',
   'core/extract-sol.test.ts', 'core/sol-concrete.test.ts', 'research/security/score.test.ts', 'research/query/goal-pack.test.ts',
-  'gates/bar.test.ts',
+  'gates/bar.test.ts', 'research/security/surface-lowering.test.ts', 'research/security/mutants/mutants.test.ts',
+  'research/security/mutants-upstream/upstream.test.ts',
 ])
 for (const name of native) if (!units.some(u => u.name === name)) throw new Error(`native set has no quick unit: ${name}`)
 
