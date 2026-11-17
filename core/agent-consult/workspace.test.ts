@@ -74,18 +74,12 @@ test('source integration: default disabled; edited Python/TS preserve real engin
         expect(stated.length).toBeGreaterThan(0)
         const bounded=stated.find(l=>l.name==='bounded count')
         expect(bounded).toBeDefined()
-        if(ext==='py'){
-          expect(bounded!.translation).toBe('unchecked')
-          expect(bounded!.verdict).toBe('unknown')
-          expect(bounded!.kernelProven).toBe(!broken)
-          expect(result.label).toBe('unknown')
-        }else{
-          expect(bounded!.translation).toBe('sampled')
-          expect(bounded!.verdict).toBe(broken?'broken':'proven')
-          expect(result.label).toBe(broken?'broken':'proven')
-          if(broken)expect(bounded!.run?.length).toBeGreaterThan(0)
-          else expect(bounded!.translationChecks).toBeGreaterThan(0)
-        }
+        // This release baseline has native law journals for both admitted languages.
+        expect(bounded!.translation).toBe('sampled')
+        expect(bounded!.verdict).toBe(broken?'broken':'proven')
+        expect(result.label).toBe(broken?'broken':'proven')
+        if(broken)expect(bounded!.run?.length).toBeGreaterThan(0)
+        else expect(bounded!.translationChecks).toBeGreaterThan(0)
         for(const law of rules.flatMap(r=>r.laws)){
           if(law.translation==='unchecked')expect(law.verdict).not.toBe('proven')
           if(law.verdict==='broken')expect(law.run).toBeDefined()

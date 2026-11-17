@@ -28,7 +28,7 @@ const source=(ext,version)=>{
 }
 try{
   await rpc('initialize');await rpc('tools/list')
-  console.log(JSON.stringify({direction:'agent-scope',limitation:'Existing CLI source-law journal gate is preserved. Python translation:unchecked remains unknown even when mathematical kernelProven is true. TypeScript reports its actual sampled native-law profile, never exhaustive certification.'}))
+  console.log(JSON.stringify({direction:'agent-scope',limitation:'Existing CLI source-law journal gate is preserved. This release supplies sampled native-law journals for Python and TypeScript, not exhaustive certification. Any translation:unchecked result remains unknown, never promoted from mathematical evidence.'}))
   for(const ext of ['py','ts']){
     let previous
     const mathematical=[]
@@ -46,18 +46,11 @@ try{
       assert.ok(stated.length>0,'stated source laws must be read')
       const bounded=stated.find(law=>law.name==='bounded count')
       assert.ok(bounded,'bounded count law must be read')
-      if(ext==='py'){
-        assert.equal(bounded.translation,'unchecked','preserve Python source journal limitation')
-        assert.equal(bounded.verdict,'unknown','do not promote Python mathematical evidence')
-        assert.equal(bounded.kernelProven,version!=='bad','real mathematical proof must distinguish the bad edit')
-        assert.equal(data.label,'unknown')
-      }else{
-        assert.equal(bounded.translation,'sampled','preserve TypeScript native sampling evidence')
-        assert.equal(bounded.verdict,version==='bad'?'broken':'proven')
-        assert.equal(data.label,version==='bad'?'broken':'proven')
-        if(version==='bad')assert.ok(bounded.run?.length,'broken TypeScript edit needs its real run')
-        else assert.ok(bounded.translationChecks>0,'TypeScript proof requires native law observations')
-      }
+      assert.equal(bounded.translation,'sampled','preserve native sampling evidence for this release baseline')
+      assert.equal(bounded.verdict,version==='bad'?'broken':'proven')
+      assert.equal(data.label,version==='bad'?'broken':'proven')
+      if(version==='bad')assert.ok(bounded.run?.length,'broken edit needs its real run')
+      else assert.ok(bounded.translationChecks>0,'proof requires native law observations')
       assert.match(data.subject.revision,/^[a-f0-9]{64}$/)
       if(previous)assert.notEqual(data.subject.revision,previous,'edit must change bound revision')
       previous=data.subject.revision
