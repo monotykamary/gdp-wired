@@ -4,7 +4,7 @@ import {Int, bool, int, nat, no, oneOf, rule} from '../../../core/dsl.ts'
 import type {Extraction, Name} from '../../../core/extract.ts'
 import {buildLaw, namesWithClock} from '../../../core/laws.ts'
 
-const r = rule('method-specific answers').inputs({method: oneOf('hit', 'soft', 'other'), hitRaised: bool, softRaised: bool, genericRaised: bool}).state({field: false})
+const r = rule('method-specific answers').inputs({method: oneOf('hit', 'soft', 'other'), hitRaised: bool, softRaised: bool, genericRaised: bool}).state({field: bool.from(false)})
 const answers: Name[] = [
   {code: 'method', rule: 'method', role: 'method'},
   {code: 'Remote.ping.raises', rule: 'hitRaised', role: 'answer', method: 'hit', native: {kind: 'raises', key: 'Remote.ping'}},
@@ -43,7 +43,7 @@ test('an old index alone marks a scalar-list expression as a step law', () => {
 })
 
 test('whole-map nil comparison uses the selected map environment, in either operand direction', () => {
-  const maps = rule('map absence').inputs({method: oneOf('Bump')}).state({Seen_nil: false}).maps({Seen: nat})
+  const maps = rule('map absence').inputs({method: oneOf('Bump')}).state({Seen_nil: bool.from(false)}).maps({Seen: 0})
   const names: Name[] = [
     {code: 'method', rule: 'method', role: 'method'},
     {code: 'Seen', rule: 'Seen', role: 'state', none: 'Seen_nil', map: {fields: ['value']}},
