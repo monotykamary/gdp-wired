@@ -97,7 +97,7 @@ t('the boundary inferred: a store, a skip, an answer tagged where the code is a 
   expect(standIn.ok).toBe(true)
   expect(standIn.source).toContain('failed: yes')
   refused(extractPython(EX, {entry: 'SessionLimit', methods: ['hit'], failures: 'kept', strict: true}), /state it as a store/)
-})
+}, 30_000) // Several real extraction/replay controls; the shared run measured 6.1s.
 
 // Default auto-search may use 10s, beyond Bun's 5s test default.
 t('the boundary inferred: the entry, own code outside the subset cut, an injected protocol answered', () => {
@@ -732,7 +732,7 @@ t('inherited immutable class defaults follow C3, not flattened direct-base attri
   const own = diamond.replace('class Limit(Left, Right):\n    pass', 'class Limit(Left, Right):\n    CAP = 5')
   expect(classConstants(own).CAP).toBe(5)
   ok(py(own, {entry: 'Limit', methods: ['put']}))
-})
+}, 30_000) // Three independent native extraction controls, measured at 5.4s together.
 
 t('a nonliteral or property declaration shadows a base constant instead of falling through', () => {
   const mutable = inheritanceRoot + 'class Limit(Root):\n    CAP = [4]\n' + inheritanceStep

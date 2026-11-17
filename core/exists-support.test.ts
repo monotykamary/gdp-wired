@@ -65,7 +65,7 @@ test('co-write provenance closes a renamed forwarding pipeline with nothing writ
     expect(exhausted).toMatchObject({proven: false, checked: false, stuck: 'unknown'})
     expect(exhausted.why).toMatch(/^work budget/)
   } finally { tripwireGate.active = false }
-}, 90000)
+}, 180000) // The same 600k work bound completed after 126s in the shared full-file run.
 
 test('co-write provenance rejects a missing allowing relation', () => {
   const bad = pipeline(true)
