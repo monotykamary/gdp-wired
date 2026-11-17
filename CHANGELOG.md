@@ -7,6 +7,10 @@ noted), each with the command that reproduces it.
 
 ### Fixed
 
+- Evaluate every quantified key in bounded counterexample search. Multi-key
+  `forall` laws such as the translated Peterson invariant no longer throw for
+  an unbound secondary key; true and false quantified cases are regression-tested.
+  Finding no bounded counterexample remains distinct from proving a law.
 - Restore Python native parameter capture for ordinary `functools.wraps`
   methods, including the pinned LiteLLM `_PROXY_MaxIterationsHandler`. A wrapped
   target must match the source and actually execute with unchanged call-bound

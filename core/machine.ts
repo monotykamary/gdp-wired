@@ -1375,12 +1375,9 @@ function renameKey(lin: Lin, from: string, to: Lin | undefined): Lin {
 // just need a stronger invariant.
 export function search(m: Machine, law: Law, depth = 3, bound = 2): {params: Env, trace: Env[]} | undefined {
   const run = interpret(m)
-  const holds = (params: Env, st: State) => {
-    const finite = finiteLawBound(law)
-    if (finite) return evalC({op: 'all', key: law.forall!, c: law.holds, finite: law.finite}, params, st, m)
-    const keys = law.forall ? [...new Set([0, ...Object.values(st.maps).flatMap(cells => [...cells.keys()])])] : [0]
-    return keys.every(key => evalC(law.holds, {...params, ...(law.forall ? {[law.forall]: key} : {})}, st, m))
-  }
+  finiteLawBound(law) // Preserve validation of explicit finite-domain metadata.
+  const condition: C = law.forall ? {op: 'all', key: law.forall, keys: law.keys, c: law.holds, finite: law.finite} : law.holds
+  const holds = (params: Env, st: State) => evalC(condition, params, st, m)
   const tops = new Map<string, number>()
   const conj = (c: C | undefined): C[] => (c === undefined ? [] : c.op === 'and' ? c.xs.flatMap(conj) : [c])
   for (const c of [...conj(m.pre), ...conj(m.assume)]) if ((c.op === '<' || c.op === '<=') && c.a.op === 'var' && c.b.op === 'const') {

@@ -1,0 +1,1453 @@
+{
+  "machine": {
+    "name": "Peterson",
+    "params": [],
+    "inputs": [
+      "nat0",
+      "op"
+    ],
+    "state": {
+      "turn": {
+        "op": "const",
+        "value": 1
+      }
+    },
+    "maps": {
+      "c": 0,
+      "pc": 0
+    },
+    "step": {
+      "flags": {
+        "g0": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "and",
+                      "xs": [
+                        {
+                          "op": "<=",
+                          "a": {
+                            "op": "const",
+                            "value": 0
+                          },
+                          "b": {
+                            "op": "const",
+                            "value": 0
+                          }
+                        },
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "<=",
+                              "a": {
+                                "op": "const",
+                                "value": 1
+                              },
+                              "b": {
+                                "op": "var",
+                                "name": "nat0"
+                              }
+                            },
+                            {
+                              "op": "<=",
+                              "a": {
+                                "op": "var",
+                                "name": "nat0"
+                              },
+                              "b": {
+                                "op": "const",
+                                "value": 2
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "pc",
+                        "key": {
+                          "op": "var",
+                          "name": "nat0"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 0
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 0
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "g1": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    },
+                    {
+                      "op": "and",
+                      "xs": [
+                        {
+                          "op": "<=",
+                          "a": {
+                            "op": "const",
+                            "value": 1
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "nat0"
+                          }
+                        },
+                        {
+                          "op": "<=",
+                          "a": {
+                            "op": "var",
+                            "name": "nat0"
+                          },
+                          "b": {
+                            "op": "const",
+                            "value": 2
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "pc",
+                    "key": {
+                      "op": "var",
+                      "name": "nat0"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "g2": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 2
+              }
+            },
+            {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    },
+                    {
+                      "op": "and",
+                      "xs": [
+                        {
+                          "op": "<=",
+                          "a": {
+                            "op": "const",
+                            "value": 1
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "nat0"
+                          }
+                        },
+                        {
+                          "op": "<=",
+                          "a": {
+                            "op": "var",
+                            "name": "nat0"
+                          },
+                          "b": {
+                            "op": "const",
+                            "value": 2
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "pc",
+                    "key": {
+                      "op": "var",
+                      "name": "nat0"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 2
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "g3": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 3
+              }
+            },
+            {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "and",
+                      "xs": [
+                        {
+                          "op": "<=",
+                          "a": {
+                            "op": "const",
+                            "value": 0
+                          },
+                          "b": {
+                            "op": "const",
+                            "value": 0
+                          }
+                        },
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "<=",
+                              "a": {
+                                "op": "const",
+                                "value": 1
+                              },
+                              "b": {
+                                "op": "var",
+                                "name": "nat0"
+                              }
+                            },
+                            {
+                              "op": "<=",
+                              "a": {
+                                "op": "var",
+                                "name": "nat0"
+                              },
+                              "b": {
+                                "op": "const",
+                                "value": 2
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "pc",
+                        "key": {
+                          "op": "var",
+                          "name": "nat0"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 3
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "or",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "c",
+                          "key": {
+                            "op": "if",
+                            "c": {
+                              "op": "=",
+                              "a": {
+                                "op": "var",
+                                "name": "nat0"
+                              },
+                              "b": {
+                                "op": "const",
+                                "value": 1
+                              }
+                            },
+                            "then": {
+                              "op": "const",
+                              "value": 2
+                            },
+                            "else": {
+                              "op": "const",
+                              "value": 1
+                            }
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "var",
+                        "name": "turn"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "nat0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "g4": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 4
+              }
+            },
+            {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "and",
+                      "xs": [
+                        {
+                          "op": "<=",
+                          "a": {
+                            "op": "const",
+                            "value": 0
+                          },
+                          "b": {
+                            "op": "const",
+                            "value": 0
+                          }
+                        },
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "<=",
+                              "a": {
+                                "op": "const",
+                                "value": 1
+                              },
+                              "b": {
+                                "op": "var",
+                                "name": "nat0"
+                              }
+                            },
+                            {
+                              "op": "<=",
+                              "a": {
+                                "op": "var",
+                                "name": "nat0"
+                              },
+                              "b": {
+                                "op": "const",
+                                "value": 2
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "pc",
+                        "key": {
+                          "op": "var",
+                          "name": "nat0"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 5
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "<=",
+                  "a": {
+                    "op": "const",
+                    "value": 0
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 0
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "g5": {
+          "op": "and",
+          "xs": [
+            {
+              "op": "=",
+              "a": {
+                "op": "var",
+                "name": "op"
+              },
+              "b": {
+                "op": "const",
+                "value": 5
+              }
+            },
+            {
+              "op": "and",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "<=",
+                      "a": {
+                        "op": "const",
+                        "value": 0
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    },
+                    {
+                      "op": "and",
+                      "xs": [
+                        {
+                          "op": "<=",
+                          "a": {
+                            "op": "const",
+                            "value": 1
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "nat0"
+                          }
+                        },
+                        {
+                          "op": "<=",
+                          "a": {
+                            "op": "var",
+                            "name": "nat0"
+                          },
+                          "b": {
+                            "op": "const",
+                            "value": 2
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "pc",
+                    "key": {
+                      "op": "var",
+                      "name": "nat0"
+                    }
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 4
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "state": {
+        "turn": {
+          "op": "if",
+          "c": {
+            "op": "flag",
+            "name": "g0"
+          },
+          "then": {
+            "op": "var",
+            "name": "turn"
+          },
+          "else": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "g1"
+            },
+            "then": {
+              "op": "var",
+              "name": "turn"
+            },
+            "else": {
+              "op": "if",
+              "c": {
+                "op": "flag",
+                "name": "g2"
+              },
+              "then": {
+                "op": "if",
+                "c": {
+                  "op": "=",
+                  "a": {
+                    "op": "var",
+                    "name": "nat0"
+                  },
+                  "b": {
+                    "op": "const",
+                    "value": 1
+                  }
+                },
+                "then": {
+                  "op": "const",
+                  "value": 2
+                },
+                "else": {
+                  "op": "const",
+                  "value": 1
+                }
+              },
+              "else": {
+                "op": "if",
+                "c": {
+                  "op": "flag",
+                  "name": "g3"
+                },
+                "then": {
+                  "op": "var",
+                  "name": "turn"
+                },
+                "else": {
+                  "op": "if",
+                  "c": {
+                    "op": "flag",
+                    "name": "g4"
+                  },
+                  "then": {
+                    "op": "var",
+                    "name": "turn"
+                  },
+                  "else": {
+                    "op": "if",
+                    "c": {
+                      "op": "flag",
+                      "name": "g5"
+                    },
+                    "then": {
+                      "op": "var",
+                      "name": "turn"
+                    },
+                    "else": {
+                      "op": "var",
+                      "name": "turn"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "maps": {
+        "c": {
+          "each": "k$5",
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "flag",
+                      "name": "g0"
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "c",
+                        "key": {
+                          "op": "var",
+                          "name": "k$5"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 1
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "not",
+                      "x": {
+                        "op": "flag",
+                        "name": "g0"
+                      }
+                    },
+                    {
+                      "op": "or",
+                      "xs": [
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "flag",
+                              "name": "g1"
+                            },
+                            {
+                              "op": "or",
+                              "xs": [
+                                {
+                                  "op": "and",
+                                  "xs": [
+                                    {
+                                      "op": "=",
+                                      "a": {
+                                        "op": "var",
+                                        "name": "k$5"
+                                      },
+                                      "b": {
+                                        "op": "var",
+                                        "name": "nat0"
+                                      }
+                                    },
+                                    {
+                                      "op": "<=",
+                                      "a": {
+                                        "op": "const",
+                                        "value": 0
+                                      },
+                                      "b": {
+                                        "op": "const",
+                                        "value": 0
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "and",
+                                  "xs": [
+                                    {
+                                      "op": "not",
+                                      "x": {
+                                        "op": "=",
+                                        "a": {
+                                          "op": "var",
+                                          "name": "k$5"
+                                        },
+                                        "b": {
+                                          "op": "var",
+                                          "name": "nat0"
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "op": "=",
+                                      "a": {
+                                        "op": "get",
+                                        "map": "c",
+                                        "key": {
+                                          "op": "var",
+                                          "name": "k$5"
+                                        }
+                                      },
+                                      "b": {
+                                        "op": "const",
+                                        "value": 1
+                                      }
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "op": "and",
+                          "xs": [
+                            {
+                              "op": "not",
+                              "x": {
+                                "op": "flag",
+                                "name": "g1"
+                              }
+                            },
+                            {
+                              "op": "or",
+                              "xs": [
+                                {
+                                  "op": "and",
+                                  "xs": [
+                                    {
+                                      "op": "flag",
+                                      "name": "g2"
+                                    },
+                                    {
+                                      "op": "=",
+                                      "a": {
+                                        "op": "get",
+                                        "map": "c",
+                                        "key": {
+                                          "op": "var",
+                                          "name": "k$5"
+                                        }
+                                      },
+                                      "b": {
+                                        "op": "const",
+                                        "value": 1
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "and",
+                                  "xs": [
+                                    {
+                                      "op": "not",
+                                      "x": {
+                                        "op": "flag",
+                                        "name": "g2"
+                                      }
+                                    },
+                                    {
+                                      "op": "or",
+                                      "xs": [
+                                        {
+                                          "op": "and",
+                                          "xs": [
+                                            {
+                                              "op": "flag",
+                                              "name": "g3"
+                                            },
+                                            {
+                                              "op": "=",
+                                              "a": {
+                                                "op": "get",
+                                                "map": "c",
+                                                "key": {
+                                                  "op": "var",
+                                                  "name": "k$5"
+                                                }
+                                              },
+                                              "b": {
+                                                "op": "const",
+                                                "value": 1
+                                              }
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "op": "and",
+                                          "xs": [
+                                            {
+                                              "op": "not",
+                                              "x": {
+                                                "op": "flag",
+                                                "name": "g3"
+                                              }
+                                            },
+                                            {
+                                              "op": "or",
+                                              "xs": [
+                                                {
+                                                  "op": "and",
+                                                  "xs": [
+                                                    {
+                                                      "op": "flag",
+                                                      "name": "g4"
+                                                    },
+                                                    {
+                                                      "op": "=",
+                                                      "a": {
+                                                        "op": "get",
+                                                        "map": "c",
+                                                        "key": {
+                                                          "op": "var",
+                                                          "name": "k$5"
+                                                        }
+                                                      },
+                                                      "b": {
+                                                        "op": "const",
+                                                        "value": 1
+                                                      }
+                                                    }
+                                                  ]
+                                                },
+                                                {
+                                                  "op": "and",
+                                                  "xs": [
+                                                    {
+                                                      "op": "not",
+                                                      "x": {
+                                                        "op": "flag",
+                                                        "name": "g4"
+                                                      }
+                                                    },
+                                                    {
+                                                      "op": "or",
+                                                      "xs": [
+                                                        {
+                                                          "op": "and",
+                                                          "xs": [
+                                                            {
+                                                              "op": "flag",
+                                                              "name": "g5"
+                                                            },
+                                                            {
+                                                              "op": "or",
+                                                              "xs": [
+                                                                {
+                                                                  "op": "and",
+                                                                  "xs": [
+                                                                    {
+                                                                      "op": "=",
+                                                                      "a": {
+                                                                        "op": "var",
+                                                                        "name": "k$5"
+                                                                      },
+                                                                      "b": {
+                                                                        "op": "var",
+                                                                        "name": "nat0"
+                                                                      }
+                                                                    },
+                                                                    {
+                                                                      "op": "<",
+                                                                      "a": {
+                                                                        "op": "const",
+                                                                        "value": 0
+                                                                      },
+                                                                      "b": {
+                                                                        "op": "const",
+                                                                        "value": 0
+                                                                      }
+                                                                    }
+                                                                  ]
+                                                                },
+                                                                {
+                                                                  "op": "and",
+                                                                  "xs": [
+                                                                    {
+                                                                      "op": "not",
+                                                                      "x": {
+                                                                        "op": "=",
+                                                                        "a": {
+                                                                          "op": "var",
+                                                                          "name": "k$5"
+                                                                        },
+                                                                        "b": {
+                                                                          "op": "var",
+                                                                          "name": "nat0"
+                                                                        }
+                                                                      }
+                                                                    },
+                                                                    {
+                                                                      "op": "=",
+                                                                      "a": {
+                                                                        "op": "get",
+                                                                        "map": "c",
+                                                                        "key": {
+                                                                          "op": "var",
+                                                                          "name": "k$5"
+                                                                        }
+                                                                      },
+                                                                      "b": {
+                                                                        "op": "const",
+                                                                        "value": 1
+                                                                      }
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        },
+                                                        {
+                                                          "op": "and",
+                                                          "xs": [
+                                                            {
+                                                              "op": "not",
+                                                              "x": {
+                                                                "op": "flag",
+                                                                "name": "g5"
+                                                              }
+                                                            },
+                                                            {
+                                                              "op": "=",
+                                                              "a": {
+                                                                "op": "get",
+                                                                "map": "c",
+                                                                "key": {
+                                                                  "op": "var",
+                                                                  "name": "k$5"
+                                                                }
+                                                              },
+                                                              "b": {
+                                                                "op": "const",
+                                                                "value": 1
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "const",
+              "value": 1
+            },
+            "else": {
+              "op": "const",
+              "value": 0
+            }
+          }
+        },
+        "pc": {
+          "each": "k$6",
+          "value": {
+            "op": "if",
+            "c": {
+              "op": "flag",
+              "name": "g0"
+            },
+            "then": {
+              "op": "if",
+              "c": {
+                "op": "=",
+                "a": {
+                  "op": "var",
+                  "name": "k$6"
+                },
+                "b": {
+                  "op": "var",
+                  "name": "nat0"
+                }
+              },
+              "then": {
+                "op": "const",
+                "value": 1
+              },
+              "else": {
+                "op": "get",
+                "map": "pc",
+                "key": {
+                  "op": "var",
+                  "name": "k$6"
+                }
+              }
+            },
+            "else": {
+              "op": "if",
+              "c": {
+                "op": "flag",
+                "name": "g1"
+              },
+              "then": {
+                "op": "if",
+                "c": {
+                  "op": "=",
+                  "a": {
+                    "op": "var",
+                    "name": "k$6"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "nat0"
+                  }
+                },
+                "then": {
+                  "op": "const",
+                  "value": 2
+                },
+                "else": {
+                  "op": "get",
+                  "map": "pc",
+                  "key": {
+                    "op": "var",
+                    "name": "k$6"
+                  }
+                }
+              },
+              "else": {
+                "op": "if",
+                "c": {
+                  "op": "flag",
+                  "name": "g2"
+                },
+                "then": {
+                  "op": "if",
+                  "c": {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "k$6"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "nat0"
+                    }
+                  },
+                  "then": {
+                    "op": "const",
+                    "value": 3
+                  },
+                  "else": {
+                    "op": "get",
+                    "map": "pc",
+                    "key": {
+                      "op": "var",
+                      "name": "k$6"
+                    }
+                  }
+                },
+                "else": {
+                  "op": "if",
+                  "c": {
+                    "op": "flag",
+                    "name": "g3"
+                  },
+                  "then": {
+                    "op": "if",
+                    "c": {
+                      "op": "=",
+                      "a": {
+                        "op": "var",
+                        "name": "k$6"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "nat0"
+                      }
+                    },
+                    "then": {
+                      "op": "const",
+                      "value": 5
+                    },
+                    "else": {
+                      "op": "get",
+                      "map": "pc",
+                      "key": {
+                        "op": "var",
+                        "name": "k$6"
+                      }
+                    }
+                  },
+                  "else": {
+                    "op": "if",
+                    "c": {
+                      "op": "flag",
+                      "name": "g4"
+                    },
+                    "then": {
+                      "op": "if",
+                      "c": {
+                        "op": "=",
+                        "a": {
+                          "op": "var",
+                          "name": "k$6"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "nat0"
+                        }
+                      },
+                      "then": {
+                        "op": "const",
+                        "value": 4
+                      },
+                      "else": {
+                        "op": "get",
+                        "map": "pc",
+                        "key": {
+                          "op": "var",
+                          "name": "k$6"
+                        }
+                      }
+                    },
+                    "else": {
+                      "op": "if",
+                      "c": {
+                        "op": "flag",
+                        "name": "g5"
+                      },
+                      "then": {
+                        "op": "if",
+                        "c": {
+                          "op": "=",
+                          "a": {
+                            "op": "var",
+                            "name": "k$6"
+                          },
+                          "b": {
+                            "op": "var",
+                            "name": "nat0"
+                          }
+                        },
+                        "then": {
+                          "op": "const",
+                          "value": 0
+                        },
+                        "else": {
+                          "op": "get",
+                          "map": "pc",
+                          "key": {
+                            "op": "var",
+                            "name": "k$6"
+                          }
+                        }
+                      },
+                      "else": {
+                        "op": "get",
+                        "map": "pc",
+                        "key": {
+                          "op": "var",
+                          "name": "k$6"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "assume": {
+      "op": "<",
+      "a": {
+        "op": "var",
+        "name": "op"
+      },
+      "b": {
+        "op": "const",
+        "value": 6
+      }
+    }
+  },
+  "law": {
+    "name": "Inv/2",
+    "forall": "key$11",
+    "keys": [
+      "key$12"
+    ],
+    "holds": {
+      "op": "or",
+      "xs": [
+        {
+          "op": "not",
+          "x": {
+            "op": "and",
+            "xs": [
+              {
+                "op": "<=",
+                "a": {
+                  "op": "const",
+                  "value": 1
+                },
+                "b": {
+                  "op": "var",
+                  "name": "key$11"
+                }
+              },
+              {
+                "op": "<=",
+                "a": {
+                  "op": "var",
+                  "name": "key$11"
+                },
+                "b": {
+                  "op": "const",
+                  "value": 2
+                }
+              }
+            ]
+          }
+        },
+        {
+          "op": "or",
+          "xs": [
+            {
+              "op": "not",
+              "x": {
+                "op": "and",
+                "xs": [
+                  {
+                    "op": "<=",
+                    "a": {
+                      "op": "const",
+                      "value": 1
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "key$12"
+                    }
+                  },
+                  {
+                    "op": "<=",
+                    "a": {
+                      "op": "var",
+                      "name": "key$12"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 2
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "not",
+                    "x": {
+                      "op": "=",
+                      "a": {
+                        "op": "var",
+                        "name": "key$11"
+                      },
+                      "b": {
+                        "op": "var",
+                        "name": "key$12"
+                      }
+                    }
+                  }
+                },
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "or",
+                        "xs": [
+                          {
+                            "op": "=",
+                            "a": {
+                              "op": "get",
+                              "map": "pc",
+                              "key": {
+                                "op": "var",
+                                "name": "key$11"
+                              }
+                            },
+                            "b": {
+                              "op": "const",
+                              "value": 5
+                            }
+                          },
+                          {
+                            "op": "=",
+                            "a": {
+                              "op": "get",
+                              "map": "pc",
+                              "key": {
+                                "op": "var",
+                                "name": "key$11"
+                              }
+                            },
+                            "b": {
+                              "op": "const",
+                              "value": 4
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "op": "or",
+                        "xs": [
+                          {
+                            "op": "=",
+                            "a": {
+                              "op": "get",
+                              "map": "pc",
+                              "key": {
+                                "op": "var",
+                                "name": "key$12"
+                              }
+                            },
+                            "b": {
+                              "op": "const",
+                              "value": 5
+                            }
+                          },
+                          {
+                            "op": "=",
+                            "a": {
+                              "op": "get",
+                              "map": "pc",
+                              "key": {
+                                "op": "var",
+                                "name": "key$12"
+                              }
+                            },
+                            "b": {
+                              "op": "const",
+                              "value": 4
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

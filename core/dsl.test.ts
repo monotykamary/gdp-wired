@@ -2,7 +2,8 @@
 // step through both runtimes; kinds encode and decode as declared; laws with forall, decisions and loops prove and
 // refute as they should; and what the types let through, the kernel's scope check still refuses.
 import {expect, spyOn, test} from 'bun:test'
-import {type Machine, type State, interpret, search, seeded} from './machine.ts'
+import {readFileSync} from 'node:fs'
+import {type Law, type Machine, type State, interpret, search, seeded} from './machine.ts'
 import {admitFlagged, boundedLoss, capLaws, loss, windowCeiling, windowLimit} from './models.ts'
 import {clock, proveLaws, queryHook} from '../kernel/prove.ts'
 import {wide} from '../examples/wide.ts'
@@ -195,6 +196,37 @@ test('search tries every value of a small kind, whatever the bound', () => {
 // A step law the laws given don't prove, broken only from a state no run reaches: refused from a random such state,
 // with its witness and no run, where the search is off; with it, proven with the invariant that rules the state out.
 // Default auto-search may use 10s, beyond Bun's 5s test default.
+// Frozen output of the supplied TLA+ bridge for Peterson's mutual-exclusion
+// conjunct (Inv/2). No translator or external toolchain is needed to replay it.
+test('search does not throw on the translated Peterson two-key invariant', () => {
+  const {machine, law} = JSON.parse(readFileSync(new URL('./fixtures/peterson-search.json', import.meta.url), 'utf8')) as {machine: Machine, law: Law}
+  expect(law.keys).toEqual(['key$12'])
+  expect(search(machine, law)).toBeUndefined()
+})
+
+test('search evaluates every universal key and finds a multi-key counterexample', () => {
+  const r = rule('search pairs').inputs({key: nat}).maps({cells: 0}).step(() => ({}))
+  const equal = r.law('all cells equal', ({cells}) => forall((i, j) => cells.at(i).eq(cells.at(j))))
+  expect(search(r.machine, equal, 2, 1)).toBeUndefined()
+  const broken = r.step(({key, cells}) => ({cells: cells.set(key, 1)}))
+  const unequal = broken.law('all cells equal', ({cells}) => forall((i, j) => cells.at(i).eq(cells.at(j))))
+  expect(search(broken.machine, unequal, 2, 1)).toEqual({params: {}, trace: [{key: 0}]})
+})
+
+test('search binds three universal keys without manufacturing a run', () => {
+  const r = rule('search triples').inputs({key: nat}).maps({cells: 0}).step(() => ({}))
+  const equal = r.law('all triples equal', ({cells}) => forall((i, j, k) => all(cells.at(i).eq(cells.at(j)), cells.at(j).eq(cells.at(k)))))
+  expect(search(r.machine, equal, 2, 1)).toBeUndefined()
+})
+
+test('search checks quantified default-domain representatives and constant boundaries', () => {
+  const r = rule('search untouched keys').state({s: 0}).step(({s}) => ({s}))
+  const distinct = r.law('all keys equal (false)', () => forall((i, j) => i.eq(j)))
+  expect(search(r.machine, distinct, 1, 0)).toEqual({params: {}, trace: []})
+  const bounded = r.law('every key below seven (false)', () => forall(i => i.lt(7)))
+  expect(search(r.machine, bounded, 1, 0)).toEqual({params: {}, trace: []})
+})
+
 test('a step law broken only from a state no run reaches: its state without the search, proven with it', () => {
   const r = rule('stays').inputs({go: bool}).state({s: 0}).step(({s}) => ({s}))
   const law = r.stepLaw('the count stays at 0', (_, after) => after.s.eq(0))
