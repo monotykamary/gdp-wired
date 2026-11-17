@@ -2,6 +2,10 @@
 
 Source-only proposal on 66505d364; no native run, compilation, typecheck or pass receipt. Central `core/laws.ts` and `core/native-law.ts` are the intended integration API. The original fixture tests, extract/replay counts, constructor tests, failure and broken-model cases are retained. No adapter changes. All native positives below require Main's run and review; a checked callback is not itself a source proof. The callback-only refusal expected on a complete journal is exactly `source translation unchecked: a source proof contains a law with no native interpretation`. An incomplete journal can return its own reason first; do not mask it.
 
+## Approved 0.50.3 release cut
+
+T3 approved an incremental cut: the16 rows without registered companions retain their original positive assertions and remain honestly unresolved known failures. They are deferred native feature breadth (enum, optional, answered-call, clock and crash families), not relabeled passes or accepted refusals. Do not expand native feature support merely to close them for0.50.3. The4 rows with candidate companions may be retired only after an exact documented refusal plus a genuine same-family registered positive or concrete replay is verified. A companion's presence alone is not acceptance; retain a row as unresolved if its required evidence fails. Swift Tally's original positive remains pending its crash-observation determination. No row has been dynamically admitted by this ledger.
+
 There are 11 Rust and 9 Swift original positive callback claims, plus Swift Tally's negative invariant. Every row remains unverified until a native receipt. Three Rust rows have an equivalent registered companion in source (including the preexisting load companion); the new Swift Tally companion retains the original positive pending crash support. Thus 16 of 20 original positives lack a registered equivalent, and all 20 lack current verified native evidence. Names identify exact callbacks in the tests.
 
 | Original assertion | Source-only disposition / remaining contract |
