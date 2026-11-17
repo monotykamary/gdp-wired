@@ -142,6 +142,12 @@ t('an actor: its methods each one step', () => {
   expect(proveRule(x.rule!, [...(x.invariants ?? []), x.rule!.law('n within the cap', ({n, cap}: A) => n.atMost(cap))]).proven).toBe(false)
   const y = ok(extractSwift(`${DIR}Tally.swift`, {entry: 'Tally', methods: ['add'], check: budget}))
   expect(step(y, 'an add keeps n within the cap', (_b, a) => a.n.atMost(a.cap), b => b.n.atMost(b.cap)).proven).toBe(true)
+  // Keep the original positive until crash-observation support is established;
+  // this registered companion is the same guarded claim, not a scalar smoke test.
+  const add = buildLaw(y, {name: 'an add keeps n within the cap (native)', expr: 'old(n) <= old(cap) implies n <= cap', method: 'add'})
+  const v = proveSteps(y.rule!, y.invariants ?? [], [add.law])
+  expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  expect(v.translationChecks).toBeGreaterThan(0)
 }, 900_000)
 
 t('refusals, each where it is with why', () => {

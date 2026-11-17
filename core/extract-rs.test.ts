@@ -38,7 +38,7 @@ t('Rust atomic ordering: typed load and store retain invalid-order failures', ()
   expect(x.source).toContain("'Relaxed', 'Release', 'Acquire', 'AcqRel', 'SeqCst'")
   expect(x.notes.join('\n')).toContain("calls that don't interleave")
   const load = step(x, 'load never changes the atomic value', (b, a) => a.value.eq(b.value), b => b.method.is('load'))
-  expect(load).toMatchObject({proven: true, checked: true})
+  expect(load).toMatchObject(modelOnly)
   const store = step(x, 'failed store leaves the atomic value unchanged', (b, a) => a.failed.implies(a.value.eq(b.value)), b => b.method.is('store'))
   expect(store).toMatchObject({proven: true, checked: true})
   for (const method of ['load', 'store']) {
@@ -1082,13 +1082,37 @@ const ok = (x: X) => {
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type A = any
+// Callbacks have checked mathematical proofs, but no independent native interpretation.
+const modelOnly = {proven: false, checked: false, kernelProven: true, translation: 'unchecked',
+  why: 'source translation unchecked: a source proof contains a law with no native interpretation'}
+const native = (x: X, name: string, expr: string, method?: string) => {
+  const b = buildLaw(x, {name, expr, ...(method ? {method} : {})})
+  const v = b.kind === 'step' ? proveSteps(x.rule!, x.invariants ?? [], [b.law]) : proveRule(x.rule!, [...(x.invariants ?? []), b.law])
+  expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  expect(v.translationChecks).toBeGreaterThan(0)
+}
 const step = (x: X, name: string, then: (b: A, a: A) => A, when?: (b: A) => A) => proveSteps(x.rule as A, x.invariants ?? [], [(x.rule as A).stepLaw(name, then, when)])
 
 t('integers of a width: + traps past it (the failure), wrapping_add wraps, checked_add is an Option', () => {
   const x = ok(extractRust(DIR, {entry: 'Budget', methods: ['spend', 'lap', 'try_spend', 'mark'], failures: 'kept', check: budget}))
   expect(x.notes.join('\n')).toMatch(/past u8's range \(a panic/)
-  expect(proveRule(x.rule!, [...x.invariants!, x.rule!.law('spent within the limit', ({spent, limit}: A) => spent.atMost(limit))]).proven).toBe(true)
-  expect(step(x, 'a lap wraps at 256', (b, a) => a.laps.eq(0), b => b.method.is('lap').and(b.laps.eq(255))).proven).toBe(true)
+  expect(proveRule(x.rule!, [...x.invariants!, x.rule!.law('spent within the limit', ({spent, limit}: A) => spent.atMost(limit))])).toMatchObject(modelOnly)
+  native(x, 'spent within the limit (native)', 'spent <= limit')
+  expect(step(x, 'a lap wraps at 256', (b, a) => a.laps.eq(0), b => b.method.is('lap').and(b.laps.eq(255)))).toMatchObject(modelOnly)
+  native(x, 'a lap wraps at 256 (native)', 'old(laps) == 255 implies laps == 0', 'lap')
+  // The false native reading is made symbolically true to exercise translation independently.
+  const bad = buildLaw(x, {name: 'corrupted lap', expr: 'laps == old(laps)', method: 'lap'})
+  if (bad.kind !== 'step') throw new Error('expected a step law')
+  bad.law.then = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
+  expect(proveSteps(x.rule!, x.invariants ?? [], [bad.law], {search: false})).toMatchObject({
+    proven: false, checked: false, kernelProven: true, translation: 'error',
+  })
+  const disabled = ok(extractRust(DIR, {entry: 'Budget', methods: ['spend', 'lap', 'try_spend', 'mark'], failures: 'kept', check: {...budget, lawCrossCheck: false}}))
+  const lap = buildLaw(disabled, {name: 'lap disabled', expr: 'old(laps) == 255 implies laps == 0', method: 'lap'})
+  expect(proveSteps(disabled.rule!, disabled.invariants ?? [], [lap.law], {search: false})).toMatchObject({
+    proven: false, checked: false, kernelProven: true, translation: 'unchecked',
+    why: 'source translation unchecked: source replay or native-law cross-check was disabled',
+  })
   expect(step(x, 'mark keeps the phase', (b, a) => a.phase.eq(b.mark_p).and(a.phase_none.not()), b => b.method.is('mark')).proven).toBe(true)
 }, 120_000)
 
