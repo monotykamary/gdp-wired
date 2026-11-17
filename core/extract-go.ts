@@ -937,6 +937,10 @@ export function goNames(read: GoRead): Name[] {
     const code = l.path.join('.')
     if (l.kind === 'map') out.push({code, rule: l.name, role: 'state', map: {fields: m.maps.find(d => d.name === l.name)?.fields.map(f => f.name) ?? []}})
     else if (l.kind === 'bignil' || l.kind === 'mapnil') { const n = out.find(x => x.code === code && x.role === 'state'); if (n) n.none = l.name; else out.push({code, rule: '', role: 'state', none: l.name}) }
+    else if (l.kind === 'list') {
+      const declaration = m.lists?.find(d => d.name === l.name)
+      out.push({code, rule: l.name, role: 'state', list: {scalar: true, ...(declaration?.len === undefined ? {} : {length: declaration.len})}})
+    }
     else if (l.kind === 'int' || l.kind === 'bool' || l.kind === 'str' || l.kind === 'big') out.push({code, rule: l.name, role: 'state'})
   }
   const arg = (a: Arg, code: string, role: 'param' | 'input', method?: string) => {
@@ -945,10 +949,13 @@ export function goNames(read: GoRead): Name[] {
   }
   for (const c of read.ctor ?? []) arg(c.arg, c.name, 'param')
   for (const mt of read.methods) for (const pa of mt.params) arg(pa.arg, pa.name, 'input', mt.name)
-  for (const a of read.answers ?? []) out.push({code: a.key, rule: a.inputs.name, role: 'answer', ...(a.inputs.none ? {none: a.inputs.none} : {})})
+  for (const a of read.answers ?? []) out.push({code: a.key, rule: a.inputs.name, role: 'answer', native: {kind: 'answer', key: a.key}, ...(a.inputs.none ? {none: a.inputs.none} : {})})
   for (const [method, r] of Object.entries(m.results ?? {})) {
     if (r.k === 'scalar') out.push({code: 'result', rule: r.name, role: 'result', method})
-    else if (r.k === 'rec') for (const [f, n] of r.fields) out.push({code: f === 'result' ? 'result' : f, rule: n, role: 'result', method})
+    else if (r.k === 'rec') for (const [f, n] of r.fields) {
+      out.push({code: f === 'result' ? 'result' : f, rule: n, role: 'result', method})
+      out.push({code: `result.${f}`, rule: n, role: 'result', method})
+    }
   }
   if (m.event) out.push({code: 'method', rule: m.event, role: 'method'})
   return out

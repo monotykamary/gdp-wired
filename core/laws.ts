@@ -27,7 +27,7 @@
 //                                      every item of a list (o.price its field; `o in asks` whether that item is still
 //                                      in it, the same item, not an equal one), at every two (or three) at once
 //   mode == "closed", outcome == SLOW_ERROR, mode == :closed        a choice by its value
-import {type Cond, Choice, Int, Str, Term, all, any, forall, no, not, yes} from './dsl.ts'
+import {type Cond, Choice, Int, ItemsRef, Str, Term, all, any, forall, no, not, yes} from './dsl.ts'
 import type {Extraction, Name} from './extract.ts'
 import {copyVariable} from './dsl-binders.ts'
 import {attachNativeLaw} from './source-check.ts'
@@ -182,7 +182,7 @@ export function parse(s: string): X {
 // A value: a number (an integer of the builders'), a condition, a string, a choice, a literal string, None, a map's
 // cell, a value that may be None (its flag beside it), a map, a key.
 type V = {t: 'num', v: Int} | {t: 'cond', v: Cond} | {t: 'str', v: Str} | {t: 'choice', v: Choice<string>} | {t: 'lit', v: string, err?: LawError}
-  | {t: 'null', absence?: 'null' | 'undefined'} | {t: 'cell', rec: Record<string, unknown>, fields: string[]} | {t: 'opt', none: Cond, v?: V, absence?: 'null' | 'undefined'} | {t: 'map', n: Name, maps: Name[], env?: Record<string, unknown>} | {t: 'key', v: Term}
+  | {t: 'null', absence?: 'null' | 'undefined'} | {t: 'cell', rec: Record<string, unknown>, fields: string[]} | {t: 'opt', none: Cond, v?: V, absence?: 'null' | 'undefined'} | {t: 'map', n: Name, maps: Name[], env?: Record<string, unknown>} | {t: 'key', v: Term} | {t: 'list', n: Name, env: Record<string, unknown>}
 // (bits: in a law of one step, which reads no function, each run of a mask's bits named by keys the law holds at every
 // value of, with the facts that make them that run: ks the keys, used how many are taken, hyps the facts)
 type Bits = {ks: Term[], used: number, hyps: Cond[]}
@@ -238,7 +238,7 @@ export function buildLaw(x: Extraction, l: LawText, opts: LawOpts = {}): Built {
   }
   // (a law of one step reads no function, so business days there pin each time's week to a key, ∀w. guard → law)
   const body = (b: Record<string, unknown>, a: Record<string, unknown>) => (step && probe.roles.has('bdays') ? pinned(b, a, (bb, aa, p) => body0(bb, aa, p)) : bitBody(b, a))
-  const bind = (built: Built): Built => { attachNativeLaw(x.rule!, built.law, l.name, built.kind === 'step' ? gate ?? method : undefined, nativeLaw(e, opts, parse, {...Object.fromEntries(names.filter(n => n.role === 'const' && n.value !== undefined).map(n => [n.code, n.value!])), ...x.consts}, new Set(names.map(n => n.code.split('.')[0]!)))); return built }
+  const bind = (built: Built): Built => { attachNativeLaw(x.rule!, built.law, l.name, built.kind === 'step' ? gate ?? method : undefined, nativeLaw(e, opts, parse, {...Object.fromEntries(names.filter(n => n.role === 'const' && n.value !== undefined).map(n => [n.code, n.value!])), ...x.consts}, new Set(names.map(n => n.code.split('.')[0]!)), names.flatMap(n => n.native ? [{...n.native, code: n.code, ...(n.method ? {method: n.method} : {})}] : []))); return built }
   if (!step) return bind({kind: 'law', law: r.law(l.name, (env: never) => (x.quiet ? ((env as Record<string, Int>)[x.quiet]!.eq(0) as Cond).implies(body0(env, env)) : body0(env, env)))})
   const mname = names.find(n => n.role === 'method')?.rule
   return bind({kind: 'step', ...(gate ? {method: gate} : {}), law: r.stepLaw(l.name, (b: never, a: never) => body(b, a) as never, gate ? (b: never) => ((b as Record<string, unknown>)[mname!] as Choice<string>).is(gate) : undefined)})
@@ -581,10 +581,17 @@ function find(code: string, names: Name[], c: Ctx, stateOnly: boolean, called: b
     if (new Set(inputs.map(n => n.method)).size === 1) return inputs[0]
     throw new LawError(`${code} is an argument of ${inputs.map(n => n.method).join(', ')}: write the law on the method it is about (the line above it), or as <method>.${code}`)
   }
-  return names.find(n => n.role === 'state' && at(n) && !called)
+  const preferred = names.find(n => n.role === 'state' && at(n) && !called)
     ?? (stateOnly ? undefined : names.find(n => (n.role === 'param' || n.role === 'const' || n.role === 'clock') && n.code === code && !called))
-    ?? names.find(n => n.role === 'answer' && last(n))
-    ?? (stateOnly ? undefined : names.find(n => n.rule === code && !called))
+  if (preferred) return preferred
+  const answers = names.filter(n => n.role === 'answer' && last(n))
+  const here = c.method ? answers.filter(n => n.method === c.method) : []
+  const generic = answers.filter(n => n.method === undefined)
+  const candidates = here.length ? here : generic.length ? generic : c.method ? [] : answers
+  if (candidates.length > 1) throw new LawError(`${code}: ambiguous answered call of ${candidates.map(n => n.method ?? n.code).join(', ')}; write the law on its method or use its qualified name`)
+  if (candidates.length === 1) return candidates[0]
+  if (answers.length && c.method) throw new LawError(`${code}: no answer belongs to ${c.method} (its methods: ${answers.map(n => n.method).join(', ')})`)
+  return stateOnly ? undefined : names.find(n => n.rule === code && !called)
 }
 const results = (names: Name[], c: Ctx): Name | undefined => {
   const rs = names.filter(n => n.role === 'result' && n.code === 'result')
@@ -594,6 +601,7 @@ const results = (names: Name[], c: Ctx): Name | undefined => {
 }
 // A name's value: its variable in the environment (the state after the step where the law is a step's), its None-ness.
 function leaf(n: Name, c: Ctx, dry: boolean): V {
+  if (n.list) return {t: 'list', n, env: c.step && n.role === 'state' ? c.a : c.b}
   if (dry) return n.none && !n.rule ? {t: 'opt', none: yes} : n.none ? {t: 'opt', none: yes, v: DRY} : DRY
   if (n.role === 'const') return {t: 'num', v: Int.of(n.value!)}
   const env = c.step && (n.role === 'state' || n.role === 'result' || n.role === 'failed') ? c.a : c.b
@@ -605,6 +613,15 @@ function leaf(n: Name, c: Ctx, dry: boolean): V {
 function rest(segs: Seg[], v: V, c: Ctx, names: Name[], dry: boolean, e: X): V {
   for (let i = 0; i < segs.length; i++) {
     const s = segs[i]!
+    if (v.t === 'list') {
+      if (!('i' in s)) throw new LawError(`${show(e)}: a scalar list is read at a position (xs[i])`)
+      const index = val(s.i, c, names, dry)
+      if (dry) { v = DRY; continue }
+      const value = v.env[v.n.rule]
+      if (!(value instanceof ItemsRef)) throw new LawError(`${v.n.code}: not a scalar item list in the rule's environment`)
+      v = wrap(value.at(key(index)))
+      continue
+    }
     if (v.t === 'map') {
       const isGet = 'f' in s && ['get', 'fetch', 'getOrDefault', 'lookup'].includes(s.f) && segs[i + 1] && 'call' in segs[i + 1]!
       const isHas = 'f' in s && ['has', 'contains', 'containsKey', 'has_key', 'key?', 'has_key?', 'include?'].includes(s.f)

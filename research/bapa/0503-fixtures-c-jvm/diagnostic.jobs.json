@@ -35,8 +35,19 @@
   },
   {
     "name": "fixtures-c-jvm-lint",
-    "cmd": "set -o pipefail; ( bun install --frozen-lockfile >/dev/null 2>&1 && bunx oxlint --type-aware --deny-warnings --disable-nested-config core/extract-c.test.ts core/extract-jvm.test.ts ) 2>&1 | tee \"$SUPERCOMPUTER_OUTPUT_DIR/native.log\"; rc=${PIPESTATUS[0]}; printf '{\"exitCode\":%s}\n' \"$rc\" > \"$SUPERCOMPUTER_OUTPUT_DIR/COMMAND-RESULT.json\"; exit \"$rc\"",
+    "cmd": "set -o pipefail; ( bun install --frozen-lockfile >/dev/null 2>&1 && bunx oxlint --type-aware --deny-warnings --disable-nested-config core/extract-c.test.ts core/extract-jvm.test.ts core/extract-c.ts core/extract-go-check.ts core/extract-go.ts core/laws.ts core/extract.ts research/bapa/0503-fixtures-c-jvm/law-bindings.test.ts ) 2>&1 | tee \"$SUPERCOMPUTER_OUTPUT_DIR/native.log\"; rc=${PIPESTATUS[0]}; printf '{\"exitCode\":%s}\n' \"$rc\" > \"$SUPERCOMPUTER_OUTPUT_DIR/COMMAND-RESULT.json\"; exit \"$rc\"",
     "timeout": 180,
+    "cwd": ".",
+    "cpu": 1,
+    "required_agent_capabilities": {
+      "output_files_protocol": 1,
+      "result_files_protocol": 1
+    }
+  },
+  {
+    "name": "fixtures-c-jvm-lowering",
+    "cmd": "set -o pipefail; ( bun install --frozen-lockfile >/dev/null 2>&1 && bun test research/bapa/0503-fixtures-c-jvm/law-bindings.test.ts ) 2>&1 | tee \"$SUPERCOMPUTER_OUTPUT_DIR/native.log\"; rc=${PIPESTATUS[0]}; printf '{\"exitCode\":%s}\\n' \"$rc\" > \"$SUPERCOMPUTER_OUTPUT_DIR/COMMAND-RESULT.json\"; exit \"$rc\"",
+    "timeout": 120,
     "cwd": ".",
     "cpu": 1,
     "required_agent_capabilities": {

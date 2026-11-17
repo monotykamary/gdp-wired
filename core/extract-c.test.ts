@@ -308,6 +308,36 @@ void init(struct io *s) { s->flags |= F_INIT; }
   native(proveRule(x.rule as A, [...x.invariants!, law('init is never cleared once set', '(flags & 1) == 0 or (flags & 1) == 1')]))
 }, 120_000)
 
+t('native C laws use real nested fields, arrays and arguments captured before local reassignment', () => {
+  const code = `
+#include <stdint.h>
+struct capture { struct { uint32_t value; } sub; uint8_t buf[4]; uint32_t head; };
+void put(struct capture *s, uint8_t x) {
+  if (s->head >= 4) return;
+  s->buf[s->head] = x; s->sub.value = x;
+  s->head = (s->head + 1) % 4; x++;
+}
+`
+  const x = ok(c(code, 'capture'))
+  const make = (read: X, expr: string) => buildLaw(read, {name: 'the original x is stored', expr, method: 'put'}).law
+  const expr = 'old(head) < 4 implies buf[old(head)] == x and sub.value == x'
+  native(proveSteps(x.rule!, x.invariants ?? [], [make(x, expr)]))
+  // Deliberately corrupt only the untrusted lowering. Real native observations
+  // must reject its false source equation despite the kernel's tautology proof.
+  const faulty = make(x, 'old(head) < 4 implies sub.value == x + 1')
+  faulty.then = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
+  const rejected = proveSteps(x.rule!, x.invariants ?? [], [faulty], {search: false})
+  expect(rejected).toMatchObject({proven: false, checked: false, kernelProven: true, translation: 'error', stuck: 'translation-error'})
+  expect(rejected.translationWitness?.after).toHaveProperty('sub.value')
+  expect(typeof rejected.translationWitness?.bindings.x).toBe('number')
+  const disabled = c(code, 'capture', {check: {runs: 0, states: 0, probes: false}})
+  expect(disabled.ok).toBe(true)
+  expect(proveSteps(disabled.rule!, disabled.invariants ?? [], [make(disabled, expr)], {search: false})).toMatchObject({
+    proven: false, checked: false, kernelProven: true, translation: 'unchecked',
+    why: 'source translation unchecked: source replay or native-law cross-check was disabled',
+  })
+}, 60_000)
+
 t('a bit operation of two values neither a constant nor 0 or 1 is refused', () => {
   const x = c(`
 #include <stdint.h>
