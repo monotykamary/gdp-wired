@@ -1,0 +1,50 @@
+name: Kernel primitive native differential probes
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'kernel/integer-primitives*.ts'
+      - 'kernel/word-division*.ts'
+      - 'core/fixed-*.ts'
+      - 'core/dsl.ts'
+      - 'core/machine.ts'
+      - 'research/kernel-primitives/**'
+      - 'kernel/mutants.ts'
+      - '.github/workflows/kernel-primitives.yml'
+  push:
+    paths:
+      - 'kernel/integer-primitives*.ts'
+      - 'kernel/word-division*.ts'
+      - 'core/fixed-*.ts'
+      - 'core/dsl.ts'
+      - 'core/machine.ts'
+      - 'research/kernel-primitives/**'
+      - 'kernel/mutants.ts'
+      - '.github/workflows/kernel-primitives.yml'
+jobs:
+  native-differential:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      - name: Install pinned dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify required toolchains (missing is fatal)
+        run: |
+          cc --version
+          rustc --version
+          go version
+          python3 --version
+      - name: Check limb DSL and exact integer fuzz regressions
+        run: bun test core/fixed-integers.test.ts core/fixed-constant-division.test.ts core/fixed-division.test.ts core/fixed-integration.test.ts core/fixed-division-integration.test.ts kernel/integer-primitives.test.ts kernel/integer-primitives-fuzz.test.ts kernel/word-division.test.ts
+      - name: Kill the new primitive semantic mutants
+        env:
+          SUPERCOMPUTER_OUTPUT_DIR: ${{ runner.temp }}/kernel-mutants
+        run: |
+          mkdir -p "$SUPERCOMPUTER_OUTPUT_DIR"
+          bun research/kernel-primitives/mutant-gate.ts
+      - name: Compare actual native probe output with imported kernel
+        run: bun research/kernel-primitives/probes/run.ts

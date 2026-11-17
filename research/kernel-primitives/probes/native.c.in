@@ -1,0 +1,60 @@
+/* C probe: real unsigned arithmetic, __int128 checked bounds; never execute signed overflow. */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
+typedef __int128 I;
+typedef unsigned __int128 U;
+static I decimal(const char *s) { I n=0; int sign=*s=='-'; if(sign) s++; while(*s) n=n*10+(*s++-'0'); return sign?-n:n; }
+static void print_i(I n) { char b[64]; int k=0, neg=n<0; U u=neg?(U)(-n):(U)n; do { b[k++]='0'+u%10; u/=10; } while(u); if(neg) putchar('-'); while(k) putchar(b[--k]); putchar('\n'); }
+int main(void) {
+  char line[256],op[12],policy[12],mode[16],lhs[64],rhs[64]; unsigned width,signedness;
+  while(fgets(line,sizeof(line),stdin)) {
+    if(sscanf(line,"%u %u %11s %11s %15s %63s %63s",&width,&signedness,op,policy,mode,lhs,rhs)!=7) return 2;
+    if(width!=8&&width!=16&&width!=32&&width!=64) return 2;
+    I a=decimal(lhs),b=decimal(rhs),lo=signedness?-((I)1<<(width-1)):0;
+    I hi=signedness?(((I)1<<(width-1))-1):(((I)1<<width)-1);
+    U mask=((U)1<<width)-1;
+    I n=0;
+    if(!strcmp(op,"div")||!strcmp(op,"rem")) {
+      if(!b) { puts("ERR division_by_zero"); continue; }
+      if(signedness && a==lo && b==-1 && !strcmp(policy,"TRAP")) { puts("ERR overflow"); continue; }
+      I q=a/b,r=a%b; /* __int128: even int64 MIN/-1 is safe */
+      if(!strcmp(mode,"FLOOR") && r && ((r<0)!=(b<0))) { q--; r+=b; }
+      if(!strcmp(mode,"EUCLIDEAN") && r<0) { q+=b>0?-1:1; r+=b>0?b:-b; }
+      n=!strcmp(op,"div")?q:r;
+    } else if(!strcmp(op,"add")) n=a+b;
+    else if(!strcmp(op,"sub")) n=a-b;
+    else if(!strcmp(op,"mul")) {
+      if(!signedness) {
+        U product=(U)a*(U)b; /* full 128-bit unsigned product: no signed overflow */
+        if(product>(U)hi) {
+          if(!strcmp(policy,"TRAP")) { puts("ERR overflow"); continue; }
+          if(!strcmp(policy,"SATURATE")) n=hi;
+          else n=(I)(product&mask);
+        } else n=(I)product;
+      } else n=a*b;
+    }
+    else if(!strcmp(op,"neg")) n=-a;
+    else if(!strcmp(op,"cast")) n=a;
+    else return 2;
+    /* Real C unsigned operations (integer promotions are avoided by uint64_t). */
+    if(!signedness && !strcmp(policy,"WRAP") && strcmp(op,"cast") && strcmp(op,"div") && strcmp(op,"rem")) {
+      uint64_t x=(uint64_t)a,y=(uint64_t)b,z;
+      if(!strcmp(op,"add")) z=x+y;
+      else if(!strcmp(op,"sub")) z=x-y;
+      else if(!strcmp(op,"mul")) z=x*y;
+      else z=(uint64_t)0-x;
+      n=(I)(z & (uint64_t)mask);
+    }
+    if(n<lo||n>hi) {
+      if(!strcmp(policy,"TRAP")) { puts("ERR overflow"); continue; }
+      if(!strcmp(policy,"SATURATE")) n=n<lo?lo:hi;
+      else if(!strcmp(policy,"WRAP")) { U bits=(U)n&mask; n=signedness && (bits&((U)1<<(width-1)))?(I)bits-((I)1<<width):(I)bits; }
+      else return 2;
+    }
+    fputs("OK ",stdout); print_i(n);
+  }
+  return ferror(stdin)?2:0;
+}

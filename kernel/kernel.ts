@@ -21,6 +21,7 @@ import {checkRefutation} from '../core/check.ts'
 import {observeCheckStep, observeTableCells} from '../core/meter.ts'
 import {admittedLinearSub as rowSub, admittedLinearAdd as rowAdd, admittedLinearScale as rowScale, admittedLinearCopy as rowCopy, admittedLinearVariable as rowVariable, visitLinearCells} from '../core/linear-admission.ts'
 import type {C, Counted, E, Law, Machine, MapUpdate} from '../core/machine.ts'
+import {parseWordDivisionName, wordDivisionArgs, wordDivisionFacts} from './word-division.ts'
 import {type Constraint, type Lin, type Step} from '../core/solver.ts'
 import {fundedAdd as add,fundedConstant as k,fundedScale as scale,fundedSub as sub,fundedVariable as v,admittedLinearProduct,everyLinearCell} from '../core/linear-admission.ts'
 import {workMap,workFilter,workConcat,workStrings,workJoin,workSlice,workSetArray,workEntries,workJSON,workFlatMap,workArraySlice} from '../core/work-collections.ts'
@@ -901,7 +902,28 @@ const across = (r: Run, c: C, state: string[], maps: string[], first: {inputs: R
   maps: Object.fromEntries(maps.map(map => [`${map}'`, (key: E): E => { const f = own(r.at.maps, map); return f ? f(key) : {op: 'get', map, key} }])),
   flags: first.flags,
 })
-const goal = (name: string, r: Run, conclusion: C): Goal => ({name, hyps: [...r.hyps, {op: 'not', x: conclusion}]})
+// A plain range/comparison goal does not need convolution hypotheses. Keeping
+// irrelevant products out avoids eagerly solving nonlinear constraints merely
+// to prove a digit bound. Omitting valid lemmas can only lose proofs, not invent
+// one. A reserved helper read is opaque here, even when its arguments compute.
+const divisionArithmetic = (x: unknown, seen = new Set<object>()): boolean => {
+  if (!x || typeof x !== 'object' || seen.has(x)) return false
+  seen.add(x)
+  const t = x as Record<string, unknown>
+  if (t.op === 'get' && typeof t.map === 'string' && parseWordDivisionName(t.map)) return false
+  if (t.op === 'prod' || t.op === 'add' || t.op === 'sub' || t.op === 'mul') return true
+  return Object.values(x).some(value => divisionArithmetic(value, seen))
+}
+
+const goal = (name: string, r: Run, conclusion: C): Goal => {
+  const hyps: C[] = [...r.hyps, {op: 'not', x: conclusion}]
+  // These are kernel-generated consequences of the reserved total Nat helpers,
+  // never caller-supplied assumptions. Domain guards preserve invalid-input cases.
+  const arithmetic = divisionArithmetic(conclusion)
+  const theory = wordDivisionFacts(hyps).filter(c => arithmetic || !divisionArithmetic(c))
+  // Search treats the final hypothesis as the negated conclusion.
+  return {name, hyps: [...r.hyps, ...theory, {op: 'not', x: conclusion}]}
+}
 // A machine's flags as its terms read them (decided before the step, over the frame it starts from): a plain flag its
 // condition (through the flags before it), a quantified flag (one whose condition holds at every key) its 0/1 variable
 // ?f, which `closing` ties to the condition.
@@ -982,7 +1004,13 @@ function reads(t: E | C, out: Reads = {vars: new Set(), maps: new Set(), flags: 
   switch (t.op) {
     case 'var': out.vars.add(t.name); break
     case 'const': break
-    case 'get': out.maps.add(t.map); reads(t.key, out); break
+    case 'get': {
+      const builtin = parseWordDivisionName(t.map)
+      if (builtin) {
+        if (!wordDivisionArgs(t.key, builtin.width)) throw new Error('invalid compact word-division argument tuple')
+      } else out.maps.add(t.map)
+      reads(t.key, out); break
+    }
     case 'flag': out.flags.add(t.name); break
     case 'all': { const inner = reads(t.c); for (const key of boundOf(t)) inner.vars.delete(key); for (const k of ['vars', 'maps', 'flags'] as const) for (const name of inner[k]) out[k].add(name); break }
     case 'not': reads(t.x, out); break
@@ -1022,6 +1050,10 @@ export function scope(m: Machine, laws: Law[] = []) {
   // (a count map is read as a map the request carries; a law reads the counts of the state, countsScope says which)
   const counts = Object.keys(m.counts ?? {}), carried = [...(m.inputMaps ?? []), ...counts]
   const names = [...m.params, ...m.inputs, ...state]
+  // Intrinsic reads are interpreted before ordinary maps/functions in BOTH
+  // runtimes. A declaration/write in this namespace must never impersonate one.
+  for (const name of [...maps, ...carried, ...fns]) if (name.startsWith('worddiv$'))
+    throw new Error('worddiv$ is reserved for compact integer-division helpers')
   distinct(m.name, [...names, ...maps, ...carried, ...fns])
   for (const name of [...names, ...maps, ...carried, ...fns, ...flags]) plainName(m.name, name)
   for (const name of Object.keys(m.step.state ?? {})) if (!state.includes(name)) throw new Error(`${m.name}'s step sets ${name}, which isn't in its state`)
@@ -1806,8 +1838,8 @@ export function stepLawObligations(machine: Machine, laws: Law[], instances: Ins
   for (const key of [sl.forall, ...(sl.keys ?? [])]) if (key && [...own, ...primes, ...later, ...names].includes(key)) throw new Error(`step law ${sl.name}'s key ${key} is already a name of ${m.name}`)
   if (sl.keys?.length && (!sl.forall || new Set([sl.forall, ...sl.keys]).size !== sl.keys.length + 1)) throw new Error(`step law ${sl.name}: further keys come with a first, each a different name`)
   unquantified(`step law ${sl.name}`, sl.then)
-  inScope(`step law ${sl.name}`, [sl.then], [...taken, ...state.map(n => `${n}'`), ...later, ...(sl.forall ? [sl.forall] : []), ...(sl.keys ?? [])], [...maps, ...carried, ...maps.map(n => `${n}'`), ...laterMaps], flagNames)
-  for (const w of whens) { unquantified(`step law ${sl.name}'s when`, w); inScope(`step law ${sl.name}'s when`, [w], taken, [...maps, ...carried], flagNames) }
+  inScope(`step law ${sl.name}`, [sl.then], [...taken, ...state.map(n => `${n}'`), ...later, ...(sl.forall ? [sl.forall] : []), ...(sl.keys ?? [])], [...maps, ...carried, ...maps.map(n => `${n}'`), ...laterMaps, ...Object.keys(m.fns ?? {})], flagNames)
+  for (const w of whens) { unquantified(`step law ${sl.name}'s when`, w); inScope(`step law ${sl.name}'s when`, [w], taken, [...maps, ...carried, ...Object.keys(m.fns ?? {})], flagNames) }
   if (!naturalC(sl.then) || !whens.every(naturalC)) throw new Error(`step law ${sl.name}: a negative constant or factor is outside the kernel`)
   const u = updateOf(m), assume = m.assume ? [inlineFlags(m, m.assume)] : []
   let run = given(m, holds(from(), preOf(m)), instances)

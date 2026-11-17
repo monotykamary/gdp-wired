@@ -17,6 +17,9 @@ import {searchNow as countedSearchNow} from './wall.ts'
 //
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
+import {FixedWord, fixedFailure, fixedSelect} from './fixed-integers.ts'
+import {captureFixed} from './fixed-division.ts'
+export {fixedInt, FixedWord, fixedFailure, fixedSelect} from './fixed-integers.ts'
 import {binder, copyVariable, encodeBinders, generatedVariable, guardReserved, internalName, plainDeclaration, variable} from './dsl-binders.ts'
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {proveCandidateSeeds} from './candidate-seeds.ts'
@@ -137,10 +140,12 @@ export function when<K extends string>(c: Cond, then: Choice<K>, otherwise: Choi
 export function when(c: Cond, then: Str, otherwise: Str | string): Str
 export function when(c: Cond, then: string, otherwise: Str): Str
 export function when<V>(c: Cond, then: Maybe<V>, otherwise: Maybe<V>): Maybe<V>
+export function when(c: Cond, then: FixedWord, otherwise: FixedWord): FixedWord
 export function when(c: Cond, then: Cond, otherwise: Cond): Cond
 export function when<C extends Cases, T extends string>(c: Cond, then: Variant<C, T>, otherwise: Variant<C, T>): Variant<C, T>
 export function when<T extends Record<string, unknown>>(c: Cond, then: T, otherwise: T): T
 export function when(c: Cond, then: unknown, otherwise: unknown): unknown {
+  if (then instanceof FixedWord && otherwise instanceof FixedWord) return fixedSelect(c, then, otherwise)
   if (then instanceof Cond && otherwise instanceof Cond) return choose(c, then, otherwise)
   if (then instanceof Variant && otherwise instanceof Variant) {
     if (then.kind.names.join() !== otherwise.kind.names.join()) throw new Error('when: variants of other cases')
@@ -180,6 +185,7 @@ const isRecord = (x: unknown): x is Record<string, unknown> => typeof x === 'obj
 // missing in both or present in both and the same, a variant in the same case with the same fields, a record field by
 // field.
 export function same(a: unknown, b: unknown): Cond {
+  if (a instanceof FixedWord && b instanceof FixedWord) return a.eq(b)
   if (a instanceof Cond && b instanceof Cond) return a.iff(b)
   if (a instanceof Choice && b instanceof Choice) return a.n.eq(b.n)
   if (a instanceof Str && b instanceof Str) return a.eq(b)
@@ -1674,7 +1680,7 @@ type Kinds = Record<string, Kind<unknown>>
 type ValuesOf<K extends Kinds> = {[n in keyof K]: K[n] extends Kind<infer V> ? V : never}
 type Obj = object
 // What a step may write to a state variable of each kind.
-type Writes<V> = V extends Decimal ? DecimalLike | string : V extends Int ? IntLike : V extends Cond ? Cond | boolean : V extends Choice<infer K> ? Choice<K> | K : V extends Maybe<infer W> ? Maybe<W> | Writes<W> | null : V extends Str ? Str | string : V extends Variant<infer C, infer T> ? Variant<C, T> | VariantWrite<C, T> : V extends Term ? TermLike : V extends Record<string, unknown> ? {[k in keyof V]: Writes<V[k]>} : TermLike
+type Writes<V> = V extends FixedWord ? FixedWord : V extends Decimal ? DecimalLike | string : V extends Int ? IntLike : V extends Cond ? Cond | boolean : V extends Choice<infer K> ? Choice<K> | K : V extends Maybe<infer W> ? Maybe<W> | Writes<W> | null : V extends Str ? Str | string : V extends Variant<infer C, infer T> ? Variant<C, T> | VariantWrite<C, T> : V extends Term ? TermLike : V extends Record<string, unknown> ? {[k in keyof V]: Writes<V[k]>} : TermLike
 type Update<S extends Obj, M extends Obj> = Partial<{[k in keyof S]: Writes<S[k]>} & {[k in keyof M]: M[k] extends CellsRef<unknown> | ItemsRef<unknown> ? PartsWrite : MapWrite}>
 let keyCounter = 0
 // The callbacks each law, step law and decision was built from, for crossCheck to run again on concrete values.
@@ -1796,7 +1802,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       if (typeof x === 'number' || typeof x === 'function') { entries.push([n, x as number | ((p: never) => TermLike)]); continue }
       const {kind, init: start} = x as Init<unknown>
       kinded.push([n, kind])
-      if (typeof start === 'function') { const parts = (p: never) => kind.store(n, (start as (p: never) => unknown)(p)); for (const part of kind.vars(n)) entries.push([part, p => parts(p)[part]!]) }
+      if (typeof start === 'function') { const parts = (p: never) => { const value = (start as (p: never) => unknown)(p); const stored = kind.store(n, value); if (Object.values(stored).some(t => { const f = fixedFailure(t); return f && f.ok !== false })) throw new Error(`primitive traps in initializer ${n} are not supported`); return stored }; for (const part of kind.vars(n)) entries.push([part, p => parts(p)[part]!]) }
       else { const enc = kind.encode(n, start); for (const part of kind.vars(n)) entries.push([part, enc[part]!]) }
     }
     return this.with({state: [...this.spec.state, ...entries], kinded: [...(this.spec.kinded ?? []), ...kinded]})
@@ -2205,7 +2211,25 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       placed()
       if (!(n in flags)) flags[n] = out
     }
-    const updates: Record<string, unknown> = {...s.step?.(env as never)}
+    const capturedFixed = captureFixed(() => s.step?.(env as never))
+    for (const [name, condition] of Object.entries(capturedFixed.flags)) {
+      if (name in env || Object.hasOwn(flags, name)) throw new Error(`${s.name}: fixed division flag collision ${name}`)
+      flags[name] = condition
+    }
+    const updates: Record<string, unknown> = {...capturedFixed.value}
+    // Preserve primitive effects before a kind flattens its value into natural limbs.
+    const primitiveFailures: C[] = [], seenPrimitive = new Set<object>(), seenFailure = new Set<C>()
+    const inspectPrimitive = (value: unknown): void => {
+      if (!value || typeof value !== 'object' || seenPrimitive.has(value)) return
+      seenPrimitive.add(value)
+      const failure = fixedFailure(value as FixedWord)
+      if (failure && !seenFailure.has(failure.c)) { seenFailure.add(failure.c); primitiveFailures.push(failure.c) }
+      if (Object.getPrototypeOf(value) === Object.prototype || Array.isArray(value)) Object.values(value).forEach(inspectPrimitive)
+    }
+    Object.values(updates).forEach(inspectPrimitive)
+    const primitiveFailure: C | undefined = primitiveFailures.length ? {op: 'or', xs: primitiveFailures} : undefined
+    if (primitiveFailure && (s.record || s.counts?.length || s.sums.length || s.ghost))
+      throw new Error(`${s.name}: primitive traps with history, counts, sums or ghosts are not yet supported`)
     // A kinded variable's update, as its variables' terms.
     for (const [n, k] of s.kinded ?? []) {
       const u = updates[n]
@@ -2221,6 +2245,15 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
         if (u.map !== n) throw new Error(`${s.name}: the step writes map ${u.map} under the name ${n}`)
         maps[n] = 'each' in u ? {each: u.each, value: hoist.term(u.value, [u.each])} : {key: hoist.term(u.key), value: hoist.term(u.value)}
       } else state[n] = hoist.term(termOf(u))
+    }
+    // A failure is retained as a stuttering branch for kernel obligations, not
+    // assumed away. Runtime evaluation throws before any scalar/map/history write.
+    if (primitiveFailure) {
+      for (const [name, value] of Object.entries(state)) state[name] = {op: 'if', c: primitiveFailure, then: variable(name), else: value}
+      for (const [name, write] of Object.entries(maps)) {
+        if ('each' in write) throw new Error(`${s.name}: primitive traps in per-key writes are not yet supported`)
+        maps[name] = {...write, value: {op: 'if', c: primitiveFailure, then: {op: 'get', map: name, key: write.key}, else: write.value}}
+      }
     }
     // An existential in a precondition or the assumption: a value the params or the request bring (a param or an input
     // the runtimes find, encodeParams and encodeInput), fresh for each existential and, for a request, each step.
@@ -2255,6 +2288,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     ]
     const m: Machine = {
       name: s.name, params, inputs,
+      ...(primitiveFailure ? {primitiveFailure} : {}),
       state: Object.fromEntries(s.state.map(([n, init]) => [n, typeof init === 'number' ? termOf(init) : termOf(init(pEnv as never))])),
       ...(s.maps.length ? {maps: Object.fromEntries(s.maps)} : {}),
       ...(s.carried?.length ? {inputMaps: s.carried} : {}),
@@ -3004,7 +3038,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
   return undefined
 }
 // The kernel's report as a verdict: its first goal left unproven, with its counterexample and why.
-export const verdictOf = (out: Report): Verdict => retainFrom(({proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}), [out])
+export const verdictOf = (out: Report): Verdict => retainFrom(({proven: out.proven && out.checked, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {}), ...(out.proven && !out.checked ? {stuck: 'unknown', why: 'kernel rejected the candidate proof'} : {})}), [out])
 const refutedVerdict = (out: NonNullable<ReturnType<typeof refuteByRuns>>): Verdict => ({proven: false, checked: false, goal: out.goal, stuck: 'sat', witness: out.witness, ...(out.run ? {run: out.run} : {})})
 // The divisors some laws read (modBy, divBy), noted on the rule so its machine declares them: a law may come from
 // another instance of the same rule (a factory called twice).

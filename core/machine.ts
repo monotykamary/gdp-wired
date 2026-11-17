@@ -8,6 +8,7 @@
 import {boundOf, crossFree, eachParts, finiteBound, finiteLawBound, historyMachine, tuple, keyTerm, mapArities, plainKey, scope, sumRuntime, tupleParts} from '../kernel/kernel.ts'
 import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
 import {runtimeWall} from './runtime-wall.ts'
+import {parseWordDivisionName, wordDivisionArgs, wordDivisionValue} from '../kernel/word-division.ts'
 import {traceNow} from './trace-clock.ts'
 import {coreMeter} from './meter.ts'
 import {observeEval} from './work-observe.ts'
@@ -74,6 +75,9 @@ export type C =
   // hold at every tuple of keys (`keys` the further ones), each read on its own and compared with another plainly
 
 export type Machine = {
+  // Fixed-width failures are observable exceptions, never excluded assumptions.
+  // Symbolic state updates include their rollback branch; runtimes throw before writes.
+  primitiveFailure?: C
   name: string
   params: string[]
   inputs: string[]
@@ -274,7 +278,7 @@ export function withArithmetic(m: Machine, more: readonly (E | C)[] = [], ks: It
   return {...m, fns: {...m.fns, ...fns}, facts: [...(m.facts ?? []), ...facts]}
 }
 // Every term and condition a machine holds.
-export const machineTerms = (m: Machine): (E | C)[] => [...Object.values(m.state), ...Object.values(m.step.flags ?? {}), ...Object.values(m.step.state ?? {}),
+export const machineTerms = (m: Machine): (E | C)[] => [...Object.values(m.state), ...(m.primitiveFailure ? [m.primitiveFailure] : []), ...Object.values(m.step.flags ?? {}), ...Object.values(m.step.state ?? {}),
   ...Object.values(m.step.maps ?? {}).flatMap(w => ('key' in w ? [w.key, w.value] : [w.value])), ...(m.pre ? [m.pre] : []), ...(m.assume ? [m.assume] : []),
   ...(m.facts ?? []).map(f => f.holds), ...(m.history ? [m.history.keep, ...Object.values(m.history.sums), ...Object.values(m.history.queries), ...(m.history.relations ?? []).flatMap(r => [r.when, r.holds])] : [])]
 
@@ -406,6 +410,12 @@ export function evalE(e: E, env: Env, st: State, m: Machine): number {
     case 'tup': return cpair(evalE(e.a, env, st, m), evalE(e.b, env, st, m))
     case 'proj': return cunpair(evalE(e.a, env, st, m))[e.k]
     case 'get': {
+      const intrinsic = parseWordDivisionName(e.map)
+      if (intrinsic) {
+        const args = wordDivisionArgs(e.key, intrinsic.width)
+        if (!args) throw new Error(`${e.map} needs a right-nested word division tuple key`)
+        return wordDivisionValue(intrinsic.width, intrinsic.part, intrinsic.index, args.map(a => evalE(a, env, st, m)))
+      }
       const fn = m.fns && Object.hasOwn(m.fns, e.map) ? m.fns[e.map] : undefined, args = fn?.call ? pairedArgs(e.key, fn.arity!) : undefined
       if (args) { const xs = args.map(a => evalE(a, env, st, m)); return naturalIn(callOf(fn!)(...xs), `${e.map}(${xs.join(', ')})`) }
       const key = evalE(e.key, env, st, m)
@@ -437,6 +447,12 @@ const directCall = (d: DirectFn): ((...args: number[]) => number) => {
       case 'max': return Math.max(value(e.a, env), value(e.b, env))
       case 'if': return condition(e.c, env) ? value(e.then, env) : value(e.else, env)
       case 'get': {
+        const intrinsic = parseWordDivisionName(e.map)
+        if (intrinsic) {
+          const args = wordDivisionArgs(e.key, intrinsic.width)
+          if (!args) throw new Error('invalid compact word-division argument tuple')
+          return wordDivisionValue(intrinsic.width, intrinsic.part, intrinsic.index, args.map(a => value(a, env)))
+        }
         const fn = d.uses[e.map]!, args = pairedArgs(e.key, fn.arity ?? 1)
         return args ? callOf(fn)(...args.map(a => value(a, env))) : fnOf(fn)(value(e.key, env))
       }
@@ -574,6 +590,7 @@ function compileENode(e: E, m: Machine): (env: Env, st: State) => number {
     case 'tup': { const a = compileE(e.a, m), b = compileE(e.b, m); return (env, st) => cpair(a(env, st), b(env, st)) }
     case 'proj': { const a = compileE(e.a, m), k = e.k; return (env, st) => cunpair(a(env, st))[k] }
     case 'get': {
+      if (parseWordDivisionName(e.map)) return (env, st) => evalE(e, env, st, m)
       const map = e.map, key = compileE(e.key, m)
       return (env, st) => {
         const fn = m.fns?.[map]
@@ -836,6 +853,9 @@ export function interpret(m: Machine, checkpoint?: () => void) {
       if (m.leasts) Object.assign(env, leastsIn(m, env, st))
       for (const [name, c] of Object.entries(plain.step.flags ?? {})) env[`?${name}`] = evalC(c, env, st, plain) ? 1 : 0
       if (m.assume && !evalC(m.assume, env, st, plain)) throw new RangeError(refused(m))
+      if (plain.primitiveFailure && evalC(plain.primitiveFailure, env, st, plain)) {
+        const error = new RangeError(`${m.name}: fixed-width primitive failed`); error.name = 'PrimitiveFailure'; throw error
+      }
       const scalars = {...st.scalars}
       for (const [name, e] of Object.entries(plain.step.state ?? {})) scalars[name] = evalE(e, env, st, plain)
       const writes = Object.entries(plain.step.maps ?? {}).map(([name, w]) => [name, 'each' in w ? writeEvery(w, env, st, plain, arity[name] ?? 1, name) : {key: evalE(w.key, env, st, plain), value: evalE(w.value, env, st, plain)}] as const)
@@ -933,6 +953,12 @@ function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): 
       case 'tup': return `$p(${ex(e.a)}, ${ex(e.b)})`
       case 'proj': return `$u(${ex(e.a)})[${e.k}]`
       case 'get': {
+        const intrinsic = parseWordDivisionName(e.map)
+        if (intrinsic) {
+          const args = wordDivisionArgs(e.key, intrinsic.width)
+          if (!args) throw new Error(`${e.map} needs a right-nested word division tuple key`)
+          return `$wordDivisionValue(${intrinsic.width}, ${id(intrinsic.part)}, ${intrinsic.index}, [${args.map(ex).join(', ')}])`
+        }
         const fn = m.fns && Object.hasOwn(m.fns, e.map) ? m.fns[e.map] : undefined, args = fn?.call ? pairedArgs(e.key, fn.arity!) : undefined
         if (args) return `$n(fnc${fns.indexOf(e.map)}(${args.map(ex).join(', ')}), ${id(`${e.map}()`)})`
         return fns.includes(e.map) ? `$n(fn${fns.indexOf(e.map)}(${ex(e.key)}), ${id(`${e.map}()`)})` : `(maps[${id(e.map)}].get(${ex(e.key)}) ?? ${carriedMaps.includes(e.map) ? '0' : `dft[${id(e.map)}] ?? ${plain.maps![e.map]}`})`
@@ -1031,6 +1057,7 @@ function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): 
   lines.push(...flags.map((name, i) => `const flag${i} = ${cx(plain.step.flags![name]!)};`),
     // The rule's own assumption, as `allowed` (core/watch.ts) reads it (a history's machine assumes more: its relations).
     ...(m.assume ? [`if (!${cx(m.assume)}) throw new RangeError(${id(refused(m))});`] : []),
+    ...(plain.primitiveFailure ? [`if (${cx(plain.primitiveFailure)}) { const e = new RangeError(${id(`${m.name}: fixed-width primitive failed`)}); e.name = "PrimitiveFailure"; throw e; }`] : []),
     `const scalars = {...s, ${Object.entries(plain.step.state ?? {}).map(([name, e]) => `${id(name)}: ${ex(e)}`).join(', ')}};`,
     ...[...sharedBreaks].map(([text, bk]) => `const ${bk} = ${breaksJs(JSON.parse(text) as Breaks)};`),
     ...writes.map(([name, w], i) => ('each' in w ? `const write${i} = ${every(w, sharedOf(name))};` : `const key${i} = ${ex(w.key)}, value${i} = ${ex(w.value)};`)))
@@ -1073,7 +1100,8 @@ export function step(params, state, input${hasFinite(plain) ? ', $finite = () =>
 }
 `
   return `// Generated from the machine ${m.name}. step consumes its state: keep the one it returns (fork to branch).
-${runtimeFor(fnDefs + code)}${fnDefs}${code}`
+${runtimeFor(fnDefs + code)}const $wordDivisionValue = ${wordDivisionValue.toString()};
+${fnDefs}${code}`
 }
 
 // Generated code as a function. Every caller passes source this library generated from its own terms, or a function's

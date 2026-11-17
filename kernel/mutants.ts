@@ -20,7 +20,8 @@ const targets: {file: string, only?: string[]}[] = [{file: 'kernel/kernel.ts'}, 
   'callsIn', 'recursion', 'measurable', 'sized', 'measureOf', 'sizeX', 'measureX', 'readsInt', 'iMax0', 'measureI', 'lexY', 'isIntX', 'padded',
   'callSites', 'sitesOf', 'shapedBy', 'ownArgs', 'lowerY', 'obligation', 'valueVar', 'invAt', 'checkInv', 'lifted', 'keeps', 'directly', 'proveMeasures',
   'proveMeasuresIn', 'ringSites', 'checkMeasures', 'termination']},
-  {file: 'kernel/cyclic.ts'}, {file: 'core/solver.ts', only: ['v', 'k', 'add', 'scale', 'sub']}]
+  {file: 'kernel/cyclic.ts'}, {file: 'core/solver.ts', only: ['v', 'k', 'add', 'scale', 'sub']},
+  {file: 'kernel/integer-primitives.ts'}]
 // [pattern, replacement]: binary operators keep their spaces, so generics and arrows aren't touched.
 const operators: [RegExp, string][] = [
   [/ <= /g, ' < '], [/ < /g, ' <= '], [/ >= /g, ' > '], [/ > /g, ' >= '],
@@ -56,6 +57,52 @@ const tupleOps: [RegExp, string][] = [
   [/ \|\| ch === '⟨'/g, ''], [/ \|\| ch === '⟩'/g, ''], [/⟨⟩\|\]/g, ']'], [/!sameKey\(/g, 'sameKey('], [/!keyTerm\(part, key\)/g, 'keyTerm(part, key)'],
   [/keyTerm\(p, key\) && other\(p\)/g, 'keyTerm(p, key)'], [/e\.b\.op !== 'tup'/g, "e.b.op === 'proj'"], [/keyParts\(key, new Map\(\)\)\?\.length \?\? /g, ''],
 ]
+// Append integer mutants after the tuple-site pass: all pre-existing numeric IDs stay stable.
+// Each edit changes one semantic guard/operation, not comments or the independent test oracle.
+// Literal semantic edits: do NOT use unescaped regex metacharacters here.
+// The pre-existing kernel IDs remain unchanged; these are appended after them.
+const literalPattern = (source: string): RegExp => {
+  const meta = '[](){}.*+?^$|' + String.fromCharCode(92)
+  return new RegExp(source.split('').map(c => meta.includes(c) ? String.fromCharCode(92) + c : c).join(''), 'g')
+}
+const integerEdits: [string, string][] = [
+  ['[8, 16, 32, 64]', '[8, 16, 32]'],
+  ["typeof a !== 'bigint'", "typeof a === 'number'"],
+  ["typeof b !== 'bigint'", "typeof b === 'number'"],
+  ['raw = a + b!', 'raw = a - b!'], ['raw = a - b!', 'raw = a + b!'], ['raw = a * b!', 'raw = a + b!'],
+  ['raw = -a', 'raw = a'], ['raw = a; break', 'raw = -a; break'],
+  ['if (b === 0n)', 'if (b === 1n)'],
+  ["spec.division === 'FLOOR'", "spec.division === 'TRUNCATING'"],
+  ["spec.division === 'EUCLIDEAN'", "spec.division === 'TRUNCATING'"],
+  ['q -= 1n', 'q += 1n'], ['r += b!', 'r -= b!'], ['q -= sign', 'q += sign'], ['r += b! * sign', 'r -= b! * sign'],
+  ["spec.operation === 'rem' && spec.overflow === 'TRAP'", "spec.operation === 'div' && spec.overflow === 'TRAP'"],
+  ['raw >= min && raw <= max', 'raw > min && raw < max'],
+  ["spec.overflow === 'TRAP'", "spec.overflow === 'WRAP'"],
+  ["spec.overflow === 'SATURATE'", "spec.overflow === 'WRAP'"],
+  ['raw < min ? min : max', 'raw < min ? max : min'],
+  ['unsigned >= (modulus >> 1n)', 'unsigned > (modulus >> 1n)'],
+  ['raw === q * m + u', 'raw === q * m - u'],
+  ['u >= 0n && u < m', 'u > 0n && u <= m'],
+  ['y >= lo && y <= hi', 'y > lo && y < hi'],
+]
+const integerOps: [RegExp, string][] = integerEdits.map(([from, to]) => [literalPattern(from), to])
+
+const wordEdits: [string, string][] = [
+  ['const q = b === 0n ? 0n : a / b', 'const q = b === 0n ? 0n : a % b'],
+  ['const r = b === 0n ? 0n : a % b', 'const r = b === 0n ? 0n : a / b'],
+  ['digits.push(BigInt(value) % base)', 'digits.push(BigInt(value) / base)'],
+  ['power *= base', 'power += base'],
+  ['carry = total / base', 'carry = total % base'],
+  ['constant(n * base)', 'constant(n)'],
+  ['lt(x, constant(base))', 'le(x, constant(base))'],
+  ['either(b.map(x => lt(constant(0), x)))', 'either(b.map(x => le(constant(0), x)))'],
+  ["{op: 'mul', k: base, a: c[i + 1]!}", "{op: 'mul', k: base + 1, a: c[i + 1]!}"],
+  ['guarded(eq(c[2 * n]!, constant(0)))', 'guarded(eq(c[2 * n]!, constant(1)))'],
+  ['digitLex(r, b, true)', 'digitLex(b, r, true)'],
+  ['digitLex(q, a, false)', 'digitLex(a, q, false)'],
+]
+const wordOps: [RegExp, string][] = wordEdits.map(([from, to]) => [literalPattern(from), to])
+
 type Mutant = {id: number, file: string, line: number, from: string, to: string, at: number, length: number}
 
 export function mutants(): Mutant[] {
@@ -72,8 +119,10 @@ export function mutants(): Mutant[] {
       offset += line.length + 1
     }
   }
-  for (const {file, only} of targets) scan(file, only, f => [...operators, ...own[f] ?? [], ...named])
+  for (const {file, only} of targets) if (file !== 'kernel/integer-primitives.ts') scan(file, only, f => [...operators, ...own[f] ?? [], ...named])
   scan(tupleSites.file, tupleSites.only, () => tupleOps)
+  scan('kernel/integer-primitives.ts', undefined, () => integerOps)
+  scan('kernel/word-division.ts', undefined, () => wordOps)
   return out
 }
 
@@ -128,6 +177,8 @@ const battery: {name: string, cwd: string, cmd: string[], env?: Record<string, s
   // for its mutants alone)
   {name: 'termination', cwd: 'core', cmd: ['bun', 'test', 'data.test.ts', '-t', 'terminat|structural|well-founded|ring|measure|weighted|paths'], ms: 400_000},
   {name: 'cycles', cwd: 'core', cmd: ['bun', 'test', 'cycles.test.ts'], ms: 400_000},
+  {name: 'integer primitives', cwd: 'kernel', cmd: ['bun', 'test', 'integer-primitives.test.ts', 'integer-primitives-fuzz.test.ts'], ms: 120_000},
+  {name: 'word division', cwd: 'kernel', cmd: ['bun', 'test', 'word-division.test.ts', '-t', 'samples|scope|invalid|parser'], ms: 120_000},
   {name: 'kernel fuzz', cwd: 'kernel', cmd: ['bun', 'test', 'kernel.test.ts'], env: {FUZZ_SCALE: '0.5'}, ms: 400_000},
 ]
 // MUTANT_BATTERY=a,b: only those tests (by name), for a run over one check's mutants.
