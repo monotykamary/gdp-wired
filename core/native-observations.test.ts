@@ -70,4 +70,7 @@ test('foreign structural equality is refused instead of evaluated as JS identity
   const row = {...observation(), nativeEquality: 'scalar' as const, after: {a: {}, b: {}, n: 1}}
   expect(() => evaluate('a != b', row)).toThrow('foreign container equality')
   expect(evaluate('n == 1', row)).toBe(true)
+  expect(evaluate('a != nil and nil != b', row)).toBe(true)
+  expect(evaluate('a == nil or nil == b', row)).toBe(false)
+  expect(evaluate('empty == nil and nil == empty', {...row, after: {...row.after as object, empty: null}})).toBe(true)
 })

@@ -35,7 +35,12 @@ export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) =>
   return observation => {
     const locals = new Map<string, unknown>()
     const scalarKey = (key: unknown) => { if (observation.nativeEquality === 'scalar' && object(key)) unsupported('foreign container equality or object keys') }
-    const same = (a: unknown, b: unknown) => { scalarKey(a); scalarKey(b); return equal(a, b) }
+    const absent = (value: unknown) => value === NONE || value === null || value === undefined
+    const same = (a: unknown, b: unknown) => {
+      // Nil presence does not compare container contents or identities.
+      if (!absent(a) && !absent(b)) { scalarKey(a); scalarKey(b) }
+      return equal(a, b)
+    }
     const at = (container: unknown, key: unknown) => { scalarKey(key); return get(container, key) }
     const contains = (container: unknown, key: unknown) => { scalarKey(key); return has(container, key) }
     const observedReading = (e: X & {k: 'path'}, state: unknown): {value: unknown, consumed: number} | undefined => {
