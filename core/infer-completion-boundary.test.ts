@@ -1,6 +1,9 @@
 // Internal result-construction diagnostics. All instrumentation is confined to
 // a temporary worker copy. Real checked proofs/runs are never fabricated. The
 // single failed-candidate injection tests diagnostic context only, explicitly.
+// Only the copied watchdog clock is controlled: kernel work, proof checking and
+// replay remain real. The clock advances at the requested boundary, not while
+// an expensive but unfinished inference is still searching.
 import {expect, test} from 'bun:test'
 import {spawnSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
@@ -20,14 +23,14 @@ test('completed inference survives owned internal bookkeeping stops, not ancesto
     for (const dir of ['node_modules', 'vendor']) symlinkSync(join(repo, dir), join(worker, dir))
     mkdirSync(join(worker, 'examples')); cpSync(join(repo, 'examples/infer.ts'), join(worker, 'examples/infer.ts'))
     cpSync(join(repo, 'package.json'), join(worker, 'package.json'))
-    const changes: {path: string, before: string, after: string, anchor: string, inserted: string, beforeAnchor: boolean}[] = []
+    const changes: {path: string, before: string, after: string, anchor: string, inserted: string, beforeAnchor: boolean, replacement?: boolean}[] = []
     const inject = (path: string, anchor: string, inserted: string, beforeAnchor = false) => {
       const file = join(worker, path), before = readFileSync(file, 'utf8')
       expect(before.split(anchor).length, `unique diagnostic anchor: ${path}`).toBe(2)
       const after = before.replace(anchor, beforeAnchor ? inserted + anchor : anchor + inserted); writeFileSync(file, after)
       changes.push({path, before: digest(before), after: digest(after), anchor, inserted, beforeAnchor})
     }
-    inject('core/search-watchdog.ts', '  if (ms !== undefined) watchdogEnd = Math.min(outer, performance.now() + ms)', '\n  if (ms !== undefined) (globalThis as any).__inferDeadline?.({domain: "real", end: watchdogEnd})')
+    inject('core/search-watchdog.ts', '  if (ms !== undefined) watchdogEnd = Math.min(outer, performance.now() + ms)', '\n  if (ms !== undefined) (globalThis as any).__inferDeadline?.({domain: "controlled-watchdog", end: watchdogEnd})')
     inject('core/search-watchdog.ts', "export function checkWatchdog(phase: string): void {", '\n  ;(globalThis as any).__inferWatchdogPoll?.(phase, watchdogEnd)')
     inject('core/search-watchdog.ts', '    const out = run()', '\n    ;(globalThis as any).__inferAfterCallback?.(out, ms)')
     inject('core/infer.ts', '  observed.context = () => searchContext(first)', '\n  ;(globalThis as any).__inferFirst?.(first)')
@@ -38,6 +41,14 @@ test('completed inference survives owned internal bookkeeping stops, not ancesto
     inject('core/infer.ts', "  trace('end', {proven: true, stopped: stop(), found: chosen.map(f => textOf(f)).join('; ')})", '  ;(globalThis as any).__inferBoundary?.("final", observed.completed ?? last)\n', true)
     inject('core/infer.ts', '    return verdict\n  }\n  const completedStats', '    if (verdict.proven && verdict.checked && laws.every(law => ls.includes(law))) (globalThis as any).__inferBoundary?.("engine-progress", observed.completed ?? verdict)\n', true)
     inject('core/infer.ts', '      observed.last ??= observed.snapshot?.(); observed.lastContext ??= observed.context?.()', '\n      ;(globalThis as any).__inferInterruption?.({resultAssigned: result !== undefined, error: (error as Error).name})')
+    const replaceInCopy = (path: string, anchor: string, replacement: string) => {
+      const file = join(worker, path), before = readFileSync(file, 'utf8')
+      expect(before.split(anchor).length, `unique clock anchor: ${path}`).toBe(2)
+      const after = before.replace(anchor, replacement); writeFileSync(file, after)
+      changes.push({path, before: digest(before), after: digest(after), anchor, inserted: replacement, beforeAnchor: false, replacement: true})
+    }
+    replaceInCopy('core/search-watchdog.ts', 'Math.min(outer, performance.now() + ms)', 'Math.min(outer, (globalThis as any).__inferClock() + ms)')
+    replaceInCopy('core/search-watchdog.ts', 'performance.now() >= watchdogEnd', '(globalThis as any).__inferClock() >= watchdogEnd')
     const runner = `
 import {writeFileSync} from 'node:fs';
 import {rule,proveRule} from './core/dsl.ts';
@@ -48,19 +59,20 @@ import {checkWatchdog,withSearchWatchdog} from './core/search-watchdog.ts';
 import {proofOutput,publishProof} from './core/proof-output.ts';
 import {toInterchange} from './interchange/format.ts';
 import {checkDocument} from './interchange/check.ts';
-const mode=process.env.INFER_BOUNDARY_MODE, receipt={mode,events:[],polls:[],interruptions:[],diagnosticOnly:mode==='context'};
-let deadline, expired=false;
+const mode=process.env.INFER_BOUNDARY_MODE, receipt={mode,events:[],polls:[],interruptions:[],diagnosticOnly:mode==='context',clock:'controlled-watchdog-only'};
+let deadline, expired=false, watchdogClock=0;
+globalThis.__inferClock=()=>watchdogClock;
 globalThis.__inferDeadline=d=>{deadline=d;};
 globalThis.__inferWatchdogPoll=(phase,end)=>{if(expired)receipt.polls.push({phase,end});};
 globalThis.__inferFirst=first=>{receipt.first={proven:first.proven,checked:first.checked,goal:first.goal,stuck:first.stuck,witness:first.witness,run:first.run};};
 globalThis.__inferInterruption=e=>receipt.interruptions.push(e);
 const expire=point=>{
  if(expired)return;
- if(!deadline||deadline.domain!=='real'||!Number.isFinite(deadline.end))throw Error('missing captured real endpoint');
- const delay=Math.max(0,deadline.end-performance.now()+5);
- if(delay>6000)throw Error('diagnostic pause exceeds bound');
- receipt.events.push({point,deadline,delay});
- Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,delay);expired=true;
+ if(!deadline||deadline.domain!=='controlled-watchdog'||!Number.isFinite(deadline.end))throw Error('missing captured watchdog endpoint');
+ const advance=Math.max(0,deadline.end-watchdogClock+1);
+ if(advance>6000)throw Error('diagnostic clock advance exceeds bound');
+ const clockBefore=watchdogClock;watchdogClock+=advance;
+ receipt.events.push({point,deadline,clockBefore,clockAfter:watchdogClock});expired=true;
 };
 globalThis.__inferAfterCallback=(out,ms)=>{
  if(mode!=='ancestor-work'||ms!==5000||expired)return;
@@ -139,6 +151,7 @@ finally{proofOutput.on=undefined;receipt.childReturned=childReturned;writeFileSy
       const child = spawnSync(process.execPath, [join(worker, 'boundary.ts')], {cwd: worker, env: {...env, INFER_BOUNDARY_MODE: mode, INFER_BOUNDARY_RESULT: file}, encoding: 'utf8', timeout: 45000})
       expect(child.status, child.stderr).toBe(0)
       const receipt = JSON.parse(readFileSync(file, 'utf8'))
+      expect(receipt.clock).toBe('controlled-watchdog-only')
       if (artifacts) writeFileSync(join(artifacts, `${mode}.json`), JSON.stringify(receipt, null, 2))
       if (mode === 'ancestor') {
         expect(receipt.boundary?.point).toBe('first'); expect(receipt.error?.name).toBe('WatchdogExpired')
