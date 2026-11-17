@@ -88,8 +88,15 @@ test('native bindings: defaults and destructuring are captured after JS binds th
 test('native bindings survive a factory closure snapshot helper', () => {
   const box = sandbox('export function decide(flag: boolean) { return flag; } export function $get() { return {}; }', 'closure.ts', ['decide', '$get'], {}, undefined, {}, [], ['decide'])
   expect(box.call('decide', undefined, [true]).ok).toBe(true)
-  expect(box.call('$get', undefined, []).ok).toBe(true)
+  const request = box.observations().invocation
+  // A factory snapshot is explicitly bookkeeping, not a new native request.
+  expect(box.call('$get', undefined, [], true).ok).toBe(true)
   expect(box.bindings('decide')).toEqual({flag: true})
+  expect(box.observations().invocation).toBe(request)
+  // The ordinary-call path must still invalidate stale bindings.
+  expect(box.call('$get', undefined, []).ok).toBe(true)
+  expect(box.bindings('decide')).toBeUndefined()
+  expect(box.observations().invocation).toBe(request + 1)
 })
 
 test('native capture closes a final arrow before injected factory fields at the same offset', () => {
