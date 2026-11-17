@@ -1099,6 +1099,24 @@ const native = (x: X, name: string, expr: string, method?: string) => {
 }
 const step = (x: X, name: string, then: (b: A, a: A) => A, when?: (b: A) => A) => proveSteps(x.rule as A, x.invariants ?? [], [(x.rule as A).stepLaw(name, then, when)])
 
+// Nonzero translationChecks does not show that this rare antecedent was seen.
+// One reachable native run must traverse the actual 255 -> 0 wrap.
+t('Rust native lap observes its 255 antecedent rather than passing vacuously', () => {
+  const x = ok(extractRust(DIR, {entry: 'Budget', methods: ['lap'], failures: 'kept',
+    check: {runs: 1, depth: 256, states: 0, probes: false}}))
+  expect(x.evidence!.requests).toBe(256)
+  native(x, 'reachable native lap wraps', 'old(laps) == 255 implies laps == 0', 'lap')
+  const bad = buildLaw(x, {name: 'lap wrap non-vacuity', expr: 'old(laps) == 255 implies laps != 0', method: 'lap'})
+  if (bad.kind !== 'step') throw new Error('expected a step law')
+  // Keep the native reading false at the wrap while making its symbolic IR true.
+  bad.law.then = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
+  const rejected = proveSteps(x.rule!, x.invariants ?? [], [bad.law], {search: false})
+  expect(rejected).toMatchObject({
+    proven: false, checked: false, kernelProven: true, translation: 'error',
+    translationWitness: {method: 'lap', before: {laps: 255}, after: {laps: 0}},
+  })
+}, 120_000)
+
 t('integers of a width: + traps past it (the failure), wrapping_add wraps, checked_add is an Option', () => {
   const x = ok(extractRust(DIR, {entry: 'Budget', methods: ['spend', 'lap', 'try_spend', 'mark'], failures: 'kept', check: budget}))
   expect(x.notes.join('\n')).toMatch(/past u8's range \(a panic/)
