@@ -6,7 +6,7 @@
 // Skipped where no JDK (Java) or no kotlinc (Kotlin) is installed.
 import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
-import {mkdirSync, mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
+import {appendFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {proveRule, proveSteps} from './dsl.ts'
 import {type JvmOptions, extractJava, extractKotlin} from './extract-jvm.ts'
@@ -42,9 +42,11 @@ type R = {stepLaw: (n: string, t: unknown, w: unknown) => never, law: (n: string
 // Exact callback proofs are retained as checked model evidence, never passed off as
 // source proofs. Each positive also requires its equivalent registered native law.
 const modelOnly = {kernelProven: true, proven: false, checked: false, translation: 'unchecked', why: 'source translation unchecked: a source proof contains a law with no native interpretation'}
-const native = (v: ReturnType<typeof proveSteps>) => {
+const native = (v: ReturnType<typeof proveSteps>, name: string) => {
   expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
   expect(v.translationChecks).toBeGreaterThan(0)
+  const out = process.env.SUPERCOMPUTER_OUTPUT_DIR
+  if (out) appendFileSync(`${out}/jvm-native-verdicts.jsonl`, `${JSON.stringify({name, proven: v.proven, checked: v.checked, translation: v.translation, translationChecks: v.translationChecks})}\n`)
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const step = (x: X, name: string, then: (b: any, a: any) => any, when: (b: any) => any, expr: string, method?: string) => {
@@ -52,7 +54,7 @@ const step = (x: X, name: string, then: (b: any, a: any) => any, when: (b: any) 
   expect(proveSteps(r as never, x.invariants ?? [], [r.stepLaw(name, then, when)])).toMatchObject(modelOnly)
   const built = buildLaw(x, {name, expr, ...(method ? {method} : {})})
   expect(built.kind).toBe('step')
-  native(proveSteps(r as never, x.invariants ?? [], [built.law]))
+  native(proveSteps(r as never, x.invariants ?? [], [built.law]), name)
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const inv = (x: X, name: string, holds: (s: any) => any) => proveRule(x.rule! as never, [...(x.invariants ?? []), (x.rule! as never as R).law(name, holds)])
@@ -61,7 +63,7 @@ const nativeInv = (x: X, name: string, holds: (s: any) => any, expr: string) => 
   expect(inv(x, name, holds)).toMatchObject(modelOnly)
   const built = buildLaw(x, {name, expr})
   expect(built.kind).toBe('law')
-  native(proveRule(x.rule!, [...x.invariants ?? [], built.law]))
+  native(proveRule(x.rule!, [...x.invariants ?? [], built.law]), name)
 }
 
 tj('constructor signatures preserve same-arity delegation and keep single extraction scoped', () => {

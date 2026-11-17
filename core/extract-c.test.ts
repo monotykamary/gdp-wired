@@ -4,7 +4,7 @@
 // a stated failure, assert and abort, a switch's fallthrough, ?: and an enum, and the refusals. Skipped without clang.
 import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
-import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
+import {appendFileSync, mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {proveRule, proveSteps} from './dsl.ts'
 import {type COptions, extractC, extractCpp} from './extract-c.ts'
@@ -30,23 +30,25 @@ type A = any
 // A callback retains its exact checked model proof, never a native-source claim.
 // Every callback below has an equivalent registered law evaluated on real native observations.
 const modelOnly = {kernelProven: true, proven: false, checked: false, translation: 'unchecked', why: 'source translation unchecked: a source proof contains a law with no native interpretation'}
-const native = (v: ReturnType<typeof proveSteps>) => {
+const native = (v: ReturnType<typeof proveSteps>, name?: string) => {
   expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
   expect(v.translationChecks).toBeGreaterThan(0)
+  const out = process.env.SUPERCOMPUTER_OUTPUT_DIR
+  if (out) appendFileSync(`${out}/c-native-verdicts.jsonl`, `${JSON.stringify({name, proven: v.proven, checked: v.checked, translation: v.translation, translationChecks: v.translationChecks})}\n`)
 }
 const step = (x: X, name: string, then: (b: A, a: A) => A, when: (b: A) => A, expr: string, method?: string) => {
   const r = x.rule as A
   expect(proveSteps(r, x.invariants ?? [], [r.stepLaw(name, then, when)])).toMatchObject(modelOnly)
   const built = buildLaw(x, {name, expr, ...(method ? {method} : {})})
   expect(built.kind).toBe('step')
-  native(proveSteps(r, x.invariants ?? [], [built.law]))
+  native(proveSteps(r, x.invariants ?? [], [built.law]), name)
 }
 const inv = (x: X, name: string, holds: (s: A) => A, expr: string) => {
   const r = x.rule as A
   expect(proveRule(r, [...x.invariants ?? [], r.law(name, holds)])).toMatchObject(modelOnly)
   const built = buildLaw(x, {name, expr})
   expect(built.kind).toBe('law')
-  native(proveRule(r, [...x.invariants ?? [], built.law]))
+  native(proveRule(r, [...x.invariants ?? [], built.law]), name)
 }
 
 t('unsigned arithmetic wraps; a narrow one is promoted and converted back', () => {
@@ -304,8 +306,8 @@ void init(struct io *s) { s->flags |= F_INIT; }
 `, 'io'))
   // (a law's bit tests, as the CLI reads them: an invariant through the rule's functions, a step's through keys)
   const law = (name: string, expr: string, method?: string) => buildLaw(x, {name, expr, ...(method ? {method} : {})}).law
-  native(proveSteps(x.rule as A, x.invariants ?? [], [law('ok follows the request', '(flags & 0x10) != 0 or ok == 0', 'tick')]))
-  native(proveRule(x.rule as A, [...x.invariants!, law('init is never cleared once set', '(flags & 1) == 0 or (flags & 1) == 1')]))
+  native(proveSteps(x.rule as A, x.invariants ?? [], [law('ok follows the request', '(flags & 0x10) != 0 or ok == 0', 'tick')]), 'ok follows the request')
+  native(proveRule(x.rule as A, [...x.invariants!, law('init is never cleared once set', '(flags & 1) == 0 or (flags & 1) == 1')]), 'init is never cleared once set')
 }, 120_000)
 
 t('native C laws use real nested fields, arrays and arguments captured before local reassignment', () => {
@@ -321,7 +323,7 @@ void put(struct capture *s, uint8_t x) {
   const x = ok(c(code, 'capture'))
   const make = (read: X, expr: string) => buildLaw(read, {name: 'the original x is stored', expr, method: 'put'}).law
   const expr = 'old(head) < 4 implies buf[old(head)] == x and sub.value == x'
-  native(proveSteps(x.rule!, x.invariants ?? [], [make(x, expr)]))
+  native(proveSteps(x.rule!, x.invariants ?? [], [make(x, expr)]), 'nested fields/array/pre-call argument native control')
   // Deliberately corrupt only the untrusted lowering. Real native observations
   // must reject its false source equation despite the kernel's tautology proof.
   const faulty = make(x, 'old(head) < 4 implies sub.value == x + 1')
@@ -330,6 +332,8 @@ void put(struct capture *s, uint8_t x) {
   expect(rejected).toMatchObject({proven: false, checked: false, kernelProven: true, translation: 'error', stuck: 'translation-error'})
   expect(rejected.translationWitness?.after).toHaveProperty('sub.value')
   expect(typeof rejected.translationWitness?.bindings.x).toBe('number')
+  const out = process.env.SUPERCOMPUTER_OUTPUT_DIR
+  if (out) writeFileSync(`${out}/c-native-tamper-witness.json`, JSON.stringify({translation: rejected.translation, kernelProven: rejected.kernelProven, witness: rejected.translationWitness, evidence: x.evidence}, null, 2))
   const disabled = c(code, 'capture', {check: {runs: 0, states: 0, probes: false}})
   expect(disabled.ok).toBe(true)
   expect(proveSteps(disabled.rule!, disabled.invariants ?? [], [make(disabled, expr)], {search: false})).toMatchObject({
