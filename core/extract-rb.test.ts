@@ -207,7 +207,7 @@ end
   // Identical original call path, distinct method-scoped symbolic raise inputs.
   // Both native companions below must resolve their own input, never the first.
   const raises = x.names!.filter(n => n.code === 'Remote.ping.raises')
-  expect(raises.map(n => n.method).sort()).toEqual(['hit', 'soft'])
+  expect(raises.map(n => n.method).sort((a, b) => (a ?? '').localeCompare(b ?? ''))).toEqual(['hit', 'soft'])
   expect(new Set(raises.map(n => n.rule)).size).toBe(2)
   step(x, 'errors only where ping raised a StandardError', (b, a) => a.errors.gt(b.errors).implies(b.ping_raises.is('StandardError')), b => b.method.is('hit'))
   step(x, 'never past its cap but by a raise', (b, a) => a.n.gt(b.n).implies(b.cap_.gt(b.n)), () => yes)

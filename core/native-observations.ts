@@ -13,7 +13,7 @@ const record = (value: unknown): value is Record<string, unknown> =>
 export function validateNativeObservations(value: unknown, allowedCalls: ReadonlySet<string>): NativeExecutionObservation {
   if (!record(value) || !Number.isSafeInteger(value.invocation) || (value.invocation as number) <= 0 || !record(value.calls))
     throw new Error('native observation invocation/calls unavailable')
-  if (value.error !== undefined && value.error !== null) throw new Error(`native observation unavailable: ${String(value.error)}`)
+  if (value.error !== undefined && value.error !== null) throw new Error(`native observation unavailable: ${typeof value.error === 'string' ? value.error : 'invalid non-string error payload'}`)
   if (value.clock !== undefined && (typeof value.clock !== 'number' || !Number.isSafeInteger(value.clock)))
     throw new Error('native observed clock is outside the exact integer range')
   for (const [key, call] of Object.entries(value.calls)) {

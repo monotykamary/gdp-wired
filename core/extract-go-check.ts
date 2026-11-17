@@ -575,7 +575,7 @@ export function speak(work: string, bin: string, env: Record<string, string | un
       },
       ...(capabilities.nativeSnapshot === 1 && decode ? {nativeState: (self: unknown) => {
         const res = ask({op: 'native', id: self})
-        if (res.error) throw new Error(`native snapshot: ${String(res.error)}`)
+        if (res.error !== undefined && res.error !== null) throw new Error(`native snapshot: ${typeof res.error === 'string' ? res.error : 'invalid non-string error payload'}`)
         return decode(res.snapshot)
       }} : {}),
       ...(capabilities.nativeBindings === 1 && decode ? {nativeBindings: () => {
