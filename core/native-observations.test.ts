@@ -37,6 +37,23 @@ test('native readings remain method-scoped and cannot rename another call into t
   expect(() => evaluate('Quota.ttl(...) == 6', observation(), [{code: 'Quota.ttl', key: 'Quota.ttl', kind: 'answer', method: 'other'}])).toThrow()
   expect(() => evaluate('ttl(...) == 6', observation(), [...readings, {code: 'Other.ttl', key: 'Other.ttl', kind: 'answer'}])).toThrow('ambiguous')
 })
+test('external suffix aliases do not shadow reserved results, constants or the primary method', () => {
+  const aliases: NativeReading[] = ['result', 'failed', 'method', 'limit', 'grant'].map(name => ({code: `Provider.${name}`, key: `Provider.${name}`, kind: 'answer'}))
+  const row: NativeObservation = {...observation(), result: 41, failed: true, observed: {invocation: 1, calls: {
+    'Provider.result': {kind: 'returned', value: -1}, 'Provider.failed': {kind: 'returned', value: false},
+    'Provider.method': {kind: 'returned', value: 'other'}, 'Provider.limit': {kind: 'returned', value: 0},
+    'Provider.grant': {kind: 'returned', value: 0},
+  }}}
+  const check = (text: string) => nativeLaw(parse(text), {}, parse, {limit: 7}, new Set(), aliases)(row)
+  expect(check('result == 41 and failed == true and method == "grant" and limit == 7')).toBe(true)
+  expect(check('grant(...) == 41')).toBe(true)
+  expect(check('Provider.result(...) == -1 and Provider.failed(...) == false and Provider.method(...) == "other" and Provider.limit(...) == 0 and Provider.grant(...) == 0')).toBe(true)
+})
+test('quantified binders retain lexical priority over external aliases and the clock', () => {
+  const row = {...observation(), after: {ids: new Set([3, 7])}}
+  for (const name of ['ttl', 'now']) expect(evaluate(`forall ${name} in ids: ${name} != 6 and ${name} < 8`, row)).toBe(true)
+  expect(evaluate('Quota.ttl(...) == 6 and now == 10', row)).toBe(true)
+})
 test('the native observation sequence rejects stale, undeclared and inexact values', () => {
   const accept = nativeObservationSequence(new Set(['Quota.ttl']))
   expect(accept(observation().observed).invocation).toBe(1)

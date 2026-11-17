@@ -39,6 +39,10 @@ export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) =>
     const at = (container: unknown, key: unknown) => { scalarKey(key); return get(container, key) }
     const contains = (container: unknown, key: unknown) => { scalarKey(key); return has(container, key) }
     const observedReading = (e: X & {k: 'path'}, state: unknown): {value: unknown, consumed: number} | undefined => {
+      // An observed external-call alias never changes lexical or reserved meaning.
+      // In particular Provider.result is not the method's result, and a forall
+      // binder named now/ttl is not an implicit clock/external call.
+      if (locals.has(e.head) || ['this', 'self', 'before', 'result', 'failed', 'method'].includes(e.head) || e.head.startsWith('@') || Object.hasOwn(constants, e.head) || e.head === observation.method && 'call' in (e.segs[0] ?? {})) return undefined
       const fields = [e.head]
       for (const segment of e.segs) { if (!('f' in segment)) break; fields.push(segment.f) }
       const ordinary = Object.hasOwn(observation.bindings, e.head) || object(state) && e.head in state || Object.hasOwn(observation.params, e.head)
@@ -102,10 +106,10 @@ export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) =>
           const reading = observedReading(e, state)
           let value: unknown
           if (reading) value = reading.value
+          else if (locals.has(e.head)) value = locals.get(e.head)
           else if (['this', 'self'].includes(e.head)) value = state
           else if (e.head === 'before') value = observation.before
           else if (e.head.startsWith('@') && object(state)) value = state[e.head.slice(1)]
-          else if (locals.has(e.head)) value = locals.get(e.head)
           else if (Object.hasOwn(observation.bindings, e.head)) value = observation.bindings[e.head]
           else if (e.head === 'result') {
             if (old) return unsupported('old(result), which is not native source state')
