@@ -1,5 +1,9 @@
 # Counted-budget audit and reviewed codemod
 
+The migration is **incremental**, not a single-release conversion of all509 sites.
+See [the0.50.3 scope and public backlog policy](0503-INCREMENTAL.md). The retained
+474 review blockers are backlog items; they are not collectively a release gate.
+
 Run these **on boat** through the lane's interactive diagnostic jobs:
 
 ```sh
@@ -40,7 +44,8 @@ limits. In particular, CLI-dependent literal grants are not dynamic proof that
 the older submitted CLI honored them.
 
 `0503-manifest.json` and `0503-codemod-plan.json` must still be regenerated from
-the final integrated source after explicit T3 recovery, with actual CLI and
-new cancellation controls. No new admission or local fallback is permitted
-during the upload-backlog hold. See `FIXTURE-DISPOSITION.md` for unchanged
-public-positive/model-only contracts.
+the final integrated source, with actual CLI and new cancellation controls.
+Recovery now permits Main-owned cheap diagnostics; strict release gates and
+broad profiling remain held until the candidate is assembled. No local compute
+fallback or unapproved helper admission is permitted. See
+`FIXTURE-DISPOSITION.md` for public-positive/model-only contracts.
