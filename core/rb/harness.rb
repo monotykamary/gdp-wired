@@ -14,6 +14,21 @@ OBJS = {}
 # Real references retained strongly: object_id reuse must never create aliases.
 NATIVE_OBJECTS = {}.compare_by_identity
 NATIVE_INVOCATION = [0]
+NATIVE_IS = Object.instance_method(:instance_of?)
+NATIVE_CLASS = Object.instance_method(:class)
+NATIVE_CLASS_NAME = Module.instance_method(:name)
+NATIVE_VARS = Object.instance_method(:instance_variables)
+NATIVE_GET_VAR = Object.instance_method(:instance_variable_get)
+NATIVE_EQUAL = BasicObject.instance_method(:equal?)
+NATIVE_COPY_STRING = String.method(:new)
+NATIVE_ARRAY_EACH = Array.instance_method(:each)
+NATIVE_HASH_EACH = Hash.instance_method(:each_pair)
+NATIVE_HASH_DEFAULT = Hash.instance_method(:default)
+NATIVE_HASH_DEFAULT_PROC = Hash.instance_method(:default_proc)
+def native_is?(value, klass) = NATIVE_IS.bind_call(value, klass)
+def native_same?(a, b) = NATIVE_EQUAL.bind_call(a, b)
+def native_class(value) = NATIVE_CLASS.bind_call(value)
+def native_class_name(value) = NATIVE_CLASS_NAME.bind_call(native_class(value))
 def native_state(root, bindings: false, records: false)
   seen = {}
   nodes = 0
@@ -21,16 +36,16 @@ def native_state(root, bindings: false, records: false)
   encode = lambda do |value, object_root = false|
     nodes += 1
     raise ArgumentError, 'native snapshot exceeds node bound' if nodes > 10000
-    return value if value.nil? || value.equal?(true) || value.equal?(false)
-    return value.dup.freeze if value.instance_of?(String)
+    return value if native_same?(value, nil) || native_same?(value, true) || native_same?(value, false)
+    return NATIVE_COPY_STRING.call(value).freeze if native_is?(value, String)
     # Symbols cross the wire as native enum labels, never choice indexes.
-    return value.to_s if value.instance_of?(Symbol)
-    if value.instance_of?(Integer) || value.instance_of?(Float)
+    return value.to_s if native_is?(value, Symbol)
+    if native_is?(value, Integer) || native_is?(value, Float)
       raise ArgumentError, 'native snapshot number is outside exact integer range' unless value.finite? && value.abs <= 9007199254740991 && value == value.to_i
       return value.to_i
     end
     # A store exposes its actual Hash, retaining keys and native identity.
-    value = value.data if value.instance_of?(GdpStore)
+    value = value.data if native_is?(value, GdpStore)
     unless NATIVE_OBJECTS.key?(value)
       raise ArgumentError, 'native snapshot exceeds identity bound' if NATIVE_OBJECTS.length >= 100000
       NATIVE_OBJECTS[value] = (NATIVE_OBJECTS.length + 1).to_s
@@ -38,28 +53,30 @@ def native_state(root, bindings: false, records: false)
     id = NATIVE_OBJECTS[value]
     return {'kind' => 'ref', 'id' => id} if seen[id]
     seen[id] = true
-    if value.instance_of?(Array)
-      kind, items = 'array', value.map { |v| encode.call(v) }
-    elsif value.instance_of?(Hash)
-      raise ArgumentError, 'unsupported native Hash default' unless value.default.nil? && value.default_proc.nil?
+    if native_is?(value, Array)
+      kind, items = 'array', []
+      NATIVE_ARRAY_EACH.bind_call(value) { |v| items << encode.call(v) }
+    elsif native_is?(value, Hash)
+      raise ArgumentError, 'unsupported native Hash default' unless native_same?(NATIVE_HASH_DEFAULT.bind_call(value), nil) && native_same?(NATIVE_HASH_DEFAULT_PROC.bind_call(value), nil)
       kind = object_root || records ? 'object' : 'map'
-      items = value.map do |k, v|
-        valid = object_root || records ? k.instance_of?(String) : k.instance_of?(String) || k.instance_of?(Integer)
+      items = []
+      NATIVE_HASH_EACH.bind_call(value) do |k, v|
+        valid = object_root || records ? native_is?(k, String) : native_is?(k, String) || native_is?(k, Integer)
         raise ArgumentError, 'unsupported native snapshot map key' unless valid
-        [encode.call(k), encode.call(v)]
+        items << [encode.call(k), encode.call(v)]
       end
     else
       # Opaque Time/IO/Mutex/etc. have no faithful wire encoding.
-      vars = Object.instance_method(:instance_variables).bind_call(value)
+      vars = NATIVE_VARS.bind_call(value)
       # An uninitialized Ruby instance variable reads as nil. Observe that
       # actual read for source-declared roots too (e.g. @last before first hit).
-      if value.equal?(root) && !bindings
+      if native_same?(value, root) && !bindings
         declared = (S['leaves'] || []).filter_map { |l| l['path']&.first if l['kind'] != 'frame' }
         vars |= declared.filter_map { |name| name.to_sym if name.is_a?(String) && name.start_with?('@') }
       end
-      raise ArgumentError, "unsupported native snapshot object #{value.class}" if vars.empty? && value.class != S['cls']
+      raise ArgumentError, "unsupported native snapshot object #{native_class(value)}" if vars.empty? && native_class(value) != S['cls']
       kind = 'object'
-      items = vars.map { |k| [k.to_s.delete_prefix('@'), encode.call(Object.instance_method(:instance_variable_get).bind_call(value, k))] }
+      items = vars.map { |k| [k.to_s.delete_prefix('@'), encode.call(NATIVE_GET_VAR.bind_call(value, k))] }
     end
     {'kind' => kind, 'id' => id, 'items' => items}
   end
@@ -71,14 +88,14 @@ end
 NATIVE_EVENTS = [nil]
 NATIVE_EVENT_ERROR = [nil]
 def native_scalar(value)
-  return value if value.nil? || value.equal?(true) || value.equal?(false)
-  return value.dup.freeze if value.instance_of?(String)
-  return value.to_s.freeze if value.instance_of?(Symbol)
-  if value.instance_of?(Integer) || value.instance_of?(Float)
+  return value if native_same?(value, nil) || native_same?(value, true) || native_same?(value, false)
+  return NATIVE_COPY_STRING.call(value).freeze if native_is?(value, String)
+  return value.to_s.freeze if native_is?(value, Symbol)
+  if native_is?(value, Integer) || native_is?(value, Float)
     raise ArgumentError, 'native observation number is outside exact integer range' unless value.finite? && value.abs <= 9007199254740991 && value == value.to_i
     return value.to_i
   end
-  raise ArgumentError, "unsupported native observation value #{value.class}"
+  raise ArgumentError, "unsupported native observation value #{native_class(value)}"
 end
 def native_record(key, outcome)
   return unless (events = NATIVE_EVENTS[0])
@@ -99,7 +116,7 @@ def native_call(key)
   end
   value
 rescue Exception => e # Record the actual runtime class, never the requested handler.
-  native_record(key, {'kind' => 'raised', 'raised' => e.class.name})
+  native_record(key, {'kind' => 'raised', 'raised' => native_class_name(e)})
   raise
 end
 def native_clock(value)

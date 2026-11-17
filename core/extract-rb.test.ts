@@ -259,6 +259,8 @@ const rubyWire = (source: string, requests: Record<string, unknown>[], hello: Re
 }
 t('Ruby native wire retains real aliases and pre-call defaults, freezes historical mutable values, refuses opaque state', () => {
   const rows = rubyWire(`class NativeFixture
+    def instance_of?(_); true; end
+    def nil?; true; end
     def initialize; @shared = [0]; end
     def mutate(v = @shared); v[0] += 1; end
   end`, [
@@ -285,7 +287,9 @@ t('Ruby native wire retains real aliases and pre-call defaults, freezes historic
 
 t('Ruby observed calls retain actual subclass names, reset uncalled keys and reject conflicting outcomes', () => {
   const patch = {answers: [{key: 'Remote.ping', pass: true, patch: {mod: 'Remote', path: ['ping']}}]}
-  const source = `class Full < StandardError; end
+  const source = `class Full < StandardError
+      def class; StandardError; end
+    end
     module Remote
       @calls = 0
       def self.ping

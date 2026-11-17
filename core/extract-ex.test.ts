@@ -203,6 +203,14 @@ t('Elixir observed answers capture converted native returns and omit calls not r
   expect(decode((rows[3]!.nativeObservations as {snapshot: unknown}).snapshot)).toEqual({invocation: 2, calls: {}})
 }, 60_000)
 
+t('Elixir native wire refuses unsupported real PID arguments instead of stamping protocol values', () => {
+  const rows = elixirWire(String.raw`defmodule NativeFixture do
+      defstruct total: 0
+      def credit(s, n \\ self()), do: s
+    end`, [{op: 'new', a: []}, {op: 'call', id: 1, m: 'credit', a: []}])
+  expect(rows[2]!.nativeBindings).toEqual({error: 'unsupported native scalar observation'})
+}, 60_000)
+
 // The reader fuzz's misreads (core/extract-fuzz.ts): a function a module of the file doesn't define, a map updated
 // with a key it doesn't hold.
 t('a module of the file that defines no such function: refused (an UndefinedFunctionError where it runs)', () => {

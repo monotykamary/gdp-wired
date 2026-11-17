@@ -68,12 +68,11 @@ const refused = (x: GoExtraction, why: RegExp) => {
   expect(x.ok).toBe(false)
   expect(x.refusals.map(r => r.what).join('; ')).toMatch(why)
 }
-// Do not retire a callback if an equivalent native-positive companion cannot
-// be observed. Its original positive requirement remains an honest failure.
-const unpairedStep = (x: GoExtraction, name: string, then: (b: any, a: any) => any, when: (b: any) => any) => {
+// Explicitly approved panic-only fixture: checked model evidence and exact
+// source refusal. Its separate initialized native companion is required below.
+const modelStep = (x: GoExtraction, name: string, then: (b: any, a: any) => any, when: (b: any) => any) => {
   const r = x.rule! as any
-  const v = proveSteps(r, x.invariants ?? [], [r.stepLaw(name, then, when)])
-  if (!v.proven) throw new Error(`${name}: ${JSON.stringify({goal: v.goal, stuck: v.stuck, witness: v.witness})}`)
+  expect(proveSteps(r, x.invariants ?? [], [r.stepLaw(name, then, when)])).toMatchObject(modelOnly)
 }
 // A step law of the extracted rule, proven (with the rule's own invariants beside it).
 const step = (x: GoExtraction, name: string, then: (b: any, a: any) => any, when: (b: any) => any) => {
@@ -392,7 +391,7 @@ func (c *C) Inc() {
 
 // --- panics and errors ------------------------------------------------------------------------------------------------
 t('panics: explicit, a nil *big.Int, a division by a constant zero is Go\'s compile error; each a refusal, the state as it was', () => {
-  const x = ok(go(`
+  const source = `
 import "math/big"
 type P struct {
 	N int64
@@ -404,17 +403,63 @@ func (p *P) Check(v int64) {
 	}
 	p.N = v
 }
-func (p *P) Grow(d *big.Int) { p.X.Add(p.X, d) }`, 'P'))
+func (p *P) Grow(d *big.Int) { p.X.Add(p.X, d) }`
+  const x = ok(go(source, 'P'))
   step(x, 'Check refuses a negative value', () => no, b => b.method.is('Check').and(b.Check_v.lt(0)))
   // Grow has no successful reachable call: X starts nil and nothing sets it.
-  // Current native journals exclude refusing calls, so retain the original
-  // positive assertion as BLOCKED rather than pretend a vacuous observation.
+  // Current native journals exclude refusing calls. This is a panic-handling
+  // fixture: preserve its exact checked model law and honest source refusal,
+  // plus actual original-code nil-panic replay. The initialized companion below
+  // is deliberately separate and must publicly prove/check its native law.
   const nilGrow = buildLaw(x, {name: 'nil Grow has no admitted step', expr: 'old(X) == nil implies false', method: 'Grow'})
   expect(proveSteps(x.rule!, x.invariants ?? [], [nilGrow.law])).toMatchObject({
     proven: false, checked: false, kernelProven: true, translation: 'unchecked',
     why: 'source translation unchecked: no native observation of Grow',
   })
-  unpairedStep(x, 'Grow on a nil X is refused (a nil dereference)', () => no, b => b.method.is('Grow').and(b.X_nil))
+  modelStep(x, 'Grow on a nil X is refused (a nil dereference)', () => no, b => b.method.is('Grow').and(b.X_nil))
+  const file = `${mkdtempSync(`${tmpdir()}/gdp-nil-grow-`)}/main.go`
+  const replay = `package main\n${source}\nfunc main() { p := &P{}; p.Grow(big.NewInt(1)) }\n`
+  writeFileSync(file, replay)
+  let failure: {status: number | null, stdout: unknown, stderr: unknown} | undefined
+  try { execFileSync('go', ['run', file], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 120_000}) }
+  catch (error) { failure = error as {status: number | null, stdout: unknown, stderr: unknown} }
+  // Preserve the actual expected-negative receipt separately from Bun's PASS.
+  if (process.env.SUPERCOMPUTER_OUTPUT_DIR && failure) {
+    const out = `${process.env.SUPERCOMPUTER_OUTPUT_DIR}/nil-grow-replay`
+    mkdirSync(out, {recursive: true})
+    writeFileSync(`${out}/main.go`, replay)
+    writeFileSync(`${out}/stdout.log`, String(failure.stdout))
+    writeFileSync(`${out}/stderr.log`, String(failure.stderr))
+    writeFileSync(`${out}/COMMAND-RESULT.json`, JSON.stringify({command: ['go', 'run', file], exit: failure.status, expected: 'original P.Grow nil-pointer panic'}))
+  }
+  expect(failure?.status).toBe(1)
+  expect(String(failure?.stderr)).toContain('panic: runtime error: invalid memory address or nil pointer dereference')
+  expect(String(failure?.stderr)).toContain('math/big.(*Int).Add')
+}, 600_000)
+
+// Companion to the always-nil P above, NOT a rewrite of its source: Init makes
+// real successful Grow steps reachable. The law is presence, not pointer ==.
+t('an initialized big.Int Grow has a checked native presence law, with tamper and disabled controls', () => {
+  const source = `import "math/big"
+    type Initialized struct{ X *big.Int }
+    func (p *Initialized) Init() { p.X = big.NewInt(0) }
+    func (p *Initialized) Grow(d *big.Int) { p.X.Add(p.X, d) }`
+  const x = ok(go(source, 'Initialized'))
+  native(x, 'initialized Grow preserves a nonnil X', 'X != nil', 'Grow')
+  const bad = buildLaw(x, {name: 'corrupted Grow presence', expr: 'X == nil', method: 'Grow'})
+  if (bad.kind !== 'step') throw Error('expected step law')
+  bad.law.then = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
+  const rejected = proveSteps(x.rule!, x.invariants ?? [], [bad.law], {search: false})
+  expect(rejected).toMatchObject({proven: false, checked: false, kernelProven: true, translation: 'error', stuck: 'translation-error'})
+  expect(rejected.translationWitness?.method).toBe('Grow')
+  expect(rejected.translationWitness?.after).toHaveProperty('X')
+  const disabled = go(source, 'Initialized', {check: {runs: 0, states: 0, probes: false}})
+  expect(disabled.ok).toBe(true)
+  const law = buildLaw(disabled, {name: 'disabled initialized Grow', expr: 'X != nil', method: 'Grow'})
+  expect(proveSteps(disabled.rule!, disabled.invariants ?? [], [law.law], {search: false})).toMatchObject({
+    proven: false, checked: false, kernelProven: true, translation: 'unchecked',
+    why: 'source translation unchecked: source replay or native-law cross-check was disabled',
+  })
 }, 600_000)
 
 t('a panic or an error after a write is refused, unless the caller discards what a failed call wrote', () => {
