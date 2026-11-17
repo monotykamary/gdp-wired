@@ -3,6 +3,15 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.51.0
+
+### Added
+
+- Fixed-width integers (signed and unsigned 8/16/32/64, WRAP/SATURATE/TRAP)
+  and FLOOR/TRUNCATING/EUCLIDEAN division in the rule DSL, decided by the
+  kernel and exported to Lean (UIntN/IntN/BitVec, Int.fdiv/tdiv/ediv).
+- Existing rules and readers are unchanged, with no verdict changes.
+
 ## 0.50.6
 
 ### Fixed
