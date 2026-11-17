@@ -4,6 +4,7 @@ import {sandbox} from './extract-check.ts'
 import {nativeLaw} from './native-law.ts'
 import {nativeObservationSequence, validateNativeObservations, type NativeReading} from './native-observations.ts'
 import type {NativeObservation} from './source-check.ts'
+import type {Name} from './extract.ts'
 
 const readings: NativeReading[] = [
   {code: 'Quota.ttl', key: 'Quota.ttl', kind: 'answer'},
@@ -14,6 +15,28 @@ const observation = (): NativeObservation => ({where: 'actual-observation contro
   observed: {invocation: 1, calls: {'Quota.ttl': {kind: 'returned', value: 6}}, clock: 10}})
 const evaluate = (text: string, row = observation(), bindings = readings) => nativeLaw(parse(text), {}, parse, {}, new Set(['Quota', 'now', 'expires']), bindings)(row)
 
+test('declared source names take precedence over native pseudo values', () => {
+  const names: Name[] = [{code: 'failed', rule: 'failed', role: 'state'}, {code: 'refunded', rule: 'refunded', role: 'state'}]
+  const row: NativeObservation = {...observation(), before: {failed: 1, refunded: 1}, after: {failed: 0, refunded: 0}, failed: false}
+  const check = (text: string, o = row, ns = names) => nativeLaw(parse(text), {}, parse, {}, new Set(), [], ns)(o)
+  expect(check('refunded == failed')).toBe(true)
+  expect(check('refunded != failed')).toBe(false)
+  expect(check('old(failed) == 1 and failed == 0')).toBe(true)
+  expect(() => check('failed == 0', {...row, after: {refunded: 0}})).toThrow('unavailable')
+  const input: Name[] = [...names, {code: 'failed', rule: 'arg', role: 'input', method: 'grant'}]
+  expect(check('failed == 3', {...row, bindings: {failed: 3}}, input)).toBe(true)
+  expect(check('failed == 2', {...row, bindings: {failed: 3}}, input)).toBe(false)
+  const param: Name[] = [{code: 'result', rule: 'p', role: 'param'}]
+  expect(check('result == 4', {...row, params: {result: 4}, result: 9}, param)).toBe(true)
+  expect(() => check('result == 9', {...row, params: {}, result: 9}, param)).toThrow('unavailable')
+  const members: Name[] = [...param, {code: 'result.value', rule: 'v', role: 'result', method: 'grant'}]
+  expect(check('result.value == 8', {...row, params: {result: {value: 4}}, result: {value: 8}}, members)).toBe(true)
+  expect(check('result.value == 4', {...row, params: {result: {value: 4}}, result: {value: 8}}, members)).toBe(false)
+  expect(() => check('result.value == 4', {...row, params: {result: {value: 4}}, result: {}}, members)).toThrow('unavailable')
+  const pseudo: Name[] = [{code: 'failed', rule: 'f', role: 'failed'}, {code: 'result', rule: 'r', role: 'result'}]
+  expect(check('failed == false and result == 9', {...row, bindings: {failed: true, result: 4}, result: 9}, pseudo)).toBe(true)
+  expect(check('failed == true', {...row, bindings: {failed: true}}, pseudo)).toBe(false)
+})
 test('observed answers and clock reads are independent of requested inputs', () => {
   const text = 'old(expires) <= now implies expires == Quota.ttl(...) + now'
   expect(evaluate(text)).toBe(true)

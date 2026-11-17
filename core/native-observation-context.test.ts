@@ -4,6 +4,7 @@ import {spawnSync} from 'node:child_process'
 import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
+import {nativeWireDecoder} from './native-wire.ts'
 
 function run(runtime: string, suffix: string, source: string) {
   const dir = mkdtempSync(join(tmpdir(), 'native-context-'))
@@ -13,6 +14,53 @@ function run(runtime: string, suffix: string, source: string) {
     return spawnSync(runtime, [file], {encoding: 'utf8', timeout: 30000, env: {...process.env, ERL_FLAGS: '+S 2:2'}})
   } finally { rmSync(dir, {recursive: true, force: true}) }
 }
+
+test('Python snapshots preserve set contents and aliases across mutations', () => {
+  const harness = readFileSync(join(import.meta.dir, 'py/harness.py'), 'utf8')
+  const boundary = harness.indexOf('\ndef main():')
+  expect(boundary).toBeGreaterThan(0)
+  const result = run('python3', 'py', harness.slice(0, boundary) + `
+class State: pass
+s = State()
+s.values = set()
+s.alias = s.values
+print(json.dumps(native_state(s, select=False)))
+s.values.update(['alpha', 'beta'])
+print(json.dumps(native_state(s, select=False)))
+s.values.remove('alpha')
+s.values.add('gamma')
+print(json.dumps(native_state(s, select=False)))
+fixture = os.path.join(os.path.dirname(__file__), 'native_fixture.py')
+with open(fixture, 'w') as output: output.write('class Fixture: pass')
+caps = hello({'path': fixture, 'root': os.path.dirname(fixture), 'arms': [], 'module': 'native_fixture', 'answers': []})
+assert caps['nativeEquality'] == 'scalar'
+S['loop'].close()
+class CustomSet(set): pass
+for unsupported in (frozenset(['alpha']), CustomSet(['alpha'])):
+  try: native_state(unsupported, select=False)
+  except ValueError as error:
+    assert 'unsupported native snapshot set type' in str(error)
+  else: raise AssertionError('unsupported set silently accepted')
+`)
+  expect(result.status, result.stderr).toBe(0)
+  const frames = result.stdout.trim().split('\n').map(line => JSON.parse(line))
+  expect(frames).toHaveLength(3)
+  const decode = nativeWireDecoder()
+  const first = decode(frames[0]) as {values: Set<string>, alias: Set<string>}
+  expect(first.values).toBeInstanceOf(Set)
+  expect(first.values).toEqual(new Set())
+  expect(first.alias).toBe(first.values)
+  const values = first.values
+  const second = decode(frames[1]) as typeof first
+  expect(second.values).toBe(values)
+  expect(second.alias).toBe(values)
+  expect(second.values).toEqual(new Set(['alpha', 'beta']))
+  const third = decode(frames[2]) as typeof first
+  expect(third.values).toBe(values)
+  expect(third.alias).toBe(values)
+  expect(third.values).toEqual(new Set(['beta', 'gamma']))
+  expect(third.values.size).toBe(2)
+}, 40000)
 
 test('Ruby only records actual calls on the active source thread', () => {
   const harness = readFileSync(join(import.meta.dir, 'rb/harness.rb'), 'utf8')

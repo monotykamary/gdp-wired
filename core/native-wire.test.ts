@@ -47,6 +47,25 @@ test('native wire preserves aliases without prototype mutation',()=>{
   expect(result.__proto__).toBe('literal')
 })
 
+test('native wire preserves set type, historical membership and identity',()=>{
+  const set=(id:string,items:unknown[])=>({kind:'set',id,items})
+  const decode=nativeWireDecoder()
+  const frame=(items:unknown[])=>wire(object('1',[
+    ['values',set('2',items)],['alias',{kind:'ref',id:'2'}],
+  ]))
+  const before=nativeSnapshot(decode(frame(['alpha','beta']))) as {values:Set<string>,alias:Set<string>}
+  const after=nativeSnapshot(decode(frame(['beta','gamma']))) as typeof before
+  expect(before.values).toBeInstanceOf(Set)
+  expect(after.values).toBeInstanceOf(Set)
+  expect(before.values).toEqual(new Set(['alpha','beta']))
+  expect(after.values).toEqual(new Set(['beta','gamma']))
+  expect(before.alias).toBe(before.values)
+  expect(after.alias).toBe(after.values)
+  expect(nativeSame(before.values,after.values)).toBe(true)
+  expect(()=>decode(wire(array('2',[])))).toThrow('changed kind')
+  expect(()=>nativeWireDecoder()(wire(set('1',['alpha','alpha'])))).toThrow('duplicate native snapshot set item')
+  expect(()=>nativeWireDecoder(2,1)(wire(set('1',['alpha'])))).toThrow('node bound')
+})
 test('native wire rejects malformed identities, references, numbers and bounds',()=>{
   const bad=[
     {version:2,root:null},wire(Number.MAX_SAFE_INTEGER+1),wire({kind:'ref',id:'1'}),

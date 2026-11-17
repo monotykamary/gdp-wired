@@ -592,7 +592,7 @@ def hello(req):
   S['cls'] = getattr(mod, req['cls'].rpartition('.')[2]) if req.get('cls') else None
   S['loop'] = asyncio.new_event_loop()
   asyncio.set_event_loop(S['loop'])
-  return {'ok': True, 'nativeSnapshot': 1, 'nativeBindings': 1}
+  return {'ok': True, 'nativeSnapshot': 1, 'nativeBindings': 1, 'nativeEquality': 'scalar'}
 
 def make(args):
   global OBJ_STORES
@@ -695,6 +695,10 @@ def native_state(obj, select=True):
     seen.add(ident)
     if isinstance(value, list):
       return {'kind': 'array', 'id': ident, 'items': [encode(x) for x in value]}
+    if type(value) is set:
+      return {'kind': 'set', 'id': ident, 'items': [encode(x) for x in value]}
+    if isinstance(value, (set, frozenset)):
+      raise ValueError('unsupported native snapshot set type')
     if isinstance(value, dict):
       if any(not isinstance(k, (str, int, float)) or isinstance(k, bool) for k in value):
         raise ValueError('unsupported native snapshot map key')

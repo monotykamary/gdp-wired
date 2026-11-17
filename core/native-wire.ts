@@ -23,20 +23,26 @@ export function nativeWireDecoder(maxObjects=100000, maxNodes=10000):(wire:unkno
       const node=record(value),id=node.id,kind=node.kind
       if(typeof id!=='string'||!/^[1-9][0-9]*$/.test(id)) throw Error('invalid native snapshot identity')
       if(kind==='ref') {if(!seen.has(id)) throw Error('unbound native snapshot reference'); return objects.get(id)!.value}
-      if(kind!=='object'&&kind!=='array'&&kind!=='map') throw Error('unsupported native snapshot kind')
+      if(kind!=='object'&&kind!=='array'&&kind!=='map'&&kind!=='set') throw Error('unsupported native snapshot kind')
       if(seen.has(id)) throw Error('duplicate native snapshot identity')
       seen.add(id)
       let kept=objects.get(id)
       if(kept&&kept.kind!==kind) throw Error('native snapshot identity changed kind')
       if(!kept) {
         if(objects.size>=maxObjects) throw Error('native snapshot exceeds identity bound')
-        const fresh:object=kind==='array'?[]:kind==='map'?new Map<unknown,unknown>():Object.create(null) as object
+        const fresh:object=kind==='array'?[]:kind==='map'?new Map<unknown,unknown>():kind==='set'?new Set<unknown>():Object.create(null) as object
         kept={kind,value:fresh};objects.set(id,kept)
       }
       if(!Array.isArray(node.items)) throw Error('invalid native snapshot entries')
       if(kind==='array') {
         const target=kept.value as unknown[];target.length=0
         for(const item of node.items) target.push(decode(item))
+      } else if(kind==='set') {
+        const target=kept.value as Set<unknown>;target.clear()
+        for(const item of node.items) {
+          const value=decode(item);if(target.has(value)) throw Error('duplicate native snapshot set item')
+          target.add(value)
+        }
       } else if(kind==='map') {
         const target=kept.value as Map<unknown,unknown>;target.clear()
         for(const item of node.items) {

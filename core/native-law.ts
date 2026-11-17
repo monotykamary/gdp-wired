@@ -3,6 +3,7 @@
 import type {X, LawOpts} from './laws.ts'
 import {type NativeObservation, nativeSame} from './source-check.ts'
 import type {NativeReading} from './native-observations.ts'
+import type {Name} from './extract.ts'
 const NONE = Symbol('language None')
 const truthy = (value: unknown): boolean => value !== NONE && Boolean(value)
 const object = (x: unknown): x is Record<string, unknown> => x !== null && (typeof x === 'object' || typeof x === 'function')
@@ -31,7 +32,7 @@ function businessDays(a: unknown, b: unknown, opts: LawOpts): number {
   }
   return end >= start ? count : -count
 }
-export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) => X, constants: Record<string, number | string | boolean> = {}, knownNames: ReadonlySet<string> = new Set(), readings: readonly NativeReading[] = []): (observation: NativeObservation) => boolean {
+export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) => X, constants: Record<string, number | string | boolean> = {}, knownNames: ReadonlySet<string> = new Set(), readings: readonly NativeReading[] = [], names: readonly Name[] = []): (observation: NativeObservation) => boolean {
   return observation => {
     const locals = new Map<string, unknown>()
     const scalarKey = (key: unknown) => { if (observation.nativeEquality === 'scalar' && object(key)) unsupported('foreign container equality or object keys') }
@@ -108,14 +109,44 @@ export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) =>
         }
         case 'path': {
           const state = old ? observation.before : observation.after
+          // Match the symbolic resolver's reserved-name precedence from declarations.
+          const first = e.segs[0]
+          const resultFields = e.head === 'result' && first && 'f' in first ? names.filter(n => n.role === 'result' && n.code === `result.${first.f}`) : []
+          const resultField = resultFields.find(n => n.method === observation.method) ?? (resultFields.length === 1 ? resultFields[0] : undefined)
+          if (resultFields.length > 1 && !resultField) return unsupported('ambiguous native result field')
+          const shadow = (e.head === 'result' || e.head === 'failed') && names.some(n => n.code === e.head && n.role !== 'result' && n.role !== 'failed')
           const reading = observedReading(e, state)
-          let value: unknown
+          let value: unknown, consumed = 0
           if (reading) value = reading.value
           else if (locals.has(e.head)) value = locals.get(e.head)
           else if (['this', 'self'].includes(e.head)) value = state
           else if (e.head === 'before') value = observation.before
           else if (e.head.startsWith('@') && object(state)) value = state[e.head.slice(1)]
-          else if (Object.hasOwn(observation.bindings, e.head)) value = observation.bindings[e.head]
+          else if (resultField) {
+            if (old) return unsupported('old(result), which is not native source state')
+            if (!object(observation.result) || !(first && 'f' in first) || !(first.f in observation.result)) return unsupported(`native value of ${resultField.code} is unavailable`)
+            value = observation.result
+          } else if (shadow) {
+            const fields = [e.head]
+            for (const seg of e.segs) { if (!('f' in seg)) break; fields.push(seg.f) }
+            let selected: Name | undefined
+            for (let length = fields.length; length > 0 && !selected; length--) {
+              const code = fields.slice(0, length).join('.'), candidates = names.filter(n => n.code === code && n.role !== 'result' && n.role !== 'failed')
+              const inputs = candidates.filter(n => n.role === 'input')
+              selected = inputs.find(n => n.method === observation.method) ?? candidates.find(n => n.role === 'state') ?? (inputs.length && new Set(inputs.map(n => n.method)).size === 1 ? inputs[0] : undefined) ?? candidates.find(n => ['param', 'const', 'clock', 'answer'].includes(n.role))
+            }
+            if (!selected) return unsupported(`native value of ${e.head} is unavailable`)
+            const parts = selected.code.split('.'), root = parts[0]!
+            consumed = parts.length - 1
+            const sources = selected.role === 'state' ? [state] : selected.role === 'param' ? [observation.params] : selected.role === 'input' ? [observation.bindings, observation.inputs] : selected.role === 'const' ? [constants] : [observation.bindings]
+            const source = sources.find(s => object(s) && Object.hasOwn(s, root))
+            if (!object(source)) return unsupported(`native value of ${selected.code} is unavailable`)
+            value = source[root]
+            for (const part of parts.slice(1)) {
+              if (!object(value) || !(part in value)) return unsupported(`native value of ${selected.code} is unavailable`)
+              value = value[part]
+            }
+          } else if (Object.hasOwn(observation.bindings, e.head) && (!names.length || (e.head !== 'result' && e.head !== 'failed'))) value = observation.bindings[e.head]
           else if (e.head === 'result') {
             if (old) return unsupported('old(result), which is not native source state')
             value = !e.segs.length && observation.legacyResult ? get(observation.result, 'value') : observation.result
@@ -129,7 +160,7 @@ export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) =>
           else if (knownNames.has(e.head)) return unsupported(`native value of ${e.head} is unavailable`)
           else if (!e.segs.length) value = e.head // A bare enum label; buildLaw already checked its domain.
           else return unsupported(`name ${e.head}`)
-          for (let i = reading?.consumed ?? 0; i < e.segs.length; i++) {
+          for (let i = reading?.consumed ?? consumed; i < e.segs.length; i++) {
             const s = e.segs[i]!
             if ('f' in s) {
               const next = e.segs[i + 1]
