@@ -1,0 +1,9 @@
+[
+  {
+    "name": "agent-tools-verify",
+    "cmd": "set -euo pipefail; bun install --frozen-lockfile --ignore-scripts > \"$SUPERCOMPUTER_OUTPUT_DIR/install.log\" 2>&1; bunx tsc -p research/agent-tools/tsconfig.json > \"$SUPERCOMPUTER_OUTPUT_DIR/typecheck.log\" 2>&1; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/agent-tools/COMMIT.txt > \"$SUPERCOMPUTER_OUTPUT_DIR/commitlint.log\" 2>&1; bun --version > \"$SUPERCOMPUTER_OUTPUT_DIR/bun-version.txt\"; GDP_WORK_FULL=1 bun test research/agent-tools/protocol.test.ts research/agent-tools/service.test.ts > \"$SUPERCOMPUTER_OUTPUT_DIR/tests.log\" 2>&1; bun research/agent-tools/scripted-session.ts --out \"$SUPERCOMPUTER_OUTPUT_DIR/session.json\" > \"$SUPERCOMPUTER_OUTPUT_DIR/session-summary.json\"",
+    "cpu": 2,
+    "memory": 4,
+    "timeout": 180
+  }
+]

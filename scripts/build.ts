@@ -16,7 +16,7 @@ for (const f of readdirSync(dist, {recursive: true, encoding: 'utf8'}).filter(f 
 // them: TypeScript is compiled above, examples and build output stay behind (core/exports.test.ts checks the tarball).
 const runtimeAssets = (core: string): string[] => readdirSync(core, {withFileTypes: true}).filter(d => d.isDirectory())
   .flatMap(d => readdirSync(join(core, d.name), {recursive: true, encoding: 'utf8'}).map(f => `${d.name}/${f}`))
-  .filter(f => !/(^|\/)(examples|generated|target|\.build|__pycache__|node_modules)(\/|$)|\.ts$|\.class$/.test(f) && statSync(join(core, f)).isFile())
+  .filter(f => !/(^|\/)(examples|generated|target|\.build|__pycache__|node_modules)(\/|$)|\.ts$|\.class$|(^|\/)\.(gitignore|npmignore)$/.test(f) && statSync(join(core, f)).isFile())
 for (const f of runtimeAssets(join(root, 'core'))) {
   mkdirSync(dirname(join(dist, 'core', f)), {recursive: true})
   copyFileSync(join(root, 'core', f), join(dist, 'core', f))

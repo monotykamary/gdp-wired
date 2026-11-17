@@ -1,0 +1,1 @@
+feat(agent-consult): ship counted library and stdio package surface

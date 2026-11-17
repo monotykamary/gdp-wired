@@ -1,0 +1,16 @@
+bd31e8d9cf8d14a1e9e3fdf3b9f6a524819aed0d1b14627523c6765767c7d8f1  research/agent-tools/receipts/dev-05-fast/bun-version.txt
+604df5364e3a9293e669725ca490bd9b9c511ff3d8ae5788a1cb53337d738079  research/agent-tools/receipts/dev-05-fast/placement.json
+cdfbde763905d0897e9002d63bc8ec84a7c9ca87242a48e58916031ffa9b2de8  research/agent-tools/receipts/dev-05-fast/session.json
+e28a22e404ba2629f874da720196bead27f37e34937e56a4d62b731733f83f95  research/agent-tools/receipts/dev-05-fast/session-summary.json
+b89987998aca1631414b7a9ca704f975b6c0a0d85ca82a546cfb74d6aa55552e  research/agent-tools/receipts/dev-05-fast/source-sha256.txt
+b299ca10f74b27758094ff442320d8c1c4dc670a173a235a5280526ba453e961  research/agent-tools/receipts/dev-05-fast/summary.tsv
+157d1c4d1fca3b0c3576d3719ec01408731a9fc73abfbf30b52e0069b87c58d9  research/agent-tools/receipts/dev-05-fast/tests.log
+961c6ec5923744912214a23b1c457921c8c503546b8b4f37beb0931a3a57d4d8  research/agent-tools/receipts/dev-05-static/commitlint.log
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  research/agent-tools/receipts/dev-05-static/fix-commitlint.log
+f589a9d304ecaeef9f0f381e8d308c4b9aba1c1b3afcfa951d4134061ea24005  research/agent-tools/receipts/dev-05-static/install.log
+fea65d7703af1f496516e247347a730b89588274d887fa931a54fe703ba74404  research/agent-tools/receipts/dev-05-static/placement.json
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  research/agent-tools/receipts/dev-05-static/receipt-commitlint.log
+b89987998aca1631414b7a9ca704f975b6c0a0d85ca82a546cfb74d6aa55552e  research/agent-tools/receipts/dev-05-static/source-sha256.txt
+8d103de6f1031e6d9f948ce39ad8a0bc79c870bfc1973121e99f1325bddd832d  research/agent-tools/receipts/dev-05-static/summary.tsv
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  research/agent-tools/receipts/dev-05-static/typecheck.log
+927b0b5ed3caab95991d12557166feb30f1765206b1fac21766117747f115523  research/agent-tools/receipts/earlier/dev-02b-tests.log

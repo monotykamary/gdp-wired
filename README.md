@@ -675,6 +675,10 @@ Each directory's README has its own runs and results.
 
 ## The skill
 
+Coding agents can also consult the data-only [agent-consult MCP / library](docs/agent-consult.md):
+`gdp-wired-agent-consult` exposes `prove`, `why_not`, `suggest`, `check_change`, and `status`
+without importing project code. Checked model proofs are not native conformance; counted accounting remains provisional.
+
 `npx skills add monotykamary/gdp-wired` installs a skill that guides coding agents (and people) through writing a rule
 the way the code does it, stating its laws, reading a refused proof and handing a claim to Lean:
 

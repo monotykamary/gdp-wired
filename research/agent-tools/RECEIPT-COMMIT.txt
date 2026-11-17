@@ -1,0 +1,4 @@
+test(agent-tools): retain scripted consultation receipts
+
+Record the exact source, native development gates, counted work, and local
+MCP conversation for the research prototype. Preserve failed iterations.

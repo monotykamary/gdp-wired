@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["../agent-consult.ts", "../agent-consult.test.ts", "./*.ts", "../../research/agent-tools/*.ts"],
+  "exclude": []
+}

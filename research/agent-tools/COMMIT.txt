@@ -1,0 +1,7 @@
+feat(agent-tools): add counted stdio consultation prototype
+
+Expose existing proof, inference, counterexample and refinement APIs as five
+local MCP tools. Accept bounded data, not executable client code. Retain
+typed refusals, checked-proof labels and exact counted work receipts.
+
+Research only; broad promotion awaits the surface-semantics release gate.

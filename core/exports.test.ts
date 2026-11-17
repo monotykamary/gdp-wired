@@ -23,7 +23,7 @@ const built = existsSync(`${root}dist/core/dsl.js`)
 // directory of core/ but TypeScript, examples and build output.
 const runtimeAssets = (): string[] => readdirSync(`${root}core`, {withFileTypes: true}).filter(d => d.isDirectory())
   .flatMap(d => readdirSync(`${root}core/${d.name}`, {recursive: true, encoding: 'utf8'}).map(f => `${d.name}/${f}`))
-  .filter(f => !/(^|\/)(examples|generated|target|\.build|__pycache__|node_modules)(\/|$)|\.ts$|\.class$/.test(f) && statSync(`${root}core/${f}`).isFile())
+  .filter(f => !/(^|\/)(examples|generated|target|\.build|__pycache__|node_modules)(\/|$)|\.ts$|\.class$|(^|\/)\.(gitignore|npmignore)$/.test(f) && statSync(`${root}core/${f}`).isFile())
 // The assets the code names: asset('<dir>/<file>'), and each helper's (here('<file>') where here = f => asset(`<dir>/${f}`)).
 const referenced = (): string[] => readdirSync(`${root}core`).filter(f => f.endsWith('.ts') && !f.endsWith('.test.ts')).flatMap(f => {
   const text = readFileSync(`${root}core/${f}`, 'utf8'), out = [...text.matchAll(/\basset\('([^']+)'\)/g)].map(m => m[1]!)
@@ -147,6 +147,10 @@ test('the packed tarball holds every export, the bin and every runtime asset the
   const missing = (want: string[]) => want.filter(f => !files.has(f))
   expect(missing(Object.values(pkg.exports).filter(e => typeof e === 'object').flatMap(e => [e.default, e.types].map(p => p.replace(/^\.\//, ''))))).toEqual([])
   expect(missing(Object.values(pkg.bin ?? {}))).toEqual([])
+  expect(missing(['dist/core/agent-consult.js','dist/core/agent-consult.d.ts',
+    'dist/core/agent-consult/cli.js','dist/core/agent-consult/worker.js',
+    'dist/core/agent-consult/session.js','dist/core/agent-consult/protocol.js',
+    'dist/core/agent-consult/service.js','docs/agent-consult.md','examples/agent-consult.json'])).toEqual([])
   const assets = runtimeAssets()
   for (const dir of ['py', 'rb', 'ex', 'jvm', 'rs', 'go', 'swift', 'sol']) expect(assets.some(f => f.startsWith(`${dir}/`))).toBe(true)
   expect(missing(assets.map(f => `dist/core/${f}`))).toEqual([])

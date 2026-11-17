@@ -1,0 +1,22 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "prove",
+    "arguments": {
+      "subject": {
+        "unit": "budget",
+        "rule": {
+          "name": "request budget",
+          "params": ["cap"],
+          "inputs": ["cost"],
+          "state": {"spent": {"op": "const", "value": 0}},
+          "step": {"state": {"spent": {"op": "min", "a": {"op": "var", "name": "cap"}, "b": {"op": "add", "a": {"op": "var", "name": "spent"}, "b": {"op": "var", "name": "cost"}}}}}
+        }
+      },
+      "laws": [{"name": "spent never exceeds cap", "holds": {"op": "<=", "a": {"op": "var", "name": "spent"}, "b": {"op": "var", "name": "cap"}}}],
+      "budget": {"work": 500000, "apiCalls": 24, "depth": 3, "bound": 2, "candidates": 64}
+    }
+  }
+}

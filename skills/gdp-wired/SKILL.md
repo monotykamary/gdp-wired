@@ -118,6 +118,28 @@ the dedupe mark expires). Exit 1 is
 a broken law, 2 one not checked: run it in CI (`uses: monotykamary/gdp-wired@main`). A refusal names the tag or
 option that fixes it; read it before changing the code.
 
+## Consult while coding (experimental local MCP)
+
+The research-only stdio server is `bun research/agent-tools/stdio.ts` from this
+repository. It has no HTTP listener/model/network calls and accepts **data**,
+not code strings, source paths or shell commands. It currently supports scalar
+natural Machine/Law AST; see `research/agent-tools/README.md` and the tool schemas.
+Do not promote this prototype before the surface-semantics release gate passes.
+
+| When coding | Tool | How to interpret the answer |
+|---|---|---|
+| Before/after changing an invariant | `prove` with rule data + named laws | Only `proven && checked` means proven; unknown/unchecked is not success. Model proof is not source/native equivalence. |
+| A law fails or is unclear | `why_not` | Inspect the trace using your own variable names. It is shortest **within the reported finite domain**, never a claimed globally minimal trace. No trace found is not proof. |
+| You need helper invariants or to test a stronger claim | `suggest` | Existing `inferLaws` supplies helpers; explicit `nearMisses` are caller candidates and are returned only with actual counterexamples. Paste the stated support set, not an isolated mutually inductive helper. |
+| Reviewing a modification | `check_change` with two rule revisions and the same laws | Newly broken requires an old checked proof and a new reachable trace. Lost proof alone is not a bug. Existing compose refinement is directional, not automatic equivalence. |
+| Before reporting a result | `status` with exact unit + returned revision digest | Reads only this process's observed proof evidence. Native conformance/harness labels remain unavailable without independently validated native receipts. Never supply a label yourself. |
+
+Use bounded `budget.work`, `apiCalls`, `depth`, `bound` and `candidates`, not a wall
+time. Increase a counted allowance or simplify the request only as the returned
+typed refusal directs. The server never evaluates client code or fetches packages.
+The default service starts a fresh counted worker for each computational request
+to prevent warm caches from silently changing a repeated request's result.
+
 ## References
 
 Read the one you need:

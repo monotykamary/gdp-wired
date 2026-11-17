@@ -172,16 +172,24 @@
       "types": "./dist/interchange/check.d.ts",
       "default": "./dist/interchange/check.js"
     },
+    "./agent-consult": {
+      "types": "./dist/core/agent-consult.d.ts",
+      "default": "./dist/core/agent-consult.js"
+    },
     "./package.json": "./package.json"
   },
   "bin": {
     "gdp-wired": "dist/core/cli.js",
-    "gdp-wired-check": "dist/interchange/cli.js"
+    "gdp-wired-check": "dist/interchange/cli.js",
+    "gdp-wired-agent-consult": "dist/core/agent-consult/cli.js"
   },
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "docs/agent-consult.md",
+    "docs/agent-consult-workspace-check.md",
+    "examples/agent-consult.json"
   ],
   "engines": {
     "node": ">=20"

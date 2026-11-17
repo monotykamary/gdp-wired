@@ -1,0 +1,21 @@
+bun test v1.4.3 (c6da4a4d3)
+
+research/agent-tools/protocol.test.ts:
+(pass) accepts only data, with stable rule/law binding [1.13ms]
+(pass) refuses code, URLs, prototype names, undeclared variables and labels [0.22ms]
+(pass) wire numbers preserve bigint and refuse silent nonfinite coercion [0.10ms]
+(pass) counted bounds reject wall-clock options and preserve zero allowance [0.09ms]
+(pass) change correspondence is explicit, never inferred by renaming [0.07ms]
+
+research/agent-tools/service.test.ts:
+(pass) unchecked proof is never reported proven [0.04ms]
+(pass) MCP protocol validates methods and ignores notifications [0.40ms]
+(pass) status does not accept labels supplied by a client [0.08ms]
+cyclic: {"kind":"machine","name":"request budget","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) counted proof does not consult wall clocks [65.09ms]
+(pass) unsafe numeric traces refuse instead of fabricating integer arithmetic [1.19ms]
+
+ 10 pass
+ 0 fail
+ 26 expect() calls
+Ran 10 tests across 2 files. [128.00ms]

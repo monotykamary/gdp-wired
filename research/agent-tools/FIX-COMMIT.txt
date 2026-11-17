@@ -1,0 +1,4 @@
+fix(agent-tools): guard wire numbers and keep dev checks light
+
+Refuse nonfinite JSON output and preserve bigint diagnostics explicitly.
+Separate dependency-free runtime development from full static verification.

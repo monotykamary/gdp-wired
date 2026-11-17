@@ -1,0 +1,19 @@
+{
+ "agent-tools-dev": {
+  "agent_version": "cbac3fdb0be1",
+  "agent_capabilities": {
+   "output_files_protocol": 1,
+   "result_files_protocol": 1,
+   "runtime_pins_protocol": 1,
+   "resource_limits_protocol": 1,
+   "owned_rpc_idempotency_protocol": 1
+  },
+  "vm": "bx_yrscfbqz",
+  "type": "xlarge",
+  "cpu": "AMD EPYC 9455 48-Core Processor",
+  "vcpus": 2,
+  "vm_vcpus": 16,
+  "exclusive": false,
+  "co_tenants": 7
+ }
+}

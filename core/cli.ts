@@ -13,14 +13,23 @@
 import type {Extraction, Name} from './extract.ts'
 import {fiberRun} from './fiber-run.ts'
 import {type SecurityCandidate, securityTemplates} from './security.ts'
-import {type Verdict, proveLeadsTo, proveRule, proveSteps} from './dsl.ts'
+import {type Verdict, proveLeadsTo as rawLeadsTo, proveRule as rawRule, proveSteps as rawSteps} from './dsl.ts'
+import {traceNow, withTraceWorkScope} from './trace-clock.ts'
 import type {TranslationFields} from './source-check.ts'
 import {type SearchTerminationFields, terminationWhy} from './search-termination.ts'
 import {validateWatchdog} from './search-watchdog.ts'
 import {sourceDiagnostic} from './source-diagnostic.ts'
 import type {Law} from './machine.ts'
 import {type Built, type Calendar, type Cite, LawError, type LawOpts, type LawText, buildLaw, buildLeadsTo, buildTwoRuns, citesIn, isLeadsTo, isTwoRuns, lawsIn, namesWithClock} from './laws.ts'
-import {type TwoRunLaw, certify, proveTwoRuns} from './relational.ts'
+import {type TwoRunLaw, certify, proveTwoRuns as rawTwoRuns} from './relational.ts'
+type SyncControl = {invoke: <T>(f: () => T) => T, candidates: number}
+let syncControl: SyncControl | undefined
+const admitted = <T>(f: () => T): T => syncControl ? syncControl.invoke(f) : f()
+const proveRule: typeof rawRule = (...a) => admitted(() => rawRule(...a))
+const proveSteps: typeof rawSteps = (...a) => admitted(() => rawSteps(...a))
+const proveLeadsTo: typeof rawLeadsTo = (...a) => admitted(() => rawLeadsTo(...a))
+const proveTwoRuns: typeof rawTwoRuns = (...a) => admitted(() => rawTwoRuns(...a))
+const cliNow = () => syncControl ? traceNow() : Date.now()
 import {type InEnv, contend, envOf, inEnv, shrinkRun} from './system.ts'
 
 type FS = {existsSync: (p: string) => boolean, readFileSync: (p: string, e: string) => string, readdirSync: (p: string) => string[], statSync: (p: string) => {isDirectory: () => boolean},
@@ -101,7 +110,8 @@ async function extractOne(t: Target, o: Record<string, unknown>): Promise<Extrac
 }
 // A TypeScript file's relative imports, read beside it as TypeScript resolves them (two deep, at most 12 files), by their
 // path from the file's directory: their classes and functions are the code's own, read and inlined, not another module's.
-function relativeImports(entry: string): Record<string, string> {
+function relativeImports(entry: string, guard?: (file: string) => void): Record<string, string> {
+  guard?.(entry)
   const out: Record<string, string> = {}, seen = new Set([entry]), queue: [string, number][] = [[entry, 1]], dir = path.dirname(entry)
   while (queue.length && Object.keys(out).length < 12) {
     const [from, depth] = queue.shift()!
@@ -109,6 +119,7 @@ function relativeImports(entry: string): Record<string, string> {
       const base = path.join(path.dirname(from), m[1]!), bare = base.replace(/\.(js|jsx|mjs|cjs)$/, '')
       const hit = [base, ...['.ts', '.tsx', '.js', '.jsx', '.mjs'].map(x => `${bare}${x}`), ...['/index.ts', '/index.tsx', '/index.js'].map(x => `${base}${x}`)].find(c => fs.existsSync(c) && !fs.statSync(c).isDirectory())
       if (!hit || seen.has(hit) || Object.keys(out).length >= 12) continue
+      guard?.(hit)
       seen.add(hit)
       out[path.relative(dir, hit)] = fs.readFileSync(hit, 'utf8')
       if (depth < 2) queue.push([hit, depth + 1])
@@ -159,6 +170,9 @@ async function extractWith(t: Target, o: Record<string, unknown>): Promise<Extra
 //   stores.internal_usage_cache.attrs = {"dual_cache.redis_cache" = "None"}
 type Config = {all: Record<string, unknown>, rules: Record<string, Record<string, unknown>>, at?: string}
 export function configFor(from: string): Config {
+  // Workspace initial profile deliberately has no project-config overrides/interpreters.
+  // Do not even search ancestors outside the server-authorized workspace.
+  if (syncControl) return {all: {}, rules: {}}
   // (the first of the three in a directory that holds gdp's options)
   const holder = (d: string) => ['gdp.toml', 'pyproject.toml', 'package.json'].find(f => fs.existsSync(path.join(d, f)) && (f === 'gdp.toml' || (f === 'pyproject.toml' ? /^\[tool\.gdp\b/m : /"gdp"\s*:/).test(fs.readFileSync(path.join(d, f), 'utf8'))))
   const dir = up(from, d => !!holder(d))
@@ -253,7 +267,9 @@ export type RuleOut = {supportAttempts?: SupportAttempt[], file: string, lang: s
 type ReadRule = {entry?: string, ctor?: string, x: Extraction}
 // Each initializer is a separate scope, with its own original-code replay and laws. Never choose one
 // overload on the caller's behalf or let a successful variant hide another variant's refusal.
-async function expandInitializers(t: Target, o: Opts, laws: Scoped[], rows: ReadRule[]): Promise<ReadRule[]> {
+type SourceYield = {target: Target, options: Record<string, unknown>} | {lemmas: Extraction, ms: number, work?: number, watchdogMs?: number, output: RuleOut}
+type Pipeline<T> = Generator<SourceYield, T, Extraction>
+function* expandInitializers(t: Target, o: Opts, laws: Scoped[], rows: ReadRule[]): Pipeline<ReadRule[]> {
   if (!rows.some(r => r.x.initializers)) return rows
   const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, env: _e, ...flags} = o
   void _j; void _m; void _p; void _c; void _t; void _fr; void _e
@@ -268,34 +284,35 @@ async function expandInitializers(t: Target, o: Opts, laws: Scoped[], rows: Read
     const entry = row.entry ?? variants.name
     const opts = merge(merge({...shared, keep}, cfg.rules[entry] || {}), flags)
     // A rule-specific constructor choice discovered after entry inference still takes precedence.
-    if (opts.ctor !== undefined) { out.push({entry, x: await extractOne(t, {...opts, entry: variants.entry})}); continue }
+    if (opts.ctor !== undefined) { out.push({entry, x: yield {target: t, options: {...opts, entry: variants.entry}}}); continue }
     for (const ctor of [...new Set(variants.selectors)]) {
-      const x = await extractOne(t, {...opts, entry: variants.entry, ctor})
+      const x = yield {target: t, options: {...opts, entry: variants.entry, ctor}}
       x.notes.push(`initializer ${ctor}: separate scope; every initializer is required for coverage of the class`)
       out.push({entry, ctor, x})
     }
   }
   return out
 }
-async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<ReadRule[]> {
-  const got = await rulesOf0(t, o, laws)
-  if (o.entry) return expandInitializers(t, o, laws, got)
+function* rulesOf(t: Target, o: Opts, laws: Scoped[]): Pipeline<ReadRule[]> {
+  const got = yield* rulesOf0(t, o, laws)
+  if (o.entry) return yield* expandInitializers(t, o, laws, got)
   // (a function that is a request of a rule read, a C file's globals', is read with it)
   const evs = (x: Extraction) => { const s = (x.model as {inputs?: {name: string, sort: {k: string, values?: string[]}}[]} | undefined)?.inputs?.find(v => v.name === (x.names ?? []).find(n => n.role === 'method')?.rule)?.sort; return s?.k === 'choice' ? s.values ?? [] : [] }
   const have = new Set(got.flatMap(r => [r.entry, r.x.model?.name, r.x.initializers?.name, ...(r.x.ok ? [...(r.x.names ?? []).map(n => n.method), ...evs(r.x)] : [])].filter((n): n is string => !!n)))
   const more = [...new Set(laws.map(l => l.cls ?? l.fn).filter((n): n is string => !!n && !have.has(n)))]
-  if (!more.length) return expandInitializers(t, o, laws, got)
+  if (!more.length) return yield* expandInitializers(t, o, laws, got)
   const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, env: _e, ...flags} = o
   void _j; void _m; void _p; void _c; void _t; void _fr
   const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
   const {clock: _k, from: _f, env: _v, calendar: _cal, ...shared} = cfg.all
   void _k; void _f
   const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*/g) ?? []).flatMap(k => (k.includes('::') ? [k, ...k.split('::')] : [k])))]
-  const extra = await Promise.all(more.map(async entry => ({entry, x: await extractOne(t, {...merge(merge({...shared, keep}, cfg.rules[entry] || {}), flags), entry})})))
+  const extra: ReadRule[] = []
+  for (const entry of more) extra.push({entry, x: yield {target: t, options: {...merge(merge({...shared, keep}, cfg.rules[entry] || {}), flags), entry}}})
   // (the first rule, read with no entry named, kept only where it read something or nothing else was)
-  return expandInitializers(t, o, laws, [...got.filter(r => r.x.ok || r.entry || !extra.length), ...extra])
+  return yield* expandInitializers(t, o, laws, [...got.filter(r => r.x.ok || r.entry || !extra.length), ...extra])
 }
-async function rulesOf0(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: string, x: Extraction}[]> {
+function* rulesOf0(t: Target, o: Opts, laws: Scoped[]): Pipeline<ReadRule[]> {
   const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, env: _e, ...flags} = o
   void _j; void _m; void _p; void _c; void _t; void _fr
   // (the options: gdp.toml's for every rule, then the rule's own, then the flags; a rule found with no entry named is
@@ -307,23 +324,25 @@ async function rulesOf0(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: st
   // (the names the laws read, so an argument a law reads stays in the rule though the code ignores it)
   const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*/g) ?? []).flatMap(k => (k.includes('::') ? [k, ...k.split('::')] : [k])))]
   const optsFor = (entry?: string) => merge(merge({...shared, keep}, (entry && cfg.rules[entry]) || {}), flags)
-  const one = async (entry?: string) => {
-    const x = await extractOne(t, {...optsFor(entry), ...(entry ? {entry} : {})}), found = x.model?.name
-    return !entry && found && cfg.rules[found] ? {entry: found, x: await extractOne(t, {...optsFor(found), entry: found})} : {entry, x}
+  const one = function* (entry?: string): Pipeline<ReadRule> {
+    const x = yield {target: t, options: {...optsFor(entry), ...(entry ? {entry} : {})}}
+    const found = x.model?.name
+    return !entry && found && cfg.rules[found] ? {entry: found, x: yield {target: t, options: {...optsFor(found), entry: found}}} : {entry, x}
   }
+  const manyOf = function* (entries: string[]): Pipeline<ReadRule[]> { const rows: ReadRule[] = []; for (const entry of entries) rows.push(yield* one(entry)); return rows }
   const given = o.entry ?? (cfg.all.entry as string | undefined)
-  if (given) return [await one(given)]
+  if (given) return [yield* one(given)]
   if (t.lang === 'ts' || t.lang === 'cpp') {
     const code = t.files.map(f => fs.readFileSync(f, 'utf8')).join('\n')
     const re = t.lang === 'cpp' ? /^\s*(?:class|struct)\s+(\w+)\s*(?::[^{]*)?\{/gm : /export\s+(?:default\s+)?(?:abstract\s+)?class\s+(\w+)|export\s+(?:const|function)\s+(\w+)/g
     // (C++: a class its source file defines methods of, `Alarm::detected(...) {`, declared in its header)
     const defs = t.lang === 'cpp' ? [...code.matchAll(/^[\w:<>*&\s]*?\b(\w+)::~?\w+\s*\([^;]*?\)\s*(?:const\s*)?(?::[^{;]*)?\{/gm)].map(m => m[1]!) : []
     const cands = [...new Set([...[...code.matchAll(re)].map(m => m[1] ?? m[2]!), ...defs])]
-    const all = await Promise.all(cands.map(c => one(c)))
+    const all = yield* manyOf(cands)
     const good = all.filter(r => r.x.ok)
     return good.length ? good : all.length ? all : [{x: {ok: false, refusals: [{where: t.at, what: 'no class or exported function to read: name the entry (--entry)'}], notes: []}}]
   }
-  const first = await one()
+  const first = yield* one()
   if (first.x.ok) return [first]
   // (refused with no entry named: the rules gdp.toml names that the code has, each with its options)
   // (a rule gdp.toml names, where the file defines a class, struct or function of that name: never a word of its prose)
@@ -331,14 +350,14 @@ async function rulesOf0(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: st
   // (and each class the refusal names: gdp.toml's rules beside the file's others, not instead of them)
   const many = /several (?:classes|structs) (?:write their state|written by the file's functions) \(([^)]*)\)/.exec(first.x.refusals[0]?.what ?? '')?.[1]!.split(', ') ?? []
   const fns0 = [...new Set(laws.filter(l => !l.cls && l.fn).map(l => l.fn!))]
-  if (named.length) return Promise.all([...new Set([...many, ...named, ...fns0])].map(k => one(k)))
+  if (named.length) return yield* manyOf([...new Set([...many, ...named, ...fns0])])
   // (a contract's file names its contracts: refused with none named, the refusal is the rule's)
   if (t.lang === 'solidity') return [first]
   // (else each class the refusal names, and each function outside a class a law is stated on)
   const what = first.x.refusals[0]?.what ?? ''
   const several = /several (?:classes|structs) (?:write their state|written by the file's functions) \(([^)]*)\)/.exec(what)?.[1]!.split(', ') ?? []
   const fns = [...new Set(laws.filter(l => !l.cls && l.fn).map(l => l.fn!))]
-  return several.length || fns.length ? Promise.all([...several, ...fns].map(c => one(c))) : [first]
+  return several.length || fns.length ? yield* manyOf([...several, ...fns]) : [first]
 }
 
 // A law with where it sits in the code: the class (or struct, module) it is in and the function after it.
@@ -396,9 +415,57 @@ export function scoped(file: string): Scoped[] {
   })
 }
 
+// Both drivers consume the same enumeration, configuration and proof/proposal algorithm.
 export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
+  return drivePipeline(checkPipeline(t, o))
+}
+async function drivePipeline<T>(pipeline: Pipeline<T>): Promise<T> {
+  let next = pipeline.next()
+  while (!next.done) {
+    const job = next.value
+    if ('target' in job) next = pipeline.next(await extractOne(job.target, job.options))
+    else {
+      const {withLemmas} = await import('./effect.ts'), w = withLemmas(job.lemmas, {...(job.work === undefined ? {ms: job.ms} : {work: job.work}), watchdogMs: job.watchdogMs})
+      job.output.supportAttempts = w.attempts.map(a => ({name: a.name, ...(a.verdict ? {proven: a.verdict.proven, checked: a.verdict.checked, ...searchOf(a.verdict), ...(a.verdict.why ? {why: a.verdict.why} : {}), ...(a.verdict.translation ? {translation: a.verdict.translation} : {}), ...(a.verdict.kernelProven === undefined ? {} : {kernelProven: a.verdict.kernelProven})} : {}), ...(a.failure ? {failure: a.failure} : {})}))
+      job.output.notes = [...job.output.notes, ...w.proven.map(n => `lemma proven, beside every law: ${n}`), ...w.unproven.map(n => `lemma not proven (left out): ${n}`)]
+      next = pipeline.next(w.x)
+    }
+  }
+  return next.value
+}
+
+// Initialization only: no source reads/extraction/proof before the caller's counted scope.
+// Async-only Effect/XState and package-oriented front ends intentionally remain unsupported.
+export async function prepareFileCheck() {
+  const [{extractPython}, {extract}] = await Promise.all([import('./extract-py.ts'), import('./extract.ts')])
+  return (file: string, root: string, control: SyncControl, guard: (file: string) => void): RuleOut[] => {
+    if (syncControl) throw new Error('nested synchronous source checks are unsupported')
+    const lang = EXT[path.extname(file)]
+    if (lang !== 'python' && lang !== 'ts') throw new Error('workspace check supports Python and plain TypeScript/JavaScript files only')
+    syncControl = control
+    try { return withTraceWorkScope(() => {
+      guard(file)
+      const pipeline = checkPipeline({lang, at: file, files: [file]}, {ms: 2000, propose: true})
+      let next = pipeline.next()
+      while (!next.done) {
+        const job = next.value
+        if (!('target' in job)) throw new Error('Effect lemmas require an async-only source engine')
+        guard(job.target.at)
+        const code = fs.readFileSync(job.target.at, 'utf8')
+        if (lang === 'ts' && /(?:from\s+|import\s*\(\s*|require\s*\(\s*|import\s*)['"](?:effect|xstate)(?:[/'"])/.test(code)) throw new Error('Effect/XState workspace checks require an async-only source engine')
+        const options = {...job.options, root}
+        const x = control.invoke(() => lang === 'python' ? extractPython(job.target.at, options) : extract({code, file: job.target.at}, {...options, files: relativeImports(job.target.at, guard)} as never))
+        next = pipeline.next(x)
+      }
+      guard(file)
+      return next.value
+    }) } finally { syncControl = undefined }
+  }
+}
+
+function* checkPipeline(t: Target, o: Opts): Pipeline<RuleOut[]> {
   const laws = t.files.flatMap(scoped), cites = t.files.flatMap(f => citesIn(fs.readFileSync(f, 'utf8'), path.basename(f)))
-  const rules = await rulesOf(t, o, laws)
+  const rules = yield* rulesOf(t, o, laws)
   const outs: RuleOut[] = []
   // (the clock's unit, for durations in a law: the language's clock, or clock = "s" | "ms" in gdp.toml or --clock)
   const unit = o.clock ?? configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at)).all.clock ?? CLOCK[t.lang]
@@ -425,7 +492,7 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     const mine = rules.length === 1 ? laws.filter(l => !name || (l.cls ? l.cls === name : !l.fn || l.fn === name || ms0.has(l.fn))) : laws.filter(l => (!l.cls && !l.fn) || (l.cls ? l.cls === name : l.fn === name || (ms0.has(l.fn) && !fnRules.has(l.fn))))
     if (!x.ok || !x.rule) { r.laws = mine.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read', why: 'the rule was refused', ms: 0})); continue }
     // (an Effect service's primitives: the lemmas of their use proven first, each proven one beside every law)
-    if ((x as {lemmas?: unknown[]}).lemmas?.length) { const {withLemmas} = await import('./effect.ts'), w = withLemmas(x, {...(o.work === undefined ? {ms: Math.max(o.ms, 30_000)} : {work: o.work}), watchdogMs: o.watchdogMs}); x = w.x; r.supportAttempts = w.attempts.map(a => ({name: a.name, ...(a.verdict ? {proven: a.verdict.proven, checked: a.verdict.checked, ...searchOf(a.verdict), ...(a.verdict.why ? {why: a.verdict.why} : {}), ...(a.verdict.translation ? {translation: a.verdict.translation} : {}), ...(a.verdict.kernelProven === undefined ? {} : {kernelProven: a.verdict.kernelProven})} : {}), ...(a.failure ? {failure: a.failure} : {})})); r.notes = [...r.notes, ...w.proven.map(n => `lemma proven, beside every law: ${n}`), ...w.unproven.map(n => `lemma not proven (left out): ${n}`)] }
+    if ((x as {lemmas?: unknown[]}).lemmas?.length) x = yield {lemmas: x, ms: Math.max(o.ms, 30_000), work: o.work, watchdogMs: o.watchdogMs, output: r}
     const ev = x.evidence
     if (ev) r.checked = `checked against ${'probes' in ev ? `the code: ${ev.requests} requests from the start, ${ev.fromStates} from drawn states, ${ev.probes.steps} from the prover's witnesses` : `XState's own actor: ${(ev as unknown as {events: number}).events} events`}${ev.coverage.arms ? `, ${ev.coverage.hit} of ${ev.coverage.arms} branch arms` : ''}${'startsOutside' in ev && ev.startsOutside ? `; ${ev.startsOutside} starts whose constructor passes 2^53 - 1 left out (outside the rule's numbers: the claim is for starts within them)` : ''}`
     // (the rule's methods: the choice of method where it has several, else the one each name says)
@@ -484,11 +551,11 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     if (o.security) {
       // Deliberately separate from accepted policy and from heuristic proposals that hide broken guesses.
       // Do not pass previously proven candidates as hypotheses; use the same environment/replay as stated laws.
-      const candidates = securityTemplates(x), until = Date.now() + o.ms
-      r.security = candidates.map(l => ({...(Date.now() >= until
+      const candidates = securityTemplates(x), until = cliNow() + o.ms
+      r.security = candidates.map(l => ({...(cliNow() >= until
         ? {name: l.name, expr: l.expr, verdict: 'unknown' as const, why: 'security proposal budget exhausted', ms: 0}
-        : sys ? proveInEnv(x, l, Math.max(1, Math.min(2000, until - Date.now())), [], {...ctx, sys, entry: name, cert: undefined})
-        : prove(x, l, Math.max(1, Math.min(2000, until - Date.now())), [], {...ctx, entry: name, cert: undefined})),
+        : sys ? proveInEnv(x, l, Math.max(1, Math.min(2000, until - cliNow())), [], {...ctx, sys, entry: name, cert: undefined})
+        : prove(x, l, Math.max(1, Math.min(2000, until - cliNow())), [], {...ctx, entry: name, cert: undefined})),
         securityKind: l.securityKind, review: l.review,
         where: `${l.method ? `above ${l.method}: ` : ''}${COMMENT[t.lang]} gdp: law ${l.name}: ${l.expr}`}))
       r.notes.push('security candidates require policy review; arbitrary requests in arbitrary order, values within the extracted types; bind identity/roles to authentication, not caller claims')
@@ -540,7 +607,7 @@ function ruleFor(x: Extraction, expr: string): Extraction {
 }
 function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: Ctx, work = ctx?.work): LawOut {
   const x = ruleFor(x0, l.expr)
-  const t0 = Date.now(), cites = ctx?.cites.filter(c => c.law === l.name).map(c => c.text) ?? []
+  const t0 = cliNow(), cites = ctx?.cites.filter(c => c.law === l.name).map(c => c.text) ?? []
   const base = {name: l.name, expr: l.expr, ...(l.where ? {where: l.where} : {}), ...(cites.length ? {cites} : {})}
   const inv = x.invariants ?? [], search = {search: work === undefined ? {ms} : {work}, watchdogMs: ctx?.watchdogMs, ...(ctx?.from ? {from: ctx.from} : {})}
   // (whenever <from>, later <to>: proven with the rule's invariants and the laws proven so far, each helpful request fair)
@@ -549,8 +616,8 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
     let lt: unknown
     try { lt = buildLeadsTo(x, l, {clock: ctx?.clock}) } catch (e) { if (e instanceof LawError) return {...base, verdict: 'not read', why: (e as Error).message, ms: 0}; throw e }
     let v: Verdict
-    try { v = proveLeadsTo(x.rule! as never, [...inv, ...proven] as never, lt as never, {ms}) } catch (e) { return {...base, kind: 'leads to', verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
-    return {...base, ...translationOf(v), ...searchOf(v), kind: 'leads to', verdict: v.proven && v.checked ? 'proven' : 'unknown', ...(v.proven && v.checked ? {} : {why: whyOf(v, [v.goal, v.stuck, v.why].filter(Boolean).join('; ') || 'not proven')}), ms: Date.now() - t0}
+    try { v = proveLeadsTo(x.rule! as never, [...inv, ...proven] as never, lt as never, {ms}) } catch (e) { return {...base, kind: 'leads to', verdict: 'unknown', why: (e as Error).message, ms: cliNow() - t0} }
+    return {...base, ...translationOf(v), ...searchOf(v), kind: 'leads to', verdict: v.proven && v.checked ? 'proven' : 'unknown', ...(v.proven && v.checked ? {} : {why: whyOf(v, [v.goal, v.stuck, v.why].filter(Boolean).join('; ') || 'not proven')}), ms: cliNow() - t0}
   }
   let b: Built | undefined, two: TwoRunLaw | undefined
   // (a law that can't be built is not read, with why: never the whole check aborted)
@@ -562,14 +629,14 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
   // needing a law beside it to hold from every state the laws allow)
   if (ctx?.from && ctx.inductive && b?.kind === 'law' && !ctx.inductive.has(l.name)) {
     let r: Verdict
-    try { r = proveRule(x.rule!, [...inv, b.law], {search: work === undefined ? {ms} : {work}, watchdogMs: ctx?.watchdogMs}) } catch (e) { return {...base, kind: 'law', verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
-    if (r.run && r.translation !== 'unchecked' && r.translation !== 'error') return {...base, ...translationOf(r), ...searchOf(r), kind: 'law', verdict: 'broken', run: runOf(x, r.run), ms: Date.now() - t0}
-    return {...base, ...translationOf(r), ...searchOf(r), kind: 'law', verdict: r.translation === 'error' ? 'not read' : 'unknown', why: r.proven && r.checked ? `true in every state a run from the start reaches, not inductive from every state the laws allow (from = "any"): state the law it needs beside it${r.found?.laws?.length ? `: ${r.found.laws.map(f => f.text).join('; ')}` : ''}` : whyOf(r, r.why ?? r.stuck ?? 'not proven'), ...(r.found?.laws?.length ? {found: r.found.laws.map(f => f.text)} : {}), ms: Date.now() - t0}
+    try { r = proveRule(x.rule!, [...inv, b.law], {search: work === undefined ? {ms} : {work}, watchdogMs: ctx?.watchdogMs}) } catch (e) { return {...base, kind: 'law', verdict: 'unknown', why: (e as Error).message, ms: cliNow() - t0} }
+    if (r.run && r.translation !== 'unchecked' && r.translation !== 'error') return {...base, ...translationOf(r), ...searchOf(r), kind: 'law', verdict: 'broken', run: runOf(x, r.run), ms: cliNow() - t0}
+    return {...base, ...translationOf(r), ...searchOf(r), kind: 'law', verdict: r.translation === 'error' ? 'not read' : 'unknown', why: r.proven && r.checked ? `true in every state a run from the start reaches, not inductive from every state the laws allow (from = "any"): state the law it needs beside it${r.found?.laws?.length ? `: ${r.found.laws.map(f => f.text).join('; ')}` : ''}` : whyOf(r, r.why ?? r.stuck ?? 'not proven'), ...(r.found?.laws?.length ? {found: r.found.laws.map(f => f.text)} : {}), ms: cliNow() - t0}
   }
   // (from any state: a law about states proven with the others stated beside it, as one inductive set)
   const beside = (): Law[] => (ctx?.together ?? []).filter(m => m.name !== l.name).flatMap(m => { try { const y = buildLaw(x, m, ctx ?? {}); return y.kind === 'law' ? [y.law] : [] } catch { return [] } })
   try { v = two ? proveTwoRuns(two, {...search, invariants: [two.sides[0] === x.rule ? inv : (ctx?.others && Object.values(ctx.others).find(o => o.rule === two!.sides[0])?.invariants) ?? [], inv]}) : b!.kind === 'law' ? proveRule(x.rule!, [...inv, ...(ctx?.from ? beside() : []), b!.law], search) : proveSteps(x.rule!, [...inv, ...proven] as never, [b!.law], search) }
-  catch (e) { return {...base, kind, verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
+  catch (e) { return {...base, kind, verdict: 'unknown', why: (e as Error).message, ms: cliNow() - t0} }
   // (from any state: a step that breaks the law from a state the laws allow refutes it, reachable or not; the run that
   // reaches one from the start, where the search from the start finds it, is shown with it)
   if (ctx?.from && !v.proven && !v.run && !v.stopped && v.stuck === 'sat' && v.witness && b) {
@@ -596,13 +663,13 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
     if (doc) { fs.mkdirSync(ctx.cert, {recursive: true}); cert = path.join(ctx.cert, `${[ctx.entry ?? path.basename(ctx.file), l.name].join('.').replace(/[^\w.-]+/g, '-')}.json`); fs.writeFileSync(cert, JSON.stringify(doc)) }
   }
   return {...base, ...translationOf(v), ...searchOf(v), kind, verdict, ...(ctx?.from && verdict === 'proven' ? {from: 'any' as const} : {}), ...(replayed ? {replayed} : {}), ...(v.run && verdict === 'broken' ? {run: two ? pairRunOf(x, v.run, two) : runOf(x, v.run)} : {}), ...(verdict === 'unknown' || verdict === 'not read' || (verdict === 'broken' && !v.run) ? {why: whyOf(v, [v.why ?? v.stuck ?? 'not proven', ...(at.length ? [`a state the laws allow where a step breaks it, no run from the start found reaching it: ${at.join(', ')}`] : [])].join('; '))} : {}),
-    ...(v.run && !two ? {assumes: assumedOf(x, v.run)} : {}), ...(found?.length ? {found} : {}), ...(cert ? {cert} : {}), ms: Date.now() - t0}
+    ...(v.run && !two ? {assumes: assumedOf(x, v.run)} : {}), ...(found?.length ? {found} : {}), ...(cert ? {cert} : {}), ms: cliNow() - t0}
 }
 // A law of a rule in its environment (core/system.ts's inEnv): built on the rule as the code's names read it, then
 // lifted to every call at once; proven of the system, a run shown as the calls' steps.
 function proveInEnv(x: Extraction, l: LawText, ms: number, proven: Law[], ctx: Ctx & {sys: InEnv}): LawOut {
   const work = ctx.work
-  const t0 = Date.now(), sys = ctx.sys, base = {name: l.name, expr: l.expr, ...(l.where ? {where: l.where} : {})}
+  const t0 = cliNow(), sys = ctx.sys, base = {name: l.name, expr: l.expr, ...(l.where ? {where: l.where} : {})}
   if (isLeadsTo(l.expr) || isTwoRuns(l.expr)) return {...base, verdict: 'not read', why: `a ${isLeadsTo(l.expr) ? 'leads-to' : 'two-run'} law is not lifted to the environment (state it of the rule with no env)`, ms: 0}
   // (at most one call between a and b: a flow's mutual exclusion, its leases running out where their keys expire)
   const bw = /^at\s+most\s+one\s+call\s+between\s+([\w.]+)\s+and\s+([\w.]+)$/i.exec(l.expr.trim())
@@ -613,13 +680,13 @@ function proveInEnv(x: Extraction, l: LawText, ms: number, proven: Law[], ctx: C
   try {
     if (b.kind === 'law') { law = bw ? b.law as Law : sys.law(b.law as Law); v = proveRule(sys.rule, [...inv, law], {search: work === undefined ? {ms} : {work}, watchdogMs: ctx?.watchdogMs}) }
     else { law = sys.step(b.law); v = proveSteps(sys.rule, [...inv, ...proven], [law as never], {search: work === undefined ? {ms} : {work}, watchdogMs: ctx?.watchdogMs}) }
-  } catch (e) { return {...base, kind: b.kind, verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
+  } catch (e) { return {...base, kind: b.kind, verdict: 'unknown', why: (e as Error).message, ms: cliNow() - t0} }
   // (not proven and no run: calls contending with one request, a run the search's own draws seldom make)
   if (work === undefined && !v.stopped && !(v.proven && v.checked) && !v.run) { const run = contend(sys, law!, {ms: Math.min(ms, 10_000)}); if (run) v = {...v, run: run as never} }
   const verdict: LawOut['verdict'] = v.translation === 'unchecked' ? 'unknown' : v.translation === 'error' ? 'not read' : v.proven && v.checked ? 'proven' : v.run ? 'broken' : 'unknown'
   if (verdict === 'proven' && b.kind === 'law') proven.push(law as Law)
   const found = v.found?.laws?.map(f => f.text)
-  return {...base, ...translationOf(v), ...searchOf(v), kind: b.kind, verdict, ...(v.run && verdict === 'broken' ? {run: sysRunOf(x, sys, shrinkRun(sys.rule, law!, v.run))} : {}), ...(verdict === 'unknown' || verdict === 'not read' ? {why: whyOf(v, v.why ?? v.stuck ?? 'not proven')} : {}), ...(found?.length ? {found} : {}), ms: Date.now() - t0}
+  return {...base, ...translationOf(v), ...searchOf(v), kind: b.kind, verdict, ...(v.run && verdict === 'broken' ? {run: sysRunOf(x, sys, shrinkRun(sys.rule, law!, v.run))} : {}), ...(verdict === 'unknown' || verdict === 'not read' ? {why: whyOf(v, v.why ?? v.stuck ?? 'not proven')} : {}), ...(found?.length ? {found} : {}), ms: cliNow() - t0}
 }
 // A run of the system as each call's steps: a call begins with its request, reads, commits; a store's key expires.
 function sysRunOf(x: Extraction, sys: InEnv, run: NonNullable<Verdict['run']>): string[] {
@@ -752,11 +819,11 @@ function propose(x: Extraction, lang: Lang, o: Opts, proven: unknown[], stated: 
     add(`${codeOf(v)} never goes down`, `${codeOf(v)} >= old(${codeOf(v)})`)
     add(`${codeOf(v)} never goes up`, `${codeOf(v)} <= old(${codeOf(v)})`)
   }
-  const shown: LawOut[] = [], until = Date.now() + Math.max(5000, o.ms * 2)
+  const shown: LawOut[] = [], until = cliNow() + Math.max(5000, o.ms * 2)
   let broken = 0
   const fixed = new Set<string>()
-  for (const c of cands.slice(0, 40)) {
-    if (Date.now() > until) break
+  for (const c of cands.slice(0, syncControl ? Math.min(40, syncControl.candidates) : 40)) {
+    if (cliNow() > until) break
     const v = /^(.+) never (?:changes|goes (?:down|up))$/.exec(c.name)?.[1]
     if (v && fixed.has(v)) continue
     const r = prove(x, c, Math.min(o.ms, 2000), proven)
@@ -862,7 +929,7 @@ async function draft(target: string, o: Opts): Promise<number> {
   const {draftComments, draftPrompt, parseDraft, vetDrafts} = await import('./draft.ts')
   const clause = (o.clause as string | undefined) ?? (o.clauseFile ? fs.readFileSync(o.clauseFile as string, 'utf8') : undefined), cite = (o.cite as string | undefined) ?? 'the clause'
   if (!clause) { out('gdp-wired draft: --clause <text> or --clause-file <file>'); return 2 }
-  const t = targetsOf(target)[0]!, rules = await rulesOf(t, {...o, propose: false}, []), x = rules.find(r => r.x.ok)?.x
+  const t = targetsOf(target)[0]!, rules = await drivePipeline(rulesOf(t, {...o, propose: false}, [])), x = rules.find(r => r.x.ok)?.x
   if (!x) { out(`gdp-wired draft: no rule read from ${target}: ${rules[0]?.x.refusals[0]?.what ?? ''}`); return 2 }
   const prompt = draftPrompt(x, clause, cite)
   let answer: string
