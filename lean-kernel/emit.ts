@@ -2,8 +2,12 @@
 // soundness theorems (Kernel.lean, Progress.lean, StepLaw.lean, Steps.lean, History.lean, Sets.lean) with `decide +kernel`. The
 // emitter is untrusted: it names columns, orders rows and claims cell equalities; Lean checks every claim. Pure string
 // building, so it ships in the package (`gdp-wired/lean`); export-kernel.ts is the repo's script around it.
-import {walkOnce, type C, type E, type Law, type Machine, type Recurrence} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, type Recurrence} from '../core/machine.ts'
 export {primitiveFunctionLean, toLeanIntegerPrimitive, primitiveSpecimenLean} from './integer-primitives.ts'
+export {wordReads, wordDigitLean, wordKeyPartsLean, wordMapOverlayLean} from './word-division-export.ts'
+// Restricted scalar q/r/c digit-range lane (8/16/32/64); all other intrinsic machines fail closed below.
+export {q8RangeMachineToLean, wordDigitRangeMachineToLean} from './word-division-lower.ts'
+import {wordReads} from './word-division-export.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
 import {type CountCert, type CountDecl, type CountedGoal, type CountInst, type FrameCut, type MonoCut, type LinCut, type LemmaCut, framePath, lemmaPath, checkMC, checkCounted, checkCountedLaws, checkLaws, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, cellParts, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
@@ -2247,12 +2251,14 @@ export type LeanItem =
 // `cyclic`: each machine, loop and fold the cyclic route covers from cyclic certificates (see cycMachineToLean); defaults
 // to GDP_CERT=cyclic. `certReport` then says which items went which way.
 export function toLean(items: LeanItem[], opts: {title?: string, native?: boolean, cyclic?: boolean} = {}): string {
-  // No opaque axioms: full-machine export of the new compact unsigned helper
-  // needs its guarded digit/carry theory bridge. Standalone primitive UInt/Int
-  // exports remain available and independently checked. Refuse until linked.
-  let compactDivision = false
-  walkOnce(items, o => { const t = o as Record<string, unknown>; if (t.op === 'get' && typeof t.map === 'string' && t.map.startsWith('worddiv$')) compactDivision = true })
-  if (compactDivision) throw new Error('compact fixed division whole-machine Lean bridge is not yet implemented')
+  // Kernel.goal inserts facts about intrinsic maps before the negated conclusion.
+  // Lean's checkIn permits only goal-derived hypotheses; printing those extra
+  // rows would silently claim facts of arbitrary maps. Validate exact tuple
+  // shapes, then fail closed for the general SMachine route until all generated
+  // guarded facts are discharged against WordDivision.value. The separate
+  // wordDigitRangeMachineToLean proves restricted scalar-machine certificates;
+  // it is not a substitute for this generic Sets.checkSMachine bridge.
+  if (wordReads(items).length) throw new Error('generic word division SMachine export requires proved Lean discharge for generated guarded facts; restricted scalar word-digit machine export and concrete semantic gates are available')
   // Admit source-derived models before changing exporter state or emitting any text.
   // Ordinary typed DSL machines have no provenance entry and pass unchanged.
   for (const item of items) {

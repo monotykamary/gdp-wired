@@ -39,7 +39,7 @@ jobs:
           go version
           python3 --version
       - name: Check limb DSL and exact integer fuzz regressions
-        run: bun test core/fixed-integers.test.ts core/fixed-constant-division.test.ts core/fixed-division.test.ts core/fixed-integration.test.ts core/fixed-division-integration.test.ts kernel/integer-primitives.test.ts kernel/integer-primitives-fuzz.test.ts kernel/word-division.test.ts
+        run: bun test core/fixed-integers.test.ts core/fixed-constant-division.test.ts core/fixed-division.test.ts core/fixed-integration.test.ts core/fixed-division-integration.test.ts core/fixed-division-proof.test.ts core/fixed-admission.test.ts lean-kernel/word-division-export.test.ts kernel/integer-primitives.test.ts kernel/integer-primitives-fuzz.test.ts kernel/word-division.test.ts
       - name: Kill the new primitive semantic mutants
         env:
           SUPERCOMPUTER_OUTPUT_DIR: ${{ runner.temp }}/kernel-mutants

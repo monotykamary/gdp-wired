@@ -1,0 +1,42 @@
+[
+  {
+    "name": "budget-pair-1",
+    "cmd": "set -euo pipefail && bun install --frozen-lockfile >/dev/null && mkdir -p /tmp/budget-current/core /tmp/budget-current/kernel && cp 'core/dsl.ts' '/tmp/budget-current/core/dsl.ts' && cp 'core/machine.ts' '/tmp/budget-current/core/machine.ts' && cp 'kernel/kernel.ts' '/tmp/budget-current/kernel/kernel.ts' && cp 'kernel/prove.ts' '/tmp/budget-current/kernel/prove.ts' && cp 'budget-baseline/core/dsl.ts' 'core/dsl.ts' && cp 'budget-baseline/core/machine.ts' 'core/machine.ts' && cp 'budget-baseline/kernel/kernel.ts' 'kernel/kernel.ts' && cp 'budget-baseline/kernel/prove.ts' 'kernel/prove.ts' && bun research/kernel-primitives/budget-perf.ts before pair-1 && cp '/tmp/budget-current/core/dsl.ts' 'core/dsl.ts' && cp '/tmp/budget-current/core/machine.ts' 'core/machine.ts' && cp '/tmp/budget-current/kernel/kernel.ts' 'kernel/kernel.ts' && cp '/tmp/budget-current/kernel/prove.ts' 'kernel/prove.ts' && bun research/kernel-primitives/budget-perf.ts after pair-1",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 300,
+    "vm_type": "xlarge",
+    "distinct_vm_group": "kernel-budget-perf-6119535b7-5f9bd81dd-independent",
+    "cpu_model": "AMD Ryzen 9 9950X 16-Core Processor"
+  },
+  {
+    "name": "budget-pair-2",
+    "cmd": "set -euo pipefail && bun install --frozen-lockfile >/dev/null && mkdir -p /tmp/budget-current/core /tmp/budget-current/kernel && cp 'core/dsl.ts' '/tmp/budget-current/core/dsl.ts' && cp 'core/machine.ts' '/tmp/budget-current/core/machine.ts' && cp 'kernel/kernel.ts' '/tmp/budget-current/kernel/kernel.ts' && cp 'kernel/prove.ts' '/tmp/budget-current/kernel/prove.ts' && cp '/tmp/budget-current/core/dsl.ts' 'core/dsl.ts' && cp '/tmp/budget-current/core/machine.ts' 'core/machine.ts' && cp '/tmp/budget-current/kernel/kernel.ts' 'kernel/kernel.ts' && cp '/tmp/budget-current/kernel/prove.ts' 'kernel/prove.ts' && bun research/kernel-primitives/budget-perf.ts after pair-2 && cp 'budget-baseline/core/dsl.ts' 'core/dsl.ts' && cp 'budget-baseline/core/machine.ts' 'core/machine.ts' && cp 'budget-baseline/kernel/kernel.ts' 'kernel/kernel.ts' && cp 'budget-baseline/kernel/prove.ts' 'kernel/prove.ts' && bun research/kernel-primitives/budget-perf.ts before pair-2",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 300,
+    "vm_type": "xlarge",
+    "distinct_vm_group": "kernel-budget-perf-6119535b7-5f9bd81dd-independent",
+    "cpu_model": "AMD Ryzen 9 9950X 16-Core Processor"
+  },
+  {
+    "name": "budget-pair-3",
+    "cmd": "set -euo pipefail && bun install --frozen-lockfile >/dev/null && mkdir -p /tmp/budget-current/core /tmp/budget-current/kernel && cp 'core/dsl.ts' '/tmp/budget-current/core/dsl.ts' && cp 'core/machine.ts' '/tmp/budget-current/core/machine.ts' && cp 'kernel/kernel.ts' '/tmp/budget-current/kernel/kernel.ts' && cp 'kernel/prove.ts' '/tmp/budget-current/kernel/prove.ts' && cp 'budget-baseline/core/dsl.ts' 'core/dsl.ts' && cp 'budget-baseline/core/machine.ts' 'core/machine.ts' && cp 'budget-baseline/kernel/kernel.ts' 'kernel/kernel.ts' && cp 'budget-baseline/kernel/prove.ts' 'kernel/prove.ts' && bun research/kernel-primitives/budget-perf.ts before pair-3 && cp '/tmp/budget-current/core/dsl.ts' 'core/dsl.ts' && cp '/tmp/budget-current/core/machine.ts' 'core/machine.ts' && cp '/tmp/budget-current/kernel/kernel.ts' 'kernel/kernel.ts' && cp '/tmp/budget-current/kernel/prove.ts' 'kernel/prove.ts' && bun research/kernel-primitives/budget-perf.ts after pair-3",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 300,
+    "vm_type": "xlarge",
+    "distinct_vm_group": "kernel-budget-perf-6119535b7-5f9bd81dd-independent",
+    "cpu_model": "AMD Ryzen 9 9950X 16-Core Processor"
+  },
+  {
+    "name": "budget-pair-4",
+    "cmd": "set -euo pipefail && bun install --frozen-lockfile >/dev/null && mkdir -p /tmp/budget-current/core /tmp/budget-current/kernel && cp 'core/dsl.ts' '/tmp/budget-current/core/dsl.ts' && cp 'core/machine.ts' '/tmp/budget-current/core/machine.ts' && cp 'kernel/kernel.ts' '/tmp/budget-current/kernel/kernel.ts' && cp 'kernel/prove.ts' '/tmp/budget-current/kernel/prove.ts' && cp '/tmp/budget-current/core/dsl.ts' 'core/dsl.ts' && cp '/tmp/budget-current/core/machine.ts' 'core/machine.ts' && cp '/tmp/budget-current/kernel/kernel.ts' 'kernel/kernel.ts' && cp '/tmp/budget-current/kernel/prove.ts' 'kernel/prove.ts' && bun research/kernel-primitives/budget-perf.ts after pair-4 && cp 'budget-baseline/core/dsl.ts' 'core/dsl.ts' && cp 'budget-baseline/core/machine.ts' 'core/machine.ts' && cp 'budget-baseline/kernel/kernel.ts' 'kernel/kernel.ts' && cp 'budget-baseline/kernel/prove.ts' 'kernel/prove.ts' && bun research/kernel-primitives/budget-perf.ts before pair-4",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 300,
+    "vm_type": "xlarge",
+    "distinct_vm_group": "kernel-budget-perf-6119535b7-5f9bd81dd-independent",
+    "cpu_model": "AMD Ryzen 9 9950X 16-Core Processor"
+  }
+]

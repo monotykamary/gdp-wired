@@ -9,7 +9,26 @@ Earlier findings addressed: accessor TOCTOU in spec validation; omitted invalid
 operand receipts; reserved-name aliases; step-law readonly-function scope;
 generated-fact/final-conclusion ordering.
 
-## Final round7 verdict
+## Continuation round9 verdict
+
+**APPROVE** — actual kernel/prover diff after the checked u64 repair, performance
+negative memo and shared-budget fix. Launched exactly as above with
+`env -u OPENAI_API_KEY`, OpenAI Terra high, read/grep/find/ls only, no extensions
+or skills. Full output retained `/tmp/kp2-kernel-review9.txt`; round8 output at
+`/tmp/kp2-kernel-review8.txt`.
+
+The reviewer independently accepted guarded `c_n=0`, both-direction local
+carry-cut refutations, certificate widening/final replay, reserved namespace
+validation, negative-only caching, and unchanged safe-integer boundaries.
+Round8's nonblocking resource caution was addressed: local grow calls now share
+outer deadline/node budgets. Round9 found no blocking soundness issue.
+
+This is NOT certification of generic Lean export or release readiness. The
+restricted helper-digit machine lane and the generic SMachine bridge are
+explicitly different. Native tests/Lean receipts are reported by Main, not
+asserted to have been executed by the reviewer.
+
+## Original checkpoint round7 verdict (superseded by continuation round9)
 
 **APPROVE** — kernel/prover-only, on soundness and collisions.
 

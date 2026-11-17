@@ -79,6 +79,10 @@ export function wordDivisionValue(width: 8 | 16 | 32 | 64, part: 'q' | 'r' | 'c'
   return Number(carry)
 }
 
+// Negative-only memo: skipping a subsequently mutated subtree can only omit
+// optional consequences, never add a stale trusted assumption. Positive facts
+// are always rebuilt from the current syntax. Legacy shared ASTs need no rescan.
+const wordFree = new WeakSet<object>()
 export function wordDivisionFacts(terms: unknown[]): C[] {
   const out: C[] = []
   const seen = new Set<object>()
@@ -97,12 +101,15 @@ export function wordDivisionFacts(terms: unknown[]): C[] {
     if (!strict) alternatives.push(both(a.map((x, i) => eq(x, b[i]!))))
     return either(alternatives)
   }
-  const visit = (value: unknown): void => {
-    if (!value || typeof value !== 'object' || seen.has(value)) return
+  const visit = (value: unknown): boolean => {
+    if (!value || typeof value !== 'object' || wordFree.has(value)) return false
+    if (seen.has(value)) return true // conservative for shared/cyclic syntax
     seen.add(value)
+    let hasWord = false
     if (!Array.isArray(value)) {
       const node = value as Record<string, unknown>
       if (node.op === 'get' && typeof node.map === 'string') {
+        hasWord = node.map.startsWith('worddiv$')
         const spec = parseWordDivisionName(node.map)
         if (spec && node.key && typeof node.key === 'object') {
           const key = node.key as E
@@ -128,7 +135,10 @@ export function wordDivisionFacts(terms: unknown[]): C[] {
                   columns.push({op: 'prod', a: q[j]!, b: b[i - j]!})
                 guarded(eq(add(columns), add([i < n ? a[i]! : constant(0), {op: 'mul', k: base, a: c[i + 1]!}])))
               }
-              guarded(eq(c[2 * n]!, constant(0)))
+              // Q*B+R=A fits in n digits, so the carry after the LOW n
+              // columns is already zero. Waiting until 2n forces elimination
+              // through upper columns with unsafe 2^64 certificate products.
+              guarded(eq(c[n]!, constant(0)))
               guarded(digitLex(r, b, true))
               guarded(digitLex(q, a, false))
               const bOne = both([eq(b[0]!, constant(1)), ...b.slice(1).map(x => eq(x, constant(0)))])
@@ -138,7 +148,9 @@ export function wordDivisionFacts(terms: unknown[]): C[] {
         }
       }
     }
-    for (const child of Object.values(value)) visit(child)
+    for (const child of Object.values(value)) hasWord = visit(child) || hasWord
+    if (!hasWord) wordFree.add(value)
+    return hasWord
   }
   visit(terms)
   return out

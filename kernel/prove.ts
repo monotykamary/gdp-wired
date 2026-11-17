@@ -1,4 +1,5 @@
 import {retainFamily, retainFrom} from '../core/proof-output.ts'
+import {wordDivisionCuts} from './word-division-cuts.ts'
 import type {SearchTermination} from '../core/search-termination.ts'
 import {checkWatchdog} from '../core/search-watchdog.ts'
 // An untrusted prover for the kernel: grows a split tree until every leaf's constraints are refuted by solve(), splitting
@@ -648,13 +649,11 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
   // ranges before noticing an immediate linear contradiction. Try the existing
   // bounded plain search first for compact word goals. Only accept a proof tree
   // (never a relaxed model); the same kernel checks it below as every other tree.
-  if (!path.size && !budget.nodes) {
-    let word = false
-    walkOnce(goal.hyps, o => { const t = o as {op?: string, map?: unknown}; if (t.op === 'get' && typeof t.map === 'string' && t.map.startsWith('worddiv$')) word = true })
-    if (word) {
-      const quick = growPlain(goal, path, {nodes: 0, until: budget.until, cap: 64})
-      if ('tree' in quick) return quick
-    }
+  if (!path.size && !budget.nodes && goal.wordDivision) {
+    const local = wordDivisionCuts(goal, (g, p) => { const r = grow(g, p, budget); return 'tree' in r ? r.tree : undefined }, widen)
+    if (local) return {tree: local, nodes: budget.nodes}
+    const quick = growPlain(goal, path, {nodes: 0, until: budget.until, cap: 64})
+    if ('tree' in quick) return quick
   }
   const wide = !path.size && !budget.nodes && wideFor(goal), epr = !!eprScope.patterns && !eprScope.busy
   // (a wide goal's parts by the EPR path too, where the goal is EPR-shaped)

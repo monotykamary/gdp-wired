@@ -40,7 +40,7 @@ export const tupleParts = (e: E): E[] => (e.op === 'tup' ? [e.a, ...tupleParts(e
 export const part = (key: E, i: number, n: number): E => { let e = key; for (let j = 0; j < i; j++) e = {op: 'proj', k: 1, a: e}; return i < n - 1 ? {op: 'proj', k: 0, a: e} : e }
 
 export type Tree = {split: Lin, yes: Tree, no: Tree} | {leaf: Step[], products?: [number, number][], squares?: Lin[]}
-export type Goal = {name: string, hyps: C[]}
+export type Goal = {name: string, hyps: C[], wordDivision?: boolean}
 
 // The path: atoms decided so far, by their canonical text. yes: lin <= 0; no: lin >= 1.
 export type Path = Map<string, {lin: Lin, holds: boolean}>
@@ -919,10 +919,12 @@ const goal = (name: string, r: Run, conclusion: C): Goal => {
   const hyps: C[] = [...r.hyps, {op: 'not', x: conclusion}]
   // These are kernel-generated consequences of the reserved total Nat helpers,
   // never caller-supplied assumptions. Domain guards preserve invalid-input cases.
+  const facts = wordDivisionFacts(hyps)
+  if (!facts.length) return {name, hyps}
   const arithmetic = divisionArithmetic(conclusion)
-  const theory = wordDivisionFacts(hyps).filter(c => arithmetic || !divisionArithmetic(c))
+  const theory = facts.filter(c => arithmetic || !divisionArithmetic(c))
   // Search treats the final hypothesis as the negated conclusion.
-  return {name, hyps: [...r.hyps, ...theory, {op: 'not', x: conclusion}]}
+  return {name, hyps: [...r.hyps, ...theory, {op: 'not', x: conclusion}], wordDivision: true}
 }
 // A machine's flags as its terms read them (decided before the step, over the frame it starts from): a plain flag its
 // condition (through the flags before it), a quantified flag (one whose condition holds at every key) its 0/1 variable

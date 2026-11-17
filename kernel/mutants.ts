@@ -97,7 +97,7 @@ const wordEdits: [string, string][] = [
   ['lt(x, constant(base))', 'le(x, constant(base))'],
   ['either(b.map(x => lt(constant(0), x)))', 'either(b.map(x => le(constant(0), x)))'],
   ["{op: 'mul', k: base, a: c[i + 1]!}", "{op: 'mul', k: base + 1, a: c[i + 1]!}"],
-  ['guarded(eq(c[2 * n]!, constant(0)))', 'guarded(eq(c[2 * n]!, constant(1)))'],
+  ['guarded(eq(c[n]!, constant(0)))', 'guarded(eq(c[n]!, constant(1)))'],
   ['digitLex(r, b, true)', 'digitLex(b, r, true)'],
   ['digitLex(q, a, false)', 'digitLex(a, q, false)'],
 ]

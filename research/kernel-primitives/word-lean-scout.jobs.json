@@ -1,0 +1,7 @@
+[
+  {
+    "name": "word-lean-compile",
+    "cmd": "export PATH=\"$HOME/.elan/bin:$PATH\"; lean --version; cd lean-kernel && lean WordDivision.lean",
+    "timeout": 180
+  }
+]

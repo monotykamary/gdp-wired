@@ -1,3 +1,73 @@
+# Kernel primitives continuation — BLOCKED / DO NOT ADMIT / NO RELEASE
+
+Continuation of checkpoint5f9bd81dd on the SAME `feat/kernel-primitives-checkpoint`
+branch, based on6119535b7. No reader changes, main push/merge, history rewrite,
+or release. The stopped rule-first and checkpointed lift streams stay stopped.
+
+## Current result (2026-11-17)
+
+- **u64 identity repaired and kernel-accepted.** The minimal captured leaf hit
+  `-65536 * 281474976710656 = -2^64` at certificate step86. The checker correctly
+  rejected unsafe arithmetic. A guarded `c_n=0` theorem plus untrusted,
+  independently checked local carry cuts avoids that intermediate; safe-integer
+  checks in `core/check.ts` are unchanged. See `U64-REPAIR.md`.
+- Final native `20261117-185742-ovwts2`:255 runtime/fuzz tests and89
+  soundness/theory regressions pass;46/46 semantic mutants killed;231,552
+  C/Go/Rust/Python comparisons, zero mismatches. The accepted u64 law runs
+  interpreter and compileJs boundary cases; a shifted false law is not PROVEN.
+- **Performance:**60 warm samples/property/phase across three independent,
+  exclusive9950X VMs,2/16 pinned vCPUs,0 co-tenants. Median paired VM changes:
+  spent bound -8.37%, wrapping lap -3.01%, rollback -3.67%. Spread remains large;
+  no claim that every VM/sample improved. Removed irrelevant legacy scans using
+  an untrusted hint and negative-only memo. Full per-VM data in `U64-REPAIR.md`.
+- **Trusted kernel delta vs6119535b7:**347 lines added,5 removed (net342) in
+  `kernel/kernel.ts`, `kernel/integer-primitives.ts`, `kernel/word-division.ts`.
+  Prover/cut search, tests, Lean proofs and generated source strings excluded.
+- Terra rounds8 and9 **APPROVE**, kernel/prover scope only. Round9 includes
+  negative-only caching and shared outer proof budgets. No Lean/release approval.
+- Actual `WordDivision.lean` semantics, all guarded columns, q/r/c bounds and
+  `c_n=0` are universally Lean-proved at8/16/32/64. Native185805-3djdux green;
+  no sorry/custom axioms/native_decide. Actual wrap and helper-digit Machine/Reach
+  certificates pass a21-claim standard-axiom gate (191430-e8g52c).
+- A public **restricted helper-digit** exporter supports q/r/c bounds at all
+  widths and rejects auxiliary/unknown machine effects. It is NOT generic DSL
+  overflow/division-machine export. The new proof modules are included in the
+  generated leanLibrary; isolated installed-bundle recheck and public API tests
+  have separate receipts, recorded in `/tmp/kp2-CONTINUATION-FINAL.md`.
+- Scoped TypeScript/type-aware lint passed191202-opa9yp. Whole-tree boat check
+  failed because the upload excludes vendor submodules; that log has no errors
+  in core/kernel/lean-kernel/scripts. GitHub's normal recursive checkout must
+  perform the real whole-tree check. One authorized GitHub CI round and exact
+  final source SHA/URLs are recorded externally after the branch push in
+  `/tmp/kp2-CONTINUATION-FINAL.md`, not inferred from native tests.
+
+## Exact remaining release blocker
+
+Generic `toLean` still fails closed for intrinsic `SMachine` laws. `SReach.start`
+permits arbitrary initial values at undeclared reserved map indices. Its writes
+and carries need not preserve them. Therefore deriving word facts for arbitrary
+SReach maps is FALSE, even though the actual helper arithmetic is proved.
+
+Needed: a concrete `WordSReach`/word-map overlay simulation and reserved-index
+preservation theorem (or verified immutable-fn lowering with tuple-key
+isomorphism), followed by checkInWithFacts soundness at all sStartGoal/sStepGoal/
+sKGoal framed views. Discharge every generated fact; do not assume it. Full
+actual signed/mode frontend-lowering equivalence is not claimed. Scalar
+`Kern.Reach` fixes maps; its restricted checked exporter is sound but does not
+remove this blocker. **Do not mark READY FOR RELEASE REVIEW.**
+
+## Custody qualification
+
+The first timing helper exited before collecting its four successful jobs.
+Immutable batch fetch recovered all four exit0 rows without rerun. That old
+non-strict batch182645-k3p3b2 has no local custody journal; recover-close refused.
+Missing strict-close evidence is NOT reported as cleanup_complete. Later main
+native admissions use strict-once/max-attempts1. See final external receipt.
+
+---
+
+## Archived original checkpoint (historical, not current continuation status)
+
 # Kernel primitives — CHECKPOINT / NOT COMPLETE / DO NOT ADMIT / NO RELEASE
 
 Base: `6119535b7` (origin/main when assigned). Worktree: `/tmp/gdp-kernel-primitives`.

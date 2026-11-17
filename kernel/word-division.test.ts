@@ -22,6 +22,18 @@ function exercise(width: typeof widths[number], a: bigint, b: bigint): void {
   }
 }
 
+test('word-free memo never supplies stale positive arithmetic facts', () => {
+  const key = wordDivisionKey([constant(7),constant(3)])
+  const node: E = {op:'get',map:'ordinary',key}
+  expect(wordDivisionFacts([node])).toHaveLength(0)
+  node.map = wordDivisionName(8,'q',0)
+  // A cached negative may omit optional facts after mutation; it must not invent any.
+  for(const c of wordDivisionFacts([node]))expect(evalC(c,{},st,m)).toBe(true)
+  const fresh: E = {op:'get',map:node.map,key}
+  expect(wordDivisionFacts([fresh]).length).toBeGreaterThan(0)
+  for(const c of wordDivisionFacts([fresh]))expect(evalC(c,{},st,m)).toBe(true)
+})
+
 test('compact division samples and guarded theory match exact arithmetic at every width', () => {
   let seed = 17n
   for (const width of widths) {
