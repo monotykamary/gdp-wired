@@ -16,6 +16,8 @@ the old data-only default. All six tools are listed; `check` returns the typed
 `workspace-unconfigured` refusal until the server explicitly opts in:
 
 ```ts
+import {createConsultation} from 'gdp-wired/agent-consult'
+
 const session = createConsultation({workspaceRoots: ['/absolute/trusted/project']})
 const receipt = await session.call('check', {
   file: '/absolute/trusted/project/counter.py',
@@ -103,7 +105,7 @@ budget receipt; external runtime is not misrepresented as counted work.
 After normal dependency preparation, run these checks in the project's test environment:
 
 1. `bunx tsc -p core/agent-consult/tsconfig.json --noEmit`
-2. `bun test core/agent-consult/workspace.test.ts core/agent-consult.test.ts research/agent-tools/protocol.test.ts research/agent-tools/service.test.ts`
+2. `GDP_WORK_FULL=1 bun test core/agent-consult/workspace.test.ts core/agent-consult.test.ts research/agent-tools/protocol.test.ts research/agent-tools/service.test.ts`
 3. The existing CLI, budget ownership, watchdog and package regression suites.
 4. `bun scripts/build.ts`
 5. `node scripts/agent-consult-workspace-demo.mjs > "$SUPERCOMPUTER_OUTPUT_DIR/workspace-check-transcript.jsonl"`
