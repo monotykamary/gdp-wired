@@ -11,6 +11,7 @@ import {tmpdir} from 'node:os'
 import {extractRust, readRust, rsReader} from './extract-rs.ts'
 import {extractStep} from './extract-step.ts'
 import {proveRule, proveSteps} from './dsl.ts'
+import {buildLaw} from './laws.ts'
 
 const hasCargo = (() => { try { execFileSync('cargo', ['--version'], {stdio: 'ignore'}); return true } catch { return false } })()
 const t = hasCargo ? test : test.skip
@@ -51,6 +52,36 @@ t('Rust atomic ordering: typed load and store retain invalid-order failures', ()
     const next = runtime.step(params, runtime.init(params), r.encodeInput({method, load_ordering: order, store_ordering: order, store_value: 11}))
     expect(r.decode(next)).toMatchObject({value: method === 'store' && !invalid ? 11 : 7, failed: invalid})
   }
+}, 300_000)
+
+// Source-only equivalent of the original load property; the callback and
+// all dynamic-order and failure assertions above remain unchanged.
+t('Rust native scalar atomic load has independent tamper and disabled controls', () => {
+  const dir = genericCrate(`use std::sync::atomic::{AtomicU32, Ordering};
+    pub struct Meter { value: AtomicU32 }
+    impl Meter {
+      pub fn new() -> Self { Self { value: AtomicU32::new(7) } }
+      pub fn load(&self, ordering: Ordering) -> u32 { self.value.load(ordering) }
+      pub fn store(&self, value: u32, ordering: Ordering) { self.value.store(value, ordering); }
+    }`)
+  const read = (disabled: boolean) => ok(extractRust(dir, {entry: 'Meter', check: {...budget, ...(disabled ? {lawCrossCheck: false} : {})}, failures: 'kept', strict: true}))
+  const law = (x: X, expr: string) => {
+    const b = buildLaw(x, {name: 'atomic load state', expr, method: 'load'})
+    if (b.kind !== 'step') throw new Error('expected a step law')
+    return b.law
+  }
+  const x = read(false)
+  const v = proveSteps(x.rule!, x.invariants ?? [], [law(x, 'value == old(value)')], {search: false})
+  expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  expect(v.translationChecks).toBeGreaterThan(0)
+  const wrong = law(x, 'value != old(value)')
+  wrong.then = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
+  const rejected = proveSteps(x.rule!, x.invariants ?? [], [wrong], {search: false})
+  expect(rejected).toMatchObject({proven: false, checked: false, kernelProven: true, translation: 'error'})
+  expect(rejected.translationWitness?.before).toHaveProperty('value')
+  expect(rejected.translationWitness?.after).toHaveProperty('value')
+  const disabled = read(true)
+  expect(proveSteps(disabled.rule!, disabled.invariants ?? [], [law(disabled, 'value == old(value)')], {search: false})).toMatchObject({proven: false, checked: false, translation: 'unchecked'})
 }, 300_000)
 
 t('Rust atomic ordering: fully qualified standard types do not use a local Ordering enum', () => {

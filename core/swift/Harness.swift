@@ -1,6 +1,46 @@
 // gdp-wired's check harness for Swift, its fixed part (core/extract-swift.ts appends it, after the part generated for the
 // type read, to the type's file in the check's copy of the package): JSON, the requests, the stores, the answers.
 // Pure Swift, no Foundation (importing it into the code's file could change what its names resolve to).
+// Raw source-language values only. Object equality is intentionally scalar-only.
+func __gdpNativeUnsupported(_ reason: String) throws -> __GdpJ { throw __GdpBad(why: reason) }
+func __gdpNativeInt<T: BinaryInteger>(_ x: T) throws -> __GdpJ {
+  guard let n = Int64(exactly: x), n >= -9007199254740991, n <= 9007199254740991 else { throw __GdpBad(why: "native integer outside safe range") }
+  return .n(String(n))
+}
+func __gdpNativeNode(_ kind: String, _ items: [__GdpJ]) throws -> __GdpJ {
+  guard __gdpS.nativeID < 9007199254740991, items.count <= 10000 else { throw __GdpBad(why: "native snapshot bound") }
+  let id = __gdpS.nativeID; __gdpS.nativeID += 1
+  return .o(["kind": .s(kind), "id": .s(String(id)), "items": .a(items)])
+}
+func __gdpNativeObject(_ items: [(String, __GdpJ)]) throws -> __GdpJ { try __gdpNativeNode("object", items.map { .a([.s($0.0), $0.1]) }) }
+func __gdpNativeMap(_ items: [__GdpJ]) throws -> __GdpJ { try __gdpNativeNode("map", items) }
+func __gdpNativeFrame(_ read: () throws -> __GdpJ) -> __GdpJ {
+  do { return .o(["snapshot": .o(["version": .n("1"), "root": try read()])]) } catch { return .o(["error": .s("\(error)")]) }
+}
+func __gdpNativeScalar(_ x: Any, _ depth: Int = 0) throws -> __GdpJ {
+  guard depth < 8 else { throw __GdpBad(why: "native optional bound") }
+  if let b = x as? Bool { return .b(b) }
+  if let s = x as? String { return .s(s) }
+  if let n = x as? any BinaryInteger { return try __gdpNativeInt(n) }
+  let mirror = Mirror(reflecting: x)
+  if mirror.displayStyle == .optional { return try mirror.children.first.map { try __gdpNativeScalar($0.value, depth + 1) } ?? .null }
+  throw __GdpBad(why: "unsupported native answer type")
+}
+final class __GdpCapture: @unchecked Sendable {
+  var invocation = 0; var calls: [String: __GdpJ] = [:]; var error: String?
+}
+let __gdpCapture = __GdpCapture()
+func __gdpObservationFrame() -> __GdpJ {
+  if let error = __gdpCapture.error { return .o(["error": .s(error)]) }
+  return __gdpNativeFrame {
+    try __gdpNativeObject([("invocation", .n(String(__gdpCapture.invocation))), ("calls", try __gdpNativeObject(try __gdpCapture.calls.map { key, value in (key, try __gdpNativeObject([("kind", .s("returned")), ("value", value)])) }))])
+  }
+}
+func __gdpRecordNative(_ key: String, _ value: __GdpJ) {
+  var text = ""; value.write(&text)
+  if let previous = __gdpCapture.calls[key] { var old = ""; previous.write(&old); if old != text { __gdpCapture.error = "differing repeated native call \(key)" } }
+  else { __gdpCapture.calls[key] = value }
+}
 struct __GdpBad: Error { let why: String }
 struct __GdpErr: Error { let why: String }
 indirect enum __GdpJ {
@@ -64,7 +104,13 @@ extension UInt8: __GdpAns { static func __gdpOf(_ j: __GdpJ?) throws -> UInt8 { 
 extension Bool: __GdpAns { static func __gdpOf(_ j: __GdpJ?) throws -> Bool { try __gdpBool(j) }; static var __gdpZero: Bool { false } }
 extension String: __GdpAns { static func __gdpOf(_ j: __GdpJ?) throws -> String { try __gdpStr(j) }; static var __gdpZero: String { "" } }
 extension Optional: __GdpAns where Wrapped: __GdpAns { static func __gdpOf(_ j: __GdpJ?) throws -> Optional<Wrapped> { __gdpIsNone(j) ? nil : try Wrapped.__gdpOf(j) }; static var __gdpZero: Optional<Wrapped> { nil } }
-func __gdpAnswer<T: __GdpAns>(_ k: String) -> T { do { return try T.__gdpOf(__gdpS.answers[k]) } catch { fatalError("gdp: no answer for \(k)") } }
+func __gdpAnswer<T: __GdpAns>(_ k: String) -> T {
+  do {
+    let value = try T.__gdpOf(__gdpS.answers[k])
+    do { __gdpRecordNative(k, try __gdpNativeScalar(value)) } catch { __gdpCapture.error = "unsupported actual answer: \(error)" }
+    return value
+  } catch { __gdpCapture.error = "actual answer conversion failed: \(error)"; fatalError("gdp: no answer for \(k)") }
+}
 func __gdpZero<T: __GdpAns>() -> T { T.__gdpZero }
 final class __GdpStore: @unchecked Sendable { var data: [String: __GdpJ] = [:] }
 func __gdpStoreGet<T: __GdpAns>(_ s: __GdpStore, _ k: String) -> T { do { return try T.__gdpOf(s.data[k] ?? .null) } catch { fatalError("gdp: the store holds no \(T.self) at \(k)") } }
@@ -78,9 +124,17 @@ func __gdpTpl(_ t: String, _ k: String) -> String? {
 }
 func __gdpFill(_ t: String, _ h: String) -> String { guard let (pre, post) = __gdpSplit(t) else { return t }; return pre + h + post }
 func __gdpOut(_ m: [String: __GdpJ]) -> String { var o = ""; __GdpJ.o(m).write(&o); return o }
-public func __gdpOp(_ line: String) -> String { var p = __GdpParse(line); if case .s(let op)? = p.val()["op"] { return op }; return "" }
+public func __gdpOp(_ line: String) -> String {
+  var p = __GdpParse(line); let req = p.val()
+  guard case .s(let op)? = req["op"] else { return "" }
+  if op == "call" {
+    __gdpCapture.invocation += 1
+    __gdpS.binding = .o(["error": .s("native arguments were not bound")])
+  }
+  return op
+}
 public func __gdpCrash(_ op: String, _ how: String) -> String {
-  op == "call" ? __gdpOut(["out": .null, "err": .s("a crash (\(how): a trap, a precondition, fatalError, nil force-unwrapped)")]) : op == "at" ? __gdpOut(["bad": .s("a crash setting the state (\(how))")]) : __gdpOut(["err": .s("a crash in init (\(how))")])
+  op == "call" ? __gdpOut(["out": .null, "err": .s("a crash (\(how): a trap, a precondition, fatalError, nil force-unwrapped)"), "nativeBindings": __gdpS.binding, "nativeObservations": .o(["error": .s("child native observation unavailable after crash")])]) : op == "at" ? __gdpOut(["bad": .s("a crash setting the state (\(how))")]) : __gdpOut(["err": .s("a crash in init (\(how))")])
 }
 func __gdpStoresOk() -> String? {
   for (n, st) in __gdpS.cur { for k in st.data.keys where !(__gdpTpls[n] ?? []).contains(where: { __gdpTpl($0, k) != nil }) { return "the store \(n) holds \(k), a key no template of the rule names" } }
@@ -91,7 +145,7 @@ public func __gdpHandle(_ line: String) -> String {
   let req = p.val()
   guard case .s(let op)? = req["op"] else { return __gdpOut(["error": .s("no op")]) }
   switch op {
-  case "hello": __gdpS.discard = __gdpIsTrue(req["discard"]); return __gdpOut(["ok": .b(true)])
+  case "hello": __gdpS.discard = __gdpIsTrue(req["discard"]); return __gdpOut(["ok": .b(true), "nativeSnapshot": .n("1"), "nativeBindings": .n("1"), "nativeObservations": .n("1"), "nativeEquality": .s("scalar")])
   case "new", "at":
     __gdpS.cur = [:]
     do {
@@ -105,7 +159,12 @@ public func __gdpHandle(_ line: String) -> String {
     __gdpS.cur = __gdpS.stores[i - 1]
     if let bad = __gdpStoresOk() { return __gdpOut(["error": .s(bad)]) }
     return __gdpOut(["state": .o(__gdpGet(__gdpS.objs[i - 1]))])
+  case "native":
+    guard let i = req["id"]?.text.flatMap({ Int($0) }), i >= 1, i <= __gdpS.objs.count else { return __gdpOut(["error": .s("no object")]) }
+    __gdpS.cur = __gdpS.stores[i - 1]
+    var result = ""; __gdpNativeFrame { try __gdpNative(__gdpS.objs[i - 1]) }.write(&result); return result
   case "call":
+    __gdpCapture.calls = [:]; __gdpCapture.error = nil
     guard let i = req["id"]?.text.flatMap({ Int($0) }), i >= 1, i <= __gdpS.objs.count, case .s(let m)? = req["m"] else { return __gdpOut(["error": .s("no object")]) }
     __gdpS.cur = __gdpS.stores[i - 1]
     if case .o(let a)? = req["answers"] { __gdpS.answers = a } else { __gdpS.answers = [:] }
@@ -117,6 +176,8 @@ public func __gdpHandle(_ line: String) -> String {
     catch { res = ["out": .null, "err": .s("\(error)")] }
     let after = __gdpFrames(__gdpS.objs[i - 1])
     for (k, v) in before where after[k] != v { return __gdpOut(["frame": .s(k)]) }
+    res["nativeBindings"] = __gdpS.binding
+    res["nativeObservations"] = __gdpObservationFrame()
     return __gdpOut(res)
   case "coverage": return __gdpOut(["hit": .a([])])
   default: return __gdpOut(["error": .s("no op \(op)")])
