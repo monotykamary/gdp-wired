@@ -26,8 +26,14 @@ test('result lowering uses actual model names rather than punctuated source meth
   const x = {ok: true, refusals: [], notes: [], rule: rr, names,
     model: {results: {'seen?': {k: 'rec', fields: [['value', 'seen_p_result'], ['none', 'seen_p_result_none']]}}}} as unknown as Extraction
   const built = buildLaw(x, {name: 'seen', expr: 'result == true', method: 'seen?'})
-  expect(built.law.then).toEqual(rr.stepLaw('expected', (_b, a) => a.seen_p_result_none.not().and(a.seen_p_result.iff(yes))).then)
+  // This non-standalone model retains its existing optional-value coercion.
+  // Check the value and presence aliases separately rather than requiring a
+  // standalone-only presence guard on a Boolean comparison.
+  expect(built.law.then).toEqual(rr.stepLaw('expected', (_b, a) => a.seen_p_result.iff(yes)).then)
+  const absent = buildLaw(x, {name: 'absent', expr: 'result == nil', method: 'seen?'})
+  expect(absent.law.then).toEqual(rr.stepLaw('expected absence', (_b, a) => a.seen_p_result_none).then)
   expect(names[1]!.rule).toBe('seen?_result')
+  expect(names[1]!.none).toBe('seen?_result_none')
 })
 
 test('scalar fixed-list lowering retains before/after values and before indices', () => {
