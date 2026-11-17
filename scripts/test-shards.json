@@ -1,5 +1,5 @@
 {
-  "measured": "each unit alone (--measure), boat VMs with 2 vCPUs pinned, 2026-11-17, ae631359e, the portable set with the native toolchains stubbed; the native set as it ran on ubuntu-24.04 in CI (bun test file times, 2026-11-17), its three research/security units on the runner image",
+  "measured": "each unit alone (--measure), boat VMs with 2 vCPUs pinned, 2026-11-17, ae631359e, the portable set with the native toolchains stubbed; the native set as it ran on ubuntu-24.04 in CI (bun test file times, 2026-11-17), its three research/security units on the runner image; core/effect-queue.test.ts's parts each alone on boat (2 vCPUs pinned), 2026-11-17",
   "seconds": {
     "compare/tip/translate.test.ts": 20,
     "core/abstract.test.ts": 1.8,
@@ -178,7 +178,12 @@
     "core/dsl-budget-inheritance.test.ts": 0.1,
     "core/dsl-deadline.test.ts": 0.1,
     "core/dsl.test.ts": 3.8,
-    "core/effect-queue.test.ts": 539.3,
+    "core/effect-queue.test.ts -t ^(?!each primitive|each rule beside|the pool |a failure in withPermits|the CLI refuses)": 9.2,
+    "core/effect-queue.test.ts -t ^a failure in withPermits": 52.0,
+    "core/effect-queue.test.ts -t ^each primitive": 42.9,
+    "core/effect-queue.test.ts -t ^each rule beside": 74.4,
+    "core/effect-queue.test.ts -t ^the CLI refuses": 91.3,
+    "core/effect-queue.test.ts -t ^the pool ": 80.4,
     "core/effect-schedule.test.ts": 86,
     "core/effect-schema.test.ts": 0.5,
     "core/effect-stm.test.ts": 51.3,
