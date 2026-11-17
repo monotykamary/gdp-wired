@@ -40,7 +40,7 @@ class EntryRace
     @seen = value
   end
 end
-S.replace({'leaves' => [], 'discard' => false})
+S.replace({'leaves' => [], 'discard' => false, 'clocks' => []})
 OBJS[1] = EntryRace.new
 result = call({'id' => 1, 'm' => 'hit', 'a' => []})
 bindings = result.fetch('nativeBindings').fetch('snapshot').fetch('root').fetch('items').to_h
@@ -86,15 +86,15 @@ try do
   GdpNative.answered("inactive-exit", fn -> exit(:original_exit) end)
   raise "exit swallowed"
 catch :exit, :original_exit -> :ok end
-first = GdpNative.finish_call()["nativeObservations"]["snapshot"]["root"]["items"] |> Map.new()
-first_calls = first["calls"]["items"] |> Map.new()
+first = GdpNative.finish_call()["nativeObservations"]["snapshot"]["root"]["items"] |> Map.new(fn [key, value] -> {key, value} end)
+first_calls = first["calls"]["items"] |> Map.new(fn [key, value] -> {key, value} end)
 if Map.keys(first_calls) != ["current"] or first["clock"] != 12, do: raise "first frame polluted"
 GdpNative.begin_call(Control, :hit)
 entry = GdpNative.capture(Control, :hit, [value: 2], [:value])
 send(stale, :go)
 receive do :done -> :ok after 1000 -> raise "worker did not finish" end
 GdpNative.leave(entry)
-second = GdpNative.finish_call()["nativeObservations"]["snapshot"]["root"]["items"] |> Map.new()
+second = GdpNative.finish_call()["nativeObservations"]["snapshot"]["root"]["items"] |> Map.new(fn [key, value] -> {key, value} end)
 if second["calls"]["items"] != [] or Map.has_key?(second, "clock"), do: raise "stale process populated new frame"
 IO.puts("NATIVE_SCOPE_OK")
 `)
