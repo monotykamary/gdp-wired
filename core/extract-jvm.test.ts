@@ -6,10 +6,11 @@
 // Skipped where no JDK (Java) or no kotlinc (Kotlin) is installed.
 import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
-import {mkdirSync, mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
+import {appendFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {proveRule, proveSteps} from './dsl.ts'
 import {type JvmOptions, extractJava, extractKotlin} from './extract-jvm.ts'
+import {buildLaw} from './laws.ts'
 
 const javac = process.env.JAVA_HOME ? `${process.env.JAVA_HOME}/bin/javac` : 'javac'
 const hasJdk = (() => { try { execFileSync(javac, ['-version'], {stdio: 'ignore'}); return true } catch { return false } })()
@@ -38,14 +39,32 @@ const ok = (x: X) => {
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type R = {stepLaw: (n: string, t: unknown, w: unknown) => never, law: (n: string, f: (s: any) => unknown) => never}
+// Exact callback proofs are retained as checked model evidence, never passed off as
+// source proofs. Each positive also requires its equivalent registered native law.
+const modelOnly = {kernelProven: true, proven: false, checked: false, translation: 'unchecked', why: 'source translation unchecked: a source proof contains a law with no native interpretation'}
+const native = (v: ReturnType<typeof proveSteps>, name: string) => {
+  expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  expect(v.translationChecks).toBeGreaterThan(0)
+  const out = process.env.SUPERCOMPUTER_OUTPUT_DIR
+  if (out) appendFileSync(`${out}/jvm-native-verdicts.jsonl`, `${JSON.stringify({name, proven: v.proven, checked: v.checked, translation: v.translation, translationChecks: v.translationChecks})}\n`)
+}
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const step = (x: X, name: string, then: (b: any, a: any) => any, when: (b: any) => any) => {
+const step = (x: X, name: string, then: (b: any, a: any) => any, when: (b: any) => any, expr: string, method?: string) => {
   const r = x.rule! as never as R
-  const v = proveSteps(r as never, x.invariants ?? [], [r.stepLaw(name, then, when)])
-  if (!v.proven) throw new Error(`${name}: ${JSON.stringify({goal: v.goal, witness: v.witness})}`)
+  expect(proveSteps(r as never, x.invariants ?? [], [r.stepLaw(name, then, when)])).toMatchObject(modelOnly)
+  const built = buildLaw(x, {name, expr, ...(method ? {method} : {})})
+  expect(built.kind).toBe('step')
+  native(proveSteps(r as never, x.invariants ?? [], [built.law]), name)
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const inv = (x: X, name: string, holds: (s: any) => any) => proveRule(x.rule! as never, [...(x.invariants ?? []), (x.rule! as never as R).law(name, holds)])
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const nativeInv = (x: X, name: string, holds: (s: any) => any, expr: string) => {
+  expect(inv(x, name, holds)).toMatchObject(modelOnly)
+  const built = buildLaw(x, {name, expr})
+  expect(built.kind).toBe('law')
+  native(proveRule(x.rule!, [...x.invariants ?? [], built.law]), name)
+}
 
 tj('constructor signatures preserve same-arity delegation and keep single extraction scoped', () => {
   const code = `public class Counter {
@@ -89,8 +108,8 @@ public class Meter {
   public int exact(int k) { return Math.addExact(hits, k); }
 }`, 'Meter', {failures: 'kept'}))
   expect(x.source).toContain('4294967296')
-  step(x, 'a hit past MAX_VALUE wraps to MIN_VALUE', (_b, a) => a.hits.eq(-2147483648), b => b.method.is('hit').and(b.hits.eq(2147483647)))
-  step(x, 'exact fails past MAX_VALUE, the count as it was', (b, a) => a.failed.and(a.hits.eq(b.hits)), b => b.method.is('exact').and(b.hits.eq(2147483647)).and(b.exact_k.eq(1)))
+  step(x, 'a hit past MAX_VALUE wraps to MIN_VALUE', (_b, a) => a.hits.eq(-2147483648), b => b.method.is('hit').and(b.hits.eq(2147483647)), 'old(hits) == 2147483647 implies hits == -2147483648', 'hit')
+  step(x, 'exact fails past MAX_VALUE, the count as it was', (b, a) => a.failed.and(a.hits.eq(b.hits)), b => b.method.is('exact').and(b.hits.eq(2147483647)).and(b.exact_k.eq(1)), 'old(hits) == 2147483647 and k == 1 implies failed and hits == old(hits)', 'exact')
 })
 
 tj('a switch on an enum: a case falling through into the next, the default; a static constant folded', () => {
@@ -116,7 +135,7 @@ public class Grade {
   }
 }`, 'Grade'))
   expect(x.source).toContain("oneOf('OK', 'SLOW', 'SLOW_ERROR', 'ERROR')")
-  step(x, 'a slow error counts as slow too (it falls through)', (b, a) => a.slow.eq(b.slow.plus(1)).and(a.failed.eq(b.failed.plus(10))), b => b.o.is('SLOW_ERROR').and(b.slow.lt(1000)).and(b.failed.lt(1000)).and(b.slow.atLeast(0)).and(b.failed.atLeast(0)))
+  step(x, 'a slow error counts as slow too (it falls through)', (b, a) => a.slow.eq(b.slow.plus(1)).and(a.failed.eq(b.failed.plus(10))), b => b.o.is('SLOW_ERROR').and(b.slow.lt(1000)).and(b.failed.lt(1000)).and(b.slow.atLeast(0)).and(b.failed.atLeast(0)), 'o == SLOW_ERROR and old(slow) < 1000 and old(this.failed) < 1000 and old(slow) >= 0 and old(this.failed) >= 0 implies slow == old(slow) + 1 and this.failed == old(this.failed) + 10', 'record')
 })
 
 tj('a compare-and-set loop read as its first pass; an AtomicInteger as the int it holds; Math.max and min', () => {
@@ -141,7 +160,7 @@ public class Tokens {
     }
   }
 }`, 'Tokens'))
-  expect(inv(x, 'the count stays within 0 and max', s => s.count.atLeast(0).and(s.count.atMost(s.max_)).or(s.max_.lt(0))).proven).toBe(true)
+  nativeInv(x, 'the count stays within 0 and max', s => s.count.atLeast(0).and(s.count.atMost(s.max_)).or(s.max_.lt(0)), '(count >= 0 and count <= this.max) or this.max < 0')
 })
 
 tj('a map of records, Optional, a ReentrantLock\'s try/finally: the step atomic, one key written a step', () => {
@@ -173,7 +192,7 @@ public class Windows {
   public boolean seen(String key) { return windows.containsKey(key); }
 }`, 'Windows'))
   expect(x.notes.join(' ')).toMatch(/the step is atomic/)
-  step(x, 'a hit is remembered', (_b, a) => a.last_none.not(), b => b.method.is('hit'))
+  step(x, 'a hit is remembered', (_b, a) => a.last_none.not(), b => b.method.is('hit'), 'last is not None', 'hit')
 })
 
 tj('the clock and an answered call of other code, each the request\'s (the check\'s copy of the code rewritten)', () => {
@@ -190,7 +209,7 @@ public class Lease {
   }
 }`, 'Lease', {answers: {'Quota.ttl': 'int'}}, {'Quota.java': 'public class Quota { public static int ttl(String who) { throw new IllegalStateException("other code"); } }'}))
   expect(x.notes.join(' ')).toMatch(/answered by the request/)
-  step(x, 'a grant sets the lease from now', (b, a) => a.expires.eq(b.ttl.plus(b.now)), b => b.expires.atMost(b.now))
+  step(x, 'a grant sets the lease from now', (b, a) => a.expires.eq(b.ttl.plus(b.now)), b => b.expires.atMost(b.now), 'old(expires) <= now implies expires == Quota.ttl(...) + now', 'grant')
 })
 
 tj('the boundary inferred: a field @Autowired (a store), a constructor\'s injected interface (its call an answer the harness stubs), the entry', () => {
@@ -218,7 +237,7 @@ public class Counter {
   expect(notes).toMatch(/the entry inferred: Counter/)
   expect(notes).toMatch(/repo: an injected dependency \(marked so\)/)
   expect(notes).toMatch(/answered by the request \(inferred/)
-  step(x, 'a hit counts one, or none where it is refused', (b, a) => a.total.eq(b.total.plus(1)).or(a.total.eq(b.total)).and(a.hit_result.iff(a.total.eq(b.total.plus(1)))), b => b.total.lt(1000).and(b.total.atLeast(0)))
+  step(x, 'a hit counts one, or none where it is refused', (b, a) => a.total.eq(b.total.plus(1)).or(a.total.eq(b.total)).and(a.hit_result.iff(a.total.eq(b.total.plus(1)))), b => b.total.lt(1000).and(b.total.atLeast(0)), 'old(total) < 1000 and old(total) >= 0 implies (total == old(total) + 1 or total == old(total)) and (result == (total == old(total) + 1))', 'hit')
 })
 
 tj('a throw is the step\'s refusal; a failure after a write is refused unless the caller drops the write', () => {
@@ -278,7 +297,7 @@ class Breaker(private val threshold: Int, private val coolDown: Long) {
   }
   fun onSuccess() { check(state != State.OPEN) { "open" }; state = State.CLOSED; failures = 0; openedAt = null }
 }`, 'Breaker', {failures: 'kept'}))
-  expect(inv(x, 'an open breaker knows when it opened', s => s.state.is('OPEN').not().or(s.openedAt_none.not())).proven).toBe(true)
+  nativeInv(x, 'an open breaker knows when it opened', s => s.state.is('OPEN').not().or(s.openedAt_none.not()), 'state != OPEN or openedAt is not None')
 })
 
 tk('Kotlin: a map\'s [] with ?:, require, Int wraparound, coerceAtLeast', () => {
@@ -305,7 +324,7 @@ data class Budget(val limit: Int, val spent: Int = 0) {
   fun left(): Int = limit - spent
 }`, 'Budget', {methods: ['spend', 'reset', 'left']}))
   expect(inv(x, 'never past the limit', s => s.spent.atMost(s.limit)).proven).toBe(false)
-  step(x, 'a spend within the limit adds it', (b, a) => a.spent.eq(b.spent.plus(b.spend_n)), b => b.method.is('spend').and(b.spend_n.atLeast(0)).and(b.spent.plus(b.spend_n).atMost(b.limit)).and(b.spent.atLeast(0)))
+  step(x, 'a spend within the limit adds it', (b, a) => a.spent.eq(b.spent.plus(b.spend_n)), b => b.method.is('spend').and(b.spend_n.atLeast(0)).and(b.spent.plus(b.spend_n).atMost(b.limit)).and(b.spent.atLeast(0)), 'n >= 0 and old(spent) + n <= old(limit) and old(spent) >= 0 implies spent == old(spent) + n', 'spend')
 })
 
 tk('Kotlin: the boundary inferred: a lateinit property @Autowired (a store), the entry', () => {

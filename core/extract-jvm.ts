@@ -177,10 +177,10 @@ function compiled(lang: 'java' | 'kotlin', mod: SModule, read: StepRead, o: JvmO
   const build = (file: string, out: string, srcDir: string): string[] => {
     if (kotlin) {
       const kt = kotlinLib(o)
-      cp.execFileSync(jdk(o).java, ['-Xss8m', '-cp', `${kt}/kotlin-compiler.jar`, 'org.jetbrains.kotlin.cli.jvm.K2JVMCompiler', '-kotlin-home', path.dirname(kt), '-nowarn', '-no-reflect', '-d', out, '-cp', [t, extra].filter(Boolean).join(':'), file, ...(o.sources ?? []).map(f => path.resolve(f))], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26, timeout: limit, killSignal: 'SIGKILL'})
+      cp.execFileSync(jdk(o).java, ['-Xss8m', '-cp', `${kt}/kotlin-compiler.jar`, 'org.jetbrains.kotlin.cli.jvm.K2JVMCompiler', '-kotlin-home', path.dirname(kt), '-nowarn', '-no-reflect', '-java-parameters', '-d', out, '-cp', [t, extra].filter(Boolean).join(':'), file, ...(o.sources ?? []).map(f => path.resolve(f))], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26, timeout: limit, killSignal: 'SIGKILL'})
       return [out, `${kt}/kotlin-stdlib.jar`]
     }
-    cp.execFileSync(jdk(o).javac, ['-nowarn', '-Xlint:none', '-proc:none', '-implicit:class', '-d', out, '-sourcepath', `${srcDir}:${mod.root}`, '-cp', [t, extra].filter(Boolean).join(':'), file], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26, timeout: limit, killSignal: 'SIGKILL'})
+    cp.execFileSync(jdk(o).javac, ['-nowarn', '-Xlint:none', '-proc:none', '-implicit:class', '-parameters', '-d', out, '-sourcepath', `${srcDir}:${mod.root}`, '-cp', [t, extra].filter(Boolean).join(':'), file], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26, timeout: limit, killSignal: 'SIGKILL'})
     return [out]
   }
   // What the compiler says is wrong with the code (its error lines), none where it crashed, was killed or timed out.

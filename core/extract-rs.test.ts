@@ -11,6 +11,7 @@ import {tmpdir} from 'node:os'
 import {extractRust, readRust, rsReader} from './extract-rs.ts'
 import {extractStep} from './extract-step.ts'
 import {proveRule, proveSteps} from './dsl.ts'
+import {buildLaw} from './laws.ts'
 
 const hasCargo = (() => { try { execFileSync('cargo', ['--version'], {stdio: 'ignore'}); return true } catch { return false } })()
 const t = hasCargo ? test : test.skip
@@ -37,7 +38,7 @@ t('Rust atomic ordering: typed load and store retain invalid-order failures', ()
   expect(x.source).toContain("'Relaxed', 'Release', 'Acquire', 'AcqRel', 'SeqCst'")
   expect(x.notes.join('\n')).toContain("calls that don't interleave")
   const load = step(x, 'load never changes the atomic value', (b, a) => a.value.eq(b.value), b => b.method.is('load'))
-  expect(load).toMatchObject({proven: true, checked: true})
+  expect(load).toMatchObject(modelOnly)
   const store = step(x, 'failed store leaves the atomic value unchanged', (b, a) => a.failed.implies(a.value.eq(b.value)), b => b.method.is('store'))
   expect(store).toMatchObject({proven: true, checked: true})
   for (const method of ['load', 'store']) {
@@ -51,6 +52,42 @@ t('Rust atomic ordering: typed load and store retain invalid-order failures', ()
     const next = runtime.step(params, runtime.init(params), r.encodeInput({method, load_ordering: order, store_ordering: order, store_value: 11}))
     expect(r.decode(next)).toMatchObject({value: method === 'store' && !invalid ? 11 : 7, failed: invalid})
   }
+}, 300_000)
+
+// Source-only equivalent of the original load property; the callback and
+// all dynamic-order and failure assertions above remain unchanged.
+t('Rust native scalar atomic load has independent tamper and disabled controls', () => {
+  const dir = genericCrate(`use std::sync::atomic::{AtomicU32, Ordering};
+    pub struct Meter { value: AtomicU32 }
+    impl Meter {
+      pub fn new() -> Self { Self { value: AtomicU32::new(7) } }
+      pub fn load(&self, ordering: Ordering) -> u32 { self.value.load(ordering) }
+      pub fn store(&self, value: u32, ordering: Ordering) { self.value.store(value, ordering); }
+    }`)
+  const read = (disabled: boolean) => {
+    const x = extractRust(dir, {entry: 'Meter', check: disabled ? {runs: 0, states: 0, probes: false} : budget, failures: 'kept', strict: true})
+    if (!disabled) return ok(x)
+    expect(x.ok).toBe(true)
+    expect(x.evidence?.requests ?? 0).toBe(0)
+    return x
+  }
+  const law = (x: X, expr: string) => {
+    const b = buildLaw(x, {name: 'atomic load state', expr, method: 'load'})
+    if (b.kind !== 'step') throw new Error('expected a step law')
+    return b.law
+  }
+  const x = read(false)
+  const v = proveSteps(x.rule!, x.invariants ?? [], [law(x, 'value == old(value)')], {search: false})
+  expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  expect(v.translationChecks).toBeGreaterThan(0)
+  const wrong = law(x, 'value != old(value)')
+  wrong.then = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
+  const rejected = proveSteps(x.rule!, x.invariants ?? [], [wrong], {search: false})
+  expect(rejected).toMatchObject({proven: false, checked: false, kernelProven: true, translation: 'error'})
+  expect(rejected.translationWitness?.before).toHaveProperty('value')
+  expect(rejected.translationWitness?.after).toHaveProperty('value')
+  const disabled = read(true)
+  expect(proveSteps(disabled.rule!, disabled.invariants ?? [], [law(disabled, 'value == old(value)')], {search: false})).toMatchObject({proven: false, checked: false, translation: 'unchecked'})
 }, 300_000)
 
 t('Rust atomic ordering: fully qualified standard types do not use a local Ordering enum', () => {
@@ -1051,13 +1088,57 @@ const ok = (x: X) => {
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type A = any
+// Callbacks have checked mathematical proofs, but no independent native interpretation.
+const modelOnly = {proven: false, checked: false, kernelProven: true, translation: 'unchecked',
+  why: 'source translation unchecked: a source proof contains a law with no native interpretation'}
+const native = (x: X, name: string, expr: string, method?: string) => {
+  const b = buildLaw(x, {name, expr, ...(method ? {method} : {})})
+  const v = b.kind === 'step' ? proveSteps(x.rule!, x.invariants ?? [], [b.law]) : proveRule(x.rule!, [...(x.invariants ?? []), b.law])
+  expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  expect(v.translationChecks).toBeGreaterThan(0)
+}
 const step = (x: X, name: string, then: (b: A, a: A) => A, when?: (b: A) => A) => proveSteps(x.rule as A, x.invariants ?? [], [(x.rule as A).stepLaw(name, then, when)])
+
+// Nonzero translationChecks does not show that this rare antecedent was seen.
+// One reachable native run must traverse the actual 255 -> 0 wrap.
+t('Rust native lap observes its 255 antecedent rather than passing vacuously', () => {
+  const x = ok(extractRust(DIR, {entry: 'Budget', methods: ['lap'], failures: 'kept',
+    check: {runs: 1, depth: 256, states: 0, probes: false}}))
+  expect(x.evidence!.requests).toBe(256)
+  native(x, 'reachable native lap wraps', 'old(laps) == 255 implies laps == 0', 'lap')
+  const bad = buildLaw(x, {name: 'lap wrap non-vacuity', expr: 'old(laps) == 255 implies laps != 0', method: 'lap'})
+  if (bad.kind !== 'step') throw new Error('expected a step law')
+  // Keep the native reading false at the wrap while making its symbolic IR true.
+  bad.law.then = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
+  const rejected = proveSteps(x.rule!, x.invariants ?? [], [bad.law], {search: false})
+  expect(rejected).toMatchObject({
+    proven: false, checked: false, kernelProven: true, translation: 'error',
+    translationWitness: {method: 'lap', before: {laps: 255}, after: {laps: 0}},
+  })
+}, 120_000)
 
 t('integers of a width: + traps past it (the failure), wrapping_add wraps, checked_add is an Option', () => {
   const x = ok(extractRust(DIR, {entry: 'Budget', methods: ['spend', 'lap', 'try_spend', 'mark'], failures: 'kept', check: budget}))
   expect(x.notes.join('\n')).toMatch(/past u8's range \(a panic/)
-  expect(proveRule(x.rule!, [...x.invariants!, x.rule!.law('spent within the limit', ({spent, limit}: A) => spent.atMost(limit))]).proven).toBe(true)
-  expect(step(x, 'a lap wraps at 256', (b, a) => a.laps.eq(0), b => b.method.is('lap').and(b.laps.eq(255))).proven).toBe(true)
+  expect(proveRule(x.rule!, [...x.invariants!, x.rule!.law('spent within the limit', ({spent, limit}: A) => spent.atMost(limit))])).toMatchObject(modelOnly)
+  native(x, 'spent within the limit (native)', 'spent <= limit')
+  expect(step(x, 'a lap wraps at 256', (b, a) => a.laps.eq(0), b => b.method.is('lap').and(b.laps.eq(255)))).toMatchObject(modelOnly)
+  native(x, 'a lap wraps at 256 (native)', 'old(laps) == 255 implies laps == 0', 'lap')
+  // The false native reading is made symbolically true to exercise translation independently.
+  const bad = buildLaw(x, {name: 'corrupted lap', expr: 'laps == old(laps)', method: 'lap'})
+  if (bad.kind !== 'step') throw new Error('expected a step law')
+  bad.law.then = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
+  expect(proveSteps(x.rule!, x.invariants ?? [], [bad.law], {search: false})).toMatchObject({
+    proven: false, checked: false, kernelProven: true, translation: 'error',
+  })
+  const disabled = extractRust(DIR, {entry: 'Budget', methods: ['spend', 'lap', 'try_spend', 'mark'], failures: 'kept', check: {runs: 0, states: 0, probes: false}})
+  expect(disabled.ok).toBe(true)
+  expect(disabled.evidence?.requests ?? 0).toBe(0)
+  const lap = buildLaw(disabled, {name: 'lap disabled', expr: 'old(laps) == 255 implies laps == 0', method: 'lap'})
+  expect(proveSteps(disabled.rule!, disabled.invariants ?? [], [lap.law], {search: false})).toMatchObject({
+    proven: false, checked: false, kernelProven: true, translation: 'unchecked',
+    why: 'source translation unchecked: source replay or native-law cross-check was disabled',
+  })
   expect(step(x, 'mark keeps the phase', (b, a) => a.phase.eq(b.mark_p).and(a.phase_none.not()), b => b.method.is('mark')).proven).toBe(true)
 }, 120_000)
 

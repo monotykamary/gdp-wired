@@ -592,7 +592,7 @@ def hello(req):
   S['cls'] = getattr(mod, req['cls'].rpartition('.')[2]) if req.get('cls') else None
   S['loop'] = asyncio.new_event_loop()
   asyncio.set_event_loop(S['loop'])
-  return {'ok': True, 'nativeSnapshot': 1}
+  return {'ok': True, 'nativeSnapshot': 1, 'nativeBindings': 1, 'nativeEquality': 'scalar'}
 
 def make(args):
   global OBJ_STORES
@@ -640,6 +640,19 @@ def call(req):
   try: kwargs = fixed_args(req['a'], {})
   except OverflowError as e:
     return {'outside': f'argument outside the declared runtime domain: {e}'}
+  # Bind the actual callable's Python signature, before the method can mutate
+  # its arguments. Never reconstruct native law inputs from the symbolic IR.
+  try:
+    native_fn = fn.__func__ if isinstance(fn, types.MethodType) else fn
+    if not isinstance(native_fn, types.FunctionType):
+      raise ValueError('unsupported native callable for parameter capture')
+    if any(dict.__contains__(native_fn.__dict__, name) for name in ('__signature__', '__wrapped__', '__text_signature__')):
+      raise ValueError('customized native signature metadata is unsupported')
+    bound = inspect.signature(fn, follow_wrapped=False).bind(**kwargs)
+    bound.apply_defaults()
+    native_bindings = {'snapshot': native_state(types.SimpleNamespace(**bound.arguments), select=False)}
+  except Exception as e:
+    native_bindings = {'error': f'{type(e).__name__}: {e}'[:300]}
   before = frames(obj if S['cls'] is not None else None)
   snap = state_of(obj, stores) if S.get('discard') and S['cls'] is not None else None
   sys.settrace(tracer)
@@ -658,11 +671,11 @@ def call(req):
   after = frames(obj if S['cls'] is not None else None)
   for k in before:
     if after.get(k) != before[k]: return {'frame': k}
-  return {'out': tag(out), **({'err': err} if err is not None else {}), **({'effects': dict(EFF)} if EFF else {})}
+  return {'out': tag(out), 'nativeBindings': native_bindings, **({'err': err} if err is not None else {}), **({'effects': dict(EFF)} if EFF else {})}
 
 # Native observation transport for ordered containers. Retain real references
 # so Python cannot recycle an address and manufacture cross-snapshot identity.
-def native_state(obj):
+def native_state(obj, select=True):
   seen = set()
   count = [0]
   def encode(value, names=None):
@@ -682,6 +695,10 @@ def native_state(obj):
     seen.add(ident)
     if isinstance(value, list):
       return {'kind': 'array', 'id': ident, 'items': [encode(x) for x in value]}
+    if type(value) is set:
+      return {'kind': 'set', 'id': ident, 'items': [encode(x) for x in value]}
+    if isinstance(value, (set, frozenset)):
+      raise ValueError('unsupported native snapshot set type')
     if isinstance(value, dict):
       if any(not isinstance(k, (str, int, float)) or isinstance(k, bool) for k in value):
         raise ValueError('unsupported native snapshot map key')
@@ -690,7 +707,7 @@ def native_state(obj):
     if names is not None: fields = {name: fields[name] for name in names}
     return {'kind': 'object', 'id': ident, 'items': [[k, encode(v)] for k, v in fields.items()]}
   roots = sorted({l['path'][0] for l in S['leaves'] if l.get('path') and l['kind'] != 'frame'})
-  return {'version': 1, 'root': encode(obj, roots)}
+  return {'version': 1, 'root': encode(obj, roots if select else None)}
 
 def main():
   fin = open(sys.argv[1], 'r'); fout = open(sys.argv[2], 'w')

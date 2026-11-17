@@ -190,6 +190,27 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
       set.push(`if ((v = gdp_key(st, ${k}))) { for (int i = 0; i < ${n}; i++) { const char *e = gdp_idx(v, i); if (!e) return "${l.name}: not ${n} items"; ${T(et).k === 'int' ? intIn(`${a}[i]`, 'e', et, `return "${l.name}: an item outside its type"`) : `${a}[i] = !strncmp(e, "true", 4);`} } if (gdp_idx(v, ${n})) return "${l.name}: not ${n} items"; }`)
     } else if (l.kind === 'bool') { get.push(`gdp_putf("%s\\"%s\\":%s", sep, ${k}, ${a} ? "true" : "false"); sep = ",";`); set.push(`if ((v = gdp_key(st, ${k}))) { if (!strncmp(v, "true", 4)) ${a} = ${T(l.t).nullflag ? '(void *)1' : '1'}; else if (!strncmp(v, "false", 5)) ${a} = 0; else return "${l.name}: not a boolean"; }`) }
   }
+  // Independently observe original native field paths, never symbolic Snap names.
+  type NativeNode = {children: Map<string, NativeNode>, leaf?: typeof read.leaves[number]}
+  const nativeTree: NativeNode = {children: new Map()}
+  for (const leaf of read.leaves) if (['int', 'bool', 'list'].includes(leaf.kind)) {
+    let node = nativeTree
+    for (const f of leaf.path) { if (!node.children.has(f)) node.children.set(f, {children: new Map()}); node = node.children.get(f)! }
+    node.leaf = leaf
+  }
+  const emit = (s: string) => `gdp_putf("%s", ${q(s)});`
+  const nativeInt = (a: string, t: number) => T(t).signed === false ? `gdp_putf("%llu", (unsigned long long)(${a}));` : `gdp_putf("%lld", (long long)(${a}));`
+  const nativeNode = (node: NativeNode, path: string[]): string => {
+    const a = path.length ? acc(path) : '(*o)', l = node.leaf
+    if (l?.kind === 'int') return nativeInt(a, l.t)
+    if (l?.kind === 'bool') return T(l.t).nullflag ? `if (${a}) gdp_native_bad = "unsupported native pointer field"; gdp_putf("null");` : `gdp_putf("%s", ${a} ? "true" : "false");`
+    if (l?.kind === 'list') {
+      const t = T(l.t), et = T(t.elem!)
+      return `${emit('{"kind":"array","id":"')} gdp_putf("%llu", gdp_native_id((const void *)&${a}, ${q(`array:${path.join('.')}`)})); ${emit('","items":[')} for (int ni = 0; ni < ${t.len!}; ni++) { if (ni) gdp_putf(","); ${et.k === 'int' ? nativeInt(`${a}[ni]`, t.elem!) : `gdp_putf("%s", ${a}[ni] ? "true" : "false");`} } ${emit(']}')}`
+    }
+    return `${emit('{"kind":"object","id":"')} gdp_putf("%llu", gdp_native_id((const void *)&${a}, ${q(`object:${path.join('.')}`)})); ${emit('","items":[')} ${[...node.children].map(([f, child], i) => `${emit(`${i ? ',' : ''}[${q(f)},`)} ${nativeNode(child, [...path, f])} ${emit(']')}`).join(' ')} ${emit(']}')}`
+  }
+  const nativeState = nativeNode(nativeTree, [])
   const frames = read.leaves.filter(l => l.kind === 'frame' && !T(l.t).mutex)
   // (a field left out that points to an object other code owns, a buffer: a zeroed one of its own, as the code's setup
   // would give)
@@ -221,6 +242,16 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
         push(byValue || t.go?.trim().endsWith('&') ? `a${i}` : `&a${i}`)
       } else lines.push(`return "an argument the harness can't make";`)
     })
+    const nativeArgs = meth.params.map((pa, i) => {
+      const t = T(pa.t), a = `a${i}`
+      const scalar = (v: string, ty: number) => T(ty).k === 'int' ? nativeInt(v, ty) : T(ty).k === 'bool' ? `gdp_putf("%s", ${v} ? "true" : "false");` : 'gdp_native_bad = "unsupported native parameter type"; gdp_putf("null");'
+      const body = pa.arg.k === 'input' ? scalar(a, pa.t) : pa.arg.k === 'rec'
+        ? `${emit('{"kind":"object","id":"')} gdp_putf("%llu", ++gdp_native_next); ${emit('","items":[')} ${(t.k === 'ptr' && T(t.elem!).box ? [['value', T(t.elem!).fields![0]!.t, a] as const] : pa.arg.fields.map(([f]) => { const st = t.k === 'ptr' ? T(t.elem!) : t; return [f, st.fields!.find(g => g.name === f)!.t, `${a}.${f}`] as const })).map(([f, ft, v], j) => `${emit(`${j ? ',' : ''}[${q(f)},`)} ${scalar(v, ft)} ${emit(']')}`).join(' ')} ${emit(']}')}`
+        : 'gdp_native_bad = "unsupported native parameter shape"; gdp_putf("null");'
+      return `${emit(`${i ? ',' : ''}[${q(pa.name)},`)} ${body} ${emit(']')}`
+    }).join(' ')
+    // These are the converted native locals BEFORE invocation/reassignment.
+    const bindings = `${emit(',"nativeBindings":{"snapshot":{"version":1,"root":{"kind":"object","id":"')} gdp_putf("%llu", ++gdp_native_next); ${emit('","items":[')} ${nativeArgs} ${emit(']}}')} if (gdp_native_bad) { ${emit(',"error":"')} gdp_putf("%s", gdp_native_bad); ${emit('"')} } ${emit('}')}`
     const rt = meth.results[0], fails = opts.fails?.[meth.name]?.trim()
     const callee = G ? `${meth.name}(${args.slice(1).join(', ')})` : cpp ? `o->${meth.name}(${args.slice(1).join(', ')})` : `${meth.name}(${args.join(', ')})`
     const invoke = rt === undefined ? `${callee};` : `${cpp ? 'auto' : T(rt).go} r0 = ${callee}; gdp_has = 1; ${T(rt).k === 'int' ? `gdp_outv = ${T(rt).signed === false ? '(long long)' : ''}r0; gdp_outu = ${T(rt).signed === false ? 1 : 0};` : 'gdp_outb = r0; gdp_isb = 1;'}`
@@ -228,7 +259,7 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
     // (with out-parameters, the result is a record: the value returned and what each holds)
     const rec = outs.length ? `gdp_rec = 1; gdp_putf(",\\"out\\":{"); ${[...(rt !== undefined ? [['result', 'r0', rt] as [string, string, number]] : []), ...outs].map(([n, v, et], j) => `gdp_putf("${j ? ',' : ''}\\"${n}\\":"); ${T(et).k === 'int' ? `gdp_putf(${T(et).signed === false ? '"%llu", (unsigned long long)' : '"%lld", (long long)'}(${v}))` : `gdp_putf("%s", ${v} ? "true" : "false")`};`).join(' ')} gdp_putf("},\\"hasOut\\":true");` : ''
     const load = G ? `gdp_load(o); ${given.map(([n, a]) => `memcpy((void *)&${n}, (const void *)&${a}, sizeof ${n});`).join(' ')}\n    ` : ''
-    return `if (!strcmp(m, ${q(meth.name)})) {\n    ${lines.join('\n    ')}\n    memcpy(gdp_pre, (void *)o, sizeof(gdp_T));\n    ${load}int sg = sigsetjmp(gdp_jb, 1);\n    if (!sg) { gdp_armed = 1; gdp_watch(1); ${cpp ? 'try { ' : ''}${invoke} ${failed} gdp_watch(0); gdp_armed = 0; ${rec}${cpp ? ' } catch (...) { gdp_watch(0); gdp_armed = 0; gdp_sig = SIGUSR2; }' : ''} } else { gdp_watch(0); gdp_sig = sg; }\n    ${G ? 'gdp_store(o);\n    ' : ''}return gdp_after(o);\n  }`
+    return `if (!strcmp(m, ${q(meth.name)})) {\n    ${lines.join('\n    ')}\n    ${bindings}\n    memcpy(gdp_pre, (void *)o, sizeof(gdp_T));\n    ${load}int sg = sigsetjmp(gdp_jb, 1);\n    if (!sg) { gdp_armed = 1; gdp_watch(1); ${cpp ? 'try { ' : ''}${invoke} ${failed} gdp_watch(0); gdp_armed = 0; ${rec}${cpp ? ' } catch (...) { gdp_watch(0); gdp_armed = 0; gdp_sig = SIGUSR2; }' : ''} } else { gdp_watch(0); gdp_sig = sg; }\n    ${G ? 'gdp_store(o);\n    ' : ''}return gdp_after(o);\n  }`
   })
   const frameLines = frames.map(l => { const e = acc(l.path); return `if (memcmp((char *)&${e}, (char *)gdp_pre + ((char *)&${e} - (char *)o), sizeof ${e})) return ${q(l.path.join('.'))};` })
   // The object, made as the code makes it: C's zeroed; C++'s constructed (in zeroed memory) with the rule's parameters.
@@ -273,9 +304,22 @@ static unsigned char gdp_pre[sizeof(gdp_T)];
 ${robs.length ? `template <typename Tag, auto M> struct gdp_rob { friend auto gdp_ptr(Tag) { return M; } };\n${robs.map((k, i) => `struct gdp_tag${i} { friend auto gdp_ptr(gdp_tag${i}); };\ntemplate struct gdp_rob<gdp_tag${i}, ${k}>;`).join('\n')}` : ''}
 static char *gdp_buf; static size_t gdp_n, gdp_cap;
 static void gdp_putf(const char *f, ...) {
-  va_list ap; va_start(ap, f); char tmp[512]; int k = vsnprintf(tmp, sizeof tmp, f, ap); va_end(ap);
-  if (gdp_n + k + 1 > gdp_cap) { gdp_cap = (gdp_n + k + 1) * 2; gdp_buf = (char *)realloc(gdp_buf, gdp_cap); }
-  memcpy(gdp_buf + gdp_n, tmp, k + 1); gdp_n += k;
+  va_list ap, copy; va_start(ap, f); va_copy(copy, ap); int k = vsnprintf(0, 0, f, copy); va_end(copy);
+  if (k < 0 || gdp_n > (size_t)-1 - (size_t)k - 1) abort();
+  size_t need = gdp_n + (size_t)k + 1;
+  if (need > gdp_cap) { gdp_cap = need <= (size_t)-1 / 2 ? need * 2 : need; char *next = (char *)realloc(gdp_buf, gdp_cap); if (!next) abort(); gdp_buf = next; }
+  vsnprintf(gdp_buf + gdp_n, gdp_cap - gdp_n, f, ap); va_end(ap); gdp_n += (size_t)k;
+}
+// Stable identities for original native storage and typed field views.
+static unsigned long long gdp_native_next;
+static const char *gdp_native_bad;
+struct gdp_native_ident { const void *address; const char *view; unsigned long long id; };
+static struct gdp_native_ident *gdp_native_ids; static size_t gdp_native_count;
+static unsigned long long gdp_native_id(const void *address, const char *view) {
+  for (size_t i = 0; i < gdp_native_count; i++) if (gdp_native_ids[i].address == address && !strcmp(gdp_native_ids[i].view, view)) return gdp_native_ids[i].id;
+  if (gdp_native_count >= 100000) { gdp_native_bad = "native identity bound exceeded"; return 1; }
+  gdp_native_ids = (struct gdp_native_ident *)realloc(gdp_native_ids, (gdp_native_count + 1) * sizeof *gdp_native_ids);
+  struct gdp_native_ident *entry = &gdp_native_ids[gdp_native_count++]; entry->address = address; entry->view = view; entry->id = ++gdp_native_next; return entry->id;
 }
 static const char *gdp_ws(const char *p) { while (*p == ' ' || *p == '\\t' || *p == '\\n' || *p == '\\r') p++; return p; }
 static const char *gdp_skip(const char *p) {
@@ -316,6 +360,12 @@ static void gdp_get(gdp_T *o) {
   ${get.join('\n  ')}
   gdp_putf("}");
 }
+static void gdp_native(gdp_T *o) {
+  gdp_native_bad = 0;
+  ${emit('{"snapshot":{"version":1,"root":')} ${nativeState} ${emit('}')}
+  if (gdp_native_bad) { ${emit(',"error":"')} gdp_putf("%s", gdp_native_bad); ${emit('"')} }
+  ${emit('}')}
+}
 static const char *gdp_set(gdp_T *o, const char *st) {
   const char *v; (void)v; (void)o; (void)st;
   ${set.join('\n  ')}
@@ -347,7 +397,7 @@ static const char *gdp_after(gdp_T *o) {
 ${make}
 static const char *gdp_call(gdp_T *o, const char *m, const char *a) {
   const char *v; (void)v; (void)a;
-  gdp_sig = gdp_err = gdp_has = gdp_outu = gdp_isb = gdp_rec = 0; gdp_outv = 0;
+  gdp_sig = gdp_err = gdp_has = gdp_outu = gdp_isb = gdp_rec = 0; gdp_outv = 0; gdp_native_bad = 0;
   ${calls.join('\n  ')}
   return "no such function";
 }
@@ -369,7 +419,9 @@ int main(int argc, char **argv) {
     const char *op = gdp_key(line, "op"), *id = gdp_key(line, "id");
     long long k = 0; unsigned long long ku; if (id) gdp_int(id, 64, 1, &k, &ku);
     gdp_n = 0;
-    if (op && !strncmp(op, "\\"new\\"", 5)) { const char *bad = 0; gdp_T *o = gdp_make(line, &bad); if (!o) gdp_putf("{\\"bad\\":\\"%s\\"}", bad); else { objs = (gdp_T **)realloc(objs, ++nobj * sizeof *objs); objs[nobj - 1] = o; gdp_putf("{\\"id\\":%zu}", nobj); } }
+    if (op && !strncmp(op + 1, "hello", 5) && op[6] == '"') { ${emit('{"nativeSnapshot":1,"nativeBindings":1,"nativeEquality":"scalar"}')} }
+    else if (op && !strncmp(op + 1, "native", 6) && op[7] == '"') { gdp_native(objs[k - 1]); }
+    else if (op && !strncmp(op, "\\"new\\"", 5)) { const char *bad = 0; gdp_T *o = gdp_make(line, &bad); if (!o) gdp_putf("{\\"bad\\":\\"%s\\"}", bad); else { objs = (gdp_T **)realloc(objs, ++nobj * sizeof *objs); objs[nobj - 1] = o; gdp_putf("{\\"id\\":%zu}", nobj); } }
     else if (op && !strncmp(op, "\\"at\\"", 4)) {
       const char *bad = 0; gdp_T *o = gdp_make(line, &bad); const char *st = gdp_key(line, "state");
       if (o) bad = st ? gdp_set(o, st) : "no state";

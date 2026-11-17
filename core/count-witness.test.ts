@@ -2,7 +2,7 @@ import {expect, test} from 'bun:test'
 import {certFor} from './counts.ts'
 import {all, get, ite, n, not, same, tuple, x} from './machine.ts'
 import {checkMC, mcGoal} from '../kernel/kernel.ts'
-import {clock, grow} from '../kernel/prove.ts'
+import {clock, counted, grow} from '../kernel/prove.ts'
 
 const decls = [{map: 'RowCount', j: 'row', key: 'member', below: n(2), body: ite(same(get('Rows', tuple([x('row'), x('member')])), n(1)), n(1), n(0))}]
 const goal = (row: number) => ({name: 'one known member rules out an empty count', hyps: [same(get('Rows', tuple([n(row), n(1)])), n(1)), same(get('RowCount', n(0)), n(0))]})
@@ -26,10 +26,21 @@ test('the wide pool proposes a checked three-count partition identity', () => {
     {...base, map: 'Out', body: ite(all(whole, not(inside)), n(1), n(0))},
   ]
   const hyps = ['All', 'In', 'Out'].map(map => same(get(map, n(0)), n(1)))
-  const cert = certFor({hyps}, ds, true, 1000)
-  expect(cert.insts.some(i => i.terms.length === 3)).toBe(true)
+  const full = certFor({hyps}, ds, true, 1000)
+  // Select In + Out - All <= 0, the direction contradicted by three ones.
+  // Resolve names through reads rather than depending on their allocation order.
+  const names = new Map(full.reads.map(([name, map]) => [map, name]))
+  const partition = full.insts.find(i => i.unit === 0 && JSON.stringify(i.below) === JSON.stringify(n(3))
+    && i.terms.length === 3 && i.terms.some(([z, name]) => z === -1 && name === names.get('All'))
+    && i.terms.some(([z, name]) => z === 1 && name === names.get('In'))
+    && i.terms.some(([z, name]) => z === 1 && name === names.get('Out')))
+  expect(partition).toBeDefined()
+  if (!partition) throw new Error('missing partition witness')
+  const cert = {reads: full.reads, picks: [], insts: [partition]}
   const q = mcGoal(hyps, ds, cert)!
-  const proof = grow({name: 'partition contradicts three ones', hyps: q.hyps}, new Map(), {nodes: 0, until: clock() + 1500})
+  // counted(1) makes the endpoint one million solver/node work units, not wall milliseconds.
+  // It is a generous search limit, not a performance claim.
+  const proof = counted(1, () => grow({name: 'partition contradicts three ones', hyps: q.hyps}, new Map(), {nodes: 0, until: clock() + 1_000_000}))
   expect('tree' in proof).toBe(true)
   if ('tree' in proof) expect(checkMC(hyps, ds, {...cert, tree: proof.tree})).toBe(true)
 })

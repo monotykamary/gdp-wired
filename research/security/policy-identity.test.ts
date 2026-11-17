@@ -62,9 +62,9 @@ nativeTest('owned source policy identity cannot be renamed or weakened into a re
       mkdirSync(dir)
       const file = join(dir, 'OwnedPolicy.java')
       writeFileSync(file, sources[i]!); writeFileSync(join(dir, 'ReplayPolicy.java'), driver)
-      // Rule-first's exclusive baseline maximum was 2173.49 ms (0501-BUDGET-INVENTORY, call line 62).
-      // Use the approved 7000 ms budget (>3x that maximum), without changing any verdict assertion.
-      results.push(await check([file], {entry: 'OwnedPolicy', methods: ['hit'], propose: false, ms: 7000, check: {runs: 10, depth: 6, states: 20}}))
+      // Batch 20261116-192608-fhq05o observed at most 74_084.647 work units.
+      // 120_000 is a unit margin, never a conversion of the retired 7 s cap.
+      results.push(await check([file], {entry: 'OwnedPolicy', methods: ['hit'], propose: false, work: 120_000, check: {runs: 10, depth: 6, states: 20}}))
       const compiled = spawnSync('javac', [file, join(dir, 'ReplayPolicy.java')], {encoding: 'utf8', timeout: 30_000})
       expect(compiled.status, compiled.stderr).toBe(0)
       const result = results[i]!
@@ -151,9 +151,9 @@ nativeTest('owned duplicate policy declarations remain ambiguous in either order
       mkdirSync(dir)
       const file = join(dir, 'OwnedDuplicate.java')
       writeFileSync(file, sources[i]!); writeFileSync(join(dir, 'ReplayDuplicate.java'), driver)
-      // Rule-first's exclusive baseline maximum was 1824.91 ms (0501-BUDGET-INVENTORY, call line 147).
-      // Use the approved 7000 ms budget (>3x that maximum), without changing any verdict assertion.
-      results.push(await check([file], {entry: 'OwnedDuplicate', methods: ['hit'], propose: false, ms: 7000, check: {runs: 10, depth: 6, states: 20}}))
+      // Batch 20261116-192608-fhq05o observed at most 74_084.647 work units.
+      // 120_000 is a unit margin, never a conversion of the retired 7 s cap.
+      results.push(await check([file], {entry: 'OwnedDuplicate', methods: ['hit'], propose: false, work: 120_000, check: {runs: 10, depth: 6, states: 20}}))
       const compiled = spawnSync('javac', [file, join(dir, 'ReplayDuplicate.java')], {encoding: 'utf8', timeout: 30_000})
       expect(compiled.status, compiled.stderr).toBe(0)
       const result = results[i]!

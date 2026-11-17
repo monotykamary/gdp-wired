@@ -116,6 +116,32 @@ function toJson(t: SType, x: string): string {
   if (t.k === 'choice') return `json!(match ${x} { ${t.values.map(v => `${t.enum}::${v} => ${JSON.stringify(v)}`).join(', ')} })`
   return 'json!(null)'
 }
+// Wire values are read from typed native locals/fields, never the model's Snap.
+// Foreign record equality is deliberately not advertised by the harness.
+function nativeValue(t: SType, x: string, mod: SModule, depth = 0): string {
+  if (depth > 8) return 'return Err("native value exceeds depth bound".into())'
+  if (t.k === 'int') return `native_int(&(${t.unit === 'instant' ? `of_inst(*(${x}))` : t.unit === 'duration' ? `(${x}).as_nanos()` : `*(${x})`}).to_string())?`
+  if (t.k === 'bool') return `json!(*(${x}))`
+  if (t.k === 'str') return `json!(${x})`
+  if (t.k === 'choice') {
+    // std Ordering is non-exhaustive even though the reader knows five variants.
+    // A future variant must refuse capture, never borrow a known label.
+    const other = t.enum === '::std::sync::atomic::Ordering' ? ', _ => return Err("unsupported native atomic ordering".into())' : ''
+    return `json!(match ${x} { ${t.values.map(v => `${t.enum}::${v} => ${JSON.stringify(v)}`).join(', ')}${other} })`
+  }
+  if (t.k === 'opt') return `match ${x} { Some(__v${depth}) => ${nativeValue(t.of, `__v${depth}`, mod, depth + 1)}, None => Value::Null }`
+  if (t.k === 'none') return 'Value::Null'
+  if (t.k === 'rec') {
+    const r = mod.recs[t.name]
+    if (r) return `native_object(vec![${r.fields.map(f => {
+      const place = `(${x}).${f.name}`
+      const at = (f.t as {atomic?: string}).atomic, lock = (f.t as {lock?: string}).lock
+      const actual = at ? `${place}.load(std::sync::atomic::Ordering::SeqCst)` : lock ? (lock === 'std' ? `(*${place}.lock().unwrap())` : `(*${place}.lock())`) : place
+      return `(${JSON.stringify(f.name)}, ${nativeValue(f.t, `&(${actual})`, mod, depth + 1)})`
+    }).join(', ')}])`
+  }
+  return `return Err(${JSON.stringify(`unsupported native value: ${t.k}`)}.into())`
+}
 function harnessCode(mod: SModule, read: StepRead, cls: Rec | undefined, name: string): string {
   const leaves = read.leaves.filter(l => l.kind !== 'frame' && l.kind !== 'map')
   if (read.leaves.some(l => l.kind === 'map')) throw new Refusal(mod.file, 'a map in the state: the Rust harness reads none yet')
@@ -142,11 +168,13 @@ function harnessCode(mod: SModule, read: StepRead, cls: Rec | undefined, name: s
   const calls = Object.entries(read.args).map(([m]) => {
     const f = cls ? fn(cls.methods[m]!) : fn(m)
     const ps = f.params.filter(p => !p.self)
-    const args = ps.map((p, i) => { const rs = (p as {rs?: string}).rs ?? ''; const v = fromJson(p.t, `(&a[${i}][1])`, mod); return /^&\s*mut/.test(rs) ? `&mut ${v}` : rs.startsWith('&') ? `&${v}` : v })
+    const bound = ps.map((p, i) => `let mut __gdp_arg${i} = ${fromJson(p.t, `(&a[${i}][1])`, mod)};`)
+    const binding = `native_wire(native_object(vec![${ps.map((p, i) => `(${JSON.stringify(p.name)}, ${nativeValue(p.t, `&__gdp_arg${i}`, mod)})`).join(', ')}]))`
+    const args = ps.map((p, i) => { const rs = (p as {rs?: string}).rs ?? ''; return /^&\s*mut/.test(rs) ? `&mut __gdp_arg${i}` : rs.startsWith('&') ? `&__gdp_arg${i}` : `__gdp_arg${i}` })
     const target = cls ? `o.${m}(${args.join(', ')})` : `super::${m}(${args.join(', ')})`
     const ret = f.ret
     const out = ret.k === 'res' ? `match r { Ok(v) => { let _ = &v; Ok(${ret.of.k === 'none' ? 'json!(null)' : tagged(ret.of, 'v')}) } Err(_) => Err("an Err".to_string()) }` : ret.k === 'opt' ? `Ok(match r { Some(v) => ${tagged(ret.of, 'v')}, None => json!(null) })` : ret.k === 'none' ? 'Ok(json!(null))' : `Ok(${tagged(ret, 'r')})`
-    return `${JSON.stringify(m)} => { let r = ${target}; ${out} }`
+    return `${JSON.stringify(m)} => { ${bound.join(" ")} *BINDINGS.lock().unwrap_or_else(|e| e.into_inner()) = Some(binding_frame((|| -> Result<Value, String> { Ok(${binding}) })())); let r = ${target}; ${out} }`
   })
   return `
 #[cfg(test)]
@@ -159,6 +187,8 @@ pub(crate) mod ${name} {
   static NOW: std::sync::atomic::AtomicI64 = std::sync::atomic::AtomicI64::new(0);
   // An answered call's value: the request's input for it (each answered call rewritten to crate::__gdp_answer).
   static ANS: std::sync::Mutex<Option<Value>> = std::sync::Mutex::new(None);
+  static BINDINGS: std::sync::Mutex<Option<Value>> = std::sync::Mutex::new(None);
+  static NATIVE_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
   pub(crate) trait GdpAns { fn of(v: &Value) -> Self; }
   // (an answer outside the call's type, a type stated wider than the code's: a request the code can't be given)
   pub(crate) struct GdpOutside(pub(crate) String);
@@ -175,6 +205,11 @@ pub(crate) mod ${name} {
   fn of_inst(t: std::time::Instant) -> i128 { if t >= base() { t.duration_since(base()).as_nanos() as i128 } else { -(base().duration_since(t).as_nanos() as i128) } }
   fn val(v: &Value) -> &Value { v.get("in").unwrap_or(v) }
   fn int(v: &Value) -> Result<i128, String> { if let Some(s) = v.as_str() { s.parse::<i128>().map_err(|e| e.to_string()) } else if let Some(i) = v.as_i64() { Ok(i as i128) } else if let Some(u) = v.as_u64() { Ok(u as i128) } else { Err(format!("not a number: {v}")) } }
+  fn native_object(items: Vec<(&str, Value)>) -> Value { json!({"kind": "object", "id": NATIVE_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst).to_string(), "items": items}) }
+  fn native_wire(root: Value) -> Value { json!({"version": 1, "root": root}) }
+  fn native_int(s: &str) -> Result<Value, String> { let n = s.parse::<i128>().map_err(|_| "native integer outside safe range")?; if n < -9007199254740991 || n > 9007199254740991 { return Err("native integer outside safe range".into()); } Ok(json!(n as i64)) }
+  fn binding_frame(value: Result<Value, String>) -> Value { match value { Ok(snapshot) => json!({"snapshot": snapshot}), Err(error) => json!({"error": error}) } }
+  fn native(o: &${self}) -> Result<Value, String> { Ok(native_wire(native_object(vec![${(cls?.fields ?? []).map(f => `(${JSON.stringify(f.name)}, ${nativeValue(f.t, `&(${access([f.name], f.t).read})`, mod)})`).join(', ')}]))) }
   fn get(o: &${self}) -> Value { let mut s = serde_json::Map::new(); ${get.join(' ')} Value::Object(s) }
   fn set(o: &mut ${self}, st: &Value) -> Result<(), String> { ${set.join(' ')} Ok(()) }
   fn make(req: &Value) -> Result<${self}, String> { NOW.store(int(&req["now"]).unwrap_or(0) as i64, std::sync::atomic::Ordering::SeqCst); Ok(${make}) }
@@ -195,24 +230,28 @@ pub(crate) mod ${name} {
       let op = req["op"].as_str().unwrap_or("").to_string();
       let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| -> Value {
         match op.as_str() {
-          "hello" => json!({"ok": true}),
+          "hello" => json!({"ok": true, "nativeSnapshot": 1, "nativeBindings": 1, "nativeEquality": "scalar"}),
           "new" => match make(&req) { Ok(o) => { objs.push(o); json!({"id": objs.len()}) } Err(e) => json!({"err": e}) },
           "at" => match make(&req) { Ok(mut o) => match set(&mut o, &req["state"]) { Ok(()) => { objs.push(o); json!({"id": objs.len()}) } Err(e) => json!({"bad": e}) }, Err(e) => json!({"bad": e}) },
           "get" => { let i = req["id"].as_u64().unwrap() as usize - 1; json!({"state": get(&objs[i])}) }
+          "native" => { let i = req["id"].as_u64().unwrap() as usize - 1; match native(&objs[i]) { Ok(snapshot) => json!({"snapshot": snapshot}), Err(error) => json!({"error": error}) } }
           "call" => {
+            *BINDINGS.lock().unwrap_or_else(|e| e.into_inner()) = None;
             let i = req["id"].as_u64().unwrap() as usize - 1;
             NOW.store(int(&req["now"]).unwrap_or(0) as i64, std::sync::atomic::Ordering::SeqCst);
             *ANS.lock().unwrap_or_else(|e| e.into_inner()) = Some(req["answers"].clone());
             let m = req["m"].as_str().unwrap().to_string();
             let a = req["a"].clone();
             let o = &mut objs[i];
-            match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| call(o, &m, &a))) {
+            let mut result = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| call(o, &m, &a))) {
               Ok(Ok(Ok(v))) => json!({"out": v}),
               Ok(Ok(Err(e))) => json!({"out": null, "err": e}),
               Ok(Err(bad)) => json!({"out": null, "bad": bad}),
               Err(p) if p.downcast_ref::<GdpOutside>().is_some() => json!({"out": null, "outside": p.downcast_ref::<GdpOutside>().unwrap().0}),
               Err(p) => json!({"out": null, "err": format!("panic: {}", p.downcast_ref::<String>().cloned().or_else(|| p.downcast_ref::<&str>().map(|s| s.to_string())).unwrap_or_default())}),
-            }
+            };
+            result["nativeBindings"] = BINDINGS.lock().unwrap_or_else(|e| e.into_inner()).clone().unwrap_or_else(|| json!({"error": "native arguments were not bound"}));
+            result
           }
           "coverage" => json!({"hit": []}),
           _ => json!({"error": format!("no op {op}")}),

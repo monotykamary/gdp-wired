@@ -11,19 +11,152 @@ NOW = [0]
 HIT = {}
 S = {}
 OBJS = {}
+# Real references retained strongly: object_id reuse must never create aliases.
+NATIVE_OBJECTS = {}.compare_by_identity
+NATIVE_INVOCATION = [0]
+NATIVE_IS = Object.instance_method(:instance_of?)
+NATIVE_CLASS = Object.instance_method(:class)
+NATIVE_METHOD = Object.instance_method(:method)
+NATIVE_THREAD = Thread.method(:current)
+NATIVE_CLASS_NAME = Module.instance_method(:name)
+NATIVE_VARS = Object.instance_method(:instance_variables)
+NATIVE_GET_VAR = Object.instance_method(:instance_variable_get)
+NATIVE_EQUAL = BasicObject.instance_method(:equal?)
+NATIVE_COPY_STRING = String.method(:new)
+NATIVE_ARRAY_EACH = Array.instance_method(:each)
+NATIVE_HASH_EACH = Hash.instance_method(:each_pair)
+NATIVE_HASH_DEFAULT = Hash.instance_method(:default)
+NATIVE_HASH_DEFAULT_PROC = Hash.instance_method(:default_proc)
+def native_is?(value, klass) = NATIVE_IS.bind_call(value, klass)
+def native_same?(a, b) = NATIVE_EQUAL.bind_call(a, b)
+def native_class(value) = NATIVE_CLASS.bind_call(value)
+def native_class_name(value) = NATIVE_CLASS_NAME.bind_call(native_class(value))
+def native_state(root, bindings: false, records: false)
+  seen = {}
+  nodes = 0
+  encode = nil
+  encode = lambda do |value, object_root = false|
+    nodes += 1
+    raise ArgumentError, 'native snapshot exceeds node bound' if nodes > 10000
+    return value if native_same?(value, nil) || native_same?(value, true) || native_same?(value, false)
+    return NATIVE_COPY_STRING.call(value).freeze if native_is?(value, String)
+    # Symbols cross the wire as native enum labels, never choice indexes.
+    return value.to_s if native_is?(value, Symbol)
+    if native_is?(value, Integer) || native_is?(value, Float)
+      raise ArgumentError, 'native snapshot number is outside exact integer range' unless value.finite? && value.abs <= 9007199254740991 && value == value.to_i
+      return value.to_i
+    end
+    # A store exposes its actual Hash, retaining keys and native identity.
+    value = value.data if native_is?(value, GdpStore)
+    unless NATIVE_OBJECTS.key?(value)
+      raise ArgumentError, 'native snapshot exceeds identity bound' if NATIVE_OBJECTS.length >= 100000
+      NATIVE_OBJECTS[value] = (NATIVE_OBJECTS.length + 1).to_s
+    end
+    id = NATIVE_OBJECTS[value]
+    return {'kind' => 'ref', 'id' => id} if seen[id]
+    seen[id] = true
+    if native_is?(value, Array)
+      kind, items = 'array', []
+      NATIVE_ARRAY_EACH.bind_call(value) { |v| items << encode.call(v) }
+    elsif native_is?(value, Hash)
+      raise ArgumentError, 'unsupported native Hash default' unless native_same?(NATIVE_HASH_DEFAULT.bind_call(value), nil) && native_same?(NATIVE_HASH_DEFAULT_PROC.bind_call(value), nil)
+      kind = object_root || records ? 'object' : 'map'
+      items = []
+      NATIVE_HASH_EACH.bind_call(value) do |k, v|
+        valid = object_root || records ? native_is?(k, String) : native_is?(k, String) || native_is?(k, Integer)
+        raise ArgumentError, 'unsupported native snapshot map key' unless valid
+        items << [encode.call(k), encode.call(v)]
+      end
+    else
+      # Opaque Time/IO/Mutex/etc. have no faithful wire encoding.
+      vars = NATIVE_VARS.bind_call(value)
+      # An uninitialized Ruby instance variable reads as nil. Observe that
+      # actual read for source-declared roots too (e.g. @last before first hit).
+      if native_same?(value, root) && !bindings
+        declared = (S['leaves'] || []).filter_map { |l| l['path']&.first if l['kind'] != 'frame' }
+        vars |= declared.filter_map { |name| name.to_sym if name.is_a?(String) && name.start_with?('@') }
+      end
+      raise ArgumentError, "unsupported native snapshot object #{native_class(value)}" if vars.empty? && native_class(value) != S['cls']
+      kind = 'object'
+      items = vars.map { |k| [k.to_s.delete_prefix('@'), encode.call(NATIVE_GET_VAR.bind_call(value, k))] }
+    end
+    {'kind' => kind, 'id' => id, 'items' => items}
+  end
+  {'version' => 1, 'root' => encode.call(root, bindings)}
+end
 
+# Invocation-local observations contain only values a native operation actually
+# returned/raised. Missing calls stay absent; repeated inconsistent reads refuse.
+NATIVE_EVENTS = [nil]
+NATIVE_EVENT_ERROR = [nil]
+NATIVE_CALL_TYPES = {}
+NATIVE_ACTIVE_THREAD = [nil]
+def native_active? = NATIVE_EVENTS[0] && native_same?(NATIVE_THREAD.call, NATIVE_ACTIVE_THREAD[0])
+def native_scalar(value)
+  return value if native_same?(value, nil) || native_same?(value, true) || native_same?(value, false)
+  return NATIVE_COPY_STRING.call(value).freeze if native_is?(value, String)
+  return value.to_s.freeze if native_is?(value, Symbol)
+  if native_is?(value, Integer) || native_is?(value, Float)
+    raise ArgumentError, 'native observation number is outside exact integer range' unless value.finite? && value.abs <= 9007199254740991 && value == value.to_i
+    return value.to_i
+  end
+  raise ArgumentError, "unsupported native observation value #{native_class(value)}"
+end
+def native_record(key, outcome, native_type = nil)
+  return unless native_active? && (events = NATIVE_EVENTS[0])
+  before = events['calls'][key]
+  previous_type = NATIVE_CALL_TYPES[key]
+  if native_type && previous_type && !native_same?(native_type, previous_type)
+    raise ArgumentError, "inconsistent native call type #{key}"
+  end
+  NATIVE_CALL_TYPES[key] = native_type if native_type
+  raise ArgumentError, "inconsistent native call #{key}" if before && before != outcome
+  events['calls'][key] = outcome
+rescue StandardError => e
+  NATIVE_EVENT_ERROR[0] ||= "#{e.class}: #{e.message}"[0, 300]
+end
+def native_call(key)
+  value = yield
+  if native_active?
+    begin
+      native_record(key, {'kind' => 'returned', 'value' => native_scalar(value)}, native_class(value))
+    rescue StandardError => e
+      NATIVE_EVENT_ERROR[0] ||= "#{e.class}: #{e.message}"[0, 300]
+    end
+  end
+  value
+rescue Exception => e # Record the actual runtime class, never the requested handler.
+  native_record(key, {'kind' => 'raised', 'raised' => native_class_name(e)})
+  raise
+end
+def native_clock(value)
+  if native_active? && (events = NATIVE_EVENTS[0])
+    begin
+      actual = native_scalar(value)
+      raise ArgumentError, 'inconsistent native clock reads' if events.key?('clock') && events['clock'] != actual
+      events['clock'] = actual
+    rescue StandardError => e
+      NATIVE_EVENT_ERROR[0] ||= "#{e.class}: #{e.message}"[0, 300]
+    end
+  end
+  value
+end
 module GdpClock
-  def now(*) = Time.at(NOW[0])
+  def now(*)
+    value = Time.at(NOW[0])
+    native_clock(value.to_i)
+    value
+  end
 end
 Time.singleton_class.prepend(GdpClock)
 module GdpMono
-  def clock_gettime(*a) = a.length > 1 && a[1] != :float_second ? NOW[0] : NOW[0].to_f
+  def clock_gettime(*a) = native_clock(a.length > 1 && a[1] != :float_second ? NOW[0] : NOW[0].to_f)
 end
 Process.singleton_class.prepend(GdpMono)
 # A clock object the caller stated: its time is the request's.
 class GdpStatedClock
-  def current_time = NOW[0]
-  def now = NOW[0]
+  def current_time = native_clock(NOW[0])
+  def now = native_clock(NOW[0])
 end
 
 def enc_num(v)
@@ -43,7 +176,7 @@ CUR = {}
 def answer(key) = (a = CUR[key]).nil? || a['none'] ? nil : build(a)
 # (a call inside a rescue's begin: raises the class the request says; one left out runs as it is unless it raises)
 def raising(key) = (r = CUR[key]&.[]('raise')) && raise(Object.const_get(r), 'gdp: raised where the request says')
-def stub(key) = proc { |*_a, **_k| raising(key); answer(key) }
+def stub(key) = proc { |*_a, **_k| native_call(key) { raising(key); answer(key) } }
 # A store (stated, or an injected dependency inferred): get, set and delete over a Hash that keeps what is set; its
 # other methods answered.
 class GdpStore
@@ -171,9 +304,9 @@ def hello(req)
     next unless (mod = a['patch']['mod'])
     c = mod.split('::').reject(&:empty?).reduce(Object) { |o, n| o.const_defined?(n, false) ? o.const_get(n, false) : o.const_set(n, Module.new) }
     m, st, key = a['patch']['path'][-1], stub(a['key']), a['key']
-    c.singleton_class.prepend(Module.new { a['pass'] ? define_method(m) { |*x, **k, &b| raising(key); super(*x, **k, &b) } : define_method(m, &st) })
+    c.singleton_class.prepend(Module.new { a['pass'] ? define_method(m) { |*x, **k, &b| native_call(key) { raising(key); super(*x, **k, &b) } } : define_method(m, &st) })
   end
-  {'ok' => true}
+  {'ok' => true, 'nativeSnapshot' => 1, 'nativeBindings' => 1, 'nativeObservations' => 1, 'nativeEquality' => 'scalar'}
 end
 def make(specs)
   $stores = {}
@@ -187,20 +320,55 @@ def call(req)
   obj = OBJS[req['id']]
   NOW[0] = Integer(req['now'] || 0)
   CUR.replace(req['answers'] || {})
-  m = obj.method(req['m'])
+  NATIVE_INVOCATION[0] += 1
+  raise ArgumentError, 'native invocation exceeds exact integer range' if NATIVE_INVOCATION[0] > 9007199254740991
+  NATIVE_EVENTS[0] = {'invocation' => NATIVE_INVOCATION[0], 'calls' => {}}
+  NATIVE_EVENT_ERROR[0] = nil
+  NATIVE_CALL_TYPES.clear
+  m = NATIVE_METHOD.bind_call(obj, req['m'])
   pos, kw = call_args(m, req['a'])
   before = frames(obj)
   snap = S['discard'] ? state_of(obj) : nil
   out, err = nil, nil
+  bindings = {'error' => 'native method entry was not observed'}
+  entered = false
+  # Defaults and keyword arguments are bound before :call. Read actual locals
+  # before the first body instruction, never the request's argument envelopes.
+  capture = TracePoint.new(:call) do |event|
+    next unless native_active?
+    next if entered || !native_same?(event.self, obj) || !native_same?(event.defined_class, m.owner) || !native_same?(event.method_id, m.original_name)
+    entered = true
+    begin
+      values = m.parameters.to_h do |kind, name|
+        raise ArgumentError, 'unsupported anonymous or block native parameter' if name.nil? || kind == :block
+        [name.to_s, event.binding.local_variable_get(name)]
+      end
+      bindings = {'snapshot' => native_state(values, bindings: true)}
+    rescue StandardError => e
+      bindings = {'error' => "#{e.class}: #{e.message}"[0, 300]}
+    end
+  end
   begin
+    NATIVE_ACTIVE_THREAD[0] = NATIVE_THREAD.call
+    capture.enable(target_thread: NATIVE_THREAD.call)
     out = traced { m.call(*pos, **kw) }
   rescue StandardError => e
     err = "#{e.class}: #{e.message}"[0, 300]
+  ensure
+    NATIVE_ACTIVE_THREAD[0] = nil
+    capture.disable
   end
   set_state(obj, snap) if err && snap
   after = frames(obj)
   before.each { |k, v| return {'frame' => k} if after[k] != v }
-  {'out' => tag(out), **(err ? {'err' => err} : {})}
+  observations = begin
+    NATIVE_EVENT_ERROR[0] ? {'error' => NATIVE_EVENT_ERROR[0]} : {'snapshot' => native_state(NATIVE_EVENTS[0], bindings: true, records: true)}
+  rescue StandardError => e
+    {'error' => "#{e.class}: #{e.message}"[0, 300]}
+  ensure
+    NATIVE_EVENTS[0] = nil
+  end
+  {'out' => tag(out), 'nativeBindings' => bindings, 'nativeObservations' => observations, **(err ? {'err' => err} : {})}
 end
 
 fin, fout = File.open(ARGV[0], 'r'), File.open(ARGV[1], 'w')
@@ -226,6 +394,7 @@ fin.each_line do |line|
         {'bad' => "#{e.class}: #{e.message}"[0, 300]}
       end
     when 'get' then {'state' => state_of(OBJS[req['id']])}
+    when 'native' then {'snapshot' => native_state(OBJS[req['id']])}
     when 'call' then call(req)
     when 'coverage' then {'hit' => HIT.keys.sort.map { |n| [File.basename(S['path']), n] }}
     else {'error' => "no op #{op}"}

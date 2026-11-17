@@ -87,13 +87,14 @@ public final class Harness {
         for (int i = 0; i < urls.length; i++) urls[i] = cp.get(i).toURI().toURL();
         loader = new URLClassLoader(urls, Harness.class.getClassLoader());
         cls = Class.forName((String) req.get("jcls"), false, loader);
-        return m("ok", true);
+        return m("ok", true, "nativeBindings", 1, "nativeSnapshot", 1, "nativeObservations", 1);
       }
       case "new": try { return m("id", make((List<?>) req.get("a"))); } catch (Throwable e) { return m("err", err(e)); }
       case "at":
         try { long i = make((List<?>) req.get("a")); setState(OBJS.get(i), (Map<?, ?>) req.get("state")); return m("id", i); }
         catch (Throwable e) { return m("bad", err(e)); }
       case "get": { long id = ((Number) req.get("id")).longValue(); ST = STORES.get(id); return m("state", stateOf(OBJS.get(id))); }
+      case "native": return m("snapshot", nativeState(OBJS.get(((Number) req.get("id")).longValue())));
       case "call": return call(req);
       case "coverage": return m("hit", List.of());
       default: return m("error", "no op " + op);
@@ -336,6 +337,129 @@ public final class Harness {
     STORES.put(id, ST);
     return id;
   }
+  // Scalar arguments observed after JVM conversion and before invocation. Names
+  // come from the callable's bytecode, never from the symbolic request schema.
+  // Unsupported values or classes without parameter metadata remain unchecked.
+  static long nativeIdentity = 0;
+  static final IdentityHashMap<Object, String> nativeObjects = new IdentityHashMap<>();
+  static String nativeId(Object value) {
+    String id = nativeObjects.get(value);
+    if (id == null) {
+      if (nativeObjects.size() >= 100000) throw new IllegalArgumentException("native snapshot exceeds identity bound");
+      id = Long.toString(++nativeIdentity); nativeObjects.put(value, id);
+    }
+    return id;
+  }
+  static Object nativeValue(Object value, Set<Object> seen, int[] nodes, boolean root) throws Exception {
+    if (++nodes[0] > 10000) throw new IllegalArgumentException("native snapshot exceeds node bound");
+    if (value == null || value instanceof Boolean || value instanceof String) return value;
+    if (value instanceof Character c) return (int) c.charValue();
+    if (value instanceof Enum<?> e) return e.name();
+    if (value instanceof AtomicInteger a) return a.get();
+    if (value instanceof AtomicLong a) return nativeValue(a.get(), seen, nodes, false);
+    if (value instanceof AtomicBoolean a) return a.get();
+    if (value instanceof AtomicReference<?> a) return nativeValue(a.get(), seen, nodes, false);
+    if (value instanceof Optional<?> o) return nativeValue(o.orElse(null), seen, nodes, false);
+    if (value instanceof Number n) {
+      if (!(value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long || value instanceof Float || value instanceof Double))
+        throw new IllegalArgumentException("unsupported native snapshot number: " + value.getClass().getName());
+      double number = n.doubleValue();
+      if (!Double.isFinite(number) || Math.rint(number) != number || Math.abs(number) > 9007199254740991d)
+        throw new IllegalArgumentException("native snapshot number outside exact integer range");
+      return n.longValue();
+    }
+    String id = nativeId(value);
+    if (!seen.add(value)) return m("kind", "ref", "id", id);
+    List<Object> entries = new ArrayList<>();
+    String kind = "object";
+    if (value instanceof Map<?, ?> map) {
+      if (value.getClass().getClassLoader() != null) throw new IllegalArgumentException("unsupported native snapshot map implementation");
+      kind = "map";
+      for (Map.Entry<?, ?> entry : map.entrySet()) {
+        Object key = entry.getKey();
+        if (!(key instanceof String) && !(key instanceof Number)) throw new IllegalArgumentException("unsupported native snapshot map key");
+        entries.add(Arrays.asList(nativeValue(key, seen, nodes, false), nativeValue(entry.getValue(), seen, nodes, false)));
+      }
+    } else if (value instanceof List<?> list) {
+      if (value.getClass().getClassLoader() != null) throw new IllegalArgumentException("unsupported native snapshot list implementation");
+      kind = "array";
+      for (Object item : list) entries.add(nativeValue(item, seen, nodes, false));
+    } else if (value.getClass().isArray()) {
+      kind = "array";
+      for (int i = 0; i < Array.getLength(value); i++) entries.add(nativeValue(Array.get(value, i), seen, nodes, false));
+    } else {
+      Set<String> names = new LinkedHashSet<>();
+      if (root) {
+        for (Object leaf0 : list(S.get("leaves"))) {
+          Map<?, ?> leaf = (Map<?, ?>) leaf0;
+          List<?> path = list(leaf.get("path"));
+          if (!path.isEmpty() && !"frame".equals(leaf.get("kind"))) names.add((String) path.get(0));
+        }
+      } else {
+        if (value.getClass().getName().startsWith("java.")) throw new IllegalArgumentException("unsupported native snapshot value: " + value.getClass().getName());
+        for (Class<?> c = value.getClass(); c != null && c != Object.class; c = c.getSuperclass())
+          for (Field f : c.getDeclaredFields()) if (!Modifier.isStatic(f.getModifiers()) && !f.isSynthetic()) names.add(f.getName());
+      }
+      for (String name : names) entries.add(Arrays.asList(name, nativeValue(field(value.getClass(), name).get(value), seen, nodes, false)));
+    }
+    return m("kind", kind, "id", id, "items", entries);
+  }
+  static Object nativeState(Object value) throws Exception {
+    return m("version", 1, "root", nativeValue(value, Collections.newSetFromMap(new IdentityHashMap<>()), new int[]{0}, true));
+  }
+  static Object nativeBindings(Method method, Object[] args) {
+    Parameter[] parameters = method.getParameters();
+    if (parameters.length != args.length) throw new IllegalArgumentException("native parameter arity unavailable");
+    List<Object> entries = new ArrayList<>();
+    for (int i = 0; i < parameters.length; i++) {
+      Parameter parameter = parameters[i];
+      if (!parameter.isNamePresent()) throw new IllegalArgumentException("native parameter name unavailable: " + method.getName());
+      Object value = args[i];
+      if (value instanceof Character c) value = (int) c.charValue();
+      else if (value instanceof Enum<?> e) value = e.name();
+      else if (value instanceof Number n) {
+        if (!(value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long || value instanceof Float || value instanceof Double))
+          throw new IllegalArgumentException("unsupported native parameter number: " + parameter.getName());
+        double number = n.doubleValue();
+        if (!Double.isFinite(number) || Math.rint(number) != number || Math.abs(number) > 9007199254740991d)
+          throw new IllegalArgumentException("native parameter number outside exact integer range: " + parameter.getName());
+        value = n.longValue();
+      } else if (value != null && !(value instanceof String) && !(value instanceof Boolean))
+        throw new IllegalArgumentException("unsupported native parameter value: " + parameter.getName());
+      entries.add(Arrays.asList(parameter.getName(), value));
+    }
+    return m("version", 1, "root", m("kind", "object", "id", Long.toString(++nativeIdentity), "items", entries));
+  }
+
+  // Metadata objects are transport records, not native source maps. Actual
+  // answer values were captured and range-checked by Rt at the read occurrence.
+  static Object observationObject(Map<String, Object> fields) throws Exception {
+    List<Object> entries = new ArrayList<>();
+    for (Map.Entry<String, Object> entry : fields.entrySet()) {
+      Object value = entry.getValue();
+      if (value instanceof Map<?, ?> map) {
+        Map<String, Object> nested = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> item : map.entrySet()) nested.put((String) item.getKey(), item.getValue());
+        value = observationObject(nested);
+      } else value = nativeValue(value, Collections.newSetFromMap(new IdentityHashMap<>()), new int[]{0}, false);
+      entries.add(Arrays.asList(entry.getKey(), value));
+    }
+    return m("kind", "object", "id", Long.toString(++nativeIdentity), "items", entries);
+  }
+  static Map<String, Object> nativeObservations(gdp.Rt.Observations observed) {
+    if (observed.error != null) return m("error", observed.error);
+    try {
+      Map<String, Object> calls = new LinkedHashMap<>();
+      for (Map.Entry<String, gdp.Rt.Call> entry : observed.calls.entrySet()) {
+        gdp.Rt.Call call = entry.getValue();
+        calls.put(entry.getKey(), call.kind.equals("returned") ? m("kind", "returned", "value", call.value) : m("kind", "raised", "raised", call.raised));
+      }
+      Map<String, Object> fields = m("invocation", observed.invocation, "calls", calls);
+      if (observed.clock != null) fields.put("clock", observed.clock);
+      return m("snapshot", m("version", 1, "root", observationObject(fields)));
+    } catch (Exception error) { return m("error", err(error)); }
+  }
+
   static Object call(Map<?, ?> req) throws Exception {
     long id = ((Number) req.get("id")).longValue();
     Object obj = OBJS.get(id);
@@ -351,17 +475,25 @@ public final class Harness {
     Object[] a = new Object[ts.length];
     try { for (int i = 0; i < ts.length; i++) a[i] = i < specs.size() ? build(((List<?>) specs.get(i)).get(1), ts[i], gs[i]) : inert(ts[i]); }
     catch (Exception e) { return m("bad", err(e)); }
+    Map<String, Object> bindings;
+    try { bindings = m("snapshot", nativeBindings(m, a)); }
+    catch (Exception e) { bindings = m("error", err(e)); }
     Map<String, String> before = frames(obj);
     Map<String, Object> snap = Boolean.TRUE.equals(S.get("discard")) ? stateOf(obj) : null;
     Object out = null;
     String err = null;
-    try { out = m.invoke(Modifier.isStatic(m.getModifiers()) ? null : obj, a); } catch (InvocationTargetException e) { err = err(e); }
+    Set<String> observedKeys = new HashSet<>();
+    for (Object answer : list(S.get("answers"))) observedKeys.add((String) ((Map<?, ?>) answer).get("key"));
+    gdp.Rt.Observations observed = gdp.Rt.beginObservations(observedKeys);
+    try { out = m.invoke(Modifier.isStatic(m.getModifiers()) ? null : obj, a); }
+    catch (InvocationTargetException e) { err = err(e); }
+    finally { gdp.Rt.endObservations(observed); }
     if (err != null && snap != null) setState(obj, snap);
     // A method returning the object's next value (an immutable class's step): the object is that value.
     if (err == null && ((List<?>) S.get("reducers")).contains(key) && cls.isInstance(out)) { OBJS.put(id, out); obj = out; out = null; }
     Map<String, String> after = frames(obj);
     for (Map.Entry<String, String> e : before.entrySet()) if (!e.getValue().equals(after.get(e.getKey())) && !((List<?>) S.get("reducers")).contains(key)) return m("frame", e.getKey());
-    Map<String, Object> res = m("out", tag(out));
+    Map<String, Object> res = m("out", tag(out), "nativeBindings", bindings, "nativeObservations", nativeObservations(observed));
     if (err != null) res.put("err", err);
     return res;
   }

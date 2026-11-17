@@ -28,6 +28,7 @@ import type {B, N} from './extract-ir.ts'
 import type {Sorts} from './extract-print.ts'
 import {type NativeJournal, nativeSnapshot, rememberNative} from './source-check.ts'
 import {type NativeInputs, nativeCaptureEdits, nativeInputs} from './native-domain.ts'
+import {type NativeExecutionObservation, validateNativeObservations} from './native-observations.ts'
 
 type Raw = number | boolean | string
 export type Arm = {label: string, where: string, pos: number}
@@ -91,7 +92,7 @@ export function instrument(code: string, file: string, tail = '', extra: [number
   const js = ts.transpileModule(out, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, jsx: ts.JsxEmit.React}, fileName: file.replace(/\.js$/, '.ts').replace(/\.jsx$/, '.tsx')}).outputText
   return {js, arms}
 }
-export type Sandbox = {ctx: Context, counts: number[], call: (f: string, self: unknown, args: unknown[]) => {ok: true, value: unknown} | {ok: false, error: string}, setNow: (n: number) => void, get: (name: string) => unknown, bindings: (method: string) => Record<string, unknown> | undefined}
+export type Sandbox = {ctx: Context, counts: number[], call: (f: string, self: unknown, args: unknown[], housekeeping?: boolean) => {ok: true, value: unknown} | {ok: false, error: string}, setNow: (n: number) => void, get: (name: string) => unknown, bindings: (method: string) => Record<string, unknown> | undefined, observations: () => NativeExecutionObservation}
 export function sandbox(code: string, file: string, expose: string[], modules: Record<string, unknown> = {}, init?: string, files: Record<string, string> = {}, extra: [number, string][] = [], nativeMethods: string[] = []): Sandbox & {arms: Arm[]} {
   const vm = vmOf()
   // A final arrow can end exactly where a factory appends fields. Its capture
@@ -99,14 +100,14 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
   const {js, arms} = instrument(code, file, init ? `\n;(globalThis as any).__gdpInit = () => (${init});\n` : '', [...nativeCaptureEdits(code, file, nativeMethods), ...extra])
   const captured = new Map<string, Record<string, unknown>>(), captureErrors = new Map<string, string>()
   const counts = arms.map(() => 0)
-  let now = 0
+  let now = 0, invocation = 0, observedClock: number | undefined, observing = false
   const stub = (name: string) => new Proxy({}, {
     get: (_, k) => { if (k === '__esModule' || typeof k === 'symbol') return undefined; throw new Error(`the check loads no module ${name} (its ${String(k)} was read)`) },
     ownKeys: () => [],
   })
   const module = {exports: {} as Record<string, unknown>}
   const ctx = vm.createContext({
-    __cov: (i: number) => { counts[i]!++ }, __now: () => now, module, exports: module.exports,
+    __cov: (i: number) => { counts[i]!++ }, __now: () => { if (observing) observedClock = now; return now }, module, exports: module.exports,
     __gdp_native_capture: (name: string, value: Record<string, unknown>) => {
       if (captured.has(name) || captureErrors.has(name)) return
       try { captured.set(name, nativeSnapshot(value) as Record<string, unknown>) } catch (e) { captureErrors.set(name, String(e)) }
@@ -141,17 +142,19 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
   vm.runInContext('globalThis.Date = new Proxy(Date, {construct: (D, a) => (a.length ? new D(...a) : new D(__now())), get: (D, k) => (k === "now" ? () => __now() : D[k])}); Math.random = () => { throw new Error("Math.random in a step") }', ctx)
   vm.runInContext(`${js}\n;globalThis.__gdp = {${expose.map(n => { if (n === 'default') return 'default: module.exports.default'; const [h, ...rest] = n.split('.'); return `${JSON.stringify(n)}: (typeof ${h} !== 'undefined' ? ${h} : module.exports.${h})${rest.map(x => `.${x}`).join('')}` }).join(', ')}};`, ctx, {timeout: 2000, filename: file})
   const script = new vm.Script('globalThis.__r = (() => { try { return {ok: true, value: __gdp[__f].apply(__self, __args)} } catch (e) { return {ok: false, error: String(e && e.message || e)} } })()')
-  const call = (f: string, self: unknown, args: unknown[]) => {
+  const call = (f: string, self: unknown, args: unknown[], housekeeping = false) => {
     // Reading/restoring a factory's closure is harness work, not a new request.
-    if (f !== '$get' && f !== '$at') { captured.clear(); captureErrors.clear() }
+    const request = !housekeeping
+    if (request) { captured.clear(); captureErrors.clear(); invocation++; observedClock = undefined }
+    observing = request
     Object.assign(ctx, {__f: f, __self: self, __args: args})
     try { script.runInContext(ctx, {timeout: 1000}) } catch (e) {
       if ((e as {code?: string}).code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') throw new HarnessFailure(`a request ran past the check's 1000 ms (${(e as Error).message})`)
       throw e
-    }
+    } finally { observing = false }
     return ctx.__r as {ok: true, value: unknown} | {ok: false, error: string}
   }
-  return {ctx, counts, arms, call, setNow: n => { now = n }, get: name => vm.runInContext(`__gdp[${JSON.stringify(name)}]`, ctx),
+  return {ctx, counts, arms, call, observations: () => validateNativeObservations({invocation, calls: {}, ...(observedClock === undefined ? {} : {clock: observedClock})}, new Set()), setNow: n => { now = n }, get: name => vm.runInContext(`__gdp[${JSON.stringify(name)}]`, ctx),
     bindings: method => { if (captureErrors.has(method)) throw new Error(captureErrors.get(method)!); return captured.get(method) }}
 }
 
@@ -351,6 +354,8 @@ export type CodeSide = {
   // The native object, independently of symbolic scalar/heap encodings.
   nativeState?: (self: unknown, snap: Snap, params: Record<string, Raw>) => unknown,
   nativeBindings?: (event: Ev) => Record<string, unknown> | undefined,
+  nativeObservations?: (event: Ev) => NativeExecutionObservation | undefined,
+  nativeEquality?: 'scalar',
   nativeInputs?: NativeInputs,
   // Go's: an input drawn within its type, a state drawn within the fields' types, a witness's state as Go holds it,
   // and the refusals where Go goes on past the rule's numbers (a uint64 below 0), counted as the rule's edge.
@@ -374,7 +379,7 @@ function checkOnce(code: string, file: string, m: Model, r: Rule, sorts: Sorts, 
   }
   // An object a factory makes: its state is what its functions close over, read and set through the two functions the
   // check added to it.
-  const stateOf = (self: unknown): unknown => (m.factory ? (box.call('$get', self, []) as {ok: boolean, value?: unknown}).value : self)
+  const stateOf = (self: unknown): unknown => (m.factory ? (box.call('$get', self, [], true) as {ok: boolean, value?: unknown}).value : self)
   const evalAt = (env: Record<string, Raw>) => (t: N | B | I.L): Raw => evalTerm(t, env)
   // The arms of the code the step reads (the entry, its methods, the functions it inlines; a class's constructor too).
   const inSpan = (a: Arm) => !m.spans || m.spans.some(([s0, e0]) => a.pos >= s0 && a.pos < e0)
@@ -391,6 +396,7 @@ function checkOnce(code: string, file: string, m: Model, r: Rule, sorts: Sorts, 
   const side: CodeSide = {
     nativeState: (self, snap, params) => standalone ? {} : isClass ? stateOf(self) : valueOf(snap, m.layout, m, evalAt(params), box.ctx),
     nativeBindings: e => box.bindings(e.call),
+    nativeObservations: () => box.observations(),
     ...(standalone ? {nativeInputs: nativeInputs(code, file, m.entry, opts.files)} : {}),
     make: params => {
       const now0 = m.params.find(v => v.note?.startsWith('Date.now()'))
@@ -398,7 +404,7 @@ function checkOnce(code: string, file: string, m: Model, r: Rule, sorts: Sorts, 
       // A Map the constructor is given: an empty one, made in the code's realm.
       return box.call('$new', undefined, (m.ctorArgs ?? []).filter(n => n !== now0?.name).map(n => ctorValue(n, params)))
     },
-    at: (snap, params) => (box.call('$at', undefined, [valueOf(snap, m.layout, m, evalAt(params), box.ctx), ctorValues(params)]).ok ? (box.ctx.__r as {value: object}).value : (() => { throw new Error(`could not make the object: ${(box.ctx.__r as {error?: string}).error}`) })()),
+    at: (snap, params) => (box.call('$at', undefined, [valueOf(snap, m.layout, m, evalAt(params), box.ctx), ctorValues(params)], true).ok ? (box.ctx.__r as {value: object}).value : (() => { throw new Error(`could not make the object: ${(box.ctx.__r as {error?: string}).error}`) })()),
     snapOf: (self, params) => snapOf(stateOf(self), m.layout, m, evalAt(params)),
     call: (self, e, args) => {
       if (standalone) return box.call(e.call, undefined, args)
@@ -455,7 +461,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
   }
   const recordInitial = (side: {snap: Snap, self?: object}, params: Record<string, Raw>) => {
     const state = capture(() => nativeState(side, params))
-    if (journal.enabled && !journal.reason) journal.observations.push({where: 'initial native state', before: state, after: state, params: {...params}, inputs: {}, bindings: {}, args: [], result: undefined, failed: false})
+    if (journal.enabled && !journal.reason) journal.observations.push({where: 'initial native state', before: state, after: state, params: {...params}, inputs: {}, bindings: {}, args: [], result: undefined, failed: false, ...(code.nativeEquality ? {nativeEquality: code.nativeEquality} : {})})
   }
   const paramKinds = m.params.map(v => [v, kindOfVar(v, sorts)] as const), inputKinds = m.inputs.map(v => [v, kindOfVar(v, sorts)] as const)
   const fail = (what: string): Evidence => { ev.mismatch = what; return finish() }
@@ -590,6 +596,8 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
       const after = capture(() => nativeState(afterSide, params)), result = capture(() => nativeSnapshot(res.out))
       const bindings = capture(() => code.nativeBindings?.(e)) as Record<string, unknown> | undefined
       if (code.nativeBindings && !bindings) journal.reason ??= `native parameter capture unavailable for ${e.call}`
+      const observed = capture(() => code.nativeObservations ? nativeSnapshot(code.nativeObservations(e)) : undefined) as NativeExecutionObservation | undefined
+      if (code.nativeObservations && !observed) journal.reason ??= `native execution observations unavailable for ${e.call}`
       const fallback: Record<string, unknown> = Object.create(null)
       e.names?.forEach((n, i) => {
         const value = nativeArgs?.[i]
@@ -598,7 +606,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
       })
       const rk = m.results?.[e.call]
       journal.observations.push({where, method: e.call, before, after, params: {...params}, inputs: {...inputs}, bindings: bindings ?? fallback,
-        args: nativeArgs ?? [], result, failed: false, legacyResult: !standalone && rk?.k === 'rec' && rk.fields.some(([field]) => field === 'value')})
+        args: nativeArgs ?? [], result, failed: false, ...(observed ? {observed} : {}), ...(code.nativeEquality ? {nativeEquality: code.nativeEquality} : {}), legacyResult: !standalone && rk?.k === 'rec' && rk.fields.some(([field]) => field === 'value')})
     }
     next.side = afterSide
     next.st = (rule as {st: State}).st
@@ -741,8 +749,10 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
           const bindings = capture(() => code.nativeBindings?.(event)) as Record<string, unknown> | undefined
           if (!bindings) { journal.reason ??= 'independent native parameter capture unavailable'; return }
           const result = capture(() => nativeSnapshot(returned.value)), savedArgs = capture(() => nativeSnapshot(args)) as unknown[]
+          const observed = capture(() => code.nativeObservations ? nativeSnapshot(code.nativeObservations(event)) : undefined) as NativeExecutionObservation | undefined
+          if (code.nativeObservations && !observed) { journal.reason ??= 'independent native execution observations unavailable'; return }
           if (!journal.reason) journal.observations.push({where: `exhaustive native input ${++ordinal}`, method: event.call,
-            before: {}, after: {}, params: {}, inputs: {}, bindings, args: savedArgs, result, failed: false})
+            before: {}, after: {}, params: {}, inputs: {}, bindings, args: savedArgs, result, failed: false, ...(observed ? {observed} : {}), ...(code.nativeEquality ? {nativeEquality: code.nativeEquality} : {})})
           return
         }
         for (const value of finite![at]!) visit(at + 1, [...args, value])

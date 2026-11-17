@@ -4,7 +4,7 @@
 // a stated failure, assert and abort, a switch's fallthrough, ?: and an enum, and the refusals. Skipped without clang.
 import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
-import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
+import {appendFileSync, mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {proveRule, proveSteps} from './dsl.ts'
 import {type COptions, extractC, extractCpp} from './extract-c.ts'
@@ -27,9 +27,28 @@ const ok = (x: X) => {
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type A = any
-const step = (x: X, name: string, then: (b: A, a: A) => A, when?: (b: A) => A) => {
-  const r = x.rule as A, v = proveSteps(r, x.invariants ?? [], [r.stepLaw(name, then, when)])
-  if (!v.proven) throw new Error(`${name}: ${JSON.stringify({goal: v.goal, witness: v.witness})}`)
+// A callback retains its exact checked model proof, never a native-source claim.
+// Every callback below has an equivalent registered law evaluated on real native observations.
+const modelOnly = {kernelProven: true, proven: false, checked: false, translation: 'unchecked', why: 'source translation unchecked: a source proof contains a law with no native interpretation'}
+const native = (v: ReturnType<typeof proveSteps>, name?: string) => {
+  expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  expect(v.translationChecks).toBeGreaterThan(0)
+  const out = process.env.SUPERCOMPUTER_OUTPUT_DIR
+  if (out) appendFileSync(`${out}/c-native-verdicts.jsonl`, `${JSON.stringify({name, proven: v.proven, checked: v.checked, translation: v.translation, translationChecks: v.translationChecks})}\n`)
+}
+const step = (x: X, name: string, then: (b: A, a: A) => A, when: (b: A) => A, expr: string, method?: string) => {
+  const r = x.rule as A
+  expect(proveSteps(r, x.invariants ?? [], [r.stepLaw(name, then, when)])).toMatchObject(modelOnly)
+  const built = buildLaw(x, {name, expr, ...(method ? {method} : {})})
+  expect(built.kind).toBe('step')
+  native(proveSteps(r, x.invariants ?? [], [built.law]), name)
+}
+const inv = (x: X, name: string, holds: (s: A) => A, expr: string) => {
+  const r = x.rule as A
+  expect(proveRule(r, [...x.invariants ?? [], r.law(name, holds)])).toMatchObject(modelOnly)
+  const built = buildLaw(x, {name, expr})
+  expect(built.kind).toBe('law')
+  native(proveRule(r, [...x.invariants ?? [], built.law]), name)
 }
 
 t('unsigned arithmetic wraps; a narrow one is promoted and converted back', () => {
@@ -40,8 +59,8 @@ void tick(struct ctr *c) { c->lap++; c->seq += 1; }
 void add(struct ctr *c, uint32_t n) { c->total += n; }
 `, 'ctr'))
   expect(x.notes.join('\n')).toMatch(/uint8_t: a result past its range wraps modulo 2\^8, as C's does/)
-  step(x, 'a lap wraps at 256', (_b, a) => a.lap.eq(0), b => b.method.is('tick').and(b.lap.eq(255)))
-  step(x, 'a total past 2^32 wraps', (b, a) => a.total.eq(b.total.plus(b.add_n).minus(4294967296)), b => b.method.is('add').and(b.total.plus(b.add_n).atLeast(4294967296)))
+  step(x, 'a lap wraps at 256', (_b, a) => a.lap.eq(0), b => b.method.is('tick').and(b.lap.eq(255)), 'old(lap) == 255 implies lap == 0', 'tick')
+  step(x, 'a total past 2^32 wraps', (b, a) => a.total.eq(b.total.plus(b.add_n).minus(4294967296)), b => b.method.is('add').and(b.total.plus(b.add_n).atLeast(4294967296)), 'old(total) + n >= 4294967296 implies total == old(total) + n - 4294967296', 'add')
 }, 60_000)
 
 t('signed overflow is undefined: refused where the path doesn\'t exclude it, never wrapped', () => {
@@ -55,8 +74,8 @@ void guarded(struct acc *a) { if (a->hits < 1000) a->hits = a->hits + 1; }
   // (the rule refuses bump at INT_MAX; guarded's + 1 is within int by its if, so it is never refused)
   expect(x.source).toMatch(/method\.is\('bump'\)\.implies\(n\.plus\(1\)\.atMost\(2147483647\)\)/)
   expect(x.source).not.toMatch(/hits\.plus\(1\)\.atMost/)
-  expect(proveRule(x.rule!, [...x.invariants!, x.rule!.law('hits at most 1000 once there', ({hits}: A) => hits.atMost(2147483647))]).proven).toBe(true)
-  step(x, 'guarded counts to 1000', (b, a) => a.hits.eq(b.hits.plus(1)), b => b.method.is('guarded').and(b.hits.lt(1000)))
+  inv(x, 'hits at most 1000 once there', ({hits}: A) => hits.atMost(2147483647), 'hits <= 2147483647')
+  step(x, 'guarded counts to 1000', (b, a) => a.hits.eq(b.hits.plus(1)), b => b.method.is('guarded').and(b.hits.lt(1000)), 'old(hits) < 1000 implies hits == old(hits) + 1', 'guarded')
 }, 60_000)
 
 t('division and remainder truncate toward zero; by zero it is refused', () => {
@@ -64,8 +83,8 @@ t('division and remainder truncate toward zero; by zero it is refused', () => {
 struct h { int half; int rest; int v; };
 void split(struct h *s, int k) { s->v = k; s->half = k / 2; s->rest = k % 2; }
 `, 'h'))
-  step(x, 'the half and the rest make k again', (_b, a) => a.half.plus(a.half).plus(a.rest).eq(a.v), b => b.method.is('split'))
-  step(x, 'the rest takes the sign of k', (b, a) => a.rest.atMost(0), b => b.method.is('split').and(b.split_k.lt(0)))
+  step(x, 'the half and the rest make k again', (_b, a) => a.half.plus(a.half).plus(a.rest).eq(a.v), b => b.method.is('split'), 'half + half + rest == v', 'split')
+  step(x, 'the rest takes the sign of k', (b, a) => a.rest.atMost(0), b => b.method.is('split').and(b.split_k.lt(0)), 'k < 0 implies rest <= 0', 'split')
 }, 60_000)
 
 t('a stated failure, assert and abort are refusals; a write before one needs onError: discard', () => {
@@ -79,8 +98,8 @@ void put(bucket *b, uint32_t n) { assert(n <= b->cap); if (b->cap - b->tokens < 
 void setcap(bucket *b, uint32_t c) { b->cap = c; if (b->tokens > c) b->tokens = c; }
 `
   const x = ok(c(src, 'bucket', {fails: {take: '< 0'}}))
-  step(x, 'a take never goes below 0', (b, a) => a.tokens.eq(b.tokens.minus(b.take_n)), b => b.method.is('take'))
-  expect(proveRule(x.rule!, [...x.invariants!, x.rule!.law('tokens within cap', ({tokens, cap}: A) => tokens.atMost(cap))]).proven).toBe(true)
+  step(x, 'a take never goes below 0', (b, a) => a.tokens.eq(b.tokens.minus(b.take_n)), b => b.method.is('take'), 'tokens == max(0, old(tokens) - n)', 'take')
+  inv(x, 'tokens within cap', ({tokens, cap}: A) => tokens.atMost(cap), 'tokens <= cap')
   expect(x.evidence!.refusedBoth).toBeGreaterThan(0)
   const w = c(`#include <stdlib.h>\nstruct s { int a; unsigned b; };\nvoid f(struct s *s, unsigned k) { s->a = 1; if (k > 5) abort(); s->b = k; }\n`, 's')
   expect(w.ok).toBe(false)
@@ -106,8 +125,8 @@ void fail(struct cb *b) {
 void ok(struct cb *b) { b->fails = 0; b->st = b->st == HALF ? CLOSED : b->st; }
 void probe(struct cb *b) { if (b->st == OPEN) b->st = HALF; }
 `, 'cb'))
-  step(x, 'a failure half open trips it', (_b, a) => a.st.eq(1).and(a.tripped), b => b.method.is('fail').and(b.st.eq(2)))
-  step(x, 'a success closes a half-open breaker', (_b, a) => a.st.eq(0).and(a.fails.eq(0)), b => b.method.is('ok').and(b.st.eq(2)))
+  step(x, 'a failure half open trips it', (_b, a) => a.st.eq(1).and(a.tripped), b => b.method.is('fail').and(b.st.eq(2)), 'old(st) == HALF implies st == OPEN and tripped', 'fail')
+  step(x, 'a success closes a half-open breaker', (_b, a) => a.st.eq(0).and(a.fails.eq(0)), b => b.method.is('ok').and(b.st.eq(2)), 'old(st) == HALF implies st == CLOSED and fails == 0', 'ok')
 }, 60_000)
 
 t('a fixed array is a list of its length; an index the path doesn\'t keep within it is refused (undefined behavior)', () => {
@@ -120,8 +139,8 @@ int rb_get(struct rb *r) { if (r->count == 0) return -1; int x = r->buf[r->tail]
 `, 'rb', {fails: {rb_put: '< 0', rb_get: '< 0'}}))
   expect(x.source).toContain('.items({buf: nat}, {buf: 8})')
   expect(x.notes.join('\n')).not.toMatch(/rb_get.*after the state is written/)
-  expect(proveRule(x.rule!, [...x.invariants!, x.rule!.law('at most 8 held', ({count}: A) => count.atMost(8))]).proven).toBe(true)
-  step(x, 'a put keeps its item at the head', (b, a) => a.buf.at(b.head).eq(b.rb_put_x), b => b.method.is('rb_put').and(b.count.lt(8)).and(b.head.lt(8)))
+  inv(x, 'at most 8 held', ({count}: A) => count.atMost(8), 'count <= 8')
+  step(x, 'a put keeps its item at the head', (b, a) => a.buf.at(b.head).eq(b.rb_put_x), b => b.method.is('rb_put').and(b.count.lt(8)).and(b.head.lt(8)), 'old(count) < 8 and old(head) < 8 implies buf[old(head)] == x', 'rb_put')
   const oob = c('struct q { int xs[4]; };\nvoid f(struct q *q, unsigned i) { q->xs[i] = 1; }\n', 'q')
   expect(oob.ok).toBe(true)
   expect(oob.source).toMatch(/f_i\.lt\(4\)|f_i\.atMost\(3\)/)
@@ -139,7 +158,7 @@ void rb_queue(rb_t *r, uint8_t x) { if (rb_full(r)) r->tail = (r->tail + 1) & (N
 uint8_t rb_dequeue(rb_t *r, uint8_t *data) { if (rb_empty(r)) return 0; *data = r->buf[r->tail]; r->tail = (r->tail + 1) & (N - 1); return 1; }
 `, 'rb_t', {fails: {rb_dequeue: '== 0'}, onError: 'discard'}))
   expect(x.source).toContain('rb_dequeue_data')
-  step(x, 'a dequeue gives the item at the tail', (b, a) => a.rb_dequeue_data.eq(b.buf.at(b.tail)), b => b.method.is('rb_dequeue').and(b.tail.lt(16)))
+  step(x, 'a dequeue gives the item at the tail', (b, a) => a.rb_dequeue_data.eq(b.buf.at(b.tail)), b => b.method.is('rb_dequeue').and(b.tail.lt(16)), 'old(tail) < 16 implies result.data == old(buf[tail])', 'rb_dequeue')
 }, 60_000)
 
 t('refused where it leaves the subset, each with why', () => {
@@ -180,9 +199,9 @@ t('C++: a class, its constructor the start (its parameters the rule\'s), private
   const x = ok(cpp(BUCKET, 'Bucket'))
   expect(x.source).toContain('.params({cap: nat})')
   expect(x.source).toContain('tokens_: ({cap}) => cap')
-  expect(proveRule(x.rule!, [...x.invariants!, x.rule!.law('never more tokens than the capacity', ({tokens_, cap_}: A) => tokens_.atMost(cap_))]).proven).toBe(true)
-  step(x, 'a take is all or nothing', (b, a) => a.take_result.implies(a.tokens_.eq(b.tokens_.minus(b.take_n))), b => b.method.is('take'))
-  step(x, 'a pop gives the item and clears it', (b, a) => a.pop_out.eq(b.hits_.at(1)).and(a.hits_.at(1).eq(0)), b => b.method.is('pop').and(b.hits_.at(1).eq(0).not()))
+  inv(x, 'never more tokens than the capacity', ({tokens_, cap_}: A) => tokens_.atMost(cap_), 'tokens_ <= cap_')
+  step(x, 'a take is all or nothing', (b, a) => a.take_result.implies(a.tokens_.eq(b.tokens_.minus(b.take_n))), b => b.method.is('take'), 'result implies tokens_ == max(0, old(tokens_) - n)', 'take')
+  step(x, 'a pop gives the item and clears it', (b, a) => a.pop_out.eq(b.hits_.at(1)).and(a.hits_.at(1).eq(0)), b => b.method.is('pop').and(b.hits_.at(1).eq(0).not()), 'old(hits_[1]) != 0 implies result.out == old(hits_[1]) and hits_[1] == 0', 'pop')
   expect(x.evidence!.refusedBoth).toBeGreaterThan(0)
 }, 60_000)
 
@@ -198,7 +217,7 @@ class Meter {
   int cap_ = 3;
 };
 `, 'Meter'))
-  expect(proveRule(x.rule!, [...x.invariants!, x.rule!.law('the cap is three', ({cap_}: A) => cap_.eq(3))]).proven).toBe(true)
+  inv(x, 'the cap is three', ({cap_}: A) => cap_.eq(3), 'cap_ == 3')
 }, 60_000)
 
 t('C++: refused where it leaves the subset, each with why', () => {
@@ -228,7 +247,7 @@ int meter_take(struct meter *m, unsigned n) {
   expect(notes).toMatch(/the entry inferred: meter/)
   expect(notes).toMatch(/fflush .*left out \(tagged: gdp: skip/)
   expect(notes).toMatch(/quota_bonus .*answered by the request \(inferred: its value is read; assumes quota_bonus may return any int\)/)
-  step(x, 'never past its cap', (_b, a) => a.used.atMost(a.cap), b => b.used.atMost(b.cap))
+  step(x, 'never past its cap', (_b, a) => a.used.atMost(a.cap), b => b.used.atMost(b.cap), 'old(used) <= old(cap) implies used <= cap')
 }, 30_000)
 
 // The reader fuzz's misreads (core/extract-fuzz.ts): a literal past 2^53 converted exactly.
@@ -238,7 +257,7 @@ struct cb { unsigned fails; unsigned limit; };
 void fail(struct cb *b) { if (b->fails < b->limit) b->fails++; }
 void ok(struct cb *b) { b->fails = 9007199254740993; }
 `, 'cb'))
-  step(x, 'ok sets it to 1', (_b, a) => a.fails.eq(1), b => b.method.is('ok'))
+  step(x, 'ok sets it to 1', (_b, a) => a.fails.eq(1), b => b.method.is('ok'), 'fails == 1', 'ok')
 }, 60_000)
 
 t('a function of any name\'s length called; a natural by cases made an integer before it wraps', () => {
@@ -287,9 +306,41 @@ void init(struct io *s) { s->flags |= F_INIT; }
 `, 'io'))
   // (a law's bit tests, as the CLI reads them: an invariant through the rule's functions, a step's through keys)
   const law = (name: string, expr: string, method?: string) => buildLaw(x, {name, expr, ...(method ? {method} : {})}).law
-  expect(proveSteps(x.rule as A, x.invariants ?? [], [law('ok follows the request', '(flags & 0x10) != 0 or ok == 0', 'tick')]).proven).toBe(true)
-  expect(proveRule(x.rule as A, [...x.invariants!, law('init is never cleared once set', '(flags & 1) == 0 or (flags & 1) == 1')]).proven).toBe(true)
+  native(proveSteps(x.rule as A, x.invariants ?? [], [law('ok follows the request', '(flags & 0x10) != 0 or ok == 0', 'tick')]), 'ok follows the request')
+  native(proveRule(x.rule as A, [...x.invariants!, law('init is never cleared once set', '(flags & 1) == 0 or (flags & 1) == 1')]), 'init is never cleared once set')
 }, 120_000)
+
+t('native C laws use real nested fields, arrays and arguments captured before local reassignment', () => {
+  const code = `
+#include <stdint.h>
+struct capture { struct { uint32_t value; } sub; uint8_t buf[4]; uint32_t head; };
+void put(struct capture *s, uint8_t x) {
+  if (s->head >= 4) return;
+  s->buf[s->head] = x; s->sub.value = x;
+  s->head = (s->head + 1) % 4; x++;
+}
+`
+  const x = ok(c(code, 'capture'))
+  const make = (read: X, expr: string) => buildLaw(read, {name: 'the original x is stored', expr, method: 'put'}).law
+  const expr = 'old(head) < 4 implies buf[old(head)] == x and sub.value == x'
+  native(proveSteps(x.rule!, x.invariants ?? [], [make(x, expr)]), 'nested fields/array/pre-call argument native control')
+  // Deliberately corrupt only the untrusted lowering. Real native observations
+  // must reject its false source equation despite the kernel's tautology proof.
+  const faulty = make(x, 'old(head) < 4 implies sub.value == x + 1')
+  faulty.then = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
+  const rejected = proveSteps(x.rule!, x.invariants ?? [], [faulty], {search: false})
+  expect(rejected).toMatchObject({proven: false, checked: false, kernelProven: true, translation: 'error', stuck: 'translation-error'})
+  expect(rejected.translationWitness?.after).toHaveProperty('sub.value')
+  expect(typeof rejected.translationWitness?.bindings.x).toBe('number')
+  const out = process.env.SUPERCOMPUTER_OUTPUT_DIR
+  if (out) writeFileSync(`${out}/c-native-tamper-witness.json`, JSON.stringify({translation: rejected.translation, kernelProven: rejected.kernelProven, witness: rejected.translationWitness, evidence: x.evidence}, null, 2))
+  const disabled = c(code, 'capture', {check: {runs: 0, states: 0, probes: false}})
+  expect(disabled.ok).toBe(true)
+  expect(proveSteps(disabled.rule!, disabled.invariants ?? [], [make(disabled, expr)], {search: false})).toMatchObject({
+    proven: false, checked: false, kernelProven: true, translation: 'unchecked',
+    why: 'source translation unchecked: source replay or native-law cross-check was disabled',
+  })
+}, 60_000)
 
 t('a bit operation of two values neither a constant nor 0 or 1 is refused', () => {
   const x = c(`
@@ -317,7 +368,8 @@ void trigger(void) {
 }
 `, 'case'))
   expect(x.names!.some(n => n.code === 'pin' && n.role === 'input')).toBe(true)
-  expect(proveRule(x.rule!, [...x.invariants!, x.rule!.law('the guard is released', ({s_entry}: A) => s_entry.eq(0)), x.rule!.law('the timer stays below 3', ({s_timer}: A) => s_timer.atMost(2))]).proven).toBe(true)
+  inv(x, 'the guard is released', ({s_entry}: A) => s_entry.eq(0), 's.entry == 0')
+  inv(x, 'the timer stays below 3', ({s_timer}: A) => s_timer.atMost(2), 's.timer <= 2')
 }, 120_000)
 
 t('floats only written are left out; one read into a condition is refused', () => {

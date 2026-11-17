@@ -63,7 +63,7 @@ class Book:
         return True
 `
 
-t('an order book of two lists: price-time priority proven, a self-trade found and replayed', async () => {
+t('an order book: kernel price-time proofs, unchecked object membership, and a replayed self-trade', async () => {
   const f = file(BOOK)
   const {rules} = await check([f], {ms: 20_000, propose: false})
   const r = rules[0]!
@@ -71,10 +71,13 @@ t('an order book of two lists: price-time priority proven, a self-trade found an
   expect(r.notes.join('\n')).toMatch(/bids: a list, read as its items in order/)
   expect(r.notes.join('\n')).toMatch(/Order\.side: a string the module only sets to "ask" or "bid"/)
   const v = Object.fromEntries(r.laws.map(l => [l.name, l]))
-  expect(v['an ask fills the best bid']!.verdict).toBe('proven')
-  expect(v['a bid fills the best ask']!.verdict).toBe('proven')
-  expect(v['a fill crosses']!.verdict).toBe('proven')
-  expect(v['no trader trades with itself']!.verdict).toBe('broken')
+  // Do not promote kernel-only proofs through unsupported foreign-object equality.
+  for (const name of ['an ask fills the best bid', 'a bid fills the best ask', 'a fill crosses']) {
+    expect(v[name]!).toMatchObject({verdict: 'unknown', translation: 'unchecked', kernelProven: true, why: expect.stringContaining('native law cannot interpret foreign container equality or object keys')})
+    expect(v[name]!.run).toBeUndefined()
+    expect(v[name]!.cert).toBeUndefined()
+  }
+  expect(v['no trader trades with itself']!).toMatchObject({verdict: 'broken', translation: 'sampled'})
   // The run that breaks it, replayed in the code: one trader's bid and ask at one price, matched.
   const run = v['no trader trades with itself']!.run!.join('\n')
   expect(run).toMatch(/match/)

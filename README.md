@@ -249,8 +249,10 @@ All of these are proven automatically, and each proof is also a Lean theorem:
 - **What nobody stated, looked for when the prover alone stops**: where `proveRule` or `proveSteps` doesn't prove the laws
   and no run breaks them, it looks for lemmas about the rule's recurrences and lists (`discover`), lemmas about the
   functions it knows by their facts (`cycleLemmas`, each proven by a cyclic proof) and then invariants (`inferLaws`),
-  within 10 s (`{search: {ms}}`; `{search: false}`, the prover alone); the verdict's `found` holds what
-  proved them, as laws and lemmas with the source to paste. Each invariant found holds in the states reachable from the
+  under a configurable search allowance (`{search: {ms: 10000}}` by default; `{search: false}`, the prover alone);
+  the verdict's `found` holds what proved them, as laws and lemmas with the source to paste.
+  [Explicit counted work and stop causes](docs/search-budgets.md) separate the search allowance from an optional
+  real-time safety watchdog; legacy `ms` is not a promise of machine-independent completion. Each invariant found holds in the states reachable from the
   start, so a proof that needs one holds there and the verdict says so (`assumes: {states: 'reachable', laws}`). Code that
   steps the rule from states it is handed proves with `{from: 'any'}`: every step law then holds from every state the
   laws allow, reachable or not, and the search never adds an invariant.

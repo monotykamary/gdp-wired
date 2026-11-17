@@ -4,7 +4,7 @@ import {type C,type E,type Law,type Machine,all,any,not,n,x,same,get} from './ma
 import {carryCandidates, scanPrefixes, type GlobalAudit} from './carry.ts'
 import {trueSmall} from './exists.ts'
 import {scope,substC,checkLaws} from '../kernel/kernel.ts'
-import {clock,counted,fullRate,proveLaws,withDeadline,withWall} from '../kernel/prove.ts'
+import {clock,counted,fullRate,proveLaws,withDeadline} from '../kernel/prove.ts'
 const sha=(v:unknown)=>createHash('sha256').update(JSON.stringify(v)).digest('hex')
 function need(v:unknown,s:string):asserts v{if(!v)throw Error(s)}
 
@@ -63,9 +63,10 @@ for (const renamed of [false,true]) test(`ordinary range/frame filtering and nat
  const proposals=carryCandidates(m).filter(l=>l.name.startsWith('carry:global-'))
  const accepted=proposals.filter(l=>{scope(m,[l]);return trueSmall(m,[l])})
  expect(accepted.length).toBe(proposals.length)
- const start=performance.now(),result=counted(fullRate,()=>withWall(start+1500,()=>withDeadline(clock()+1500,()=>proveLaws(m,accepted))),true)
+ // Keep the 1500-unit counted endpoint, not a competing real-time search cutoff.
+ const result=counted(fullRate,()=>withDeadline(clock()+1500,()=>proveLaws(m,accepted)),true)
  expect(result.proven && result.checked && !!result.proof && checkLaws(m,accepted,result.proof)).toBe(true)
-},5000)
+},30000) // The measured full-case 5–7s includes candidate generation and independent checking.
 
 const pgKey=(base:number,a:E,b:E):E=>({op:'add',a:{op:'mul',k:base,a},b})
 const pgRetain=(map:string,key:E,guard:C,normalized=false):E=>iff(normalized?any(guard,pos(map,key)):any(all(guard,{op:'<=',a:n(0),b:n(0)}),all(not(guard),pos(map,key))),n(1),n(0))

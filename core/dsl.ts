@@ -28,12 +28,14 @@ import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withModelRounds, type ModelRoundPolicy, withWall} from '../kernel/prove.ts'
-import {WallExpired, checkWall, checkWorkEndpoint, searchWall, withBudget, BudgetExpired} from './wall.ts'
+import {WallExpired, checkWall, checkBudget, checkWorkEndpoint, searchWall, withBudget, BudgetExpired} from './wall.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {workLedger} from './work-admission.ts'
-import {withStageAllowance, withStageDeadline, withStageWall} from './dsl-deadline.ts'
+import {withStageAllowance, withStageDeadline, withStageWall, withStageWork, remainingStageWork} from './dsl-deadline.ts'
+import {type SearchTermination, completedSearch, searchContext, stoppedSearch} from './search-termination.ts'
+import {WatchdogExpired, checkWatchdog, withSearchWatchdog} from './search-watchdog.ts'
 import {withPublicSearchPolicy} from './search-policy.ts'
-import {workRefusalWhy} from './work-refusal.ts'
+import {captureWorkContext, workContext, workRefusalWhy} from './work-refusal.ts'
 import {type WorkAmount, workDivide, workFromNumber, workToNumber} from './work-amount.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
@@ -2839,7 +2841,8 @@ export const loop = (name: string): LoopRule => new LoopRule({name, params: [], 
 // that steps the rule from states it didn't reach so (a host's, a stored one it didn't check) has no proof for those.
 // Absent, every step law holds from every state where the laws (and the rule's kinds) hold, reachable or not, and the
 // laws together are kept by every step from such a state. `{from: 'any'}` proves only so.
-export type Verdict = TranslationFields & {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>, k?: number, assumes?: Assumes, rank?: E | E[]}
+export type {SearchTermination, SearchContext, SearchTerminationFields} from './search-termination.ts'
+export type Verdict = TranslationFields & import('./search-termination.ts').SearchTerminationFields & {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>, k?: number, assumes?: Assumes, rank?: E | E[]}
 export type Assumes = {states: 'reachable', laws: string[]}
 // `facts`: lemmas about the rule's functions (those known by their facts) proven from those facts by a cyclic proof
 // (core/cycles.ts), the laws proven with them; `rank`: a loop's rank, found from its runs (`proveLoop` with none).
@@ -2858,7 +2861,7 @@ export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?
 // `fast`: the laws proven as a set by kernel/prove.ts's proveSetFast (a search's set proof, asked again after a drop: what
 // was settled before kept where it stands), not proveLaws; no cyclic certificate.
 export type CandidateSeedAudit = {status:'checked'|'inconclusive',kind?:'usual'|'counted',kept:string[],dropped:{name:string,goal?:string,stuck?:'sat',reason?:string}[],reason?:string}
-export type ProveOptions = {search?: boolean | {ms?: number, work?: number | WorkAmount, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean,
+export type ProveOptions = {watchdogMs?: number, search?: boolean | {ms?: number, work?: number | WorkAmount, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean,
   // Opt-in refinement policy; never renews the caller's work or wall budget.
   modelRounds?: ModelRoundPolicy,
   // Proposals only: every retained member and public goal is checked together.
@@ -2941,7 +2944,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       return i === names.length ? evalC(f.holds, env, {scalars: {}, maps: {}}, m)
         : Array.from({length: top + 1}, (_, key) => key).every(key => at({...env, [names[i]!]: key}, i + 1))
     }
-    try { return at(params, 0) } catch (e) { if (e instanceof WallExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); return false }
+    try { return at(params, 0) } catch (e) { if (e instanceof WallExpired || e instanceof WatchdogExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); return false }
   }
   // (those that read no param once)
   const readsParams = (f: Law) => m.params.some(p => JSON.stringify(f.holds).includes(`"name":${JSON.stringify(p)}`))
@@ -2997,7 +3000,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       for (const sl of steps1) if (!watch(m, run, sl, params, bound).step(st, input, next)) return {goal: `${sl.name} @step law`, witness: witness()}
       for (const l of lawsHere) if (!watch(m, run, l, params, bound).step(st, input, next)) return {goal: `${l.name} @step`, witness: witness()}
     }
-  } catch (e) { if (e instanceof WallExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); return undefined }
+  } catch (e) { if (e instanceof WallExpired || e instanceof WatchdogExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); return undefined }
   return undefined
 }
 // The kernel's report as a verdict: its first goal left unproven, with its counterexample and why.
@@ -3013,13 +3016,16 @@ function workPlan(opts: ProveOptions): {work: number | WorkAmount | undefined, o
   const work = explicit ?? (completeWorkProfile.enabled ? ms === undefined ? completeWorkProfile.defaultUnits : ms * fullRate : undefined)
   if (work === undefined || opts.search === false) return {work, opts}
   const search = typeof opts.search === 'object' ? {...opts.search} : {}
+  // An explicit public work grant remains a work grant through every plain
+  // search phase. It must not be re-expressed as a counted-millisecond
+  // deadline: the enclosing ledger endpoint is its sole semantic authority.
+  if (explicit !== undefined) { delete search.ms; return {work, opts: {...opts, search}} }
   delete search.work
-  // Compatibility scheduling hint only; withBudget below receives the exact
-  // original amount. This display must never become the root's authority.
+  // Legacy ms compatibility keeps its historical counted-clock scheduling.
   search.ms = typeof work === 'number' ? work / fullRate : workToNumber(workDivide(work, workFromNumber(fullRate)))
   return {work, opts: {...opts, search}}
 }
-function workVerdict(opts: ProveOptions, supported: boolean, run: (opts: ProveOptions) => Verdict): Verdict {
+function workVerdict(opts: ProveOptions, run: (opts: ProveOptions) => Verdict): Verdict {
   const plan = workPlan(opts)
   // An implicit child inherits the owner's hard allowance, not a fresh default.
   // Keep workPlan's validation and scheduling hint; let the owner's refusal
@@ -3027,31 +3033,46 @@ function workVerdict(opts: ProveOptions, supported: boolean, run: (opts: ProveOp
   const implicit = typeof opts.search !== 'object' || (opts.search.work === undefined && opts.search.ms === undefined)
   if (completeWorkProfile.enabled && workLedger.inBudget() && implicit) return run(plan.opts)
   if (plan.work === undefined) return run(plan.opts)
-  if (!completeWorkProfile.enabled && !supported) return {proven: false, checked: false, stuck: 'unknown', why: 'work mode: plain-path migration pending'}
   try { return withBudget(plan.work, () => run(plan.opts)) }
   catch (error) {
     if (!(error instanceof BudgetExpired)) throw error
-    return {proven: false, checked: false, stuck: 'unknown', why: workRefusalWhy(error)}
+    // Once this child's scope has unwound, an exhausted ancestor still owns
+    // its refusal. Do not turn the parent's cancellation into a child result.
+    checkBudget(error.phase) // work-only: this call's own watchdog is still installed
+    return {proven: false, checked: false, stuck: 'unknown', why: workRefusalWhy(error), stopped: true, termination: {kind: 'work-exhausted', phase: error.phase, scope: 'search'}, ...(workContext(error) ? {context: workContext(error)} : {})}
+  }
+}
+function watchdogVerdict(ms: number | undefined, run: () => Verdict): Verdict {
+  let result: Verdict | undefined
+  try { return withSearchWatchdog(ms, () => result = run()) }
+  catch (e) {
+    if (!(e instanceof WatchdogExpired)) throw e
+    checkWatchdog(e.termination.phase) // an expired ancestor still owns cancellation
+    checkBudget(e.termination.phase) // an owned clock must not hide exhausted ancestor work
+    if (completedSearch(result) || result?.stopped && result.termination) return result!
+    return stoppedSearch({...result, proven: false, checked: false, stuck: 'unknown'}, e.termination)
   }
 }
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
-  return withModelRounds(opts.modelRounds, () => withPublicRule(outermost => {
+  return watchdogVerdict(opts.watchdogMs, () => withModelRounds(opts.modelRounds, () => withPublicRule(outermost => {
     const captureMachine = r.machine, hasCounts = !!Object.keys(captureMachine.counts ?? {}).length
-    const result = workVerdict(opts, hasCounts, plan => withPublicSearchPolicy(hasCounts, () => proveRuleWall(r, laws, plan)))
+    const result = workVerdict(opts, plan => withPublicSearchPolicy(hasCounts, () => proveRuleWall(r, laws, plan)))
     return outermost ? publishProof(result, captureMachine, laws) : result
-  }))
+  })))
 }
 function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions): Verdict {
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
   const run = (): Verdict => {
+    let result: Verdict | undefined
     try {
       checkWall('rule preflight')
-      const out = proveRuleIn(r, laws, opts)
-      checkWall('rule result')
+      const out = result = proveRuleIn(r, laws, opts)
+      if (!completedSearch(out) && !(out.stopped && out.termination)) checkWall('rule result')
       return out
     } catch (e) {
-      if (!(e instanceof WallExpired)) throw e
-      return {proven: false, checked: false, stuck: 'unknown', why: e.message}
+      if (!(e instanceof WallExpired) && !(e instanceof WatchdogExpired)) throw e
+      const out = {...result, proven: false, checked: false, stuck: 'unknown', why: result?.why ?? e.message}
+      return e.termination ? stoppedSearch(out, e.termination) : out
     }
   }
   // One absolute wall for setup, sampling, generation and proof, not a fresh
@@ -3102,7 +3123,11 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   // Quantified witness preflight needs a counted allocation: a slow attempt must
   // not seed different memoized decisions. Other laws keep their existing budget;
   // inference's query rate is not calibrated for their whole-set preflight.
-  const out = ms === undefined ? given() : withStageWall(countedSearchNow() + ms / share, () =>
+  const explicitWork = typeof opts.search === 'object' ? opts.search.work : undefined
+  // Whole-set preflight is only one search strategy. In work mode reserve a
+  // deterministic eighth for it, rather than starving inference at the root.
+  const preflight = explicitWork === undefined ? undefined : remainingStageWork(explicitWork, 8)
+  const out = preflight !== undefined ? withStageWork(preflight, given, () => undefined) : ms === undefined ? given() : withStageWall(countedSearchNow() + ms / share, () =>
     share === 1 ? given() : counted(inferRates.work, () => withStageDeadline(clock() + ms / share, given, () => undefined)), () => undefined)
   const v: Verdict = out ? {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
     : {proven: false, checked: false, stuck: 'unknown'}
@@ -3110,7 +3135,7 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   return searched(r, laws, [], v, opts)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
-  return workVerdict(opts, false, plan => proveStepsWall(r, laws, stepLaws, plan))
+  return watchdogVerdict(opts.watchdogMs, () => workVerdict(opts, plan => proveStepsWall(r, laws, stepLaws, plan)))
 }
 function proveStepsWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions): Verdict {
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
@@ -3119,8 +3144,9 @@ function proveStepsWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: L
   const run = (): Verdict => {
     try { return proveStepsIn(r, laws, stepLaws, opts) }
     catch (e) {
-      if (!(e instanceof WallExpired)) throw e
-      return {proven: false, checked: false, stuck: 'unknown', why: e.message}
+      if (!(e instanceof WallExpired) && !(e instanceof WatchdogExpired)) throw e
+      const out = {proven: false, checked: false, stuck: 'unknown', why: e.message}
+      return e.termination ? stoppedSearch(out, e.termination) : out
     }
   }
   const verdict = opts.from !== 'any' || ms === undefined ? run()
@@ -3161,12 +3187,23 @@ function stepGhosts(m: Machine, stepLaws: StepLaw[]): {machine: Machine, laws: L
 // recurrences or carried lists (the rule made again with them), then invariants over what it then is. The verdict is the
 // prover's on the laws with what was found; when nothing is found, the prover's own (with why).
 function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions): Verdict {
+  try { return searchedIn(r, laws, stepLaws, v, opts) }
+  catch (e) {
+    // Keep the initial SAT/goal/model before the outer catch can replace it.
+    // The exception carries provenance stamped before the clock scope unwinds.
+    if (e instanceof BudgetExpired) { captureWorkContext(e, searchContext(v)); throw e }
+    if ((!(e instanceof WallExpired) && !(e instanceof WatchdogExpired)) || !e.termination) throw e
+    return stoppedSearch(v, e.termination)
+  }
+}
+function searchedIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions): Verdict {
   const any = opts.from === 'any'
   if ((v.proven && v.checked) || opts.search === false || v.run || v.stuck === 'sat' && (any || !/@step|@\d+ steps/.test(v.goal ?? ''))) return v
   // The deeper runs; then runs over small values (keys that meet, small params), whose requests meet their
   // assumption's equalities and clocks, or near the counterexample the verdict ends at.
   // (the three within the search's budget again, on the wall: past it they stop, and the search starts as it would)
-  const ms = typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000, runsUntil = countedSearchNow() + ms
+  const explicitWork = typeof opts.search === 'object' ? opts.search.work : undefined
+  const ms = explicitWork === undefined ? (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000) : Infinity, runsUntil = explicitWork === undefined ? countedSearchNow() + ms : Infinity
   for (const b of [deeperBudget, {...deeperBudget, bound: 1, seed: 31, states: false}, {...deeperBudget, trials: 1200, seed: 41, states: false, mixed: true, ...(v.witness ? {near: v.witness} : {})}]) {
     const deeper = refuteByRuns(r, laws, stepLaws, {...b, until: runsUntil})
     if (deeper?.run) return refutedVerdict(deeper)
@@ -3176,9 +3213,14 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   const m0 = r.machine, clocked = stepLaws.length > 0 || [...divisorsIn(laws.map(l => l.holds))].some(k => k >= 3600)
   const pool = clocked ? [...new Set(Object.entries(v.witness ?? {}).filter(([k, x]) => !m0.inputs.includes(k) && !m0.params.includes(k) && x > deeperBudget.bound).map(([, x]) => x))] : []
   if (pool.length) { const deeper = refuteByRuns(r, laws, stepLaws, {...deeperBudget, trials: 300, seed: 43, states: false, mixed: true, near: v.witness, pool, until: runsUntil}); if (deeper?.run) return refutedVerdict(deeper) }
-  const until = clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
-  // (the search's end on the wall too: kernel/prove.ts's withWall, past which every goal is unknown)
-  return withStageWall(countedSearchNow() + Math.max(0, until - clock()), () => searchedUntil(r, laws, stepLaws, v, opts, until), () => v)
+  const until = explicitWork === undefined ? clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000) : Infinity
+  // Work uses only its ledger; legacy stages retain their captured real/count endpoint.
+  if (explicitWork !== undefined) return searchedUntil(r, laws, stepLaws, v, opts, until)
+  return withStageWall(countedSearchNow() + Math.max(0, until - clock()), () => {
+    const out = searchedUntil(r, laws, stepLaws, v, opts, until)
+    if (!(out.proven && out.checked) && !out.run) checkWall('search result')
+    return out
+  }, () => stoppedSearch(v, {kind: 'work-exhausted', phase: 'search stage', scope: 'stage'}))
 }
 // Two machines alike up to the names of the keys their quantified flags and writes at every key bind (the rule builds
 // fresh ones each time it is read): each bound name by its place of first binding.
@@ -3191,7 +3233,7 @@ const sameMachine = (a: Machine, b: Machine): boolean => {
   return canon(a) === canon(b)
 }
 function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions, until: number): Verdict {
-  const any = opts.from === 'any'
+  const any = opts.from === 'any', explicitWork = typeof opts.search === 'object' ? opts.search.work : undefined
   // Bounded runs (core/bmc.ts): a law broken k steps from the start, a model of the kernel's k-step goal, the run taken
   // by the interpreter. The shallow depths first, within a fortieth of the search's budget (at most 250 ms, counted in
   // the cost model's work: kernel/prove.ts's `counted` with `full`); the deeper ones only where the invariant search
@@ -3319,19 +3361,26 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
       keep = keep.filter(c => !drop.includes(c))
     }
   }
-  const inf = withStageWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {join: 0} : {})}), () => undefined)
+  let searchStop: SearchTermination | undefined
+  const stageStopped = (): undefined => { searchStop = {kind: 'work-exhausted', phase: 'invariant search', scope: 'stage'}; return undefined }
+  const inferenceBudget = explicitWork === undefined ? {ms} : {work: explicitWork}
+  const infer = () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {...inferenceBudget, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {join: 0} : {})})
+  const inf = explicitWork === undefined ? withStageWall(tailAt(), infer, stageStopped) : infer()
   if (!(inf?.proven && inf.checked)) {
     // The sum of each map the step writes (withMapSums): the search again over the rule with them, within half of what
     // is left (at most 20 s), where a law of cells against a total needs one (no ERC20 balance past the supply).
     const summed = target.withMapSums()
     if (summed && until - clock() - tail > 1000) {
-      const inf2 = withStageWall(tailAt(), () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2)}), () => undefined)
+      const infer2 = () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, explicitWork === undefined ? {ms: Math.min(20_000, (until - clock() - tail) / 2)} : {work: explicitWork})
+      const inf2 = explicitWork === undefined ? withStageWall(tailAt(), infer2, stageStopped) : infer2()
+      searchStop = inf2?.termination ?? searchStop
       if (inf2?.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; const b = back(summed, found); if (!sk || (b.proven && b.checked)) return retainFrom({...(sk ? {} : verdict), ...b, proven: true, checked: true, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}, sk ? [inf2, b] : [inf2]) }
     }
     // (a step law's ghost: at most 10 s of it, as its goals cost more than the laws')
     const deep = bounded(Math.max(0, Math.min(until - clock(), ghosted && !laws.length ? 10_000 : Infinity)), Math.max(1, reached), true)
     if (deep) return refutedBy(deep)
-    return {...v, why: [v.why, inf ? `the search found nothing that proves it in ${Math.round(inf.stats.ms)} ms` : 'the search reached its stage deadline'].filter(Boolean).join('; ')}
+    const termination = inf?.termination ?? searchStop
+    return termination ? stoppedSearch(v, termination) : {...v, why: [v.why, inf ? `the search found nothing that proves it in ${Math.round(inf.stats.ms)} ms` : 'the search reached its stage deadline'].filter(Boolean).join('; ')}
   }
   const {found, stats: _stats, ...verdict} = inf
   void _stats

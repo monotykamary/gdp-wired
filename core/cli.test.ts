@@ -772,13 +772,11 @@ class Counter:
 `})
   const {rules, exit} = await check([`${dir}/fate.py`], {ms: 5000, propose: false})
   expect(rules.map(r => [r.entry, r.laws.map(l => [l.name, l.verdict])])).toEqual([
-    ['Fate', [['modal only after tries strikes', 'proven'], ['one strike per VM', 'unknown']]], ['Counter', [['at most cap', 'proven']]]])
-  // The journal can sample the scalar laws; the set-membership law still needs its own source check.
-  sampledProof(rules[0]!.laws[0]!)
-  unchecked(rules[0]!.laws[1]!, true)
-  expect(rules[0]!.laws[1]!.why).toContain('avoid')
+    ['Fate', [['modal only after tries strikes', 'proven'], ['one strike per VM', 'proven']]], ['Counter', [['at most cap', 'proven']]]])
+  // Typed native set snapshots admit both scalar and membership laws, with real checks.
+  sampledProofs(rules[0]!.laws)
   sampledProof(rules[1]!.laws[0]!)
-  expect(exit).toBe(2)
+  expect(exit).toBe(0)
   // (the strike charged whatever VM: the law about distinct VMs broken, with its run)
   writeFileSync(`${dir}/fate.py`, readAdv(`${dir}/fate.py`, 'utf8').replace('        if vm in self.avoid:\n            return\n', ''))
   const b = await check([`${dir}/fate.py`], {ms: 5000, propose: false})
@@ -787,6 +785,37 @@ class Counter:
   expect(law.run!.at(-1)).toContain('failed(')
   expect(b.exit).toBe(1)
 }, 180_000)
+
+;(TOOLS.python!() ? test : test.skip)('Python set laws refuse mixed Boolean and integer key semantics', async () => {
+  // A constant positive key keeps the machine supported; an unconstrained int would be refused first.
+  const source = `class IntSet:
+    # gdp: law Integer membership is observed: 1 not in members
+    def __init__(self):
+        self.members: set[int] = set()
+
+    def add(self) -> None:
+        self.members.add(1)
+`
+  const dir = files({'sets.py': source})
+  const options = {ms: 5000, propose: false, check: {runs: 4, depth: 2, states: 8}}
+  const integer = await check([`${dir}/sets.py`], options)
+  expect(integer.rules[0]!.ok).toBe(true)
+  expect(integer.rules[0]!.refusals).toEqual([])
+  sampledBreak(integer.rules[0]!.laws[0]!)
+  expect(integer.exit).toBe(1)
+  writeFileSync(`${dir}/sets.py`, source.replace('Integer membership is observed: 1 not in members', 'Boolean membership is not an integer key: true not in members'))
+  const result = await check([`${dir}/sets.py`], options)
+  const rule = result.rules.find(r => r.entry === 'IntSet')!
+  expect(rule.ok).toBe(true)
+  expect(rule.refusals).toEqual([])
+  const law = rule.laws.find(l => l.name === 'Boolean membership is not an integer key')!
+  expect(law.verdict).toBe('not read')
+  expect(law.why).toBe('a cond where a number is read')
+  expect(law.cert).toBeUndefined()
+  expect(law.run).toBeUndefined()
+  expect(law.translationChecks).toBeUndefined()
+  expect(result.exit).toBe(2)
+}, 30000)
 
 // A law about an argument the code ignores (the bug is that it does): the argument kept in the rule, the law broken.
 ;(TOOLS.python!() ? test : test.skip)('the CLI on a law reading an argument the code ignores: broken, with its run', async () => {
@@ -1101,24 +1130,13 @@ class Pending:
 `, 'gdp.toml': 'from = "any"\n'})
   const {rules} = await check([`${dir}/n.py`], {ms: 5000, propose: false})
   const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
-  expect(v['every start boat made no VM for is given back']).toEqual(['Creation', 'unknown'])
-  expect(v['at most LIMIT asks']).toEqual(['Creation', 'unknown'])
+  expect(v['every start boat made no VM for is given back']).toEqual(['Creation', 'proven'])
+  expect(v['at most LIMIT asks']).toEqual(['Creation', 'proven'])
   const asks = rules.find(r => r.entry === 'Creation')!.laws.find(l => l.name === 'at most LIMIT asks')!
-  expect(asks).toMatchObject({verdict: 'unknown', translation: 'sampled'})
-  expect(asks.translationChecks).toBeGreaterThan(0)
-  expect(asks.why).toContain('not inductive')
-  expect(asks.run).toBeUndefined()
-  expect(asks.replayed).toBeUndefined()
-  expect(asks.cert).toBeUndefined()
-  // The native interpreter currently rejects this equality even on initial zeros; never promote its kernel-only proof.
+  sampledProof(asks)
+  // The source's numeric failed field must shadow the Boolean exception pseudo-value.
   const refund = rules.find(r => r.entry === 'Creation')!.laws.find(l => l.name === 'every start boat made no VM for is given back')!
-  expect(refund).toMatchObject({verdict: 'unknown', translation: 'error', kernelProven: true})
-  expect(refund.translationChecks).toBeGreaterThan(0)
-  expect(refund.translationWitness).toBeDefined()
-  expect(refund.why).toContain('translation error')
-  expect(refund.run).toBeUndefined()
-  expect(refund.replayed).toBeUndefined()
-  expect(refund.cert).toBeUndefined()
+  sampledProof(refund)
   // (a sum of a map of integers: its positive parts less its negative parts; from any state it needs the laws about them)
   expect(v['the need is the pending sum']![1]).not.toBe('not read')
 }, 180_000)
@@ -1251,13 +1269,12 @@ def hit(x: int) -> int:
   expect(v['a demand keeps a VM no longer than the idle time']).toEqual(['release_ttl', 'proven'])
   sampledProof(rules.find(r => r.entry === 'release_ttl')!.laws[0]!)
   expect(v['a share of a count never exceeds the count']).toEqual(['ceiling', 'proven'])
-  expect(v['a warm lease never takes a VM about to stop']).toEqual(['Entry', 'unknown'])
+  expect(v['a warm lease never takes a VM about to stop']).toEqual(['Entry', 'proven'])
   expect(v["a batch's budget is within the starts left"]).toEqual(['budget', 'proven'])
   expect(v['a step grows by a quarter of the pool at most']).toEqual(['Grow', 'proven'])
   expect(v['finished at most once']).toEqual(['Item', 'proven'])
-  // The Entry clock and Pending map lack native interpretation; the scalar laws have journal samples.
-  for (const name of ['release_ttl', 'ceiling', 'budget', 'Grow']) sampledProofs(rules.find(r => r.entry === name)!.laws)
-  modelLaws(rules.find(r => r.entry === 'Entry')!.laws)
+  // Real native observations admit the Entry clock alongside the scalar laws.
+  for (const name of ['release_ttl', 'ceiling', 'budget', 'Grow', 'Entry']) sampledProofs(rules.find(r => r.entry === name)!.laws)
   sampledProof(rules.find(r => r.entry === 'Item')!.laws.find(l => l.name === 'finished at most once')!)
   expect(v['taken at most once more than lost']).toEqual(['Item', 'unknown'])
   const taken = rules.find(r => r.entry === 'Item')!.laws.find(l => l.name === 'taken at most once more than lost')!
@@ -1272,7 +1289,8 @@ def hit(x: int) -> int:
   expect(rules.some(r => r.entry === 'budgets')).toBe(false)
   // (a sum of integers after a step: from the start, the search finds the sums' laws; from any state it needs them)
   const reach = await check([`${dir}/s.py`], {ms: 8000, propose: false, from: 'reachable', entry: 'Pending'})
-  modelLaws(reach.rules[0]!.laws)
+  sampledProofs(reach.rules[0]!.laws)
+  // Other entries were not selected; their source laws remain explicitly not read.
   expect(reach.exit).toBe(2)
 }, 300_000)
 
@@ -1433,17 +1451,7 @@ for (const lang of Object.keys(TARGET)) {
       const d = files({...PRICED(lang), ...fix})
       const {rules} = await check([at(d)], o)
       if (!rules[0]!.ok) throw new Error(`${how}: still refused: ${JSON.stringify(rules[0]!.refusals)}`)
-      if (lang === 'ruby') {
-        // Native interpretation currently rejects this @limit law despite the model proof; keep the mismatch fail-closed.
-        const law = rules[0]!.laws[0]!
-        expect(law).toMatchObject({verdict: 'not read', translation: 'error', kernelProven: true})
-        expect(law.translationChecks).toBeGreaterThan(0)
-        expect(law.translationWitness).toBeDefined()
-        expect(law.why).toContain('translation error')
-        expect(law.run).toBeUndefined()
-        expect(law.replayed).toBeUndefined()
-        expect(law.cert).toBeUndefined()
-      } else if (lang === 'c' || lang === 'go') {
+      if (lang === 'c' || lang === 'go') {
         // Native interpretation cannot yet bind the receiver named l.
         modelLaws(rules[0]!.laws)
       } else {

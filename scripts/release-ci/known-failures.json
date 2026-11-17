@@ -7,123 +7,6 @@
   },
   "entries": [
     {
-      "job": "trading",
-      "definitionSha256": "84710275a4f9b51d98a140e2c6e9f919e98b21cd2421c70ca7bd21c39cf313c2",
-      "exitCode": 1,
-      "signature": {
-        "failedTests": [
-          "loops.test.ts :: a queue drained from its front: the fold over its places; the tasks run were due, and one left may be due (it waits behind one that isn’t)",
-          "rounding.test.ts :: Java: Math.floor, Math.round and a cast of a float division, exact below their edges",
-          "rounding.test.ts :: a price on a tick: a floor and Python round, exact; the tick laws proven, a half rounding up broken"
-        ],
-        "diagnostics": [
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toEqual(expected)",
-          "error: expect(received).toEqual(expected)"
-        ]
-      }
-    },
-    {
-      "job": "extract-rb",
-      "definitionSha256": "ca4a2cc268fe034d2fd2984d21ba382cc0936f955a53f90312bcf7be567315d7",
-      "exitCode": 1,
-      "signature": {
-        "failedTests": [
-          "extract-rb.test.ts :: / and % of a negative floor, as Ruby's do; symbols are a choice; case/when on them",
-          "extract-rb.test.ts :: a counter with a limit: Ruby's truth (0 is true), a field nil until it is set, the last expression as the result",
-          "extract-rb.test.ts :: begin/rescue/else/ensure and a method's own rescue: another class's call may raise what a rescue catches, a raise by its class",
-          "extract-rb.test.ts :: the boundary inferred: another class's call left out or answered (tagged: Ruby states no types), a store injected, the entry"
-        ],
-        "diagnostics": [
-          "error: a hit within the limit counts: {}",
-          "error: admitted only within the cap: {}",
-          "error: errors only where ping raised a StandardError: {}",
-          "error: the half and the rest make k again: {}"
-        ]
-      }
-    },
-    {
-      "job": "extract-ex",
-      "definitionSha256": "8bfb3f4ea417fda90b80fb3474abb8bc06ee5945d7193dab47b9e71f24f21e66",
-      "exitCode": 1,
-      "signature": {
-        "failedTests": [
-          "extract-ex.test.ts :: a GenServer: clauses on the message and the state, a guard, cond and raise, a cast",
-          "extract-ex.test.ts :: a plain module over a struct: immutable updates, div and rem truncating toward zero",
-          "extract-ex.test.ts :: the boundary inferred: another module's call left out or answered (tagged: Elixir states no types), the entry"
-        ],
-        "diagnostics": [
-          "error: an open counter under its limit counts a hit: {}",
-          "error: never past its cap: {}",
-          "error: the half and the rest make k again: {}"
-        ]
-      }
-    },
-    {
-      "job": "extract-c",
-      "definitionSha256": "b287adea58d031b78816637a690e89b236eb951876157b61fb68933282bb126c",
-      "exitCode": 1,
-      "signature": {
-        "failedTests": [
-          "extract-c.test.ts :: C++: a class, its constructor the start (its parameters the rule's), private members, lock guards, std::min, std::array, a throw",
-          "extract-c.test.ts :: C++: a default member initializer beside a constructor that sets other fields",
-          "extract-c.test.ts :: a file that keeps its state in globals: the globals one object, its functions requests, an extern volatile the request's",
-          "extract-c.test.ts :: a fixed array is a list of its length; an index the path doesn't keep within it is refused (undefined behavior)",
-          "extract-c.test.ts :: a literal past 2^53 stored in a narrower unsigned: its value there exactly (2^53 + 1 is 1 in 32 bits)",
-          "extract-c.test.ts :: a stated failure, assert and abort are refusals; a write before one needs onError: discard",
-          "extract-c.test.ts :: a switch: labels together, a case running into the next, an enum, ?: and the file's functions inlined",
-          "extract-c.test.ts :: an out-parameter: what the function leaves in *data is its result beside the value returned; masks of promoted values",
-          "extract-c.test.ts :: bit operations with a constant: flags set, cleared, toggled and tested, composed into one form",
-          "extract-c.test.ts :: division and remainder truncate toward zero; by zero it is refused",
-          "extract-c.test.ts :: signed overflow is undefined: refused where the path doesn't exclude it, never wrapped",
-          "extract-c.test.ts :: the boundary inferred: a library call left out, another file's function answered over its declared type, the entry",
-          "extract-c.test.ts :: unsigned arithmetic wraps; a narrow one is promoted and converted back"
-        ],
-        "diagnostics": [
-          "error: a dequeue gives the item at the tail: {}",
-          "error: a failure half open trips it: {}",
-          "error: a lap wraps at 256: {}",
-          "error: a take never goes below 0: {}",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: never past its cap: {}",
-          "error: ok sets it to 1: {}",
-          "error: the half and the rest make k again: {}"
-        ]
-      }
-    },
-    {
-      "job": "extract-jvm",
-      "definitionSha256": "e4b051337f80ab71a7b1cbdff6d158d7bae472b8b94b93a92db3829a8438a65c",
-      "exitCode": 1,
-      "signature": {
-        "failedTests": [
-          "extract-jvm.test.ts :: Kotlin: an immutable data class's method returning its next value is a step to it; copy, scope functions",
-          "extract-jvm.test.ts :: Kotlin: when on an enum, a nullable Long (?:, !!, smart casts), check, @Synchronized",
-          "extract-jvm.test.ts :: a compare-and-set loop read as its first pass; an AtomicInteger as the int it holds; Math.max and min",
-          "extract-jvm.test.ts :: a map of records, Optional, a ReentrantLock's try/finally: the step atomic, one key written a step",
-          "extract-jvm.test.ts :: a switch on an enum: a case falling through into the next, the default; a static constant folded",
-          "extract-jvm.test.ts :: int wraps past MAX_VALUE as Java's does; Math.addExact traps (an ArithmeticException, kept as the result)",
-          "extract-jvm.test.ts :: the boundary inferred: a field @Autowired (a store), a constructor's injected interface (its call an answer the harness stubs), the entry",
-          "extract-jvm.test.ts :: the clock and an answered call of other code, each the request's (the check's copy of the code rewritten)"
-        ],
-        "diagnostics": [
-          "error: a grant sets the lease from now: {}",
-          "error: a hit counts one, or none where it is refused: {}",
-          "error: a hit is remembered: {}",
-          "error: a hit past MAX_VALUE wraps to MIN_VALUE: {}",
-          "error: a slow error counts as slow too (it falls through): {}",
-          "error: a spend within the limit adds it: {}",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)"
-        ]
-      }
-    },
-    {
       "job": "extract-swift",
       "definitionSha256": "c93783131ba1782a7febd1f84dffbfa4cd23e47a0f017581510dad4db763aa25",
       "exitCode": 1,
@@ -136,19 +19,6 @@
         "diagnostics": [
           "error: expect(received).toBe(expected)",
           "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)"
-        ]
-      }
-    },
-    {
-      "job": "extract-orm",
-      "definitionSha256": "d85dce9ed67edae297149d2b61869eb1cdee90bf9a77fa4ad93c36cfc414839a",
-      "exitCode": 1,
-      "signature": {
-        "failedTests": [
-          "core/extract-py-orm.test.ts :: Django model columns initialize a real row"
-        ],
-        "diagnostics": [
           "error: expect(received).toBe(expected)"
         ]
       }
@@ -169,96 +39,6 @@
           "error: expect(received).toBe(expected)",
           "error: expect(received).toBe(expected)",
           "error: expect(received).toMatchObject(expected)"
-        ]
-      }
-    },
-    {
-      "job": "extract-go",
-      "definitionSha256": "90414edc715f21b5e9052bf218c25c42540acc2bd07d442d57091936e97e3189",
-      "exitCode": 1,
-      "signature": {
-        "failedTests": [
-          "extract-go.test.ts :: *big.Int fields (blnk's balances): nil a state of its own, Add and Sub in place, Cmp, an error as the refusal",
-          "extract-go.test.ts :: Go's integer division truncates toward zero; conversions wrap into the narrower type",
-          "extract-go.test.ts :: a context.Context argument passed on to the package's own functions is read; one the step reads is refused",
-          "extract-go.test.ts :: a panic or an error after a write is refused, unless the caller discards what a failed call wrote",
-          "extract-go.test.ts :: a struct given by value (gitea's CreateReviewOptions, the csr options): its fields inputs; writing the copy changes nothing the caller sees",
-          "extract-go.test.ts :: a struct of uint32 counters (gobreaker's Counts): increments wrap at 2^32, a result kept",
-          "extract-go.test.ts :: a uint64 below 0 is refused (Go wraps it past the rule's 2^53); past 2^53 the runtime refuses",
-          "extract-go.test.ts :: aliasing through pointers: a copied pointer writes the object, a copied struct doesn't, an interior pointer does",
-          "extract-go.test.ts :: embedded structs: a promoted pointer method writes the embedded field, a value receiver writes a copy",
-          "extract-go.test.ts :: maps: read with a zero for a missing key, comma-ok, delete, a nil map's write panics; a range over one is refused",
-          "extract-go.test.ts :: overflow at each width: int8 wraps to −128, uint16 below 0 wraps up, int32 products wrap",
-          "extract-go.test.ts :: panics: explicit, a nil *big.Int, a division by a constant zero is Go's compile error; each a refusal, the state as it was",
-          "extract-go.test.ts :: the boundary inferred: another package's call left out, one whose value is read answered over its type, the entry"
-        ],
-        "diagnostics": [
-          "error: Bump on a nil map is refused (a panic): {}",
-          "error: Check refuses a negative value: {}",
-          "error: Hit counts a request: {}",
-          "error: Move never leaves N below 0: {}",
-          "error: a copied pointer writes the object: {}",
-          "error: a refused take changes nothing: {}",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: int8 127 + 1 is −128: {}",
-          "error: onRequest at 2^32 − 1 wraps to 0: {}",
-          "error: −7 / 2 is −3: {}"
-        ]
-      }
-    },
-    {
-      "job": "runner-cli-c-jvm",
-      "definitionSha256": "3d9b15351eb8e1fe4188fc782eddc64b76f2b5e11af0ea06dab9bd3cc5620ed6",
-      "exitCode": 1,
-      "signature": {
-        "failedTests": [
-          "extract-c.test.ts :: C++: a class, its constructor the start (its parameters the rule's), private members, lock guards, std::min, std::array, a throw",
-          "extract-c.test.ts :: C++: a default member initializer beside a constructor that sets other fields",
-          "extract-c.test.ts :: a file that keeps its state in globals: the globals one object, its functions requests, an extern volatile the request's",
-          "extract-c.test.ts :: a fixed array is a list of its length; an index the path doesn't keep within it is refused (undefined behavior)",
-          "extract-c.test.ts :: a literal past 2^53 stored in a narrower unsigned: its value there exactly (2^53 + 1 is 1 in 32 bits)",
-          "extract-c.test.ts :: a stated failure, assert and abort are refusals; a write before one needs onError: discard",
-          "extract-c.test.ts :: a switch: labels together, a case running into the next, an enum, ?: and the file's functions inlined",
-          "extract-c.test.ts :: an out-parameter: what the function leaves in *data is its result beside the value returned; masks of promoted values",
-          "extract-c.test.ts :: bit operations with a constant: flags set, cleared, toggled and tested, composed into one form",
-          "extract-c.test.ts :: division and remainder truncate toward zero; by zero it is refused",
-          "extract-c.test.ts :: signed overflow is undefined: refused where the path doesn't exclude it, never wrapped",
-          "extract-c.test.ts :: the boundary inferred: a library call left out, another file's function answered over its declared type, the entry",
-          "extract-c.test.ts :: unsigned arithmetic wraps; a narrow one is promoted and converted back",
-          "extract-jvm.test.ts :: Kotlin: an immutable data class's method returning its next value is a step to it; copy, scope functions",
-          "extract-jvm.test.ts :: Kotlin: when on an enum, a nullable Long (?:, !!, smart casts), check, @Synchronized",
-          "extract-jvm.test.ts :: a compare-and-set loop read as its first pass; an AtomicInteger as the int it holds; Math.max and min",
-          "extract-jvm.test.ts :: a map of records, Optional, a ReentrantLock's try/finally: the step atomic, one key written a step",
-          "extract-jvm.test.ts :: a switch on an enum: a case falling through into the next, the default; a static constant folded",
-          "extract-jvm.test.ts :: int wraps past MAX_VALUE as Java's does; Math.addExact traps (an ArithmeticException, kept as the result)",
-          "extract-jvm.test.ts :: the boundary inferred: a field @Autowired (a store), a constructor's injected interface (its call an answer the harness stubs), the entry",
-          "extract-jvm.test.ts :: the clock and an answered call of other code, each the request's (the check's copy of the code rewritten)"
-        ],
-        "diagnostics": [
-          "error: a dequeue gives the item at the tail: {}",
-          "error: a failure half open trips it: {}",
-          "error: a grant sets the lease from now: {}",
-          "error: a hit counts one, or none where it is refused: {}",
-          "error: a hit is remembered: {}",
-          "error: a hit past MAX_VALUE wraps to MIN_VALUE: {}",
-          "error: a lap wraps at 256: {}",
-          "error: a slow error counts as slow too (it falls through): {}",
-          "error: a spend within the limit adds it: {}",
-          "error: a take never goes below 0: {}",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: expect(received).toBe(expected)",
-          "error: never past its cap: {}",
-          "error: ok sets it to 1: {}",
-          "error: the half and the rest make k again: {}"
         ]
       }
     },
@@ -287,6 +67,14 @@
     "lean-protocols-sync",
     "lean-jev-fabric",
     "lean-ksteps",
-    "lean-keyed"
+    "lean-keyed",
+    "trading",
+    "extract-rb",
+    "extract-ex",
+    "extract-c",
+    "extract-jvm",
+    "extract-orm",
+    "extract-go",
+    "runner-cli-c-jvm"
   ]
 }

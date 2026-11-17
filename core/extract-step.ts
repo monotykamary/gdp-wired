@@ -28,7 +28,8 @@ import * as I from './extract-ir.ts'
 import type {B, K, L, N} from './extract-ir.ts'
 import {type Arg, type Event, type Layout, type Fold, type LeastRead, type MapDecl, type Model, Refusal, type Term, type Var, mergeOps, mergeWrites} from './extract-read.ts'
 import {type Extraction, type Name, fromModel} from './extract.ts'
-import {nativeWireDecoder} from './native-wire.ts'
+import {nativeWireDecoder, snapshotNativeBindings} from './native-wire.ts'
+import {type NativeExecutionObservation, nativeObservationSequence} from './native-observations.ts'
 import type {Rule} from './dsl.ts'
 import {type Sorts, nonneg} from './extract-print.ts'
 import {type CodeSide, type Coverage, type Evidence, type Snap, HarnessFailure, Outside, constantsOf, draw, drive, evalTerm, noEvidence, retried, tiesIn} from './extract-check.ts'
@@ -4679,7 +4680,14 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
     }
     const hi = ask({op: 'hello', ...h.hello, naiveUtc: read.naiveUtc, leaves: read.leaves, ctor: read.ctor, answers: read.answers, kept: read.kept, cls: read.cls ?? null, stores: read.stores, arms: read.arms, discard: opts.onError === 'discard', ...(read.inject ? {inject: read.inject} : {}), ...(read.globals ? {globals: read.globals} : {}), ...(read.inert ? {inert: read.inert} : {}), ...(opts.fields ? {fields: opts.fields} : {})})
     if (hi.error) return {...empty, mismatch: `the code doesn't load with the check's harness: ${JSON.stringify(hi.error)}`}
-    const native = hi.nativeSnapshot === 1 && read.leaves.some(l => l.ordered) ? nativeWireDecoder() : undefined
+    if (hi.nativeEquality !== undefined && hi.nativeEquality !== 'scalar') return {...empty, mismatch: 'unsupported native equality capability'}
+    const decodeNative = hi.nativeSnapshot === 1 || hi.nativeBindings === 1 || hi.nativeObservations === 1 ? nativeWireDecoder() : undefined
+    const native = hi.nativeSnapshot === 1 ? decodeNative : undefined
+    const bindingDecoder = hi.nativeBindings === 1 ? decodeNative : undefined
+    let nativeBindings: {snapshot?: unknown, error?: string} | undefined
+    const observationDecoder = hi.nativeObservations === 1 ? decodeNative : undefined
+    const acceptObservation = nativeObservationSequence(new Set(read.answers.map(a => a.key)))
+    let nativeObservations: {snapshot?: unknown, error?: string} | undefined, observedCache: NativeExecutionObservation | undefined
     const num = (x: unknown, at: string): number => { const n = Number(x); if (typeof x === 'string' && Number.isSafeInteger(n) && String(n) === x) return n; throw new Outside(`${at} is ${String(x)}`) }
     const toSnap = (s: Record<string, unknown>): Snap => {
       const leaves: Record<string, Raw> = {}, maps: Snap['maps'] = {}
@@ -4710,6 +4718,9 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
       snapOf: self => { const res = ask({op: 'get', id: self}); if (res.error) throw new Error(JSON.stringify(res.error)); return toSnap(res.state as Record<string, unknown>) },
       call: (self, e, args) => {
         const res = ask({op: 'call', id: self, m: e.call, a: args, now, answers: answersOf(e.call)}) as {out?: unknown, err?: string, frame?: string, bad?: string, outside?: string}
+        nativeBindings = (res as {nativeBindings?: typeof nativeBindings}).nativeBindings
+        nativeObservations = (res as {nativeObservations?: typeof nativeObservations}).nativeObservations
+        observedCache = undefined
         if (res.outside !== undefined) return {ok: false, outside: true, error: res.outside}
         if (res.frame) throw new Error(`the code changes ${res.frame}, a field the rule leaves out`)
         if (res.bad !== undefined) return {ok: false, error: `the code can't be given it (${res.bad})`}
@@ -4736,6 +4747,21 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
         if (result.error) throw new Error(`native snapshot: ${JSON.stringify(result.error)}`)
         return native(result.snapshot)
       }} : {}),
+      ...(bindingDecoder ? {nativeBindings: () => {
+        if (nativeBindings?.error) throw new Error(`native parameter capture: ${nativeBindings.error}`)
+        if (!nativeBindings?.snapshot) return undefined
+        // The decoder keeps canonical identities and mutates them on later
+        // frames. Journal rows must retain history, not references to that cache.
+        return snapshotNativeBindings(bindingDecoder, nativeBindings.snapshot)
+      }} : {}),
+      ...(observationDecoder ? {nativeObservations: () => {
+        if (observedCache) return observedCache
+        if (nativeObservations?.error) throw new Error(`native execution observations: ${nativeObservations.error}`)
+        if (!nativeObservations?.snapshot) return undefined
+        const observed = acceptObservation(snapshotNativeBindings(observationDecoder, nativeObservations.snapshot))
+        return observedCache = observed
+      }} : {}),
+      ...(hi.nativeEquality === 'scalar' ? {nativeEquality: 'scalar' as const} : {}),
       args: (inputs, e) => { inputsNow = inputs; return (read.args[e.call] ?? []).map(([n, a]) => [n, build(a, inputs)]) },
       setNow: n => { now = n },
       coverage: () => (coverage ??= closeAndCount()),
@@ -4851,14 +4877,17 @@ export function stepNames(read: StepRead): Name[] {
   for (const [code, a] of read.ctor) arg(a, code, 'param')
   for (const [method, as] of Object.entries(read.args)) for (const [code, a] of as) arg(a, code, 'input', method)
   for (const a of read.answers) {
-    if (!a.pass) out.push({code: a.key, rule: a.inputs.name, role: 'answer', ...(a.inputs.none ? {none: a.inputs.none} : {})})
-    for (const r of a.raises ?? []) out.push({code: `${a.key} raises`, rule: r.name, role: 'answer', method: r.m})
+    if (!a.pass) out.push({code: a.key, rule: a.inputs.name, role: 'answer', native: {kind: 'answer', key: a.key}, ...(a.inputs.none ? {none: a.inputs.none} : {})})
+    for (const r of a.raises ?? []) {
+      out.push({code: `${a.key} raises`, rule: r.name, role: 'answer', method: r.m}) // retained display alias
+      out.push({code: `${a.key}.raises`, rule: r.name, role: 'answer', method: r.m, native: {kind: 'raises', key: a.key}})
+    }
   }
   const vars = new Set([...m.state, ...m.inputs].map(v => v.name))
   for (const [method, k] of Object.entries(read.results)) if (k !== 'none') out.push({code: 'result', rule: `${method}_result`, role: 'result', method, ...(k === 'maybe' ? {none: `${method}_result_none`} : {})})
   if (vars.has('failed')) out.push({code: 'failed', rule: 'failed', role: 'failed'})
   for (const a of read.answers.filter(x => x.effect && !x.quiet)) out.push({code: `${a.key}.called`, rule: `${a.key.replace(/\W+/g, '_')}_called`, role: 'result'})
-  if (vars.has('now')) out.push({code: 'now', rule: 'now', role: 'clock'})
+  if (vars.has('now')) out.push({code: 'now', rule: 'now', role: 'clock', native: {kind: 'clock', key: 'now'}})
   if (m.event) out.push({code: 'method', rule: m.event, role: 'method'})
   return out
 }

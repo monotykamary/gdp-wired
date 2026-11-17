@@ -2,6 +2,7 @@
 // finds, checked by the kernel as laws of the same rule; what it found reads as a builder call that states the same law;
 // a false law is answered with the run that breaks it; a law already proven needs nothing found.
 import {expect, test} from 'bun:test'
+import {tripwireGate} from './clock-tripwire-preload.ts'
 import {forall, proveRule} from './dsl.ts'
 import {constantsOf, inferLaws} from './infer.ts'
 import {type Machine, get, n, same} from './machine.ts'
@@ -42,14 +43,34 @@ test('what was found reads as the builder call that states it, and that call, wr
   expect(proveRule(l, [leaseLaw(l), leased])).toMatchObject({proven: true, checked: true})
 }, 60_000)
 
+// Full-file runs measured 68/82s for these counted cases; the outer watchdog is not their 20k work limit.
 test('an invariant over four values (the join: the samples\' hull, made inductive): one account within the total paid in', () => {
   const r = accounts(), law = accountsLaw(r)
   expect(proveRule(r, [law], {search: false}).proven).toBe(false)
-  const v = inferLaws(r, [law], [], {ms: 15000, wall: Infinity})
+  // Prior batch 20261116-185315-7lgr6t measured 11_555.5607 full-work units.
+  // This cap is a measured work margin, not a millisecond conversion.
+  const v = inferLaws(r, [law], [], {work: 20_000})
   expect(v).toMatchObject({proven: true, checked: true, stats: {stopped: false}})
   expect(v.found.map(f => f.source)).toEqual(["r.law('a + b + c <= total', ({a, b, c, total}) => a.plus(b).plus(c).atMost(total))"])
   expect(proveRule(r, [law, ...v.found.map(f => f.law)])).toMatchObject({proven: true, checked: true})
-}, 60_000)
+}, 120_000)
+
+test('explicit inference work rejects mixed clocks and reports exhaustion without a wall read', () => {
+  const r = accounts(), law = accountsLaw(r)
+  for (const incompatible of [{ms: 1}, {wall: Infinity}, {timed: true}, {runsMs: 0}]) {
+    expect(() => inferLaws(r, [law], [], {work: 20_000, ...incompatible})).toThrow('choose an explicit work budget')
+  }
+  tripwireGate.active = true
+  try {
+    const v = inferLaws(r, [law], [], {work: 20_000})
+    expect(v).toMatchObject({proven: true, checked: true, stats: {stopped: false}})
+    expect(v.stats.work).toBeLessThanOrEqual(20_000)
+    expect(v.found.map(f => f.source)).toEqual(["r.law('a + b + c <= total', ({a, b, c, total}) => a.plus(b).plus(c).atMost(total))"])
+    const exhausted = inferLaws(r, [law], [], {work: 0})
+    expect(exhausted).toMatchObject({proven: false, checked: false, stuck: 'unknown', termination: {kind: 'work-exhausted'}, stats: {stopped: true, termination: {kind: 'work-exhausted'}}})
+    expect(exhausted.why).toContain('counted work exhausted')
+  } finally { tripwireGate.active = false }
+}, 120_000)
 
 test('a machine with no rule: the in-flight bound needs s + 50·p <= b + 150 or tighter', () => {
   expect(proveLaws(inflight, [inflightLoss]).proven).toBe(false)

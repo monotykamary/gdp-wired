@@ -1,11 +1,33 @@
 // Soft search limits are not replacements for the caller's work budget.
 // Legacy mode executes the identical polling path. Full accounting consumes
 // only authenticated refusals belonging to this stage's own endpoint.
-import {budgetEnd, clock, fullRate, inWorkScope, withDeadline, withWall,wallDeadline} from '../kernel/prove.ts'
+import {budgetEnd, clock, fullRate, inWorkScope, withDeadline, withWall,wallDeadline,remainingWork} from '../kernel/prove.ts'
 import {workLedger} from './work-admission.ts'
-import {workFromNumber, workMultiply} from './work-amount.ts'
+import {minWork, workDivide, workFromNumber, workMultiply} from './work-amount.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {inProxySearch} from './search-policy.ts'
+import {BudgetExpired, checkWorkEndpoint, withBudget} from './wall.ts'
+import {type WorkAmount} from './work-amount.ts'
+
+// Divide what the enclosing owner can still grant, not the original request.
+// An earlier phase may already have used almost all of that original allowance.
+export function remainingStageWork(requested: number | WorkAmount, parts: number): number | WorkAmount {
+  if (!Number.isFinite(parts) || parts <= 0) throw new RangeError('stage divisor must be positive and finite')
+  if (typeof requested === 'number') return Math.min(requested, remainingWork()) / parts
+  const available = workLedger.available()
+  return workDivide(available === null ? requested : minWork(requested, available), workFromNumber(parts))
+}
+
+// A bounded deterministic attempt may decline without consuming the parent's
+// remaining search. A root/ancestor refusal must still reach its own owner.
+export function withStageWork<T, F>(units: number | WorkAmount, run: () => T, refused: () => F): T | F {
+  try { return withBudget(units, run) }
+  catch (error) {
+    if (!(error instanceof BudgetExpired)) throw error
+    checkWorkEndpoint(error.phase)
+    return refused()
+  }
+}
 
 export function withStageDeadline<T, F>(until: number, run: () => T, refused: () => F): T | F {
   if (!completeWorkProfile.enabled || inProxySearch()) return withDeadline(until, run)

@@ -10,6 +10,7 @@ import {mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {extractSwift} from './extract-swift.ts'
 import {proveRule, proveSteps} from './dsl.ts'
+import {buildLaw} from './laws.ts'
 import {ADV, cases as advCases, judge} from '../research/langs/adversarial/cases.test-lib.ts'
 
 const hasSwift = (() => { try { execFileSync(process.env.GDP_SWIFT ?? 'swift', ['--version'], {stdio: 'ignore'}); return true } catch { return false } })()
@@ -46,6 +47,40 @@ t('the boundary inferred: an injected store by its keys, an answer over a protoc
   expect(step(x, 'an allowed hit keeps the user within the limit', (b, a) => a.allow_result.implies(b.limit.atLeast(a.counter_hits.at(b.user).value))).proven).toBe(true)
   expect(step(x, 'a denial counts nothing', (b, a) => a.allow_result.not().implies(a.counter_hits.at(b.user).value.eq(b.counter_hits.at(b.user).value))).proven).toBe(true)
   expect(step(x, 'a denied user is counted', (b, a) => a.allow_result.not().implies(a.denied.at(b.user).value.atLeast(1))).proven).toBe(true)
+}, 900_000)
+
+// Independent scalar positive, false-native-lowering and disabled controls;
+// the original callback claims above remain untouched and separately blocked.
+t('Swift native scalar arguments have tamper and disabled controls', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-sw-native-`), file = `${dir}/Meter.swift`
+  writeFileSync(file, `struct Meter {
+    var value: UInt8 = 0
+    init() {}
+    mutating func set(_ n: UInt8) { value = n }
+  }`)
+  const read = (disabled: boolean) => {
+    const x = extractSwift(file, {entry: 'Meter', check: disabled ? {runs: 0, states: 0, probes: false} : budget})
+    if (!disabled) return ok(x)
+    expect(x.ok).toBe(true)
+    expect(x.evidence?.requests ?? 0).toBe(0)
+    return x
+  }
+  const law = (x: X, expr: string) => {
+    const b = buildLaw(x, {name: 'set exact', expr, method: 'set'})
+    if (b.kind !== 'step') throw new Error('expected a step law')
+    return b.law
+  }
+  const x = read(false)
+  const v = proveSteps(x.rule!, x.invariants ?? [], [law(x, 'value == n')], {search: false})
+  expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  expect(v.translationChecks).toBeGreaterThan(0)
+  const wrong = law(x, 'value != n')
+  wrong.then = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
+  const rejected = proveSteps(x.rule!, x.invariants ?? [], [wrong], {search: false})
+  expect(rejected).toMatchObject({proven: false, checked: false, kernelProven: true, translation: 'error'})
+  expect(rejected.translationWitness?.bindings).toHaveProperty('n')
+  const disabled = read(true)
+  expect(proveSteps(disabled.rule!, disabled.invariants ?? [], [law(disabled, 'value == n')], {search: false})).toMatchObject({proven: false, checked: false, translation: 'unchecked'})
 }, 900_000)
 
 t('initializer alternatives retain separate original-code replays', () => {
@@ -113,6 +148,12 @@ t('an actor: its methods each one step', () => {
   expect(proveRule(x.rule!, [...(x.invariants ?? []), x.rule!.law('n within the cap', ({n, cap}: A) => n.atMost(cap))]).proven).toBe(false)
   const y = ok(extractSwift(`${DIR}Tally.swift`, {entry: 'Tally', methods: ['add'], check: budget}))
   expect(step(y, 'an add keeps n within the cap', (_b, a) => a.n.atMost(a.cap), b => b.n.atMost(b.cap)).proven).toBe(true)
+  // Keep the original positive until crash-observation support is established;
+  // this registered companion is the same guarded claim, not a scalar smoke test.
+  const add = buildLaw(y, {name: 'an add keeps n within the cap (native)', expr: 'old(n) <= old(cap) implies n <= cap', method: 'add'})
+  const v = proveSteps(y.rule!, y.invariants ?? [], [add.law])
+  expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  expect(v.translationChecks).toBeGreaterThan(0)
 }, 900_000)
 
 t('refusals, each where it is with why', () => {

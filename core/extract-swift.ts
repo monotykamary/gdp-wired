@@ -271,7 +271,33 @@ function harnessCode(g: Gen, mod: SModule, read: StepRead, cls: Rec): {entry: st
     return arg(conv(pa.t, `a?[${i}]?[1]`, mod))
   })
   if (sw.refused) throw new Refusal(cls.p, sw.refused)
-  // The requests: each method by its labels, its result as the protocol tags it.
+  const native = (t: SType, x: string, depth = 0): string => {
+    if (depth > 8) return 'try __gdpNativeUnsupported("native value exceeds depth bound")'
+    if (t.k === 'int') return `try __gdpNativeInt(${x})`
+    if (t.k === 'bool') return `__GdpJ.b(${x})`
+    if (t.k === 'str') return `__GdpJ.s(${x})`
+    if (t.k === 'choice') return `__GdpJ.s(${caseName(t, x)})`
+    if (t.k === 'none') return '__GdpJ.null'
+    if (t.k === 'opt') return `(try (${x}).map { __v${depth} in ${native(t.of, `__v${depth}`, depth + 1)} } ?? __GdpJ.null)`
+    if (t.k === 'map') return `try __gdpNativeMap((${x}).map { __kv${depth} in __GdpJ.a([${native(t.key, `__kv${depth}.key`, depth + 1)}, ${native(t.val, `__kv${depth}.value`, depth + 1)}]) })`
+    if (t.k === 'rec') {
+      const r = mod.recs[t.name] as Rec | undefined
+      if (r?.swift?.kind === 'struct') {
+        try { return `try __gdpNativeObject([${r.fields.map(f => `(${JSON.stringify(f.name)}, ${native(f.t, `(${x}).${accessor(g, mod, t.name, f.name)}`, depth + 1)})`).join(', ')}])` } catch { /* refuse native capture, not extraction */ }
+      }
+    }
+    return `try __gdpNativeUnsupported(${JSON.stringify(`unsupported native value: ${t.k}`)})`
+  }
+  const nativeFields = cls.fields.map(f => {
+    let value: string
+    try {
+      const fake = fakeOf.get(f.name), pr = protoOf(f.name)
+      if (fake && pr) value = 'try __gdpNativeUnsupported("native dependency snapshot unavailable")'
+      else value = native(f.t, place([f.name]))
+    } catch { value = 'try __gdpNativeUnsupported("native field has no declared type")' }
+    return `(${JSON.stringify(f.name)}, ${value})`
+  })
+  // Prepare immutable typed slots once; the original method consumes those captures.
   const calls = Object.keys(read.args).map(m => {
     const fid = cls.methods[m], fn = fid ? mod.funcs[fid] : undefined, sig = sw.sigs?.[m]
     if (!fn || !sig) throw new Refusal(cls.p, `${m}: a request the harness can't call`)
@@ -280,7 +306,8 @@ function harnessCode(g: Gen, mod: SModule, read: StepRead, cls: Rec): {entry: st
     const lets = ps.map((p, i) => `let __a${i} = ${conv(p.t, `a?[${i}]?[1]`, mod)}`)
     const callArgs = ps.map((_, i) => (sig.labels[i] === '_' ? `__a${i}` : `${sig.labels[i]}: __a${i}`)).join(', ')
     const ret = fn.ret.k === 'none' || sig.ret === 'Void' ? 'none' : 'some'
-    return `case ${JSON.stringify(m)}:\n      ${lets.join('; ')}${lets.length ? '\n      ' : ''}do { ${ret === 'none' ? `try self.${sig.name}(${callArgs}); return .null` : `let __r = try self.${sig.name}(${callArgs}); return ${out(fn.ret, '__r')}`} } catch { throw __GdpErr(why: "\\(error)") }`
+    const capture = `try __gdpNativeObject([${ps.map((p, i) => `(${JSON.stringify(p.name)}, ${native(p.t, `__a${i}`)})`).join(', ')}])`
+    return `case ${JSON.stringify(m)}:\n      ${lets.join('; ')}${lets.length ? '\n      ' : ''}__gdpS.binding = __gdpNativeFrame { ${capture} }; do { ${ret === 'none' ? `try self.${sig.name}(${callArgs}); return .null` : `let __r = try self.${sig.name}(${callArgs}); return ${out(fn.ret, '__r')}`} } catch { throw __GdpErr(why: "\\(error)") }`
   })
   const entry = `
 // --- gdp-wired's check harness (generated in the check's copy; the code itself is never changed) ---
@@ -296,12 +323,13 @@ extension ${E} {
   }
 }
 ${fakes.join('\n')}
+func __gdpNative(_ o: ${E}) throws -> __GdpJ { try __gdpNativeObject([${nativeFields.join(', ')}]) }
 func __gdpGet(_ o: ${E}) -> [String: __GdpJ] { var s: [String: __GdpJ] = [:]; ${get.join('\n  ')}
   return s }
 func __gdpSet(_ o: inout ${E}, _ st: [String: __GdpJ]) throws { ${set.join('\n  ')} }
 func __gdpFrames(_ o: ${E}) -> [String: String] { [${frames.map(p => `${JSON.stringify(p.join('.'))}: String(describing: ${place(p)})`).join(', ') || ':'}] }
 let __gdpTpls: [String: [String]] = [${Object.entries(tpls).map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(', ') || ':'}]
-final class __GdpState: @unchecked Sendable { var objs: [${E}] = []; var stores: [[String: __GdpStore]] = []; var cur: [String: __GdpStore] = [:]; var answers: [String: __GdpJ] = [:]; var discard = false }
+final class __GdpState: @unchecked Sendable { var objs: [${E}] = []; var stores: [[String: __GdpStore]] = []; var cur: [String: __GdpStore] = [:]; var answers: [String: __GdpJ] = [:]; var discard = false; var nativeID = 1; var binding: __GdpJ = .o(["error": .s("native arguments were not bound")]) }
 let __gdpS = __GdpState()
 typealias __GdpEntry = ${E}
 ${resource('Harness.swift')}`
