@@ -467,14 +467,17 @@ test('gdp.toml, pyproject.toml\'s [tool.gdp] and package.json\'s "gdp": the opti
   expect(configFor(`${py}/src`)).toMatchObject({all: {failures: 'kept'}, rules: {H: {methods: ['hit']}}})
   const js = files({'package.json': '{"name": "p", "gdp": {"onError": "discard", "rules": {"W": {"methods": ["inc"]}}}}', 'src/w.ts': ''})
   expect(configFor(`${js}/src`)).toMatchObject({all: {onError: 'discard'}, rules: {W: {methods: ['inc']}}})
+  // A missing native store cell is None, not the model's implicit zero.
+  const cell = 'cache["hits:" + session]', before = `old(${cell})`
+  const increment = `(${before} is None and ${cell} == 1) or (${before} is not None and ${cell} == ${before} + 1)`
   // (a rule's options from gdp.toml: SessionLimit's request and its kept failure)
-  const dir = files({'s.py': `
+  const source = `
 class SessionLimit:
     def __init__(self, cache, limit: int):
         self.cache = cache
         self.limit = limit
 
-    # gdp: law each hit counts one: cache["hits:" + session] == old(cache["hits:" + session]) + 1
+    # gdp: law each hit counts one: ${increment}
     async def hit(self, session: str) -> None:
         key = f"hits:{session}"
         n = await self.cache.get(key)
@@ -482,10 +485,23 @@ class SessionLimit:
         await self.cache.set(key, n)
         if n > self.limit:
             raise RuntimeError("over the limit")
-`, 'gdp.toml': '[rules.SessionLimit]\nfailures = "kept"\n'})
+`
+  const config = '[rules.SessionLimit]\nfailures = "kept"\n'
+  const dir = files({'s.py': source, 'gdp.toml': config})
   if (!TOOLS.python!()) return
-  const {rules} = await check([`${dir}/s.py`], {ms: 3000, propose: false})
-  modelLaws(rules[0]!.laws)
+  const result = await check([`${dir}/s.py`], {ms: 3000, propose: false})
+  expect(result.exit).toBe(0)
+  sampledProofs(result.rules[0]!.laws)
+  // The old expression must now be rejected by actual native evaluation, not
+  // pass because a symbolic map supplied zero for a missing source value.
+  const bad = files({'s.py': source.replace(increment, `${cell} == ${before} + 1`), 'gdp.toml': config})
+  const refused = await check([`${bad}/s.py`], {ms: 3000, propose: false})
+  expect(refused.exit).toBe(2)
+  const law = refused.rules[0]!.laws[0]!
+  expect(law).toMatchObject({verdict: 'not read', translation: 'error', kernelProven: true})
+  expect(law.translationChecks).toBeGreaterThan(0)
+  expect(law.translationWitness).toMatchObject({failed: true})
+  expect(law.cert).toBeUndefined()
 })
 
 // The environment (core/system.ts's inEnv): a `gdp: env` comment over the class, or env in gdp.toml, runs every call at
