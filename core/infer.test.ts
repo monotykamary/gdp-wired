@@ -66,8 +66,8 @@ test('explicit inference work rejects mixed clocks and reports exhaustion withou
     expect(v.stats.work).toBeLessThanOrEqual(20_000)
     expect(v.found.map(f => f.source)).toEqual(["r.law('a + b + c <= total', ({a, b, c, total}) => a.plus(b).plus(c).atMost(total))"])
     const exhausted = inferLaws(r, [law], [], {work: 0})
-    expect(exhausted).toMatchObject({proven: false, checked: false, stuck: 'unknown', stats: {stopped: true}})
-    expect(exhausted.why).toMatch(/^work budget/)
+    expect(exhausted).toMatchObject({proven: false, checked: false, stuck: 'unknown', termination: {kind: 'work-exhausted'}, stats: {stopped: true, termination: {kind: 'work-exhausted'}}})
+    expect(exhausted.why).toContain('counted work exhausted')
   } finally { tripwireGate.active = false }
 }, 60_000)
 
