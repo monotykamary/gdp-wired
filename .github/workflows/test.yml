@@ -6,8 +6,16 @@ name: Test
 # 32-seed soundness fuzz, histories, the Lean twin, mutation testing) run on Boat from supercomputer/suite.json.
 #
 # The quick tests (`bun run test`, scripts/test-shards.ts) run as parallel shards, balanced on the seconds each unit
-# took (scripts/test-shards.json); together they are exactly `bun run test`. The shard count is the matrix's length.
+# took (scripts/test-shards.json), in two sets that together are exactly `bun run test`: the units that run a native
+# toolchain (`--set native`: python3, Ruby, a JDK, kotlinc, Go, Rust, Swift, clang) on GitHub's ubuntu-24.04 image,
+# whose toolchains they are checked against, and every other unit (`--set portable`) on boat VMs (the boat CI app's
+# `runs-on: boat*` labels), where none of those toolchains is installed: each boat shard puts a stub of each first on
+# the PATH and fails if a unit called one. Each set's shard count is its matrix's length.
 # publish.yml requires these checks plus the separately reviewed full canonical gate and receipt.
+#
+# Boat jobs run only in this repository, for pushes, dispatches and pull requests from its own branches (the `if:` on
+# each), so a fork's pull request never reaches a boat VM (and boat itself runs only monotykamary's runs here); such a
+# pull request still gets the native shards, on GitHub's runners.
 
 on:
   push:
@@ -22,10 +30,10 @@ permissions:
 
 jobs:
   check:
-    # (ubuntu-24.04, not ubuntu-latest: -latest moves to Ubuntu 26.04 in November 2026, which changes the clang and the
-    # JDK the C, C++, Java and Kotlin cases run on; 24.04's are clang 18.1.3 and JDK 17)
     name: Types and lint
-    runs-on: ubuntu-24.04
+    if: github.repository == 'monotykamary/gdp-wired' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    # (boat-large: 8 vCPUs and 16 GB, the memory of GitHub's runner for public repositories)
+    runs-on: boat-large
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
@@ -38,25 +46,61 @@ jobs:
 
   test:
     name: Quick tests ${{ matrix.shard }}
-    runs-on: ubuntu-24.04
+    if: github.repository == 'monotykamary/gdp-wired' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: boat-large
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
     steps:
       - uses: actions/checkout@v5
         with:
           submodules: recursive
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      - name: Quick tests, shard ${{ matrix.shard }} of ${{ strategy.job-total }}
-        run: bun scripts/test-shards.ts --shard ${{ matrix.shard }}/${{ strategy.job-total }}
+      - name: Stub the native toolchains
+        run: |
+          stubs="$RUNNER_TEMP/toolchain-stubs" calls="$RUNNER_TEMP/toolchain-calls.log"
+          mkdir -p "$stubs" && : > "$calls"
+          for t in python3 python ruby gem elixir mix erl java javac kotlinc go cargo rustc swift swiftc clang clang++ zstd solc anvil forge; do
+            printf '#!/bin/sh\necho "%s $(pwd) $*" >> "%s"\nexit 127\n' "$t" "$calls" > "$stubs/$t"
+            chmod +x "$stubs/$t"
+          done
+          echo "$stubs" >> "$GITHUB_PATH"
+      - name: Quick tests, portable shard ${{ matrix.shard }} of ${{ strategy.job-total }}
+        run: |
+          unset JAVA_HOME KOTLIN_HOME GDP_SWIFT
+          bun scripts/test-shards.ts --set portable --shard ${{ matrix.shard }}/${{ strategy.job-total }}
+          if [ -s "$RUNNER_TEMP/toolchain-calls.log" ]; then
+            echo "::error::a portable unit called a native toolchain: add it to the native set in scripts/test-shards.ts"
+            cat "$RUNNER_TEMP/toolchain-calls.log"
+            exit 1
+          fi
 
-  package:
+  native:
     # (ubuntu-24.04, not ubuntu-latest: -latest moves to Ubuntu 26.04 in November 2026, which changes the clang and the
     # JDK the C, C++, Java and Kotlin cases run on; 24.04's are clang 18.1.3 and JDK 17)
+    name: Quick tests, native toolchains ${{ matrix.shard }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Quick tests, native shard ${{ matrix.shard }} of ${{ strategy.job-total }}
+        run: bun scripts/test-shards.ts --set native --shard ${{ matrix.shard }}/${{ strategy.job-total }}
+
+  package:
+    name: package (${{ matrix.node }})
+    if: github.repository == 'monotykamary/gdp-wired' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: boat
     timeout-minutes: 15
     strategy:
       matrix:
@@ -68,5 +112,8 @@ jobs:
           node-version: ${{ matrix.node }}
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
+      # (the smoke's Python case runs on the VM's python3: Ubuntu 24.04's, as on ubuntu-24.04)
+      - name: Toolchain versions
+        run: node --version && npm --version && python3 --version && grep PRETTY_NAME /etc/os-release
       - name: Pack and install as a user would, then run and type-check against it
         run: bun run smoke
