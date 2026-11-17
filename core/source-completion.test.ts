@@ -38,7 +38,7 @@ for (const kind of ['unchecked', 'error'] as const) test(`completed source ${kin
       return f.prove()
     })
     expect(finalized).toBeDefined()
-    expect(out).toBe(finalized)
+    expect(finalized).toBe(out)
     expect(out).toMatchObject({proven: false, checked: false, kernelProven: true, translation: kind})
     expect(out.stopped).toBeUndefined(); expect(out.termination).toBeUndefined()
     expect(completedSourceRefusal(out)).toBe(true)
