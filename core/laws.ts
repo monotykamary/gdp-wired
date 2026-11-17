@@ -182,7 +182,7 @@ export function parse(s: string): X {
 // A value: a number (an integer of the builders'), a condition, a string, a choice, a literal string, None, a map's
 // cell, a value that may be None (its flag beside it), a map, a key.
 type V = {t: 'num', v: Int} | {t: 'cond', v: Cond} | {t: 'str', v: Str} | {t: 'choice', v: Choice<string>} | {t: 'lit', v: string, err?: LawError}
-  | {t: 'null', absence?: 'null' | 'undefined'} | {t: 'cell', rec: Record<string, unknown>, fields: string[]} | {t: 'opt', none: Cond, v?: V, absence?: 'null' | 'undefined'} | {t: 'map', n: Name, maps: Name[], env?: Record<string, unknown>} | {t: 'key', v: Term} | {t: 'list', n: Name, env: Record<string, unknown>}
+  | {t: 'null', absence?: 'null' | 'undefined'} | {t: 'cell', rec: Record<string, unknown>, fields: string[]} | {t: 'opt', none: Cond, v?: V, absence?: 'null' | 'undefined'} | {t: 'map', n: Name, maps: Name[], env?: Record<string, unknown>, none?: Cond} | {t: 'key', v: Term} | {t: 'list', n: Name, env: Record<string, unknown>}
 // (bits: in a law of one step, which reads no function, each run of a mask's bits named by keys the law holds at every
 // value of, with the facts that make them that run: ks the keys, used how many are taken, hyps the facts)
 type Bits = {ks: Term[], used: number, hyps: Cond[]}
@@ -198,7 +198,7 @@ type Ctx = {strictOptional?: boolean, absence?: Record<string, 'null' | 'undefin
 // class's Date.now()).
 export function namesWithClock(x: Extraction): Name[] {
   const ns = x.names ?? [], ins = (x.rule as {parts?: {inputs: [string, unknown][]}} | undefined)?.parts?.inputs.map(([n]) => n) ?? []
-  return ns.some(n => n.role === 'clock') || !ins.includes('now') || ns.some(n => n.code === 'now') ? ns : [...ns, {code: 'now', rule: 'now', role: 'clock'}]
+  return ns.some(n => n.role === 'clock') || !ins.includes('now') || ns.some(n => n.code === 'now') ? ns : [...ns, {code: 'now', rule: 'now', role: 'clock', native: {kind: 'clock', key: 'now'}}]
 }
 type Pins = {times: {id: string, nat: boolean}[], at?: Map<string, Int>, guards?: Cond[]}
 export type LawOpts = {clock?: number, calendar?: Calendar}
@@ -446,7 +446,7 @@ const constOf = (x: X): number | undefined => (x.k === 'num' ? x.v : x.k === 'un
 function compare(op: string, a: V, b: V, e: X & {k: 'bin'}, strictOptional: Ctx['strictOptional']): Cond {
   if (b.t === 'null' || a.t === 'null') {
     const literal = a.t === 'null' ? a : b as V & {t: 'null'}
-    const o = a.t === 'null' ? b : a, none = o.t === 'opt' ? o.none : o.t === 'cell' ? not(o.rec.has as Cond) : undefined
+    const o = a.t === 'null' ? b : a, none = o.t === 'opt' || o.t === 'map' ? o.none : o.t === 'cell' ? not(o.rec.has as Cond) : undefined
     if (strictOptional && o.t === 'opt' && literal.absence && o.absence && literal.absence !== o.absence) return op === '==' ? no : op === '!=' ? yes : fail(`${op} with None`)
     if (!none) throw new LawError(`${show(a.t === 'null' ? e.b : e.a)} is never None here (the rule holds no None for it)`)
     return op === '==' ? none : op === '!=' ? not(none) : fail(`${op} with None`)
@@ -551,7 +551,7 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
         }
         const segs = e.segs.slice(skip + n - 1 + (hit.role === 'answer' && next && 'call' in next ? 1 : 0))
         // (a map read where it is named: old(m) is the map before the step wherever its cells are read, `k in old(m)`)
-        return rest(segs, hit.map ? {t: 'map', n: hit, maps: names.filter(x => x.map && x.code === hit.code), env: c.a} : leaf(hit, c, dry), c, names, dry, e)
+        return rest(segs, hit.map ? {t: 'map', n: hit, maps: names.filter(x => x.map && x.code === hit.code), env: c.a, ...(hit.none ? {none: dry ? yes : c.a[hit.none] as Cond} : {})} : leaf(hit, c, dry), c, names, dry, e)
       }
     }
   }
