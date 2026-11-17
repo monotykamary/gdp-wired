@@ -35,6 +35,16 @@ class MethodShadow
   def target = 7
 end
 raise 'untrusted method lookup' unless NATIVE_METHOD.bind_call(MethodShadow.new, :target).call == 7
+class EntryRace
+  def hit(value = (Thread.new { hit(99) }.join; 7))
+    @seen = value
+  end
+end
+S.replace({'leaves' => [], 'discard' => false})
+OBJS[1] = EntryRace.new
+result = call({'id' => 1, 'm' => 'hit', 'a' => []})
+bindings = result.fetch('nativeBindings').fetch('snapshot').fetch('root').fetch('items').to_h
+raise 'foreign same-method entry was captured' unless bindings['value'] == 7 && result['out'] == 7
 puts 'NATIVE_SCOPE_OK'
 `)
   expect(result.status, result.stderr).toBe(0)
@@ -55,11 +65,27 @@ parent = self()
 stale = spawn(fn ->
   Process.put(:gdp_native_active, 1)
   send(parent, :ready)
-  receive do :go -> GdpNative.answered("stale", fn -> 99 end); GdpNative.clock(99); send(parent, :done) end
+  receive do
+    :go ->
+      GdpNative.answered("stale", fn -> self() end)
+      GdpNative.clock(99)
+      try do GdpNative.answered("stale-throw", fn -> throw(:stale_throw) end) catch :throw, :stale_throw -> :ok end
+      try do GdpNative.answered("stale-exit", fn -> exit(:stale_exit) end) catch :exit, :stale_exit -> :ok end
+      send(parent, :done)
+  end
 end)
 receive do :ready -> :ok after 1000 -> raise "worker missing" end
 GdpNative.leave(entry)
 GdpNative.answered("after-return", fn -> 99 end)
+if GdpNative.answered("inactive-unsupported", fn -> self() end) != self(), do: raise "inactive return changed"
+try do
+  GdpNative.answered("inactive-throw", fn -> throw(:original_throw) end)
+  raise "throw swallowed"
+catch :throw, :original_throw -> :ok end
+try do
+  GdpNative.answered("inactive-exit", fn -> exit(:original_exit) end)
+  raise "exit swallowed"
+catch :exit, :original_exit -> :ok end
 first = GdpNative.finish_call()["nativeObservations"]["snapshot"]["root"]["items"] |> Map.new()
 first_calls = first["calls"]["items"] |> Map.new()
 if Map.keys(first_calls) != ["current"] or first["clock"] != 12, do: raise "first frame polluted"

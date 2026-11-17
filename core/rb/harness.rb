@@ -335,6 +335,7 @@ def call(req)
   # Defaults and keyword arguments are bound before :call. Read actual locals
   # before the first body instruction, never the request's argument envelopes.
   capture = TracePoint.new(:call) do |event|
+    next unless native_active?
     next if entered || !native_same?(event.self, obj) || !native_same?(event.defined_class, m.owner) || !native_same?(event.method_id, m.original_name)
     entered = true
     begin
@@ -349,7 +350,7 @@ def call(req)
   end
   begin
     NATIVE_ACTIVE_THREAD[0] = NATIVE_THREAD.call
-    capture.enable
+    capture.enable(target_thread: NATIVE_THREAD.call)
     out = traced { m.call(*pos, **kw) }
   rescue StandardError => e
     err = "#{e.class}: #{e.message}"[0, 300]

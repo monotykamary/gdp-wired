@@ -19,17 +19,19 @@ defmodule GdpNative do
     invocation = Process.get(:gdp_native_invocation, 0) + 1
     if invocation > 9007199254740991, do: raise(ArgumentError, "native invocation exceeds exact integer range")
     Process.put(:gdp_native_invocation, invocation)
-    :ets.insert(@table, [{:target, {mod, fun}}, {:invocation, invocation}])
+    :ets.insert(@table, [{:target, {mod, fun, invocation}}, {:invocation, invocation}])
   end
-  defp error(message), do: :ets.insert_new(@table, {:error, message})
+  defp error(message) do
+    if active?(), do: :ets.insert_new(@table, {{:error, Process.get(:gdp_native_active)}, message})
+  end
   def capture(mod, fun, bindings, names) do
-    if :ets.lookup(@table, :target) == [{:target, {mod, fun}}] and :ets.insert_new(@table, {:entered, true}) do
+    invocation = case :ets.lookup(@table, :target) do [{:target, {^mod, ^fun, id}}] -> id; _ -> nil end
+    if is_integer(invocation) and :ets.insert_new(@table, {{:entered, invocation}, true}) do
       result = try do
         actual = Map.take(Map.new(bindings), names) |> Map.new(fn {k, v} -> {Atom.to_string(k), v} end)
         %{"snapshot" => snapshot(actual, :object)}
       rescue e -> %{"error" => Exception.message(e)} end
-      :ets.insert(@table, {:bindings, result})
-      [{:invocation, invocation}] = :ets.lookup(@table, :invocation)
+      :ets.insert(@table, {{:bindings, invocation}, result})
       previous = Process.get(:gdp_native_active)
       Process.put(:gdp_native_active, invocation)
       {invocation, previous}
@@ -115,18 +117,21 @@ defmodule GdpNative do
   defp encode(value, _, count), do: {scalar(value), count + 1}
   defp record(key, outcome) do
     if active?() do
-      inserted = :ets.insert_new(@table, {{:call, key}, outcome})
-      if not inserted and :ets.lookup(@table, {:call, key}) != [{{:call, key}, outcome}], do: error("inconsistent native call #{key}")
+      slot = {:call, Process.get(:gdp_native_active), key}
+      inserted = :ets.insert_new(@table, {slot, outcome})
+      if not inserted and :ets.lookup(@table, slot) != [{slot, outcome}], do: error("inconsistent native call #{key}")
     end
     :ok
   end
   def answered(key, call) do
     try do
       value = call.()
-      try do record(key, %{"kind" => "returned", "value" => scalar(value)}) rescue e -> error(Exception.message(e)) end
+      if active?() do
+        try do record(key, %{"kind" => "returned", "value" => scalar(value)}) rescue e -> error(Exception.message(e)) end
+      end
       value
     rescue e ->
-      record(key, %{"kind" => "raised", "raised" => inspect(e.__struct__)})
+      if active?(), do: record(key, %{"kind" => "raised", "raised" => inspect(e.__struct__)})
       reraise e, __STACKTRACE__
     catch kind, reason ->
       error("unsupported native call outcome #{kind}")
@@ -137,20 +142,21 @@ defmodule GdpNative do
     if active?() do
       try do
         actual = scalar(value)
-        if not :ets.insert_new(@table, {:clock, actual}) and :ets.lookup(@table, :clock) != [{:clock, actual}], do: error("inconsistent native clock reads")
+        slot = {:clock, Process.get(:gdp_native_active)}
+        if not :ets.insert_new(@table, {slot, actual}) and :ets.lookup(@table, slot) != [{slot, actual}], do: error("inconsistent native clock reads")
       rescue e -> error(Exception.message(e)) end
     end
     :ok
   end
   def finish_call do
-    bindings = case :ets.lookup(@table, :bindings) do [{_, b}] -> b; _ -> %{"error" => "native function entry was not observed"} end
-    observed = case :ets.lookup(@table, :error) do
+    [{:invocation, invocation}] = :ets.lookup(@table, :invocation)
+    bindings = case :ets.lookup(@table, {:bindings, invocation}) do [{_, b}] -> b; _ -> %{"error" => "native function entry was not observed"} end
+    observed = case :ets.lookup(@table, {:error, invocation}) do
       [{_, message}] -> %{"error" => message}
       [] ->
-        calls = Map.new(for {{:call, key}, outcome} <- :ets.tab2list(@table), do: {key, outcome})
-        [{:invocation, invocation}] = :ets.lookup(@table, :invocation)
+        calls = Map.new(for {{:call, ^invocation, key}, outcome} <- :ets.tab2list(@table), do: {key, outcome})
         base = %{"invocation" => invocation, "calls" => calls}
-        frame = case :ets.lookup(@table, :clock) do [{_, clock}] -> Map.put(base, "clock", clock); [] -> base end
+        frame = case :ets.lookup(@table, {:clock, invocation}) do [{_, clock}] -> Map.put(base, "clock", clock); [] -> base end
         %{"snapshot" => snapshot(frame, :records)}
     end
     :ets.delete(@table, :target)
