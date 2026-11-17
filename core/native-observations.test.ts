@@ -1,5 +1,6 @@
 import {expect, test} from 'bun:test'
 import {parse} from './laws.ts'
+import {sandbox} from './extract-check.ts'
 import {nativeLaw} from './native-law.ts'
 import {nativeObservationSequence, validateNativeObservations, type NativeReading} from './native-observations.ts'
 import type {NativeObservation} from './source-check.ts'
@@ -23,6 +24,25 @@ test('observed answers and clock reads are independent of requested inputs', () 
   expect(() => evaluate(text, noAnswer)).toThrow('unobserved native call')
   noAnswer.before = {expires: 20}
   expect(evaluate(text, noAnswer)).toBe(true) // source guard did not call the answer
+})
+test('the JS sandbox records only actual per-invocation clock reads', () => {
+  const box = sandbox('export function readClock() { return Date.now() } export function dated() { return new Date().getTime() } export function quiet() { return 0 } export function $get() { return Date.now() }', 'clock.ts', ['readClock', 'dated', 'quiet', '$get'])
+  box.setNow(12)
+  expect(box.call('readClock', undefined, [])).toEqual({ok: true, value: 12})
+  const first = box.observations()
+  expect(first.clock).toBe(12)
+  box.setNow(999)
+  expect(box.call('$get', undefined, [], true)).toEqual({ok: true, value: 999})
+  expect(box.observations()).toEqual(first) // harness inspection is not a new source read
+  expect(box.call('$get', undefined, [])).toEqual({ok: true, value: 999})
+  expect(box.observations().clock).toBe(999) // a user function with that name is still source code
+  expect(box.call('quiet', undefined, [])).toEqual({ok: true, value: 0})
+  const second = box.observations()
+  expect(second.invocation).toBeGreaterThan(first.invocation)
+  expect(second.clock).toBeUndefined() // setting/requesting a clock did not observe it
+  box.setNow(23)
+  expect(box.call('dated', undefined, [])).toEqual({ok: true, value: 23})
+  expect(box.observations().clock).toBe(23)
 })
 test('actual raised outcomes have their own explicit reading, never a fabricated returned value', () => {
   const row = observation(); row.observed!.calls['Quota.ttl'] = {kind: 'raised', raised: 'QuotaError'}
