@@ -1,8 +1,13 @@
-# Workspace `check` — source checkpoint, target after 0.50.3
+# Workspace `check`
 
-No publish or version bump. Runtime tests/demo outcomes are **unknown until the
-parent runs the admitted native commands**. The prepared demo is executable code,
-not a claimed transcript.
+Use `check` to read laws from a trusted Python or plain TypeScript/JavaScript
+workspace through the same engine as the CLI. The default remains data-only;
+filesystem access requires explicit server configuration.
+
+The native edit/check fixture exercises both Python and TypeScript through the
+built Node MCP server: a bounded implementation is proven, a conservative edit
+remains proven, and a bad edit is broken with a real run. These results retain
+`translation: sampled`; they are not exhaustive native equivalence certificates.
 
 ## Server-owned authority; data-only default
 
@@ -68,12 +73,12 @@ reported proven by that engine; `broken` requires a stated broken law with a rea
 run; otherwise the aggregate is `unknown` with a reason. Each rule/law retains its
 own detailed verdict. `check` does not populate the scalar-model `status` registry.
 
-**Existing evidence boundary:** `core/cli.test.ts` explicitly keeps model-only
-foreign/source frontends `translation: unchecked`, even when `kernelProven: true`.
-Native sampling/replay is not a source-law translation journal. This adapter must
-preserve those unknown verdicts, including for good or bad edits; it never upgrades
-them to source proofs or invents a broken run. The real native demo must record
-this limitation if the selected engine reports it.
+**Evidence boundary:** a model-only result with `translation: unchecked` remains
+unknown even when `kernelProven: true`. When the existing engine supplies a native
+law journal, its `sampled` or `exhaustive` profile and observation count are retained.
+The current Python/TypeScript demo uses sampled journals. A checked symbolic proof
+plus sampled native observations does not establish universal source equivalence.
+This adapter neither upgrades unchecked results nor invents counterexample runs.
 
 ## Budget coverage
 
@@ -93,21 +98,19 @@ runtime and project execution are not charged to the work vector. Source-byte an
 API caps are separate controls. These exclusions are explicit in every source
 budget receipt; external runtime is not misrepresented as counted work.
 
-## Parent-owned native commands (not run locally)
+## Development checks
 
-After normal native dependency preparation:
+After normal dependency preparation, run these checks in the project's test environment:
 
 1. `bunx tsc -p core/agent-consult/tsconfig.json --noEmit`
 2. `bun test core/agent-consult/workspace.test.ts core/agent-consult.test.ts research/agent-tools/protocol.test.ts research/agent-tools/service.test.ts`
-3. Existing focused CLI regression (including draft/initializer coverage), followed
-   by the parent's regular build/package/quality gates.
+3. The existing CLI, budget ownership, watchdog and package regression suites.
 4. `bun scripts/build.ts`
 5. `node scripts/agent-consult-workspace-demo.mjs > "$SUPERCOMPUTER_OUTPUT_DIR/workspace-check-transcript.jsonl"`
 
-The last command creates actual temporary Python and TS files, initializes/lists
-the built Node MCP server, edits each through good/good-edit/bad versions, and logs
-actual edit/request/response/observation JSONL. It asserts source revisions change
-and never treats unknown/refusal as proof. It does not fabricate expected native
-verdicts. Retain the actual exported transcript and native receipts before any
-runtime success claim. No local tests, builds, provers, installs or native jobs
-were performed for this source checkpoint.
+The last command creates temporary Python and TS files, initializes/lists the
+built Node MCP server, edits each through good/good-edit/bad versions, and logs
+actual edit/request/response/observation JSONL. It requires successful extraction,
+changing source revisions, sampled native-law observations for the good edits,
+and real runs for the bad edits. The server must close cleanly after stdin EOF.
+The workspace suite is also registered in the default CI test roster.
