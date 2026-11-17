@@ -58,7 +58,13 @@ t('Swift native scalar arguments have tamper and disabled controls', () => {
     init() {}
     mutating func set(_ n: UInt8) { value = n }
   }`)
-  const read = (disabled: boolean) => ok(extractSwift(file, {entry: 'Meter', check: {...budget, ...(disabled ? {lawCrossCheck: false} : {})}}))
+  const read = (disabled: boolean) => {
+    const x = extractSwift(file, {entry: 'Meter', check: disabled ? {runs: 0, states: 0, probes: false} : budget})
+    if (!disabled) return ok(x)
+    expect(x.ok).toBe(true)
+    expect(x.evidence?.requests ?? 0).toBe(0)
+    return x
+  }
   const law = (x: X, expr: string) => {
     const b = buildLaw(x, {name: 'set exact', expr, method: 'set'})
     if (b.kind !== 'step') throw new Error('expected a step law')

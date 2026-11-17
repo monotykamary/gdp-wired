@@ -64,7 +64,13 @@ t('Rust native scalar atomic load has independent tamper and disabled controls',
       pub fn load(&self, ordering: Ordering) -> u32 { self.value.load(ordering) }
       pub fn store(&self, value: u32, ordering: Ordering) { self.value.store(value, ordering); }
     }`)
-  const read = (disabled: boolean) => ok(extractRust(dir, {entry: 'Meter', check: {...budget, ...(disabled ? {lawCrossCheck: false} : {})}, failures: 'kept', strict: true}))
+  const read = (disabled: boolean) => {
+    const x = extractRust(dir, {entry: 'Meter', check: disabled ? {runs: 0, states: 0, probes: false} : budget, failures: 'kept', strict: true})
+    if (!disabled) return ok(x)
+    expect(x.ok).toBe(true)
+    expect(x.evidence?.requests ?? 0).toBe(0)
+    return x
+  }
   const law = (x: X, expr: string) => {
     const b = buildLaw(x, {name: 'atomic load state', expr, method: 'load'})
     if (b.kind !== 'step') throw new Error('expected a step law')
@@ -1107,7 +1113,9 @@ t('integers of a width: + traps past it (the failure), wrapping_add wraps, check
   expect(proveSteps(x.rule!, x.invariants ?? [], [bad.law], {search: false})).toMatchObject({
     proven: false, checked: false, kernelProven: true, translation: 'error',
   })
-  const disabled = ok(extractRust(DIR, {entry: 'Budget', methods: ['spend', 'lap', 'try_spend', 'mark'], failures: 'kept', check: {...budget, lawCrossCheck: false}}))
+  const disabled = extractRust(DIR, {entry: 'Budget', methods: ['spend', 'lap', 'try_spend', 'mark'], failures: 'kept', check: {runs: 0, states: 0, probes: false}})
+  expect(disabled.ok).toBe(true)
+  expect(disabled.evidence?.requests ?? 0).toBe(0)
   const lap = buildLaw(disabled, {name: 'lap disabled', expr: 'old(laps) == 255 implies laps == 0', method: 'lap'})
   expect(proveSteps(disabled.rule!, disabled.invariants ?? [], [lap.law], {search: false})).toMatchObject({
     proven: false, checked: false, kernelProven: true, translation: 'unchecked',
