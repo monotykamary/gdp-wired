@@ -786,6 +786,25 @@ class Counter:
   expect(b.exit).toBe(1)
 }, 180_000)
 
+;(TOOLS.python!() ? test : test.skip)('Python set laws refuse mixed Boolean and integer key semantics', async () => {
+  const dir = files({'sets.py': `class IntSet:
+    # gdp: law Boolean membership is not an integer key: true not in members
+    def __init__(self):
+        self.members: set[int] = set()
+
+    def add(self, key: int) -> None:
+        self.members.add(key)
+`})
+  const result = await check([`${dir}/sets.py`], {ms: 5000, propose: false, check: {runs: 4, depth: 2, states: 8}})
+  const law = result.rules.flatMap(r => r.laws).find(l => l.name === 'Boolean membership is not an integer key')!
+  expect(law.verdict).toBe('not read')
+  expect(law.why).toContain('a cond where a number is read')
+  expect(law.cert).toBeUndefined()
+  expect(law.run).toBeUndefined()
+  expect(law.translationChecks).toBeUndefined()
+  expect(result.exit).toBe(2)
+}, 30000)
+
 // A law about an argument the code ignores (the bug is that it does): the argument kept in the rule, the law broken.
 ;(TOOLS.python!() ? test : test.skip)('the CLI on a law reading an argument the code ignores: broken, with its run', async () => {
   const dir = files({'waits.py': `
@@ -1100,14 +1119,9 @@ class Pending:
   const {rules} = await check([`${dir}/n.py`], {ms: 5000, propose: false})
   const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
   expect(v['every start boat made no VM for is given back']).toEqual(['Creation', 'proven'])
-  expect(v['at most LIMIT asks']).toEqual(['Creation', 'unknown'])
+  expect(v['at most LIMIT asks']).toEqual(['Creation', 'proven'])
   const asks = rules.find(r => r.entry === 'Creation')!.laws.find(l => l.name === 'at most LIMIT asks')!
-  expect(asks).toMatchObject({verdict: 'unknown', translation: 'sampled'})
-  expect(asks.translationChecks).toBeGreaterThan(0)
-  expect(asks.why).toContain('not inductive')
-  expect(asks.run).toBeUndefined()
-  expect(asks.replayed).toBeUndefined()
-  expect(asks.cert).toBeUndefined()
+  sampledProof(asks)
   // The source's numeric failed field must shadow the Boolean exception pseudo-value.
   const refund = rules.find(r => r.entry === 'Creation')!.laws.find(l => l.name === 'every start boat made no VM for is given back')!
   sampledProof(refund)
@@ -1263,7 +1277,8 @@ def hit(x: int) -> int:
   expect(rules.some(r => r.entry === 'budgets')).toBe(false)
   // (a sum of integers after a step: from the start, the search finds the sums' laws; from any state it needs them)
   const reach = await check([`${dir}/s.py`], {ms: 8000, propose: false, from: 'reachable', entry: 'Pending'})
-  modelLaws(reach.rules[0]!.laws)
+  sampledProofs(reach.rules[0]!.laws)
+  // Other entries were not selected; their source laws remain explicitly not read.
   expect(reach.exit).toBe(2)
 }, 300_000)
 

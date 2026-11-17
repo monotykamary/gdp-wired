@@ -3,6 +3,28 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.50.3
+
+### Fixed
+
+- Explicit counted-work budgets keep their authority across public proof, inference and nested search calls. Nested
+  callers cannot mint fresh capacity or silently replace counted work with a wall deadline; optional wall watchdogs
+  remain separate safety limits.
+- Unknown CLI results retain their actual termination cause, including counted-work exhaustion versus a wall deadline.
+  Completed evidence survives bookkeeping interruption, while ancestor cancellation and rejected work remain authoritative.
+- Native source checks preserve actual entry bindings, historical snapshots, source names and original call outcomes.
+  Python set snapshots retain set type and membership; source fields named `failed` or `result` no longer inherit the
+  unrelated pseudo-value. Unsupported foreign container equality remains refused.
+- Release policy now requires the repaired source-fixture groups to pass instead of accepting their old failure
+  signatures. The remaining Rust/Swift native feature gaps and the unresolved Lean protocol job remain explicit.
+
+### Scope
+
+- This is an incremental counted-budget release, not a claim that the immutable 509-site inventory is fully migrated.
+  The deferred Effect-pool conversion and broader unsupported native feature families remain deferred.
+- No expanded MLDR bound, native lift-CLI acceptance or global slowdown-performance claim is made. Existing proof
+  scope qualifications remain unchanged.
+
 ## 0.50.2
 
 ### Fixed
