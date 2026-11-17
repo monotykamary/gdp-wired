@@ -41,7 +41,7 @@ const choose=(c,a,b)=>({op:'if',c,then:a,else:b}),plus=name=>({op:'add',a:v(name
 const accounting={unit:'permits',rule:{name:'permit accounting',params:['capacity'],inputs:['acquire'],state:{held:n(0),acquired:n(0),released:n(0)},assume:le(v('acquire'),n(1)),step:{state:{held:choose(got,plus('held'),choose(back,{op:'sub',a:v('held'),b:n(1)},v('held'))),acquired:choose(got,plus('acquired'),v('acquired')),released:choose(back,plus('released'),v('released'))}}}}
 const accountingLaws=[{name:'released never exceeds acquired',holds:le(v('released'),v('acquired'))}]
 const expected=['prove','why_not','suggest','check_change','status','check']
-assert.deepEqual([...toolNames].sort(),[...expected].sort())
+assert.deepEqual([...toolNames].sort((a,b)=>a<b?-1:a>b?1:0),[...expected].sort((a,b)=>a<b?-1:a>b?1:0))
 const record=(kind,data)=>console.log(JSON.stringify({kind,...data}))
 function source(ext,version){
   const guard=version==='bad'?'self.count < 10':`self.count + amount <= ${version==='good-edit'?8:10}`
@@ -73,7 +73,7 @@ for(const mode of ['library','stdio']){
   try{await denied(disabled,join(root,'counter.py'),'workspace-unconfigured')}finally{await disabled.close()}
   const c=await client(mode,[root])
   try{
-    assert.deepEqual((await c.list()).map(t=>t.name).sort(),[...expected].sort())
+    assert.deepEqual((await c.list()).map(t=>t.name).sort((a,b)=>a<b?-1:a>b?1:0),[...expected].sort((a,b)=>a<b?-1:a>b?1:0))
     const call=async(name,args)=>{const r=await c.call(name,args);record('receipt',{mode,name,receipt:r});assert.equal(r.ok,true,JSON.stringify(r));return r}
     const proof=await call('prove',{subject:subject(),laws,budget});assert.equal(proof.label,'proven');assert.ok(proof.result.verdicts.length);assert.ok(proof.result.verdicts.every(v=>v.proven&&v.checked))
     const status=await call('status',{unit:'budget',revision:proof.subject.revision});assert.equal(status.label,'proven');assert.equal(status.result.nativeLabel,null)

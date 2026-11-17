@@ -12,18 +12,21 @@ test('unchecked proof is never reported proven',()=>{
 test('MCP protocol validates methods and ignores notifications',async()=>{
   expect(await handle({jsonrpc:'2.0',method:'notifications/initialized'})).toBeNull()
   const unknown=await handle({jsonrpc:'2.0',id:3,method:'not-a-method'})
-  expect((unknown?.error as {code:number}).code).toBe(-32601)
+  expect(unknown).not.toBeNull()
+  expect((unknown!.error as {code:number}).code).toBe(-32601)
   const listed=await handle({jsonrpc:'2.0',id:4,method:'tools/list'})
-  expect((listed?.result as {tools:{name:string}[]}).tools.map(t=>t.name)).toEqual(toolNames)
+  expect(listed).not.toBeNull()
+  expect((listed!.result as {tools:{name:string}[]}).tools.map(t=>t.name)).toEqual(toolNames)
 })
 test('status does not accept labels supplied by a client',async()=>{
   const r=await handle({jsonrpc:'2.0',id:5,method:'tools/call',params:{name:'status',arguments:{unit:'budget',revision:'0'.repeat(64),label:'harness-checked'}}})
-  const data=(r?.result as {structuredContent:{ok:boolean,refusal:{code:string}}}).structuredContent
+  expect(r).not.toBeNull()
+  const data=(r!.result as {structuredContent:{ok:boolean,refusal:{code:string}}}).structuredContent
   expect(data.ok).toBe(false);expect(data.refusal.code).toBe('unsupported-field')
 })
 
 test('counted proof does not consult wall clocks',()=>{
-  const now=Date.now,perf=performance.now
+  const now=Date.now,perf=Reflect.get(performance,'now') as ()=>number
   const forbidden=():never=>{throw Error('wall-clock consultation forbidden')}
   try {
     Date.now=forbidden;performance.now=forbidden
