@@ -16,6 +16,8 @@ NATIVE_OBJECTS = {}.compare_by_identity
 NATIVE_INVOCATION = [0]
 NATIVE_IS = Object.instance_method(:instance_of?)
 NATIVE_CLASS = Object.instance_method(:class)
+NATIVE_METHOD = Object.instance_method(:method)
+NATIVE_THREAD = Thread.method(:current)
 NATIVE_CLASS_NAME = Module.instance_method(:name)
 NATIVE_VARS = Object.instance_method(:instance_variables)
 NATIVE_GET_VAR = Object.instance_method(:instance_variable_get)
@@ -88,6 +90,8 @@ end
 NATIVE_EVENTS = [nil]
 NATIVE_EVENT_ERROR = [nil]
 NATIVE_CALL_TYPES = {}
+NATIVE_ACTIVE_THREAD = [nil]
+def native_active? = NATIVE_EVENTS[0] && native_same?(NATIVE_THREAD.call, NATIVE_ACTIVE_THREAD[0])
 def native_scalar(value)
   return value if native_same?(value, nil) || native_same?(value, true) || native_same?(value, false)
   return NATIVE_COPY_STRING.call(value).freeze if native_is?(value, String)
@@ -99,7 +103,7 @@ def native_scalar(value)
   raise ArgumentError, "unsupported native observation value #{native_class(value)}"
 end
 def native_record(key, outcome, native_type = nil)
-  return unless (events = NATIVE_EVENTS[0])
+  return unless native_active? && (events = NATIVE_EVENTS[0])
   before = events['calls'][key]
   previous_type = NATIVE_CALL_TYPES[key]
   if native_type && previous_type && !native_same?(native_type, previous_type)
@@ -113,7 +117,7 @@ rescue StandardError => e
 end
 def native_call(key)
   value = yield
-  if NATIVE_EVENTS[0]
+  if native_active?
     begin
       native_record(key, {'kind' => 'returned', 'value' => native_scalar(value)}, native_class(value))
     rescue StandardError => e
@@ -126,7 +130,7 @@ rescue Exception => e # Record the actual runtime class, never the requested han
   raise
 end
 def native_clock(value)
-  if (events = NATIVE_EVENTS[0])
+  if native_active? && (events = NATIVE_EVENTS[0])
     begin
       actual = native_scalar(value)
       raise ArgumentError, 'inconsistent native clock reads' if events.key?('clock') && events['clock'] != actual
@@ -321,7 +325,7 @@ def call(req)
   NATIVE_EVENTS[0] = {'invocation' => NATIVE_INVOCATION[0], 'calls' => {}}
   NATIVE_EVENT_ERROR[0] = nil
   NATIVE_CALL_TYPES.clear
-  m = obj.method(req['m'])
+  m = NATIVE_METHOD.bind_call(obj, req['m'])
   pos, kw = call_args(m, req['a'])
   before = frames(obj)
   snap = S['discard'] ? state_of(obj) : nil
@@ -331,7 +335,7 @@ def call(req)
   # Defaults and keyword arguments are bound before :call. Read actual locals
   # before the first body instruction, never the request's argument envelopes.
   capture = TracePoint.new(:call) do |event|
-    next if entered || !event.self.equal?(obj) || event.defined_class != m.owner || event.method_id != m.original_name
+    next if entered || !native_same?(event.self, obj) || !native_same?(event.defined_class, m.owner) || !native_same?(event.method_id, m.original_name)
     entered = true
     begin
       values = m.parameters.to_h do |kind, name|
@@ -344,11 +348,13 @@ def call(req)
     end
   end
   begin
+    NATIVE_ACTIVE_THREAD[0] = NATIVE_THREAD.call
     capture.enable
     out = traced { m.call(*pos, **kw) }
   rescue StandardError => e
     err = "#{e.class}: #{e.message}"[0, 300]
   ensure
+    NATIVE_ACTIVE_THREAD[0] = nil
     capture.disable
   end
   set_state(obj, snap) if err && snap

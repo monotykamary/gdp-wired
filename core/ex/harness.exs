@@ -29,8 +29,22 @@ defmodule GdpNative do
         %{"snapshot" => snapshot(actual, :object)}
       rescue e -> %{"error" => Exception.message(e)} end
       :ets.insert(@table, {:bindings, result})
+      [{:invocation, invocation}] = :ets.lookup(@table, :invocation)
+      previous = Process.get(:gdp_native_active)
+      Process.put(:gdp_native_active, invocation)
+      {invocation, previous}
+    end
+  end
+  def leave(nil), do: :ok
+  def leave({invocation, previous}) do
+    if Process.get(:gdp_native_active) == invocation do
+      if is_nil(previous), do: Process.delete(:gdp_native_active), else: Process.put(:gdp_native_active, previous)
     end
     :ok
+  end
+  defp active? do
+    invocation = Process.get(:gdp_native_active)
+    is_integer(invocation) and :ets.lookup(@table, :invocation) == [{:invocation, invocation}] and :ets.member(@table, :target)
   end
   # Instrument the original function head, not the reader's argument labels.
   # The first instruction runs after pattern matching, guards and defaults.
@@ -44,8 +58,12 @@ defmodule GdpNative do
             names = Enum.flat_map(request, &parameter_names/1) |> Enum.uniq()
             body = Keyword.update!(body, :do, fn original ->
               quote do
-                GdpNative.capture(__MODULE__, unquote(name), binding(), unquote(names))
-                unquote(original)
+                native_entry = GdpNative.capture(__MODULE__, unquote(name), binding(), unquote(names))
+                try do
+                  unquote(original)
+                after
+                  GdpNative.leave(native_entry)
+                end
               end
             end)
             {kind, meta, [head, body]}
@@ -96,7 +114,7 @@ defmodule GdpNative do
   end
   defp encode(value, _, count), do: {scalar(value), count + 1}
   defp record(key, outcome) do
-    if :ets.member(@table, :target) do
+    if active?() do
       inserted = :ets.insert_new(@table, {{:call, key}, outcome})
       if not inserted and :ets.lookup(@table, {:call, key}) != [{{:call, key}, outcome}], do: error("inconsistent native call #{key}")
     end
@@ -116,7 +134,7 @@ defmodule GdpNative do
     end
   end
   def clock(value) do
-    if :ets.member(@table, :target) do
+    if active?() do
       try do
         actual = scalar(value)
         if not :ets.insert_new(@table, {:clock, actual}) and :ets.lookup(@table, :clock) != [{:clock, actual}], do: error("inconsistent native clock reads")
