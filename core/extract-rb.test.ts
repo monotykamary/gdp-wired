@@ -272,10 +272,13 @@ t('Ruby native wire retains real aliases and pre-call defaults, freezes historic
   const binding1 = snapshotNativeBindings(decode, (rows[2]!.nativeBindings as {snapshot: unknown}).snapshot) as {v: number[]}
   const after1 = nativeSnapshot(decode(rows[3]!.snapshot)) as {shared: number[]}
   const binding2 = snapshotNativeBindings(decode, (rows[4]!.nativeBindings as {snapshot: unknown}).snapshot) as {v: number[]}
-  const after2 = decode(rows[5]!.snapshot) as {shared: number[]}
+  const after2 = nativeSnapshot(decode(rows[5]!.snapshot)) as {shared: number[]}
   expect(binding1.v).toEqual([0]); expect(after1.shared).toEqual([1])
   expect(binding2.v).toEqual([1]); expect(after2.shared).toEqual([2])
   expect(nativeSame(binding1.v, after1.shared)).toBe(true)
+  // Identity comparisons are between snapshots, not a snapshot and the decoder's mutable canonical object. The same native object persists across calls.
+  expect(nativeSame(binding2.v, after2.shared)).toBe(true)
+  expect(nativeSame(binding1.v, binding2.v)).toBe(true)
   expect(nativeSame(binding1.v, after2.shared)).toBe(true)
   const first = decode((rows[2]!.nativeObservations as {snapshot: unknown}).snapshot)
   const second = decode((rows[4]!.nativeObservations as {snapshot: unknown}).snapshot)

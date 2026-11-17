@@ -19,6 +19,17 @@ for (const method of ['hit', 'soft'] as const) test(`answer lowering selects ${m
   expect(built.law.then).toEqual(expected.then)
 })
 
+test('result lowering uses actual model names rather than punctuated source method names', () => {
+  const rr = rule('punctuated result').inputs({method: oneOf('seen?')}).state({seen_p_result: bool.from(false), seen_p_result_none: bool.from(false)})
+  const names: Name[] = [{code: 'method', rule: 'method', role: 'method'},
+    {code: 'result', rule: 'seen?_result', none: 'seen?_result_none', role: 'result', method: 'seen?'}]
+  const x = {ok: true, refusals: [], notes: [], rule: rr, names,
+    model: {results: {'seen?': {k: 'rec', fields: [['value', 'seen_p_result'], ['none', 'seen_p_result_none']]}}}} as unknown as Extraction
+  const built = buildLaw(x, {name: 'seen', expr: 'result == true', method: 'seen?'})
+  expect(built.law.then).toEqual(rr.stepLaw('expected', (_b, a) => a.seen_p_result_none.not().and(a.seen_p_result.iff(yes))).then)
+  expect(names[1]!.rule).toBe('seen?_result')
+})
+
 test('scalar fixed-list lowering retains before/after values and before indices', () => {
   const lists = rule('fixed list names').inputs({method: oneOf('put'), x: int}).state({head: 0, output: 0}).items({buf: int}, {buf: 4})
   const x: Extraction = {ok: true, refusals: [], notes: [], rule: lists as unknown as Extraction['rule'], names: [

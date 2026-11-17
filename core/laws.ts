@@ -197,8 +197,20 @@ type Ctx = {strictOptional?: boolean, absence?: Record<string, 'null' | 'undefin
 // The extraction's names, with the request's time as `now` where the rule reads it and no name says so (a TypeScript
 // class's Date.now()).
 export function namesWithClock(x: Extraction): Name[] {
-  const ns = x.names ?? [], ins = (x.rule as {parts?: {inputs: [string, unknown][]}} | undefined)?.parts?.inputs.map(([n]) => n) ?? []
-  return ns.some(n => n.role === 'clock') || !ins.includes('now') || ns.some(n => n.code === 'now') ? ns : [...ns, {code: 'now', rule: 'now', role: 'clock', native: {kind: 'clock', key: 'now'}}]
+  // Result names from the model are the actual lowered variables; source method
+  // spelling is not necessarily a valid rule identifier (for example Ruby `seen?`).
+  const original = x.names ?? []
+  const ns = original.map(n => {
+    if (n.role !== 'result' || n.code !== 'result' || !n.method) return n
+    const result = x.model?.results?.[n.method]
+    if (!result) return n
+    const value = result.k === 'rec' ? result.fields.find(([field]) => field === 'value')?.[1] : result.name
+    const none = result.k === 'rec' ? result.fields.find(([field]) => field === 'none')?.[1] : result.k === 'maybe' ? result.missing : undefined
+    return value && (value !== n.rule || (n.none && none && n.none !== none)) ? {...n, rule: value, ...(n.none && none ? {none} : {})} : n
+  })
+  const ins = (x.rule as {parts?: {inputs: [string, unknown][]}} | undefined)?.parts?.inputs.map(([n]) => n) ?? []
+  const named = ns.every((n, i) => n === original[i]) ? original : ns
+  return named.some(n => n.role === 'clock') || !ins.includes('now') || named.some(n => n.code === 'now') ? named : [...named, {code: 'now', rule: 'now', role: 'clock', native: {kind: 'clock', key: 'now'}}]
 }
 type Pins = {times: {id: string, nat: boolean}[], at?: Map<string, Int>, guards?: Cond[]}
 export type LawOpts = {clock?: number, calendar?: Calendar}

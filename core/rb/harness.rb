@@ -362,8 +362,7 @@ def call(req)
   after = frames(obj)
   before.each { |k, v| return {'frame' => k} if after[k] != v }
   observations = begin
-    raise ArgumentError, NATIVE_EVENT_ERROR[0] if NATIVE_EVENT_ERROR[0]
-    {'snapshot' => native_state(NATIVE_EVENTS[0], bindings: true, records: true)}
+    NATIVE_EVENT_ERROR[0] ? {'error' => NATIVE_EVENT_ERROR[0]} : {'snapshot' => native_state(NATIVE_EVENTS[0], bindings: true, records: true)}
   rescue StandardError => e
     {'error' => "#{e.class}: #{e.message}"[0, 300]}
   ensure
