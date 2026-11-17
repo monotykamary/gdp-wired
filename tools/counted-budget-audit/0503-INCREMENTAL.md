@@ -20,6 +20,8 @@ That **historical pre-integration** classification is7 reviewed static work-gran
 
 The original Effect pool receipt ended with native exit124 without a test summary. It remains failed/uncompleted evidence. Its grant cannot be promoted on the strength of a smaller probe, a completed mathematical sub-result or the static audit. An unready conversion must be fixed with evidence or explicitly deferred, never waived or hidden.
 
+**Current integrated disposition: Effect grants deferred.** Audit IDs175,176,177 (the three CLI call sites) and the added6M `provePool` grant are not admitted for0.50.3. `core/effect-queue.test.ts` is restored byte-for-byte to published0.50.2; its original assertions, replay, CLI grants and outer guards are unchanged. The counted-work API, inherited-owner guards and focused budget regressions remain candidates for verification. The immutable pre-integration manifest still records7 historical literal conversions;3 of those are now explicitly deferred, leaving4 unadmitted conversion candidates, not7 accepted conversions. This adds3 current deferrals alongside the474 original review/support backlog rows; no historical row is deleted or reclassified in place. The failed receipt20261116-225959-jf6ui1 remains a failure, not a retry candidate or release pass.
+
 ## Order of subsequent batches
 
 1. Prioritize sites that actually flaked: cube, the Java fixtures, and any later strict-gate failure.
