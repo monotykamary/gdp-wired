@@ -1,6 +1,6 @@
 // Source-name lowering controls only: these inspect builder expressions, not native proofs.
 import {expect, test} from 'bun:test'
-import {Int, bool, int, nat, no, oneOf, rule} from '../../../core/dsl.ts'
+import {Int, bool, int, nat, no, oneOf, rule, yes} from '../../../core/dsl.ts'
 import type {Extraction, Name} from '../../../core/extract.ts'
 import {buildLaw, namesWithClock} from '../../../core/laws.ts'
 
@@ -13,8 +13,8 @@ const answers: Name[] = [
 const extraction = (names = answers): Extraction => ({ok: true, refusals: [], notes: [], rule: r as unknown as Extraction['rule'], names})
 
 for (const method of ['hit', 'soft'] as const) test(`answer lowering selects ${method}, never the first alias`, () => {
-  const built = buildLaw(extraction(), {name: method, expr: 'Remote.ping.raises', method})
-  const expected = r.stepLaw('expected', b => method === 'hit' ? b.hitRaised : b.softRaised)
+  const built = buildLaw(extraction(), {name: method, expr: 'Remote.ping.raises == true', method})
+  const expected = r.stepLaw('expected', b => (method === 'hit' ? b.hitRaised : b.softRaised).iff(yes))
   expect(built.kind).toBe('step')
   expect(built.law.then).toEqual(expected.then)
 })
@@ -80,23 +80,23 @@ test('synthetic Date clock names require actual native clock readings without ch
 })
 
 test('an unscoped method-specific answer is ambiguous', () => {
-  expect(() => buildLaw(extraction(), {name: 'ambiguous', expr: 'Remote.ping.raises'})).toThrow('ambiguous answered call')
+  expect(() => buildLaw(extraction(), {name: 'ambiguous', expr: 'Remote.ping.raises == true'})).toThrow('ambiguous answered call')
 })
 
 test('a genuinely generic answer is used only after exact method selection', () => {
   const names: Name[] = [...answers, {code: 'Remote.ping.raises', rule: 'genericRaised', role: 'answer', native: {kind: 'raises', key: 'Remote.ping'}}]
-  const built = buildLaw(extraction(names), {name: 'generic', expr: 'Remote.ping.raises', method: 'other'})
-  expect(built.law.then).toEqual(r.stepLaw('expected', b => b.genericRaised).then)
-  const hit = buildLaw(extraction(names), {name: 'specific', expr: 'Remote.ping.raises', method: 'hit'})
-  expect(hit.law.then).toEqual(r.stepLaw('expected', b => b.hitRaised).then)
+  const built = buildLaw(extraction(names), {name: 'generic', expr: 'Remote.ping.raises == true', method: 'other'})
+  expect(built.law.then).toEqual(r.stepLaw('expected', b => b.genericRaised.iff(yes)).then)
+  const hit = buildLaw(extraction(names), {name: 'specific', expr: 'Remote.ping.raises == true', method: 'hit'})
+  expect(hit.law.then).toEqual(r.stepLaw('expected', b => b.hitRaised.iff(yes)).then)
 })
 
 test('a scoped answer cannot bind an unrelated method', () => {
-  expect(() => buildLaw(extraction(), {name: 'wrong owner', expr: 'Remote.ping.raises', method: 'other'})).toThrow('no answer belongs to other')
+  expect(() => buildLaw(extraction(), {name: 'wrong owner', expr: 'Remote.ping.raises == true', method: 'other'})).toThrow('no answer belongs to other')
 })
 
 test('source state still takes precedence over a same-named answer', () => {
   const x = extraction([...answers, {code: 'Remote.ping.raises', rule: 'field', role: 'state'}])
-  const built = buildLaw(x, {name: 'state', expr: 'Remote.ping.raises', method: 'soft'})
-  expect(built.law.then).toEqual(r.stepLaw('expected', (_b, a) => a.field).then)
+  const built = buildLaw(x, {name: 'state', expr: 'Remote.ping.raises == true', method: 'soft'})
+  expect(built.law.then).toEqual(r.stepLaw('expected', (_b, a) => a.field.iff(yes)).then)
 })
