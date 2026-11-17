@@ -87,7 +87,7 @@ public final class Harness {
         for (int i = 0; i < urls.length; i++) urls[i] = cp.get(i).toURI().toURL();
         loader = new URLClassLoader(urls, Harness.class.getClassLoader());
         cls = Class.forName((String) req.get("jcls"), false, loader);
-        return m("ok", true, "nativeBindings", 1, "nativeSnapshot", 1);
+        return m("ok", true, "nativeBindings", 1, "nativeSnapshot", 1, "nativeObservations", 1);
       }
       case "new": try { return m("id", make((List<?>) req.get("a"))); } catch (Throwable e) { return m("err", err(e)); }
       case "at":
@@ -431,6 +431,35 @@ public final class Harness {
     return m("version", 1, "root", m("kind", "object", "id", Long.toString(++nativeIdentity), "items", entries));
   }
 
+  // Metadata objects are transport records, not native source maps. Actual
+  // answer values were captured and range-checked by Rt at the read occurrence.
+  static Object observationObject(Map<String, Object> fields) throws Exception {
+    List<Object> entries = new ArrayList<>();
+    for (Map.Entry<String, Object> entry : fields.entrySet()) {
+      Object value = entry.getValue();
+      if (value instanceof Map<?, ?> map) {
+        Map<String, Object> nested = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> item : map.entrySet()) nested.put((String) item.getKey(), item.getValue());
+        value = observationObject(nested);
+      } else value = nativeValue(value, Collections.newSetFromMap(new IdentityHashMap<>()), new int[]{0}, false);
+      entries.add(Arrays.asList(entry.getKey(), value));
+    }
+    return m("kind", "object", "id", Long.toString(++nativeIdentity), "items", entries);
+  }
+  static Map<String, Object> nativeObservations(gdp.Rt.Observations observed) {
+    if (observed.error != null) return m("error", observed.error);
+    try {
+      Map<String, Object> calls = new LinkedHashMap<>();
+      for (Map.Entry<String, gdp.Rt.Call> entry : observed.calls.entrySet()) {
+        gdp.Rt.Call call = entry.getValue();
+        calls.put(entry.getKey(), call.kind.equals("returned") ? m("kind", "returned", "value", call.value) : m("kind", "raised", "raised", call.raised));
+      }
+      Map<String, Object> fields = m("invocation", observed.invocation, "calls", calls);
+      if (observed.clock != null) fields.put("clock", observed.clock);
+      return m("snapshot", m("version", 1, "root", observationObject(fields)));
+    } catch (Exception error) { return m("error", err(error)); }
+  }
+
   static Object call(Map<?, ?> req) throws Exception {
     long id = ((Number) req.get("id")).longValue();
     Object obj = OBJS.get(id);
@@ -453,13 +482,18 @@ public final class Harness {
     Map<String, Object> snap = Boolean.TRUE.equals(S.get("discard")) ? stateOf(obj) : null;
     Object out = null;
     String err = null;
-    try { out = m.invoke(Modifier.isStatic(m.getModifiers()) ? null : obj, a); } catch (InvocationTargetException e) { err = err(e); }
+    Set<String> observedKeys = new HashSet<>();
+    for (Object answer : list(S.get("answers"))) observedKeys.add((String) ((Map<?, ?>) answer).get("key"));
+    gdp.Rt.Observations observed = gdp.Rt.beginObservations(observedKeys);
+    try { out = m.invoke(Modifier.isStatic(m.getModifiers()) ? null : obj, a); }
+    catch (InvocationTargetException e) { err = err(e); }
+    finally { gdp.Rt.endObservations(observed); }
     if (err != null && snap != null) setState(obj, snap);
     // A method returning the object's next value (an immutable class's step): the object is that value.
     if (err == null && ((List<?>) S.get("reducers")).contains(key) && cls.isInstance(out)) { OBJS.put(id, out); obj = out; out = null; }
     Map<String, String> after = frames(obj);
     for (Map.Entry<String, String> e : before.entrySet()) if (!e.getValue().equals(after.get(e.getKey())) && !((List<?>) S.get("reducers")).contains(key)) return m("frame", e.getKey());
-    Map<String, Object> res = m("out", tag(out), "nativeBindings", bindings);
+    Map<String, Object> res = m("out", tag(out), "nativeBindings", bindings, "nativeObservations", nativeObservations(observed));
     if (err != null) res.put("err", err);
     return res;
   }

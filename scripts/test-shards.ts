@@ -26,7 +26,7 @@ const units: Unit[] = [
     keyterms.test.ts lists.test.ts liveness.test.ts sizes.test.ts values.test.ts rationals.test.ts builders.test.ts
     gdp.test.ts datatypes.test.ts lemmas.test.ts discover.test.ts discover-budget.test.ts infer.test.ts infer-input.test.ts cyclic.test.ts cycles.test.ts
     nonterm.test.ts data.test.ts data-synth.test.ts hypothesis.test.ts seqs.test.ts abstract.test.ts search.test.ts invoices.test.ts
-    folds.test.ts trees.test.ts pairs.test.ts chart.test.ts chart-provenance.test.ts xstate.test.ts extract.test.ts extract-standalone.test.ts extract-ci-method-scope.test.ts source-check.test.ts source-completion.test.ts source-diagnostic.test.ts extract-absence.test.ts extract-choice-joins.test.ts extract-standalone-prototype.test.ts extract-standalone-regression.test.ts extract-py.test.ts extract-step-native.test.ts extract-py-mro.test.ts extract-py-hasattr.test.ts extract-orm.test.ts extract-py-orm.test.ts extract-sol.test.ts sol-concrete.test.ts effect.test.ts
+    folds.test.ts trees.test.ts pairs.test.ts chart.test.ts chart-provenance.test.ts xstate.test.ts extract.test.ts extract-standalone.test.ts extract-ci-method-scope.test.ts source-check.test.ts source-completion.test.ts native-observations.test.ts source-diagnostic.test.ts extract-absence.test.ts extract-choice-joins.test.ts extract-standalone-prototype.test.ts extract-standalone-regression.test.ts extract-py.test.ts extract-step-native.test.ts extract-py-mro.test.ts extract-py-hasattr.test.ts extract-orm.test.ts extract-py-orm.test.ts extract-sol.test.ts sol-concrete.test.ts effect.test.ts
     effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts effect-schema.test.ts calendar.test.ts count-facts.test.ts count-ranges.test.ts count-write-frames.test.ts counts-completion-order.test.ts count-completion.test.ts count-witness.test.ts count-unions.test.ts count-witness-flags.test.ts count-focused.test.ts count-cases.test.ts count-focus-proof.test.ts count-recovery-order.test.ts count-cert-grow.test.ts field-laws.test.ts count-cubes.test.ts finite-tiny.test.ts finite-tiny-houdini.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts carry.test.ts scan-prefix.test.ts
     runtime-keys.test.ts sample-step.test.ts small-counts.test.ts cube-rows.test.ts quorum-laws.test.ts wall.test.ts count-demand.test.ts count-cert-transport.test.ts count-tier-budget.test.ts work-admission-perf.test.ts i6-meter.test.ts prover-row-budget.test.ts count-attempt-expiration.test.ts common-counted.test.ts hard-cap.test.ts work-observe.test.ts
     lemma-cuts.test.ts count-support.test.ts count-admission.test.ts counts-preflight.test.ts counts-structured.test.ts relevance.test.ts support-order.test.ts`),
@@ -135,6 +135,7 @@ const unitConfig: Record<string, UnitConfig> = {
   'core/discover-budget.test.ts': {...rootProcess, timeoutMs: 60000},
   'core/search-watchdog.test.ts': {...rootProcess, timeoutMs: 60000},
   'core/source-completion.test.ts': {...rootProcess, timeoutMs: 60000},
+  'core/native-observations.test.ts': {...rootProcess, timeoutMs: 60000},
   'core/effect-budget.test.ts': {...rootProcess, timeoutMs: 60000},
   'core/infer-termination.test.ts': {...rootProcess, timeoutMs: 300000},
   'core/infer-completion-boundary.test.ts': {...rootProcess, timeoutMs: 240000},

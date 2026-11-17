@@ -28,6 +28,7 @@ import type {B, N} from './extract-ir.ts'
 import type {Sorts} from './extract-print.ts'
 import {type NativeJournal, nativeSnapshot, rememberNative} from './source-check.ts'
 import {type NativeInputs, nativeCaptureEdits, nativeInputs} from './native-domain.ts'
+import type {NativeExecutionObservation} from './native-observations.ts'
 
 type Raw = number | boolean | string
 export type Arm = {label: string, where: string, pos: number}
@@ -351,6 +352,8 @@ export type CodeSide = {
   // The native object, independently of symbolic scalar/heap encodings.
   nativeState?: (self: unknown, snap: Snap, params: Record<string, Raw>) => unknown,
   nativeBindings?: (event: Ev) => Record<string, unknown> | undefined,
+  nativeObservations?: (event: Ev) => NativeExecutionObservation | undefined,
+  nativeEquality?: 'scalar',
   nativeInputs?: NativeInputs,
   // Go's: an input drawn within its type, a state drawn within the fields' types, a witness's state as Go holds it,
   // and the refusals where Go goes on past the rule's numbers (a uint64 below 0), counted as the rule's edge.
@@ -455,7 +458,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
   }
   const recordInitial = (side: {snap: Snap, self?: object}, params: Record<string, Raw>) => {
     const state = capture(() => nativeState(side, params))
-    if (journal.enabled && !journal.reason) journal.observations.push({where: 'initial native state', before: state, after: state, params: {...params}, inputs: {}, bindings: {}, args: [], result: undefined, failed: false})
+    if (journal.enabled && !journal.reason) journal.observations.push({where: 'initial native state', before: state, after: state, params: {...params}, inputs: {}, bindings: {}, args: [], result: undefined, failed: false, ...(code.nativeEquality ? {nativeEquality: code.nativeEquality} : {})})
   }
   const paramKinds = m.params.map(v => [v, kindOfVar(v, sorts)] as const), inputKinds = m.inputs.map(v => [v, kindOfVar(v, sorts)] as const)
   const fail = (what: string): Evidence => { ev.mismatch = what; return finish() }
@@ -590,6 +593,8 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
       const after = capture(() => nativeState(afterSide, params)), result = capture(() => nativeSnapshot(res.out))
       const bindings = capture(() => code.nativeBindings?.(e)) as Record<string, unknown> | undefined
       if (code.nativeBindings && !bindings) journal.reason ??= `native parameter capture unavailable for ${e.call}`
+      const observed = capture(() => code.nativeObservations ? nativeSnapshot(code.nativeObservations(e)) : undefined) as NativeExecutionObservation | undefined
+      if (code.nativeObservations && !observed) journal.reason ??= `native execution observations unavailable for ${e.call}`
       const fallback: Record<string, unknown> = Object.create(null)
       e.names?.forEach((n, i) => {
         const value = nativeArgs?.[i]
@@ -598,7 +603,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
       })
       const rk = m.results?.[e.call]
       journal.observations.push({where, method: e.call, before, after, params: {...params}, inputs: {...inputs}, bindings: bindings ?? fallback,
-        args: nativeArgs ?? [], result, failed: false, legacyResult: !standalone && rk?.k === 'rec' && rk.fields.some(([field]) => field === 'value')})
+        args: nativeArgs ?? [], result, failed: false, ...(observed ? {observed} : {}), ...(code.nativeEquality ? {nativeEquality: code.nativeEquality} : {}), legacyResult: !standalone && rk?.k === 'rec' && rk.fields.some(([field]) => field === 'value')})
     }
     next.side = afterSide
     next.st = (rule as {st: State}).st
@@ -741,8 +746,10 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
           const bindings = capture(() => code.nativeBindings?.(event)) as Record<string, unknown> | undefined
           if (!bindings) { journal.reason ??= 'independent native parameter capture unavailable'; return }
           const result = capture(() => nativeSnapshot(returned.value)), savedArgs = capture(() => nativeSnapshot(args)) as unknown[]
+          const observed = capture(() => code.nativeObservations ? nativeSnapshot(code.nativeObservations(event)) : undefined) as NativeExecutionObservation | undefined
+          if (code.nativeObservations && !observed) { journal.reason ??= 'independent native execution observations unavailable'; return }
           if (!journal.reason) journal.observations.push({where: `exhaustive native input ${++ordinal}`, method: event.call,
-            before: {}, after: {}, params: {}, inputs: {}, bindings, args: savedArgs, result, failed: false})
+            before: {}, after: {}, params: {}, inputs: {}, bindings, args: savedArgs, result, failed: false, ...(observed ? {observed} : {}), ...(code.nativeEquality ? {nativeEquality: code.nativeEquality} : {})})
           return
         }
         for (const value of finite![at]!) visit(at + 1, [...args, value])

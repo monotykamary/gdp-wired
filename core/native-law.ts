@@ -2,6 +2,7 @@
 // Sharing the parser does not share arithmetic, choice encodings, absence or comparisons.
 import type {X, LawOpts} from './laws.ts'
 import {type NativeObservation, nativeSame} from './source-check.ts'
+import type {NativeReading} from './native-observations.ts'
 const NONE = Symbol('language None')
 const truthy = (value: unknown): boolean => value !== NONE && Boolean(value)
 const object = (x: unknown): x is Record<string, unknown> => x !== null && (typeof x === 'object' || typeof x === 'function')
@@ -30,9 +31,46 @@ function businessDays(a: unknown, b: unknown, opts: LawOpts): number {
   }
   return end >= start ? count : -count
 }
-export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) => X, constants: Record<string, number | string | boolean> = {}, knownNames: ReadonlySet<string> = new Set()): (observation: NativeObservation) => boolean {
+export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) => X, constants: Record<string, number | string | boolean> = {}, knownNames: ReadonlySet<string> = new Set(), readings: readonly NativeReading[] = []): (observation: NativeObservation) => boolean {
   return observation => {
     const locals = new Map<string, unknown>()
+    const scalarKey = (key: unknown) => { if (observation.nativeEquality === 'scalar' && object(key)) unsupported('foreign container equality or object keys') }
+    const same = (a: unknown, b: unknown) => { scalarKey(a); scalarKey(b); return equal(a, b) }
+    const at = (container: unknown, key: unknown) => { scalarKey(key); return get(container, key) }
+    const contains = (container: unknown, key: unknown) => { scalarKey(key); return has(container, key) }
+    const observedReading = (e: X & {k: 'path'}, state: unknown): {value: unknown, consumed: number} | undefined => {
+      const fields = [e.head]
+      for (const segment of e.segs) { if (!('f' in segment)) break; fields.push(segment.f) }
+      const ordinary = Object.hasOwn(observation.bindings, e.head) || object(state) && e.head in state || Object.hasOwn(observation.params, e.head)
+      const matches = readings.flatMap(reading => {
+        if (reading.method && reading.method !== observation.method) return []
+        const parts = reading.code.split('.')
+        let consumed: number
+        if (parts.every((part, i) => fields[i] === part)) consumed = parts.length - 1
+        else if (parts.at(-1) === e.head) consumed = 0
+        else return []
+        const next = e.segs[consumed], called = next && 'call' in next
+        if (ordinary && !called || reading.kind === 'clock' && called) return []
+        if (called && next.args) return unsupported('specific arguments on an observed one-value-per-step answer')
+        return [{reading, consumed: consumed + (called ? 1 : 0)}]
+      }).sort((a, b) => b.consumed - a.consumed)
+      if (!matches.length) return undefined
+      const selected = matches[0]!
+      if (matches.some(other => other.consumed === selected.consumed && (other.reading.key !== selected.reading.key || other.reading.kind !== selected.reading.kind)))
+        return unsupported(`ambiguous observed answer ${e.head}`)
+      const reading = selected.reading
+      if (reading.kind === 'clock') {
+        if (reading.key !== 'now' || observation.observed?.clock === undefined) return unsupported('unobserved native clock read')
+        return {value: observation.observed.clock, consumed: selected.consumed}
+      }
+      const expected = reading.kind === 'raises' ? `${reading.key}.raises` : reading.key
+      if (reading.code !== expected) return unsupported('native answer binding does not identify its original call')
+      const call = observation.observed?.calls[reading.key]
+      if (!call) return unsupported(`unobserved native call ${reading.key}`)
+      if (reading.kind === 'raises') return {value: call.kind === 'raised' ? call.raised : null, consumed: selected.consumed}
+      if (call.kind !== 'returned') return unsupported(`native call ${reading.key} raised instead of returning`)
+      return {value: call.value, consumed: selected.consumed}
+    }
     const evaluate = (e: X, old = false): unknown => {
       switch (e.k) {
         case 'num': case 'bool': return e.v
@@ -61,8 +99,10 @@ export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) =>
         }
         case 'path': {
           const state = old ? observation.before : observation.after
+          const reading = observedReading(e, state)
           let value: unknown
-          if (['this', 'self'].includes(e.head)) value = state
+          if (reading) value = reading.value
+          else if (['this', 'self'].includes(e.head)) value = state
           else if (e.head === 'before') value = observation.before
           else if (e.head.startsWith('@') && object(state)) value = state[e.head.slice(1)]
           else if (locals.has(e.head)) value = locals.get(e.head)
@@ -80,20 +120,20 @@ export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) =>
           else if (knownNames.has(e.head)) return unsupported(`native value of ${e.head} is unavailable`)
           else if (!e.segs.length) value = e.head // A bare enum label; buildLaw already checked its domain.
           else return unsupported(`name ${e.head}`)
-          for (let i = 0; i < e.segs.length; i++) {
+          for (let i = reading?.consumed ?? 0; i < e.segs.length; i++) {
             const s = e.segs[i]!
             if ('f' in s) {
               const next = e.segs[i + 1]
               if (next && 'call' in next && ((tag(value, 'Map') && ['get', 'has'].includes(s.f)) || (tag(value, 'Set') && s.f === 'has'))) {
                 const key = next.args ? evaluate(parse(next.args), old) : undefined
-                value = s.f === 'get' ? get(value, key) : has(value, key); i++
+                value = s.f === 'get' ? at(value, key) : contains(value, key); i++
               } else if (s.f === 'size' && (tag(value, 'Map') || tag(value, 'Set'))) value = (value as Map<unknown, unknown>).size
-              else value = get(value, s.f)
+              else value = at(value, s.f)
             }
-            else if ('i' in s) value = get(value, evaluate(s.i, old))
+            else if ('i' in s) value = at(value, evaluate(s.i, old))
             else if (i === 0 && e.head === observation.method) {
               const expected = s.args ? s.args.split(',').map(a => evaluate(parse(a), old)) : []
-              if (expected.length && (expected.length !== observation.args.length || expected.some((v, k) => !equal(v, observation.args[k])))) return unsupported('a method call with different arguments')
+              if (expected.length && (expected.length !== observation.args.length || expected.some((v, k) => !same(v, observation.args[k])))) return unsupported('a method call with different arguments')
             } else return unsupported('an unobserved method call')
           }
           return value
@@ -106,8 +146,8 @@ export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) =>
           const calendar = e.a.k === 'bdur' || e.b.k === 'bdur'
           const a = calendar ? calendarOperand(e.a) : evaluate(e.a, old), b = calendar ? calendarOperand(e.b) : evaluate(e.b, old)
           switch (e.op) {
-            case '==': return equal(a, b)
-            case '!=': return !equal(a, b)
+            case '==': return same(a, b)
+            case '!=': return !same(a, b)
             case '<': return number(a) < number(b)
             case '<=': return number(a) <= number(b)
             case '>': return number(a) > number(b)
@@ -120,7 +160,7 @@ export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) =>
             case '%': return number(a) % number(b)
             case '&': return number(a) & number(b)
             case '|': return number(a) | number(b)
-            case 'in': return has(b, a)
+            case 'in': return contains(b, a)
             default: return unsupported(`operator ${e.op}`)
           }
         }

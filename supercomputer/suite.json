@@ -1270,7 +1270,7 @@
  },
  {
  "name": "native-observation-controls",
-"cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/jvm/jvm-setup.sh && bun test --timeout 180000 core/extract-step-native.test.ts core/extract-jvm-native.test.ts core/native-wire.test.ts 2>&1",
+"cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/jvm/jvm-setup.sh && bun test --timeout 180000 core/extract-step-native.test.ts core/extract-jvm-native.test.ts core/native-wire.test.ts core/jvm-observations.test.ts 2>&1",
 "cwd": ".",
 "cpu": 2.0,
 "memory": 4096,

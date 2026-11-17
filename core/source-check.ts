@@ -1,11 +1,13 @@
 // Source proofs are proofs of translated rules. Keep their native observations outside the
 // symbolic rule and outside serialized evidence, and require a native-law check at finalization.
 // This module has no extractor/TypeScript dependency: ordinary builder proofs stay unchanged.
+import type {NativeExecutionObservation} from './native-observations.ts'
 export type Translation = 'exhaustive' | 'sampled' | 'unchecked' | 'error'
 export type NativeObservation = {
   where: string, method?: string, before: unknown, after: unknown,
   params: Record<string, unknown>, inputs: Record<string, unknown>, bindings: Record<string, unknown>,
   args: unknown[], result: unknown, failed: boolean, legacyResult?: boolean,
+  observed?: NativeExecutionObservation, nativeEquality?: 'scalar',
 }
 export type NativeJournal = {
   enabled: boolean, complete: boolean, scope: 'exhaustive' | 'sampled', reason?: string,
