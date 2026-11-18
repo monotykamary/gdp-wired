@@ -274,10 +274,17 @@ ${read.answers?.length ? `// The stub point of an answered call, by the callee's
 // request's input for it, 0 where it is none.
 #include <stdlib.h>
 static const char *gdp_answers;
+static unsigned long long gdp_invocation, gdp_answer_values[${read.answers.length}];
+static unsigned char gdp_answer_seen[${read.answers.length}], gdp_answer_signed[${read.answers.length}];
+static unsigned long long gdp_note_answer(unsigned index, unsigned long long value, int is_signed) {
+  gdp_answer_seen[index] = 1; gdp_answer_values[index] = value; gdp_answer_signed[index] = is_signed;
+  return value;
+}
 static const char *gdp_key(const char *p, const char *k);
 static long long gdp_answer(const char *name) {
   const char *a = gdp_answers ? gdp_key(gdp_answers, name) : 0, *v = a ? gdp_key(a, "in") : 0;
   if (!v) return 0;
+  if (*v == 't') return 1;
   if (*v == '"') v++;
   return strtoll(v, 0, 10);
 }
@@ -385,6 +392,14 @@ static const char *gdp_frame(gdp_T *o) {
 static const char *gdp_extern;
 ${cpp ? 'extern "C" ' : ''}void gdp_extern_called(const char *n) { gdp_extern = n; if (gdp_armed) { gdp_armed = 0; siglongjmp(gdp_jb, SIGUSR1); } abort(); }
 static const char *gdp_after(gdp_T *o) {
+  ${read.answers?.length ? `${emit(',"nativeObservations":{"invocation":')} gdp_putf("%llu", gdp_invocation); ${emit(',"calls":{')}
+  int seen = 0;
+  ${read.answers.map((a, i) => {
+    const bool = /^bool\b/.test(a.sort)
+    if (!bool && !a.range) return ''
+    return `if (gdp_answer_seen[${i}]) { if (seen++) gdp_putf(","); ${emit(`${q(a.key)}:{"kind":"returned","value":`)} ${bool ? `gdp_putf("%s", gdp_answer_values[${i}] ? "true" : "false");` : `if (gdp_answer_signed[${i}]) gdp_putf("%lld", (long long)gdp_answer_values[${i}]); else gdp_putf("%llu", gdp_answer_values[${i}]);`} gdp_putf("}"); }`
+  }).join('\n  ')}
+  gdp_putf("}}");` : ''}
   const char *f = gdp_frame(o);
   if (f) { gdp_putf(",\\"frame\\":\\"%s\\"", f); }
   if (gdp_sig) gdp_putf(",\\"panic\\":\\"%s\\"", gdp_sig == SIGABRT ? "SIGABRT (abort, or an assertion failing)" : gdp_sig == SIGTRAP || gdp_sig == SIGILL ? "undefined behavior (the sanitizer's trap)" : gdp_sig == SIGUSR1 ? "another file's function called" : gdp_sig == SIGUSR2 ? "an exception thrown" : gdp_sig == SIGALRM ? "the code didn't return (an endless loop)" : "a signal");
@@ -398,6 +413,7 @@ ${make}
 static const char *gdp_call(gdp_T *o, const char *m, const char *a) {
   const char *v; (void)v; (void)a;
   gdp_sig = gdp_err = gdp_has = gdp_outu = gdp_isb = gdp_rec = 0; gdp_outv = 0; gdp_native_bad = 0;
+  ${read.answers?.length ? '++gdp_invocation; memset(gdp_answer_seen, 0, sizeof gdp_answer_seen);' : ''}
   ${calls.join('\n  ')}
   return "no such function";
 }
@@ -419,7 +435,7 @@ int main(int argc, char **argv) {
     const char *op = gdp_key(line, "op"), *id = gdp_key(line, "id");
     long long k = 0; unsigned long long ku; if (id) gdp_int(id, 64, 1, &k, &ku);
     gdp_n = 0;
-    if (op && !strncmp(op + 1, "hello", 5) && op[6] == '"') { ${emit('{"nativeSnapshot":1,"nativeBindings":1,"nativeEquality":"scalar"}')} }
+    if (op && !strncmp(op + 1, "hello", 5) && op[6] == '"') { ${emit(JSON.stringify({nativeSnapshot: 1, nativeBindings: 1, nativeEquality: 'scalar', ...(read.answers?.length ? {nativeObservations: 1} : {})}))} }
     else if (op && !strncmp(op + 1, "native", 6) && op[7] == '"') { gdp_native(objs[k - 1]); }
     else if (op && !strncmp(op, "\\"new\\"", 5)) { const char *bad = 0; gdp_T *o = gdp_make(line, &bad); if (!o) gdp_putf("{\\"bad\\":\\"%s\\"}", bad); else { objs = (gdp_T **)realloc(objs, ++nobj * sizeof *objs); objs[nobj - 1] = o; gdp_putf("{\\"id\\":%zu}", nobj); } }
     else if (op && !strncmp(op, "\\"at\\"", 4)) {
@@ -466,7 +482,7 @@ export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r:
   const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process'), os = node<{tmpdir: () => string, platform: () => string}>('node:os'), path = node<{resolve: (p: string) => string}>('node:path')
   const work = fs.mkdtempSync(`${os.tmpdir()}/gdp-ccheck-`), b0 = performance.now()
   // (each answered call rewritten to the harness's answer in a copy of the file, its own includes found beside it)
-  const copy = stubbed(read as never, f => fs.readFileSync(`${path.resolve(file).replace(/[^/]*$/, '')}${f}`, 'utf8'), a => `((${a.ty})gdp_answer(${JSON.stringify(a.key)}))`)
+  const copy = stubbed(read as never, f => fs.readFileSync(`${path.resolve(file).replace(/[^/]*$/, '')}${f}`, 'utf8'), (a, i) => `((${a.ty})gdp_note_answer(${i}, (unsigned long long)((${a.ty})gdp_answer(${JSON.stringify(a.key)})), (${a.ty})-1 < (${a.ty})0))`)
   for (const [f, t] of copy) fs.writeFileSync(`${work}/${f}`, t)
   const code = harnessC(copy.size ? `${work}/${path.resolve(file).split('/').pop()}` : path.resolve(file), c, read, opts, cpp)
   if (copy.size) flags = [...flags, '-iquote', path.resolve(file).replace(/\/[^/]*$/, '')]

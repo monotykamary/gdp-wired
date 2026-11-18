@@ -15,6 +15,7 @@ import {type CodeSide, type Coverage, type Evidence, Outside, type Snap, constan
 import {buildCheck, builtEvidence, compileLimit, openHarness, stopped, stubbed} from './extract-step.ts'
 import {type GoOptions, type GoPkg, type GoRead, type TT, node} from './extract-go.ts'
 import {nativeWireDecoder, snapshotNativeBindings} from './native-wire.ts'
+import {type NativeExecutionObservation, nativeObservationSequence} from './native-observations.ts'
 
 export type GoLeaf = {name: string, path: string[], kind: 'int' | 'bool' | 'str' | 'big' | 'bignil' | 'map' | 'mapnil' | 'list' | 'frame' | 'sink', t: number, go: string}
 export type GoCheckOptions = {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean, keep?: string}
@@ -509,6 +510,8 @@ export function speak(work: string, bin: string, env: Record<string, string | un
     const capabilities = ask({op: 'hello'})
     const decode = capabilities.nativeSnapshot === 1 || capabilities.nativeBindings === 1 ? nativeWireDecoder() : undefined
     let bindings: {snapshot?: unknown, error?: string} | undefined
+    const acceptObservation = capabilities.nativeObservations === 1 ? nativeObservationSequence(new Set(read.answers?.map(a => a.key))) : undefined
+    let observations: unknown, observedCache: NativeExecutionObservation | undefined
     // A state from the harness as a snapshot (a number past the safe integers: the code leaves the rule's numbers).
     const toSnap = (s: Record<string, unknown>): Snap => {
       const leaves: Record<string, Raw> = {}, maps: Snap['maps'] = {}, lists: Record<string, Raw[]> = {}
@@ -568,6 +571,8 @@ export function speak(work: string, bin: string, env: Record<string, string | un
         }
         const res = ask({op: 'call', id: self, m: e.call, now, a: args, ...(answers ? {answers} : {})}) as {out?: unknown, hasOut?: boolean, err?: string, panic?: string, bad?: string, frame?: string}
         bindings = (res as {nativeBindings?: typeof bindings}).nativeBindings
+        observations = (res as {nativeObservations?: unknown}).nativeObservations
+        observedCache = undefined
         if (res.frame) throw new Error(`the code changes ${res.frame}, a field the rule leaves out`)
         if (res.bad) return {ok: false, error: `the code can't be given it (${res.bad})`}
         if (res.err !== undefined || res.panic !== undefined) return {ok: false, error: res.err !== undefined ? `error: ${res.err}` : `panic: ${res.panic}`}
@@ -582,6 +587,7 @@ export function speak(work: string, bin: string, env: Record<string, string | un
         if (bindings?.error) throw new Error(`native parameter capture: ${bindings.error}`)
         return bindings?.snapshot ? snapshotNativeBindings(decode, bindings.snapshot) : undefined
       }} : {}),
+      ...(acceptObservation ? {nativeObservations: () => (observedCache ??= acceptObservation(observations))} : {}),
       args: (inputs, e) => e.args.map(a => argJson(a, inputs)),
       setNow: n => { if (!Number.isSafeInteger(n)) throw new Outside('Go clock outside the exact integer range'); now = n },
       coverage: () => (coverage ??= closeAndCount()),

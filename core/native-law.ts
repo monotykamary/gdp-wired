@@ -4,6 +4,7 @@ import type {X, LawOpts} from './laws.ts'
 import {type NativeObservation, nativeSame} from './source-check.ts'
 import type {NativeReading} from './native-observations.ts'
 import type {Name} from './extract.ts'
+import {answerSignature} from './law-answer.ts'
 const NONE = Symbol('language None')
 const truthy = (value: unknown): boolean => value !== NONE && Boolean(value)
 const object = (x: unknown): x is Record<string, unknown> => x !== null && (typeof x === 'object' || typeof x === 'function')
@@ -52,8 +53,12 @@ export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) =>
       const fields = [e.head]
       for (const segment of e.segs) { if (!('f' in segment)) break; fields.push(segment.f) }
       const ordinary = Object.hasOwn(observation.bindings, e.head) || object(state) && e.head in state || Object.hasOwn(observation.params, e.head)
+      const segment = e.segs[fields.length - 1]
+      const specific = segment && 'call' in segment && segment.args ? `${fields.join('.')}_${answerSignature(segment.args, constants)}` : undefined
+      let unsupportedArgs = false
       const matches = readings.flatMap(reading => {
         if (reading.method && reading.method !== observation.method) return []
+        if (specific && reading.kind === 'answer' && reading.code === specific && reading.key === specific) return [{reading, consumed: fields.length}]
         const parts = reading.code.split('.')
         let consumed: number
         if (parts.every((part, i) => fields[i] === part)) consumed = parts.length - 1
@@ -61,10 +66,10 @@ export function nativeLaw(expression: X, opts: LawOpts, parse: (text: string) =>
         else return []
         const next = e.segs[consumed], called = next && 'call' in next
         if (ordinary && !called || reading.kind === 'clock' && called) return []
-        if (called && next.args) return unsupported('specific arguments on an observed one-value-per-step answer')
+        if (called && next.args) { unsupportedArgs = true; return [] }
         return [{reading, consumed: consumed + (called ? 1 : 0)}]
       }).sort((a, b) => b.consumed - a.consumed)
-      if (!matches.length) return undefined
+      if (!matches.length) return unsupportedArgs ? unsupported('specific arguments on an observed one-value-per-step answer') : undefined
       const selected = matches[0]!
       if (matches.some(other => other.consumed === selected.consumed && (other.reading.key !== selected.reading.key || other.reading.kind !== selected.reading.kind)))
         return unsupported(`ambiguous observed answer ${e.head}`)

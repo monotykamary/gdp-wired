@@ -372,6 +372,26 @@ void trigger(void) {
   inv(x, 'the timer stays below 3', ({s_timer}: A) => s_timer.atMost(2), 's.timer <= 2')
 }, 120_000)
 
+t('native C laws bind globals, request parameters and distinct constant-argument answers', () => {
+  const x = ok(c(`
+#include <stdbool.h>
+enum { LEFT = 1, RIGHT = 2 };
+bool allowed(unsigned request, int option);
+static bool accepted;
+void choose(unsigned request) {
+  if (request == 0) accepted = allowed(request, LEFT);
+  else accepted = allowed(request, RIGHT);
+}
+`, 'case'))
+  expect(x.names).toEqual(expect.arrayContaining([
+    expect.objectContaining({code: 'allowed_x_1', role: 'answer'}),
+    expect.objectContaining({code: 'allowed_x_2', role: 'answer'}),
+  ]))
+  const law = buildLaw(x, {name: 'the selected answer updates the global', method: 'choose',
+    expr: '(request == 0 implies accepted == allowed(request, LEFT)) and (request != 0 implies accepted == allowed(request, RIGHT))'})
+  native(proveSteps(x.rule!, x.invariants ?? [], [law.law]), 'globals, pre-call request and keyed native answers')
+}, 60_000)
+
 t('floats only written are left out; one read into a condition is refused', () => {
   const x = ok(c(`
 #include <stdint.h>

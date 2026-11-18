@@ -81,6 +81,17 @@ test('native readings remain method-scoped and cannot rename another call into t
   expect(() => evaluate('Quota.ttl(...) == 6', observation(), [{code: 'Quota.ttl', key: 'Quota.ttl', kind: 'answer', method: 'other'}])).toThrow()
   expect(() => evaluate('ttl(...) == 6', observation(), [...readings, {code: 'Other.ttl', key: 'Other.ttl', kind: 'answer'}])).toThrow('ambiguous')
 })
+test('constant-argument answers require the exact executed key, never another stub or a requested answer', () => {
+  const bindings: NativeReading[] = ['check', 'check_x_1', 'check_x_2'].map(key => ({code: key, key, kind: 'answer'}))
+  const row = {...observation(), inputs: {check_x_1: true}, observed: {invocation: 1, calls: {
+    check: {kind: 'returned' as const, value: true}, check_x_2: {kind: 'returned' as const, value: false},
+  }}}
+  const check = (text: string) => nativeLaw(parse(text), {}, parse, {LEFT: 1, RIGHT: 2}, new Set(), bindings)(row)
+  expect(check('check(input, RIGHT) == false')).toBe(true)
+  expect(() => check('check(input, LEFT) == true')).toThrow('unobserved native call check_x_1')
+  expect(() => check('check(input, 3) == true')).toThrow('specific arguments')
+})
+
 test('external suffix aliases do not shadow reserved results, constants or the primary method', () => {
   const aliases: NativeReading[] = ['result', 'failed', 'method', 'limit', 'grant'].map(name => ({code: `Provider.${name}`, key: `Provider.${name}`, kind: 'answer'}))
   const row: NativeObservation = {...observation(), result: 41, failed: true, observed: {invocation: 1, calls: {

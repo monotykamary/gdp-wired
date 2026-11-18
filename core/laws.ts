@@ -32,6 +32,7 @@ import type {Extraction, Name} from './extract.ts'
 import {copyVariable} from './dsl-binders.ts'
 import {attachNativeLaw} from './source-check.ts'
 import {nativeLaw} from './native-law.ts'
+import {answerSignature} from './law-answer.ts'
 import {type AnyRule, type TwoRunLaw, agreement, isolation, noninterference} from './relational.ts'
 import {type BusinessDays, type Calendar, CalendarError, businessDays} from './calendar.ts'
 export {businessDays, type Calendar} from './calendar.ts'
@@ -533,7 +534,7 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
   // (a call answered per constant arguments, C's: f(em, BUS_OFF) its answer f_x_18, by the code's constants)
   const call0 = e.segs[0]
   if (call0 && 'call' in call0 && call0.args && names.some(x => x.role === 'answer' && x.code.startsWith(`${e.head}_`))) {
-    const sig = splitArgs(call0.args).map(a => { const k = /^-?\d+$/.test(a) ? Number(a) : /^[A-Za-z_]\w*$/.test(a) ? c.consts?.[a] : undefined; return typeof k === 'number' ? String(k).replace('-', 'm') : 'x' }).join('_')
+    const sig = answerSignature(call0.args, c.consts)
     const per = names.find(x => x.role === 'answer' && x.code === `${e.head}_${sig}`)
     if (!per) throw new LawError(`${e.head}(${call0.args}): no answer of the code for these arguments (its answers: ${names.filter(x => x.role === 'answer' && x.code.startsWith(`${e.head}_`)).map(x => x.code).join(', ')})`)
     c.roles.add(per.role)
@@ -556,7 +557,7 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
         // (an answered call is one value a step, whatever its arguments: written f(...) or f())
         if (hit.role === 'answer' && next && 'call' in next && next.args) {
           // (a call answered per constant arguments, C's: f(em, BUS_OFF) its answer f_x_18, by the code's constants)
-          const sig = splitArgs(next.args).map(a => { const k = /^-?\d+$/.test(a) ? Number(a) : /^[A-Za-z_]\w*$/.test(a) ? c.consts?.[a] : undefined; return typeof k === 'number' ? String(k).replace('-', 'm') : 'x' }).join('_')
+          const sig = answerSignature(next.args, c.consts)
           const per = names.find(x => x.role === 'answer' && x.code === `${code}_${sig}`)
           if (per) { c.roles.add(per.role); return rest(e.segs.slice(skip + n), leaf(per, c, dry), c, names, dry, e) }
           throw new LawError(`${code}(${next.args}): an answered call's value is the request's, one a step: write it ${code}(...)`)
@@ -809,6 +810,3 @@ function split(s: string, sep: string): string[] {
   for (let i = topIndex(rest, sep); i >= 0; i = topIndex(rest, sep)) { out.push(rest.slice(0, i)); rest = rest.slice(i + sep.length) }
   return [...out, rest].map(t => t.trim()).filter(Boolean)
 }
-
-// (a call's arguments as written, split at the commas outside parentheses)
-function splitArgs(s: string): string[] { const out: string[] = []; let d = 0, cur = ''; for (const ch of s) { if (ch === '(' || ch === '[') d++; else if (ch === ')' || ch === ']') d--; if (ch === ',' && !d) { out.push(cur.trim()); cur = '' } else cur += ch } if (cur.trim()) out.push(cur.trim()); return out }
