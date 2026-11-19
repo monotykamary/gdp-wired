@@ -58,7 +58,8 @@ export async function checkAdmissionControls(): Promise<string[]> {
   await refused('root-proxy', proxy, law, /passive data/)
   const proxyTerm = new Proxy(law.holds, {ownKeys: () => { called(); return [] }})
   await refused('nested-proxy', machine, {...law, holds: proxyTerm}, /passive JSON data/)
-  const sparse = [...machine.inputs]; delete sparse[0]
+  const sparse = [...machine.inputs]
+  assert(Reflect.deleteProperty(sparse, '0'))
   await refused('sparse-array', {...machine, inputs: sparse}, law, /dense/)
   const decorated = Object.assign([...machine.inputs], {extra: 0})
   await refused('array-extra-data', {...machine, inputs: decorated}, law, /extra properties/)
