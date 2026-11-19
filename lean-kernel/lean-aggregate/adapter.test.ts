@@ -2,6 +2,7 @@ import {expect, test} from 'bun:test'
 import {n, same} from '../../core/machine.ts'
 import {proveLeanAggregate} from './index.ts'
 import {exactAxioms} from './audit.ts'
+import {checkAdmissionControls} from './admission-controls.ts'
 
 const row = (axioms: string) => `'aggregate_claim' depends on axioms: [${axioms}]`
 test('aggregate audit requires the exact theorem and only fully qualified standard axioms', () => {
@@ -11,6 +12,10 @@ test('aggregate audit requires the exact theorem and only fully qualified standa
     row('propext').replace('aggregate_claim', 'auxiliary'), `${row('propext')}\n${row('propext')}`,
     `Aggregate.lean:1:0: error: failed\n${row('propext')}`, `Aggregate.lean:1:0: warning: declaration uses 'sorry'\n${row('propext')}`])
     expect(() => exactAxioms(output)).toThrow()
+})
+
+test('aggregate admission refuses hooks, provenance, and invalid source scope', async () => {
+  await checkAdmissionControls()
 })
 
 test('unsupported inputs do not yield a native verdict or Lean receipt', async () => {

@@ -91,9 +91,16 @@ export type RealItem = {
 }
 
 const search = (ms: number) => ({search: {ms}})
+// Keep the original corpus pair available for independent replay without
+// changing corpus output or rebuilding the formula from its display name.
+const invariantInputs = new WeakMap<RealLaw, readonly [AnyRule, Law]>()
+export const invariantInput = (row: RealLaw) => invariantInputs.get(row)
 // An invariant, alone, with the default search.
-export const invariant = (r: AnyRule, law: Law, kind: LawKind, intent: Intent, why: string): RealLaw =>
-  ({name: law.name, kind, intent, why, form: 'invariant', prove: ms => proveRule(r, [law], search(ms))})
+export const invariant = (r: AnyRule, law: Law, kind: LawKind, intent: Intent, why: string): RealLaw => {
+  const row: RealLaw = {name: law.name, kind, intent, why, form: 'invariant', prove: ms => proveRule(r, [law], search(ms))}
+  invariantInputs.set(row, [r, law])
+  return row
+}
 // A one-step (or k-step) law, alone: the search finds the invariants it assumes.
 export const stepLaw = (r: AnyRule, sl: StepLaw, kind: LawKind, intent: Intent, why: string): RealLaw =>
   ({name: sl.name, kind, intent, why, form: 'step', prove: ms => proveSteps(r, [], [sl], search(ms))})

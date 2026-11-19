@@ -37,6 +37,9 @@ function propose(machine: Machine, law: Law, ms: number): SearchResult {
   return {kind: 'refused', reason: 'search', detail: 'Finite-fold local goals did not close.'}
 }
 
-const {machine, law, ms} = workerData as {machine: Machine, law: Law, ms: number}
-try { parentPort!.postMessage(propose(machine, law, ms)) }
+const {source, ms} = workerData as {source: string, ms: number}
+try {
+  const [machine, law] = JSON.parse(source) as [Machine, Law]
+  parentPort!.postMessage(propose(machine, law, ms))
+}
 catch (e) { parentPort!.postMessage({kind: 'refused', reason: 'search', detail: String(e)} satisfies SearchResult) }
