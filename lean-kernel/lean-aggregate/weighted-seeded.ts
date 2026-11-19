@@ -1,5 +1,5 @@
 import {type C,type E,n,same,x} from '../../core/machine.ts'
-import {type Goal,type Instances,type Path,type Tree,check,checkLaws,obligations,sumParts} from '../../kernel/kernel.ts'
+import {type Goal,type Instances,type Path,type Tree,checkLaws,obligations,sumParts} from '../../kernel/kernel.ts'
 import {clock,grow} from '../../kernel/prove.ts'
 import {countGuardTree} from '../../core/count-guard-tree.ts'
 import type {WeightedCandidate} from './weighted.ts'
@@ -36,7 +36,7 @@ export function proveWeightedSeeded(c:WeightedCandidate,ms:number,observe:(x:obj
     const split=countGuardTree(until,{yesFirst:true})
     const branch=(at:number,path:Path):Tree|undefined => {
       if(at===addressConditions.length){
-        const proof=one(goal,path,Math.min(closed.length?2500:8000,until-clock()))
+        const proof=one(goal,path,Math.min(closed.length?6000:8000,until-clock()))
         if(!proof&&closed.length)observe({goal:goal.name,phase:'leaf',path:[...path.values()].slice(-12)})
         return proof
       }

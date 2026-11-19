@@ -74,6 +74,11 @@ test('a ring request with an undeclared term or primitive failure cannot replay'
   const good = {...ring, sets: [{holds: l.from, request: {op: zero, spare: zero}}]}
   expect(refutedBy(m, [], l, good).refuted).toBe(true)
   expect(refutedBy({...m, primitiveFailure: l.from}, [], l, good).refuted).toBe(false)
+  const big = {...m, state: {s: {op: 'const' as const, value: Number.MAX_SAFE_INTEGER}}}
+  const overflow = {...good, sets: [{holds: {op: 'and' as const, xs: []}, request: {op: zero, spare: {op: 'add' as const,
+    a: {op: 'var' as const, name: 's'}, b: {op: 'const' as const, value: 1}}}}]}
+  const never = {...l, from: {op: 'and' as const, xs: []}, to: {op: '<' as const, a: zero, b: zero}}
+  expect(refutedBy(big, [], never, overflow).refuted).toBe(false)
 })
 
 test('a frontier-derived clock bound is checked, not assumed', () => {

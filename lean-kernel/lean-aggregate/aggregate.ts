@@ -1,6 +1,6 @@
 // Untrusted, intentionally small syntax recognizers. Their products are
 // candidates for exact finite-fold replay, never extra source facts.
-import { type C, type E, type Law, type Machine, get, n, x, plus, same } from '../../core/machine.ts'
+import { type C, type E, type Law, type Machine, get, n, x, plus } from '../../core/machine.ts'
 import { substC } from '../../kernel/kernel.ts'
 
 const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)

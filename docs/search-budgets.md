@@ -25,8 +25,10 @@ or bypass `from: 'any'` and `search: false`.
 
 A verdict may carry `acceleratedRun` (a finite run with checked repeat
 segments and a total step count) or `fairRing` (a checked recurring run for a
-liveness law). Neither is an expanded finite `run`, and neither is a native
-source replay for an extracted model. Evidence labelled **checked in Lean,
+liveness law). A fair ring replays the stem and first lap in the interpreter;
+its symbolic recurrence is over the unbounded natural model, not a promise
+of unbounded host execution. Neither field is an expanded finite `run` or
+native source replay for an extracted model. Evidence labelled **checked in Lean,
 not by the kernel** comes only from the separate [opt-in aggregate API](lean-aggregate.md).
 
 ## An optional real safety watchdog

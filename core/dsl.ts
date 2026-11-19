@@ -3158,7 +3158,7 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
       !Object.keys(r.machine.sums ?? {}).length) {
     const law = laws[0]!
     if (search?.work === undefined && !completeWorkProfile.enabled && seedMs > 0 && Number.isFinite(seedMs)) {
-      const lockstep = tryLockstepScalars(captureMachine, law, withKinds(r, [law]).slice(0, -1), Math.min(seedMs / 6, 4500))
+      const lockstep = tryLockstepScalars(captureMachine, law, withKinds(r, [law]).slice(0, -1), Math.min(seedMs / 2, 26_000))
       if (lockstep) return lockstep
     }
     if (!Object.keys(captureMachine.fns ?? {}).length && law.forall && law.keys?.length === 1 &&
@@ -3239,7 +3239,7 @@ function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
   // explicit work accounting and real counterexample preflight unchanged.
   const sl = stepLaws.length === 1 ? stepLaws[0] : undefined
   const search = typeof opts.search === 'object' ? opts.search : undefined
-  const ms = Math.min(45_000, (search?.ms ?? 10_000) * 0.75)
+  const ms = Math.min(55_000, (search?.ms ?? 10_000) * (11 / 12))
   let fallback = opts
   const enabled = sl && opts.search !== false && opts.from !== 'any' &&
     search?.work === undefined && !inBudget() && !completeWorkProfile.enabled && ms > 0 && Number.isFinite(search?.ms ?? 10_000)

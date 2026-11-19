@@ -12,7 +12,6 @@ export function emitPointFold(packet: FoldPacket): string {
   assert(theory.bound.op==='var')
   const names = [...new Set([...m.params,...m.inputs,...Object.keys(m.state),...Object.keys(m.step.flags ?? {}).map(f=>`?${f}`),writes.each,coordinate])]
   const maps=[p.map], t=leanTerms(names,maps,'finite fold'), ix=(x:string)=>{const i=names.indexOf(x);assert(i>=0,x);return i}, mx=(name:string)=>{assert.equal(name,p.map);return 0}
-  const list=(xs:number[])=>`[${xs.join(',')}]`
   const certs=locals.map(loc=>{
     const goal=localGoal(loc), cert=encode({name:loc.name,goal,tree:packet.trees[loc.name]!},false,true,names,maps)
     const hypotheses=loc.assumptions.map((h,i)=>` (h${i} : holdsC env maps (${t.c(h)}))`).join('')

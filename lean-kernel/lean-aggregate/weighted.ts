@@ -1,7 +1,7 @@
 // Derive a filtered weighted-sum proposal from a guarded
 // subtraction and the write cluster it refers to; never assume the proposal.
 import {type C,type E,type Law,type Machine,get,n,same,walkOnce,x} from '../../core/machine.ts'
-import {ghostedMachine,ghostedOk,substC,substE,sumMachine,type Ghosted} from '../../kernel/kernel.ts'
+import {ghostedMachine,ghostedOk,substC,sumMachine,type Ghosted} from '../../kernel/kernel.ts'
 
 const text=(u:unknown)=>JSON.stringify(u)
 const eq=(a:unknown,b:unknown)=>text(a)===text(b)

@@ -4,7 +4,7 @@ import {type C, type E, type Law, type Machine, hasFinite} from './machine.ts'
 import {checkWorkEndpoint} from './wall.ts'
 import {type Instances, type StepLaw, type Tree, checkStepLaws, obligations, stepLawObligations} from '../kernel/kernel.ts'
 import {grow, proveStepLaws} from '../kernel/prove.ts'
-import {sparseKindProof} from './sparse-kind-proof.ts'
+import {kindConjuncts, sparseKindProof} from './sparse-kind-proof.ts'
 
 type Tagged<T, O> = T extends {op: infer K} ? O extends K ? T & {op: O} : never : never
 type Ast<O> = Tagged<C | E, O>
@@ -250,8 +250,8 @@ export function tryStepSeed(m: Machine, laws: Law[], kinds: Law[], sl: StepLaw, 
     // Kind laws are independent obligations of the public call, not optional
     // conclusions. Check them separately to keep the sparse step proof small.
     if (!extraKinds.length) return {family: seeds, checked}
-    const proof = sparseKindProof(m, extraKinds, Infinity)
-    return proof ? {family: seeds, checked, kindProof: {laws: extraKinds, proof}} : undefined
+    const kindLaws = kindConjuncts(extraKinds, seeds), proof = sparseKindProof(m, kindLaws, Infinity)
+    return proof ? {family: seeds, checked, kindProof: {laws: kindLaws, proof}} : undefined
   }
   const family = [...given, ...seeds], checked = proveStepLaws(m, family, [sl])
   if (!checked.proof || !checked.proven || !checked.checked || !checkStepLaws(m, family, [sl], checked.proof)) return undefined

@@ -3,7 +3,7 @@
 import type {E, Law, Machine} from './machine.ts'
 import {retainFamily} from './proof-output.ts'
 import {clock, withDeadline} from '../kernel/prove.ts'
-import {sparseKindProof} from './sparse-kind-proof.ts'
+import {kindConjuncts, sparseKindProof} from './sparse-kind-proof.ts'
 
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b)
 function renaming(e: E, self: string): string {
@@ -20,7 +20,7 @@ export function tryLockstepScalars(m: Machine, law: Law, kinds: Law[], ms: numbe
   if (!u || !v || a === b || !m.state[a] || !m.state[b] || !same(m.state[a], m.state[b]) || renaming(u, a) !== renaming(v, b)) return
   const until = clock() + ms
   return withDeadline(until, () => {
-    const laws = [...kinds, law], proof = sparseKindProof(m, laws, until)
+    const laws = [...kindConjuncts(kinds, [law]), law], proof = sparseKindProof(m, laws, until)
     return proof ? retainFamily({proven: true as const, checked: true as const}, m, laws, proof) : undefined
   })
 }
