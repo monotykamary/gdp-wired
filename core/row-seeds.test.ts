@@ -1,17 +1,19 @@
 import {expect, test} from 'bun:test'
-import {bool, everyKey, forall, nat, oneOf, proveRule, proveSteps, record, rule, when} from './dsl.ts'
+import {Choice, bool, everyKey, forall, nat, oneOf, proveRule, proveSteps, record, rule, when} from './dsl.ts'
 import {orderedPairSeed} from './ordered-pair-seeds.ts'
 import {stepProofOutput} from './proof-output.ts'
 import {stepSeedFamilies} from './step-seeds.ts'
 import {checkStepLaws} from '../kernel/kernel.ts'
 
-function allocation(broken = false) {
+function allocation(broken = false, invalidKind = false) {
   const Row = record({occupied: bool, frozen: bool, data: nat})
   const r = rule('allocation and freezing').inputs({kind: oneOf('allocate', 'freeze'), ix: nat, payload: nat})
+    .state({tag: oneOf('first', 'second').from('first')})
     .maps({row: Row.from({occupied: false, frozen: false, data: 0})})
     .flags(({kind, ix, row}) => ({allocate: kind.is('allocate').and(row.at(ix).occupied.not()),
       freeze: broken ? kind.is('freeze') : kind.is('freeze').and(row.at(ix).occupied)}))
-    .step(({ix, payload, row, allocate, freeze}) => ({row: row.each(k => {
+    .step(({ix, payload, row, allocate, freeze, tag}) => ({
+      tag: invalidKind ? new Choice(tag.index.plus(2), ['first', 'second']) : tag, row: row.each(k => {
       const old = row.at(k), make = ix.eq(k).and(allocate), seal = ix.eq(k).and(freeze)
       return {occupied: make.or(old.occupied), frozen: seal.or(old.frozen), data: when(make, payload, old.data)}
     })}))
@@ -43,6 +45,15 @@ test('a reachable allocation counterexample takes precedence over a support prop
   const v = proveSteps(r, [], [law], {search: {ms: 10_000}})
   expect(v.proven).toBe(false)
   expect(v.run?.trace).toHaveLength(2)
+}, 15_000)
+
+test('neither scalar lockstep nor a sparse row certificate may omit kind conclusions', () => {
+  const {r, law} = allocation(false, true)
+  expect(proveSteps(r, [], [law], {search: {ms: 1500}}).proven).toBe(false)
+  const scalars = rule('two increments with an invalid choice').state({a: 0, b: 0, tag: oneOf('x', 'y').from('x')})
+    .step(({a, b, tag}) => ({a: a.plus(1), b: b.plus(1), tag: new Choice(tag.index.plus(2), ['x', 'y'])}))
+  const equal = scalars.law('increments agree', ({a, b}) => a.eq(b))
+  expect(proveRule(scalars, [equal], {search: {ms: 1500}}).proven).toBe(false)
 }, 15_000)
 
 function catalog(hidden: boolean) {

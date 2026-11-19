@@ -19,6 +19,9 @@ import {clock, proveLiveness, proveProgress, proveStepLaws, withDeadline} from '
 import {allowed, watch} from './watch.ts'
 import {type LeadsVerdict, showE} from './cycles.ts'
 import {inferLaws} from './infer.ts'
+import {isSourceBound} from './source-check.ts'
+import {BudgetExpired, WallExpired} from './wall.ts'
+import {WatchdogExpired} from './search-watchdog.ts'
 
 type Env = Record<string, number>
 // `rule`: the rule the machine is, for inferLaws (which draws its runs and states by the rule's kinds).
@@ -279,15 +282,50 @@ export type Ring = {params: Env, stem: Request[], sets: {holds: C, request: Reco
 export type Fairness = 'taken' | 'weak' | 'strong'
 export type RingVerdict = {refuted: boolean, fair?: Fairness[], why?: string}
 const historyQueries = (m: Machine): string[] => Object.keys(m.history?.queries ?? {})
-const unsupportedHistory = (m: Machine): boolean => {
+const unsupportedRingMachine = (m: Machine): boolean => {
+  // Facts can restrict which parameters start a run. No name or bounded
+  // sample certifies a universally quantified fact. Refuse derived inputs,
+  // external functions, primitive traps and non-scalar client requests too.
+  if (m.primitiveFailure || m.facts?.length || Object.keys(m.fns ?? {}).length || Object.keys(m.leasts ?? {}).length ||
+      m.inputMaps?.length || Object.keys(m.counts ?? {}).length || Object.keys(m.sums ?? {}).length) return true
   if (!m.history) return false
-  // Progress's concrete request binds the plain machine's query inputs as placeholders. This can prove client
-  // enabledness only when the original assumption doesn't read them (including indirectly through a flag).
+  // The progress check supplies placeholders for original history queries.
+  // It can show enabledness only if the real assumption cannot read them.
   let flag = false
   walk(m.assume, o => { if (o.op === 'flag') flag = true })
-  // The interpreter does not retain bulk-write defaults on a history step. Don't certify reachability with them.
-  return !!(m.history.prune || m.primitiveFailure || flag || m.assume && readsC(m.assume, historyQueries(m)) ||
+  return !!(m.history.prune || flag || m.assume && readsC(m.assume, historyQueries(m)) ||
     Object.values(m.step.maps ?? {}).some(w => 'each' in w))
+}
+const natural = (x: unknown): boolean => typeof x === 'number' && Number.isSafeInteger(x) && x >= 0
+function ringScope(m: Machine) {
+  const plain = plainOf(m), vars = new Set([...m.params, ...Object.keys(plain.state)])
+  // Quantified/flag conditions and functions are not client policy syntax;
+  // all reads must be of explicit old state or parameters at every step.
+  function term(t: E, depth = 0): boolean {
+    if (!t || depth > 64) return false
+    const sub = (x: E) => term(x, depth + 1)
+    switch (t.op) {
+      case 'var': return vars.has(t.name)
+      case 'const': return natural(t.value)
+      case 'get': return Object.hasOwn(plain.maps ?? {}, t.map) && sub(t.key)
+      case 'if': return condition(t.c, depth + 1) && sub(t.then) && sub(t.else)
+      case 'mul': return natural(t.k) && sub(t.a)
+      case 'proj': return (t.k === 0 || t.k === 1) && sub(t.a)
+      case 'add': case 'sub': case 'max': case 'min': case 'prod': case 'tup': return sub(t.a) && sub(t.b)
+      default: return false
+    }
+  }
+  function condition(c: C, depth = 0): boolean {
+    if (!c || depth > 64) return false
+    switch (c.op) {
+      case '<': case '<=': case '=': return term(c.a, depth + 1) && term(c.b, depth + 1)
+      case 'and': case 'or': return Array.isArray(c.xs) && c.xs.every(x => condition(x, depth + 1))
+      case 'not': return condition(c.x, depth + 1)
+      case 'all': case 'flag': return false
+      default: return false
+    }
+  }
+  return {term, condition}
 }
 const postState = (m: Machine): Subst => {
   const plain = plainOf(m) // log sums are state in the actual postcondition
@@ -295,13 +333,25 @@ const postState = (m: Machine): Subst => {
     maps: Object.fromEntries(Object.keys(plain.maps ?? {}).map(map => [map, (key: E): E => ({op: 'get', map: `${map}'`, key})])), flags: {}}
 }
 export function refutedBy(m: Machine, laws: Law[], l: Liveness, ring: Ring): RingVerdict {
+  try { return checkRing(m, laws, l, ring) }
+  catch (e) {
+    if (e instanceof BudgetExpired || e instanceof WallExpired || e instanceof WatchdogExpired) throw e
+    return {refuted: false, why: String(e)}
+  }
+}
+function checkRing(m: Machine, laws: Law[], l: Liveness, ring: Ring): RingVerdict {
+  if (isSourceBound(m, [...laws, l])) return {refuted: false, why: 'a model ring is not a source counterexample'}
+  if (unsupportedRingMachine(m)) return {refuted: false, why: 'ring proof does not support these machine facts, functions, requests or history effects'}
+  livenessParts(m, {...l, rank: [k(0)]})
   const n = ring.sets.length, queries = historyQueries(m), inputs = m.inputs.filter(i => !queries.includes(i))
-  if (unsupportedHistory(m)) return {refuted: false, why: 'history needs query-independent enabledness and no pruning or bulk map writes'}
-  // Share liveness's validation of helpful client fields, regions and state-relative terms. A ring needs no rank.
-  try { livenessParts(m, {...l, rank: [k(0)]}) } catch (e) { return {refuted: false, why: String(e)} }
-  if (ring.sets.some(s => Object.keys(s.request).some(i => !inputs.includes(i)))) return {refuted: false, why: 'a ring request names a non-client field'}
-  const run = interpret(m), helpful = livenessHelpful(l)
+  const run = interpret(m), helpful = livenessHelpful(l), scope = ringScope(m)
+  const exactNaturals = (xs: object, names: string[]) => Object.keys(xs).length === names.length && names.every(name => Object.hasOwn(xs, name) && natural((xs as Record<string, unknown>)[name]))
   if (!n) return {refuted: false, why: 'no set'}
+  if (!exactNaturals(ring.params, m.params) || ring.stem.some(req => !exactNaturals(req, inputs))) return {refuted: false, why: 'malformed ring parameters or stem request'}
+  if (![l.from, l.to, ...helpful.map(h => h.when), ...ring.sets.map(s => s.holds)].every(c => scope.condition(c)))
+    return {refuted: false, why: 'ring predicates must read only the state and parameters'}
+  if ([...helpful, ...ring.sets].some(s => Object.entries(s.request).some(([name, t]) => !inputs.includes(name) || !scope.term(t))))
+    return {refuted: false, why: 'ring request needs a client field and a state-relative value'}
   if (m.pre && !evalC(m.pre, ring.params, {scalars: {}, maps: {}}, m)) return {refuted: false, why: 'the params break the precondition'}
   let st = run.init(ring.params)
   for (const [i, req] of ring.stem.entries()) {
@@ -356,7 +406,7 @@ export function refutedBy(m: Machine, laws: Law[], l: Liveness, ring: Ring): Rin
 // literal of R_{j+1} that R_j's request isn't proven to keep is dropped (Houdini, round the cycle) until each is kept;
 // then refutedBy checks the ring. The first ring refuted; else the first checked; undefined where no cycle is found.
 export function findRing(m: Machine, laws: Law[], l: Liveness, draws: Draws, opts: {ms?: number} = {}): {ring: Ring, verdict: RingVerdict} | undefined {
-  if (unsupportedHistory(m)) return
+  if (unsupportedRingMachine(m) || isSourceBound(m, [...laws, l])) return
   const until = clock() + (opts.ms ?? 10_000), rand = seeded(17), run = interpret(m), helpful = livenessHelpful(l), H = helpful.length
   const queries = new Set(historyQueries(m)), client = m.inputs.filter(i => !queries.has(i))
   const env = (ps: Env, st: State): Env => ({...ps, ...st.scalars})
@@ -372,8 +422,9 @@ export function findRing(m: Machine, laws: Law[], l: Liveness, draws: Draws, opt
     // Specialize only flag-free comparisons, including those in the separately collected flag definitions.
     if (id(atom).includes('"op":"flag"')) return
     const c = subst ? substC(atom, subst) : atom
-    if (!readsC(c, m.inputs) && !constant(c as never)) atoms.set(id(c), c)
+    if (!readsC(c, m.inputs) && scope.condition(c) && !constant(c as never)) atoms.set(id(c), c)
   })
+  const scope = ringScope(m)
   const parts = [m.assume, m.step]
   add([l.from, l.to, helpful.map(h => h.when), parts])
   for (const h of helpful) add(parts, {vars: full(h.request), maps: {}, flags: {}})

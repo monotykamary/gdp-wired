@@ -13,15 +13,15 @@ function renaming(e: E, self: string): string {
   })
 }
 
-export function tryLockstepScalars(m: Machine, law: Law, ms: number): {proven: true, checked: true} | undefined {
+export function tryLockstepScalars(m: Machine, law: Law, kinds: Law[], ms: number): {proven: true, checked: true} | undefined {
   if (law.holds.op !== '=' || law.forall || law.keys?.length || law.some?.length || law.finite ||
       law.holds.a.op !== 'var' || law.holds.b.op !== 'var') return
   const a = law.holds.a.name, b = law.holds.b.name, u = m.step.state?.[a], v = m.step.state?.[b]
   if (!u || !v || a === b || !m.state[a] || !m.state[b] || !same(m.state[a], m.state[b]) || renaming(u, a) !== renaming(v, b)) return
   const until = clock() + ms
   return withDeadline(until, () => {
-    // No kind or quantified instances are needed if these obligations close.
-    const laws = [law], instances = {}, trees: Record<string, Tree> = {}
+    // Every kind-law goal is included; arbitrary instances only guide search.
+    const laws = [...kinds, law], instances = {}, trees: Record<string, Tree> = {}
     for (const g of obligations(m, laws, instances)) {
       const got = grow(g, new Map(), {nodes: 0, until})
       if (!('tree' in got)) return undefined

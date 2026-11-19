@@ -2,6 +2,7 @@ import {expect, test} from 'bun:test'
 import {bool, count, max, nat, oneOf, proveLeadsTo, refuteLeadsTo, rule, when} from './dsl.ts'
 import {helpfulWriteSupports, leadsByWriteSupports} from './live-support.ts'
 import {refutedBy} from './live.ts'
+import {attachSource} from './source-check.ts'
 import {livenessHelpful} from '../kernel/kernel.ts'
 
 const historyValve = (closes: boolean) => rule('history valve').inputs({action: oneOf('sample', 'noop')})
@@ -43,6 +44,36 @@ test('the recurrence checks the new log sum, and a query is never a helpful clie
   expect(refutedBy(r.machine, r.kindLaws(), live, ring)).toMatchObject({refuted: false, why: expect.stringContaining('into the next set')})
   const invalid = {...live, request: {readSize: {op: 'const' as const, value: 0}}}
   expect(refutedBy(r.machine, r.kindLaws(), invalid, ring)).toMatchObject({refuted: false, why: expect.stringContaining('names inputs a client sends')})
+})
+
+test('ring admission rejects arbitrary facts, a translated source, and unreachable parameters', () => {
+  const base = () => rule('parameter admission').params({p: nat}).inputs({op: nat})
+    .state({s: 0}).log('op').keep(({op}) => op.lt(0)).step(({s}) => ({s}))
+  const makeLaw = (r: ReturnType<typeof base>) => r.leadsTo('ends at zero', {from: ({s}) => s.eq(0), to: ({p}) => p.eq(0), helpful: () => ({op: 0})})
+  const fact = base().facts(({p}) => ({'mod$2: chosen domain': p.eq(0)}))
+  const l = makeLaw(fact), request = livenessHelpful(l)[0]!.request
+  const ring = {params: {p: 2}, stem: [], sets: [{holds: l.from, request}]}
+  expect(refutedBy(fact.machine, [], l, ring).refuted).toBe(false)
+  expect(refuteLeadsTo(fact, [], l, {ms: 600})).toBeUndefined()
+  expect(proveLeadsTo(fact, [], l, {ms: 5000}).fairRing).toBeUndefined()
+  const restricted = base().pre(({p}) => p.eq(0))
+  expect(refutedBy(restricted.machine, [], makeLaw(restricted), ring).refuted).toBe(false)
+  const translated = base(), translatedLaw = makeLaw(translated)
+  attachSource(translated, {}, [])
+  expect(refutedBy(translated.machine, [], translatedLaw, ring).refuted).toBe(false)
+  expect(refuteLeadsTo(translated, [], translatedLaw, {ms: 600})).toBeUndefined()
+}, 15_000)
+
+test('a ring request with an undeclared term or primitive failure cannot replay', () => {
+  const r = rule('refuses all but zero').inputs({op: nat, spare: nat}).state({s: 0})
+    .assume(({op}) => op.eq(0)).step(({s}) => ({s}))
+  const l = r.leadsTo('cannot exit', {from: ({s}) => s.eq(0), to: ({s}) => s.gt(0), helpful: () => ({op: 1})})
+  const m = r.machine, zero = {op: 'const', value: 0} as const
+  const ring = {params: {}, stem: [], sets: [{holds: l.from, request: {op: zero, spare: {op: 'var', name: 'nonexistent'} as const}}]}
+  expect(refutedBy(m, [], l, ring).refuted).toBe(false)
+  const good = {...ring, sets: [{holds: l.from, request: {op: zero, spare: zero}}]}
+  expect(refutedBy(m, [], l, good).refuted).toBe(true)
+  expect(refutedBy({...m, primitiveFailure: l.from}, [], l, good).refuted).toBe(false)
 })
 
 test('a frontier-derived clock bound is checked, not assumed', () => {

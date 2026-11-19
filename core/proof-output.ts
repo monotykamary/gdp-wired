@@ -3,7 +3,7 @@
 // fall back to a last proof, and never treat this observation as Lean evidence.
 import type {Machine,Law} from './machine.ts'
 import type {Instances,StepLaw,Tree} from '../kernel/kernel.ts'
-import type {proveStepLaws} from '../kernel/prove.ts'
+import type {proveLaws, proveStepLaws} from '../kernel/prove.ts'
 export type ProofOutputNode =
   | {kind:'counted',machine:Machine,laws:Law[],proof:{instances:Record<string,Instances>,certs:Record<string,import('../kernel/kernel.ts').CountCert>}}
   | {kind:'usual',machine:Machine,laws:Law[],proof:{instances:Record<string,Instances>,trees:Record<string,Tree>}}
@@ -25,7 +25,7 @@ export const proofOutput:{on?: (event:PublicProofOutput)=>void}={
 }
 // Step proof evidence is attached to the actual verdict, never to a last
 // attempt. Translation refusal must not publish a successful model packet.
-type StepProofPacket = {machine: Machine, family: Law[], step: StepLaw, report: ReturnType<typeof proveStepLaws>}
+type StepProofPacket = {machine: Machine, family: Law[], step: StepLaw, report: ReturnType<typeof proveStepLaws>, kindProof?: {laws: Law[], proof: NonNullable<ReturnType<typeof proveLaws>['proof']>}}
 let stepObserver: ((entry: StepProofPacket) => void) | undefined
 let stepRecords = new WeakMap<object, StepProofPacket>()
 export const stepProofOutput = {

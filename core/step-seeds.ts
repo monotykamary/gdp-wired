@@ -2,8 +2,8 @@
 // invariants and the original step law, or this stage contributes nothing.
 import {type C, type E, type Law, type Machine, hasFinite} from './machine.ts'
 import {checkWorkEndpoint} from './wall.ts'
-import {type Instances, type StepLaw, type Tree, checkStepLaws, obligations, stepLawObligations} from '../kernel/kernel.ts'
-import {grow, proveStepLaws} from '../kernel/prove.ts'
+import {type Instances, type StepLaw, type Tree, checkLaws, checkStepLaws, obligations, stepLawObligations} from '../kernel/kernel.ts'
+import {grow, proveLaws, proveStepLaws} from '../kernel/prove.ts'
 
 type Tagged<T, O> = T extends {op: infer K} ? O extends K ? T & {op: O} : never : never
 type Ast<O> = Tagged<C | E, O>
@@ -238,14 +238,22 @@ function atKeyProof(m: Machine, family: Law[], sl: StepLaw): ReturnType<typeof p
   return {proven:true,checked:true,proof,nodes:count,leaves:0}
 }
 export function tryStepSeed(m: Machine, laws: Law[], kinds: Law[], sl: StepLaw, seeds: Law[], sparse = true) {
-  const given = sl.forall ? laws : [...kinds.filter(k=>!laws.some(l=>l.name===k.name)),...laws]
-  if (!seeds.length || seeds.some(s=>given.some(l=>l.name===s.name))) return undefined
-  const family = [...given,...seeds]
-  const atKey = family.length === 1 && sl.forall && family[0]!.forall === sl.forall && !m.facts?.length &&
-    !Object.values(m.step.flags ?? {}).some(c=>c.op==='all')
+  const extraKinds = kinds.filter(k => !laws.some(l => l.name === k.name))
+  const given = [...extraKinds, ...laws]
+  if (!seeds.length || new Set(seeds.map(s => s.name)).size !== seeds.length || seeds.some(s => given.some(l => l.name === s.name))) return undefined
+  const atKey = !laws.length && seeds.length === 1 && sl.forall && seeds[0]!.forall === sl.forall && !m.facts?.length &&
+    !Object.values(m.step.flags ?? {}).some(c => c.op === 'all')
   if (atKey && sparse) {
-    const checked = atKeyProof(m,family,sl)
-    return checked && {family, checked}
+    const checked = atKeyProof(m, seeds, sl)
+    if (!checked?.proof || !checked.proven || !checked.checked) return undefined
+    // Kind laws are independent obligations of the public call, not optional
+    // conclusions. Check them separately to keep the sparse step proof small.
+    if (!extraKinds.length) return {family: seeds, checked}
+    const kind = proveLaws(m, extraKinds)
+    if (!kind.proven || !kind.checked || !kind.proof || !checkLaws(m, extraKinds, kind.proof)) return undefined
+    return {family: seeds, checked, kindProof: {laws: extraKinds, proof: kind.proof}}
   }
-  return {family, checked:proveStepLaws(m,family,[sl])}
+  const family = [...given, ...seeds], checked = proveStepLaws(m, family, [sl])
+  if (!checked.proof || !checked.proven || !checked.checked || !checkStepLaws(m, family, [sl], checked.proof)) return undefined
+  return {family, checked}
 }

@@ -21,8 +21,17 @@ const rowTest = (c: C, k: string): { map: string, value: number, positive: boole
   const test = (a: E, b: E) => { const map = rowRead(a,k); return map && b.op === 'const' ? { map, value: b.value, positive: c.op !== 'not' } : undefined }
   return test(e.a,e.b) ?? test(e.b,e.a)
 }
-const canAssign = (value: E, tag: number): boolean =>
-  value.op === 'const' ? value.value === tag : value.op === 'if' && (canAssign(value.then, tag) || canAssign(value.else, tag))
+function canAssign(value: E, tag: number): boolean {
+  const seen = new Set<E>(), stack = [value]
+  while (stack.length && seen.size < 2048) {
+    const e = stack.pop()!
+    if (seen.has(e)) continue
+    seen.add(e)
+    if (e.op === 'const' && e.value === tag) return true
+    if (e.op === 'if') stack.push(e.then, e.else)
+  }
+  return false
+}
 
 // A none-branch of a row selection can rule out old rows in the same group. Read only a
 // simple one-tag absence query; maxima, grouped disjunctions and join predicates aren't tags.

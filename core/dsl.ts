@@ -3155,21 +3155,25 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
       !Object.keys(r.machine.sums ?? {}).length) {
     const law = laws[0]!
     if (search?.work === undefined && !completeWorkProfile.enabled && seedMs > 0 && Number.isFinite(seedMs)) {
-      const lockstep = tryLockstepScalars(captureMachine, law, Math.min(seedMs / 8, 1400))
+      const lockstep = tryLockstepScalars(captureMachine, law, withKinds(r, [law]).slice(0, -1), Math.min(seedMs / 8, 1400))
       if (lockstep) return lockstep
     }
-    const seed = Object.keys(captureMachine.fns ?? {}).length ? undefined : orderedPairSeed(captureMachine, law)
-    if (seed && (search?.work !== undefined || seedMs > 0 && Number.isFinite(seedMs))) {
-      const family = withKinds(r, [seed, law]), prove = () => proveLaws(captureMachine, family)
-      const started = countedSearchNow()
-      const out = search?.work === undefined
-        ? withStageWall(started + seedMs * (2 / 3), prove, () => undefined)
-        : withStageWork(remainingStageWork(search.work, 2), prove, () => undefined)
-      const found = [{text: seed.name, law: seed}]
-      if (out?.proven && out.checked)
+    if (!Object.keys(captureMachine.fns ?? {}).length && law.forall && law.keys?.length === 1 &&
+        (search?.work !== undefined || seedMs > 0 && Number.isFinite(seedMs))) {
+      const start = countedSearchNow(), prove = () => {
+        const seed = orderedPairSeed(captureMachine, law)
+        if (!seed) return undefined
+        const out = proveLaws(captureMachine, withKinds(r, [seed, law]))
+        if (!out.proven || !out.checked) return undefined
+        const found = [{text: seed.name, law: seed}]
         return retainFrom({...verdictOf(out), found: {laws: found}, ...withAssumes(found)}, [out], {kind: 'inference', original: captureMachine, laws})
+      }
+      const out = search?.work === undefined
+        ? withStageWall(start + seedMs * (2 / 3), prove, () => undefined)
+        : withStageWork(remainingStageWork(search.work, 2), prove, () => undefined)
+      if (out) return out
       if (search?.work === undefined && search?.ms === undefined && !completeWorkProfile.enabled)
-        opts = {...opts, search: {...search, ms: Math.max(0, seedMs - (countedSearchNow() - started))}}
+        opts = {...opts, search: {...search, ms: Math.max(0, seedMs - (countedSearchNow() - start))}}
     }
   }
   if (refuted) return searched(r, laws, [], refutedVerdict(refuted), opts)
@@ -3248,7 +3252,7 @@ function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     if (seeded) {
       const found = seeded.seeds.map(law => ({law, text: law.name}))
       return retainStepProof({...verdictOf(seeded.checked), found: {laws: found}, ...withAssumes(found)},
-        {machine: m, family: seeded.family, step: law, report: seeded.checked})
+        {machine: m, family: seeded.family, step: law, report: seeded.checked, ...(seeded.kindProof ? {kindProof: seeded.kindProof} : {})})
     }
     const elapsed = Math.max(0, countedSearchNow() - started)
     if (elapsed >= 1) fallback = {...opts, search:{...search, ms:Math.max(0,(search?.ms ?? 10_000)-elapsed)}}
@@ -3526,9 +3530,9 @@ export type KeyedLiveness = Liveness & {forall?: string}
 // The rule a keyed liveness is proven on: the rule with its key as one more param (a natural), any other rule as it is.
 export const keyed = <R extends Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>>(r: R, l: KeyedLiveness): R => (l.forall ? r.params({[l.forall]: nat}) as unknown as R : r)
 export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: KeyedLiveness, opts: {ms?: number} = {}): Verdict {
-  return translationVerdict(r, [...laws, l], proveLeadsToIn(r, laws, l, opts))
+  return translationVerdict(r, [...laws, l], proveLeadsToIn(r, laws, l, opts, !isSourceBound(r, [...laws, l])))
 }
-function proveLeadsToIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: KeyedLiveness, opts: {ms?: number}): Verdict {
+function proveLeadsToIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: KeyedLiveness, opts: {ms?: number}, allowRing: boolean): Verdict {
   r = keyed(r, l).withSumsOf(laws, l)
   noting(r, laws, l)
   if (laws.some(law => law.some?.length)) throw new Error(`${r.machine.name}: a law with "there exists" goes to proveRule or proveSteps; a liveness takes plain laws (the ones its proof printed, Verdict.witnesses)`)
@@ -3539,7 +3543,7 @@ function proveLeadsToIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: L
     // History queries can keep a helpful request disabled indefinitely. Search
     // for a checked ring within the normal grant; never use a model ring as a
     // counterexample for extracted source or with unverified function facts.
-    if (m.history && !isSourceBound(r, [...laws, l]) && !m.facts?.some(f => !isArithmetic(f.name.split(':')[0]!)) && ringMs > 1000 && Number.isFinite(ms)) {
+    if (m.history && allowRing && !completeWorkProfile.enabled && ringMs > 1000 && Number.isFinite(ms)) {
       const found = withStageDeadline(clock() + ringMs, () => findRing(m, withKinds(r, laws), l, draws, {ms: ringMs}), () => undefined)
       if (found?.verdict.refuted) return {proven: false, checked: false, goal: l.name, stuck: 'sat', fairRing: found.ring}
     }
@@ -3551,7 +3555,7 @@ function proveLeadsToIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: L
     // Strong fairness admits upward helpful handoffs at a fixed rank. Give guard-distance ranks a bounded first
     // look: the affine fit can spend the entire grant without finding a truncated distance to a guard bound.
     const firstMs = Math.min(15_000, (until - clock()) / 4), base = withKinds(r, laws)
-    const early = withStageDeadline(Math.min(until, clock() + firstMs), () => l.fairness === 'strong' ?
+    const early = completeWorkProfile.enabled ? undefined : withStageDeadline(Math.min(until, clock() + firstMs), () => l.fairness === 'strong' ?
       (firstMs > 1000 ? leadsByTerms(r.machine, base, l, ds, {ms: firstMs}) : undefined) :
       leadsByWriteSupports(r.machine, base, l, firstMs), () => undefined)
     let f = early?.proven && early.checked ? early : until > clock() ?
@@ -3579,13 +3583,15 @@ function proveLeadsToIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: L
       ...(f.found ? {found: {rank: f.found.rank, ...(helpers.length ? {laws: helpers} : {})}} : {}), ...(f.proven ? withAssumes(helpers) : {})}
   }
   const out = proveLiveness(r.machine, withKinds(r, laws), l)
-  return verdictOf(out)
+  return {...verdictOf(out), ...(out.proven && out.checked && out.levels ? {levels: out.levels} : {})}
 }
 // A leads-to refuted by a fair run that never gets there (core/live.ts's findRing, checked by refutedBy): a stem from
 // the start, then round a ring of sets each request of which the kernel proves allowed and into the next set, fair to
 // each helpful request (taken in the ring, or never allowed in a set). Undefined where none is found within `ms`.
 export function refuteLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: KeyedLiveness, opts: {ms?: number} = {}): ReturnType<typeof findRing> {
-  const k = keyed(r, l)
+  if (isSourceBound(r, [...laws, l]) || completeWorkProfile.enabled) return undefined
+  const k = keyed(r, l).withSumsOf(laws, l)
+  noting(k, laws, l)
   return findRing(k.machine, withKinds(k, laws), l, {params: (rand, bound) => k.randomParams(rand, bound), input: (rand, bound, ps) => k.randomInput(rand, bound, ps)}, opts)
 }
 // `ms`: the budget (the prover's own per goal, 20 s or a second a hypothesis, where none is given), on the clock the

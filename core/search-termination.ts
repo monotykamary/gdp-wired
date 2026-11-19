@@ -34,6 +34,6 @@ export const completedSourceRefusal = (v: Completion | undefined): boolean =>
   (v.translation === 'unchecked' || v.translation === 'error') &&
   v.stopped === undefined && v.termination === undefined && !v.stats?.stopped && v.stats?.termination === undefined
 export const completedSearch = (v: Completion | undefined): boolean =>
-  !!v && (v.proven && v.checked || v.run !== undefined || v.fairRing !== undefined || completedSourceRefusal(v))
+  !!v && (v.proven && v.checked || v.run !== undefined || !!v.fairRing || completedSourceRefusal(v))
 export const stoppedSearch = <T extends SearchContext & SearchTerminationFields>(v: T, termination: SearchTermination): T & SearchTerminationFields =>
   ({...v, stopped: true, termination, context: searchContext(v), why: terminationWhy(termination)})

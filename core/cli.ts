@@ -617,7 +617,7 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
     try { lt = buildLeadsTo(x, l, {clock: ctx?.clock}) } catch (e) { if (e instanceof LawError) return {...base, verdict: 'not read', why: (e as Error).message, ms: 0}; throw e }
     let v: Verdict
     try { v = proveLeadsTo(x.rule! as never, [...inv, ...proven] as never, lt as never, {ms}) } catch (e) { return {...base, kind: 'leads to', verdict: 'unknown', why: (e as Error).message, ms: cliNow() - t0} }
-    const checked = v.proven && v.checked, ring = v.fairRing
+    const checked = v.proven && v.checked, ring = v.translation === undefined ? v.fairRing : undefined
     return {...base, ...translationOf(v), ...searchOf(v), kind: 'leads to', verdict: checked ? 'proven' : ring ? 'broken' : 'unknown',
       ...(ring ? {fairRing: ring, why: `a fair run stays pending (${ring.stem.length} stem steps, ${ring.sets.length} recurring sets)`} :
         checked ? {} : {why: whyOf(v, [v.goal, v.stuck, v.why].filter(Boolean).join('; ') || 'not proven')}), ms: cliNow() - t0}
