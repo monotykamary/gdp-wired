@@ -48,6 +48,7 @@ import {conjunction, proveKInduction} from './kind.ts'
 import {cycleLemmas, findLeadsTo, findRank} from './cycles.ts'
 import {findNeverEnds} from './nonterm.ts'
 import {findRing, leadsByTerms} from './live.ts'
+import {leadsByWriteSupports} from './live-support.ts'
 import {type FreshLaw, freshLaws} from './fresh.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
@@ -2876,7 +2877,7 @@ export const loop = (name: string): LoopRule => new LoopRule({name, params: [], 
 // Absent, every step law holds from every state where the laws (and the rule's kinds) hold, reachable or not, and the
 // laws together are kept by every step from such a state. `{from: 'any'}` proves only so.
 export type {SearchTermination, SearchContext, SearchTerminationFields} from './search-termination.ts'
-export type Verdict = TranslationFields & import('./search-termination.ts').SearchTerminationFields & {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>, k?: number, assumes?: Assumes, rank?: E | E[]}
+export type Verdict = TranslationFields & import('./search-termination.ts').SearchTerminationFields & {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>, k?: number, assumes?: Assumes, rank?: E | E[], levels?: number[]}
 export type Assumes = {states: 'reachable', laws: string[]}
 // `facts`: lemmas about the rule's functions (those known by their facts) proven from those facts by a cyclic proof
 // (core/cycles.ts), the laws proven with them; `rank`: a loop's rank, found from its runs (`proveLoop` with none).
@@ -3472,10 +3473,19 @@ function proveLeadsToIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: L
     // to both searches, each proven again with the rank)
     const share = (until - clock()) / 20, fresh = Object.keys(r.machine.maps ?? {}).length ? withStageDeadline(clock() + share, () => freshLaws(r.machine, r.kindLaws(), draws, {ms: share}), () => []) : []
     laws = [...laws, ...fresh.map(x => x.law)]
-    let f = findLeadsTo(r.machine, withKinds(r, laws), l, {...draws, rule: r}, {ms: until - clock()})
+    const ds = {...draws, rule: r, state: (rand: Rand, bound: number) => Object.assign({}, ...r.kindsOfState().map(([n, kd]) => kd.random(n, rand, bound)))}
+    // Strong fairness admits upward helpful handoffs at a fixed rank. Give guard-distance ranks a bounded first
+    // look: the affine fit can spend the entire grant without finding a truncated distance to a guard bound.
+    const firstMs = Math.min(15_000, (until - clock()) / 4), base = withKinds(r, laws)
+    const early = withStageDeadline(Math.min(until, clock() + firstMs), () => l.fairness === 'strong' ?
+      (firstMs > 1000 ? leadsByTerms(r.machine, base, l, ds, {ms: firstMs}) : undefined) :
+      leadsByWriteSupports(r.machine, base, l, firstMs), () => undefined)
+    let f = early?.proven && early.checked ? early : until > clock() ?
+      findLeadsTo(r.machine, base, l, {...draws, rule: r}, {ms: until - clock()}) :
+      {proven: false, checked: false, why: 'liveness search reached its deadline'}
     // Where the rank fitted to the runs isn't the one: a rank of the rule's own terms (core/live.ts), in the time left.
     if (!(f.proven && f.checked) && until - clock() > 500) {
-      const g = leadsByTerms(r.machine, withKinds(r, laws), l, {...draws, rule: r, state: (rand, bound) => Object.assign({}, ...r.kindsOfState().map(([n, kd]) => kd.random(n, rand, bound)))}, {ms: until - clock()})
+      const g = leadsByTerms(r.machine, withKinds(r, laws), l, ds, {ms: until - clock()})
       if (g.proven && g.checked) f = g
     }
     // The sum of each map the step writes (withMapSums), where neither found a rank: both again over the rule with them,
@@ -3491,7 +3501,7 @@ function proveLeadsToIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: L
       }
     }
     const helpers = [...fresh, ...(f.laws ?? []).map((law, i) => ({law, text: f.found?.laws[i] ?? law.name}))]
-    return {proven: f.proven, checked: f.checked, ...(f.proven && f.rank ? {rank: f.rank} : {}), ...(f.goal ? {goal: f.goal, stuck: f.stuck} : {}), ...(f.witness ? {witness: f.witness} : {}), ...(f.why ? {why: f.why} : {}),
+    return {proven: f.proven, checked: f.checked, ...(f.proven && f.rank ? {rank: f.rank} : {}), ...(f.proven && f.levels ? {levels: f.levels} : {}), ...(f.goal ? {goal: f.goal, stuck: f.stuck} : {}), ...(f.witness ? {witness: f.witness} : {}), ...(f.why ? {why: f.why} : {}),
       ...(f.found ? {found: {rank: f.found.rank, ...(helpers.length ? {laws: helpers} : {})}} : {}), ...(f.proven ? withAssumes(helpers) : {})}
   }
   const out = proveLiveness(r.machine, withKinds(r, laws), l)
