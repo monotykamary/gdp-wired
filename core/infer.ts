@@ -111,6 +111,23 @@ type Guard = {atom: number, value: number, hi?: number} | {keyNot: number}
 type At = {atom: number, value: number, hi?: number}
 // a value outside a guard's (or a control value's) values
 const off = (g: At, v: number) => v < g.value || v > (g.hi ?? g.value)
+// A shape's value at each of the first N rows, Σ c·v summed in the shape's order from 0, into `col`; the largest of them
+// (-Infinity of none). A function of its own: inferLawsSearchIn's body is too long for the optimizing compilers, and
+// this loop over every shape and row is the candidates' cost.
+function shapeColumn(coef: [number, number][], vals: Float64Array[], N: number, col: Float64Array): number {
+  const n = coef.length, c0 = n ? coef[0]![1] : 0, v0 = n ? vals[coef[0]![0]] : undefined, c1 = n > 1 ? coef[1]![1] : 0, v1 = n > 1 ? vals[coef[1]![0]] : undefined
+  let d = -Infinity
+  for (let j = 0; j < N; j++) {
+    observeCubeTest()
+    let s = 0
+    if (n) s += c0 * v0![j]!
+    if (n > 1) s += c1 * v1![j]!
+    for (let q = 2; q < n; q++) { const t = coef[q]!; s += t[1] * vals[t[0]]![j]! }
+    col[j] = s
+    d = Math.max(d, s)
+  }
+  return d
+}
 type Lit = {at: At} | {lin: {coef: [number, number][], d: number}}
 type Form = {coef: [number, number][], d: number, cells: boolean, view?: number, guard?: Guard, also?: At[], when?: {coef: [number, number][], d: number}, unreachable?: At, never?: At[], nevers?: At[][], cube?: Lit[], mod?: {k: number, r: number}, cong?: {mod: number, rest: number}, size: number}
 
@@ -1046,7 +1063,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   const forms: Form[] = []
   candidateCount = () => forms.length
   const NS = rowsS.length, NK = rowsK.length
-  const at = (coef: [number, number][], vals: Float64Array[], j: number) => { observeCubeTest(); let s = 0; for (const [i, c] of coef) s += c * vals[i]![j]!; return s }
+  const at = (coef: [number, number][], vals: Float64Array[], j: number) => { observeCubeTest(); let s = 0; for (let q = 0; q < coef.length; q++) { const t = coef[q]!; s += t[1] * vals[t[0]]![j]! } return s }
   const keyNots = plain.filter(i => !atoms[i]!.param && !atoms[i]!.int && !atoms[i]!.term)
   // The guards: the choices first, then yes/nos, then small naturals, at most eight; each shape's largest value per
   // guard in one pass over (at most 3,000 of) the rows: with each state kept once a stride skips states, not copies, and a
@@ -1054,13 +1071,33 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   // a quarter of the time.
   const guards = [...modes].sort((p, q) => Number(!!q.choice) - Number(!!p.choice) || Number(!!q.bool) - Number(!!p.bool)).slice(0, 8)
   const strideS = Math.max(1, Math.ceil(NS / 3000)), strideK = Math.max(1, Math.ceil(NK / 3000))
+  const colS = new Float64Array(NS), colK = new Float64Array(NK)
+  // Each guard's largest value of a shape, by the guard's value: b[v] = max(b[v] ?? -Infinity, value) at every row, as a map
+  // filled in the rows' order would hold it. A guard's values are mostly small naturals, so those are kept in a table (64
+  // a guard and kind: `slot` is 2g for every row, 2g + 1 for the written ones) with the order each was first met, any
+  // other value in a map beside it; `filled` then writes the map itself, each value at its first row's place.
+  const SMALL = 64, tableMax = new Float64Array(guards.length * 2 * SMALL), tableSeen = new Uint8Array(guards.length * 2 * SMALL)
+  const small = (v: number) => v >= 0 && v < SMALL && Number.isInteger(v)
+  let firsts: number[][] = [], others: (Map<number, number> | undefined)[] = []
+  const raise = (slot: number, v: number, value: number) => {
+    if (small(v)) {
+      const cell = slot * SMALL + v
+      if (tableSeen[cell]) tableMax[cell] = Math.max(tableMax[cell]!, value)
+      else { tableSeen[cell] = 1; tableMax[cell] = Math.max(-Infinity, value); firsts[slot]!.push(v) }
+    } else {
+      const other = others[slot] ?? (others[slot] = new Map<number, number>()), old = other.get(v)
+      if (old === undefined) firsts[slot]!.push(v)
+      other.set(v, Math.max(old ?? -Infinity, value))
+    }
+  }
+  const filled = (b: Map<number, number>, slot: number) => { for (const v of firsts[slot]!) b.set(v, small(v) ? tableMax[slot * SMALL + v]! : others[slot]!.get(v)!) }
   const buildUntil = opts.cubes ? 0 : Math.min(until, now() + (until - now()) / 4)
   for (const [n_, {coef, cells}] of shapes.entries()) {
     if (forms.length > maxCandidates || (n_ % 256 === 0 && (now() > buildUntil || stop()))) break
     const vals = cells ? valsK : valsS, N = cells ? NK : NS, rows = cells ? rowsK : rowsS
     used.rows += N + (coef.length > 2 ? 0 : Math.ceil(N / (cells ? strideK : strideS)))
-    let d = -Infinity
-    for (let j = 0; j < N; j++) d = Math.max(d, at(coef, vals, j))
+    // (the shape's value at each row, kept for the guards' pass below)
+    const col = cells ? colK : colS, d = shapeColumn(coef, vals, N, col)
     if (!Number.isFinite(d)) continue
     forms.push({coef, d, cells, size: sizeOf(coef) + (cells ? 10 : 0)})
     // The rule's constants just above the largest value reached, a bound a run may not have hit.
@@ -1075,13 +1112,20 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     const most = here.map(() => new Map<number, number>()), away = cells ? keyNots.map(() => -Infinity) : []
     const mostW = here.map(() => new Map<number, number>()), awayW = keyNots.map(() => -Infinity)
     let written = -Infinity
-    for (let j = 0; j < N; j += cells ? strideK : strideS) {
-      const value = at(coef, vals, j), wj = w >= 0 && vals[w]![j]! >= 1
-      if (wj) written = Math.max(written, value)
-      here.forEach((mode, g) => { const v = vals[mode.atom]![j]!; for (const b of wj ? [most[g]!, mostW[g]!] : [most[g]!]) b.set(v, Math.max(b.get(v) ?? -Infinity, value)) })
-      // At every key but a scalar's: the largest value away from that key.
-      if (cells) keyNots.forEach((s, g) => { if (rows[j]![K] !== valsK[s]![j]) { away[g] = Math.max(away[g]!, value); if (wj) awayW[g] = Math.max(awayW[g]!, value) } })
+    tableSeen.fill(0); firsts = here.flatMap(() => [[], []]); others = []
+    // (the pass as a function of its own, for the optimizing compilers: see shapeColumn)
+    const guardPass = () => {
+      for (let j = 0; j < N; j += cells ? strideK : strideS) {
+        observeCubeTest()
+        const value = col[j]!, wj = w >= 0 && vals[w]![j]! >= 1
+        if (wj) written = Math.max(written, value)
+        for (let g = 0; g < here.length; g++) { const v = vals[here[g]!.atom]![j]!; raise(2 * g, v, value); if (wj) raise(2 * g + 1, v, value) }
+        // At every key but a scalar's: the largest value away from that key.
+        if (cells) keyNots.forEach((s, g) => { if (rows[j]![K] !== valsK[s]![j]) { away[g] = Math.max(away[g]!, value); if (wj) awayW[g] = Math.max(awayW[g]!, value) } })
+      }
     }
+    guardPass()
+    for (let g = 0; g < here.length; g++) { filled(most[g]!, 2 * g); filled(mostW[g]!, 2 * g + 1) }
     // (a cell a param apart from a scalar: its guards only where it was written, below)
     if (coef.length <= 2) {
       here.forEach((mode, g) => { for (const [value, dv] of most[g]!) if (mode.values.includes(value) && dv < d) forms.push({coef, d: dv, cells, guard: {atom: mode.atom, value}, size: sizeOf(coef) + 50}) })
@@ -1282,7 +1326,15 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   const valuesAt = new WeakMap<Env, Float64Array>()
   const atomsByField = new Map<string, [number, number][]>()
   let indexedAtoms = 0
+  // (the last row's values are asked for again by the next form: one comparison in place of a lookup)
+  let lastEnv: Env | undefined, lastValues: Float64Array | undefined
   const valuesOf = (env: Env): Float64Array => {
+    if (env === lastEnv) return lastValues!
+    const vs = valuesOf0(env)
+    lastEnv = env; lastValues = vs
+    return vs
+  }
+  const valuesOf0 = (env: Env): Float64Array => {
     let vs = valuesAt.get(env)
     if (!vs) {
       // Before any view columns exist the original dense scan is cheaper.
@@ -1310,7 +1362,9 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   const holdsRow = (f: Form, env: Env): boolean => {
     observeCubeTest()
     used.evals++
-    const vs = valuesOf(env)
+    return holdsValues(f, env, valuesOf(env))
+  }
+  const holdsValues = (f: Form, env: Env, vs: Float64Array): boolean => {
     if (f.never) return f.never.some(g => off(g, vs[g.atom]!))
     if (f.nevers) return f.nevers.every(c => c.some(g => off(g, vs[g.atom]!)))
     if (f.cube) return !f.cube.every(l => ('at' in l ? vs[l.at.atom] === l.at.value : l.lin.coef.reduce((acc, [i, c]) => acc + c * vs[i]!, 0) <= l.lin.d))
@@ -1328,16 +1382,41 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     }
     if (f.when) { let w = 0; for (const [i, c] of f.when.coef) w += c * vs[i]!; if (w > f.when.d) return true }
     let s = 0
-    for (const [i, c] of f.coef) s += c * vs[i]!
+    const coef = f.coef
+    for (let q = 0; q < coef.length; q++) { const t = coef[q]!; s += t[1] * vs[t[0]]! }
     return f.mod ? residue(s, f.mod.k) === f.mod.r : s <= f.d
   }
   // At a state: a cell form at every key the maps hold and a fresh one.
   type Point = {scalar: Env, cells: Env[], views: Env[][]}
+  const noRows: Env[] = []
   const pointOf = (params: Env, st: State): Point => ({scalar: withTerms({...params, ...st.scalars}, st), cells: cellRows(params, st), views: views.map(v => v.rowsOf(params, st))})
   // (the atoms a form reads)
   const atomsIn = (f: Form): number[] => [...f.coef.map(([i]) => i), ...(f.guard && 'atom' in f.guard ? [f.guard.atom] : []), ...(f.also ?? []).map(a => a.atom), ...(f.never ?? []).map(a => a.atom), ...(f.unreachable ? [f.unreachable.atom] : []), ...(f.nevers ?? []).flat().map(a => a.atom), ...(f.cube ?? []).flatMap(l => ('at' in l ? [l.at.atom] : l.lin.coef.map(([i]) => i)))]
-  const judged = (f: Form, r: Env) => { const u = unnamed.get(r); return !u || !atomsIn(f).some(i => atoms[i]!.parts.some(([q]) => u.has(atoms[i]!.cell ? AT + q : q))) }
-  const holdsAt = (f: Form, p: Point) => (f.view !== undefined ? (p.views[f.view] ?? []).every(r => !judged(f, r) || holdsRow(f, r)) : f.cells ? p.cells.every(r => !judged(f, r) || holdsRow(f, r)) : holdsRow(f, p.scalar))
+  const judgedBy = (f: Form, u: Set<string> | undefined) => !u || !atomsIn(f).some(i => atoms[i]!.parts.some(([q]) => u.has(atoms[i]!.cell ? AT + q : q)))
+  const judged = (f: Form, r: Env) => judgedBy(f, unnamed.get(r))
+  // A form at every row of a point's rows it is judged at, as `rows.every(r => !judged(f, r) || holdsRow(f, r))`: each
+  // row's unnamed cells (fixed when the row is made, `mark`) and its values (fixed once read, `valuesOf`) are kept beside
+  // the rows, one lookup a form in place of two a row. A slot is believed only while it holds the row it was read for.
+  type RowsMemo = {rows: Env[], unnamed: (Set<string> | undefined)[], values: (Float64Array | undefined)[]}
+  const rowsMemo = new WeakMap<Env[], RowsMemo>()
+  let lastRows: Env[] | undefined, lastMemo: RowsMemo | undefined
+  const holdsRows = (f: Form, rows: Env[]): boolean => {
+    const n = rows.length
+    if (!n) return true
+    let memo = rows === lastRows ? lastMemo! : rowsMemo.get(rows)
+    if (!memo) rowsMemo.set(rows, memo = {rows: [], unnamed: [], values: []})
+    lastRows = rows; lastMemo = memo
+    for (let j = 0; j < n; j++) {
+      const r = rows[j]!
+      if (memo.rows[j] !== r) { memo.rows[j] = r; memo.unnamed[j] = unnamed.get(r); memo.values[j] = undefined }
+      if (!judgedBy(f, memo.unnamed[j])) continue
+      observeCubeTest()
+      used.evals++
+      if (!holdsValues(f, r, memo.values[j] ?? (memo.values[j] = valuesOf(r)))) return false
+    }
+    return true
+  }
+  const holdsAt = (f: Form, p: Point) => (f.view !== undefined ? holdsRows(f, p.views[f.view] ?? noRows) : f.cells ? holdsRows(f, p.cells) : holdsRow(f, p.scalar))
   // A kernel witness as a point: its scalars, and a cell row per key it reads a map at.
   const witnessPoint = (w: Record<string, number>): Point => {
     const scalar: Env = Object.fromEntries([...scalars, ...m.params].map(v => [v, w[v] ?? 0]))
@@ -1411,6 +1490,12 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   }
   // (none on a rule of relations: its moves change a cell at a tuple's code, and its laws are read at every tuple of the
   // codes a state holds, a power of them; the engine's small instance is where its samples are)
+  // (the forms alive that a point breaks, each killed; a function of its own for the optimizing compilers: see shapeColumn)
+  const breaks = (post: Point, killed: Set<Form>): boolean => {
+    let broke = false
+    for (const f of alive) if (!killed.has(f) && !holdsAt(f, post)) { killed.add(f); broke = true }
+    return broke
+  }
   const houdiniUntil = opts.cubes || relStep ? 0 : Math.min(until, now() + Math.max(500, (until - now()) / 4))
   for (let quiet = 0; samples.length && now() < houdiniUntil && !stop() && quiet < 3;) {
     const killed = new Set<Form>()
@@ -1428,8 +1513,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
       let next: State
       try { if (!allowed(m, run, base.params, st, input)) continue; next = run.step(base.params, st, input) } catch { continue }
       const post = pointOf(base.params, next)
-      let broke = false
-      for (const f of alive) if (!killed.has(f) && !holdsAt(f, post)) { killed.add(f); broke = true }
+      const broke = breaks(post, killed)
       if (!broke && !lawful(base.params, next)) ctis.push(pre)
     }
     quiet = killed.size ? 0 : quiet + 1
