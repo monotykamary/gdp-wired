@@ -5,7 +5,7 @@ import {type Ghosted, checkGhostedLaws, ghostedMachine, ghostedOk, someOfGhostsO
 import {retainFrom} from './proof-output.ts'
 
 type Closure = ReturnType<typeof proveSetFast>
-type Drop = {name: string, goal: string, stuck: 'sat'}
+type Drop = {name: string, goal: string, stuck?: 'sat', reason?: string}
 export type SeedGhosts = Pick<Ghosted, 'vars' | 'maps'>
 export type SeedResult =
   | {status: 'checked', laws: Law[], kept: Law[], dropped: Drop[], closure: Closure, projection?: 'skolem'}
@@ -13,7 +13,9 @@ export type SeedResult =
 
 // The caller imposes the deadline. Only the complete checked family is evidence.
 // In particular neither a witness nor a ghost definition is a caller assumption.
-export function proveCandidateSeeds(machine: Machine, publicLaws: Law[], candidates: Law[], witnesses: Record<string, SomeWitness> = {}, ghosts: SeedGhosts = {vars: {}, maps: {}}): SeedResult {
+export function proveCandidateSeeds(machine: Machine, publicLaws: Law[], candidates: Law[], witnesses: Record<string, SomeWitness> = {}, ghosts: SeedGhosts = {vars: {}, maps: {}},
+  // (dropUndecided: a candidate neither proven nor refuted is dropped like a refuted one, not the whole attempt ended)
+  policy: {dropUndecided?: boolean} = {}): SeedResult {
   const refuse = (reason: string): SeedResult => ({status: 'inconclusive', kept: [], dropped: [], reason})
   if (Object.keys(machine.counts ?? {}).length) return refuse('count-bearing machine requires counted candidate admission')
   const names = new Set<string>()
@@ -66,8 +68,8 @@ export function proveCandidateSeeds(machine: Machine, publicLaws: Law[], candida
     for (let i = 0; i < kept.length; i++) {
       const decision = decideLaw(working, family, plainPublic.length + i) ?? proveLaw(working, family, plainPublic.length + i)
       if (!decision.proven) {
-        if (decision.stuck !== 'sat') return {status: 'inconclusive', kept, dropped, reason: `undecided candidate: ${kept[i]!.name}: ${decision.stuck}${'why' in decision && decision.why ? `: ${decision.why}` : ''}`}
-        dropped.push({name: kept[i]!.name, goal: decision.goal, stuck: 'sat'})
+        if (decision.stuck !== 'sat' && !policy.dropUndecided) return {status: 'inconclusive', kept, dropped, reason: `undecided candidate: ${kept[i]!.name}: ${decision.stuck}${'why' in decision && decision.why ? `: ${decision.why}` : ''}`}
+        dropped.push({name: kept[i]!.name, goal: decision.goal, ...(decision.stuck === 'sat' ? {stuck: 'sat' as const} : {reason: 'undecided'})})
         kept = kept.filter((_, j) => j !== i)
         removed = true
         break

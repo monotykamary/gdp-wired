@@ -1,5 +1,6 @@
 import {retainFrom, retainCounted, retainAggregate, publishProof, withPublicRule, retainStepProof, publishStepProof, retainLiveProof, publishLiveProof} from './proof-output.ts'
 import {searchAggregate} from './aggregate-search.ts'
+import {type DeclareSum, cellSeeds, coveringSeeds} from './covering.ts'
 import {searchNow as countedSearchNow} from './wall.ts'
 // Typed builders for machines, decisions and loops: names are declared once and come back as typed values, so a
 // misspelled name, a law that reads a request, or a step that sets an undeclared variable is a TypeScript error, and
@@ -876,6 +877,8 @@ function sumOver(map: string, at: (key: Term) => TermLike, plain: boolean): Term
   sumDecls.set(id, {key, term})
   return new Term(generatedVariable(id), scope?.vars[id])
 }
+// A sum over every key of a term given at a key (core/covering.ts's candidates), under sumOver's names: its variable.
+const sumOfTerm = (map: string, at: (key: E) => E, plain: boolean): string => (sumOver(map, key => new Term(at(key.e)), plain).e as {name: string}).name
 // The sums a set of terms reads (by name), declared.
 export const sumsIn = (ts: unknown[], more: Iterable<string> = []): Record<string, Sum> | undefined => {
   if (!sumDecls.size) return undefined
@@ -3223,6 +3226,39 @@ function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   const result = ms === undefined ? run() : withWall(searchWall(ms), run)
   return retainFrom(translationVerdict(r, laws, result), [result])
 }
+// The covering candidates of a law (core/covering.ts), tried as candidate seeds: each a law over sums the rule gains
+// (withSumsOf), one a short run breaks left out, the rest dropped or kept by proveCandidateSeeds, whose kept family the
+// kernel checks with the law. Undefined unless that is a checked proof: the search then goes on as if never asked.
+function tryCovering(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, law: Law, ms: number, originalRule: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj> = r): Verdict | undefined {
+  return withStageWall(countedSearchNow() + ms, () => {
+    const base = r.machine
+    let kinds: Law[] | undefined
+    const declare: DeclareSum = (map, at, plain) => {
+      try {
+        const name = sumOfTerm(map, at, plain)
+        if (!Object.hasOwn(base.sums ?? {}, name)) {
+          const k = kinds ?? (kinds = r.kindLaws())
+          const cand: Machine = {...base, sums: {...base.sums, ...sumsIn([], [name])}}
+          const {goals} = sumMachine(cand, undefined, k)
+          if (goals.length && refusedSumCover(cand, k)) return undefined
+        }
+        return name
+      } catch (e) { if (e instanceof WallExpired || e instanceof WatchdogExpired) throw e; return undefined }
+    }
+    const seeds = coveringSeeds(base, law, declare)
+    if (!seeds.length) return undefined
+    const summed = r.withSumsOf(seeds), machine = summed.machine
+    if (refusedSumCover(machine, withKinds(summed, [law]))) return undefined
+    const alive = seeds.filter(s => !refuteByRuns(summed, [s], [], refuteBudget, originalRule)?.run)
+    if (!alive.length) return undefined
+    let seeded = proveCandidateSeeds(machine, withKinds(summed, [law]), alive)
+    // (the sums alone first; then with the cell facts they lean on, each one a short run breaks left out)
+    if (seeded.status !== 'checked') seeded = proveCandidateSeeds(machine, withKinds(summed, [law]), [...cellSeeds(base, law).filter(s => !refuteByRuns(summed, [s], [], refuteBudget, originalRule)?.run), ...alive], undefined, undefined, {dropUndecided: true})
+    if (seeded.status !== 'checked') return undefined
+    const found = seeded.kept.map(l => ({text: l.name, law: l}))
+    return retainFrom({...verdictOf(seeded.closure), found: {laws: found}, ...withAssumes(found)}, [seeded.closure], {kind: 'inference', original: machine, laws: [law]})
+  }, () => undefined)
+}
 function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions, captureMachine: Machine): Verdict {
   const originalRule = r
   r = r.withSumsOf(laws, opts.candidateSeeds?.laws ?? [])
@@ -3287,6 +3323,13 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
       if (search?.work === undefined && search?.ms === undefined && !completeWorkProfile.enabled)
         opts = {...opts, search: {...search, ms: Math.max(0, seedMs - (countedSearchNow() - start))}}
     }
+  }
+  // A law that an aggregate total covers every item (core/covering.ts): the sums that tie the total to the items, as
+  // candidates, within half of the search's time (25 s at most). Kept only as a checked proof of the law.
+  if (opts.search !== false && opts.from !== 'any' && !opts.candidateSeeds && laws.length === 1 && laws[0]!.forall &&
+      search?.work === undefined && !completeWorkProfile.enabled && seedMs > 0 && Number.isFinite(seedMs)) {
+    const covered = tryCovering(r, laws[0]!, Math.min(seedMs / 2, 25_000), originalRule)
+    if (covered) return covered
   }
   if (refuted) return searched(r, laws, [], refutedVerdict(refuted), opts, originalRule)
   if (r === originalRule && !opts.candidateSeeds && opts.from !== 'any' && opts.search !== false &&
