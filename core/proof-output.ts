@@ -1,10 +1,13 @@
 // Opt-in OUTPUT provenance only. No checker, proof constructor, budget or search.
 // Records are reachable only through the actual returned result object; never
 // fall back to a last proof, and never treat this observation as Lean evidence.
-import type {Machine,Law} from './machine.ts'
+import type {E,Machine,Law} from './machine.ts'
+import type {AggregateCertificate} from './aggregate-search.ts'
+import {snapshotKernelTermState} from '../kernel/kernel.ts'
 import type {Instances,Liveness,StepLaw,Tree} from '../kernel/kernel.ts'
 import type {proveLaws, proveLiveness, proveProgress, proveStepLaws} from '../kernel/prove.ts'
 export type ProofOutputNode =
+  | {kind:'aggregate',machine:Machine,law:Law,certificate:AggregateCertificate,terms:E[]}
   | {kind:'counted',machine:Machine,laws:Law[],proof:{instances:Record<string,Instances>,certs:Record<string,import('../kernel/kernel.ts').CountCert>}}
   | {kind:'usual',machine:Machine,laws:Law[],proof:{instances:Record<string,Instances>,trees:Record<string,Tree>}}
   | {kind:'derived',parents:(ProofOutputNode|undefined)[],context:unknown}
@@ -69,6 +72,10 @@ export function retainFamily<T extends {proven:boolean,checked:boolean}>(result:
 }
 export function retainCounted<T extends object>(result:T,family:{proven:boolean,m:Machine,laws:Law[],proof?:{instances:Record<string,Instances>,certs:Record<string,import('../kernel/kernel.ts').CountCert>}}):T {
   if(proofOutput.on&&family.proven&&family.proof)records.set(result,{kind:'counted',machine:family.m,laws:family.laws,proof:family.proof})
+  return result
+}
+export function retainAggregate<T extends object>(result:T,machine:Machine,law:Law,certificate:AggregateCertificate):T {
+  if (proofOutput.on) records.set(result,{kind:'aggregate',machine,law,certificate,terms:snapshotKernelTermState().terms as E[]})
   return result
 }
 export function retainFrom<T extends object>(result:T,parents:object[],context:unknown={kind:'projection'}):T {

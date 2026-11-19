@@ -1,4 +1,5 @@
-import {retainFrom, retainCounted, publishProof, withPublicRule, retainStepProof, publishStepProof, retainLiveProof, publishLiveProof} from './proof-output.ts'
+import {retainFrom, retainCounted, retainAggregate, publishProof, withPublicRule, retainStepProof, publishStepProof, retainLiveProof, publishLiveProof} from './proof-output.ts'
+import {searchAggregate} from './aggregate-search.ts'
 import {searchNow as countedSearchNow} from './wall.ts'
 // Typed builders for machines, decisions and loops: names are declared once and come back as typed values, so a
 // misspelled name, a law that reads a request, or a step that sets an undeclared variable is a TypeScript error, and
@@ -3181,6 +3182,13 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
     }
   }
   if (refuted) return searched(r, laws, [], refutedVerdict(refuted), opts)
+  if (!opts.candidateSeeds && opts.from !== 'any' && opts.search !== false && laws.length === 1) {
+    const ms = typeof opts.search === 'object' ? opts.search.ms ?? 60_000 : 60_000
+    // Rule.machine can allocate fresh write binders on each access. Check and
+    // retain the same public snapshot, not a later alpha-renamed copy.
+    const certificate = searchAggregate(captureMachine, laws[0]!, ms)
+    if (certificate) return retainAggregate({proven:true,checked:true}, captureMachine, laws[0]!, certificate)
+  }
   // A rule with counts: its goals are the counted ones (core/counts.ts searches them; the kernel checks the set).
   if (r.machine.counts && Object.keys(r.machine.counts).length) {
     const c = searchCounted(r.machine, withKinds(r, laws), typeof opts.search === 'object' ? opts.search.ms ?? 60_000 : 60_000)

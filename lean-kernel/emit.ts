@@ -24,6 +24,10 @@ import {proveKInduction} from '../core/kind.ts'
 import {quantifiedRenames} from './qalpha.ts'
 import {countsForReads} from '../core/count-facts.ts'
 import {requireSourceTranslation} from '../core/source-check.ts'
+import {finiteSumToLean} from './finite-sum-export.ts'
+import {ghostWriteToLean} from './ghost-write-export.ts'
+import type {FiniteSumCertificate} from '../kernel/finite-sum.ts'
+import type {GhostWriteCertificate} from '../kernel/ghost-write.ts'
 export {leanLibrary}
 
 export type Exported = {name: string, goal: Goal, tree: Tree}
@@ -2257,6 +2261,7 @@ export type LeanItem =
   // A law proven by k-induction (core/kind.ts's search, from k = 1, or at `k`), through KInd.lean's kind_sound, with the
   // laws it assumes (proven inductive as ever); `<id>_kind_holds`.
   | {id: string, kInduction: {machine: Machine, laws: Law[], law: Law, k?: number, ms?: number}}
+  | {id: string, aggregate: {source: Machine, law: Law, certificate: FiniteSumCertificate | GhostWriteCertificate}}
   | {id: string, countedGoal: CountedGoal, certificate: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[]}}
   | {id: string, countedMachine: Machine, laws: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}}
   | {id: string, goal: Goal}
@@ -2290,6 +2295,7 @@ export function toLean(items: LeanItem[], opts: {title?: string, native?: boolea
   for (const item of items) {
     if ('machine' in item) requireSourceTranslation(item.machine, [...item.laws, ...(item.stepLaws ?? []), ...(item.liveness ?? [])])
     else if ('kInduction' in item) requireSourceTranslation(item.kInduction.machine, [...item.kInduction.laws, item.kInduction.law])
+    else if ('aggregate' in item) requireSourceTranslation(item.aggregate.source, [item.aggregate.law])
     else if ('countedMachine' in item) requireSourceTranslation(item.countedMachine, item.laws)
     else if ('refinement' in item) {
       requireSourceTranslation(item.refinement.impl, item.refinement.relation)
@@ -2326,7 +2332,13 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   }).join('')
   for (let item of items) {
     const id = ident(item.id), tItem = performance.now()
-    if ('countedGoal' in item) {
+    if ('aggregate' in item) {
+      const {source, law, certificate} = item.aggregate
+      const save = checkBy
+      checkBy = 'decide +kernel'
+      try { parts.push(certificate.kind === 'finite-sum' ? finiteSumToLean(id, source, law, certificate) : ghostWriteToLean(id, source, law, certificate)) }
+      finally { checkBy = save }
+    } else if ('countedGoal' in item) {
       if (!checkCounted(item.countedGoal, item.certificate)) throw new Error(`${item.id}: counted certificate does not check`)
       parts.push(countedToLean(id, item.countedGoal, item.certificate))
       theorems.push(id)
@@ -2419,8 +2431,10 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
     if (envOf()?.GDP_LEAN_TIMES === '1') console.error(`lean item ${item.id}: ${Math.round(performance.now() - tItem)} ms, ${parts.at(-1)?.length ?? 0} bytes`)
   }
   // The file the items need: Live.lean for a liveness or a loop, Sets.lean (which imports Steps.lean) for any machine.
+  const finiteImport = items.some(item => 'aggregate' in item && item.aggregate.certificate.kind === 'finite-sum') ? 'import FiniteSumComposition\n' : ''
+  const ghostImport = items.some(item => 'aggregate' in item && item.aggregate.certificate.kind === 'ghost-write') ? 'import Sums\nimport GhostWriteTransport\nimport GhostSourceViews\n' : ''
   return `import History
-${wordReads(items).length ? 'import WordFacts\nimport WordSMachine\n' : ''}${items.some(item => 'countedGoal' in item || 'countedMachine' in item) ? 'import QAlpha\n' : ''}${items.some(item => 'machine' in item && item.machine.sums && Object.keys(item.machine.sums).length) ? 'import Sums\n' : ''}${items.some(item => 'neverEnds' in item) ? 'import NonTerm\n' : ''}${items.some(item => 'kInduction' in item) ? 'import KInd\n' : ''}${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && (item.ghosts?.length || item.laws.some(l => l.some?.length))) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
+${finiteImport}${ghostImport}${wordReads(items).length ? 'import WordFacts\nimport WordSMachine\n' : ''}${items.some(item => 'countedGoal' in item || 'countedMachine' in item) ? 'import QAlpha\n' : ''}${items.some(item => 'machine' in item && item.machine.sums && Object.keys(item.machine.sums).length) ? 'import Sums\n' : ''}${items.some(item => 'neverEnds' in item) ? 'import NonTerm\n' : ''}${items.some(item => 'kInduction' in item) ? 'import KInd\n' : ''}${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && (item.ghosts?.length || item.laws.some(l => l.some?.length))) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
