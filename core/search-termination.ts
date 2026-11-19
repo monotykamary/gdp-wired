@@ -23,7 +23,7 @@ export const searchContext = (v: SearchContext & SearchTerminationFields): Searc
 export const terminationWhy = (t: SearchTermination): string =>
   `${t.kind === 'wall-deadline' ? 'wall deadline reached' : 'counted work exhausted'} (${t.phase}${t.scope === 'stage' ? '; stage allowance' : ''})`
 type Completion = {
-  proven: boolean, checked: boolean, run?: unknown, fairRing?: unknown, kernelProven?: boolean, translation?: string,
+  proven: boolean, checked: boolean, run?: unknown, fairRing?: unknown, acceleratedRun?: {checked?: boolean}, kernelProven?: boolean, translation?: string,
   stopped?: boolean, termination?: unknown, stats?: {stopped?: boolean, termination?: unknown},
 }
 // Terminal evidence of source refusal, never permission to publish a proof.
@@ -34,6 +34,6 @@ export const completedSourceRefusal = (v: Completion | undefined): boolean =>
   (v.translation === 'unchecked' || v.translation === 'error') &&
   v.stopped === undefined && v.termination === undefined && !v.stats?.stopped && v.stats?.termination === undefined
 export const completedSearch = (v: Completion | undefined): boolean =>
-  !!v && (v.proven && v.checked || v.run !== undefined || !!v.fairRing || completedSourceRefusal(v))
+  !!v && (v.proven && v.checked || v.run !== undefined || !!v.fairRing || v.acceleratedRun?.checked === true || completedSourceRefusal(v))
 export const stoppedSearch = <T extends SearchContext & SearchTerminationFields>(v: T, termination: SearchTermination): T & SearchTerminationFields =>
   ({...v, stopped: true, termination, context: searchContext(v), why: terminationWhy(termination)})

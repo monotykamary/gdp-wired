@@ -239,7 +239,7 @@ const merge = (a: Record<string, unknown>, b: Record<string, unknown>): Record<s
 }
 
 // --- one target: its rules, their laws -------------------------------------------------------------------------------------
-type LawOut = SearchTerminationFields & Omit<TranslationFields, 'translationWitness'> & {translationWitness?: unknown, name: string, expr: string, where?: string, kind?: 'law' | 'step' | 'two runs' | 'leads to', from?: 'any', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], fairRing?: Verdict['fairRing'], replayed?: string, why?: string, assumes?: string[], found?: string[], cites?: string[], cert?: string, ms: number}
+type LawOut = SearchTerminationFields & Omit<TranslationFields, 'translationWitness'> & {translationWitness?: unknown, name: string, expr: string, where?: string, kind?: 'law' | 'step' | 'two runs' | 'leads to', from?: 'any', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], fairRing?: Verdict['fairRing'], acceleratedRun?: Verdict['acceleratedRun'], replayed?: string, why?: string, assumes?: string[], found?: string[], cites?: string[], cert?: string, ms: number}
 const translationOf = (v: Verdict): Pick<LawOut, 'translation' | 'translationChecks' | 'translationWitness' | 'kernelProven'> => ({
   ...(v.translation ? {translation: v.translation} : {}), ...(v.translationChecks !== undefined ? {translationChecks: v.translationChecks} : {}),
   ...(v.kernelProven !== undefined ? {kernelProven: v.kernelProven} : {}),
@@ -646,6 +646,9 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
     try { const r = b.kind === 'law' ? proveRule(x.rule!, [...inv, b.law], {search: work === undefined ? {ms} : {work}, watchdogMs: ctx?.watchdogMs}) : proveSteps(x.rule!, [...inv, ...proven] as never, [b.law], {search: work === undefined ? {ms} : {work}, watchdogMs: ctx?.watchdogMs}); if (r.run) v = {...v, run: r.run} } catch { /* the state stands alone */ }
     if (!v.run) v = {...v, why: `broken from a state the laws allow (from = "any"), no run from the start found reaching it`}
   }
+  const accelerated = v.translation === undefined && v.acceleratedRun?.checked ? v.acceleratedRun : undefined
+  if (accelerated) return {...base, ...searchOf(v), kind, verdict: 'broken', acceleratedRun: accelerated,
+    why: `an accelerated run of ${accelerated.totalSteps} admitted steps breaks the law`, ms: cliNow() - t0}
   const brokenAt = !!(ctx?.from && !v.proven && !v.run && !searchOf(v).stopped && v.stuck === 'sat' && v.witness)
   let verdict: LawOut['verdict'] = v.proven && v.checked && !(ctx?.from && v.assumes) ? 'proven' : v.run || brokenAt ? 'broken' : 'unknown', replayed: string | undefined
   if (v.translation === 'unchecked') verdict = 'unknown'

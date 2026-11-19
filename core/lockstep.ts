@@ -2,8 +2,8 @@
 // matched form only chooses a proof attempt; the normal kernel decides it.
 import type {E, Law, Machine} from './machine.ts'
 import {retainFamily} from './proof-output.ts'
-import {checkLaws, obligations, type Tree} from '../kernel/kernel.ts'
-import {clock, grow, withDeadline} from '../kernel/prove.ts'
+import {clock, withDeadline} from '../kernel/prove.ts'
+import {sparseKindProof} from './sparse-kind-proof.ts'
 
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b)
 function renaming(e: E, self: string): string {
@@ -20,14 +20,7 @@ export function tryLockstepScalars(m: Machine, law: Law, kinds: Law[], ms: numbe
   if (!u || !v || a === b || !m.state[a] || !m.state[b] || !same(m.state[a], m.state[b]) || renaming(u, a) !== renaming(v, b)) return
   const until = clock() + ms
   return withDeadline(until, () => {
-    // Every kind-law goal is included; arbitrary instances only guide search.
-    const laws = [...kinds, law], instances = {}, trees: Record<string, Tree> = {}
-    for (const g of obligations(m, laws, instances)) {
-      const got = grow(g, new Map(), {nodes: 0, until})
-      if (!('tree' in got)) return undefined
-      trees[g.name] = got.tree
-    }
-    const proof = {instances, trees}
-    return checkLaws(m, laws, proof) ? retainFamily({proven: true as const, checked: true as const}, m, laws, proof) : undefined
+    const laws = [...kinds, law], proof = sparseKindProof(m, laws, until)
+    return proof ? retainFamily({proven: true as const, checked: true as const}, m, laws, proof) : undefined
   })
 }

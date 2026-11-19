@@ -2,8 +2,8 @@
 // Records are reachable only through the actual returned result object; never
 // fall back to a last proof, and never treat this observation as Lean evidence.
 import type {Machine,Law} from './machine.ts'
-import type {Instances,StepLaw,Tree} from '../kernel/kernel.ts'
-import type {proveLaws, proveStepLaws} from '../kernel/prove.ts'
+import type {Instances,Liveness,StepLaw,Tree} from '../kernel/kernel.ts'
+import type {proveLaws, proveLiveness, proveProgress, proveStepLaws} from '../kernel/prove.ts'
 export type ProofOutputNode =
   | {kind:'counted',machine:Machine,laws:Law[],proof:{instances:Record<string,Instances>,certs:Record<string,import('../kernel/kernel.ts').CountCert>}}
   | {kind:'usual',machine:Machine,laws:Law[],proof:{instances:Record<string,Instances>,trees:Record<string,Tree>}}
@@ -40,6 +40,25 @@ export function publishStepProof<T extends {proven: boolean, checked: boolean}>(
   if (stepObserver && result.proven && result.checked) {
     const packet = stepRecords.get(model)
     if (packet) stepObserver(packet)
+  }
+  return result
+}
+
+export type LiveProofPacket = {machine: Machine, laws: Law[], liveness: Liveness, report: ReturnType<typeof proveLiveness>, progress?: ReturnType<typeof proveProgress>}
+let liveObserver: ((entry: LiveProofPacket) => void) | undefined
+let liveRecords = new WeakMap<object, LiveProofPacket>()
+export const liveProofOutput = {
+  get on() { return liveObserver },
+  set on(value: typeof liveObserver) { liveRecords = new WeakMap(); liveObserver = value },
+}
+export function retainLiveProof<T extends object>(result: T, packet?: LiveProofPacket): T {
+  if (liveObserver && packet) liveRecords.set(result, packet)
+  return result
+}
+export function publishLiveProof<T extends {proven: boolean, checked: boolean}>(result: T, model: object): T {
+  if (liveObserver && result.proven && result.checked) {
+    const packet = liveRecords.get(model)
+    if (packet) liveObserver(packet)
   }
   return result
 }

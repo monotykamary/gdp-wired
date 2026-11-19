@@ -1355,7 +1355,7 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
 // (proveLiveness), with the invariants inferLaws finds where they need some. Nothing new is trusted.
 // (`rule`: the rule the machine is, where there is one: the invariant search draws its runs and states by its kinds)
 export type Sampler = {params: (rand: (n: number) => number, bound: number) => Record<string, number>, input: (rand: (n: number) => number, bound: number, ps: Record<string, number>) => Request, rule?: Parameters<typeof inferLaws>[0]}
-export type LeadsVerdict = {proven: boolean, checked: boolean, rank?: E[], levels?: number[], laws?: Law[], found?: {rank: string, laws: string[]}, goal?: string, stuck?: string, witness?: Record<string, number>, why?: string}
+export type LeadsVerdict = {proven: boolean, checked: boolean, evidence?: import('./proof-output.ts').LiveProofPacket, rank?: E[], levels?: number[], laws?: Law[], found?: {rank: string, laws: string[]}, goal?: string, stuck?: string, witness?: Record<string, number>, why?: string}
 export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sampler, opts: {ms?: number} = {}): LeadsVerdict {
   const t0 = clock(), until = t0 + (opts.ms ?? 10_000), rand = seeded(29), run = interpret(m)
   const names = [...Object.keys(m.state), ...m.params].sort(), helpful = livenessHelpful(l), fair = strongly(l)
@@ -1420,7 +1420,7 @@ export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sample
     const ms = until - clock()
     if (ms < 200) break
     const v = withDeadline(clock() + ms * (i === 0 && !strong.size ? 0.5 : 0.25), () => proveLiveness(m, laws, {...l, rank}))
-    if (v.proven && v.checked) return {proven: true, checked: true, rank, levels: v.levels, laws: [], found: {rank: rankText(rank), laws: []}}
+    if (v.proven && v.checked) return {proven: true, checked: true, rank, levels: v.levels, laws: [], evidence: {machine: m, laws, liveness: {...l, rank, ...(v.levels ? {levels: v.levels} : {})}, report: v}, found: {rank: rankText(rank), laws: []}}
     tried.set(id(rank), v)
   }
   const samples: Sampled[][] = [[...points.values()].map(env => ({env, calls: new Set()}))]
@@ -1432,7 +1432,7 @@ export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sample
   if (!rank) return {proven: false, checked: false, why: noRank}
   const text = rankText(rank), lv: Liveness = {...l, rank}
   const first = tried.get(id(rank)) ?? withDeadline(until, () => proveLiveness(m, laws, lv))
-  if (first.proven && first.checked) return {proven: true, checked: true, rank, levels: first.levels, laws: [], found: {rank: text, laws: []}}
+  if (first.proven && first.checked) return {proven: true, checked: true, rank, levels: first.levels, laws: [], evidence: {machine: m, laws, liveness: {...lv, ...(first.levels ? {levels: first.levels} : {})}, report: first}, found: {rank: text, laws: []}}
   const ms = until - clock()
   if (ms > 300) {
     const {stay, cover, helps} = livenessParts(m, lv), inf = inferLaws(sample.rule ?? m, laws, [stay, cover, ...helps], {ms})
@@ -1440,7 +1440,7 @@ export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sample
     const kept = inf.found.filter(f => !f.law.some?.length), more = kept.map(f => f.law)
     if (inf.proven && more.length) {
       const again = withDeadline(until + 5000, () => proveLiveness(m, [...laws, ...more], lv))
-      if (again.proven && again.checked) return {proven: true, checked: true, rank, levels: again.levels, laws: more, found: {rank: text, laws: kept.map(f => f.text)}}
+      if (again.proven && again.checked) return {proven: true, checked: true, rank, levels: again.levels, laws: more, evidence: {machine: m, laws: [...laws, ...more], liveness: {...lv, ...(again.levels ? {levels: again.levels} : {})}, report: again}, found: {rank: text, laws: kept.map(f => f.text)}}
     }
   }
   const failed = first.failed ? {goal: first.failed.goal, stuck: first.failed.stuck, ...(first.failed.witness ? {witness: first.failed.witness} : {})} : {}

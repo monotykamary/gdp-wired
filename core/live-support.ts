@@ -110,13 +110,15 @@ export function leadsByWriteSupports(m: Machine, laws: Law[], l: Liveness, ms: n
       // one checked completion in each pending state: fill the spare fields with constants (a proof witness, not a
       // new assumption about the scheduler or what values all executions must send).
       const h = livenessHelpful(l)[0]!
+      let progress: ReturnType<typeof proveProgress> | undefined
       if (m.assume && m.inputs.some(i => !(i in h.request))) {
         const request = Object.fromEntries(m.inputs.map(i => [i, h.request[i] ?? k(0)]))
         const a = withDeadline(until, () => proveProgress(m, all, {name: `${l.name}: helpful completion is allowed`,
           when: and(and(l.from, {op: 'not', x: l.to}), h.when), then: trueC, request}))
         if (!a.proven || !a.checked) return undefined
+        progress = a
       }
-      return {proven: true, checked: true, rank, laws: alive, found: {rank: '(0)', laws: alive.map(c => showC(c.holds))}}
+      return {proven: true, checked: true, rank, laws: alive, evidence: {machine: m, laws: all, liveness: {...l, rank}, report: out, ...(progress ? {progress} : {})}, found: {rank: '(0)', laws: alive.map(c => showC(c.holds))}}
     }
     const drop = alive.findIndex(c => out.failed?.goal.startsWith(`${c.name} @`))
     if (drop < 0) return undefined

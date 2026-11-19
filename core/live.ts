@@ -240,7 +240,7 @@ export function leadsByTerms(m: Machine, laws: Law[], l: Liveness, draws: Draws,
       if (ms < 200) break
       tried.add(id(rank)); best ??= rank
       last = withDeadline(clock() + ms * (strong ? 0.9 : 1 / 3), () => proveLiveness(m, laws, goalOf(rank)))
-      if (last.proven && last.checked) return {proven: true, checked: true, rank, levels, laws: [], found: {rank: text(rank), laws: []}}
+      if (last.proven && last.checked) return {proven: true, checked: true, rank, levels, laws: [], evidence: {machine: m, laws, liveness: goalOf(rank), report: last}, found: {rank: text(rank), laws: []}}
       if (last.failed?.witness && fromWitness(last.failed.witness, last.failed.goal)) learnt = true
     }
     if (!learnt) break
@@ -253,7 +253,7 @@ export function leadsByTerms(m: Machine, laws: Law[], l: Liveness, draws: Draws,
     const kept = inf.found.filter(f => !f.law.some?.length), more = kept.map(f => f.law)
     if (inf.proven && more.length) {
       const again = withDeadline(until, () => proveLiveness(m, [...laws, ...more], lv))
-      if (again.proven && again.checked) return {proven: true, checked: true, rank, levels: lv.levels, laws: more, found: {rank: text(rank), laws: kept.map(f => f.text)}}
+      if (again.proven && again.checked) return {proven: true, checked: true, rank, levels: lv.levels, laws: more, evidence: {machine: m, laws: [...laws, ...more], liveness: lv, report: again}, found: {rank: text(rank), laws: kept.map(f => f.text)}}
     }
   }
   const failed = last?.failed ? {goal: last.failed.goal, stuck: last.failed.stuck, ...(last.failed.witness ? {witness: last.failed.witness} : {})} : {}

@@ -55,10 +55,10 @@ export function attachNativeLaw(rule: object, law: object, name: string, method:
   nativeLaws.set(law, {rule: sources.get(rule)?.root ?? rule, name, method, evaluate})
 }
 type TranslatedVerdict<V> = Omit<V, 'proven' | 'checked'> & {proven: boolean, checked: boolean} & TranslationFields
-export function translationVerdict<V extends {proven: boolean, checked: boolean, why?: string, stuck?: string, fairRing?: unknown}>(rule: object, laws: object[], input: V): TranslatedVerdict<V> {
+export function translationVerdict<V extends {proven: boolean, checked: boolean, why?: string, stuck?: string, fairRing?: unknown, acceleratedRun?: unknown}>(rule: object, laws: object[], input: V): TranslatedVerdict<V> {
   const source = sources.get(rule), bound = laws.map(l => nativeLaws.get(l)).filter(x => x !== undefined)
   if (!source && !bound.length && !marked(rule) && !laws.some(marked)) return input
-  const verdict = input.fairRing === undefined ? input : {...input, fairRing: undefined}
+  const verdict = input.fairRing === undefined && input.acceleratedRun === undefined ? input : {...input, fairRing: undefined, acceleratedRun: undefined}
   const journal = source?.journal
   const unchecked = (why: string): TranslatedVerdict<V> => ({...verdict, proven: false, checked: false, kernelProven: verdict.proven && verdict.checked, translation: 'unchecked', why: `source translation unchecked: ${why}`})
   if (!journal?.enabled || !journal.complete) return unchecked(journal?.reason ?? 'native source replay is unavailable or disabled')

@@ -1,4 +1,4 @@
-import {retainFrom, retainCounted, publishProof, withPublicRule, retainStepProof, publishStepProof} from './proof-output.ts'
+import {retainFrom, retainCounted, publishProof, withPublicRule, retainStepProof, publishStepProof, retainLiveProof, publishLiveProof} from './proof-output.ts'
 import {searchNow as countedSearchNow} from './wall.ts'
 // Typed builders for machines, decisions and loops: names are declared once and come back as typed values, so a
 // misspelled name, a law that reads a request, or a step that sets an undeclared variable is a TypeScript error, and
@@ -47,6 +47,9 @@ import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cycli
 import {discover} from './discover.ts'
 import {inferLaws, inferRates} from './infer.ts'
 import {findBoundedRun} from './bmc.ts'
+import {type AcceleratedRun, type AcceleratedSegment, checkAcceleratedRun, findAcceleratedRefutation, formatAcceleratedSummary} from './accel-refute.ts'
+export type {AcceleratedRun, AcceleratedSegment}
+export {checkAcceleratedRun, findAcceleratedRefutation, formatAcceleratedSummary}
 import {conjunction, proveKInduction} from './kind.ts'
 import {cycleLemmas, findLeadsTo, findRank} from './cycles.ts'
 import {findNeverEnds} from './nonterm.ts'
@@ -2880,7 +2883,7 @@ export const loop = (name: string): LoopRule => new LoopRule({name, params: [], 
 // Absent, every step law holds from every state where the laws (and the rule's kinds) hold, reachable or not, and the
 // laws together are kept by every step from such a state. `{from: 'any'}` proves only so.
 export type {SearchTermination, SearchContext, SearchTerminationFields} from './search-termination.ts'
-export type Verdict = TranslationFields & import('./search-termination.ts').SearchTerminationFields & {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>, k?: number, assumes?: Assumes, rank?: E | E[], levels?: number[], fairRing?: Ring}
+export type Verdict = TranslationFields & import('./search-termination.ts').SearchTerminationFields & {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>, k?: number, assumes?: Assumes, rank?: E | E[], levels?: number[], fairRing?: Ring, acceleratedRun?: AcceleratedRun}
 export type Assumes = {states: 'reachable', laws: string[]}
 // `facts`: lemmas about the rule's functions (those known by their facts) proven from those facts by a cyclic proof
 // (core/cycles.ts), the laws proven with them; `rank`: a loop's rank, found from its runs (`proveLoop` with none).
@@ -3155,7 +3158,7 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
       !Object.keys(r.machine.sums ?? {}).length) {
     const law = laws[0]!
     if (search?.work === undefined && !completeWorkProfile.enabled && seedMs > 0 && Number.isFinite(seedMs)) {
-      const lockstep = tryLockstepScalars(captureMachine, law, withKinds(r, [law]).slice(0, -1), Math.min(seedMs / 8, 1400))
+      const lockstep = tryLockstepScalars(captureMachine, law, withKinds(r, [law]).slice(0, -1), Math.min(seedMs / 6, 4500))
       if (lockstep) return lockstep
     }
     if (!Object.keys(captureMachine.fns ?? {}).length && law.forall && law.keys?.length === 1 &&
@@ -3236,7 +3239,7 @@ function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
   // explicit work accounting and real counterexample preflight unchanged.
   const sl = stepLaws.length === 1 ? stepLaws[0] : undefined
   const search = typeof opts.search === 'object' ? opts.search : undefined
-  const ms = Math.min(30_000, (search?.ms ?? 10_000) / 2)
+  const ms = Math.min(45_000, (search?.ms ?? 10_000) * 0.75)
   let fallback = opts
   const enabled = sl && opts.search !== false && opts.from !== 'any' &&
     search?.work === undefined && !completeWorkProfile.enabled && ms > 0 && Number.isFinite(search?.ms ?? 10_000)
@@ -3302,7 +3305,7 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
 }
 function searchedIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions): Verdict {
   const any = opts.from === 'any'
-  if ((v.proven && v.checked) || opts.search === false || v.run || v.stuck === 'sat' && (any || !/@step|@\d+ steps/.test(v.goal ?? ''))) return v
+  if ((v.proven && v.checked) || opts.search === false || v.run || v.acceleratedRun?.checked || v.stuck === 'sat' && (any || !/@step|@\d+ steps/.test(v.goal ?? ''))) return v
   // The deeper runs; then runs over small values (keys that meet, small params), whose requests meet their
   // assumption's equalities and clocks, or near the counterexample the verdict ends at.
   // (the three within the search's budget again, on the wall: past it they stop, and the search starts as it would)
@@ -3322,7 +3325,7 @@ function searchedIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[]
   if (explicitWork !== undefined) return searchedUntil(r, laws, stepLaws, v, opts, until)
   return withStageWall(countedSearchNow() + Math.max(0, until - clock()), () => {
     const out = searchedUntil(r, laws, stepLaws, v, opts, until)
-    if (!(out.proven && out.checked) && !out.run) checkWall('search result')
+    if (!completedSearch(out)) checkWall('search result')
     return out
   }, () => stoppedSearch(v, {kind: 'work-exhausted', phase: 'search stage', scope: 'stage'}))
 }
@@ -3358,6 +3361,22 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
     const ms = Math.min(500, total / 20), kinds = withKinds(r, []).filter(k => !laws.some(l => l.name === k.name))
     const kd = counted(fullRate, () => withStageAllowance(ms, () => proveKInduction(r.machine, kinds, conjunction(laws), {ms}), () => undefined), true)
     if (kd?.proven && kd.checked) return {proven: true, checked: true, k: kd.k!, assumes: {states: 'reachable', laws: []}}
+  }
+  // A compressed repeat is untrusted until the unchanged kernel proves its
+  // admitted affine steps and exact replay checks the original failed law.
+  // Translated source requires its own native replay; a model repeat is not it.
+  if (!any && !stepLaws.length && !isSourceBound(r, laws) && !completeWorkProfile.enabled && !workLedger.inBudget() &&
+      laws.every(l => !l.forall && !l.keys?.length && !l.some?.length) && total > 1_000) {
+    const ms = Math.min(1_500, total / 12), machine = r.machine
+    const acc = counted(fullRate, () => withStageAllowance(ms, () => findAcceleratedRefutation(machine, laws, {
+      ms,
+      wall: performance.now() + ms,
+      shownRequest,
+      randomParams: (rand, bound) => r.randomParams(rand, bound),
+      randomInput: (rand, bound, ps) => r.randomInput(rand, bound, ps),
+    }), () => undefined), true)
+    if (acc?.checked && checkAcceleratedRun(machine, laws, acc))
+      return {proven: false, checked: false, goal: `${acc.law} @accelerated (${formatAcceleratedSummary(acc)})`, stuck: 'sat', witness: acc.witness, acceleratedRun: acc}
   }
   let rule = r, lemmas: Found['lemmas']
   const {fns, lists} = r.parts
@@ -3530,7 +3549,8 @@ export type KeyedLiveness = Liveness & {forall?: string}
 // The rule a keyed liveness is proven on: the rule with its key as one more param (a natural), any other rule as it is.
 export const keyed = <R extends Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>>(r: R, l: KeyedLiveness): R => (l.forall ? r.params({[l.forall]: nat}) as unknown as R : r)
 export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: KeyedLiveness, opts: {ms?: number} = {}): Verdict {
-  return translationVerdict(r, [...laws, l], proveLeadsToIn(r, laws, l, opts, !isSourceBound(r, [...laws, l])))
+  const out = proveLeadsToIn(r, laws, l, opts, !isSourceBound(r, [...laws, l]))
+  return publishLiveProof(translationVerdict(r, [...laws, l], out), out)
 }
 function proveLeadsToIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: KeyedLiveness, opts: {ms?: number}, allowRing: boolean): Verdict {
   r = keyed(r, l).withSumsOf(laws, l)
@@ -3579,11 +3599,12 @@ function proveLeadsToIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: L
       }
     }
     const helpers = [...fresh, ...(f.laws ?? []).map((law, i) => ({law, text: f.found?.laws[i] ?? law.name}))]
-    return {proven: f.proven, checked: f.checked, ...(f.proven && f.rank ? {rank: f.rank} : {}), ...(f.proven && f.levels ? {levels: f.levels} : {}), ...(f.goal ? {goal: f.goal, stuck: f.stuck} : {}), ...(f.witness ? {witness: f.witness} : {}), ...(f.why ? {why: f.why} : {}),
-      ...(f.found ? {found: {rank: f.found.rank, ...(helpers.length ? {laws: helpers} : {})}} : {}), ...(f.proven ? withAssumes(helpers) : {})}
+    return retainLiveProof({proven: f.proven, checked: f.checked, ...(f.proven && f.rank ? {rank: f.rank} : {}), ...(f.proven && f.levels ? {levels: f.levels} : {}), ...(f.goal ? {goal: f.goal, stuck: f.stuck} : {}), ...(f.witness ? {witness: f.witness} : {}), ...(f.why ? {why: f.why} : {}),
+      ...(f.found ? {found: {rank: f.found.rank, ...(helpers.length ? {laws: helpers} : {})}} : {}), ...(f.proven ? withAssumes(helpers) : {})}, 'evidence' in f ? f.evidence : undefined)
   }
-  const out = proveLiveness(r.machine, withKinds(r, laws), l)
-  return {...verdictOf(out), ...(out.proven && out.checked && out.levels ? {levels: out.levels} : {})}
+  const machine = r.machine, family = withKinds(r, laws), out = proveLiveness(machine, family, l)
+  const liveness = out.levels ? {...l, levels: out.levels} : l
+  return retainLiveProof({...verdictOf(out), ...(out.proven && out.checked && out.levels ? {levels: out.levels} : {})}, {machine, laws: family, liveness, report: out})
 }
 // A leads-to refuted by a fair run that never gets there (core/live.ts's findRing, checked by refutedBy): a stem from
 // the start, then round a ring of sets each request of which the kernel proves allowed and into the next set, fair to
