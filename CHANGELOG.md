@@ -3,6 +3,23 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.53.1
+
+### Fixed
+
+- Keep declared map sums exact across broadcast (`each`) writes in both
+  runtimes (`interpret` and compiled JavaScript), recomputing from the
+  post-step map cells instead of applying an uncovered finite-cover delta
+  (and throwing `RangeError` when a broadcast leaves a non-zero default
+  outside the stored cells).
+- Independently replay every concrete refutation on the original rule with
+  map sums computed directly from the maps before reporting a counterexample.
+- Refuse sum maintenance (`stuck: 'unknown'`) in `proveRule`, `proveSteps`,
+  `proveLeadsTo`, and `inferLaws` whenever a summed map's `@cover` goal does
+  not check, and skip uncovered broadcast maps in `withMapSums()`. Covered
+  map writes and point writes remain unchanged, and trusted kernel checking
+  is untouched.
+
 ## 0.53.0
 
 ### Added
