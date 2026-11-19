@@ -239,7 +239,7 @@ const merge = (a: Record<string, unknown>, b: Record<string, unknown>): Record<s
 }
 
 // --- one target: its rules, their laws -------------------------------------------------------------------------------------
-type LawOut = SearchTerminationFields & Omit<TranslationFields, 'translationWitness'> & {translationWitness?: unknown, name: string, expr: string, where?: string, kind?: 'law' | 'step' | 'two runs' | 'leads to', from?: 'any', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], replayed?: string, why?: string, assumes?: string[], found?: string[], cites?: string[], cert?: string, ms: number}
+type LawOut = SearchTerminationFields & Omit<TranslationFields, 'translationWitness'> & {translationWitness?: unknown, name: string, expr: string, where?: string, kind?: 'law' | 'step' | 'two runs' | 'leads to', from?: 'any', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], fairRing?: Verdict['fairRing'], replayed?: string, why?: string, assumes?: string[], found?: string[], cites?: string[], cert?: string, ms: number}
 const translationOf = (v: Verdict): Pick<LawOut, 'translation' | 'translationChecks' | 'translationWitness' | 'kernelProven'> => ({
   ...(v.translation ? {translation: v.translation} : {}), ...(v.translationChecks !== undefined ? {translationChecks: v.translationChecks} : {}),
   ...(v.kernelProven !== undefined ? {kernelProven: v.kernelProven} : {}),
@@ -617,7 +617,10 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
     try { lt = buildLeadsTo(x, l, {clock: ctx?.clock}) } catch (e) { if (e instanceof LawError) return {...base, verdict: 'not read', why: (e as Error).message, ms: 0}; throw e }
     let v: Verdict
     try { v = proveLeadsTo(x.rule! as never, [...inv, ...proven] as never, lt as never, {ms}) } catch (e) { return {...base, kind: 'leads to', verdict: 'unknown', why: (e as Error).message, ms: cliNow() - t0} }
-    return {...base, ...translationOf(v), ...searchOf(v), kind: 'leads to', verdict: v.proven && v.checked ? 'proven' : 'unknown', ...(v.proven && v.checked ? {} : {why: whyOf(v, [v.goal, v.stuck, v.why].filter(Boolean).join('; ') || 'not proven')}), ms: cliNow() - t0}
+    const checked = v.proven && v.checked, ring = v.fairRing
+    return {...base, ...translationOf(v), ...searchOf(v), kind: 'leads to', verdict: checked ? 'proven' : ring ? 'broken' : 'unknown',
+      ...(ring ? {fairRing: ring, why: `a fair run stays pending (${ring.stem.length} stem steps, ${ring.sets.length} recurring sets)`} :
+        checked ? {} : {why: whyOf(v, [v.goal, v.stuck, v.why].filter(Boolean).join('; ') || 'not proven')}), ms: cliNow() - t0}
   }
   let b: Built | undefined, two: TwoRunLaw | undefined
   // (a law that can't be built is not read, with why: never the whole check aborted)

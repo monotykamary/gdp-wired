@@ -18,6 +18,8 @@ export type TranslationFields = {translation?: Translation, translationChecks?: 
 // the private observations must downgrade a source proof, not turn it into a DSL proof.
 const sourceMarker = Symbol.for('gdp-wired.source-proof.v1')
 const marked = (value: object): boolean => Object.prototype.hasOwnProperty.call(value, sourceMarker)
+// A model counterexample is not a native source replay.
+export const isSourceBound = (rule: object, laws: object[]): boolean => marked(rule) || laws.some(marked)
 const mark = (value: object, enumerable = false): void => { if (!marked(value)) Object.defineProperty(value, sourceMarker, {value: true, enumerable}) }
 const markRule = (value: object): void => {
   mark(value)

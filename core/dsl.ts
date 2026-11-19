@@ -1,4 +1,4 @@
-import {retainFrom, retainCounted, publishProof, withPublicRule} from './proof-output.ts'
+import {retainFrom, retainCounted, publishProof, withPublicRule, retainStepProof, publishStepProof} from './proof-output.ts'
 import {searchNow as countedSearchNow} from './wall.ts'
 // Typed builders for machines, decisions and loops: names are declared once and come back as typed values, so a
 // misspelled name, a law that reads a request, or a step that sets an undeclared variable is a TypeScript error, and
@@ -23,8 +23,11 @@ export {fixedInt, FixedWord, fixedFailure, fixedSelect} from './fixed-integers.t
 import {binder, copyVariable, encodeBinders, generatedVariable, guardReserved, internalName, plainDeclaration, variable} from './dsl-binders.ts'
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {proveCandidateSeeds} from './candidate-seeds.ts'
+import {orderedPairSeed} from './ordered-pair-seeds.ts'
+import {tryLockstepScalars} from './lockstep.ts'
 import {proveCountedCandidateSeeds} from './counted-candidate-seeds.ts'
-import {type TranslationFields, bindSourceMachine, inheritSource, translationVerdict} from './source-check.ts'
+import {stepSeedFamilies, tryStepSeed} from './step-seeds.ts'
+import {type TranslationFields, bindSourceMachine, inheritSource, isSourceBound, translationVerdict} from './source-check.ts'
 import {env as knobs} from './solver.ts'
 import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, fnCall, hasFinite, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, sourceFreeFn, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
@@ -47,7 +50,7 @@ import {findBoundedRun} from './bmc.ts'
 import {conjunction, proveKInduction} from './kind.ts'
 import {cycleLemmas, findLeadsTo, findRank} from './cycles.ts'
 import {findNeverEnds} from './nonterm.ts'
-import {findRing, leadsByTerms} from './live.ts'
+import {findRing, leadsByTerms, type Ring} from './live.ts'
 import {leadsByWriteSupports} from './live-support.ts'
 import {type FreshLaw, freshLaws} from './fresh.ts'
 
@@ -2877,7 +2880,7 @@ export const loop = (name: string): LoopRule => new LoopRule({name, params: [], 
 // Absent, every step law holds from every state where the laws (and the rule's kinds) hold, reachable or not, and the
 // laws together are kept by every step from such a state. `{from: 'any'}` proves only so.
 export type {SearchTermination, SearchContext, SearchTerminationFields} from './search-termination.ts'
-export type Verdict = TranslationFields & import('./search-termination.ts').SearchTerminationFields & {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>, k?: number, assumes?: Assumes, rank?: E | E[], levels?: number[]}
+export type Verdict = TranslationFields & import('./search-termination.ts').SearchTerminationFields & {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>, k?: number, assumes?: Assumes, rank?: E | E[], levels?: number[], fairRing?: Ring}
 export type Assumes = {states: 'reachable', laws: string[]}
 // `facts`: lemmas about the rule's functions (those known by their facts) proven from those facts by a cyclic proof
 // (core/cycles.ts), the laws proven with them; `rank`: a loop's rank, found from its runs (`proveLoop` with none).
@@ -3091,17 +3094,17 @@ function watchdogVerdict(ms: number | undefined, run: () => Verdict): Verdict {
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
   return watchdogVerdict(opts.watchdogMs, () => withModelRounds(opts.modelRounds, () => withPublicRule(outermost => {
     const captureMachine = r.machine, hasCounts = !!Object.keys(captureMachine.counts ?? {}).length
-    const result = workVerdict(opts, plan => withPublicSearchPolicy(hasCounts, () => proveRuleWall(r, laws, plan)))
+    const result = workVerdict(opts, plan => withPublicSearchPolicy(hasCounts, () => proveRuleWall(r, laws, plan, captureMachine)))
     return outermost ? publishProof(result, captureMachine, laws) : result
   })))
 }
-function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions): Verdict {
+function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions, captureMachine: Machine): Verdict {
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
   const run = (): Verdict => {
     let result: Verdict | undefined
     try {
       checkWall('rule preflight')
-      const out = result = proveRuleIn(r, laws, opts)
+      const out = result = proveRuleIn(r, laws, opts, captureMachine)
       if (!completedSearch(out) && !(out.stopped && out.termination)) checkWall('rule result')
       return out
     } catch (e) {
@@ -3115,7 +3118,7 @@ function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   const result = ms === undefined ? run() : withWall(searchWall(ms), run)
   return retainFrom(translationVerdict(r, laws, result), [result])
 }
-function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions): Verdict {
+function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions, captureMachine: Machine): Verdict {
   r = r.withSumsOf(laws, opts.candidateSeeds?.laws ?? [])
   noting(r, laws)
   if(opts.candidateSeeds) {
@@ -3142,7 +3145,34 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   // A state the laws allow whose step breaks one, with no run to it (a wide rule's: what the kernel's step goal would end
   // at), is a counterexample to induction: the laws may still hold, so the search goes on from it, as from the kernel's.
   // (A step law broken so is refused, proveSteps below: it holds from every state the laws allow, reached or not.)
-  if (refuted) return refuted.run ? refutedVerdict(refuted) : searched(r, laws, [], refutedVerdict(refuted), opts)
+  if (refuted?.run) return refutedVerdict(refuted)
+  // A narrowly matched candidate gets a bounded attempt before unrestricted
+  // inference. A failed helper proof is not a verdict about the caller's law.
+  const search = typeof opts.search === 'object' ? opts.search : undefined
+  const seedMs = search?.ms ?? 10_000
+  if (opts.search !== false && opts.from !== 'any' && !opts.candidateSeeds && laws.length === 1 &&
+      !captureMachine.history && !Object.keys(captureMachine.sums ?? {}).length && !Object.keys(captureMachine.counts ?? {}).length &&
+      !Object.keys(r.machine.sums ?? {}).length) {
+    const law = laws[0]!
+    if (search?.work === undefined && !completeWorkProfile.enabled && seedMs > 0 && Number.isFinite(seedMs)) {
+      const lockstep = tryLockstepScalars(captureMachine, law, Math.min(seedMs / 8, 1400))
+      if (lockstep) return lockstep
+    }
+    const seed = Object.keys(captureMachine.fns ?? {}).length ? undefined : orderedPairSeed(captureMachine, law)
+    if (seed && (search?.work !== undefined || seedMs > 0 && Number.isFinite(seedMs))) {
+      const family = withKinds(r, [seed, law]), prove = () => proveLaws(captureMachine, family)
+      const started = countedSearchNow()
+      const out = search?.work === undefined
+        ? withStageWall(started + seedMs * (2 / 3), prove, () => undefined)
+        : withStageWork(remainingStageWork(search.work, 2), prove, () => undefined)
+      const found = [{text: seed.name, law: seed}]
+      if (out?.proven && out.checked)
+        return retainFrom({...verdictOf(out), found: {laws: found}, ...withAssumes(found)}, [out], {kind: 'inference', original: captureMachine, laws})
+      if (search?.work === undefined && search?.ms === undefined && !completeWorkProfile.enabled)
+        opts = {...opts, search: {...search, ms: Math.max(0, seedMs - (countedSearchNow() - started))}}
+    }
+  }
+  if (refuted) return searched(r, laws, [], refutedVerdict(refuted), opts)
   // A rule with counts: its goals are the counted ones (core/counts.ts searches them; the kernel checks the set).
   if (r.machine.counts && Object.keys(r.machine.counts).length) {
     const c = searchCounted(r.machine, withKinds(r, laws), typeof opts.search === 'object' ? opts.search.ms ?? 60_000 : 60_000)
@@ -3186,7 +3216,8 @@ function proveStepsWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: L
   }
   const verdict = opts.from !== 'any' || ms === undefined ? run()
     : withWall(countedSearchNow() + ms, run)
-  return translationVerdict(r, [...laws, ...stepLaws], verdict)
+  const translated = translationVerdict(r, [...laws, ...stepLaws], verdict)
+  return publishStepProof(translated, verdict)
 }
 function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions): Verdict {
   r = r.withSumsOf(laws, stepLaws)
@@ -3195,10 +3226,44 @@ function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
   checkWorkEndpoint('refutation result')
   // (a step law broken from a state the laws allow, with no run to it: the laws may need an invariant there, or the run
   // be further than these runs go; the search goes on from it, as from the kernel's)
-  if (refuted) return refuted.run ? refutedVerdict(refuted) : searched(r, laws, stepLaws, refutedVerdict(refuted), opts)
-  const out = proveStepLaws(r.machine, withKinds(r, laws), stepLaws)
-  const v = verdictOf(out)
-  return searched(r, laws, stepLaws, v, opts)
+  if (refuted?.run) return refutedVerdict(refuted)
+  const m = r.machine
+  // A bounded search for reachable-state supports. Keep from-any proofs,
+  // explicit work accounting and real counterexample preflight unchanged.
+  const sl = stepLaws.length === 1 ? stepLaws[0] : undefined
+  const search = typeof opts.search === 'object' ? opts.search : undefined
+  const ms = Math.min(30_000, (search?.ms ?? 10_000) / 2)
+  let fallback = opts
+  const enabled = sl && opts.search !== false && opts.from !== 'any' &&
+    search?.work === undefined && !completeWorkProfile.enabled && ms > 0 && Number.isFinite(search?.ms ?? 10_000)
+  const trySeeds = (law: StepLaw): Verdict | undefined => {
+    const started = countedSearchNow()
+    const seeded = withStageDeadline(clock() + ms, () => {
+      for (const seeds of stepSeedFamilies(m, law).slice(0, law.forall ? 1 : 2)) {
+        const found = quietly(() => tryStepSeed(m, laws, r.kindLaws(), law, seeds))
+        if (found?.checked.proven && found.checked.checked && found.checked.proof) return {...found,seeds}
+      }
+      return undefined
+    }, () => undefined)
+    if (seeded) {
+      const found = seeded.seeds.map(law => ({law, text: law.name}))
+      return retainStepProof({...verdictOf(seeded.checked), found: {laws: found}, ...withAssumes(found)},
+        {machine: m, family: seeded.family, step: law, report: seeded.checked})
+    }
+    const elapsed = Math.max(0, countedSearchNow() - started)
+    if (elapsed >= 1) fallback = {...opts, search:{...search, ms:Math.max(0,(search?.ms ?? 10_000)-elapsed)}}
+    return undefined
+  }
+  // For a one-row law the sparse attempt avoids the large default instance
+  // set entirely. The other shapes only try seeding after a non-inductive step.
+  const sparse = enabled && sl?.forall && !laws.length ? trySeeds(sl) : undefined
+  if (sparse) return sparse
+  const v = refuted ? refutedVerdict(refuted) : verdictOf(proveStepLaws(m, withKinds(r, laws), stepLaws))
+  if (enabled && sl && !sl.forall && v.stuck === 'sat') {
+    const strengthened = trySeeds(sl)
+    if (strengthened) return strengthened
+  }
+  return searched(r, laws, stepLaws, v, fallback)
 }
 // The one-step laws as laws the bounded runs read (core/bmc.ts takes laws alone): a ghost per step law, set once a step
 // it is about breaks it (`then` read with each primed name the step's update), and the law that it is never set. Only a
@@ -3468,7 +3533,16 @@ function proveLeadsToIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: L
   noting(r, laws, l)
   if (laws.some(law => law.some?.length)) throw new Error(`${r.machine.name}: a law with "there exists" goes to proveRule or proveSteps; a liveness takes plain laws (the ones its proof printed, Verdict.witnesses)`)
   if (Array.isArray(l.rank) && !l.rank.length) {
-    const until = clock() + (opts.ms ?? 10_000), draws = {params: (rand: Rand, bound: number) => r.randomParams(rand, bound), input: (rand: Rand, bound: number, ps: Record<string, number>) => r.randomInput(rand, bound, ps)}
+    const ms = opts.ms ?? 10_000, until = clock() + ms
+    const draws = {params: (rand: Rand, bound: number) => r.randomParams(rand, bound), input: (rand: Rand, bound: number, ps: Record<string, number>) => r.randomInput(rand, bound, ps)}
+    const m = r.machine, ringMs = Math.min(15_000, ms / 4)
+    // History queries can keep a helpful request disabled indefinitely. Search
+    // for a checked ring within the normal grant; never use a model ring as a
+    // counterexample for extracted source or with unverified function facts.
+    if (m.history && !isSourceBound(r, [...laws, l]) && !m.facts?.some(f => !isArithmetic(f.name.split(':')[0]!)) && ringMs > 1000 && Number.isFinite(ms)) {
+      const found = withStageDeadline(clock() + ringMs, () => findRing(m, withKinds(r, laws), l, draws, {ms: ringMs}), () => undefined)
+      if (found?.verdict.refuted) return {proven: false, checked: false, goal: l.name, stuck: 'sat', fairRing: found.ring}
+    }
     // (the laws about the keys a counter hands out or a high-water mark bounds, core/fresh.ts, within a twentieth: given
     // to both searches, each proven again with the rank)
     const share = (until - clock()) / 20, fresh = Object.keys(r.machine.maps ?? {}).length ? withStageDeadline(clock() + share, () => freshLaws(r.machine, r.kindLaws(), draws, {ms: share}), () => []) : []

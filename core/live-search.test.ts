@@ -21,7 +21,14 @@ test('a growing history is not a lasso merely because its query can be pinned to
     const result = refutedBy(r.machine, r.kindLaws(), l, ring)
     expect(result.refuted).toBe(!closes)
     if (closes) expect(result.why).toContain('without pinning history queries')
-    else expect(refuteLeadsTo(r, [], l, {ms: 5000})?.verdict.refuted).toBe(true)
+    else {
+      expect(refuteLeadsTo(r, [], l, {ms: 5000})?.verdict.refuted).toBe(true)
+      const v = proveLeadsTo(r, [], l, {ms: 10_000})
+      expect(v.proven).toBe(false)
+      expect(v.run).toBeUndefined()
+      expect(v.fairRing).toBeDefined()
+      expect(refutedBy(r.machine, r.kindLaws(), l, v.fairRing!).refuted).toBe(true)
+    }
   }
 }, 20_000)
 

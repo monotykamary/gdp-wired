@@ -2,7 +2,8 @@
 // Records are reachable only through the actual returned result object; never
 // fall back to a last proof, and never treat this observation as Lean evidence.
 import type {Machine,Law} from './machine.ts'
-import type {Instances,Tree} from '../kernel/kernel.ts'
+import type {Instances,StepLaw,Tree} from '../kernel/kernel.ts'
+import type {proveStepLaws} from '../kernel/prove.ts'
 export type ProofOutputNode =
   | {kind:'counted',machine:Machine,laws:Law[],proof:{instances:Record<string,Instances>,certs:Record<string,import('../kernel/kernel.ts').CountCert>}}
   | {kind:'usual',machine:Machine,laws:Law[],proof:{instances:Record<string,Instances>,trees:Record<string,Tree>}}
@@ -22,6 +23,27 @@ export const proofOutput:{on?: (event:PublicProofOutput)=>void}={
   get on(){return observer},
   set on(value){records=new WeakMap<object,ProofOutputNode>();observer=value}
 }
+// Step proof evidence is attached to the actual verdict, never to a last
+// attempt. Translation refusal must not publish a successful model packet.
+type StepProofPacket = {machine: Machine, family: Law[], step: StepLaw, report: ReturnType<typeof proveStepLaws>}
+let stepObserver: ((entry: StepProofPacket) => void) | undefined
+let stepRecords = new WeakMap<object, StepProofPacket>()
+export const stepProofOutput = {
+  get on() { return stepObserver },
+  set on(value: typeof stepObserver) { stepRecords = new WeakMap(); stepObserver = value },
+}
+export function retainStepProof<T extends object>(result: T, packet: StepProofPacket): T {
+  if (stepObserver) stepRecords.set(result, packet)
+  return result
+}
+export function publishStepProof<T extends {proven: boolean, checked: boolean}>(result: T, model: object): T {
+  if (stepObserver && result.proven && result.checked) {
+    const packet = stepRecords.get(model)
+    if (packet) stepObserver(packet)
+  }
+  return result
+}
+
 export function retainFamily<T extends {proven:boolean,checked:boolean}>(result:T,machine:Machine,laws:Law[],proof:{instances:Record<string,Instances>,trees:Record<string,Tree>}|undefined):T {
   if(proofOutput.on&&result.proven&&result.checked&&proof)records.set(result,{kind:'usual',machine,laws,proof})
   return result
