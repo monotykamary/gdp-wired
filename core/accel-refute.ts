@@ -14,6 +14,7 @@ import {
 import {clock, grow} from '../kernel/prove.ts'
 import {allowed} from './watch.ts'
 import {checkWatchdog} from './search-watchdog.ts'
+import {isSourceBound} from './source-check.ts'
 
 export type ClosedFormVar = {base: number, delta: number}
 
@@ -69,7 +70,7 @@ const debug = () => process.env.GDP_ACCEL_REFUTE_LOG === '1'
 const log = (msg: string) => { if (debug()) process.stderr.write(`[accel-refute] ${msg}\n`) }
 
 export function accelRefuteFits(m: Machine, laws: Law[]): boolean {
-  if (hasFinite([m, laws])) return false
+  if (isSourceBound(m, laws) || hasFinite([m, laws])) return false
   if (Object.keys(m.maps ?? {}).length || m.history || m.inputMaps?.length) return false
   if (m.counts && Object.keys(m.counts).length) return false
   if (m.sums && Object.keys(m.sums).length) return false

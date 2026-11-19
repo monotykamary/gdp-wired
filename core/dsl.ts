@@ -34,7 +34,7 @@ import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withModelRounds, type ModelRoundPolicy, withWall} from '../kernel/prove.ts'
-import {WallExpired, checkWall, checkBudget, checkWorkEndpoint, searchWall, withBudget, BudgetExpired} from './wall.ts'
+import {WallExpired, checkWall, checkBudget, checkWorkEndpoint, searchWall, withBudget, inBudget, BudgetExpired} from './wall.ts'
 import {completeWorkProfile} from './work-profile.ts'
 import {workLedger} from './work-admission.ts'
 import {withStageAllowance, withStageDeadline, withStageWall, withStageWork, remainingStageWork} from './dsl-deadline.ts'
@@ -3242,7 +3242,7 @@ function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
   const ms = Math.min(45_000, (search?.ms ?? 10_000) * 0.75)
   let fallback = opts
   const enabled = sl && opts.search !== false && opts.from !== 'any' &&
-    search?.work === undefined && !completeWorkProfile.enabled && ms > 0 && Number.isFinite(search?.ms ?? 10_000)
+    search?.work === undefined && !inBudget() && !completeWorkProfile.enabled && ms > 0 && Number.isFinite(search?.ms ?? 10_000)
   const trySeeds = (law: StepLaw): Verdict | undefined => {
     const started = countedSearchNow()
     const seeded = withStageDeadline(clock() + ms, () => {
@@ -3365,7 +3365,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // A compressed repeat is untrusted until the unchanged kernel proves its
   // admitted affine steps and exact replay checks the original failed law.
   // Translated source requires its own native replay; a model repeat is not it.
-  if (!any && !stepLaws.length && !isSourceBound(r, laws) && !completeWorkProfile.enabled && !workLedger.inBudget() &&
+  if (!any && !stepLaws.length && !isSourceBound(r, laws) && !completeWorkProfile.enabled && !inBudget() &&
       laws.every(l => !l.forall && !l.keys?.length && !l.some?.length) && total > 1_000) {
     const ms = Math.min(1_500, total / 12), machine = r.machine
     const acc = counted(fullRate, () => withStageAllowance(ms, () => findAcceleratedRefutation(machine, laws, {

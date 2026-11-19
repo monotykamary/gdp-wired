@@ -618,8 +618,8 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
     let v: Verdict
     try { v = proveLeadsTo(x.rule! as never, [...inv, ...proven] as never, lt as never, {ms}) } catch (e) { return {...base, kind: 'leads to', verdict: 'unknown', why: (e as Error).message, ms: cliNow() - t0} }
     const checked = v.proven && v.checked, ring = v.translation === undefined ? v.fairRing : undefined
-    return {...base, ...translationOf(v), ...searchOf(v), kind: 'leads to', verdict: checked ? 'proven' : ring ? 'broken' : 'unknown',
-      ...(ring ? {fairRing: ring, why: `a fair run stays pending (${ring.stem.length} stem steps, ${ring.sets.length} recurring sets)`} :
+    return {...base, ...translationOf(v), ...searchOf(v), kind: 'leads to', verdict: checked ? 'proven' : 'unknown',
+      ...(ring ? {fairRing: ring, why: `a model fair ring stays pending (${ring.stem.length} stem steps, ${ring.sets.length} recurring sets); native source replay unavailable`} :
         checked ? {} : {why: whyOf(v, [v.goal, v.stuck, v.why].filter(Boolean).join('; ') || 'not proven')}), ms: cliNow() - t0}
   }
   let b: Built | undefined, two: TwoRunLaw | undefined
@@ -647,8 +647,8 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
     if (!v.run) v = {...v, why: `broken from a state the laws allow (from = "any"), no run from the start found reaching it`}
   }
   const accelerated = v.translation === undefined && v.acceleratedRun?.checked ? v.acceleratedRun : undefined
-  if (accelerated) return {...base, ...searchOf(v), kind, verdict: 'broken', acceleratedRun: accelerated,
-    why: `an accelerated run of ${accelerated.totalSteps} admitted steps breaks the law`, ms: cliNow() - t0}
+  if (accelerated) return {...base, ...searchOf(v), kind, verdict: 'unknown', acceleratedRun: accelerated,
+    why: `an accelerated model run of ${accelerated.totalSteps} admitted steps breaks the law; native source replay unavailable`, ms: cliNow() - t0}
   const brokenAt = !!(ctx?.from && !v.proven && !v.run && !searchOf(v).stopped && v.stuck === 'sat' && v.witness)
   let verdict: LawOut['verdict'] = v.proven && v.checked && !(ctx?.from && v.assumes) ? 'proven' : v.run || brokenAt ? 'broken' : 'unknown', replayed: string | undefined
   if (v.translation === 'unchecked') verdict = 'unknown'

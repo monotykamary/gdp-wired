@@ -20,6 +20,7 @@ import {allowed, watch} from './watch.ts'
 import {type LeadsVerdict, showE} from './cycles.ts'
 import {inferLaws} from './infer.ts'
 import {isSourceBound} from './source-check.ts'
+import {withStageDeadline} from './dsl-deadline.ts'
 import {BudgetExpired, WallExpired} from './wall.ts'
 import {WatchdogExpired} from './search-watchdog.ts'
 
@@ -239,9 +240,9 @@ export function leadsByTerms(m: Machine, laws: Law[], l: Liveness, draws: Draws,
       const ms = ranksUntil - clock()
       if (ms < 200) break
       tried.add(id(rank)); best ??= rank
-      last = withDeadline(clock() + ms * (strong ? 0.9 : 1 / 3), () => proveLiveness(m, laws, goalOf(rank)))
-      if (last.proven && last.checked) return {proven: true, checked: true, rank, levels, laws: [], evidence: {machine: m, laws, liveness: goalOf(rank), report: last}, found: {rank: text(rank), laws: []}}
-      if (last.failed?.witness && fromWitness(last.failed.witness, last.failed.goal)) learnt = true
+      last = withStageDeadline(clock() + ms * (strong ? 0.9 : 1 / 3), () => proveLiveness(m, laws, goalOf(rank)), () => undefined)
+      if (last?.proven && last.checked) return {proven: true, checked: true, rank, levels, laws: [], evidence: {machine: m, laws, liveness: goalOf(rank), report: last}, found: {rank: text(rank), laws: []}}
+      if (last?.failed?.witness && fromWitness(last.failed.witness, last.failed.goal)) learnt = true
     }
     if (!learnt) break
   }
@@ -252,8 +253,8 @@ export function leadsByTerms(m: Machine, laws: Law[], l: Liveness, draws: Draws,
     const {stay, cover, helps} = livenessParts(m, lv), inf = inferLaws(draws.rule ?? m, laws, [stay, cover, ...helps], {ms})
     const kept = inf.found.filter(f => !f.law.some?.length), more = kept.map(f => f.law)
     if (inf.proven && more.length) {
-      const again = withDeadline(until, () => proveLiveness(m, [...laws, ...more], lv))
-      if (again.proven && again.checked) return {proven: true, checked: true, rank, levels: lv.levels, laws: more, evidence: {machine: m, laws: [...laws, ...more], liveness: lv, report: again}, found: {rank: text(rank), laws: kept.map(f => f.text)}}
+      const again = withStageDeadline(until, () => proveLiveness(m, [...laws, ...more], lv), () => undefined)
+      if (again?.proven && again.checked) return {proven: true, checked: true, rank, levels: lv.levels, laws: more, evidence: {machine: m, laws: [...laws, ...more], liveness: lv, report: again}, found: {rank: text(rank), laws: kept.map(f => f.text)}}
     }
   }
   const failed = last?.failed ? {goal: last.failed.goal, stuck: last.failed.stuck, ...(last.failed.witness ? {witness: last.failed.witness} : {})} : {}
@@ -362,6 +363,17 @@ function checkRing(m: Machine, laws: Law[], l: Liveness, ring: Ring): RingVerdic
   if (!at(l.from) || at(l.to) || !at(ring.sets[0]!.holds)) return {refuted: false, why: 'the stem ends where `from` doesn\'t hold, `to` does, or outside the first set'}
   const after = postState(m)
   const clientRequest = (r: Record<string, E>) => Object.fromEntries(inputs.map(i => [i, r[i] ?? k(0)]))
+  // Replay a full initial lap in the actual interpreter, including request
+  // evaluation and hidden queries. Beyond that lap the certificate is about
+  // the kernel's unbounded natural model, not indefinite host execution.
+  for (const [j, set] of ring.sets.entries()) {
+    const req = Object.fromEntries(Object.entries(clientRequest(set.request)).map(([name, t]) => [name, evalE(t, {...ring.params, ...st.scalars}, st, m)]))
+    if (!Object.values(req).every(natural) || !allowed(m, run, ring.params, st, req))
+      return {refuted: false, why: `ring ${j + 1}: its first recurring request is not allowed`}
+    st = run.step(ring.params, st, req)
+    if (!at(l.from) || at(l.to) || !at(ring.sets[(j + 1) % n]!.holds))
+      return {refuted: false, why: `ring ${j + 1}: interpreter did not stay pending and move into the next set`}
+  }
   for (const [j, set] of ring.sets.entries()) {
     const next = ring.sets[(j + 1) % n]!.holds, then: C = {op: 'and', xs: [substC(next, after), substC(l.from, after), {op: 'not', x: substC(l.to, after)}]}
     const p = proveProgress(m, laws, {name: `${l.name}: ring ${j + 1}`, when: set.holds, then,

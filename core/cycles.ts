@@ -34,6 +34,7 @@ import {type NodeSpec, and, proveCyclic, vars as vs} from './cyclic.ts'
 import {type Lin, canon, env, gcd, konst, pivot, plus, ratioRow, refuteFast, solve, subst, times, vars, work} from './solver.ts'
 import {clock, grow, proveLaws, proveLiveness, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {inferLaws} from './infer.ts'
+import {withStageDeadline} from './dsl-deadline.ts'
 import {bgcd} from './q.ts'
 import {type Generators, type Relation, generators, houdini, relationOf, tightBounds} from './relation.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
@@ -1419,7 +1420,8 @@ export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sample
   for (const [i, rank] of trivial.entries()) {
     const ms = until - clock()
     if (ms < 200) break
-    const v = withDeadline(clock() + ms * (i === 0 && !strong.size ? 0.5 : 0.25), () => proveLiveness(m, laws, {...l, rank}))
+    const v = withStageDeadline(clock() + ms * (i === 0 && !strong.size ? 0.5 : 0.25), () => proveLiveness(m, laws, {...l, rank}), () => undefined)
+    if (!v) continue
     if (v.proven && v.checked) return {proven: true, checked: true, rank, levels: v.levels, laws: [], evidence: {machine: m, laws, liveness: {...l, rank, ...(v.levels ? {levels: v.levels} : {})}, report: v}, found: {rank: rankText(rank), laws: []}}
     tried.set(id(rank), v)
   }
@@ -1431,19 +1433,19 @@ export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sample
   const rank = fitted ?? (strong.size ? undefined : [zero])
   if (!rank) return {proven: false, checked: false, why: noRank}
   const text = rankText(rank), lv: Liveness = {...l, rank}
-  const first = tried.get(id(rank)) ?? withDeadline(until, () => proveLiveness(m, laws, lv))
-  if (first.proven && first.checked) return {proven: true, checked: true, rank, levels: first.levels, laws: [], evidence: {machine: m, laws, liveness: {...lv, ...(first.levels ? {levels: first.levels} : {})}, report: first}, found: {rank: text, laws: []}}
+  const first = tried.get(id(rank)) ?? withStageDeadline(until, () => proveLiveness(m, laws, lv), () => undefined)
+  if (first?.proven && first.checked) return {proven: true, checked: true, rank, levels: first.levels, laws: [], evidence: {machine: m, laws, liveness: {...lv, ...(first.levels ? {levels: first.levels} : {})}, report: first}, found: {rank: text, laws: []}}
   const ms = until - clock()
   if (ms > 300) {
     const {stay, cover, helps} = livenessParts(m, lv), inf = inferLaws(sample.rule ?? m, laws, [stay, cover, ...helps], {ms})
     // (laws about every key too: a liveness about every key needs those of its key's cells)
     const kept = inf.found.filter(f => !f.law.some?.length), more = kept.map(f => f.law)
     if (inf.proven && more.length) {
-      const again = withDeadline(until + 5000, () => proveLiveness(m, [...laws, ...more], lv))
-      if (again.proven && again.checked) return {proven: true, checked: true, rank, levels: again.levels, laws: more, evidence: {machine: m, laws: [...laws, ...more], liveness: {...lv, ...(again.levels ? {levels: again.levels} : {})}, report: again}, found: {rank: text, laws: kept.map(f => f.text)}}
+      const again = withStageDeadline(until, () => proveLiveness(m, [...laws, ...more], lv), () => undefined)
+      if (again?.proven && again.checked) return {proven: true, checked: true, rank, levels: again.levels, laws: more, evidence: {machine: m, laws: [...laws, ...more], liveness: {...lv, ...(again.levels ? {levels: again.levels} : {})}, report: again}, found: {rank: text, laws: kept.map(f => f.text)}}
     }
   }
-  const failed = first.failed ? {goal: first.failed.goal, stuck: first.failed.stuck, ...(first.failed.witness ? {witness: first.failed.witness} : {})} : {}
+  const failed = first?.failed ? {goal: first.failed.goal, stuck: first.failed.stuck, ...(first.failed.witness ? {witness: first.failed.witness} : {})} : {}
   if (!fitted) return {proven: false, checked: false, ...failed, why: `${noRank}; rank ${text}, which the runs allow, not proven, nor with the invariants found`}
   return {proven: false, checked: false, rank, found: {rank: text, laws: []}, ...failed, why: `rank ${text} from the runs; the kernel's goals not proven with it`}
 }
