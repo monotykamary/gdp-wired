@@ -36,6 +36,7 @@ import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withModelRounds, type ModelRoundPolicy, withWall} from '../kernel/prove.ts'
 import {WallExpired, checkWall, checkBudget, checkWorkEndpoint, searchWall, withBudget, inBudget, BudgetExpired} from './wall.ts'
 import {completeWorkProfile} from './work-profile.ts'
+import {stepWorkProfile} from './step-work.ts'
 import {workLedger} from './work-admission.ts'
 import {withStageAllowance, withStageDeadline, withStageWall, withStageWork, remainingStageWork} from './dsl-deadline.ts'
 import {type SearchTermination, completedSearch, searchContext, stoppedSearch} from './search-termination.ts'
@@ -3365,7 +3366,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // A compressed repeat is untrusted until the unchanged kernel proves its
   // admitted affine steps and exact replay checks the original failed law.
   // Translated source requires its own native replay; a model repeat is not it.
-  if (!any && !stepLaws.length && !isSourceBound(r, laws) && !completeWorkProfile.enabled && !inBudget() &&
+  if (!any && !stepLaws.length && !isSourceBound(r, laws) && !stepWorkProfile.enabled && !inBudget() &&
       laws.every(l => !l.forall && !l.keys?.length && !l.some?.length) && total > 1_000) {
     const ms = Math.min(1_500, total / 12), machine = r.machine
     const acc = counted(fullRate, () => withStageAllowance(ms, () => findAcceleratedRefutation(machine, laws, {

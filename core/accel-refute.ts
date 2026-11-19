@@ -69,15 +69,58 @@ const FALSE_C: C = {op: '<', a: ZERO, b: ZERO}
 const debug = () => process.env.GDP_ACCEL_REFUTE_LOG === '1'
 const log = (msg: string) => { if (debug()) process.stderr.write(`[accel-refute] ${msg}\n`) }
 
+// Data-only admission before JSON comparison or interpreting a machine.
+// Source and binder metadata remain on the exact objects; no user code runs
+// via accessors, proxy traps, prototypes or serialization hooks.
+function passiveData(values: unknown[]): boolean {
+  const isProxy = typeof process === 'object' ? process.getBuiltinModule?.('node:util')?.types.isProxy : undefined
+  if (!isProxy || Object.getPrototypeOf(Array.prototype) !== Object.prototype ||
+      Object.hasOwn(Object.prototype, 'toJSON') || Object.hasOwn(Array.prototype, 'toJSON')) return false
+  const seen = new WeakSet<object>(), active = new WeakSet<object>()
+  let nodes = 0
+  const visit = (value: unknown, depth: number): boolean => {
+    if (value === null || value === undefined || typeof value === 'boolean' || typeof value === 'string') return true
+    if (typeof value === 'number') return Number.isFinite(value)
+    if (typeof value !== 'object' || isProxy(value) || active.has(value) || depth > 512) return false
+    if (seen.has(value)) return true
+    if (++nodes > 500_000) return false
+    const array = Array.isArray(value), proto: unknown = Object.getPrototypeOf(value)
+    if (proto !== null && proto !== (array ? Array.prototype : Object.prototype)) return false
+    active.add(value)
+    const keys = Reflect.ownKeys(value)
+    let elements = 0
+    for (const key of keys) {
+      const d = Object.getOwnPropertyDescriptor(value, key)!
+      if (!Object.hasOwn(d, 'value') || key === 'toJSON') return false
+      if (array && key === 'length') continue
+      if (!d.enumerable || array && key !== String(elements++)) return false
+      if (!visit(d.value, depth + 1)) return false
+    }
+    if (array && elements !== value.length) return false
+    active.delete(value); seen.add(value)
+    return true
+  }
+  return values.every(value => visit(value, 0))
+}
+
+function canonicalArithmetic(m: Machine): boolean {
+  const names = Object.keys(m.fns ?? {})
+  if (names.some(f => !isArithmetic(f))) return false
+  const divisors = names.map(f => Number(f.slice(4)))
+  if (divisors.some(k => !Number.isSafeInteger(k) || k < 1)) return false
+  const builtins = arithmetic(divisors)
+  return exactKeys(builtins.fns, names) && names.every(f => jsonEqual(builtins.fns[f], m.fns![f])) &&
+    jsonEqual(builtins.facts, m.facts ?? [])
+}
+
 export function accelRefuteFits(m: Machine, laws: Law[]): boolean {
-  if (isSourceBound(m, laws) || hasFinite([m, laws])) return false
+  if (!passiveData([m, laws]) || isSourceBound(m, laws) || hasFinite([m, laws]) || !canonicalArithmetic(m)) return false
   if (Object.keys(m.maps ?? {}).length || m.history || m.inputMaps?.length) return false
   if (m.counts && Object.keys(m.counts).length) return false
   if (m.sums && Object.keys(m.sums).length) return false
   if (m.leasts && Object.keys(m.leasts).length) return false
   if (m.primitiveFailure) return false
   if (Object.values(m.step.flags ?? {}).some(f => f.op === 'all')) return false
-  if (Object.keys(m.fns ?? {}).some(f => !isArithmetic(f))) return false
   if (!laws.length || laws.some(l => l.forall || l.keys?.length || l.some?.length || l.finite)) return false
   return true
 }
@@ -267,12 +310,8 @@ export function checkAcceleratedRun(m: Machine, laws: Law[], acc: AcceleratedRun
 }
 
 function verifyAcceleratedRun(m: Machine, laws: Law[], acc: AcceleratedRun): boolean {
-  if (acc.checked !== true || !accelRefuteFits(m, laws) || !acc.segments.some(s => s.kind === 'repeat')) return false
+  if (!passiveData([acc]) || acc.checked !== true || !accelRefuteFits(m, laws) || !acc.segments.some(s => s.kind === 'repeat')) return false
   scope(m, laws)
-  const fnNames = Object.keys(m.fns ?? {})
-  const builtins = arithmetic(fnNames.map(f => Number(f.slice(4))))
-  if (!exactKeys(builtins.fns, fnNames) || fnNames.some(f => !jsonEqual(builtins.fns[f], m.fns![f]))) return false
-  if (!jsonEqual(builtins.facts, m.facts ?? [])) return false
   const stateKeys = Object.keys(m.state)
   if (!exactKeys(acc.params, m.params) || !exactKeys(acc.finalState, stateKeys)) return false
   const it = interpret(m)

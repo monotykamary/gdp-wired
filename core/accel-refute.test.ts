@@ -1,7 +1,7 @@
 import {describe, expect, test} from 'bun:test'
 import {int, oneOf, proveRule, rule, when, checkAcceleratedRun} from './dsl.ts'
 import {buildRepeatGoals} from './accel-refute.ts'
-import {type Machine, less, n, x} from './machine.ts'
+import {arithmetic, type Machine, less, n, x} from './machine.ts'
 import {check} from '../kernel/kernel.ts'
 import {clock, grow} from '../kernel/prove.ts'
 import {partialAggregationInvariants, partialAggregationRule} from '../research/langs/jvm/rules/PartialAggregation.ts'
@@ -112,6 +112,23 @@ describe('checked accelerated refutation', () => {
     expect(checkAcceleratedRun({...machine, fns: {...machine.fns, [f]: {...machine.fns![f]!, js: 'x => 0'}}}, laws, acc)).toBe(false)
     const [fact, ...facts] = machine.facts!
     expect(checkAcceleratedRun({...machine, facts: [{...fact!, holds: {op: '<', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}}, ...facts]}, laws, acc)).toBe(false)
+  })
+
+  test('repeat admission rejects impossible arithmetic facts and serialization hooks', () => {
+    const ticks = x('ticks'), count = 2, jVar = 'j', closedForm = {ticks: {base: 0, delta: 1}}
+    const m: Machine = {name: 'two ticks', params: [], inputs: [], state: {ticks: n(0)},
+      step: {state: {ticks: {op: 'add', a: ticks, b: n(1)}}}}
+    const law = {name: 'stays below two', holds: less(ticks, n(count))}, goals = buildRepeatGoals(m, {}, {}, count, closedForm, jVar)
+    const allow = grow(goals.allowGoal), step = grow(goals.stepGoal)
+    if (!('tree' in allow) || !('tree' in step)) throw new Error('expected the ordinary repeat trees')
+    const endState = {ticks: count}
+    const packet = {checked: true, params: {}, totalSteps: count, law: law.name, finalState: endState, witness: {ticks: count - 1},
+      segments: [{kind: 'repeat' as const, checked: true, request: {}, count, jVar, closedForm, startState: {ticks: 0}, endState,
+        ...goals, allowTree: allow.tree, stepTree: step.tree}]}
+    expect(checkAcceleratedRun(m, [law], packet)).toBe(true)
+    expect(checkAcceleratedRun({...m, ...arithmetic([0])}, [law], packet)).toBe(false)
+    const facts = Object.assign([{name: 'no start', holds: less(n(0), n(0))}], {toJSON: () => []})
+    expect(checkAcceleratedRun({...m, facts}, [law], packet)).toBe(false)
   })
 
   test('a mathematical repeat is refused if a skipped step overflows the interpreter', () => {
