@@ -126,7 +126,7 @@ test('the recorded refutations of the real-world corpus (results.json), as they 
       padded.push(s)
       st = it.step(run.params, st, wire(s))
     }
-    const t0 = performance.now(), wide = minimizeRunDetailed(r as never, law, {params: run.params, trace: padded}), ms = performance.now() - t0
+    const t0 = performance.now(), wide = minimizeRunDetailed(r as never, law, {params: run.params, trace: padded}, {ms: 60_000}), ms = performance.now() - t0
     console.log(`${row.item} #${row.law}: ${run.trace.length} -> ${out.to} in ${out.ms.toFixed(1)} ms; padded ${padded.length} -> ${wide.to} in ${ms.toFixed(1)} ms`)
     expect(wide.minimal).toBe(true)
     expect(wide.to).toBeLessThanOrEqual(out.to)

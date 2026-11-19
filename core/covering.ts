@@ -33,7 +33,7 @@ function clauses(c: C, neg: boolean, most: number): Lit[][] | undefined {
       return out
     }
     case '<': case '<=': case '=': return [[{c, neg}]]
-    default: return undefined
+    case 'flag': case 'all': return undefined
   }
 }
 
@@ -51,7 +51,7 @@ function reads(t: E | C, key: string, r: Reads = {vars: new Set(), maps: new Set
     case '<': case '<=': case '=': reads(t.a, key, r); reads(t.b, key, r); break
     case 'and': case 'or': for (const x of t.xs) reads(x, key, r); break
     case 'not': reads(t.x, key, r); break
-    default: r.shaped = false
+    case 'flag': case 'all': r.shaped = false; break
   }
   return r
 }
@@ -129,7 +129,7 @@ export function companions(m: Machine, shape: CoveringShape, most = 2): string[]
       case 'mul': values(e.a); break
       case 'add': case 'sub': case 'min': case 'max': case 'prod': values(e.a); values(e.b); break
       case 'if': values(e.then); values(e.else); break
-      default: break
+      case 'var': case 'const': case 'tup': case 'proj': break
     }
   }
   for (const n of vars) { const u = m.step.state?.[n]; if (u) values(u) }
