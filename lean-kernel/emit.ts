@@ -1499,7 +1499,10 @@ def ${id}_machine : SMachine := ${id}_sums.plain`
   // machine's, the laws.
   const sumsBlock = () => {
     const trees = covers.map(gs => list(gs.map(g => {
-      const t2 = opts.coverTrees?.[g.name] ?? (() => { const out = grow(g); if (!('tree' in out)) throw new Error(`${id}: ${g.name} not proven`); return out.tree })()
+      const t2 = opts.coverTrees?.[g.name] ?? (() => {
+        if (retainedOnly) throw new Error(`${id}: missing retained cover tree for ${g.name}`)
+        const out = grow(g); if (!('tree' in out)) throw new Error(`${id}: ${g.name} not proven`); return out.tree
+      })()
       const x2 = enc(g, t2); return `(${x2.tab}, ${x2.tree})`
     })))
     const tamperLit = (t: {m: Machine, covers?: Record<string, E[]>}) => {
@@ -1673,11 +1676,24 @@ export function retainedSMachineToLean(id: string, m: Machine, laws: Law[], proo
     projection: Pick<NonNullable<Parameters<typeof smachineToLean>[3]>, 'ghosts' | 'ghosted' | 'ghostSubst' | 'forallSome' | 'free' | 'after'> = {}): string {
   retainedShape(id, m, laws)
   if (!checkLaws(m, laws, proof)) throw new Error('captured usual family does not check')
+  return emitRetainedSMachine(id, m, m, laws, proof, projection)
+}
+// Sum machinery and all source transport still check in Lean; this only reuses
+// the instrumented family's retained local trees and forbids fresh cover search.
+export function retainedSumMachineToLean(id: string, m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, trees: Record<string, Tree>},
+    projection: Pick<NonNullable<Parameters<typeof smachineToLean>[3]>, 'free' | 'after'>): string {
+  if (!m.sums || !Object.keys(m.sums).length || m.history) throw new Error('retained sum export needs a sums machine without history')
+  retainedShape(id, {...m, sums: undefined}, laws)
+  if (!checkLaws(m, laws, proof)) throw new Error('captured sums family does not check')
+  return emitRetainedSMachine(id, m, sumMachine(m).machine, laws, proof, {...projection, coverTrees: proof.trees})
+}
+function emitRetainedSMachine(id: string, given: Machine, plain: Machine, laws: Law[], proof: {instances: Record<string, Instances>, trees: Record<string, Tree>},
+    options: NonNullable<Parameters<typeof smachineToLean>[3]>): string {
   const old = checkBy, oldRetained = retainedOnly, oldCache = [...usualMade]
   try {
     usualMade.clear(); retainedOnly = true; checkBy = 'decide +kernel'
-    seedStepProof(m, laws, [], {proven: true, checked: true, nodes: 0, leaves: 0, proof: {laws: proof, instances: {}, perStep: {}, trees: {}}})
-    return smachineToLean(id, m, laws, projection)
+    seedStepProof(plain, laws, [], {proven: true, checked: true, nodes: 0, leaves: 0, proof: {laws: proof, instances: {}, perStep: {}, trees: {}}})
+    return smachineToLean(id, given, laws, options)
   } finally {
     usualMade.clear(); for (const [key, value] of oldCache) usualMade.set(key, value)
     retainedOnly = oldRetained; checkBy = old

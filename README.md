@@ -337,8 +337,8 @@ compiles the proved source itself). The full list of what is and isn't in scope 
 
 ## Why you can trust a proof
 
-A small kernel checks every proof; the prover that finds them is untrusted, and the kernel's twin in Lean is proven
-sound.
+A small kernel checks every ordinary prover proof; the prover that finds them is untrusted, and the kernel's twin in Lean is proven sound.
+The separate, off-by-default [`gdp-wired/lean-aggregate`](docs/lean-aggregate.md) entry returns a different verdict: **checked in Lean, not by the kernel**.
 
 | Part | Trusted? | What it does |
 | --- | --- | --- |

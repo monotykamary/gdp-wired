@@ -2,6 +2,7 @@
 // to `.js` but leaves them in the declarations, so they are rewritten here too.
 import {copyFileSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync} from 'node:fs'
 import {dirname, join} from 'node:path'
+import {leanLibraries} from '../lean-kernel/lean-aggregate/assets.ts'
 
 const root = join(import.meta.dir, '..'), dist = join(root, 'dist')
 rmSync(dist, {recursive: true, force: true})
@@ -20,6 +21,12 @@ const runtimeAssets = (core: string): string[] => readdirSync(core, {withFileTyp
 for (const f of runtimeAssets(join(root, 'core'))) {
   mkdirSync(dirname(join(dist, 'core', f)), {recursive: true})
   copyFileSync(join(root, 'core', f), join(dist, 'core', f))
+}
+// The opt-in aggregate entry compiles these .lean sources itself when invoked.
+for (const f of new Set(Object.values(leanLibraries).flat())) {
+  const src = join('lean-kernel', 'lean-aggregate', f), dst = join(dist, src)
+  mkdirSync(dirname(dst), {recursive: true})
+  copyFileSync(join(root, src), dst)
 }
 const left = readdirSync(dist, {recursive: true, encoding: 'utf8'}).filter(f => /\.(js|d\.ts)$/.test(f) && /from ['"]\.{1,2}\/[^'"]+\.ts['"]/.test(readFileSync(join(dist, f), 'utf8')))
 if (left.length) throw new Error(`.ts imports left in ${left.join(', ')}`)

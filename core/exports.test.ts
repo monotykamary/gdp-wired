@@ -140,7 +140,7 @@ test('the standalone checker is the package\'s second bin, and its reader and ch
 // The tarball as npm packs it (built first where dist/ isn't): every export's module and types, the bin, and every
 // file a front end runs beside its module, for every language (its reader, its harness, Solidity's replay contracts),
 // each one the code names too. (0.43.0's lacked sol/harness.py and Replay.sol: a .sol check waited forever.)
-test('the packed tarball holds every export, the bin and every runtime asset the code references', () => {
+test('the packed tarball holds every export, the bin and every runtime asset the code references', async () => {
   if (!existsSync(`${root}dist/core/dsl.js`)) execFileSync('bun', ['scripts/build.ts'], {cwd: root, stdio: 'ignore'})
   const pack = (dir: string) => new Set((JSON.parse(execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], {cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']})) as {files: {path: string}[]}[])[0]!.files.map(f => f.path))
   const files = pack(root)
@@ -151,6 +151,10 @@ test('the packed tarball holds every export, the bin and every runtime asset the
     'dist/core/agent-consult/cli.js','dist/core/agent-consult/worker.js',
     'dist/core/agent-consult/session.js','dist/core/agent-consult/protocol.js',
     'dist/core/agent-consult/service.js','docs/agent-consult.md','examples/agent-consult.json'])).toEqual([])
+  const {leanLibraries} = await import('../lean-kernel/lean-aggregate/assets.ts')
+  const leanFiles = [...new Set(Object.values(leanLibraries).flat())].map(f =>
+    f.startsWith('../') ? `dist/lean-kernel/${f.slice(3)}` : `dist/lean-kernel/lean-aggregate/${f.slice(2)}`)
+  expect(missing(['docs/lean-aggregate.md', 'dist/lean-kernel/lean-aggregate/worker.js', ...leanFiles])).toEqual([])
   const assets = runtimeAssets()
   for (const dir of ['py', 'rb', 'ex', 'jvm', 'rs', 'go', 'swift', 'sol']) expect(assets.some(f => f.startsWith(`${dir}/`))).toBe(true)
   expect(missing(assets.map(f => `dist/core/${f}`))).toEqual([])

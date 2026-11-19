@@ -48,6 +48,10 @@
       "types": "./dist/lean-kernel/emit.d.ts",
       "default": "./dist/lean-kernel/emit.js"
     },
+    "./lean-aggregate": {
+      "types": "./dist/lean-kernel/lean-aggregate/index.d.ts",
+      "default": "./dist/lean-kernel/lean-aggregate/index.js"
+    },
     "./lift": {
       "types": "./dist/lean-kernel/lift.d.ts",
       "default": "./dist/lean-kernel/lift.js"
@@ -188,6 +192,7 @@
     "README.md",
     "LICENSE",
     "docs/agent-consult.md",
+    "docs/lean-aggregate.md",
     "docs/agent-consult-workspace-check.md",
     "examples/agent-consult.json"
   ],
