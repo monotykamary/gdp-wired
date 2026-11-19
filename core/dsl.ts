@@ -3124,6 +3124,7 @@ function proveRuleWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   return retainFrom(translationVerdict(r, laws, result), [result])
 }
 function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions, captureMachine: Machine): Verdict {
+  const originalRule = r
   r = r.withSumsOf(laws, opts.candidateSeeds?.laws ?? [])
   noting(r, laws)
   if(opts.candidateSeeds) {
@@ -3182,12 +3183,13 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
     }
   }
   if (refuted) return searched(r, laws, [], refutedVerdict(refuted), opts)
-  if (!opts.candidateSeeds && opts.from !== 'any' && opts.search !== false && laws.length === 1) {
+  if (r === originalRule && !opts.candidateSeeds && opts.from !== 'any' && opts.search !== false &&
+      !completeWorkProfile.enabled && !(typeof opts.search === 'object' && opts.search.work !== undefined) && laws.length === 1) {
     const ms = typeof opts.search === 'object' ? opts.search.ms ?? 60_000 : 60_000
     // Rule.machine can allocate fresh write binders on each access. Check and
     // retain the same public snapshot, not a later alpha-renamed copy.
-    const certificate = searchAggregate(captureMachine, laws[0]!, ms)
-    if (certificate) return retainAggregate({proven:true,checked:true}, captureMachine, laws[0]!, certificate)
+    const aggregate = searchAggregate(captureMachine, laws[0]!, () => withKinds(r, laws).slice(0, -1), ms)
+    if (aggregate) return retainAggregate({proven:true,checked:true}, captureMachine, laws[0]!, aggregate.certificate, aggregate.kinds)
   }
   // A rule with counts: its goals are the counted ones (core/counts.ts searches them; the kernel checks the set).
   if (r.machine.counts && Object.keys(r.machine.counts).length) {

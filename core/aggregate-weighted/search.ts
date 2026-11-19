@@ -1,6 +1,6 @@
 import {type Law, type Machine, n, x} from '../machine.ts'
 import {searchWall} from '../wall.ts'
-import {type Instances, type Tree, checkLaws, obligations, sumParts} from '../../kernel/kernel.ts'
+import {type Instances, type Tree, obligations, sumParts} from '../../kernel/kernel.ts'
 import {clock, grow, pastWall, withWall} from '../../kernel/prove.ts'
 import {growCdcl} from '../../kernel/cdcl.ts'
 import {type WeightedCandidate, type WeightedRecipe, weightedCandidates} from './candidates.ts'
@@ -44,10 +44,9 @@ function proveSeeded(candidate: WeightedCandidate, until: number, observe: Weigh
     if (!('tree' in found)) return
     trees[goal.name] = found.tree
   }
-  const proof = {instances, trees}
-  const accepted = clock() < until && !pastWall() && checkLaws(machine, laws, proof)
-  observe({phase: 'check-family', accepted})
-  return accepted && clock() < until && !pastWall() ? proof : undefined
+  // checkGhostWrite reconstructs this family from the source and checks it
+  // before production can accept it. Avoid doing the same full check twice.
+  return clock() < until && !pastWall() ? {instances, trees} : undefined
 }
 
 export function weightedSearch(source: Machine, law: Law, ms: number, observe: WeightedObserver = () => {}): WeightedProposal | undefined {

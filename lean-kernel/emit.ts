@@ -28,6 +28,7 @@ import {finiteSumToLean} from './finite-sum-export.ts'
 import {ghostWriteToLean} from './ghost-write-export.ts'
 import type {FiniteSumCertificate} from '../kernel/finite-sum.ts'
 import type {GhostWriteCertificate} from '../kernel/ghost-write.ts'
+import type {AggregateKinds} from '../core/aggregate-kinds.ts'
 export {leanLibrary}
 
 export type Exported = {name: string, goal: Goal, tree: Tree}
@@ -2261,7 +2262,9 @@ export type LeanItem =
   // A law proven by k-induction (core/kind.ts's search, from k = 1, or at `k`), through KInd.lean's kind_sound, with the
   // laws it assumes (proven inductive as ever); `<id>_kind_holds`.
   | {id: string, kInduction: {machine: Machine, laws: Law[], law: Law, k?: number, ms?: number}}
-  | {id: string, aggregate: {source: Machine, law: Law, certificate: FiniteSumCertificate | GhostWriteCertificate}}
+  // Construct from an aggregate node retained by proofOutput.on; keep the
+  // independently checked kind family with the aggregate claim when present.
+  | {id: string, aggregate: {source: Machine, law: Law, certificate: FiniteSumCertificate | GhostWriteCertificate, kinds?: AggregateKinds}}
   | {id: string, countedGoal: CountedGoal, certificate: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[]}}
   | {id: string, countedMachine: Machine, laws: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}}
   | {id: string, goal: Goal}
@@ -2333,7 +2336,12 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   for (let item of items) {
     const id = ident(item.id), tItem = performance.now()
     if ('aggregate' in item) {
-      const {source, law, certificate} = item.aggregate
+      const {source, law, certificate, kinds} = item.aggregate
+      if (kinds) {
+        const kindId = `${id}_kinds`
+        parts.push(retainedSMachineToLean(kindId, source, kinds.laws, kinds.proof))
+        theorems.push(`${kindId}_laws`)
+      }
       const save = checkBy
       checkBy = 'decide +kernel'
       try { parts.push(certificate.kind === 'finite-sum' ? finiteSumToLean(id, source, law, certificate) : ghostWriteToLean(id, source, law, certificate)) }

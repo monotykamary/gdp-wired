@@ -5,6 +5,7 @@ import {proofOutput} from '../core/proof-output.ts'
 import {checkFiniteSum} from '../kernel/finite-sum.ts'
 import {checkGhostWrite,ghostWriteTheory} from '../kernel/ghost-write.ts'
 import {toLean} from '../lean-kernel/emit.ts'
+import {checkLaws} from '../kernel/kernel.ts'
 import {get,n,same,x} from '../core/machine.ts'
 const [item,index,file]=process.argv.slice(2), id=Number(index)
 assert.equal(process.version,'v24.22.1')
@@ -19,7 +20,14 @@ const p=aggregate(captured?.proof)
 assert(p,'default path did not retain native aggregate certificate')
 assert.equal(p.law.name,selected.name)
 assert.deepEqual(p.machine,captured.original.machine,'checker used a different public source snapshot')
-const {machine,law,certificate}=p
+const {machine,law,certificate,kinds}=p
+assert(kinds?.laws.length,'lost the source kind obligations')
+if(kinds) {
+  assert(checkLaws(machine,kinds.laws,kinds.proof))
+  const missing=structuredClone(kinds.proof)
+  delete missing.trees[Object.keys(missing.trees)[0]]
+  assert(!checkLaws(machine,kinds.laws,missing),'missing kind obligation accepted')
+}
 if(certificate.kind==='finite-sum') {
   assert(checkFiniteSum(machine,law,certificate))
   const missing=structuredClone(certificate)
@@ -63,5 +71,5 @@ else {
   assert(ghostWriteTheory(machine,law,certificate))
 }
 writeFileSync(`${process.env.SUPERCOMPUTER_OUTPUT_DIR}/certificate.json`,JSON.stringify(p))
-console.log(JSON.stringify({item,id,node:process.version,ms,kind:certificate.kind,proven:result.proven,checked:result.checked}))
-writeFileSync(file,toLean([{id:'Replay',aggregate:{source:machine,law,certificate}}],{native:false}))
+console.log(JSON.stringify({item,id,node:process.version,ms,kind:certificate.kind,kindConjuncts:kinds?.laws.length??0,proven:result.proven,checked:result.checked}))
+writeFileSync(file,toLean([{id:'Replay',aggregate:{source:machine,law,certificate,kinds}}],{native:false}))

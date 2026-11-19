@@ -74,7 +74,7 @@ export function planRadixSimulation(bundle:RadixSimulationBundle,source:GenericL
   sourceStructure(source)
   if(!bundle.proof)return null
   const leaves:Extract<ProofOutputNode,{kind:'usual'}>[]=[],sumSources:Machine[]=[]
-  const visited=new Set<ProofOutputNode>(),active=new Set<ProofOutputNode>();let counted=0
+  const visited=new Set<ProofOutputNode>(),active=new Set<ProofOutputNode>();let nonUsual=0
   const record=(m:unknown)=>{if(object(m)&&object(m.sums)&&Object.keys(m.sums).length&&object(m.step)&&Array.isArray(m.inputs))sumSources.push(m as Machine)}
   const visit=(n:ProofOutputNode):void=>{
     if(active.has(n))fail('cyclic radix provenance')
@@ -84,7 +84,7 @@ export function planRadixSimulation(bundle:RadixSimulationBundle,source:GenericL
       if(!n.parents.length||n.parents.some(x=>!x))fail('incomplete radix provenance')
       if(object(n.context)){record(n.context.original);if(object(n.context.original))record(n.context.original.machine)}
       for(const p of n.parents)visit(p!)
-    }else if(n.kind==='usual'){leaves.push(n);record(n.machine)}else if(n.kind==='counted'){counted++}
+    }else if(n.kind==='usual'){leaves.push(n);record(n.machine)}else {nonUsual++}
     active.delete(n);visited.add(n)
   }
   visit(bundle.proof)
@@ -93,7 +93,7 @@ export function planRadixSimulation(bundle:RadixSimulationBundle,source:GenericL
   const packedKeys=allKeys.flatMap(x=>{const p=packed(x.key);return p?[{...x,...p}]:[]})
   if(!packedKeys.length)return null
   if(!bundle.verdict?.proven||!bundle.verdict.checked)fail('unverified radix candidate')
-  if(leaves.length!==1||counted)fail('radix transport needs a unique complete usual producer without counted mixing')
+  if(leaves.length!==1||nonUsual)fail('radix transport needs a unique complete usual producer without counted or aggregate mixing')
   const producer=leaves[0]!
   if(Object.keys(source.machine.sums??{}).length)fail('provided source SUM semantics are unsupported; refusing to drop declarations')
   for(const m of [source.machine,producer.machine])if(m.history||Object.keys(m.counts??{}).length||Object.keys(m.fns??{}).length||Object.keys(m.leasts??{}).length)fail('unsupported radix machine extension')

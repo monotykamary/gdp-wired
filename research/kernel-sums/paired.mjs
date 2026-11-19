@@ -20,10 +20,10 @@ if(mode==='jobs'){
   const n=Number(b); assert(Number.isInteger(n)&&n>0)
   writeFileSync(a,JSON.stringify(Array.from({length:n},(_,i)=>({name:`aggregate-pair-${String(i).padStart(2,'0')}`,cmd:`bash research/kernel-sums/paired.sh run ${i} ${n}`,timeout:2500,cpu:1,memory:6144,required_agent_capabilities:{output_files_protocol:1}})),null,2))
   writeFileSync(`${a}.manifest.json`,JSON.stringify(rows.map(({cli,...row},i)=>({i,...row})),null,2))
-}else if(mode==='run'||mode==='reverse'){
+}else if(mode==='run'||mode==='reverse'||mode==='row'){
   const stock=process.env.KERNEL_SUMS_STOCK,out=process.env.SUPERCOMPUTER_OUTPUT_DIR
   assert(stock&&out)
-  const indices=mode==='reverse'?[Number(a)]:rows.flatMap((_,i)=>i%Number(b)===Number(a)?[i]:[])
+  const indices=mode==='reverse'||mode==='row'?[Number(a)]:rows.flatMap((_,i)=>i%Number(b)===Number(a)?[i]:[])
   for(const i of indices){
     const row=rows[i];assert(row)
     const ordered=order(i,mode==='reverse'), pair=[]
