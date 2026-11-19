@@ -52,10 +52,14 @@ const record = (v: unknown): v is Row => isObject(v) && !Array.isArray(v)
 const fields = (v: unknown, required: string[], optional: string[] = []): v is Row =>
   record(v) && required.every(k => Object.hasOwn(v, k)) && Object.keys(v).every(k => required.includes(k) || optional.includes(k))
 // These labels may be printed in comments. Do not let one supply Lean syntax.
-const label = (v: unknown): v is string => typeof v === 'string' && !v.includes('/-') && !v.includes('-/') && [...v].every(c => {
-  const point = c.codePointAt(0)!
-  return point >= 0x20 && (point < 0x7f || point > 0x9f) && point !== 0x2028 && point !== 0x2029
-})
+function label(v: unknown): v is string {
+  if (typeof v !== 'string' || v.includes('/-') || v.includes('-/')) return false
+  for (const c of v) {
+    const point = c.codePointAt(0)!
+    if (point < 0x20 || point >= 0x7f && point <= 0x9f || point === 0x2028 || point === 0x2029) return false
+  }
+  return true
+}
 const nat = (v: unknown): boolean => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0
 const list = (v: unknown, valid: (a: unknown) => boolean): boolean => Array.isArray(v) && v.every(valid)
 const table = (v: unknown, valid: (a: unknown) => boolean): boolean =>
