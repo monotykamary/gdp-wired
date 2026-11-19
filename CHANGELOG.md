@@ -3,6 +3,25 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.52.0
+
+### Added
+
+- Ordinary search can discover versioned-row and allocation guards for step
+  laws, ordered row-pair invariants, and scalar updates that stay in lockstep.
+  Candidates never replace the original law or the kind-law obligations.
+- Liveness search can find guard-distance ranks with strong-fair handoffs and
+  supports for weakly fair progress. A refutation may now report a checked
+  `fairRing`, with a finite stem and recurring sets that stay pending.
+- A refutation that needs a long repeat can return `acceleratedRun` with its
+  exact length instead of materializing each request. The existing kernel
+  checks the repeat and the original model is replayed at its boundaries.
+- `gdp-wired/lean-aggregate` is an explicit opt-in for a supported subset of
+  finite counts and weighted sums. It returns separate evidence labelled
+  **checked in Lean, not by the kernel**. It runs only when called, requires
+  Lean 4.34.0, and does not change native `checked` verdicts or corpus scores.
+  See [Lean aggregate evidence](docs/lean-aggregate.md).
+
 ## 0.51.0
 
 ### Added

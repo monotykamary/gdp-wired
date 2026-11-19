@@ -16,6 +16,19 @@ const verdict = proveRule(rule, laws, {
 
 Measure a representative successful search, preserve its checked result and work measurements, then choose and test a work margin. Increasing a cap does not fix an incorrect law, missing native interpretation or unsupported construct.
 
+## Additional strategies use the existing grant
+
+Default search can try checked row supports, scalar lockstep, guard-distance
+ranks and compressed counterexamples within the existing allowance. These
+are proposals, not extra facts. New stages do not increase the caller's budget
+or bypass `from: 'any'` and `search: false`.
+
+A verdict may carry `acceleratedRun` (a finite run with checked repeat
+segments and a total step count) or `fairRing` (a checked recurring run for a
+liveness law). Neither is an expanded finite `run`, and neither is a native
+source replay for an extracted model. Evidence labelled **checked in Lean,
+not by the kernel** comes only from the separate [opt-in aggregate API](lean-aggregate.md).
+
 ## An optional real safety watchdog
 
 A cooperative real-time bound is a separate option:
