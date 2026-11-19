@@ -4045,3 +4045,5 @@ export class RoseFold<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}
 
 // Statecharts (core/chart.ts): states nested and in parallel regions, compiled to a rule.
 export {Chart, chart, type StateNode, type Transition} from './chart.ts'
+// Minimal refuting runs (core/minimize.ts): a run that breaks a law, cut down until no single request can go.
+export {minimizeRun, minimizeRunDetailed, type MinimizeOptions, type Minimized, type RunRequest, type RunTrace} from './minimize.ts'
