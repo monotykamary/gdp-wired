@@ -21,7 +21,7 @@ assert(p,'default path did not retain native aggregate certificate')
 assert.equal(p.law.name,selected.name)
 assert.deepEqual(p.machine,captured.original.machine,'checker used a different public source snapshot')
 const {machine,law,certificate,kinds}=p
-assert(kinds?.laws.length,'lost the source kind obligations')
+assert.equal(kinds?.laws.length,certificate.kind==='finite-sum'?1:8,'lost source kind obligations')
 if(kinds) {
   assert(checkLaws(machine,kinds.laws,kinds.proof))
   const missing=structuredClone(kinds.proof)
@@ -72,4 +72,6 @@ else {
 }
 writeFileSync(`${process.env.SUPERCOMPUTER_OUTPUT_DIR}/certificate.json`,JSON.stringify(p))
 console.log(JSON.stringify({item,id,node:process.version,ms,kind:certificate.kind,kindConjuncts:kinds?.laws.length??0,proven:result.proven,checked:result.checked}))
-writeFileSync(file,toLean([{id:'Replay',aggregate:{source:machine,law,certificate,kinds}}],{native:false}))
+// Large ordinary kind families are rechecked above, independently of the
+// aggregate theorem. Do not inflate its Lean replay with those proof trees.
+writeFileSync(file,toLean([{id:'Replay',aggregate:{source:machine,law,certificate,...(certificate.kind==='finite-sum'?{kinds}:{})}}],{native:false}))

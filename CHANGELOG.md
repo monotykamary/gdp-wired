@@ -3,6 +3,19 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.53.0
+
+### Added
+
+- The default prover checks two more kinds of aggregate invariant: bounded
+  counters maintained by a point write or a reset, and weighted sums maintained
+  as rows are added or removed. The kernel checks the original invariant and
+  its kind laws, and the original invariant can be replayed in Lean.
+- This proves two tally laws in the etcd Raft model and two transfer limit
+  laws in the TigerBeetle model without a separate Lean call. The opt-in
+  [`gdp-wired/lean-aggregate`](docs/lean-aggregate.md) API still returns
+  separate Lean-only evidence when called explicitly.
+
 ## 0.52.0
 
 ### Added

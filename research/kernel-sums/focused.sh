@@ -2,7 +2,9 @@
 set -euo pipefail
 source research/kernel-sums/pin-node.sh
 trap 'rm -f core/public-focused-probe.mjs; if [[ -n ${node_cache:-} ]]; then rm -rf "$node_cache"; fi' EXIT
-export LEAN_PATH="$PWD/lean-kernel"
+LEAN_DIR=$(dirname "$(elan which lean)")
+export PATH="$LEAN_DIR:$PATH" LEAN_NUM_THREADS=1 LEAN_PATH="$PWD/lean-kernel"
+lean --version | grep -F 'version 4.34.0'
 cp research/kernel-sums/focused.mjs core/public-focused-probe.mjs
 "$NODE" --experimental-transform-types --disable-warning=ExperimentalWarning core/public-focused-probe.mjs "$1" "$2" "$SUPERCOMPUTER_OUTPUT_DIR/exact.lean" | tee "$SUPERCOMPUTER_OUTPUT_DIR/native.txt"
 for module in Cert Kernel Progress StepLaw Steps Sets History Live Ghost Count Sums GhostMap FiniteSumComposition GhostSourceViews GhostWriteTransport; do

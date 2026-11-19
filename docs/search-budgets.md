@@ -19,9 +19,12 @@ Measure a representative successful search, preserve its checked result and work
 ## Additional strategies use the existing grant
 
 Default search can try checked row supports, scalar lockstep, guard-distance
-ranks and compressed counterexamples within the existing allowance. These
-are proposals, not extra facts. New stages do not increase the caller's budget
-or bypass `from: 'any'` and `search: false`.
+ranks, compressed counterexamples and native aggregate certificates within the
+existing allowance. These are proposals, not extra facts. A successful native
+aggregate proof also checks the rule's companion kind laws. Its stage uses at
+most half the requested wall allowance and no more than 30 seconds, and is
+skipped in explicit counted-work mode. New stages do not increase the caller's
+budget or bypass `from: 'any'` and `search: false`.
 
 A verdict may carry `acceleratedRun` (a finite run with checked repeat
 segments and a total step count) or `fairRing` (a checked recurring run for a
