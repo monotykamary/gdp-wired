@@ -30,10 +30,10 @@ import {proveCountedCandidateSeeds} from './counted-candidate-seeds.ts'
 import {stepSeedFamilies, tryStepSeed} from './step-seeds.ts'
 import {type TranslationFields, bindSourceMachine, inheritSource, isSourceBound, translationVerdict} from './source-check.ts'
 import {env as knobs} from './solver.ts'
-import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, fnCall, hasFinite, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, sourceFreeFn, withArithmetic} from './machine.ts'
+import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, exactMapSum, fnCall, hasFinite, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, sourceFreeFn, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
-import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
+import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, sideGoals, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withModelRounds, type ModelRoundPolicy, withWall} from '../kernel/prove.ts'
 import {WallExpired, checkWall, checkBudget, checkWorkEndpoint, searchWall, withBudget, inBudget, BudgetExpired} from './wall.ts'
 import {completeWorkProfile} from './work-profile.ts'
@@ -1790,13 +1790,18 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   withMapSums(): this | undefined {
     const m = this.machine
     if (m.history) return undefined
-    const have = new Set(Object.keys(m.sums ?? {})), more = new Set(this.spec.sumsRead ?? []), arity = mapArities(m)
+    const have = new Set(Object.keys(m.sums ?? {})), more = new Set(this.spec.sumsRead ?? []), arity = mapArities(m), kinds = this.kindLaws()
     for (const [map, init] of Object.entries(m.maps ?? {})) {
       // (a map keyed by tuples has no sum read at one key: a sum's term reads its maps at the key alone)
       if (init !== 0 || !m.step.maps?.[map] || (m.inputMaps ?? []).includes(map) || (arity[map] ?? 1) > 1) continue
       const name = (new MapRef(map, 0).sum().e as {name: string}).name
       if (have.has(name)) continue
-      try { sumMachine({...m, sums: {...m.sums, ...sumsIn([], [name])}}); more.add(name) } catch { /* a sum the kernel takes no cover of */ }
+      try {
+        const cand: Machine = {...m, sums: {...m.sums, ...sumsIn([], [name])}}
+        const {goals} = sumMachine(cand, undefined, kinds)
+        if (goals.length && refusedSumCover(cand, kinds)) continue
+        more.add(name)
+      } catch { /* a sum the kernel takes no cover of */ }
     }
     return more.size > (this.spec.sumsRead?.size ?? 0) ? this.with({sumsRead: more}) : undefined
   }
@@ -2417,8 +2422,13 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const written: Record<string, unknown> = {...updates}
     inScope(sc, () => { for (const [n, k] of s.kinded ?? []) if (updates[n] !== undefined) { delete written[n]; Object.assign(written, k.store(n, updates[n])) } })
     for (const n of Object.keys(st.scalars)) {
-      // (a sum over a map's keys: no callback writes it; the runtimes keep it exact, kernel.ts's sumMachine)
-      if (m.sums && n in m.sums) continue
+      // (a sum over a map's keys: no callback writes it; verify the runtime kept it equal to the exact map sum)
+      if (m.sums && n in m.sums) {
+        count()
+        const want = exactMapSum(m, n, m.sums[n]!, next), got = next.scalars[n]!
+        if (want !== got) return `the step keeps sum ${n} = ${got}, but the exact map sum is ${want}`
+        continue
+      }
       const u = written[n], got = next.scalars[n]!, want = u === undefined ? st.scalars[n] : valOf(u as TermLike)
       if (want === undefined) continue
       count()
@@ -2971,11 +2981,83 @@ function guidesOf(m: Machine): ((env: Record<string, number>, st: State, rand: R
     return [(env, st, rand, bound) => { try { return [x.name, evalE(t, env, st, m) + (up ? (c.op === '<' ? 1 : 0) + rand(bound + 1) : 0)] } catch { return undefined } }]
   })
 }
-// Model-only negative evidence for inference: never a source-law verdict.
-export function refuteModelByRuns(r: Parameters<typeof refuteByRuns>[0], laws: Law[], stepLaws: StepLaw[] = []): ReturnType<typeof refuteByRuns> {
-  return refuteByRuns(r, laws, stepLaws)
+// Check every sum's `@cover` side goals (emitted for any summed map written at every key): if any cover goal fails to
+// prove and kernel-check, refuse sum maintenance for this rule (`stuck: 'unknown'`) rather than running on an uncovered
+// finite-cover approximation.
+export function refusedSumCover(m: Machine, laws: Law[] = []): {goal: string, why: string} | undefined {
+  if (!m.sums || !Object.keys(m.sums).length) return undefined
+  const covers = sideGoals(m, laws).filter(g => g.name.includes(' @cover '))
+  if (!covers.length) return undefined
+  for (const g of covers) {
+    const out = grow(g)
+    if (!('tree' in out) || !check(g, out.tree)) {
+      const [sumName, mapName] = g.name.split(' @cover ')
+      return {
+        goal: g.name,
+        why: `sum ${sumName ?? g.name} cannot be maintained across broadcast write to map ${mapName ?? 'unknown'} (outside its finite cover)`,
+      }
+    }
+  }
+  return undefined
 }
-function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = [], budget: RunBudget = refuteBudget): {goal: string, witness: Record<string, number>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
+// Independently replay a candidate concrete refutation on the original rule (before `withSumsOf`), computing every map
+// sum directly from the state's maps and defaults rather than trusting `sumMachine`/`sumRuntime`. Returns true only when
+// the trace is legal on the original rule and actually violates the target law or step law.
+export function replayRefutation(
+  originalRule: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>,
+  laws: Law[],
+  stepLaws: StepLaw[],
+  params: Record<string, number>,
+  trace: Request[],
+  bound: number,
+  target?: Law | StepLaw,
+): boolean {
+  const ks = divisorsIn([...laws, ...stepLaws] as never)
+  const orig = ks.size ? originalRule.withDivisors(...ks) : originalRule
+  const origMachine = orig.machine
+  if (origMachine.pre && !evalC(origMachine.pre, params, {scalars: {}, maps: {}}, origMachine)) return false
+  const origRun = interpret(origMachine)
+  const origSums = origMachine.sums ?? {}
+  const lawSums = sumsIn([laws, stepLaws]) ?? {}
+  const extraSums = Object.entries(lawSums).filter(([name]) => !Object.hasOwn(origSums, name))
+  const viewOf = (st: State): State => {
+    for (const [name, sum] of Object.entries(origSums)) {
+      if (st.scalars[name] !== exactMapSum(origMachine, name, sum, st)) throw new RangeError(`stale sum ${name}`)
+    }
+    if (!extraSums.length) return st
+    const scalars = {...st.scalars}
+    for (const [name, sum] of extraSums) scalars[name] = exactMapSum(origMachine, name, sum, st)
+    return {...st, scalars}
+  }
+  const targets = target ? [target] : [...laws, ...stepLaws]
+  const watchers = targets.map(w => ({w, on: watch(origMachine, origRun, w, params, bound)}))
+  try {
+    let st = origRun.init(params)
+    let view = viewOf(st)
+    if (trace.length === 0) return watchers.some(({w, on}) => !('then' in w) && !on.start(view))
+    for (let i = 0; i < trace.length; i++) {
+      const input = trace[i]!
+      if (!allowed(origMachine, origRun, params, st, input)) return false
+      const next = origRun.step(params, st, input)
+      const nextView = viewOf(next)
+      let failed = false
+      for (const {on} of watchers) if (!on.step(view, input, nextView)) failed = true
+      if (i === trace.length - 1) return failed
+      st = next
+      view = nextView
+    }
+    return false
+  } catch (e) {
+    if (e instanceof WallExpired || e instanceof WatchdogExpired) throw e
+    if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase)
+    return false
+  }
+}
+// Model-only negative evidence for inference: never a source-law verdict.
+export function refuteModelByRuns(r: Parameters<typeof refuteByRuns>[0], laws: Law[], stepLaws: StepLaw[] = [], original: Parameters<typeof refuteByRuns>[0] = r): ReturnType<typeof refuteByRuns> {
+  return refuteByRuns(r, laws, stepLaws, refuteBudget, original)
+}
+function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = [], budget: RunBudget = refuteBudget, original: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj> = r): {goal: string, witness: Record<string, number>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
   const m = r.machine
   const run = interpret(m), rand = seeded(budget.seed ?? 13), bound = budget.bound, shown = shownRequest, guides = budget.mixed ? guidesOf(m) : []
   // (Division by a constant is a function too, its facts Euclid's, which its JavaScript meets: not checked.)
@@ -3009,7 +3091,9 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       // The witness: the params, the state the breaking step starts from (or the start) and its request's own values.
       const broken = (w: Law | StepLaw, at: string, before: State, input?: Request) =>
         ({goal: `${w.name} ${at}`, witness: {...params, ...before.scalars, ...(input ? numbersOf(input) : {})}, run: {params, trace: trace.map(shown)}})
-      for (const {w, on} of watching) if (!('then' in w) && !on.start(st)) return broken(w, '@start', st)
+      for (const {w, on} of watching) if (!('then' in w) && !on.start(st)) {
+        if (replayRefutation(original, laws, stepLaws, params, [], bound, w)) return broken(w, '@start', st)
+      }
       for (let d = 0, tries = 0; d < budget.depth && tries < 40 && watchWork.n <= cap && !late(); tries++) {
         const input = r.randomInput(rand, bound, params)
         if (near) for (const x of m.inputs) if (near[x] !== undefined && typeof input[x] === 'number' && rand(2)) input[x] = near[x]!
@@ -3017,9 +3101,16 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
         for (const g of guided) { const set = g({...params, ...st.scalars}, st, rand, bound); if (set && typeof input[set[0]] === 'number') input[set[0]] = set[1] }
         if (!allowed(m, run, params, st, input)) continue
         d++
-        const next = run.step(params, st, input)
+        let next: State
+        try { next = run.step(params, st, input) } catch (e) { if (e instanceof WallExpired || e instanceof WatchdogExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); break }
         trace.push(input)
-        for (const {w, on} of watching) if (!on.step(st, input, next)) return broken(w, !('then' in w) ? '@step' : (w.steps ?? 1) > 1 ? `@${w.steps} steps` : '@step law', st, input)
+        let unconfirmed = false
+        for (const {w, on} of watching) if (!on.step(st, input, next)) {
+          if (replayRefutation(original, laws, stepLaws, params, trace, bound, w)) return broken(w, !('then' in w) ? '@step' : (w.steps ?? 1) > 1 ? `@${w.steps} steps` : '@step law', st, input)
+          unconfirmed = true
+          break
+        }
+        if (unconfirmed) break
         st = next
       }
     }
@@ -3036,10 +3127,19 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       const scalars: Record<string, number> = Object.fromEntries(Object.keys(m.state).map(n => [n, rand(8)]))
       for (const [n, k] of kinded) Object.assign(scalars, k.random(n, rand, bound))
       const st: State = {scalars, maps: Object.fromEntries(Object.keys(m.maps ?? {}).map(n => [n, new Map(Array.from({length: rand(3)}, () => [rand(bound + 1), rand(bound + 1)] as const))]))}
+      if (m.sums) {
+        let sumOk = true
+        for (const [name, sum] of Object.entries(m.sums)) {
+          try { st.scalars[name] = exactMapSum(m, name, sum, st) } catch { sumOk = false; break }
+        }
+        if (!sumOk) continue
+      }
       if (!given.every(l => watch(m, run, l, params, bound).start(st))) continue
       const input = r.randomInput(rand, bound, params)
       if (!allowed(m, run, params, st, input)) continue
-      const next = run.step(params, st, input), witness = () => ({...params, ...st.scalars, ...numbersOf(input)})
+      let next: State
+      try { next = run.step(params, st, input) } catch (e) { if (e instanceof WallExpired || e instanceof WatchdogExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); continue }
+      const witness = () => ({...params, ...st.scalars, ...numbersOf(input)})
       for (const sl of steps1) if (!watch(m, run, sl, params, bound).step(st, input, next)) return {goal: `${sl.name} @step law`, witness: witness()}
       for (const l of lawsHere) if (!watch(m, run, l, params, bound).step(st, input, next)) return {goal: `${l.name} @step`, witness: witness()}
     }
@@ -3130,7 +3230,11 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   if(opts.candidateSeeds) {
     if(opts.search === false || opts.from === 'any') throw Error('candidate seeds require reachable-state search')
     const machine = r.machine, extraCounts = opts.candidateSeeds.counts ?? {}
-    if(opts.candidateSeeds.kind === 'counted' || Object.keys(machine.counts ?? {}).length || Object.keys(extraCounts).length) {
+    const isCounted = opts.candidateSeeds.kind === 'counted' || Object.keys(machine.counts ?? {}).length > 0 || Object.keys(extraCounts).length > 0
+    const seedCover = refusedSumCover(machine, withKinds(r, [...laws, ...opts.candidateSeeds.laws]))
+    if (seedCover) {
+      opts.candidateSeeds.report?.({status: 'inconclusive', ...(isCounted ? {kind: 'counted' as const} : {}), kept: [], dropped: [], reason: seedCover.why})
+    } else if(isCounted) {
       const reserved = new Set([...Object.keys(machine.maps ?? {}),...Object.keys(machine.counts ?? {}),...Object.keys(machine.state),...Object.keys(machine.fns ?? {}),...(machine.inputMaps ?? []),...machine.params,...machine.inputs])
       if(Object.keys(extraCounts).some(n=>reserved.has(n))) throw Error('candidate count declaration must not override the source')
       const producer = {...machine,counts:{...machine.counts,...extraCounts}}
@@ -3146,12 +3250,14 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
       if(seeded.status === 'checked') return retainFrom(verdictOf(seeded.closure),[seeded.closure],{kind:'inference',original:machine,laws})
     }
   }
-  const refuted = refuteByRuns(r, laws)
+  const refuted = refuteByRuns(r, laws, [], refuteBudget, originalRule)
   checkWorkEndpoint('refutation result')
   // A state the laws allow whose step breaks one, with no run to it (a wide rule's: what the kernel's step goal would end
   // at), is a counterexample to induction: the laws may still hold, so the search goes on from it, as from the kernel's.
   // (A step law broken so is refused, proveSteps below: it holds from every state the laws allow, reached or not.)
   if (refuted?.run) return refutedVerdict(refuted)
+  const coverRefusal = refusedSumCover(r.machine, withKinds(r, laws))
+  if (coverRefusal) return {proven: false, checked: false, goal: coverRefusal.goal, stuck: 'unknown', why: coverRefusal.why}
   // A narrowly matched candidate gets a bounded attempt before unrestricted
   // inference. A failed helper proof is not a verdict about the caller's law.
   const search = typeof opts.search === 'object' ? opts.search : undefined
@@ -3182,7 +3288,7 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
         opts = {...opts, search: {...search, ms: Math.max(0, seedMs - (countedSearchNow() - start))}}
     }
   }
-  if (refuted) return searched(r, laws, [], refutedVerdict(refuted), opts)
+  if (refuted) return searched(r, laws, [], refutedVerdict(refuted), opts, originalRule)
   if (r === originalRule && !opts.candidateSeeds && opts.from !== 'any' && opts.search !== false &&
       !completeWorkProfile.enabled && !(typeof opts.search === 'object' && opts.search.work !== undefined) && laws.length === 1) {
     const ms = typeof opts.search === 'object' ? opts.search.ms ?? 60_000 : 60_000
@@ -3215,7 +3321,7 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   const v: Verdict = out ? {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
     : {proven: false, checked: false, stuck: 'unknown'}
   if (out) retainFrom(v, [out])
-  return searched(r, laws, [], v, opts)
+  return searched(r, laws, [], v, opts, originalRule)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
   return watchdogVerdict(opts.watchdogMs, () => workVerdict(opts, plan => proveStepsWall(r, laws, stepLaws, plan)))
@@ -3238,14 +3344,17 @@ function proveStepsWall(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: L
   return publishStepProof(translated, verdict)
 }
 function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions): Verdict {
+  const originalRule = r
   r = r.withSumsOf(laws, stepLaws)
   noting(r, laws, stepLaws)
-  const refuted = refuteByRuns(r, laws, stepLaws)
+  const refuted = refuteByRuns(r, laws, stepLaws, refuteBudget, originalRule)
   checkWorkEndpoint('refutation result')
   // (a step law broken from a state the laws allow, with no run to it: the laws may need an invariant there, or the run
   // be further than these runs go; the search goes on from it, as from the kernel's)
   if (refuted?.run) return refutedVerdict(refuted)
   const m = r.machine
+  const coverRefusal = refusedSumCover(m, withKinds(r, laws))
+  if (coverRefusal) return {proven: false, checked: false, goal: coverRefusal.goal, stuck: 'unknown', why: coverRefusal.why}
   // A bounded search for reachable-state supports. Keep from-any proofs,
   // explicit work accounting and real counterexample preflight unchanged.
   const sl = stepLaws.length === 1 ? stepLaws[0] : undefined
@@ -3281,7 +3390,7 @@ function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     const strengthened = trySeeds(sl)
     if (strengthened) return strengthened
   }
-  return searched(r, laws, stepLaws, v, fallback)
+  return searched(r, laws, stepLaws, v, fallback, originalRule)
 }
 // The one-step laws as laws the bounded runs read (core/bmc.ts takes laws alone): a ghost per step law, set once a step
 // it is about breaks it (`then` read with each primed name the step's update), and the law that it is never set. Only a
@@ -3304,7 +3413,10 @@ function stepGhosts(m: Machine, stepLaws: StepLaw[]): {machine: Machine, laws: L
 // The search, where the prover alone didn't prove the laws and nothing refuted them: the lemmas first where the rule has
 // recurrences or carried lists (the rule made again with them), then invariants over what it then is. The verdict is the
 // prover's on the laws with what was found; when nothing is found, the prover's own (with why).
-function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions): Verdict {
+let searchOriginalRule: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj> | undefined
+function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions, original: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj> = r): Verdict {
+  const prev = searchOriginalRule
+  searchOriginalRule = original
   try { return searchedIn(r, laws, stepLaws, v, opts) }
   catch (e) {
     // Keep the initial SAT/goal/model before the outer catch can replace it.
@@ -3312,9 +3424,12 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
     if (e instanceof BudgetExpired) { captureWorkContext(e, searchContext(v)); throw e }
     if ((!(e instanceof WallExpired) && !(e instanceof WatchdogExpired)) || !e.termination) throw e
     return stoppedSearch(v, e.termination)
+  } finally {
+    searchOriginalRule = prev
   }
 }
 function searchedIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions): Verdict {
+  const original = searchOriginalRule ?? r
   const any = opts.from === 'any'
   if ((v.proven && v.checked) || opts.search === false || v.run || v.acceleratedRun?.checked || v.stuck === 'sat' && (any || !/@step|@\d+ steps/.test(v.goal ?? ''))) return v
   // The deeper runs; then runs over small values (keys that meet, small params), whose requests meet their
@@ -3323,14 +3438,14 @@ function searchedIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[]
   const explicitWork = typeof opts.search === 'object' ? opts.search.work : undefined
   const ms = explicitWork === undefined ? (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000) : Infinity, runsUntil = explicitWork === undefined ? countedSearchNow() + ms : Infinity
   for (const b of [deeperBudget, {...deeperBudget, bound: 1, seed: 31, states: false}, {...deeperBudget, trials: 1200, seed: 41, states: false, mixed: true, ...(v.witness ? {near: v.witness} : {})}]) {
-    const deeper = refuteByRuns(r, laws, stepLaws, {...b, until: runsUntil})
+    const deeper = refuteByRuns(r, laws, stepLaws, {...b, until: runsUntil}, original)
     if (deeper?.run) return refutedVerdict(deeper)
   }
   // (then, for a law of steps or one that divides by an hour or more (a clock's days), near it with its other values,
   // where it holds some past the small ones: a time the state keeps is one an earlier request gave)
   const m0 = r.machine, clocked = stepLaws.length > 0 || [...divisorsIn(laws.map(l => l.holds))].some(k => k >= 3600)
   const pool = clocked ? [...new Set(Object.entries(v.witness ?? {}).filter(([k, x]) => !m0.inputs.includes(k) && !m0.params.includes(k) && x > deeperBudget.bound).map(([, x]) => x))] : []
-  if (pool.length) { const deeper = refuteByRuns(r, laws, stepLaws, {...deeperBudget, trials: 300, seed: 43, states: false, mixed: true, near: v.witness, pool, until: runsUntil}); if (deeper?.run) return refutedVerdict(deeper) }
+  if (pool.length) { const deeper = refuteByRuns(r, laws, stepLaws, {...deeperBudget, trials: 300, seed: 43, states: false, mixed: true, near: v.witness, pool, until: runsUntil}, original); if (deeper?.run) return refutedVerdict(deeper) }
   const until = explicitWork === undefined ? clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000) : Infinity
   // Work uses only its ledger; legacy stages retain their captured real/count endpoint.
   if (explicitWork !== undefined) return searchedUntil(r, laws, stepLaws, v, opts, until)
@@ -3567,6 +3682,8 @@ function proveLeadsToIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: L
   r = keyed(r, l).withSumsOf(laws, l)
   noting(r, laws, l)
   if (laws.some(law => law.some?.length)) throw new Error(`${r.machine.name}: a law with "there exists" goes to proveRule or proveSteps; a liveness takes plain laws (the ones its proof printed, Verdict.witnesses)`)
+  const coverRefusal = refusedSumCover(r.machine, withKinds(r, laws))
+  if (coverRefusal) return {proven: false, checked: false, goal: coverRefusal.goal, stuck: 'unknown', why: coverRefusal.why}
   if (Array.isArray(l.rank) && !l.rank.length) {
     const ms = opts.ms ?? 10_000, until = clock() + ms
     const draws = {params: (rand: Rand, bound: number) => r.randomParams(rand, bound), input: (rand: Rand, bound: number, ps: Record<string, number>) => r.randomInput(rand, bound, ps)}
@@ -3624,6 +3741,7 @@ export function refuteLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, l
   if (isSourceBound(r, [...laws, l]) || completeWorkProfile.enabled) return undefined
   const k = keyed(r, l).withSumsOf(laws, l)
   noting(k, laws, l)
+  if (refusedSumCover(k.machine, withKinds(k, laws))) return undefined
   return findRing(k.machine, withKinds(k, laws), l, {params: (rand, bound) => k.randomParams(rand, bound), input: (rand, bound, ps) => k.randomInput(rand, bound, ps)}, opts)
 }
 // `ms`: the budget (the prover's own per goal, 20 s or a second a hypothesis, where none is given), on the clock the

@@ -43,7 +43,7 @@ import {bitIntersection, bitIntersects} from './bitsets.ts'
 import {samplePredicates, sampleStateText} from './sample-cache.ts'
 import {sampleStep} from './sample-step.ts'
 import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, compileC, compileE, cpair, fastStep, divisorsIn, evalC, evalE, get, hasFinite, interpret, machineTerms, fnValue, modName, n, not, partsOf as tupleOf, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
-import {type StepLaw, type Verdict, type proveRule, bool, refuteModelByRuns, verdictOf} from './dsl.ts'
+import {type StepLaw, type Verdict, type proveRule, bool, refuteModelByRuns, refusedSumCover, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
 import {type WorkAmount} from './work-amount.ts'
 import {BudgetExpired, checkBudget, clock, counted, fullWork, searchWork, decideLaw, decideNote, machineKey, memoHits, withBudget, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall, withSearchWork} from '../kernel/prove.ts'
@@ -742,7 +742,8 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   // Divisor declarations are mutable rule metadata. Keep a private copy even
   // when withSumsOf would return the original rule: candidate search and returned
   // remainder laws must not add arithmetic facts to the caller's next proof.
-  const rule = isRule(target) ? target.withDivisors().withSumsOf(laws, stepLaws) : undefined
+  const baseRule = isRule(target) ? target.withDivisors() : undefined
+  const rule = baseRule?.withSumsOf(laws, stepLaws)
   // The clock the budgets read (counted milliseconds since the start, or wall time where `timed`), and the stop.
   const timed = !!opts.timed, w0 = work.n, used = {tries: 0, rows: 0, evals: 0, watched: 0, erows: 0, etries: 0}
   const now = (): number => (timed ? countedSearchNow() - t0
@@ -777,7 +778,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     ;(globalThis as unknown as {process: {stderr: {write: (s: string) => void}}}).process.stderr.write(`[infer] ${what} ${JSON.stringify({ms: Math.round(t - tp), counted: Math.round(c - cp), work: work.n - wp, ...used, ...o})}\n`)
     tp = t; cp = c; wp = work.n
   }
-  if (rule) { const ks = divisorsIn([...laws, ...stepLaws] as never); if (ks.size) rule.dividesBy(...ks) }
+  if (baseRule) { const ks = divisorsIn([...laws, ...stepLaws] as never); if (ks.size) { baseRule.dividesBy(...ks); if (rule && rule !== baseRule) rule.dividesBy(...ks) } }
   const m = rule ? rule.machine : target as Machine
   let proofs = 0
   let sampleCount = () => 0, candidateCount = () => 0, aliveCount = () => 0
@@ -825,14 +826,18 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   }
   // The old public prover's first pass also sampled reachable counterexamples.
   // Keep that negative model evidence without invoking a source finalizer.
-  const refuted = !opts.first && !opts.cubes && rule ? refuteModelByRuns(rule, laws, stepLaws) : undefined
+  const refuted = !opts.first && !opts.cubes && rule ? refuteModelByRuns(rule, laws, stepLaws, baseRule) : undefined
+  const coverLaws = rule ? [...rule.kindLaws().filter(k => !laws.some(l => l.name === k.name)), ...laws] : laws
+  const coverRefusal = !refuted?.run ? refusedSumCover(m, coverLaws) : undefined
   const first = opts.first ?? (refuted?.run ? {proven: false, checked: false, stuck: 'sat', ...refuted} as Verdict
+    : coverRefusal ? {proven: false, checked: false, goal: coverRefusal.goal, stuck: 'unknown', why: coverRefusal.why} as Verdict
     : opts.cubes ? {proven: false, checked: false} as Verdict : prove(laws))
   observed.context = () => searchContext(first)
   if ((first.proven && first.checked) || first.run) {
     const completed = observed.completed = retainFrom({...first, found: [], stats: completedStats(0, 0, 0)}, [first])
     return retainFrom({...completed, stats: stats(0, 0, 0)}, [completed])
   }
+  if (coverRefusal) return {...first, found: [], stats: stats(0, 0, 0)}
 
   // --- runs ------------------------------------------------------------------------------------------------------------
   const run = interpret(m), stepSample = sampleStep(m, run), rand = seeded(17), kinds = rule ? rule.kindsOfState() : []

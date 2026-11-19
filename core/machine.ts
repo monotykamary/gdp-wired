@@ -725,6 +725,37 @@ function unchanged(t: TupleWrite, map: string, env: Env, st: State, m: Machine):
   return v.op === 'if' && v.then.op === 'const' && v.then.value === 1 && v.else.op === 'const' && v.else.value === 0 && v.c.op === '<=' && v.c.a.op === 'const' && v.c.a.value === 1 && own(v.c.b) && zeroOne()
 }
 
+// Exact value of a declared map sum directly from a state's maps and defaults (independent of sumRuntime's finite-cover
+// delta). Throws RangeError when the sum's term is non-zero past the stored cells (an infinite sum over all naturals).
+export function exactMapSum(m: Machine, name: string, sum: {key: string, term: E}, st: State): number {
+  const read = mapsIn(sum.term)
+  for (const mp of read) if (st.defaults?.[mp] === undefined && m.maps?.[mp] === undefined) throw new RangeError(`${m.name}: map ${mp} is not declared on the machine`)
+  const dfltState: State = {scalars: {}, maps: Object.fromEntries(read.map(mp => [mp, new Map<number, number>()])), ...(st.defaults ? {defaults: st.defaults} : {})}
+  const d = evalE(sum.term, {[sum.key]: 0}, dfltState, m)
+  if (d !== 0) throw new RangeError(`${m.name}: the sum ${name} is infinite (its term is ${d} past the stored cells)`)
+  if (!read.length) return 0
+  let total = 0
+  const env: Env = {[sum.key]: 0}
+  if (read.length === 1) {
+    const cells = st.maps[read[0]!]
+    if (cells) for (const key of cells.keys()) { env[sum.key] = key; total = exact(total + evalE(sum.term, env, st, m)) }
+    return total
+  }
+  const keys = new Set<number>()
+  for (const mp of read) for (const key of st.maps[mp]?.keys() ?? []) keys.add(key)
+  for (const key of keys) { env[sum.key] = key; total = exact(total + evalE(sum.term, env, st, m)) }
+  return total
+}
+// Sums whose term reads at least one map written at every key (`each`): sumRuntime's finite-cover delta is only valid
+// when the write's cover goal holds, so the runtimes recompute these sums directly from the post-step maps instead.
+function recomputedSums(m: Machine): Set<string> {
+  const out = new Set<string>()
+  for (const [name, sum] of Object.entries(m.sums ?? {})) {
+    if (mapsIn(sum.term).some(mp => { const w = m.step.maps?.[mp]; return !!w && 'each' in w })) out.add(name)
+  }
+  return out
+}
+
 // The machine a runtime steps (with a history, kernel.ts's plain machine), its queries, and the inputs a request carries.
 function runnable(m: Machine) {
   const h = m.history
@@ -800,7 +831,7 @@ export const numbersOf = (input: Request): Record<string, number> => Object.from
 const refused = (m: Machine) => `${m.name}: the request fails the rule's assumption, so no proof covers the step it would take`
 // The interpreter: persistent (a step leaves the state it was given as it was), so searches can branch from any state.
 export function interpret(m: Machine, checkpoint?: () => void) {
-  const {h, plain, carried} = runnable(m), arity = mapArities(plain)
+  const {h, plain, carried} = runnable(m), arity = mapArities(plain), recompute = recomputedSums(m)
   const args = (params: Env, input?: Request): Env => {
     const env: Env = {}
     for (const p of m.params) env[p] = naturalIn(params[p], `param ${p}`)
@@ -857,12 +888,16 @@ export function interpret(m: Machine, checkpoint?: () => void) {
         const error = new RangeError(`${m.name}: fixed-width primitive failed`); error.name = 'PrimitiveFailure'; throw error
       }
       const scalars = {...st.scalars}
-      for (const [name, e] of Object.entries(plain.step.state ?? {})) scalars[name] = evalE(e, env, st, plain)
+      for (const [name, e] of Object.entries(plain.step.state ?? {})) if (!recompute.has(name)) scalars[name] = evalE(e, env, st, plain)
       const writes = Object.entries(plain.step.maps ?? {}).map(([name, w]) => [name, 'each' in w ? writeEvery(w, env, st, plain, arity[name] ?? 1, name) : {key: evalE(w.key, env, st, plain), value: evalE(w.value, env, st, plain)}] as const)
       const maps = Object.fromEntries(Object.entries(given.maps).map(([name, cells]) => [name, new Map(cells)]))
       const defaults = {...given.defaults}
       for (const [name, w] of writes) if ('cells' in w) { maps[name] = w.cells; defaults[name] = w.default } else maps[name]!.set(w.key, w.value)
       const withDefaults = Object.keys(defaults).length ? {defaults} : {}
+      if (recompute.size) {
+        const post: State = {scalars, maps, ...withDefaults}
+        for (const name of recompute) scalars[name] = exactMapSum(m, name, m.sums![name]!, post)
+      }
       if (!h) return {scalars, maps, ...withDefaults}
       const kept = evalC(h.keep, env, st, plain)
       return {scalars, maps, history: kept ? [...records, Object.fromEntries(h.record.map(f => [f, env[f]!]))] : records, ...(h.prune ? {last: env[h.prune.order]} : {})}
@@ -929,7 +964,7 @@ export function compileJs(m: Machine): string { return compileJsMode(m, false) }
 // fastStep keeps the input state persistent. Its fork can wait until every
 // precondition and right-hand side has been evaluated, just before the writes.
 function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): string {
-  const {h, plain, queries, carried} = runnable(m)
+  const {h, plain, queries, carried} = runnable(m), recompute = recomputedSums(m)
   // (a condition or a write at every key over a tuple key: the interpreter decides those, part by part)
   const atEvery = [...Object.values(plain.step.flags ?? {}).filter(c => c.op === 'all' && c.finite === undefined), ...Object.values(plain.step.maps ?? {}).filter(w => 'each' in w)]
   const arity = mapArities(plain)
@@ -1054,16 +1089,53 @@ function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): 
     const better = l.by.map((b, i) => `by[${i}] !== bb[${i}] ? by[${i}] ${b.desc ? '>' : '<'} bb[${i}] : `).join('') + 'false'
     lines.push(`{ const ks = $keys(maps, ${JSON.stringify(ms)}), past = ks.pop(); let lk = past; if (${where}) throw new RangeError(${id(`${m.name}: ${name} has no least (its condition holds at every key past the cells)`)}); let bk, bb; for (lk of ks.sort((a, b) => a - b)) { if (!(${where})) continue; const by = [${by.join(', ')}]; if (bk === undefined || (${better})) { bk = lk; bb = by; } } env[${id(name)}] = bk ?? 0; env[${id(l.some)}] = bk === undefined ? 0 : 1; }`)
   }
+  const sumEx = (e: E, keyVar?: string): string => {
+    switch (e.op) {
+      case 'const': return String(e.value)
+      case 'add': return `$x(${sumEx(e.a, keyVar)} + ${sumEx(e.b, keyVar)})`
+      case 'sub': return `Math.max(0, ${sumEx(e.a, keyVar)} - ${sumEx(e.b, keyVar)})`
+      case 'mul': return `$x(${e.k} * ${sumEx(e.a, keyVar)})`
+      case 'prod': return `$x(${sumEx(e.a, keyVar)} * ${sumEx(e.b, keyVar)})`
+      case 'min': return `Math.min(${sumEx(e.a, keyVar)}, ${sumEx(e.b, keyVar)})`
+      case 'max': return `Math.max(${sumEx(e.a, keyVar)}, ${sumEx(e.b, keyVar)})`
+      case 'if': return `(${sumCx(e.c, keyVar)} ? ${sumEx(e.then, keyVar)} : ${sumEx(e.else, keyVar)})`
+      case 'get': return keyVar ? `(state.maps[${id(e.map)}].get(${keyVar}) ?? dft[${id(e.map)}] ?? ${plain.maps![e.map]!})` : `(dft[${id(e.map)}] ?? ${plain.maps![e.map]!})`
+      case 'var': case 'tup': case 'proj': throw new Error(`${m.name}: unexpected expression ${e.op} in sum term`)
+    }
+  }
+  const sumCx = (c: C, keyVar?: string): string => {
+    switch (c.op) {
+      case '<': return `(${sumEx(c.a, keyVar)} < ${sumEx(c.b, keyVar)})`
+      case '<=': return `(${sumEx(c.a, keyVar)} <= ${sumEx(c.b, keyVar)})`
+      case '=': return `(${sumEx(c.a, keyVar)} === ${sumEx(c.b, keyVar)})`
+      case 'and': return c.xs.length ? `(${c.xs.map(y => sumCx(y, keyVar)).join(' && ')})` : 'true'
+      case 'or': return c.xs.length ? `(${c.xs.map(y => sumCx(y, keyVar)).join(' || ')})` : 'false'
+      case 'not': return `(!${sumCx(c.x, keyVar)})`
+      case 'flag': case 'all': throw new Error(`${m.name}: unexpected condition ${c.op} in sum term`)
+    }
+  }
+  const stepScalars = Object.entries(plain.step.state ?? {}).filter(([name]) => !recompute.has(name))
   lines.push(...flags.map((name, i) => `const flag${i} = ${cx(plain.step.flags![name]!)};`),
     // The rule's own assumption, as `allowed` (core/watch.ts) reads it (a history's machine assumes more: its relations).
     ...(m.assume ? [`if (!${cx(m.assume)}) throw new RangeError(${id(refused(m))});`] : []),
     ...(plain.primitiveFailure ? [`if (${cx(plain.primitiveFailure)}) { const e = new RangeError(${id(`${m.name}: fixed-width primitive failed`)}); e.name = "PrimitiveFailure"; throw e; }`] : []),
-    `const scalars = {...s, ${Object.entries(plain.step.state ?? {}).map(([name, e]) => `${id(name)}: ${ex(e)}`).join(', ')}};`,
+    `const scalars = {${['...s', ...stepScalars.map(([name, e]) => `${id(name)}: ${ex(e)}`)].join(', ')}};`,
     ...[...sharedBreaks].map(([text, bk]) => `const ${bk} = ${breaksJs(JSON.parse(text) as Breaks)};`),
     ...writes.map(([name, w], i) => ('each' in w ? `const write${i} = ${every(w, sharedOf(name))};` : `const key${i} = ${ex(w.key)}, value${i} = ${ex(w.value)};`)))
   if (h) lines.push(`const keep = ${cx(h.keep)};`)
   if (persistent) lines.push('state = fork(state);')
   lines.push(...writes.map(([name, w], i) => ('each' in w ? `state.maps[${id(name)}] = write${i}.cells; dft[${id(name)}] = write${i}.d;` : `state.maps[${id(name)}].set(key${i}, value${i});`)))
+  for (const name of recompute) {
+    const sum = m.sums![name]!, read = mapsIn(sum.term), dfltExpr = sumEx(sum.term), atKeyExpr = sumEx(sum.term, '$k')
+    const errMsg = id(`${m.name}: the sum ${name} is infinite (its term is `)
+    if (!read.length) {
+      lines.push(`{ const $d = ${dfltExpr}; if ($d !== 0) throw new RangeError(${errMsg} + $d + " past the stored cells)"); scalars[${id(name)}] = 0; }`)
+    } else if (read.length === 1) {
+      lines.push(`{ const $d = ${dfltExpr}; if ($d !== 0) throw new RangeError(${errMsg} + $d + " past the stored cells)"); let $sum = 0; for (const $k of state.maps[${id(read[0]!)}].keys()) $sum = $x($sum + ${atKeyExpr}); scalars[${id(name)}] = $sum; }`)
+    } else {
+      lines.push(`{ const $d = ${dfltExpr}; if ($d !== 0) throw new RangeError(${errMsg} + $d + " past the stored cells)"); const $ks = new Set(); ${read.map(mp => `for (const $k of state.maps[${id(mp)}].keys()) $ks.add($k);`).join(' ')} let $sum = 0; for (const $k of $ks) $sum = $x($sum + ${atKeyExpr}); scalars[${id(name)}] = $sum; }`)
+    }
+  }
   if (h) lines.push(`if (keep) records.push({${h.record.map(f => `${id(f)}: env[${id(f)}]`).join(', ')}});`,
     // Drop the spent prefix now and then, not every step: amortized, each record is moved a bounded number of times.
     'if (head > 1024 && 2 * head > records.length) { records.splice(0, head); head = 0; }',
