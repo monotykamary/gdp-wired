@@ -1787,10 +1787,10 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // The same rule with the sum of every map its step writes (each a map of the state starting at 0 everywhere, whose sum
   // the kernel keeps exact: kernel.ts's sumMachine), beside the sums it reads: what the search proposes laws over where
   // a law is about the cells of a map against a total (a balance at most the supply). Undefined where there is none.
-  withMapSums(): this | undefined {
+  withMapSums(checkCovers = true): this | undefined {
     const m = this.machine
     if (m.history) return undefined
-    const have = new Set(Object.keys(m.sums ?? {})), more = new Set(this.spec.sumsRead ?? []), arity = mapArities(m), kinds = this.kindLaws()
+    const have = new Set(Object.keys(m.sums ?? {})), more = new Set(this.spec.sumsRead ?? []), arity = mapArities(m), kinds = checkCovers ? this.kindLaws() : []
     for (const [map, init] of Object.entries(m.maps ?? {})) {
       // (a map keyed by tuples has no sum read at one key: a sum's term reads its maps at the key alone)
       if (init !== 0 || !m.step.maps?.[map] || (m.inputMaps ?? []).includes(map) || (arity[map] ?? 1) > 1) continue
@@ -1799,7 +1799,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       try {
         const cand: Machine = {...m, sums: {...m.sums, ...sumsIn([], [name])}}
         const {goals} = sumMachine(cand, undefined, kinds)
-        if (goals.length && refusedSumCover(cand, kinds)) continue
+        if (checkCovers && goals.length && refusedSumCover(cand, kinds)) continue
         more.add(name)
       } catch { /* a sum the kernel takes no cover of */ }
     }

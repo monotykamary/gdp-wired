@@ -2792,7 +2792,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
       opts.progress?.('join engine', {wall: Math.round(vnow()), eUntil: Math.round(eUntil)})
       opts.progress?.('join meters', {at: 'engine', ...meters()})
       // (a sums pass's reserve where one follows: 10 s, or a quarter of what is left where less is)
-      const v0 = views.length, reserve = rule?.withMapSums() ? Math.min(10_000, (eUntil - vnow()) / 4) : 0
+      const v0 = views.length, reserve = rule?.withMapSums(false) ? Math.min(10_000, (eUntil - vnow()) / 4) : 0
       const implied = (f: Form) => {
         const v = views[f.view!]!, sk = {vars: Object.fromEntries([...v.vars.filter((_, i) => !v.defs?.[i]), ...freeOf(f, v)].map(k => [k, x(`${k}#`)])), maps: {}, flags: {}}, hyps = [substC(substC(v.frame, defsOf(v)), sk), not(substC(substC(condOf(f), defsOf(v)), sk))]
         for (const l of given) {
