@@ -1,5 +1,4 @@
 import { registerHooks } from 'node:module'
-import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 const url = p => pathToFileURL(resolve(p)).href

@@ -19,7 +19,7 @@ const order=(i,reversed=false)=>(i%2!==0)!==reversed?['candidate','stock']:['sto
 if(mode==='jobs'){
   const n=Number(b); assert(Number.isInteger(n)&&n>0)
   writeFileSync(a,JSON.stringify(Array.from({length:n},(_,i)=>({name:`aggregate-pair-${String(i).padStart(2,'0')}`,cmd:`bash research/kernel-sums/paired.sh run ${i} ${n}`,timeout:2500,cpu:1,memory:6144,required_agent_capabilities:{output_files_protocol:1}})),null,2))
-  writeFileSync(`${a}.manifest.json`,JSON.stringify(rows.map(({cli,...row},i)=>({i,...row})),null,2))
+  writeFileSync(`${a}.manifest.json`,JSON.stringify(rows.map(({cli:_cli,...row},i)=>({i,...row})),null,2))
 }else if(mode==='run'||mode==='reverse'||mode==='row'){
   const stock=process.env.KERNEL_SUMS_STOCK,out=process.env.SUPERCOMPUTER_OUTPUT_DIR
   assert(stock&&out)
@@ -37,7 +37,7 @@ if(mode==='jobs'){
       if(outcome==='error'||outcome==='timeout')appendFileSync(join(out,'failures.ndjson'),JSON.stringify({i,arm,outcome,exit:child.status,stdout:child.stdout?.slice(-3000),stderr:child.stderr?.slice(-3000)})+'\n')
       pair.push({arm,outcome,exit:child.status,wallMs:Math.round(performance.now()-t),ms:data?.ms??data?.search?.ms,work:data?.work,full:data?.full,goal:data?.goal})
     }
-    const {cli,...id}=row
+    const {cli:_cli,...id}=row
     appendFileSync(join(out,'pairs.ndjson'),JSON.stringify({i,...id,order:ordered,pair,node:process.version})+'\n')
   }
 }else if(mode==='compare'){
