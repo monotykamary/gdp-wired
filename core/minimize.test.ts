@@ -1,11 +1,14 @@
 // minimizeRun: the run returned breaks the law on the rule, and no run with one request removed does.
-import {expect, test} from 'bun:test'
+import {expect, setDefaultTimeout, test} from 'bun:test'
 import {forall, when, minimizeRun, minimizeRunDetailed, nat, oneOf, rule} from './dsl.ts'
 import {type Request, type State, interpret} from './machine.ts'
 import {allowed, watch} from './watch.ts'
 import {corpus as items} from '../research/realworld/corpus.ts'
 import results from '../research/realworld/results.json'
 import {invariantInput} from '../research/realworld/lib.ts'
+
+// (the corpus replays take 8 s on a 2 vCPU VM: past bun's 5 s default)
+setDefaultTimeout(120_000)
 
 type AnyRule = Parameters<typeof minimizeRun>[0] & {machine: import('./machine.ts').Machine}
 type Shown = Record<string, unknown>
