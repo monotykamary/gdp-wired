@@ -2,13 +2,15 @@ import type {Law,Machine} from './machine.ts'
 import {searchWall} from './wall.ts'
 import {proposeFilteredCounters} from './filtered-sum-candidates.ts'
 import {weightedSearch} from './aggregate-weighted/search.ts'
+import {searchGroupedSum} from './grouped-sum-search.ts'
 import {checkFiniteSum,finiteSumTheory,sumLocalGoal,type FiniteSumCertificate} from '../kernel/finite-sum.ts'
 import {checkGhostWrite,type GhostWriteCertificate} from '../kernel/ghost-write.ts'
+import type {GroupedSumCertificate} from '../kernel/grouped-sum.ts'
 import type {Tree} from '../kernel/kernel.ts'
 import {clock,grow,pastWall,withWall} from '../kernel/prove.ts'
 import {checkAggregateKinds,type AggregateKinds} from './aggregate-kinds.ts'
 
-export type AggregateCertificate = FiniteSumCertificate | GhostWriteCertificate
+export type AggregateCertificate = FiniteSumCertificate | GhostWriteCertificate | GroupedSumCertificate
 
 export function searchAggregate(m:Machine, law:Law, getKinds:()=>Law[], ms:number):{certificate:AggregateCertificate,kinds?:AggregateKinds}|undefined {
   // Reserve at least half the requested wall for ordinary proof/search.
@@ -57,6 +59,8 @@ function proposeAggregate(m:Machine, law:Law, ms:number):AggregateCertificate|un
       return undefined
     })
   }
+  const grouped = searchGroupedSum(m, law, Math.min(15_000, ms))
+  if (grouped) return grouped
   if (!maps.some(write=>'each' in write) || !maps.some(write=>!('each' in write))) return
   const p=weightedSearch(m,law,ms)
   if (!p) return
