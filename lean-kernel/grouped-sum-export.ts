@@ -1,9 +1,9 @@
 import type {Law, Machine} from '../core/machine.ts'
 import {type GroupedSumCertificate, checkGroupedSum, groupedSumTheory} from '../kernel/grouped-sum.ts'
-import {seedStepProof, smachineToLean} from './emit.ts'
+import {retainedSMachineToLean} from './emit.ts'
 
 // Replay the retained proof trees verbatim via Kern.GroupedSums.grouped_sum_sound.
-// No proof search runs at export time.
+// No proof search runs at export time (`retainedSMachineToLean` pins `retainedOnly` and `decide +kernel`).
 export function groupedSumToLean(id: string, source: Machine, law: Law, cert: GroupedSumCertificate): string {
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(id) || !checkGroupedSum(source, law, cert))
     throw new Error('invalid grouped-sum export')
@@ -14,11 +14,7 @@ export function groupedSumToLean(id: string, source: Machine, law: Law, cert: Gr
     ...[...initGoals, ...coverGoals].flatMap(g =>
       [...JSON.stringify(g.hyps).matchAll(/"op":"var","name":"([^"]+)"/g)].map(m => m[1]!)),
   ])]
-  seedStepProof(plain, cert.laws, [], {
-    proven: true, checked: true, nodes: 0, leaves: 0,
-    proof: {laws: cert.proof, instances: {}, perStep: {}, trees: {}},
-  })
-  const body = smachineToLean('packet', plain, cert.laws, {
+  const body = retainedSMachineToLean('packet', plain, cert.laws, cert.proof, {
     free,
     after: (ix, _mx, lit, cond, expr, enc) => {
       const declLits = decls.map(d =>

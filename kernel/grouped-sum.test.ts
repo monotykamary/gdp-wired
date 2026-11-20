@@ -663,9 +663,42 @@ describe('grouped-sum trusted rule', () => {
       sums: {S: {key: 'sk', params: ['qk'], term: ite({op: 'and', xs: [same(get('M', x('sk')), n(1)), same(x('qk'), n(1))]}, n(1), n(0))}},
       laws: [{name: qfLaw.name, forall: 'j', holds: {op: 'or', xs: [not(same(get('M', x('j')), x('qk'))), qfLaw.holds]}}],
     })).toBeUndefined()
-    // Exporter refuses invalid cert and invalid Lean identifier
+    // Exporter refuses invalid cert and invalid Lean identifier, and stays on decide +kernel even under GDP_LEAN_NATIVE=1
     expect(() => groupedSumToLean('123bad', base, okLaw, goodCert)).toThrow(/invalid grouped-sum export/)
     expect(() => groupedSumToLean('BadCert', base, okLaw, {...goodCert, sums: {}})).toThrow(/invalid grouped-sum export/)
+    const prevNative = process.env.GDP_LEAN_NATIVE
+    process.env.GDP_LEAN_NATIVE = '1'
+    try {
+      const leanStrict = groupedSumToLean('StrictKernel', base, okLaw, goodCert)
+      expect(leanStrict).toContain('decide +kernel')
+      expect(leanStrict).not.toContain('native_decide')
+    } finally {
+      if (prevNative === undefined) delete process.env.GDP_LEAN_NATIVE
+      else process.env.GDP_LEAN_NATIVE = prevNative
+    }
+    // Reject tuple-arity maps, worddiv$ smuggled in cert.proof.instances, and cover keys reading sum ghosts
+    const tupleM: Machine = {
+      name: 'tuple-map',
+      params: [],
+      inputs: ['a', 'b'],
+      state: {},
+      maps: {M: 0, T: 0},
+      step: {
+        maps: {
+          M: {key: {op: 'tup', a: x('a'), b: x('b')}, value: n(1)},
+          T: {key: x('a'), value: get('T', x('a'))},
+        },
+      },
+    }
+    expect(groupedSumTheory(tupleM, {name: 'tl', forall: 'j', holds: atMost(n(0), get('T', x('j')))}, goodCert)).toBeUndefined()
+    expect(groupedSumTheory(base, okLaw, {
+      ...goodCert,
+      proof: {...goodCert.proof, instances: {[okLaw.name]: {[okLaw.name]: [get('worddiv$q8', x('k'))]}}},
+    })).toBeUndefined()
+    expect(groupedSumTheory(base, okLaw, {
+      ...goodCert,
+      sums: {S: {...goodCert.sums.S!, covers: [x('k'), x('S')]}},
+    })).toBeUndefined()
     // Ensure obligations still works cleanly on base
     expect(obligations(base, [okLaw]).length).toBe(2)
   })

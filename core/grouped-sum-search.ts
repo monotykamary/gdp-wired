@@ -169,7 +169,8 @@ function tryProveVariant(
     laws,
     proof: {instances: {}, trees: {}},
   }
-  const theory = groupedSumTheory(source, law, dummy)
+  let theory: ReturnType<typeof groupedSumTheory>
+  try { theory = groupedSumTheory(source, law, dummy) } catch { return }
   if (!theory) return
 
   const sideTrees: Record<string, Tree> = Object.create(null)
