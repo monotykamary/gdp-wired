@@ -67,6 +67,27 @@ for d in $(python3 -c 'import site; print(" ".join(site.getsitepackages()))') /u
 uv pip install --system --break-system-packages -q 'litellm[proxy]==1.106.6'
 python3 -c 'import litellm.proxy.auth.auth_checks; print("litellm deps ok")'
 """
+# Pinned Node.js 24.22.1 in /opt/node (first on boat's PATH) so every boot resolves one Node independent of
+# ~/.nvm or the base image's /usr/bin/node (v20.20.2) and dangling /usr/local/bin/node symlink.
+NODE = r"""
+set -euo pipefail
+NODE_VER="v24.22.1"
+TARBALL="node-${NODE_VER}-linux-x64.tar.xz"
+curl -fsSL --retry 6 --retry-all-errors --retry-delay 5 -o "/tmp/${TARBALL}" "https://nodejs.org/dist/${NODE_VER}/${TARBALL}"
+curl -fsSL --retry 6 --retry-all-errors --retry-delay 5 -o /tmp/SHASUMS256.txt "https://nodejs.org/dist/${NODE_VER}/SHASUMS256.txt"
+(cd /tmp && awk -v f="${TARBALL}" '$2 == f {found=1; print} END {exit !found}' SHASUMS256.txt | sha256sum -c -)
+sudo rm -rf /opt/node && sudo mkdir -p /opt/node
+sudo tar -xJf "/tmp/${TARBALL}" -C /opt/node --strip-components=1
+sudo chown -R root:root /opt/node
+rm -f "/tmp/${TARBALL}" /tmp/SHASUMS256.txt
+for b in node npm npx corepack; do
+  if [ -x "/opt/node/bin/$b" ]; then
+    sudo ln -sf "/opt/node/bin/$b" "/usr/local/bin/$b"
+  fi
+done
+test "$(/opt/node/bin/node --version)" = "${NODE_VER}"
+env -i HOME=/tmp PATH=/opt/node/bin:/usr/local/bin:/usr/bin:/bin node --version | grep -qx "${NODE_VER}"
+"""
 # the compare runners' solvers, a layer each (their BOAT_SETUP, next to their Modal image), the slowest to build first
 RUNNERS = ["compare/tip/modal_tip.py", "compare/chc/modal_chc.py", "compare/term/modal_term.py", "compare/term/modal_sv.py"]
 
@@ -90,6 +111,10 @@ def runner_boat(root: pathlib.Path, path: str) -> dict:
 
 def layers(root: pathlib.Path) -> list[tuple[str, str]]:
     """The image's layers, bottom first: the tools, each compare runner's solvers and benchmarks (its BOAT_SETUP, the
-    slowest to build first), the languages. The names and scripts hash into each layer's snapshot name, so these are
-    the image Lane P built (sc-f0d8daeee6c3 at 6c934c9)."""
-    return [("tools", TOOLS), *[(pathlib.Path(r).stem.removeprefix("modal_"), runner_boat(root, r)["setup"]) for r in RUNNERS], ("langs", LANGS)]
+    slowest to build first), the languages, and pinned Node 24.22.1 stacked atop sc-f0d8daeee6c3."""
+    return [
+        ("tools", TOOLS),
+        *[(pathlib.Path(r).stem.removeprefix("modal_"), runner_boat(root, r)["setup"]) for r in RUNNERS],
+        ("langs", LANGS),
+        ("node", NODE),
+    ]
