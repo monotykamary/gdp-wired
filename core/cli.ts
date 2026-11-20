@@ -328,7 +328,7 @@ function cCommentTexts(src: string): string[] {
 }
 // Accept `// gdp: safety`, `/* gdp: safety */`, inline comments, multiline doc comments, and
 // comments with trailing text (e.g. `// gdp: safety (Stage 1)` or `/* gdp: safety: ring */`).
-const SAFETY_TAG_RE = /(?:^|[\s*])gdp:[ \t]*safety(?=$|(?![ \t]*=)[ \t:;,—–(\[]|[ \t]+-[ \t])/
+const SAFETY_TAG_RE = /(?:^|[\s*])gdp:[ \t]*safety(?=$|(?![ \t]*=)[\s:;,—–([]|[ \t]+-[ \t])/
 const SAFETY_LOOKALIKE_RE = /\bgdp[ \t]*:[ \t]*safe\w*(?:[ \t]*=[ \t]*\S+)?/i
 const hasSafetyTag = (t: Target): boolean =>
   t.lang === 'c' && t.files.some(f => cCommentTexts(fs.readFileSync(f, 'utf8')).some(c => SAFETY_TAG_RE.test(c)))
