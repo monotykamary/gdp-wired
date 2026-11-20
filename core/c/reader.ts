@@ -787,6 +787,8 @@ function auditUserPreprocessor(o: {
     let logicalLines = rawLinesCache.get(uf)
     if (!logicalLines) {
       const rawBuf = o.readBytes(uf)
+      if (rawBuf.includes(0))
+        throw new Refusal(`${label}:1:1`, 'NUL byte (0x00) in user file is outside the C safety subset')
       const rawText = new TextDecoder().decode(rawBuf)
       checkRawTrigraphs(rawText, label)
       const rawToks = dumpClangRawTokens(o.activeClang, o.stdFlags, uf, rawBuf, o.clangEnv, uf)
