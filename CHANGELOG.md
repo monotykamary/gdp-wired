@@ -3,6 +3,34 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.55.1
+
+### Added
+
+- **Joint-proof fallback for unknown laws:** when an individual reachable-state
+  invariant or step law ends `unknown` (neither proven nor refuted) in
+  `gdp-wired check` or in the real-world corpus scorer
+  (`research/realworld/score.ts` / `proveItemLaw`), it is retried jointly with
+  the other compatible laws stated on the same rule within the time left in that
+  law's own budget. Only the target law is credited, and only when the kernel
+  (and native source translation check, where applicable) checks the whole joint
+  family with the original law included. Proven and refuted verdicts are never
+  changed; if a sibling law is false or the joint proof does not check, the
+  original `unknown` verdict stands.
+- Documented in `README.md`, `docs/search-budgets.md`, and the skill references
+  that callers who pass several laws to `proveRule(rule, laws)` or
+  `proveSteps(rule, laws, stepLaws)` already get joint proof across the full
+  array.
+
+### Scope
+
+- Untrusted CLI, corpus scorer, docs, and tests only (`core/cli.ts`,
+  `research/realworld/lib.ts`, `research/realworld/score.ts`,
+  `core/joint-fallback.test.ts`); trusted kernel files (`kernel/`,
+  `lean-kernel/*.lean`) are unchanged.
+- `from: 'any'`, explicit `--work`, environment (`gdp: env`), security, and
+  proposal paths are unchanged.
+
 ## 0.55.0
 
 ### Added
