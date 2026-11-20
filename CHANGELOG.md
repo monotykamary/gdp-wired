@@ -16,6 +16,11 @@ noted), each with the command that reproduces it.
   with the original law. Uncovered broadcast (`each`) map writes continue to be
   skipped, and `search: false`, `from: 'any'`, and explicit counted-work mode
   are unchanged.
+- Default invariant search (`proveRule`) now extracts guard-decoupled per-key
+  multi-map accounting candidates from latched universally quantified laws
+  (`∀ k. G(k) ⇒ P₁(k) ∧ ...`), filters them on short reachable runs, and
+  accepts a candidate only when the unmodified kernel checks it together with
+  the original law. `from: 'any'` and `search: false` are unchanged.
 - Added `minimizeRun` and `minimizeRunDetailed` to shrink concrete refuting
   runs (`Verdict.run` or a request array with `{params}`) on the original rule
   until no single request can be removed while still breaking the law or step
