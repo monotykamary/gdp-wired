@@ -788,7 +788,7 @@ describe('grouped-sum trusted rule', () => {
       const env = {...process.env, LEAN_NUM_THREADS: '1', LEAN_PATH: `${dir}:${leanKernelDir}`}
       for (const mod of ['Cert', 'Kernel', 'Progress', 'StepLaw', 'Steps', 'Sets', 'History', 'Live', 'Ghost', 'Sums', 'GroupedSums']) {
         if (existsSync(join(leanKernelDir, `${mod}.olean`))) continue
-        const build = spawnSync(leanBin, ['-o', join(dir, `${mod}.olean`), join(leanKernelDir, `${mod}.lean`)], {env, encoding: 'utf8'})
+        const build = spawnSync(leanBin, ['-o', join(dir, `${mod}.olean`), `${mod}.lean`], {cwd: leanKernelDir, env, encoding: 'utf8'})
         if (build.status !== 0) throw new Error(`failed to build ${mod}.olean:\n${build.stdout}\n${build.stderr}`)
       }
       for (const [id, src, required] of [
@@ -797,7 +797,7 @@ describe('grouped-sum trusted rule', () => {
       ] as const) {
         const file = join(dir, `${id}.lean`)
         writeFileSync(file, src)
-        const run = spawnSync(leanBin, [file], {env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024})
+        const run = spawnSync(leanBin, [`${id}.lean`], {cwd: dir, env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024})
         expect(run.status).toBe(0)
         const errs = gate(run.stdout, [src], false)
         expect(errs).toEqual([])
