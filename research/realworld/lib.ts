@@ -91,19 +91,28 @@ export type RealItem = {
 }
 
 const search = (ms: number) => ({search: {ms}})
-// Keep the original corpus pair available for independent replay without
-// changing corpus output or rebuilding the formula from its display name.
+// Keep the original corpus pair available for independent replay and for
+// joint-proof fallback on the same rule/prelude without altering corpus items.
+export type JointSpec =
+  | {rule: AnyRule, prelude: Law[], kind: 'invariant', law: Law}
+  | {rule: AnyRule, prelude: Law[], kind: 'step', step: StepLaw}
 const invariantInputs = new WeakMap<RealLaw, readonly [AnyRule, Law]>()
+const jointSpecs = new WeakMap<RealLaw, JointSpec>()
 export const invariantInput = (row: RealLaw) => invariantInputs.get(row)
+export const jointSpec = (row: RealLaw): JointSpec | undefined => jointSpecs.get(row)
 // An invariant, alone, with the default search.
 export const invariant = (r: AnyRule, law: Law, kind: LawKind, intent: Intent, why: string): RealLaw => {
   const row: RealLaw = {name: law.name, kind, intent, why, form: 'invariant', prove: ms => proveRule(r, [law], search(ms))}
   invariantInputs.set(row, [r, law])
+  jointSpecs.set(row, {rule: r, prelude: [], kind: 'invariant', law})
   return row
 }
 // A one-step (or k-step) law, alone: the search finds the invariants it assumes.
-export const stepLaw = (r: AnyRule, sl: StepLaw, kind: LawKind, intent: Intent, why: string): RealLaw =>
-  ({name: sl.name, kind, intent, why, form: 'step', prove: ms => proveSteps(r, [], [sl], search(ms))})
+export const stepLaw = (r: AnyRule, sl: StepLaw, kind: LawKind, intent: Intent, why: string): RealLaw => {
+  const row: RealLaw = {name: sl.name, kind, intent, why, form: 'step', prove: ms => proveSteps(r, [], [sl], search(ms))}
+  jointSpecs.set(row, {rule: r, prelude: [], kind: 'step', step: sl})
+  return row
+}
 // "Whenever from, later to" under fairness, with no rank and no invariant given (the spec leaves `rank` out: the search finds both).
 export const leadsTo = (r: AnyRule, l: Liveness, intent: Intent, why: string, kind: LawKind = 'liveness'): RealLaw => {
   if (!Array.isArray(l.rank) || l.rank.length) throw new Error(`${l.name}: a corpus liveness states no rank (leave rank out)`)
@@ -113,7 +122,50 @@ export const leadsTo = (r: AnyRule, l: Liveness, intent: Intent, why: string, ki
 export const decision = (d: AnyDecision, kind: LawKind, intent: Intent, why: string): RealLaw =>
   ({name: d.name, kind, intent, why, form: 'decision', prove: ms => proveDecision(d, {ms})})
 // A chart's law or step law: with the chart's structural laws, which `chart.prove` adds itself.
-export const chartLaw = (c: AnyChart, law: Law, kind: LawKind, intent: Intent, why: string): RealLaw =>
-  ({name: law.name, kind, intent, why, form: 'invariant', prove: ms => proveRule(c.rule, [...c.chartLaws(), law], search(ms))})
-export const chartStep = (c: AnyChart, sl: StepLaw, kind: LawKind, intent: Intent, why: string): RealLaw =>
-  ({name: sl.name, kind, intent, why, form: 'step', prove: ms => proveSteps(c.rule, c.chartLaws(), [sl], search(ms))})
+export const chartLaw = (c: AnyChart, law: Law, kind: LawKind, intent: Intent, why: string): RealLaw => {
+  const prelude = c.chartLaws()
+  const row: RealLaw = {name: law.name, kind, intent, why, form: 'invariant', prove: ms => proveRule(c.rule, [...c.chartLaws(), law], search(ms))}
+  jointSpecs.set(row, {rule: c.rule, prelude, kind: 'invariant', law})
+  return row
+}
+export const chartStep = (c: AnyChart, sl: StepLaw, kind: LawKind, intent: Intent, why: string): RealLaw => {
+  const prelude = c.chartLaws()
+  const row: RealLaw = {name: sl.name, kind, intent, why, form: 'step', prove: ms => proveSteps(c.rule, c.chartLaws(), [sl], search(ms))}
+  jointSpecs.set(row, {rule: c.rule, prelude, kind: 'step', step: sl})
+  return row
+}
+
+// Prove one corpus law. Only when its ordinary proof ends unknown (neither proven nor refuted), retry it jointly with
+// the other laws stated on the same rule and prelude within the time left in this law's own budget. Credit only law k,
+// and only if the kernel checks the whole joint family (law k included). Never change a proven or refuted verdict.
+export function proveItemLaw(it: RealItem, k: number, ms: number): Verdict {
+  const l = it.laws[k]
+  if (!l) throw new Error(`${it.id} has no law ${k}`)
+  const t0 = performance.now()
+  const v = l.prove(ms)
+  const decided = (v.proven && v.checked) || v.proven || !!v.run || !!v.fairRing || !!v.acceleratedRun?.checked
+    || (l.form === 'decision' && v.stuck === 'sat' && !!v.witness)
+  if (decided || (v.stopped && v.termination?.kind === 'wall-deadline') || v.translation === 'unchecked' || v.translation === 'error') return v
+  const target = jointSpecs.get(l)
+  if (!target) return v
+  const remaining = Math.floor(ms - (performance.now() - t0))
+  if (remaining < 1) return v
+  const preludeKey = JSON.stringify(target.prelude)
+  const group: JointSpec[] = []
+  let targetIncluded = false
+  for (const sibling of it.laws) {
+    const spec = jointSpecs.get(sibling)
+    if (!spec || spec.rule !== target.rule || JSON.stringify(spec.prelude) !== preludeKey) continue
+    if (sibling === l) targetIncluded = true
+    group.push(spec)
+  }
+  if (!targetIncluded || group.length < 2) return v
+  const invariants = [...target.prelude, ...group.filter((g): g is Extract<JointSpec, {kind: 'invariant'}> => g.kind === 'invariant').map(g => g.law)]
+  const steps = group.filter((g): g is Extract<JointSpec, {kind: 'step'}> => g.kind === 'step').map(g => g.step)
+  let jv: Verdict
+  try {
+    const opts = {search: {ms: remaining}, watchdogMs: remaining}
+    jv = steps.length ? proveSteps(target.rule, invariants, steps, opts) : proveRule(target.rule, invariants, opts)
+  } catch { return v }
+  return jv.proven && jv.checked && jv.translation !== 'unchecked' && jv.translation !== 'error' ? jv : v
+}

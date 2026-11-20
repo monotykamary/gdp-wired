@@ -44,6 +44,9 @@ proveSteps(caps, [dayCap], [onlyUp, once, twice]) // {proven: true, checked: tru
 - `stepLaw(name, then, when?)`: about one step; `after` reads the state and maps after it.
 - `stepsLaw(name, k, then, when?)`: k steps in a row (k ≤ 16); the third argument holds each step's request.
 - Step laws assume the laws you pass beside them (`proveSteps(rule, laws, stepLaws)`).
+- Passing several laws or step laws on the same rule (`proveRule(rule, laws)` or `proveSteps(rule, laws, stepLaws)`)
+  proves them jointly as one family (checked all together by the kernel), so callers who pass all their laws at once
+  already get joint proof instead of proving each law in isolation.
 - By default the search may prove a step law with invariants it finds, which hold only in states reachable from the
   start; the verdict then says `assumes: {states: 'reachable', laws}`. If your code steps the compiled rule from states
   it is handed, prove with `{from: 'any'}`: every step law then holds from every state the laws allow

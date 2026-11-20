@@ -29,8 +29,7 @@ The bound widens naturals; a choice, a yes/no or an `upTo` of at most 15 is alwa
 - **A run comes back:** it is a real sequence of requests from the start that breaks the law. The rule (or the law)
   is wrong. Call `minimizeRun(rule, law, run)` to drop irrelevant requests to a 1-minimal breaking trace, and replay it with `rule.interpreter()` to see each state.
 - **No run:** the law is probably true but not inductive: the witness is a state no run reaches. The search the prove
-  calls run by default looked for the fact and didn't find it (`why` says so). Find the fact that rules that state out and add it as another law in the same call (`proveRule(r, [helper, law])`); the laws are
-  proven together. Example: gcd's rank only drops if `a >= 1` and `b >= 1` are laws too.
+  calls run by default looked for the fact and didn't find it (`why` says so). Find the fact that rules that state out and add it as another law in the same call (`proveRule(r, [helper, law])` or `proveSteps(r, laws, [step1, step2])`); callers who pass several laws on the same rule already get joint proof — all laws are searched and checked together as one family. Example: gcd's rank only drops if `a >= 1` and `b >= 1` are laws too. In the CLI (`gdp-wired check`), if an individual stated invariant or step law ends `unknown`, it automatically retries jointly with the other laws stated on the same rule as a fallback within the time left in that law's budget (crediting only that law, and only if the kernel checks the whole joint family).
 
 Reading a witness: names are the goal's variables. `Day[day:1]` is the map
 `Day` read at key `day` before the step; `k$...` / `key$...#` are the key a

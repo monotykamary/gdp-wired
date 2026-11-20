@@ -5,8 +5,10 @@ CHC-COMP, TermComp and SV-COMP. This corpus scores it on the job it is built for
 rate-limit, workflow, ledger, escrow, session and access-policy code from open-source repositories. Each item is that
 code written faithfully as a gdp-wired rule, with the laws a reviewer would ask about.
 
-Each law is proven with nothing stated beyond the rule and the law itself:
-- `proveRule` or `proveSteps`, with the default search at 60 s per law;
+Each law is proven alone first with nothing stated beyond the rule and the law itself:
+- `proveRule` or `proveSteps`, with the default search at 60 s per law (if an invariant or step law ends `unknown`,
+  `proveItemLaw` retries it jointly with the other laws stated on the same rule and prelude within the time left in
+  that law's own budget, crediting only that law and only if the kernel checks the whole joint family);
 - `proveLeadsTo` with no rank given;
 - `proveDecision` for a claim about one request.
 

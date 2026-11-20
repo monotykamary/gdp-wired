@@ -541,11 +541,12 @@ function* checkPipeline(t: Target, o: Opts): Pipeline<RuleOut[]> {
     // (from any state, the laws about states as one inductive set: the largest the stated ones make, each law the
     // kernel's step breaks taken out in turn (Houdini), the others proven together; one taken out is judged alone)
     const inductive = from && x.rule && !sys ? houdini(x, stated.filter(m => twice(m).length === 1 && kindOf(m) === 'law'), o.ms, ctx, o.work, o.watchdogMs) : undefined
+    const siblings = !from && !sys ? stated.filter(m => twice(m).length === 1) : undefined
     const outsOf: LawOut[] = []
     for (const i of order) {
       const l = stated[i]!
       outsOf[i] = twice(l).length > 1 ? {name: l.name, expr: l.expr, where: l.where, verdict: 'not read' as const, why: `a law of this name is stated twice (${twice(l).join(', ')}): a law is known by its name`, ms: 0}
-        : sys ? proveInEnv(x, l, o.ms, proven as Law[], {...ctx, sys, entry: name}) : prove(x, l, o.ms, proven, {...ctx, entry: name, ...(from ? {from, inductive, together: stated.filter(m => twice(m).length === 1 && kindOf(m) === 'law' && inductive!.has(m.name))} : {})})
+        : sys ? proveInEnv(x, l, o.ms, proven as Law[], {...ctx, sys, entry: name}) : prove(x, l, o.ms, proven, {...ctx, entry: name, ...(from ? {from, inductive, together: stated.filter(m => twice(m).length === 1 && kindOf(m) === 'law' && inductive!.has(m.name))} : siblings ? {siblings} : {})})
     }
     r.laws = outsOf
     if (o.security) {
@@ -576,7 +577,7 @@ function* checkPipeline(t: Target, o: Opts): Pipeline<RuleOut[]> {
 // The unit of each language's clock (Date.now() and a Clock's millis count milliseconds; time.time(), DateTime.diff in
 // seconds and Instant's as_secs count seconds); the others say it in gdp.toml (clock = "s" or "ms").
 const CLOCK: Partial<Record<Lang, string>> = {python: 's', elixir: 's', rust: 's', ts: 'ms', java: 'ms', kotlin: 'ms'}
-type Ctx = {sys?: InEnv, ms: number, work?: number, watchdogMs?: number, clock?: number, calendar?: Calendar, others: Record<string, Extraction>, cites: Cite[], cert?: string, file: string, entry?: string, from?: 'any', together?: LawText[], inductive?: Set<string>}
+type Ctx = {sys?: InEnv, ms: number, work?: number, watchdogMs?: number, clock?: number, calendar?: Calendar, others: Record<string, Extraction>, cites: Cite[], cert?: string, file: string, entry?: string, from?: 'any', together?: LawText[], inductive?: Set<string>, siblings?: LawText[]}
 // The largest set of these laws that is inductive from every state they allow together: each law whose step the
 // kernel breaks taken out, the rest tried again.
 function houdini(x: Extraction, ls: LawText[], ms: number, opts: LawOpts, work?: number, watchdogMs?: number): Set<string> {
@@ -598,11 +599,14 @@ function houdini(x: Extraction, ls: LawText[], ms: number, opts: LawOpts, work?:
 // an interchange document whose meta holds them.
 // The rule a law is proven on: the extraction's, declaring the divisors the law reads that the code doesn't (x // k,
 // x % k: floor division and remainder by a constant, known by their facts), its machine made again with them.
+function divisorsOf(expr: string): number[] {
+  return [...new Set([...expr.matchAll(/(?:\/\/|%)\s*(\d+)/g)].map(m => Number(m[1])).filter(k => k >= 1))].sort((a, b) => a - b)
+}
 function ruleFor(x: Extraction, expr: string): Extraction {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const r = x.rule as any as {spec?: {arith?: Set<number>}, withDivisors: (...ks: number[]) => unknown} | undefined
   if (!r) return x
-  const ks = [...expr.matchAll(/(?:\/\/|%)\s*(\d+)/g)].map(m => Number(m[1])).filter(k => k >= 1)
+  const ks = divisorsOf(expr)
   return ks.length ? {...x, rule: r.withDivisors(...ks) as never} : x
 }
 function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: Ctx, work = ctx?.work): LawOut {
@@ -653,6 +657,58 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
   let verdict: LawOut['verdict'] = v.proven && v.checked && !(ctx?.from && v.assumes) ? 'proven' : v.run || brokenAt ? 'broken' : 'unknown', replayed: string | undefined
   if (v.translation === 'unchecked') verdict = 'unknown'
   if (v.translation === 'error') verdict = 'not read'
+  let jointCertInvs: Law[] | undefined
+  // Fallback only: when an ordinary reachable-state law ends unknown (neither proven nor refuted), retry it jointly
+  // with the other laws stated on the same rule within the time left in this law's own budget. Credit only this law,
+  // and only if the kernel checks the whole joint family (including this law).
+  if (verdict === 'unknown' && b && !ctx?.from && work === undefined && !v.proven && !v.run
+      && !(v.stopped && v.termination?.kind === 'wall-deadline')
+      && v.translation !== 'unchecked' && v.translation !== 'error' && (ctx?.siblings?.length ?? 0) > 1) {
+    const budgetCap = ctx!.watchdogMs !== undefined ? Math.min(ms, ctx!.watchdogMs) : ms
+    const remaining = Math.floor(budgetCap - (cliNow() - t0))
+    if (remaining >= 1) {
+      const targetDivs = divisorsOf(l.expr).join(',')
+      const jointInvs: Law[] = [...inv]
+      const jointSteps: unknown[] = []
+      const addedStated = new Set<string>()
+      let siblingCount = 0
+      let targetInJoint = false
+      for (const m of ctx!.siblings!) {
+        if (m.name === l.name) {
+          if (b.kind === 'law') jointInvs.push(b.law)
+          else jointSteps.push(b.law)
+          addedStated.add(m.name)
+          targetInJoint = true
+          continue
+        }
+        if (isLeadsTo(m.expr) || isTwoRuns(m.expr) || divisorsOf(m.expr).join(',') !== targetDivs) continue
+        let sb: Built
+        try { sb = buildLaw(x, m, ctx!) } catch { continue }
+        if (sb.kind === 'law') jointInvs.push(sb.law)
+        else jointSteps.push(sb.law)
+        addedStated.add(m.name)
+        siblingCount++
+      }
+      if (b.kind === 'step') {
+        for (const p of proven as Law[]) if (!addedStated.has(p.name)) jointInvs.push(p)
+      }
+      if (targetInJoint && siblingCount >= 1) {
+        const jointOpts = {search: {ms: remaining}, ...(!syncControl || ctx!.watchdogMs !== undefined ? {watchdogMs: remaining} : {})}
+        try {
+          const jv = jointSteps.length
+            ? proveSteps(x.rule!, jointInvs, jointSteps as never, jointOpts)
+            : proveRule(x.rule!, jointInvs, jointOpts)
+          if (jv.proven && jv.checked && jv.translation !== 'unchecked' && jv.translation !== 'error') {
+            v = jv
+            verdict = 'proven'
+            jointCertInvs = jointInvs
+          }
+        } catch (e) {
+          if (e && typeof e === 'object' && (e as {name?: string}).name === 'Refusal') throw e
+        }
+      }
+    }
+  }
   if (ctx?.from && v.proven && v.assumes) v.why = `proven only in states a run from the start reaches (from = "any" asks for every state the laws allow): it needs ${v.assumes.laws.join('; ') || 'k-induction'}`
   // (a run the front end replays on the code: broken only where the code runs it so)
   if (verdict === 'broken' && x.replay && v.run && !two) { const r = x.replay(v.run, b!.law); if (r.ok) replayed = r.what; else { verdict = 'unknown'; v.why = `a run breaks it in the rule, not on the code: ${r.what}` } }
@@ -665,6 +721,7 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
     const more = v.found?.laws?.map(f => f.law) ?? []
     const meta = {producer: 'gdp-wired check', file: ctx.file, ...(ctx.entry ? {entry: ctx.entry} : {}), law: l.name, expr: l.expr, ...(l.where ? {where: l.where} : {}), cites}
     const doc = v.k ? undefined : two ? certify(two.rule, [...v.given ?? [], ...more, ...two.laws], two.stepLaws, meta)
+      : jointCertInvs ? certify(x.rule!, [...jointCertInvs, ...more], b!.kind === 'step' ? [b!.law] : [], meta)
       : b!.kind === 'law' ? certify(x.rule!, [...inv, ...more, b!.law], [], meta) : certify(x.rule!, [...inv, ...proven as Law[], ...more], [b!.law], meta)
     if (doc) { fs.mkdirSync(ctx.cert, {recursive: true}); cert = path.join(ctx.cert, `${[ctx.entry ?? path.basename(ctx.file), l.name].join('.').replace(/[^\w.-]+/g, '-')}.json`); fs.writeFileSync(cert, JSON.stringify(doc)) }
   }

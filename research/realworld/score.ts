@@ -2,13 +2,16 @@
 //   bun research/realworld/score.ts --one <item id> <law index> [--ms 60000]   one law, its verdict as JSON (a job)
 //   bun research/realworld/score.ts --item <item id> [--ms 5000]               an item's laws in this process (quick)
 //   bun research/realworld/score.ts --from <dir> [--md out.md] [--json out]    the tables and the score from jobs.ts's run
-// Each law is proven with nothing stated beyond the rule and the law (lib.ts): an outcome is `proven` (proven and
-// checked by the kernel), `refuted` (a run from the start that breaks it, the run in the log), `unknown` (neither,
-// within the search's budget) or `timeout` (the job was killed). triage/*.json says, for each refuted law, whether the
-// original code really does what the run shows (`bug`), or the rule (`model`) or the law (`law`) was wrong and how.
+// Each law is proven alone first with nothing stated beyond the rule and the law (lib.ts); only if an invariant or step
+// law ends `unknown` (neither proven nor refuted) does `proveItemLaw` retry it jointly with its sibling laws on the
+// same rule within the time left in that law's own budget, crediting only that law and only if the kernel checks the
+// whole joint family. An outcome is `proven` (proven and checked by the kernel), `refuted` (a run from the start that
+// breaks it, the run in the log), `unknown` (neither, within the search's budget) or `timeout` (the job was killed).
+// triage/*.json says, for each refuted law, whether the original code really does what the run shows (`bug`), or the
+// rule (`model`) or the law (`law`) was wrong and how.
 import {readFileSync, readdirSync, writeFileSync, existsSync} from 'node:fs'
 import {corpus} from './corpus.ts'
-import {GAPS, type RealItem} from './lib.ts'
+import {GAPS, type RealItem, proveItemLaw} from './lib.ts'
 import type {Verdict} from '../../core/dsl.ts'
 import {work as solverWork} from '../../core/solver.ts'
 import {fullWork} from '../../kernel/prove.ts'
@@ -31,7 +34,7 @@ const runLaw = (it: RealItem, k: number): Run => {
   // (with the prover's counted work it took, beside the wall time: the treadmill tells the code from the VM by it)
   const t = performance.now(), w0 = solverWork.n, f0 = fullWork(), counters = () => ({work: solverWork.n - w0, full: Math.round(fullWork() - f0)})
   try {
-    const v = l.prove(ms), found = foundText(v)
+    const v = proveItemLaw(it, k, ms), found = foundText(v)
     return {item: it.id, law: k, name: l.name, outcome: outcome(v, l.form === 'decision'), ms: Math.round(performance.now() - t), ...counters(), goal: v.goal, stuck: v.stuck, ...(v.why ? {why: v.why.slice(0, 400)} : {}),
       ...(v.run ? {run: v.run} : {}), ...(v.fairRing ? {fairRing: v.fairRing} : {}), ...(v.acceleratedRun?.checked ? {acceleratedRun: v.acceleratedRun} : {}), ...(v.witness && !v.run && !v.acceleratedRun ? {witness: v.witness} : {}), ...(found?.length ? {found} : {})}
   } catch (e) {

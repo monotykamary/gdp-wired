@@ -167,7 +167,10 @@ the annotation declared in your code), `@gdp_law("...")` in Python, `@gdp_law ".
 (`counts[user]`, `user in counts`, `cache["rl:" + user]`), `forall k in m: ...`, a choice by its value (`mode ==
 "closed"`). Anything else is refused with why, never dropped. Modelling choices a rule needs (`failures = "kept"` for
 laws about when it raises, a store's attributes, an untyped result) go in a `gdp.toml` beside the code (or `[tool.gdp]`
-in pyproject.toml, `"gdp"` in package.json), per rule under `[rules.<name>]`. The exit code is 1 when a stated law is
+in pyproject.toml, `"gdp"` in package.json), per rule under `[rules.<name>]`. When an individual stated invariant or step
+law ends `unknown` (neither proven nor refuted) in default reachable-state `check`, it is retried jointly with the other
+laws stated on the same rule within the time its own budget has left, crediting only that law and only if the kernel checks
+the whole joint family (never changing a proven or refuted verdict). The exit code is 1 when a stated law is
 broken, 2 when one couldn't be checked: `uses: monotykamary/gdp-wired@main` with `paths:` runs it in CI.
 
 Laws about two runs read the same way: `diagnosis never reaches status, result` (two runs differing only in the
@@ -250,7 +253,9 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   and no run breaks them, it looks for lemmas about the rule's recurrences and lists (`discover`), lemmas about the
   functions it knows by their facts (`cycleLemmas`, each proven by a cyclic proof) and then invariants (`inferLaws`),
   under a configurable search allowance (`{search: {ms: 10000}}` by default; `{search: false}`, the prover alone);
-  the verdict's `found` holds what proved them, as laws and lemmas with the source to paste.
+  the verdict's `found` holds what proved them, as laws and lemmas with the source to paste. Callers who pass several
+  laws on the same rule (`proveRule(rule, [law1, law2])` or `proveSteps(rule, laws, [step1, step2])`) already get joint
+  proof — the search and kernel check all of them together as one family, rather than proving one law at a time.
   [Explicit counted work and stop causes](docs/search-budgets.md) separate the search allowance from an optional
   real-time safety watchdog; legacy `ms` is not a promise of machine-independent completion. Each invariant found holds in the states reachable from the
   start, so a proof that needs one holds there and the verdict says so (`assumes: {states: 'reachable', laws}`). Code that
