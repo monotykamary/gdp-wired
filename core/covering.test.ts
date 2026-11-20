@@ -52,13 +52,17 @@ test('a law with no total, or about two keys, has no covering shape', () => {
 
 test('covering skips uncovered broadcast clears and still proves covered each writes', () => {
   const withClear = rule('broadcast-covering-clear')
-    .inputs({op: oneOf('put', 'clear'), id: nat, val: nat})
+    .inputs({op: oneOf('put', 'remove', 'clear'), id: nat, val: nat})
     .state({total: 0})
     .maps({M: 0})
-    .flags(({op, id, M}) => ({puts: op.is('put').and(M.at(id).eq(0)), clears: op.is('clear')}))
-    .step(({id, val, total, M, puts, clears}) => ({
-      total: when(clears, 0, when(puts, total.plus(val), total)),
-      M: M.each(k => when(clears, 0, when(puts.and(k.eq(id)), val, M.at(k)))),
+    .flags(({op, id, M}) => ({
+      puts: op.is('put').and(M.at(id).eq(0)),
+      removes: op.is('remove').and(M.at(id).gt(0)),
+      clears: op.is('clear'),
+    }))
+    .step(({id, val, total, M, puts, removes, clears}) => ({
+      total: when(clears, 0, when(puts, total.plus(val), when(removes, total.minus(M.at(id)), total))),
+      M: M.each(k => when(clears, 0, when(puts.and(k.eq(id)), val, when(removes.and(k.eq(id)), 0, M.at(k))))),
     }))
   const clearLaw = withClear.law('every cell fits in total', ({M, total}) => forall(k => M.at(k).atMost(total)))
   const vClear = proveRule(withClear, [clearLaw], {search: {ms: 2_000}})
