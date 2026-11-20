@@ -3,6 +3,38 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.54.0
+
+### Added
+
+- Default wall-mode proof search (`proveRule`) now proposes covering-sum
+  invariants for one-key `forall` laws stating that a guarded item weight (or
+  membership count) is bounded by a running total. The untrusted stage proposes
+  filtered map sums, companion map sums, and supporting per-key cell facts
+  within at most half the requested wall budget (capped at 25 seconds), and
+  returns a verdict only when the kernel checks the complete family together
+  with the original law. Uncovered broadcast (`each`) map writes continue to be
+  skipped, and `search: false`, `from: 'any'`, and explicit counted-work mode
+  are unchanged.
+- Added `minimizeRun` and `minimizeRunDetailed` to shrink concrete refuting
+  runs (`Verdict.run` or a request array with `{params}`) on the original rule
+  until no single request can be removed while still breaking the law or step
+  law, with optional bounded shortest-subsequence search (`opts.ms`, default
+  2,000 ms). Exported from `gdp-wired`, `gdp-wired/minimize`, and every
+  language frontend subpath; see [Minimizing refuting runs](docs/minimize.md).
+
+### Changed
+
+- Split candidate-form evaluation in `inferLaws` (shape columns, guard-bound
+  pass, per-row evaluation, and Houdini filtering) into small functions with
+  per-row value reuse and a small-value guard table. Counted-work counters
+  advance in the same order and measured corpus verdicts are preserved while
+  reducing invariant-search wall time.
+
+### Scope
+
+- Trusted kernel files (`kernel/`, `lean-kernel/*.lean`) are unchanged.
+
 ## 0.53.2
 
 ### Fixed
