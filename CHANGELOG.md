@@ -3,6 +3,27 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.54.1
+
+### Fixed
+
+- Preserve AST sharing across substitution (`substE` and `substC`) by
+  memoizing per call and reusing unchanged subterms, rather than cloning
+  unchanged subtrees on every map read when inlining step updates into large
+  laws.
+- Skip `wordDivisionFacts` in `goal()` whenever a machine, its laws, and its
+  instances contain no `worddiv$` read (checked by a shared-aware
+  `hasWordDivision` walk), and remove finished word-free nodes from the local
+  `seen` `Set` when `wordDivisionFacts` runs. Together these eliminate
+  pre-solver `RangeError: Set maximum size exceeded` and out-of-memory crashes
+  on large shared terms without changing what the kernel accepts or rejects.
+
+### Scope
+
+- Trusted kernel edits are limited to traversal and caching in
+  `kernel/kernel.ts` and `kernel/word-division.ts`; acceptance rules and
+  `lean-kernel/*.lean` are unchanged.
+
 ## 0.54.0
 
 ### Added
