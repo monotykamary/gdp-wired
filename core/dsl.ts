@@ -26,6 +26,7 @@ import {binder, copyVariable, encodeBinders, generatedVariable, guardReserved, i
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {proveCandidateSeeds} from './candidate-seeds.ts'
 import {orderedPairSeed} from './ordered-pair-seeds.ts'
+import {filterUnguardedSeeds, proposeUnguardedSeeds} from './unguard-seeds.ts'
 import {tryLockstepScalars} from './lockstep.ts'
 import {proveCountedCandidateSeeds} from './counted-candidate-seeds.ts'
 import {stepSeedFamilies, tryStepSeed} from './step-seeds.ts'
@@ -3364,7 +3365,7 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   const v: Verdict = out ? {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
     : {proven: false, checked: false, stuck: 'unknown'}
   if (out) retainFrom(v, [out])
-  return searched(r, laws, [], v, opts, originalRule)
+  return searched(r, laws, [], v, opts, originalRule, r === originalRule ? captureMachine : undefined)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
   return watchdogVerdict(opts.watchdogMs, () => workVerdict(opts, plan => proveStepsWall(r, laws, stepLaws, plan)))
@@ -3457,9 +3458,11 @@ function stepGhosts(m: Machine, stepLaws: StepLaw[]): {machine: Machine, laws: L
 // recurrences or carried lists (the rule made again with them), then invariants over what it then is. The verdict is the
 // prover's on the laws with what was found; when nothing is found, the prover's own (with why).
 let searchOriginalRule: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj> | undefined
-function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions, original: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj> = r): Verdict {
-  const prev = searchOriginalRule
+let searchCaptureMachine: Machine | undefined
+function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions, original: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj> = r, capture?: Machine): Verdict {
+  const prev = searchOriginalRule, prevCap = searchCaptureMachine
   searchOriginalRule = original
+  searchCaptureMachine = capture
   try { return searchedIn(r, laws, stepLaws, v, opts) }
   catch (e) {
     // Keep the initial SAT/goal/model before the outer catch can replace it.
@@ -3469,6 +3472,7 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
     return stoppedSearch(v, e.termination)
   } finally {
     searchOriginalRule = prev
+    searchCaptureMachine = prevCap
   }
 }
 function searchedIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions): Verdict {
@@ -3564,6 +3568,30 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // the invariant search with them given.
   // (each found invariant proven from init: none where the step laws hold from any state)
   if (any) return {...v, why: [v.why, 'no invariant searched for: {from: \'any\'}'].filter(Boolean).join('; ')}
+  // Unguarded per-key multi-map accounting seeds (core/unguard-seeds.ts): lift guard-decoupled
+  // conjuncts from latched ∀-laws, sample-filter, and check with the ordinary kernel.
+  if (!stepLaws.length && !laws.some(l => l.some?.length) && Object.keys(rule.machine.maps ?? {}).length && (explicitWork !== undefined || until - clock() - tail >= 500)) {
+    const fm = !lemmas && rule === r && searchCaptureMachine ? searchCaptureMachine : rule.machine
+    const raw = laws.flatMap(l => proposeUnguardedSeeds(fm, l))
+    if (raw.length) {
+      const draws = {params: (rand: Rand, bound: number) => rule.randomParams(rand, bound), input: (rand: Rand, bound: number, ps: Record<string, number>) => rule.randomInput(rand, bound, ps)}
+      const cands = filterUnguardedSeeds(fm, raw, draws)
+      const kinds = rule.kindLaws()
+      for (const h of cands) {
+        const rem = until - clock() - tail
+        if (explicitWork === undefined && rem < 500) break
+        const share = Math.min(12_000, rem / 3)
+        const allLaws = [...kinds, h, ...laws]
+        const out = explicitWork === undefined
+          ? counted(fullRate, () => withStageDeadline(clock() + share, () => proveLaws(fm, allLaws), () => undefined), true)
+          : withStageWork(remainingStageWork(explicitWork, 4), () => proveLaws(fm, allLaws), () => undefined)
+        if (out?.proven && out.checked) {
+          const found = [{law: h, text: h.name}]
+          return retainFrom({proven: true, checked: true, found: {laws: found, ...(lemmas ? {lemmas} : {})}, assumes: reachableBy(found)}, [out], {kind: 'inference', original: fm, laws})
+        }
+      }
+    }
+  }
   let fresh: FreshLaw[] = []
   if (Object.keys(rule.machine.maps ?? {}).length && until - clock() - tail > 1000) {
     const fm = rule.machine, share = (until - clock() - tail) / 10
