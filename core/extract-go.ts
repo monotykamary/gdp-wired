@@ -39,7 +39,7 @@ import * as I from './extract-ir.ts'
 import type {B, K, N} from './extract-ir.ts'
 import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
 import {type Extraction, type Name, fromModel} from './extract.ts'
-import {asset, type Answer, type Inferred, type IntTy, type Recipe, type SType, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, iteTerm, mapWritesOf, phiP, rangeLaws, rangeOf, varTerm} from './extract-step.ts'
+import {asset, type Answer, type Inferred, type IntTy, type Recipe, type SType, type SafetySite, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, iteTerm, mapWritesOf, phiP, rangeLaws, rangeOf, varTerm} from './extract-step.ts'
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
 export {minimizeRun, minimizeRunDetailed, proveRule, proveSteps} from './dsl.ts'
 
@@ -48,7 +48,7 @@ export type TT = {k: string, go?: string, nullflag?: boolean, fixed?: boolean, b
   fields?: {name: string, t: number, embedded: boolean}[], xfields?: {name: string, t: number, embedded: boolean, exported: boolean}[], methods?: {name: string, ptr: boolean}[], params?: number[], results?: number[], elems?: number[], iface?: boolean, args?: number[], len?: number}
 type GC = {int?: string, bool?: boolean, str?: string, float?: string, other?: string}
 export type GX = {e: string, p: string, t: number, text: string, c?: GC, why?: string, what?: string, b?: GX, n?: string, o?: string, id?: string, x?: GX, y?: GX, op?: string, f?: GX, a?: GX[], k?: string, lo?: GX, hi?: GX, three?: boolean,
-  path?: number[], indirect?: boolean, mptr?: boolean, mtype?: string, mpkg?: string, pkg?: string, builtin?: string, conv?: boolean, ell?: boolean, elts?: {field?: string, k?: GX, v: GX}[], i?: GX, end?: string}
+  path?: number[], indirect?: boolean, mptr?: boolean, mtype?: string, mpkg?: string, pkg?: string, builtin?: string, conv?: boolean, ell?: boolean, elts?: {field?: string, k?: GX, v: GX}[], i?: GX, end?: string, site?: SafetySite, checkedType?: number}
 export type GS = {s: string, p: string, why?: string, x?: GX, op?: string, l?: GX[], r?: GX[], c?: GX, then?: GS[], else?: GS, init?: GS, tag?: GX, cases?: {list?: GX[], default?: boolean, b: GS[], p: string}[],
   b?: GS[], specs?: {names: {name: string, id: string, t: number, c?: GC}[], v: GX[], const?: boolean, type?: boolean}[], tok?: string, label?: string, st?: GS}
 export type GoParam = {name?: string, id?: string, t: number, variadic?: boolean, ts?: string}
@@ -56,7 +56,7 @@ export type GoFunc = {name: string, p: string, span: [number, number], recv?: {t
 // (`lang`: the language the JSON was read from, Go's reader's or another's in its shape, core/c/reader.ts's)
 // (`ctor`: C++'s constructor, run once for the start state, its parameters the rule's)
 // (`dir`: where its files are, for the comments that tag calls and the check's rewritten copies)
-export type GoPkg = {dir?: string, lang?: string, ctor?: GoFunc, package: string, files: {name: string, imports: {path: string, name: string, std: boolean}[]}[], funcs: GoFunc[], types: {name: string, t: number, p: string, span: [number, number]}[],
+export type GoPkg = {dir?: string, lang?: string, safety?: true, ctor?: GoFunc, package: string, files: {name: string, imports: {path: string, name: string, std: boolean}[]}[], funcs: GoFunc[], types: {name: string, t: number, p: string, span: [number, number]}[],
   consts: {name: string, t: number, c: GC, p: string}[], vars: {name: string, t: number, p: string, init?: GX}[], errors: string[], ttab: TT[]}
 
 export type GoOptions = {
@@ -72,6 +72,7 @@ export type GoOptions = {
   fails?: Record<string, string>,
   // true: other packages' code refused where it is called, nothing inferred (core/extract-step.ts's strict)
   strict?: boolean,
+  safety?: boolean,
   // Calls of other code answered by the request (the callee's name: its result's type) or left out (core/extract-step.ts's).
   answers?: Record<string, string>, skip?: string[],
 }
@@ -88,6 +89,7 @@ class Go {
   constructor(readonly pkg: GoPkg, readonly opts: GoOptions, inf?: Inferred) {
     const mod: SModule = {lang: pkg.lang ?? 'go', file: pkg.files[0]?.name ?? 'go', path: pkg.dir ? `${pkg.dir}/${pkg.files[0]?.name ?? ''}` : '', module: pkg.package, root: pkg.dir ?? '', entries: [], recs: {}, funcs: this.funcs, split: false}
     this.g = new Stepper(mod, {entry: opts.entry, ...(opts.onError ? {onError: opts.onError} : {}), ...(opts.answers ? {answers: opts.answers} : {}), ...(opts.skip ? {skip: opts.skip} : {})}, inf)
+    if (opts.safety) this.g.safety = new Map()
     for (const f of pkg.funcs) this.funcs[`${f.recv?.type ?? ''}.${f.name}`] = this.fn(f)
   }
   T(t: number): TT { return this.pkg.ttab[t] ?? {k: 'invalid'} }
@@ -137,7 +139,10 @@ class Go {
     const k = this.T(x.t).k, it = this.intTy(x.t), ret: SType | undefined = it ? {k: 'int', bits: it.bits, signed: it.signed} : k === 'bool' ? {k: 'bool'} : k === 'string' ? {k: 'str'} : undefined
     return this.no(x, why, {ext: name, args: (x.a ?? []).map(y => this.x(y)), kw: [], ...(recv ? {recv: this.x(recv)} : {}), ...(ret ? {ret, ty: this.tname(x.t)} : {}), ...((x as {end?: string}).end ? {end: (x as {end?: string}).end} : {})})
   }
-  at(x: GX): {p: string, text: string} { return {p: x.p, text: x.text} }
+  at(x: GX): {p: string, text: string, site?: SafetySite, ity?: IntTy} {
+    const ity = this.opts.safety && x.checkedType !== undefined ? this.intTy(x.checkedType) ?? refuse(x, 'missing integer operation type in C safety source') : undefined
+    return {p: x.p, text: x.text, ...(this.opts.safety && x.site ? {site: x.site} : {}), ...(ity ? {ity} : {})}
+  }
   // A value as the type it is assigned to: an untyped constant takes the type; an integer stays itself.
   as(v: SX, t: number): SX {
     const ty = this.intTy(t), k = this.T(t).k
@@ -590,11 +595,18 @@ class Go {
 // --- the model --------------------------------------------------------------------------------------------------------
 // (answers: the calls answered, each request's values the last argument of its event; ranges: each one's type's)
 export type GoClock = {p: string, end: string, callee: string}
-export type GoRead = {clocks?: GoClock[], answers?: (Answer & {range?: [number, number]})[], leftOut?: string[], ctor?: {name: string, t: number, arg: Arg}[], model: Model, edges: B[], unsigned: string[], leaves: GoLeaf[], spans: [string, number, number][], entry: string, methods: {name: string, ptr: boolean, params: {name: string, t: number, arg: Arg}[], results: number[], err: boolean}[]}
+export type GoRead = {safety?: {sites: (SafetySite & {condition: B})[]}, clocks?: GoClock[], answers?: (Answer & {range?: [number, number]})[], leftOut?: string[], ctor?: {name: string, t: number, arg: Arg}[], model: Model, edges: B[], unsigned: string[], leaves: GoLeaf[], spans: [string, number, number][], entry: string, methods: {name: string, ptr: boolean, params: {name: string, t: number, arg: Arg}[], results: number[], err: boolean}[]}
 type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: V, when: B}
 // Read with the boundary inferred unless strict (core/extract-step.ts's readStep: each refused run adds what the next
 // infers): Go's check can't stub a call, so a call of another package is left out where nothing reads its value.
 export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
+  if (opts.safety) {
+    const at = pkg.files[0]?.name ?? '?'
+    if (!pkg.safety || pkg.lang !== 'c') refuse(at, 'C safety requires the checked source reader')
+    if (Object.keys(opts.answers ?? {}).length || opts.skip?.length || Object.keys(opts.domains ?? {}).length) refuse(at, 'safety does not allow inferred boundaries or custom domains')
+    return readGo1(pkg, {...opts, onError: 'discard'}, new Go(pkg, {...opts, onError: 'discard'}))
+  }
+  if (pkg.safety) refuse(pkg.files[0]?.name ?? '?', 'checked C source requires safety lowering')
   if (!opts.entry && !opts.strict) {
     // No entry: the package's one struct whose exported methods write it (core/extract-step.ts's writesState).
     const g = new Go(pkg, opts).g, writing = (t: string) => pkg.funcs.filter(f => f.recv?.type === t && f.body && (pkg.lang === 'c' || pkg.lang === 'cpp' || /^[A-Z]/.test(f.name)) && g.writesState(`${t}.${f.name}`, new Set([g.mod.funcs[`${t}.${f.name}`]?.recv ?? ''])))
@@ -646,6 +658,8 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
     }
     p = g.bindLocal('this', {t: 'ptr', to: {k: 'obj', id: 'this', path: []}}, fn, p)
     const flow = g.block(go.fn(fn).body, p), ends = [...flow.rets.map(([q]) => q), ...(flow.live ? [flow.live] : [])]
+    if (g.safety && [...g.safety.values()].some(s => !(s.condition.op === 'const' && !s.condition.v))) refuse(fn, 'a constructor with a possible C safety fault')
+    g.safety?.clear()
     if (g.refusals.length > n0 || !ends.length) refuse(fn, 'a constructor that can fail (the rule\'s start is where it leaves the object)')
     const m = materialize(go, g.join(ends, fn)!, fn)
     if (m.lists.size || m.maps.size) refuse(fn, 'a constructor that writes an array (a list starts as zeros)')
@@ -667,8 +681,9 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
     g.method = fn.name
     const sel = I.is(evL, fn.name)
     let p: Path = {pc: [sel], locals: new Map(), heap: new Map(heap), called: [], locks: [], defers: []}
+    const beforeInput = g.refusals.length
     const bound = go.bindParams(fn, sel, p), args = bound.args, params = bound.params
-    p = bound.p
+    p = g.safety ? g.assume(bound.p, I.not(I.or(...g.refusals.slice(beforeInput)))) : bound.p
     // (an out-parameter a path leaves as the caller gave it: what the caller gave, an input, read at the start)
     for (const pa of fn.params) { const pt = go.T(pa.t); if (pt.k === 'ptr' && go.T(pt.elem!).box && (go.T(pt.elem!).fields ?? []).length === 1 && boxKept(lowered0(fn), pa.id)) g.lazyFieldIn(`in:${fn.name}_${pa.name ?? 'arg'}`, 'value', p, fn) }
     // The receiver.
@@ -678,12 +693,25 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
     if (kept.length > 1) refuse(fn, `${fn.name} returns ${kept.length} values (a result kept is one value)`)
     const lowered = lowered0(fn)
     g.spans.set(`${opts.entry}.${fn.name}`, [fn.p.split(':')[0]!, fn.span[0], fn.span[1]])
+    if (g.safety) {
+      const visit = (v: unknown) => {
+        if (!v || typeof v !== 'object') return
+        if ('site' in v && v.site) g.registerSafety(v.site as SafetySite)
+        for (const c of Object.values(v)) visit(c)
+      }
+      visit(fn.body)
+    }
+    const beforeBody = g.refusals.length
     const flow = g.block(lowered.body, p)
+    if (g.safety && g.refusals.length !== beforeBody) refuse(fn, 'an untracked refusal on a C safety source path')
+    if (g.safety && flow.live && fn.results.length) { const c = g.cond(flow.live); if (!(c.op === 'const' && !c.v)) refuse(fn, 'a non-void C method with a reachable fallthrough') }
     if (flow.brk?.length) refuse(fn, 'a break outside a switch')
     const rets: [Path, V[]][] = [...flow.rets.map(([q, v]) => [q, (v as {xs: V[]}).xs] as [Path, V[]]), ...(flow.live ? [[flow.live, []] as [Path, V[]]] : [])]
     // An error returned: a refusal (where it isn't nil), the state as it was there.
     const ok: [Path, V[]][] = []
     for (const [q0, vs] of rets) {
+      const prefix = g.cond(q0)
+      if (g.safety && prefix.op === 'const' && !prefix.v) continue
       const q = {...q0, locks: q0.locks.filter(k => !q0.defers.includes(k))}
       if (q.locks.length) refuse(fn, `${fn.name} returns with a mutex locked`)
       const fails = opts.fails?.[fn.name]
@@ -691,6 +719,7 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
         // A result the caller states is the failure where it compares so: a refusal there, as an error is.
         const m = /^\s*(==|!=|<=|>=|<|>)\s*(-?\d+|true|false)\s*$/.exec(fails) ?? refuse(fn, `fails: ${JSON.stringify(fails)} (a comparison with a constant: '< 0', '!= 0', '== false')`)
         const r = vs[0] ?? refuse(fn, `${fn.name} returns nothing to compare (fails: ${fails})`)
+        if (g.safety && !['true', 'false'].includes(m[2]!) && !Number.isSafeInteger(Number(m[2]))) refuse(fn, 'an inexact configured failure constant')
         const k: V = m[2] === 'true' || m[2] === 'false' ? {t: 'bool', e: m[2] === 'true' ? I.T : I.F} : {t: 'num', e: I.num(Number(m[2]))}
         // (no failure where the result's bounds and the path's facts exclude it: an item of a uint8_t is never < 0)
         const kv = Number(m[2]), e = r.t === 'num' ? r.e : undefined, op = m[1]!
@@ -706,7 +735,13 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
         if (!(is.op === 'const' && is.v)) ok.push([g.assume(q, I.not(is)), vs])
       } else ok.push([q, vs])
     }
-    if (!ok.length) refuse(fn, `${fn.name} always fails`)
+    if (!ok.length) {
+      if (!g.safety) refuse(fn, `${fn.name} always fails`)
+      // This method still exists as an event: a fault can be its only exit.
+      // Its normal slot values are immaterial on faults (the monitor stutters).
+      const vs: V[] = fn.results.map(r => go.T(r.t).k === 'bool' ? {t: 'bool', e: I.F} : {t: 'num', e: I.num(0), ty: go.intTy(r.t)})
+      ok.push([g.assume(p, I.F), vs])
+    }
     // The kept result: by the path that returned it (a local the join merges).
     const ri = fn.results.findIndex((_, i) => i !== errAt)
     const final = g.join(ok.map(([q, vs]) => (kept.length ? {...q, locals: new Map(q.locals).set('$ret', vs[ri]!)} : q)), fn)!, acc = final.locals.get('$ret')!
@@ -788,6 +823,8 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
   for (const [n, ops] of Object.entries(listWrites)) { used.add(n); for (const o of ops) { mention(o.when); if (o.op !== 'pop') mention(o.x.e); if (o.op === 'set') mention(o.i) } }
   const refuseB = I.or(...g.refusals)
   mention(refuseB)
+  const safety = g.safety ? {sites: [...g.safety.values()]} : undefined
+  for (const s of safety?.sites ?? []) mention(s.condition)
   for (const n of Object.keys(writes)) used.add(n)
   // A map's nil flag and a big.Int's go with their value.
   for (const l of go.leaves) {
@@ -821,7 +858,7 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
   // Unsigned inputs are naturals (the input's kind); a state variable's sort is the printer's to decide (a natural where
   // every write is proven one: a wrap by cases may not be, though it stays within the type, which its law says).
   const unsigned = [...g.ints].filter(([n, ty]) => { const [lo, hi] = rangeOf(ty); return lo === 0 && hi > 0 && (g.inputs.some(v => v.name === n) || cparams.some(v => v.name === n)) }).map(([n]) => n)
-  return {...(g.now ? {clocks: [...go.clocks.values()]} : {}), ...(pkg.ctor ? {ctor: ctorArgs} : {}), ...(g.leftOut.size ? {leftOut: [...g.leftOut]} : {}), model, edges: g.edges, unsigned, leaves: go.leaves.filter(l => l.kind === 'frame' || state.some(v => v.name === l.name) || maps.some(d => d.name === l.name) || lists.some(d => d.name === l.name)), spans: [...g.spans.values()], entry: opts.entry, methods, ...(answers.length ? {answers} : {})}
+  return {...(safety ? {safety} : {}), ...(g.now ? {clocks: [...go.clocks.values()]} : {}), ...(pkg.ctor ? {ctor: ctorArgs} : {}), ...(g.leftOut.size ? {leftOut: [...g.leftOut]} : {}), model, edges: g.edges, unsigned, leaves: go.leaves.filter(l => l.kind === 'frame' || state.some(v => v.name === l.name) || maps.some(d => d.name === l.name) || lists.some(d => d.name === l.name)), spans: [...g.spans.values()], entry: opts.entry, methods, ...(answers.length ? {answers} : {})}
 }
 function termOf(v: V | undefined, at: {p: string}): Term {
   // (none: a path that ends without the value, which a reader of malformed source may join in)

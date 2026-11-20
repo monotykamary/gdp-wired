@@ -75,6 +75,7 @@ const units: Unit[] = [
     table-admission.test.ts work-admission.test.ts work-amount.test.ts
     work-capacity-boundary.test.ts work-collections.test.ts work-deadline-boundary.test.ts
     work-public-exact.test.ts work-refusal.test.ts`),
+  ...tests('core', 'extract-c-safety.test.ts'),
   ...tests('core', 'fixed-admission.test.ts fixed-integers.test.ts fixed-division.test.ts fixed-integration.test.ts fixed-division-integration.test.ts fixed-constant-division.test.ts fixed-division-proof.test.ts'),
   ...tests('core/count-recovery', 'conditional-check-cache.test.ts conditional-cuts.test.ts conditional-proof.test.ts derivability-closure.test.ts empty-count-source.test.ts field-bound-budget.test.ts leaf-allowance.test.ts member-inclusions.test.ts pre-state-source.test.ts rename-proof.test.ts row-demand.test.ts scalar-guards.test.ts source-witness-instances.test.ts member-premises.test.ts action-guard.test.ts row-cases.test.ts natural-cases.test.ts carried-case.test.ts live-dependencies.test.ts field-bound-lemmas.test.ts boolean-core.test.ts key-closure.test.ts lift-count-proxies.test.ts rebase-path.test.ts fold-path.test.ts frame-lemmas.test.ts guard-cases.test.ts field-only.test.ts source-memo.test.ts field-demand.test.ts'),
   ...tests('kernel', 'grouped-sum.test.ts integer-primitives.test.ts integer-primitives-fuzz.test.ts word-division.test.ts huge-terms.test.ts reader-safety.test.ts cdcl-root.test.ts frame-cut.test.ts lemma-cut.test.ts tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts epr-clock.test.ts epr-image.test.ts triggers.test.ts share.test.ts model-sequence.test.ts model-confirmation.test.ts model-rounds.test.ts model-values.test.ts prove-paths.test.ts prove-memo.test.ts prover-rows.test.ts prover-row-cache.test.ts tree-reuse.test.ts'),
@@ -188,7 +189,7 @@ const native = new Set([
   'core/agent-consult/workspace.test.ts',
   'core/cli.test.ts', 'core/exports.test.ts', 'core/relational.test.ts', 'core/calendar.test.ts',
   'core/extract-py.test.ts', 'core/extract-py-mro.test.ts', 'core/extract-py-hasattr.test.ts', 'core/extract-py-orm.test.ts',
-  'core/extract-sol.test.ts', 'core/sol-concrete.test.ts', 'research/security/score.test.ts', 'research/query/goal-pack.test.ts',
+  'core/extract-c-safety.test.ts', 'core/extract-sol.test.ts', 'core/sol-concrete.test.ts', 'research/security/score.test.ts', 'research/query/goal-pack.test.ts',
   'gates/bar.test.ts', 'research/security/surface-lowering.test.ts', 'research/security/mutants/mutants.test.ts',
   'research/security/mutants-upstream/upstream.test.ts', 'core/cli-deadline.test.ts', 'core/extract-step-native.test.ts', 'core/extract-py-decorator.test.ts',
 ])

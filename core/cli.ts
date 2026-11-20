@@ -11,6 +11,7 @@
 // answers, skip, stores) from the flags or from gdp.toml (configFor, below). Exit code: 0 when no law stated in
 // the code is broken, 1 when one is, 2 when one couldn't be checked (the rule refused, or the law not read).
 import type {Extraction, Name} from './extract.ts'
+import type {CSafetyResult} from './c/safety.ts'
 import {fiberRun} from './fiber-run.ts'
 import {type SecurityCandidate, securityTemplates} from './security.ts'
 import {type Verdict, proveLeadsTo as rawLeadsTo, proveRule as rawRule, proveSteps as rawSteps} from './dsl.ts'
@@ -58,6 +59,7 @@ function args(argv: string[]): {cmd: string, targets: string[], o: Partial<Opts>
     if (a === '--json') o.json = true
     else if (a === '--no-propose') o.propose = false
     else if (a === '--security') o.security = true
+    else if (a === '--safety') o.safety = true
     else if (a === '--require-review') o.requireReview = true
     else if (a.startsWith('--')) {
       const [k, inline] = a.slice(2).split('=') as [string, string | undefined], v = inline ?? argv[++i] ?? ''
@@ -258,7 +260,13 @@ const whyOf = (v: Verdict, semantic: string): string =>
 type SupportAttempt = SearchTerminationFields & Pick<Partial<Verdict>, 'proven' | 'checked' | 'why' | 'translation' | 'kernelProven'> & {name: string, failure?: {name: string, message: string}}
 export type RuleOut = {supportAttempts?: SupportAttempt[], file: string, lang: string, entry?: string, ctor?: string, ok: boolean, refusals: {where: string, what: string}[], notes: string[], names: Name[], checked?: string, env?: string[],
   laws: LawOut[], proposed: LawOut[], brokenProposed?: number, source?: string,
-  security?: (LawOut & Pick<SecurityCandidate, 'securityKind' | 'review'>)[]}
+  security?: (LawOut & Pick<SecurityCandidate, 'securityKind' | 'review'>)[], safety?: SafetyReport}
+
+type SafetyReport = {why: string} | CSafetyResult
+function safetyReport(x: Extraction, requested: boolean): SafetyReport | undefined {
+  const report = (x as Extraction & {safety?: SafetyReport}).safety
+  return report ?? (requested ? {why: 'the extractor did not provide a C safety model'} : undefined)
+}
 
 // The entries to read: the one given, else the one inferred; where several classes or structs qualify, each of them; a
 // file of functions, each function a law is stated on.
@@ -323,7 +331,8 @@ function* rulesOf0(t: Target, o: Opts, laws: Scoped[]): Pipeline<ReadRule[]> {
   void _k
   // (the names the laws read, so an argument a law reads stays in the rule though the code ignores it)
   const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*/g) ?? []).flatMap(k => (k.includes('::') ? [k, ...k.split('::')] : [k])))]
-  const optsFor = (entry?: string) => merge(merge({...shared, keep}, (entry && cfg.rules[entry]) || {}), flags)
+  const safetyTag = t.lang === 'c' && t.files.some(f => /^[ \t]*(?:\/\/[ \t]*gdp:[ \t]*safety[ \t]*|\/\*[ \t]*gdp:[ \t]*safety[ \t]*\*\/[ \t]*)\r?$/m.test(fs.readFileSync(f, 'utf8')))
+  const optsFor = (entry?: string) => merge(merge({...(safetyTag ? {safety: true} : {}), ...shared, keep}, (entry && cfg.rules[entry]) || {}), flags)
   const one = function* (entry?: string): Pipeline<ReadRule> {
     const x = yield {target: t, options: {...optsFor(entry), ...(entry ? {entry} : {})}}
     const found = x.model?.name
@@ -479,6 +488,8 @@ function* checkPipeline(t: Target, o: Opts): Pipeline<RuleOut[]> {
     const name = entry ?? (x.model?.name || undefined)
     // (a target that is the working directory, a crate's or a package's: `.`)
     const r: RuleOut = {file: path.relative(proc.cwd(), t.at) || '.', lang: LANG_NAME[t.lang], ...(name ? {entry: name} : {}), ...(ctor !== undefined ? {ctor} : {}), ok: x.ok, refusals: x.refusals, notes: x.notes, names: x.names ?? [], laws: [], proposed: [], ...(x.source ? {source: x.source} : {})}
+    const safety = safetyReport(x, o.safety === true)
+    if (safety) r.safety = safety
     outs.push(r)
     // (the laws of this rule: all where it is the file's one, else those in its class or on it or its methods, and those
     // outside every class and function)
@@ -937,6 +948,15 @@ function printRule(r: RuleOut, o: Opts) {
     if (a.context) out(`    context: ${JSON.stringify(a.context)}`)
   }
   if (r.laws.length) { out('  laws stated in the code:'); for (const l of r.laws) law(l, false) }
+  if (r.safety) {
+    out('  C safety (checked in the extracted model; not native replay):')
+    if ('why' in r.safety) out(`    ${paint('yellow', 'unchecked')}: ${r.safety.why}`)
+    else {
+      out(`    ${paint(r.safety.status === 'proven' ? 'green' : 'yellow', r.safety.status)}`)
+      for (const s of r.safety.issues) out(`    ${paint(s.status === 'proven' ? 'green' : 'yellow', s.status)}: ${s.kind} at ${s.where}`)
+      for (const a of r.safety.assumptions) out(`    ${a}`)
+    }
+  }
   if (r.security) {
     out('  security candidates (NOT accepted policy; review the requirement and authentication boundary):')
     for (const l of r.security) law(l, true)
@@ -947,7 +967,7 @@ function printRule(r: RuleOut, o: Opts) {
     for (const l of r.proposed) law(l, true)
     if (r.brokenProposed) out(`    (${r.brokenProposed} more proposed and broken by a run: not shown)`)
   }
-  if (r.ok && !r.laws.length) out(`  no law stated: write one as \`${COMMENT[(Object.keys(LANG_NAME) as Lang[]).find(k => LANG_NAME[k] === r.lang)!]} gdp: law <name>: <expr>\` over the names above`)
+  if (r.ok && !r.safety && !r.laws.length) out(`  no law stated: write one as \`${COMMENT[(Object.keys(LANG_NAME) as Lang[]).find(k => LANG_NAME[k] === r.lang)!]} gdp: law <name>: <expr>\` over the names above`)
   void o
   out()
 }
@@ -966,6 +986,7 @@ the clause a law answers: \`gdp: cite <law name>: <clause>\` (drafted from the c
 --cert <dir> writes each proven law's certificate (its meta the citations); --from any (or from = "any" in gdp.toml, for every
 rule or one) proves every law from every state the laws allow, for code that steps the rule from states it is handed. Exit code: 1 when a stated law is broken, 2 when
 one couldn't be checked.
+--safety (or a C file's \`// gdp: safety\`) checks undefined-behavior obligations in the supported C model. It does not run fault inputs.
 --security proposes authorization, tenant-write isolation, workflow, quota and ledger candidates over the code's names.
 Candidates require policy review, show broken runs too, and do not affect the exit code. Arbitrary input identities are
 not authenticated identities. State the intended policy with gdp: law comments; use gdp: env for concurrent isolation.`
@@ -982,7 +1003,8 @@ export async function check(targets: string[], given: Partial<Opts> = {}, each?:
   for (const p of targets) for (const t of targetsOf(p)) { const rs = await checkTarget(t, o); all.push(...rs); if (each) rs.forEach(each) }
   const stated = all.flatMap(r => r.laws)
   // A sampled source translation cannot turn an unknown proof into a successful check.
-  return {rules: all, exit: stated.some(l => l.verdict === 'unknown' || l.translation === 'unchecked' || l.translation === 'error') ? 2 : stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') || o.security && all.some(r => !r.ok) ? 2 : 0}
+  const uncheckedSafety = all.some(r => r.safety && ('why' in r.safety || r.safety.status !== 'proven'))
+  return {rules: all, exit: uncheckedSafety || stated.some(l => l.verdict === 'unknown' || l.translation === 'unchecked' || l.translation === 'error') ? 2 : stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') || o.security && all.some(r => !r.ok) ? 2 : 0}
 }
 // --- draft: laws from a clause, for a person to review ----------------------------------------------------------------
 // gdp-wired draft <file> --clause <text> | --clause-file <f> --cite <ref> [--llm <command> | --answer <file>] [--by <who>]:

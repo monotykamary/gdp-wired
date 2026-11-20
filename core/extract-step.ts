@@ -266,12 +266,26 @@ const KEYED: Record<string, StoreOp> = Object.fromEntries([
 const keyShape = (m: string): StoreOp | undefined => KEYED[m.replace(/^async_?|_?async$/gi, '').replace(/[_-]/g, '').toLowerCase()]
 
 // --- the executor ---------------------------------------------------------------------------------------------------
+export type SafetySite = {where: string, kind: 'bounds' | 'overflow' | 'division'}
 export class Stepper {
   readonly vars = new Map<string, Var>()
   readonly inputs: Var[] = []
   readonly params: Var[] = []
   readonly notes = new Set<string>()
   readonly refusals: B[] = []
+  safety?: Map<string, SafetySite & {condition: B}>
+  registerSafety(site: SafetySite) {
+    const key = `${site.kind}:${site.where}`
+    if (!this.safety?.has(key)) this.safety?.set(key, {...site, condition: I.F})
+    return this.safety?.get(key)
+  }
+  safetyCut(p: Path, at: SX, kind: SafetySite['kind'], bad: B): Path {
+    const site = at.site as SafetySite | undefined
+    if (!site || site.kind !== kind) return refuse(at, `missing typed C ${kind} site`)
+    const alarm = this.registerSafety(site)!
+    alarm.condition = I.or(alarm.condition, I.and(this.cond(p), bad))
+    return this.assume(p, I.not(bad))
+  }
   fails: B[] = []
   failPaths: Path[] = []
   readonly maps: MapDecl[] = []
@@ -2455,17 +2469,35 @@ export class Stepper {
         const [v, q] = this.ev(x.x as SX, p), ty = x.ity as IntTy | undefined
         // (a bit form to an unsigned type: its bits below the type's width, the same form)
         if (ty && v.t === 'num' && v.bits && !ty.mod && ty.signed === false && ty.bits > 0 && ty.bits < 53) { const m = 2 ** ty.bits, f = {...v.bits, A: v.bits.A % m, B: v.bits.B % m}; return [{t: 'num', e: f.A === v.bits.A && f.B === v.bits.B ? v.e : this.ofBits(f, x), ty, bits: f}, q] }
+        if (this.safety) {
+          if (!ty || v.t !== 'num') return refuse(x, String(x.why))
+          const [lo, hi] = this.safetyRange(ty, x), [fromLo, fromHi] = this.safetyBounds(v, x)
+          if (lo <= fromLo && fromHi <= hi) return [{t: 'num', e: v.e, ty}, q]
+          if (ty.signed) return refuse(x, 'a conversion with a potentially out-of-range signed result (implementation-defined)')
+          return [{t: 'num', e: this.safetyModulo(v.e, hi + 1), ty}, q]
+        }
         if (ty && v.t === 'num') return [{t: 'num', e: this.wrap(v.e, ty.ub ? {bits: ty.bits, signed: ty.signed, name: ty.name, t: ty.t} : ty, x, q), ty}, q]; return refuse(x, v.t === 'opaque' && v.ask ? `${String(x.why)}: of ${v.why}` : String(x.why)) }
-      case 'binop': { const [a, q] = this.ev(x.x as SX, p), [b, q2] = this.ev(x.y as SX, q); return [this.binop(String(x.op), a, b, x, q2), q2] }
+      case 'binop': {
+        const [a, q] = this.ev(x.x as SX, p), [b, q2] = this.ev(x.y as SX, q), op = String(x.op)
+        if (this.safety && !['==', '!=', '<', '<=', '>', '>='].includes(op)) return this.safetyArith(op, a, b, x, q2)
+        return [this.binop(op, a, b, x, q2), q2]
+      }
       case 'andalso': {
         // The right side runs only where the left doesn't decide: its failures and effects only there.
         const and = x.op === '&&', [a, q] = this.ev(x.x as SX, p), ab = this.boolv(a, x.x as SX), c = and ? ab : I.not(ab)
+        if (this.safety && c.op === 'const' && !c.v) return [{t: 'bool', e: ab}, q]
         const [b, q2] = this.ev(x.y as SX, this.assume(q, c)), bb = this.boolv(b, x.y as SX)
+        if (this.safety) return [{t: 'bool', e: and ? I.and(ab, bb) : I.or(ab, bb)}, this.merge(q2, this.assume(q, I.not(c)), x)]
         return [{t: 'bool', e: and ? I.and(ab, bb) : I.or(ab, bb)}, q2.heap === q.heap ? q : this.merge({...q2, pc: [...q.pc, c]}, q, x)]
       }
       case 'unop': {
         const [a, q] = this.ev(x.x as SX, p), op = String(x.op)
         if (op === '!') return [{t: 'bool', e: I.not(this.boolv(a, x))}, q]
+        if (this.safety) {
+          if (op === '+') return [a, q]
+          if (op === '-') return this.safetyArith('-', {t: 'num', e: I.num(0)}, a, x, q)
+          return refuse(x, `unsupported C safety unary operator: ${op}`)
+        }
         if (op === '-') { if (a.t !== 'num') return refuse(x, `- of a ${a.t}`); return [{t: 'num', e: this.wrap(I.neg(a.e), a.ty!, x, q), ty: a.ty}, q] }
         if (op === '+') return [a, q]
         // (~x: −x − 1 in two's complement, at x's width)
@@ -3567,6 +3599,52 @@ export class Stepper {
     if ((a.t === 'list' || a.t === 'map') && b.t === 'nil') return refuse(x, `a ${a.t === 'list' ? 'slice' : 'map'} compared with nil (nil and empty are one ${a.t === 'list' ? 'list' : 'map'} in the subset)`)
     return refuse(x, `${a.t === 'opaque' && a.ask ? a.why : `a ${a.t}`} compared with ${b.t === 'opaque' && b.ask ? b.why : `a ${b.t}`}`)
   }
+  // Model only widths and intermediates representable exactly by the number-based IR.
+  safetyRange(ty: IntTy | undefined, at: SX): [number, number] {
+    if (!ty || ty.bits < 1 || ty.bits > 32 || ty.mod) return refuse(at, 'an integer type outside the exact C safety subset (1–32 bits)')
+    return rangeOf(ty)
+  }
+  safetyBounds(v: Extract<V, {t: 'num'}>, at: SX): [number, number] {
+    if (v.e.op === 'const' && Number.isSafeInteger(v.e.v)) return [v.e.v, v.e.v]
+    return this.safetyRange(v.ty, at)
+  }
+  safetyModulo(e: N, m: number): N {
+    if (e.op === 'const') return I.num(Number((BigInt(e.v) % BigInt(m) + BigInt(m)) % BigInt(m)))
+    // The DSL's remainder is natural. Keep both operands in the natural domain.
+    const r = I.modk(m, I.neg(e))
+    return I.nite(I.cmp('<', e, I.num(0)), I.nite(I.cmp('=', r, I.num(0)), I.num(0), I.sub(I.num(m), r)), I.modk(m, e))
+  }
+  safetyArith(op: string, a: V, b: V, at: SX, p: Path): [V, Path] {
+    if (a.t !== 'num' || b.t !== 'num') return refuse(at, `C safety arithmetic on ${a.t} and ${b.t}`)
+    const ty = at.ity as IntTy, [lo, hi] = this.safetyRange(ty, at), zero = I.num(0)
+    const [al, ah] = this.safetyBounds(a, at), [bl, bh] = this.safetyBounds(b, at)
+    if (al < lo || ah > hi || bl < lo || bh > hi) return refuse(at, 'arithmetic operands not converted to the C operation type')
+    if (op === '/' || op === '%') {
+      if (b.e.op !== 'const') return refuse(at, `${op} by a nonconstant divisor (no exact successful continuation in the subset)`)
+      const d = b.e.v
+      // Both operators first require the quotient to be representable, even when the remainder is zero.
+      const bad = d === 0 ? I.T : ty.signed && d === -1 ? I.cmp('=', a.e, I.num(lo)) : I.F
+      const q = this.safetyCut(p, at, 'division', bad)
+      const e = d === 0 ? zero : a.e.op === 'const' ? I.num(Number(op === '/' ? BigInt(a.e.v) / BigInt(d) : BigInt(a.e.v) % BigInt(d)))
+        : op === '%' ? this.rem(a.e, Math.abs(d)) : d < 0 ? I.neg(this.quot(a.e, -d)) : this.quot(a.e, d)
+      return [{t: 'num', e: I.nite(bad, zero, e), ty}, q]
+    }
+    let e: N
+    switch (op) {
+      case '+': e = I.add(a.e, b.e); break
+      case '-': e = I.sub(a.e, b.e); break
+      case '*': {
+        const max = BigInt(Number.MAX_SAFE_INTEGER), xs = [al, ah].flatMap(l => [bl, bh].map(r => BigInt(l) * BigInt(r)))
+        if (xs.some(n => n > max || n < -max)) return refuse(at, 'a C product whose mathematical intermediate may exceed the exact IR range')
+        e = I.mul(a.e, b.e)
+        break
+      }
+      default: return refuse(at, `unsupported C safety arithmetic operator: ${op}`)
+    }
+    if (!ty.signed) return [{t: 'num', e: this.safetyModulo(e, hi + 1), ty}, p]
+    const bad = I.or(I.cmp('<', e, I.num(lo)), I.cmp('<', I.num(hi), e))
+    return [{t: 'num', e: I.nite(bad, zero, e), ty}, this.safetyCut(p, at, 'overflow', bad)]
+  }
   // Integer arithmetic at the type's width: the exact result, wrapped as the type wraps it (or refused, at 64 bits).
   arith(op: string, a: V, b: V, x: {p: string}, p: Path): V {
     // (other code's value left out, computed with: named, so the next run answers it)
@@ -3727,11 +3805,17 @@ export class Stepper {
   }
   inside(s: V, i: V, at: SX, p: Path): [Extract<Obj, {k: 'list'}>, N, B] {
     const o = this.listObj(s, at, p), idx = this.numv(i, at), len = this.listLen(s, at, p), inside = I.and(I.cmp('<=', I.num(0), idx), I.cmp('<', idx, len))
-    this.refuseWhere(p, I.not(inside), at, o.decl.len !== undefined ? `an index outside [0, ${o.decl.len}) (undefined behavior)` : 'an index out of range (a panic)')
+    if (this.safety) {
+      if (o.decl.len === undefined) return refuse(at, 'an access without a fixed C array extent')
+      // listGet/listSet already apply the defined-prefix cut returned as `inside`.
+      this.safetyCut(p, at, 'bounds', I.not(inside))
+    } else this.refuseWhere(p, I.not(inside), at, o.decl.len !== undefined ? `an index outside [0, ${o.decl.len}) (undefined behavior)` : 'an index out of range (a panic)')
     return [o, idx, inside]
   }
   listGet(s: V, i: V, at: SX, p: Path): [V, Path] {
-    const [o, idx, inside] = this.inside(s, i, at, p), e = {op: 'cell', map: o.decl.name, key: {op: 'num', e: idx}, field: '$item'} as const
+    const [o, idx, inside] = this.inside(s, i, at, p)
+    // The term may be nested in another guard: use a valid placeholder off its defined prefix.
+    const e = {op: 'cell', map: o.decl.name, key: {op: 'num', e: this.safety ? I.nite(inside, idx, I.num(0)) : idx}, field: '$item'} as const
     return [o.decl.fields[0]!.sort.k === 'num' ? {t: 'num', e: e as N, ty: at.ty as IntTy} : {t: 'bool', e: e as B}, this.assume(p, inside)]
   }
   listSet(s: V, i: V, v: V, at: SX, p: Path): Path {

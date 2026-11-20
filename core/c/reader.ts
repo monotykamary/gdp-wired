@@ -12,6 +12,7 @@
 // The state is a struct of the file (`entry`, its typedef's name or its tag); each function whose first parameter
 // points to it is a method of it (the receiver), the others plain functions.
 import type {GS, GX, GoFunc, GoPkg, TT} from '../extract-go.ts'
+import type {SafetySite} from '../extract-step.ts'
 import {Refusal, readerRun, statedRefusal} from '../extract-read.ts'
 
 type CN = {id?: string, kind: string, name?: string, inner?: CN[], type?: {qualType: string, desugaredQualType?: string}, value?: string, opcode?: string, castKind?: string, isArrow?: boolean, isPostfix?: boolean,
@@ -19,7 +20,7 @@ type CN = {id?: string, kind: string, name?: string, inner?: CN[], type?: {qualT
   computeLHSType?: {qualType: string, desugaredQualType?: string}, init?: string, decl?: {id: string, kind: string}, loc?: L, range?: {begin: L, end: L}, $at?: At, $b?: At, $e?: At, [k: string]: unknown}
 type L = {offset?: number, file?: string, line?: number, col?: number, tokLen?: number, spellingLoc?: L, expansionLoc?: L, includedFrom?: unknown}
 type At = {file: string, line: number, col: number, off: number, tok: number}
-export type CTarget = {int: number, long: number, short: number, llong: number, charUnsigned: boolean}
+export type CTarget = {int: number, long: number, short: number, llong: number, charUnsigned: boolean, charBits?: number}
 // (consts: the project's enum constants by name, one of a name only, for the laws' terms)
 // (globals: the file's own globals read as the state, the file's stem the entry: each global's name, those the
 // request gives (read but never written here, another file's or the hardware's) apart)
@@ -54,7 +55,7 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
   const tu = filter ? {kind: 'TranslationUnitDecl', inner} as CN : JSON.parse(dump) as CN
   if (filter) for (let i = dump.indexOf('{'); i >= 0; i = dump.indexOf('{', i)) { const [o, e] = dec.decode(dump, i); inner.push(o as CN); i = e }
   const defs = run([...lang, ...flags, '-dM', '-E', '/dev/null']), def = (k: string) => Number(new RegExp(`#define ${k} (\\d+)`).exec(defs)?.[1] ?? 0)
-  return {tu, target: {int: def('__SIZEOF_INT__') * 8, long: def('__SIZEOF_LONG__') * 8, short: def('__SIZEOF_SHORT__') * 8, llong: def('__SIZEOF_LONG_LONG__') * 8, charUnsigned: /#define __CHAR_UNSIGNED__/.test(defs)}}
+  return {tu, target: {int: def('__SIZEOF_INT__') * 8, long: def('__SIZEOF_LONG__') * 8, short: def('__SIZEOF_SHORT__') * 8, llong: def('__SIZEOF_LONG_LONG__') * 8, charBits: def('__CHAR_BIT__'), charUnsigned: /#define __CHAR_UNSIGNED__/.test(defs)}}
 }
 // The values of names a law reads that the code defines as integer constants (a macro, an enum constant, a constexpr
 // variable), folded by clang itself: each the value of an enumerator of a probe that includes the file. A name that
@@ -141,7 +142,7 @@ const FAIL: Record<string, string> = {abort: 'abort()', __assert_rtn: 'an assert
 // (`picks`: an overloaded method's arity, the one read: `functions: ['throttle/1']`)
 // (leave: globals the rule leaves out, an output the code writes for other code, never read into what it keeps)
 // (cut: the file's own functions a call of which the request answers, as another file's)
-export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp = false, root?: string, picks: Record<string, number> = {}, pickNames: string[] = [], leave: string[] = [], cut: string[] = []): CRead {
+export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp = false, root?: string, picks: Record<string, number> = {}, pickNames: string[] = [], leave: string[] = [], cut: string[] = [], safety = false): CRead {
   const path = node<{resolve: (...p: string[]) => string, basename: (p: string) => string}>('node:path'), fs = node<{readFileSync: (p: string, e: string) => string}>('node:fs')
   const main = path.resolve(file), base = path.basename(file), dir = `${path.resolve(root ?? main.replace(/\/[^/]*$/, ''))}/`, srcs = new Map<string, string>()
   locate(tu)
@@ -151,6 +152,11 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   const src = (f: string) => { let s = srcs.get(f); if (s === undefined) { try { s = fs.readFileSync(path.resolve(f), 'utf8') } catch { s = '' }; srcs.set(f, s) } return s }
   const text = (n: CN) => (n.$b && n.$e && n.$b.file === n.$e.file && own(n) && n.$e.off + n.$e.tok >= n.$b.off ? src(n.$b.file).slice(n.$b.off, n.$e.off + n.$e.tok) || n.kind : n.kind)
 
+  if (safety) {
+    if (cpp) refuse(undefined, 'C++ is outside the checked C safety subset')
+    if (leave.length || cut.length || Object.keys(picks).length) refuse(undefined, 'C safety does not allow erased state or call boundaries')
+    if ((target.charBits ?? 8) !== 8 || target.int !== 32 || target.short !== 16) refuse(undefined, 'unsupported C integer ABI for safety lowering')
+  }
   // The declarations: typedefs, records and enums of every file (a header's types are the file's too), the globals.
   const typedefs = new Map<string, {qual: string, desug?: string, rec?: string}>(), records = new Map<string, CN>(), tags = new Map<string, string>(), anon = new Map<string, string>()
   const members = new Map<string, CN>(), fieldNode = new Map<string, CN>(), enums = new Map<string, CN>(), enumById = new Map<string, CN>(), cxx: CN[] = []
@@ -259,6 +265,12 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   function tyOf(ty: {qualType: string, desugaredQualType?: string}): number { return parseT(ty.qualType, ty.desugaredQualType) }
   function parseT(s0: string, desug?: string): number {
     const s = s0.replace(/\b(const|volatile|restrict|__restrict)\b/g, '').replace(/\s+/g, ' ').replace(/ \*/g, '*').replace(/\*/g, ' *').replace(/\* \*/g, '**').trim()
+    if (safety && !s.includes('*') && typedefs.has(s) && !typedefs.get(s)!.rec) {
+      const td = typedefs.get(s)!, underlying = td.desug ?? td.qual
+      const it = T(parseT(underlying))
+      if (it.k === 'int') return intT(s, it.bits!, it.signed!)
+      return it.k === 'bool' ? boolT : parseT(underlying)
+    }
     if (s === '_Bool' || s === 'bool') return boolT
     const arr = /^(.*?)\s*\[(\d+)\]$/.exec(s)
     if (arr) return add(`arr:${s}`, {k: 'array', go: s, elem: parseT(arr[1]!), len: Number(arr[2]), fixed: true})
@@ -353,12 +365,12 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       if (!all.has(id)) continue
       if (leave.includes(g.name!)) { left.add(id); continue }
       const qt = g.type!.qualType
-      if (/^const /.test(qt) && !writes.has(id)) continue
+      if (!safety && /^const /.test(qt) && !writes.has(id)) continue
       if (/\[\]$/.test(qt.trim())) refuse(g, `${g.name}: an array of unknown size (its length is another file's)`)
-      if (!writes.has(id) && (g.storageClass === 'extern' || /\bvolatile\b/.test(qt) || g.storageClass !== 'static')) ginput.add(id)
+      if (!safety && !writes.has(id) && (g.storageClass === 'extern' || /\bvolatile\b/.test(qt) || g.storageClass !== 'static')) ginput.add(id)
       gfield.set(id, gnodes.length); gnodes.push(g)
     }
-    if (!gnodes.length) refuse(undefined, `no global of ${base} its functions read or write (the state, when the file keeps it in globals)`)
+    if (!safety && !gnodes.length) refuse(undefined, `no global of ${base} its functions read or write (the state, when the file keeps it in globals)`)
   }
   const entryT = entryRec ? recT(entryRec, entry) : gmode ? add(`globals:${entry}`, {k: 'struct', own: true, name: entry, go: 'gdp_G', fields: gnodes.map(g => ({name: g.name!, t: tyOf(g.type!), embedded: false}))}) : refuse(undefined, `no ${cpp ? 'class' : 'struct'} ${entry} in ${base}${cpp ? ' (a class template is outside the subset)' : ''}${!cpp && entry !== stem ? ` (a file that keeps its state in globals: name ${stem}, its stem)` : ''}`)
   const ptrT = add(`ptr:${entryT}`, {k: 'ptr', go: `${entry} *`, elem: entryT}), self0 = (n: CN): GX => ({e: 'id', ...at(n, ptrT), o: 'var', id: 'this', n: 'this'})
@@ -389,6 +401,24 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     return n
   }
   const at = (n: CN, t: number) => ({p: pos(n), t, text: text(n)})
+  // Use the AST node's source range, not the wording or position of an emitted diagnostic.
+  const sites = new Map<CN, SafetySite>(), locations = new Map<string, number>()
+  const siteOf = (n: CN, kind: SafetySite['kind']): SafetySite => {
+    const old = sites.get(n)
+    if (old) return old
+    const start = n.$b ?? refuse(n, 'a checked C operation without a source range')
+    const loc = `${path.basename(start.file)}:${start.line}:${start.col}`
+    const idx = (locations.get(loc) ?? 0) + 1
+    locations.set(loc, idx)
+    const site = {where: idx === 1 ? loc : `${loc}#${idx}`, kind}
+    sites.set(n, site)
+    return site
+  }
+  const checked = (n: CN, t: number, op: string): Pick<GX, 'checkedType' | 'site'> => {
+    if (!safety || !['+', '-', '*', '/', '%'].includes(op)) return {}
+    const kind = op === '/' || op === '%' ? 'division' : T(t).signed ? 'overflow' : undefined
+    return {checkedType: t, ...(kind ? {site: siteOf(n, kind)} : {})}
+  }
   const no = (n: CN, why: string): GX => ({e: 'no', ...at(n, -1), why})
   const lit = (n: CN, v: number, t: number): GX => ({e: 'lit', ...at(n, t), c: {int: String(v)}})
   const isBoolish = (n0: CN): boolean => {
@@ -429,9 +459,9 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     if (n.kind === 'BinaryOperator' && CMP.has(n.opcode!)) return {e: 'bin', ...at(n, boolT), op: n.opcode, x: x(n.inner![0]!), y: x(n.inner![1]!)}
     if (n.kind === 'BinaryOperator' && (n.opcode === '&&' || n.opcode === '||')) return {e: 'bin', ...at(n, boolT), op: n.opcode, x: cond(n.inner![0]!), y: guard(() => cond(n.inner![1]!))}
     if (n.kind === 'UnaryOperator' && n.opcode === '!') return {e: 'un', ...at(n, boolT), op: '!', x: cond(n.inner![0]!)}
-    const v = (n.kind === 'ImplicitCastExpr' && (n.castKind === 'IntegralToBoolean' || n.castKind === 'PointerToBoolean')) ? n.inner![0]! : n, vt = v.type ? tyOf(v.type) : -1
+    const v = ((n.kind === 'ImplicitCastExpr' || safety && n.kind === 'CStyleCastExpr') && (n.castKind === 'IntegralToBoolean' || n.castKind === 'PointerToBoolean')) ? n.inner![0]! : n, vt = v.type ? tyOf(v.type) : -1
     if (vt >= 0 && T(vt).k === 'bool') return x(v)
-    const k = fold(v)
+    const k = safety ? undefined : fold(v)
     if (k !== undefined) return {e: 'lit', ...at(n, boolT), c: {bool: k !== 0}}
     if (vt >= 0 && T(vt).k === 'ptr') return {e: 'bin', ...at(n, boolT), op: '!=', x: x(v), y: {e: 'id', ...at(n, vt), o: 'nil'}}
     if (vt >= 0 && T(vt).k === 'int') return {e: 'bin', ...at(n, boolT), op: '!=', x: x(v), y: lit(n, 0, vt)}
@@ -536,9 +566,11 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     const asPlace = placing; placing = false
     if ((left.size || leave.length) && leftOut(n)) return {e: 'opaque', ...a, why: `${text(n)}: left out (leave: an output for other code, never read into the rule)`}
     if (t >= 0 && T(t).k === 'float' && !asPlace) return effects(n) ? no(n, `${text(n)}: a float computed with an effect of the file's own code (floats are left out)`) : {e: 'opaque', ...a, why: `${text(n)}: a float (left out of the rule: a binary fraction that rounds)`}
-    const k = t >= 0 && T(t).k === 'int' ? fold(n) : undefined
+    const k = !safety && t >= 0 && T(t).k === 'int' ? fold(n) : undefined
     if (k !== undefined) return Number.isSafeInteger(k) ? lit(n, k, t) : no(n, `${text(n)}: the constant ${n.kind === 'IntegerLiteral' ? n.value : k} is past 2^53 (the rule's numbers stop there)`)
     switch (n.kind) {
+      case 'IntegerLiteral': if (safety) return {e: 'lit', ...a, c: {int: n.value!}}; break
+      case 'ConstantExpr': if (safety && kids.length === 1) return x(kids[0]!); break
       case 'CXXBoolLiteralExpr': return {e: 'lit', ...a, c: {bool: !!n.value}}
       case 'CXXThisExpr': return {e: 'id', ...a, o: 'var', id: 'this', n: 'this'}
       case 'CXXNullPtrLiteralExpr': return {e: 'id', ...a, o: 'nil'}
@@ -595,7 +627,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
             return T(t).signed === false || nonneg(l) ? lo : {e: 'bin', ...a, op: '%', x: {e: 'bin', ...a, op: '+', x: lo, y: k}, y: k}
           }
         }
-        if (ARITH.has(op)) return {e: 'bin', ...a, op: op === '^' ? '^' : op, x: x(l), y: x(r)}
+        if (ARITH.has(op)) return {e: 'bin', ...a, ...checked(n, t, op), op, x: x(l), y: x(r)}
         if (op === ',') return no(n, 'the comma operator')
         if (op === '=') return effect(n, () => x(l))
         return no(n, `${text(n)}: an assignment inside an expression (the subset reads it as a statement)`)
@@ -603,7 +635,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       case 'UnaryOperator': {
         const op = n.opcode!
         if (op === '!') return T(t).k === 'bool' ? cond(n) : {e: 'ite', ...a, x: cond(n), y: lit(n, 1, t), b: lit(n, 0, t)}
-        if (op === '-' || op === '+') return {e: 'un', ...a, op, x: x(kids[0]!)}
+        if (op === '-' || op === '+') return {e: 'un', ...a, ...checked(n, t, op === '-' ? '-' : ''), op, x: x(kids[0]!)}
         if (op === '~') return {e: 'un', ...a, op: '^', x: x(kids[0]!)}
         if (op === '&') return {e: 'un', ...a, op: '&', x: place(kids[0]!)}
         if (op === '*') { const r = strip(kids[0]!); return r.kind === 'DeclRefExpr' && boxed.has(r.referencedDecl!.id) ? {e: 'sel', ...a, k: 'field', x: x(r), path: [0]} : {e: 'star', ...a, x: x(kids[0]!)} }
@@ -629,11 +661,11 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         return {e: 'comp', ...a, elts: kids.flatMap((k, i) => (k.kind === 'ImplicitValueInitExpr' ? [] : [{field: tt.fields![i]!.name, v: x(k)}]))}
       }
       case 'ArraySubscriptExpr': {
-        const tb = table(n)
+        const tb = safety ? undefined : table(n)
         if (tb) return tb
         // An index into an array of the state (its decay to a pointer undone); pointer arithmetic is outside.
         const b = strip(kids[0]!), arr = b.kind === 'ImplicitCastExpr' && b.castKind === 'ArrayToPointerDecay' ? b.inner![0]! : undefined
-        return arr ? {e: 'index', ...a, x: place(arr), i: x(kids[1]!)} : no(n, `${text(n)}: an index into a pointer (pointer arithmetic)`)
+        return arr ? {e: 'index', ...a, ...(safety ? {site: siteOf(n, 'bounds')} : {}), x: place(arr), i: x(kids[1]!)} : no(n, `${text(n)}: an index into a pointer (pointer arithmetic)`)
       }
       case 'StringLiteral': return no(n, `${text(n)}: a string (char arrays are outside the subset)`)
       case 'FloatingLiteral': return no(n, `${text(n)}: a float (the subset reads integers)`)
@@ -776,6 +808,11 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       }
       case 'CompoundAssignOperator': {
         const [l, r] = kids as [CN, CN], lt = tyOf(l.type!), ct = tyOf(n.computeLHSType!), op = n.opcode!.slice(0, -1)
+        if (safety) {
+          const result = n.computeResultType as CN['type'], ot = result ? tyOf(result) : refuse(n, 'missing C compound-assignment result type')
+          // The validator limits this to scalar places with total, effect-free address computation.
+          return [{s: 'assign', p, op: '=', l: [place(l)], r: [conv2(n, lt, {e: 'bin', ...at(n, ot), ...checked(n, ot, op), op, x: conv2(l, ot, x(l)), y: conv2(r, ot, x(r))})]}]
+        }
         const m = op === '&' ? fold(r) : undefined, mask = m !== undefined && m > 0 && Number.isInteger(Math.log2(m + 1)) && T(ct).signed === false
         const y = mask ? lit(r, m + 1, ct) : x(r), bop = mask ? '%' : op
         if (ct === lt) return [{s: 'assign', p, op: `${bop}=`, l: [place(l)], r: [y]}]
@@ -787,6 +824,10 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         if (!['++', '--'].includes(n.opcode!)) break
         const l = kids[0]!, lt = tyOf(l.type!), tt = T(lt)
         if (tt.k !== 'int') return sno(n, `${text(n)}: ${n.opcode} of a ${l.type!.qualType}`)
+        if (safety) {
+          const it = tt.bits! >= target.int ? lt : intT('int', target.int, true), op = n.opcode![0]!
+          return [{s: 'assign', p, op: '=', l: [place(l)], r: [conv2(n, lt, {e: 'bin', ...at(n, it), ...checked(n, it, op), op, x: conv2(l, it, x(l)), y: lit(n, 1, it)})]}]
+        }
         if (tt.bits! >= target.int) return [{s: 'incdec', p, op: n.opcode, x: place(l)}]
         // (a narrow integer is promoted to int, the result converted back)
         const it = intT('int', target.int, true)
@@ -849,8 +890,151 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       ...(/\.\.\.\)$/.test(f.type!.qualType) ? {params: [{t: -1, variadic: true}]} : {}),
       static: f.storageClass === 'static', ...(f.virtual ? {why: `${name}: a virtual method (its dispatch)`} : {})} as GoFunc
   }
+  const validated = new Set<string>()
+  // Validate the Clang AST before any lowering can erase a construct. Only pure expressions are admitted;
+  // where C does not order operands, at most one may fault. Assignments may have a faulting lvalue OR RHS.
+  if (safety) {
+    const bad = (n: CN, why: string): never => refuse(n, `${why} (outside the C safety subset)`)
+    const scalar = (n: CN, t = n.type ? tyOf(n.type) : -1) => {
+      const q = T(t), raw = n.type?.desugaredQualType ?? n.type?.qualType ?? ''
+      if (/\b(?:volatile|_Atomic|enum)\b/.test(`${n.type?.qualType ?? ''} ${raw}`) || !q || q.nullflag || !(q.k === 'bool' || q.k === 'int' && q.bits! > 0 && q.bits! <= 32)) bad(n, `unmodeled scalar type ${raw}`)
+      return q
+    }
+    const field = (n: CN, receiver: string | undefined) => {
+      const f = fields.get(n.referencedMemberDecl ?? ''), b = n.inner?.[0] && strip(n.inner[0])
+      if (!f || f.rec !== entryRec || !n.isArrow || b?.kind !== 'DeclRefExpr' || !receiver || b.referencedDecl?.id !== receiver) bad(n, 'a member not directly in the event receiver')
+    }
+    const direct = (n: CN, receiver: string | undefined, allowArray = false) => {
+      if (n.kind === 'MemberExpr') field(n, receiver)
+      else if (n.kind === 'DeclRefExpr') {
+        const d = n.referencedDecl
+        if (!d || !['VarDecl', 'ParmVarDecl'].includes(d.kind) || d.id === receiver || (globals.has(d.id) && !gfield.has(d.id))) bad(n, 'a reference to an unmodeled declaration')
+      } else bad(n, 'an indirect or computed place')
+      if (!allowArray) scalar(n)
+    }
+    const access = (n: CN, receiver: string | undefined): true => {
+      scalar(n)
+      const b = strip(n.inner![0]!), arr = b.kind === 'ImplicitCastExpr' && b.castKind === 'ArrayToPointerDecay' && b.inner?.[0]
+      if (!arr) return bad(n, 'array access through a pointer or an unknown extent')
+      const a = strip(arr)
+      direct(a, receiver, true)
+      const t = T(tyOf(a.type!))
+      if (!t.fixed || !Number.isSafeInteger(t.len) || t.len! <= 0) bad(a, 'array without a known positive extent')
+      expr(n.inner![1]!, receiver)
+      return true
+    }
+    const unordered = (n: CN, a: boolean, b: boolean) => {
+      if (a && b) bad(n, 'unspecified order between two potentially faulting operands')
+      return a || b
+    }
+    const expr = (n: CN, receiver?: string): boolean => {
+      const kids = n.inner ?? [], [l, r] = kids
+      if (n.kind === 'ParenExpr') return expr(l!, receiver)
+      if (n.kind === 'ConstantExpr' && kids.length === 1) return expr(l!, receiver)
+      if (CAST.has(n.kind)) {
+        if (n.castKind !== 'ToVoid') scalar(n)
+        if (!['LValueToRValue', 'NoOp', 'IntegralCast', 'IntegralToBoolean', 'ToVoid'].includes(n.castKind!)) return bad(n, `a ${n.castKind} conversion`)
+        return expr(l!, receiver)
+      }
+      const t = scalar(n)
+      switch (n.kind) {
+        case 'IntegerLiteral': {
+          const v = BigInt(n.value!), hi = 2n ** BigInt(t.bits! - Number(t.signed)) - 1n
+          if (v < 0 || v > hi) bad(n, 'an integer literal outside its exact Clang type range')
+          return false
+        }
+        case 'DeclRefExpr': case 'MemberExpr': direct(n, receiver); return false
+        case 'ArraySubscriptExpr': return access(n, receiver)
+        case 'BinaryOperator': {
+          const op = n.opcode!, a = expr(l!, receiver), b = expr(r!, receiver)
+          if (op === '&&' || op === '||') return a || b
+          const child = unordered(n, a, b)
+          if (CMP.has(op)) return child
+          if (['+', '-', '*', '/', '%'].includes(op)) return child || t.signed === true || op === '/' || op === '%'
+          return bad(n, `a ${op} expression`)
+        }
+        case 'UnaryOperator':
+          if (['+', '-', '!'].includes(n.opcode!)) return expr(l!, receiver) || (n.opcode === '-' && t.signed === true && strip(l!).kind !== 'IntegerLiteral')
+          return bad(n, `a ${n.opcode} expression`)
+        case 'ConditionalOperator': return kids.map(k => expr(k, receiver)).some(Boolean)
+        case 'InitListExpr': if (kids.length <= 1) return !!l && expr(l, receiver); break
+      }
+      return bad(n, n.kind)
+    }
+    const placeFault = (n: CN, receiver?: string) => {
+      const v = strip(n)
+      if (v.kind === 'ArraySubscriptExpr') return access(v, receiver)
+      direct(v, receiver)
+      return false
+    }
+    const stmt = (n: CN, receiver?: string): void => {
+      const kids = n.inner ?? [], [l, r] = kids
+      switch (n.kind) {
+        case 'CompoundStmt': kids.forEach(k => stmt(k, receiver)); return
+        case 'NullStmt': return
+        case 'ParenExpr': stmt(l!, receiver); return
+        case 'ReturnStmt': kids.forEach(k => expr(k, receiver)); return
+        case 'IfStmt':
+          if (n.hasInitStorage || n.hasVarStorage || (kids.length !== 2 && kids.length !== 3)) return bad(n, 'an if with extra context')
+          expr(l!, receiver); kids.slice(1).forEach(k => stmt(k, receiver)); return
+        case 'DeclStmt':
+          for (const d of kids) {
+            if (d.kind !== 'VarDecl' || d.name === '_' || (d.storageClass && d.storageClass !== 'auto' && d.storageClass !== 'register') || !d.init || d.inner?.length !== 1) return bad(d, 'a local without a modeled automatic scalar initializer')
+            scalar(d); expr(d.inner[0]!, receiver)
+          }
+          return
+        case 'BinaryOperator':
+          if (n.opcode === '=') { unordered(n, placeFault(l!, receiver), expr(r!, receiver)); return }
+          if (n.opcode === ',') { kids.forEach(k => stmt(k, receiver)); return }
+          break
+        case 'CompoundAssignOperator':
+          if (!['+=', '-=', '*=', '/=', '%='].includes(n.opcode!) || placeFault(l!, receiver)) return bad(n, 'a compound assignment to other than a direct scalar place or an unsupported operator')
+          expr(r!, receiver); return
+        case 'UnaryOperator':
+          if (['++', '--'].includes(n.opcode!)) {
+            if (placeFault(l!, receiver)) return bad(n, 'increment/decrement of other than a direct scalar place')
+            if (scalar(l!).k !== 'int') return bad(n, 'increment/decrement of a non-integer place')
+            return
+          }
+          break
+      }
+      expr(n, receiver)
+    }
+    const state = (d: CN) => {
+      const q = T(tyOf(d.type!)), raw = `${d.type!.qualType} ${d.type!.desugaredQualType ?? ''}`
+      if (/\b(?:volatile|_Atomic)\b/.test(raw) || d.isBitfield || !d.name || d.inner?.some(k => k.kind.endsWith('Attr'))) bad(d, 'state with unmodeled qualifiers, attributes or layout')
+      if (q.k === 'array' && q.fixed) {
+        if (!Number.isSafeInteger(q.len) || q.len! <= 0 || d.init) bad(d, 'an array without a modeled fixed zero start')
+        scalar(d, q.elem)
+      } else scalar(d)
+    }
+    if (entryRec) {
+      const rec = records.get(entryRec)!
+      if (rec.tagUsed !== 'struct' || rec.inner?.some(k => k.kind.endsWith('Attr'))) bad(rec, 'an entry other than a plain struct')
+      for (const f of rec.inner ?? []) if (f.kind === 'FieldDecl') state(f)
+    }
+    for (const g of gnodes) {
+      state(g)
+      if (g.storageClass !== 'static' || g.tls || !mine(g)) bad(g, 'state not defined as file-local in this translation unit')
+      if (g.init) expr(g.inner![0]!)
+    }
+    for (const [name, f] of funcs) {
+      if (gmode ? !requests.has(name) : !recvOf(f) || (pickNames.length ? !pickNames.includes(name) : !mine(f) || f.storageClass === 'static')) continue
+      if (!mine(f) || f.variadic || f.inner?.some(k => k.kind.endsWith('Attr'))) bad(f, 'a definition outside the main file, or an attributed or variadic function')
+      const recv = recvOf(f)
+      if (!gmode && (!recv?.id || /\b(?:volatile|_Atomic)\b/.test(recv.type!.qualType))) bad(f, 'a receiver with unmodeled qualifiers or binding')
+      const ret = parseT(f.type!.qualType.slice(0, retEnd(f.type!.qualType)))
+      if (T(ret).k !== 'void') scalar(f, ret)
+      for (const q of args0(f)) {
+        if (!q.id || q.name === '_' || q.inner?.some(k => k.kind.endsWith('Attr'))) bad(q, 'a parameter with unmodeled binding or attributes')
+        scalar(q)
+      }
+      stmt(f.inner!.find(c => c.kind === 'CompoundStmt')!, gmode ? undefined : recv?.id)
+      validated.add(name)
+    }
+  }
   let ctor: GoFunc | undefined
-  for (const [name, f] of funcs) out.push(fn(name, f))
+  for (const [name, f] of funcs) if (!safety || validated.has(name)) out.push(fn(name, f))
   // (the globals' start: each one's initializer, where it has one; C's zero where not)
   if (gmode) {
     const pre: GS[] = []
@@ -886,9 +1070,9 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     ctor = c ? fn('$ctor', Object.assign(c, {$m: true}), pre) : {name: '$ctor', p: pos(td0()), span: [0, 0], recv: {t: add(`ptr:${entryT}`, {k: 'ptr', go: `${entry} *`, elem: entryT}), ptr: true, type: entry, name: 'this', id: 'this'}, params: [], results: [], body: pre} as GoFunc
   }
   const td = td0()
-  const pkg: GoPkg = {lang: cpp ? 'cpp' : 'c', package: entry, files: [{name: base, imports: []}], funcs: out, types: [{name: entry, t: entryT, p: pos(td), span: [td.$b?.line ?? 0, td.$e?.line ?? 0]}], consts: [], vars: [], errors: [], ttab, ...(ctor ? {ctor} : {})}
+  const pkg: GoPkg = {lang: cpp ? 'cpp' : 'c', ...(safety ? {safety: true as const} : {}), package: entry, files: [{name: base, imports: []}], funcs: out, types: [{name: entry, t: entryT, p: pos(td), span: [td.$b?.line ?? 0, td.$e?.line ?? 0]}], consts: [], vars: [], errors: [], ttab, ...(ctor ? {ctor} : {})}
   // (by default: the file's non-static functions taking the struct; a class's public methods)
-  const methods = gmode ? [...requests] : out.filter((f, i) => { const n = [...funcs.values()][i]!; return f.recv && !(f as {static?: boolean}).static && (n.$m ? n.$access === 'public' : mine(n)) }).map(f => f.name)
+  const methods = safety ? [...validated] : gmode ? [...requests] : out.filter((f, i) => { const n = [...funcs.values()][i]!; return f.recv && !(f as {static?: boolean}).static && (n.$m ? n.$access === 'public' : mine(n)) }).map(f => f.name)
   // (the class's qualified name, which the harness spells: `this`'s type, as clang prints it)
   const thisOf = (n: CN): string | undefined => (n.kind === 'CXXThisExpr' ? n.type!.qualType : (n.inner ?? []).map(thisOf).find(Boolean))
   const self = cpp ? cxx.filter(m => m.$rec === entryRec).map(thisOf).find(Boolean)?.replace(/^const /, '').replace(/ \*$/, '') : undefined
