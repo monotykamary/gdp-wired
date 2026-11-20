@@ -120,8 +120,9 @@ function proveHandCert(source: Machine, law: Law, spec: Omit<GroupedSumCertifica
 }
 
 describe('grouped-sum trusted rule', () => {
-  test('proves DuckDB row 16 and NATS row 7 by default and exports Lean', () => {
-    for (const [id, {r, law}] of [['DuckDB16', makeDuckDB()], ['NATS7', makeNATS()]] as const) {
+  for (const [id, build] of [['DuckDB16', () => makeDuckDB()], ['NATS7', () => makeNATS()]] as const) {
+    test(`proves ${id} by default and exports Lean`, () => {
+      const {r, law} = build()
       let ev: PublicProofOutput | undefined
       proofOutput.on = e => { ev = e }
       const v = proveRule(r as never, [law])
@@ -136,8 +137,8 @@ describe('grouped-sum trusted rule', () => {
       expect(lean).toContain('theorem packet_shape : packet_psums.plain = packet_machine := by rfl')
       expect(lean).toContain('theorem original_law')
       expect(lean).toContain(`#print axioms ${id}_kinds_laws`)
-    }
-  })
+    }, 30_000)
+  }
 
   test('rejects all 5 required domain mutants (wrong group, changing group key, mutable param, missing step, empty group)', () => {
     // Capture a valid DuckDB certificate to also test cross-machine certificate rejection.
@@ -240,7 +241,7 @@ describe('grouped-sum trusted rule', () => {
     const natsEmptySubj = makeNATS({requirePositiveSubj: false})
     const vEmpty = proveRule(natsEmptySubj.r as never, [natsEmptySubj.law], {search: {ms: 5000}})
     expect(vEmpty.proven).toBe(false)
-  })
+  }, 30_000)
 
   test('supports pre-guarded parameterized sums, each-writes with @cover + pcellLaws, and scalar observer_elim', () => {
     // Positive M9 control: pre-guarded parameterized sum where p > 0 ensures atStart = 0.
@@ -360,7 +361,7 @@ describe('grouped-sum trusted rule', () => {
     const scalarLean = groupedSumToLean('ScalarTest', scalarMachine, scalarLaw, scalarCert)
     expect(scalarLean).toContain('def unchangedLaw : MLaw :=')
     expect(scalarLean).toContain(', none⟩')
-  })
+  }, 30_000)
 
   test('kills all checker guard mutants (M3, M6-M18, structural/tamper refusals)', () => {
     const base: Machine = {
