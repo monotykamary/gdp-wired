@@ -25,8 +25,14 @@ export function groupedSumToLean(id: string, source: Machine, law: Law, cert: Gr
         const encoded = enc(g, tree)
         return `(${encoded.tab}, ${encoded.tree})`
       })
+      const coverByName = new Map(coverGoals.map(g => [g.name, g]))
       const coverLits = decls.map(d => {
-        const gs = coverGoals.filter(g => g.name.startsWith(`${d.name} @cover `))
+        const gs = Object.entries(source.step.maps ?? {}).flatMap(([mp, w]) => {
+          if (!('each' in w) || !d.read.includes(mp)) return []
+          const g = coverByName.get(`${d.name} @cover ${mp}`)
+          if (!g) throw new Error(`${id}: missing cover goal for ${d.name} @cover ${mp}`)
+          return [g]
+        })
         return `[${gs.map(g => {
           const tree = cert.proof.trees[g.name]
           if (!tree) throw new Error(`${id}: missing retained cover tree for ${g.name}`)

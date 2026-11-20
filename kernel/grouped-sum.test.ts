@@ -1,4 +1,8 @@
 import {describe, expect, test} from 'bun:test'
+import {spawnSync} from 'node:child_process'
+import {existsSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
 import {type E, type Law, type Machine, atMost, get, ite, n, not, plus, same, x} from '../core/machine.ts'
 import {bool, choose, forall, nat, no, oneOf, proveRule, record, rule, when, yes} from '../core/dsl.ts'
 import {proofOutput, type PublicProofOutput} from '../core/proof-output.ts'
@@ -7,6 +11,7 @@ import {type Tree, obligations} from './kernel.ts'
 import {grow, proveLaws} from './prove.ts'
 import {toLean} from '../lean-kernel/emit.ts'
 import {groupedSumToLean} from '../lean-kernel/grouped-sum-export.ts'
+import {gate} from '../lean-kernel/axiom-audit.ts'
 
 const findAgg = (node: PublicProofOutput['proof'] | undefined): Extract<NonNullable<PublicProofOutput['proof']>, {kind: 'aggregate'}> | undefined => {
   if (!node) return undefined
@@ -703,4 +708,103 @@ describe('grouped-sum trusted rule', () => {
     // Ensure obligations still works cleanly on base
     expect(obligations(base, [okLaw]).length).toBe(2)
   })
+
+  test('matches cover trees by exact goal name and elaborates exported proofs in Lean 4', () => {
+    // Regression for cover-goal prefix collision: sums named 'A' and 'A @cover Flag' must never cross-match.
+    const prefixM: Machine = {
+      name: 'cover-prefix-collision',
+      params: [],
+      inputs: ['id', 'tag'],
+      state: {},
+      maps: {Flag: 0, Flag2: 0, Tag: 0, Tot: 0},
+      step: {
+        flags: {add: same(get('Flag', x('id')), n(0))},
+        maps: {
+          Flag: {each: 'e1', value: ite({op: 'and', xs: [{op: 'flag', name: 'add'}, same(x('e1'), x('id'))]}, n(1), get('Flag', x('e1')))},
+          Flag2: {each: 'e2', value: ite({op: 'and', xs: [{op: 'flag', name: 'add'}, same(x('e2'), x('id'))]}, n(1), get('Flag2', x('e2')))},
+          Tag: {key: x('id'), value: ite({op: 'flag', name: 'add'}, x('tag'), get('Tag', x('id')))},
+          Tot: {key: x('tag'), value: ite({op: 'flag', name: 'add'}, plus(get('Tot', x('tag')), n(1)), get('Tot', x('tag')))},
+        },
+      },
+    }
+    const prefixLaw: Law = {
+      name: 'flagged implies tot >= 1',
+      forall: 'j',
+      holds: {op: 'or', xs: [not(same(get('Flag', x('j')), n(1))), atMost(n(1), get('Tot', get('Tag', x('j'))))]},
+    }
+    const prefixCert = proveHandCert(prefixM, prefixLaw, {
+      observer: 'obs',
+      group: get('Tag', x('j')),
+      sums: {
+        A: {
+          key: 'sk1',
+          params: ['obs'],
+          term: ite({op: 'and', xs: [same(get('Flag', x('sk1')), n(1)), same(get('Tag', x('sk1')), x('obs'))]}, n(1), n(0)),
+        },
+        'A @cover Flag': {
+          key: 'sk2',
+          params: ['obs'],
+          term: ite({op: 'and', xs: [same(get('Flag2', x('sk2')), n(1)), same(get('Tag', x('sk2')), x('obs'))]}, n(1), n(0)),
+        },
+      },
+      laws: [
+        {name: 'A <= Tot[obs]', holds: atMost(x('A'), get('Tot', x('obs')))},
+        {name: prefixLaw.name, forall: 'j', holds: {op: 'or', xs: [not(same(get('Tag', x('j')), x('obs'))), prefixLaw.holds]}},
+      ],
+    })
+    expect(checkGroupedSum(prefixM, prefixLaw, prefixCert)).toBe(true)
+    const prefixLean = toLean([{id: 'PrefixCover', aggregate: {source: prefixM, law: prefixLaw, certificate: prefixCert}}])
+    // Each of the two sums reads exactly one each-written map, so packet_covers must be [[(...)], [(...)]], never 2 in the first!
+    const coversBlock = prefixLean.slice(prefixLean.indexOf('def packet_covers'), prefixLean.indexOf('theorem packet_shape'))
+    expect(coversBlock).toContain('], [(')
+    expect(coversBlock.split('], [(').length).toBe(2)
+
+    // Real default-path DuckDB row 16 export for end-to-end Lean 4 elaboration + axiom audit
+    const {r, law} = makeDuckDB()
+    let ev: PublicProofOutput | undefined
+    proofOutput.on = e => { ev = e }
+    const v = proveRule(r as never, [law])
+    proofOutput.on = undefined
+    expect(v.proven && v.checked).toBe(true)
+    const agg = findAgg(ev?.proof)!
+    const duckLean = toLean([{id: 'DuckDB16', aggregate: {source: agg.machine, law: agg.law, certificate: agg.certificate, kinds: agg.kinds}}])
+
+    const findLean = (): string | undefined => {
+      for (const elan of ['elan', join(process.env.HOME ?? '', '.elan/bin/elan')]) {
+        const res = spawnSync(elan, ['which', 'lean'], {encoding: 'utf8'})
+        if (res.status === 0 && res.stdout.trim()) return res.stdout.trim()
+      }
+      const direct = spawnSync('lean', ['--version'], {encoding: 'utf8'})
+      return direct.status === 0 ? 'lean' : undefined
+    }
+    const leanBin = findLean()
+    if (!leanBin) {
+      if (process.env.GDP_REQUIRE_LEAN === '1') throw new Error('Lean toolchain required by GDP_REQUIRE_LEAN=1')
+      return
+    }
+    const leanKernelDir = join(import.meta.dir, '..', 'lean-kernel')
+    const dir = mkdtempSync(join(tmpdir(), 'gdp-groupsum-lean-'))
+    try {
+      const env = {...process.env, LEAN_NUM_THREADS: '1', LEAN_PATH: `${dir}:${leanKernelDir}`}
+      for (const mod of ['Cert', 'Kernel', 'Progress', 'StepLaw', 'Steps', 'Sets', 'History', 'Live', 'Ghost', 'Sums', 'GroupedSums']) {
+        if (existsSync(join(leanKernelDir, `${mod}.olean`))) continue
+        const build = spawnSync(leanBin, ['-o', join(dir, `${mod}.olean`), join(leanKernelDir, `${mod}.lean`)], {env, encoding: 'utf8'})
+        if (build.status !== 0) throw new Error(`failed to build ${mod}.olean:\n${build.stdout}\n${build.stderr}`)
+      }
+      for (const [id, src, required] of [
+        ['PrefixCover', prefixLean, ['PrefixCover.original_law']],
+        ['DuckDB16', duckLean, ['DuckDB16.original_law', 'DuckDB16_kinds_laws']],
+      ] as const) {
+        const file = join(dir, `${id}.lean`)
+        writeFileSync(file, src)
+        const run = spawnSync(leanBin, [file], {env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024})
+        expect(run.status).toBe(0)
+        const errs = gate(run.stdout, [src], false)
+        expect(errs).toEqual([])
+        for (const thm of required) expect(run.stdout).toContain(`'${thm}' depends on axioms: [propext, Classical.choice, Quot.sound]`)
+      }
+    } finally {
+      rmSync(dir, {recursive: true, force: true})
+    }
+  }, 120_000)
 })

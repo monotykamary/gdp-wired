@@ -203,6 +203,9 @@ function tryProveVariant(
   return checkGroupedSum(source, law, cert) ? cert : undefined
 }
 
+export const hasGroupedSumShape = (source: Machine, law: Law): boolean =>
+  parseGroupedShapes(source, law) !== undefined
+
 export function searchGroupedSum(source: Machine, law: Law, ms: number): GroupedSumCertificate | undefined {
   if (!Number.isFinite(ms) || ms <= 0) return
   const parsed = parseGroupedShapes(source, law)

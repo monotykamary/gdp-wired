@@ -2,7 +2,7 @@ import type {Law,Machine} from './machine.ts'
 import {searchWall} from './wall.ts'
 import {proposeFilteredCounters} from './filtered-sum-candidates.ts'
 import {weightedSearch} from './aggregate-weighted/search.ts'
-import {searchGroupedSum} from './grouped-sum-search.ts'
+import {hasGroupedSumShape,searchGroupedSum} from './grouped-sum-search.ts'
 import {checkFiniteSum,finiteSumTheory,sumLocalGoal,type FiniteSumCertificate} from '../kernel/finite-sum.ts'
 import {checkGhostWrite,type GhostWriteCertificate} from '../kernel/ghost-write.ts'
 import type {GroupedSumCertificate} from '../kernel/grouped-sum.ts'
@@ -59,10 +59,17 @@ function proposeAggregate(m:Machine, law:Law, ms:number):AggregateCertificate|un
       return undefined
     })
   }
-  const grouped = searchGroupedSum(m, law, Math.min(15_000, ms))
-  if (grouped) return grouped
-  if (!maps.some(write=>'each' in write) || !maps.some(write=>!('each' in write))) return
-  const p=weightedSearch(m,law,ms)
+  const canWeight = maps.some(write=>'each' in write) && maps.some(write=>!('each' in write))
+  const until = clock() + ms
+  if (hasGroupedSumShape(m, law)) {
+    const groupBudget = canWeight ? Math.min(5_000, Math.floor(ms / 3)) : Math.min(10_000, ms)
+    const grouped = searchGroupedSum(m, law, groupBudget)
+    if (grouped) return grouped
+  }
+  if (!canWeight) return
+  const remaining = until - clock()
+  if (!(remaining > 0)) return
+  const p=weightedSearch(m,law,remaining)
   if (!p) return
   const cert:GhostWriteCertificate={kind:'ghost-write',recipe:p.recipe,projection:{omitMap:p.recipe.ghostMap},target:p.machine,laws:p.laws,pointLaw:p.pointLaw,proof:p.proof}
   return checkGhostWrite(m,law,cert) ? cert : undefined
