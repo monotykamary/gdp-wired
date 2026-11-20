@@ -25,6 +25,8 @@ export type CSafetyMacroConfig = {
   compiler?: string,
   compilerPath?: string,
   libc?: string,
+  systemHeadersSha256?: string,
+  systemHeaders?: readonly {path: string, sha256: string}[],
   std: string,
   stdcVersion: string,
   envScrubbed: boolean,
@@ -251,6 +253,11 @@ const PREPROC_OPERATORS = new Set([
   '_Pragma',
 ])
 
+// Closed-world compiler builtin allowlist for C safety mode: C safety lowers no `__builtin_*`
+// calls, so every `__builtin_*` identifier in user code (including `__builtin_FILE`,
+// `__builtin_FILE_NAME`, `__builtin_strlen`, etc.) is refused outright.
+const ALLOWED_BUILTINS = new Set<string>([])
+
 // All 9 C trigraph sequences. Refused outright anywhere in user files (and -D values) so
 // trigraph-mode differences between standards (e.g. gnu17 vs c11) can never hide code or macros.
 const TRIGRAPH_RE = /\?\?[=/'()!<>-]/
@@ -265,9 +272,11 @@ type ClangRawTok = {
 }
 
 // Obtain the exact raw token stream directly from Clang's own lexer (`-Xclang -dump-raw-tokens`)
-// under the active C standard flags, never re-lexing in TypeScript. Every record is anchored to
-// `<targetFile>:<line>:<col>` and verified sequentially across the entire stderr stream (failing
-// closed if any part of Clang's output cannot be parsed).
+// under the active C standard flags, never re-lexing in TypeScript. Enforces strict byte
+// contiguity from byte 0 (or byte 3 after a UTF-8 BOM) through EOF: every token must start at
+// `expectedByte`, match `rawBuf` byte-for-byte, validate any `[UnClean='...']` splice against
+// its cleaned text, and reach `rawBuf.length` with zero gaps or overlaps (closing forged token
+// records inside comments or string literals).
 function dumpClangRawTokens(
   activeClang: string,
   stdFlags: readonly string[],
@@ -287,16 +296,16 @@ function dumpClangRawTokens(
   if (r.error || r.status !== 0)
     throw new Refusal(reportFile, `clang raw token dump failed for ${targetFile} (${String(r.stderr ?? r.error?.message ?? '').split('\n').slice(0, 2).join(' | ')})`)
   const out = r.stderr ?? ''
-  // Compute 0-based UTF-8 byte offsets of each 1-based source line in rawBuf so we can verify
-  // every parsed token's exact (line, col) location against the real file bytes (immune to fake
-  // `Loc=<...>` strings inside comments or string literals).
+  // Compute 0-based UTF-8 byte offsets of each 1-based source line in rawBuf (matching Clang's
+  // handling of LF, CRLF, and lone CR line endings).
   const lineByteOffsets: number[] = [0]
-  for (let i = 0; i < rawBuf.length; i++) if (rawBuf[i] === 0x0a) lineByteOffsets.push(i + 1)
-  const matchesRawAt = (line: number, col: number, expected: string): boolean => {
-    const lineOff = lineByteOffsets[line - 1]
-    if (lineOff === undefined) return false
-    const start = lineOff + (col - 1)
-    const expBytes = new TextEncoder().encode(expected)
+  for (let i = 0; i < rawBuf.length; i++) {
+    const b = rawBuf[i]!
+    if (b === 0x0a) lineByteOffsets.push(i + 1)
+    else if (b === 0x0d && rawBuf[i + 1] !== 0x0a) lineByteOffsets.push(i + 1)
+  }
+  const encoder = new TextEncoder()
+  const matchesRawBytesAt = (start: number, expBytes: Uint8Array): boolean => {
     if (start < 0 || start + expBytes.length > rawBuf.length) return false
     for (let i = 0; i < expBytes.length; i++) if (rawBuf[start + i] !== expBytes[i]) return false
     return true
@@ -305,8 +314,7 @@ function dumpClangRawTokens(
   const locPrefix = `\tLoc=<${targetFile}:`
   const tokens: ClangRawTok[] = []
   let pos = 0
-  let prevLine = 1
-  let prevCol = 0
+  let expectedByte = rawBuf.length >= 3 && rawBuf[0] === 0xef && rawBuf[1] === 0xbb && rawBuf[2] === 0xbf ? 3 : 0
   while (pos < out.length) {
     const head = /^([A-Za-z_][A-Za-z_0-9]*) '/.exec(out.slice(pos, pos + 64))
     if (!head)
@@ -314,7 +322,7 @@ function dumpClangRawTokens(
     const kind = head[1]!
     const textStart = pos + head[0].length
     let searchFrom = textStart
-    let parsed: {text: string, flags: string, line: number, col: number, nextPos: number} | undefined
+    let parsed: {text: string, flags: string, line: number, col: number, nextPos: number, rawLen: number} | undefined
     while (searchFrom < out.length) {
       const locIdx = out.indexOf(locPrefix, searchFrom)
       if (locIdx < 0) break
@@ -325,30 +333,37 @@ function dumpClangRawTokens(
       if (lc && (afterPos === out.length || /^[A-Za-z_][A-Za-z_0-9]* '/.test(out.slice(afterPos, afterPos + 64)))) {
         const line = Number(lc[1]!)
         const col = Number(lc[2]!)
-        if (line > prevLine || (line === prevLine && col >= prevCol)) {
+        const lineOff = lineByteOffsets[line - 1]
+        const tokByte = lineOff === undefined ? -1 : lineOff + (col - 1)
+        const expectedAt = kind === 'eof' ? rawBuf.length : expectedByte
+        if (tokByte === expectedAt) {
           const mid = out.slice(textStart, locIdx)
           // Split `mid` at the `'\t` before Clang's `[Flag]` / `[UnClean='...']` annotations.
-          let splitIdx = -1
           for (let q = mid.indexOf("'\t"); q >= 0; q = mid.indexOf("'\t", q + 1)) {
             const flagStr = mid.slice(q + 2)
             if (/^(?: \[(?:[A-Za-z_][A-Za-z0-9_]*|UnClean='[\s\S]*?')\])*$/.test(flagStr)) {
               const candText = mid.slice(0, q)
               const uncleanM = /\[UnClean='([\s\S]*?)'\]$/.exec(flagStr)
+              if (uncleanM) {
+                const rawStr = uncleanM[1]!
+                if (!/\\[ \t]*(?:\r?\n|\r)/.test(rawStr) || rawStr.replace(/\\[ \t]*(?:\r?\n|\r)/g, '') !== candText)
+                  continue
+              }
               const rawMatch = uncleanM ? uncleanM[1]! : candText
-              if (kind === 'eof' || matchesRawAt(line, col, rawMatch)) {
-                splitIdx = q
-                parsed = {text: candText, flags: flagStr, line, col, nextPos: afterPos}
+              const rawBytes = kind === 'eof' ? new Uint8Array(0) : encoder.encode(rawMatch)
+              if (kind === 'eof' || matchesRawBytesAt(expectedByte, rawBytes)) {
+                parsed = {text: candText, flags: flagStr, line, col, nextPos: afterPos, rawLen: rawBytes.length}
                 break
               }
             }
           }
-          if (splitIdx >= 0) break
+          if (parsed) break
         }
       }
       searchFrom = locIdx + 1
     }
     if (!parsed)
-      throw new Refusal(reportFile, `failed to parse clang -dump-raw-tokens token (${kind}) near offset ${pos}`)
+      throw new Refusal(reportFile, `failed to parse clang -dump-raw-tokens token (${kind}) contiguously at byte ${expectedByte} (outside the C safety subset)`)
     tokens.push({
       kind,
       text: parsed.text,
@@ -357,17 +372,18 @@ function dumpClangRawTokens(
       col: parsed.col,
       hadSpaceBefore: false,
     })
-    prevLine = parsed.line
-    prevCol = parsed.col
+    expectedByte += parsed.rawLen
     pos = parsed.nextPos
   }
+  if (expectedByte !== rawBuf.length)
+    throw new Refusal(reportFile, `clang -dump-raw-tokens byte coverage mismatch (${expectedByte} != ${rawBuf.length} bytes; outside the C safety subset)`)
   return tokens
 }
 
 // Obtain the preprocessed user-code token stream directly from Clang's own `-Xclang -dump-tokens`
-// (never re-lexing preprocessed C in TypeScript). Optionally enforces the `<scratch space>` check
-// rejecting Clang-synthesized invocation-dependent macros (__FILE__, __DATE__, __TIME__,
-// __TIMESTAMP__, __LINE__, __COUNTER__, __BASE_FILE__, __FILE_NAME__, __INCLUDE_LEVEL__, or ##).
+// (never re-lexing preprocessed C in TypeScript). When `userFiles` is provided, also enforces:
+// (a) `<scratch space>` rejection (invocation-dependent macros / token pasting) and
+// (b) closed-world `__builtin_*` allowlist on every token expanded in user files.
 function dumpUserExpandedTokens(o: {
   activeClang: string,
   lang: readonly string[],
@@ -425,13 +441,21 @@ function dumpUserExpandedTokens(o: {
       }
     }
     if (!expFile) continue
-    if (o.userFiles && o.realPath && o.basename && loc.includes('<Spelling=<scratch space>:') && !expFile.startsWith('<')) {
+    if (o.userFiles && o.realPath && o.basename && !expFile.startsWith('<')) {
       const expReal = o.realPath(expFile)
       if (o.userFiles.has(expReal)) {
-        throw new Refusal(
-          `${o.basename(expReal)}:${expLine}:${expCol}`,
-          'invocation-dependent or synthesized macro expansion (<scratch space>) in user code is outside the C safety subset',
-        )
+        if (loc.includes('<Spelling=<scratch space>:')) {
+          throw new Refusal(
+            `${o.basename(expReal)}:${expLine}:${expCol}`,
+            'invocation-dependent or synthesized macro expansion (<scratch space>) in user code is outside the C safety subset',
+          )
+        }
+        if (text.startsWith('__builtin_') && !ALLOWED_BUILTINS.has(text)) {
+          throw new Refusal(
+            `${o.basename(expReal)}:${expLine}:${expCol}`,
+            `compiler builtin ${text} in user code is outside the C safety subset`,
+          )
+        }
       }
     }
     if (kind !== 'eof' && !o.isSystemExpFile(expFile)) userToks.push(`${kind}\0${text}`)
@@ -439,25 +463,81 @@ function dumpUserExpandedTokens(o: {
   return userToks.join('\u001f')
 }
 
+// Canonical semantic AST-fact fingerprint for non-system declarations (array extents, constant
+// values, types, field layouts, initializers, enum values), normalized only for Clang's
+// anonymous-tag location strings (`(unnamed struct at <file>:<line>:<col>)`).
+function astFactsOf(tu: CN, isSystemFile: (rawPath: string) => boolean): string {
+  locate(tu)
+  const normAnon = (s: string) => s.replace(/\((unnamed|anonymous)([^()]*?) at [^()]+\)/g, '($1$2 at <loc>)')
+  const project = (n: CN): unknown => {
+    const out: Record<string, unknown> = {kind: n.kind}
+    if (n.name !== undefined) out.name = n.name
+    if (n.type) {
+      out.type = {
+        qualType: normAnon(n.type.qualType),
+        ...(n.type.desugaredQualType !== undefined ? {desugaredQualType: normAnon(n.type.desugaredQualType)} : {}),
+      }
+    }
+    const argType = n.argType as {qualType?: string, desugaredQualType?: string} | undefined
+    if (argType && typeof argType.qualType === 'string') {
+      out.argType = {
+        qualType: normAnon(argType.qualType),
+        ...(argType.desugaredQualType !== undefined ? {desugaredQualType: normAnon(argType.desugaredQualType)} : {}),
+      }
+    }
+    if (n.value !== undefined) out.value = n.value
+    if (n.opcode !== undefined) out.opcode = n.opcode
+    if (n.castKind !== undefined) out.castKind = n.castKind
+    if (n.isPostfix !== undefined) out.isPostfix = n.isPostfix
+    if (n.isBitfield !== undefined) out.isBitfield = n.isBitfield
+    if (n.storageClass !== undefined) out.storageClass = n.storageClass
+    if (n.inline !== undefined) out.inline = n.inline
+    if (n.tagUsed !== undefined) out.tagUsed = n.tagUsed
+    if (n.completeDefinition !== undefined) out.completeDefinition = n.completeDefinition
+    if (n.referencedDecl) {
+      out.referencedDecl = {
+        kind: n.referencedDecl.kind,
+        name: n.referencedDecl.name,
+        ...(n.referencedDecl.type ? {type: normAnon(n.referencedDecl.type.qualType)} : {}),
+      }
+    }
+    if (n.array_filler) {
+      out.array_filler = Array.isArray(n.array_filler) ? (n.array_filler as CN[]).map(project) : project(n.array_filler as CN)
+    }
+    if (n.inner?.length) out.inner = n.inner.map(project)
+    return out
+  }
+  const decls: unknown[] = []
+  for (const d of tu.inner ?? []) {
+    const f = d.$at?.file
+    if (!f) continue
+    const sys = isSystemFile(f) && (!d.$files || [...d.$files].every(sf => isSystemFile(sf)))
+    if (!sys) decls.push(project(d))
+  }
+  return JSON.stringify(decls)
+}
+
 const ALLOWED_SAFETY_STDS = /^(?:(?:c|gnu)(?:89|90|99|11|17|18|23|2x)|iso9899:(?:1990|199409|1999|2011|2017|2018|2024))$/
 
 // Closed-world compiler flag allowlist for C safety mode: normalizes two-argument forms
-// (`-I dir`, `-D X=1`, `-U X`) and refuses any flag outside `-I`, `-D`, `-U`, `-std=<C-std>`,
-// `-O*`, and `-W*`/`-w`/`-pedantic*` (closing `-isystem`, `-include`, `-imacros`, `-trigraphs`,
-// `--config`, `@response`, `-Xclang`, `-funsigned-char`, etc.).
+// (`-I dir`, `-D X=1`, `-U X`), refuses newlines/control chars inside flags, and refuses any flag
+// outside `-I`, `-D`, `-U`, `-std=<C-std>`, `-O*`, and `-W*`/`-w`/`-pedantic*`.
 function validateSafetyFlags(flags: readonly string[], file: string): string[] {
+  const hasCtrl = (s: string) => s.includes('\n') || s.includes('\r') || s.includes('\0')
   const out: string[] = []
   for (let i = 0; i < flags.length; i++) {
     const f = flags[i]!
+    if (hasCtrl(f))
+      throw new Refusal(file, 'compiler flag containing newline or control character is outside the C safety subset')
     if (f === '-I') {
       const v = flags[++i]
-      if (!v) throw new Refusal(file, 'missing argument to -I flag in C safety mode')
+      if (!v || hasCtrl(v)) throw new Refusal(file, 'missing or invalid argument to -I flag in C safety mode')
       out.push(`-I${v}`)
     } else if (f.startsWith('-I') && f.length > 2) {
       out.push(f)
     } else if (f === '-D') {
       const v = flags[++i]
-      if (!v || !/^[A-Za-z_]\w*(?:=[\s\S]*)?$/.test(v))
+      if (!v || hasCtrl(v) || !/^[A-Za-z_]\w*(?:=[\s\S]*)?$/.test(v))
         throw new Refusal(file, `malformed -D flag argument ${v ?? '(missing)'} in C safety mode`)
       out.push(`-D${v}`)
     } else if (f.startsWith('-D') && f.length > 2) {
@@ -467,7 +547,7 @@ function validateSafetyFlags(flags: readonly string[], file: string): string[] {
       out.push(f)
     } else if (f === '-U') {
       const v = flags[++i]
-      if (!v || !/^[A-Za-z_]\w*$/.test(v))
+      if (!v || hasCtrl(v) || !/^[A-Za-z_]\w*$/.test(v))
         throw new Refusal(file, `malformed -U flag argument ${v ?? '(missing)'} in C safety mode`)
       out.push(`-U${v}`)
     } else if (f.startsWith('-U') && f.length > 2) {
@@ -574,6 +654,8 @@ function auditUserPreprocessor(o: {
       throw new Refusal(where, `invocation-dependent predefined macro ${name} ${ctx}is outside the C safety subset`)
     if (isOp(name))
       throw new Refusal(where, `preprocessor operator ${name} ${ctx}is outside the C safety subset`)
+    if (name.startsWith('__builtin_') && !ALLOWED_BUILTINS.has(name))
+      throw new Refusal(where, `compiler builtin ${name} ${ctx}is outside the C safety subset`)
     if (predefinedMacros.has(name))
       throw new Refusal(where, `predefined macro ${name} ${ctx}is outside the C safety subset (only macros defined in user files or listed in -D flags are allowed)`)
   }
@@ -600,7 +682,7 @@ function auditUserPreprocessor(o: {
       prevRaw = tok
       if (tok.kind === 'comment') { hadSpace = true; continue }
       if (tok.kind === 'unknown' && /^[ \t\r\n\f\v]+$/.test(tok.text)) {
-        if (tok.text.includes('\n')) {
+        if (tok.text.includes('\n') || tok.text.includes('\r')) {
           if (cur.length) { lines.push(cur); cur = [] }
         }
         hadSpace = true
@@ -615,7 +697,8 @@ function auditUserPreprocessor(o: {
     return lines
   }
 
-  // Audit every -D/-U flag using Clang's own raw lexer (never re-lexing in TypeScript).
+  // Audit every -D/-U flag using Clang's own raw lexer (never re-lexing in TypeScript);
+  // each valued -D is lexed in its own isolated temp file so one flag cannot shift another's lines.
   const cliDefines = new Set<string>()
   const cliMacroBodies = new Map<string, {params: Set<string>, tokens: ClangRawTok[]}>()
   const cliDefSpecs: {name: string, val?: string}[] = []
@@ -637,18 +720,12 @@ function auditUserPreprocessor(o: {
   if (valuedDefs.length) {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gdp-c-safety-defs-'))
     try {
-      const defFile = path.join(tmpDir, 'cli_defs.c')
-      const content = valuedDefs.map(d => `${d.val!}\n`).join('')
-      fs.writeFileSync(defFile, content)
-      const rawToks = dumpClangRawTokens(o.activeClang, o.stdFlags, defFile, new TextEncoder().encode(content), o.clangEnv, '<command line>')
-      const defLines = toLogicalLines(rawToks, '<command line>')
-      const toksByLine = new Map<number, ClangRawTok[]>()
-      for (const l of defLines) {
-        const ln = l[0]?.line
-        if (ln !== undefined) toksByLine.set(ln, [...(toksByLine.get(ln) ?? []), ...l])
-      }
       valuedDefs.forEach((d, idx) => {
-        const toks = toksByLine.get(idx + 1) ?? []
+        const defFile = path.join(tmpDir, `cli_def_${idx}.c`)
+        const content = `${d.val!}\n`
+        fs.writeFileSync(defFile, content)
+        const rawToks = dumpClangRawTokens(o.activeClang, o.stdFlags, defFile, new TextEncoder().encode(content), o.clangEnv, '<command line>')
+        const toks = toLogicalLines(rawToks, '<command line>').flat()
         for (const tok of toks) {
           if (tok.kind === 'raw_identifier') checkForbiddenName(tok.text, '<command line>', `in -D${d.name} value `)
         }
@@ -1032,9 +1109,11 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       basename: p => path.basename(p),
       clangEnv,
     })
+    const baseAstFacts = astFactsOf(tu, isUnderSystemDir)
     // Lexer-independent differential backstop: mirror all user files into a temp tree with
-    // strictly different path & basename lengths and two distinct mtimes, and preprocess with
-    // Clang's `-dump-tokens` under two different SOURCE_DATE_EPOCH days (Sep 9 2001 vs Sep 11 2001).
+    // strictly different path & basename lengths and two distinct mtimes, and compare BOTH
+    // Clang's `-dump-tokens` stream AND Clang's folded AST facts (array sizes, constants, types)
+    // across two different SOURCE_DATE_EPOCH days (Sep 9 2001 vs Sep 11 2001).
     const altRoot = fsFull.mkdtempSync(pathFull.join(osMod.tmpdir(), 'gdp-c-safety-diff-path-check-'))
     try {
       const mirrorOf = (rp: string) => pathFull.join(altRoot, 'p_extra_len_dir', rp.replace(/^\/+/, ''))
@@ -1061,6 +1140,15 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
           altFlags.push(f)
         }
       }
+      const dumpAltAstFacts = (env: Record<string, string>): string => {
+        const r = cp.spawnSync(activeClang, [...lang, ...altFlags, '-Xclang', '-ast-dump=json', '-fsyntax-only', altMain], {
+          encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], env, ...readerRun(),
+        })
+        if (r.error || r.status !== 0)
+          throw new Refusal(file, 'user AST failed differential path/date invariance check (outside the C safety subset)')
+        return astFactsOf(JSON.parse(r.stdout ?? '') as CN, isUnderSystemDir)
+      }
+      const env1 = scrubbedClangEnv({SOURCE_DATE_EPOCH: '1000000000'})
       const altTok1 = dumpUserExpandedTokens({
         activeClang,
         lang,
@@ -1068,10 +1156,12 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
         targetFile: altMain,
         reportFile: file,
         isSystemExpFile: isUnderSystemDir,
-        clangEnv: scrubbedClangEnv({SOURCE_DATE_EPOCH: '1000000000'}),
+        clangEnv: env1,
         failMessage: 'preprocessed user code failed differential path/date invariance check (outside the C safety subset)',
       })
+      const altFacts1 = dumpAltAstFacts(env1)
       for (const mp of mirroredPaths) fsFull.utimesSync(mp, 1700172837, 1700172837)
+      const env2 = scrubbedClangEnv({SOURCE_DATE_EPOCH: '1000172837'})
       const altTok2 = dumpUserExpandedTokens({
         activeClang,
         lang,
@@ -1079,11 +1169,14 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
         targetFile: altMain,
         reportFile: file,
         isSystemExpFile: isUnderSystemDir,
-        clangEnv: scrubbedClangEnv({SOURCE_DATE_EPOCH: '1000172837'}),
+        clangEnv: env2,
         failMessage: 'preprocessed user code failed differential path/date invariance check (outside the C safety subset)',
       })
+      const altFacts2 = dumpAltAstFacts(env2)
       if (altTok1 !== baseTokens || altTok2 !== baseTokens || altTok1 !== altTok2)
         throw new Refusal(file, 'preprocessed user code depends on invocation path or date/time (differs under alternate path, mtime, or SOURCE_DATE_EPOCH; outside the C safety subset)')
+      if (altFacts1 !== baseAstFacts || altFacts2 !== baseAstFacts || altFacts1 !== altFacts2)
+        throw new Refusal(file, 'folded AST facts (types, array extents, or constants) depend on invocation path or date/time (differs under alternate path, mtime, or SOURCE_DATE_EPOCH; outside the C safety subset)')
     } finally {
       try { fsFull.rmSync(altRoot, {recursive: true, force: true}) } catch { /* gone */ }
     }
@@ -1115,12 +1208,25 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       if (altTok !== baseTokens)
         throw new Refusal(file, `preprocessed user code depends on ${alt.label} (differs under ${alt.extra.join(' ')}; proof only holds for one build-mode configuration)`)
     }
+    // Digest every real system header actually included (path + SHA-256) plus one summary SHA-256
+    // so non-libc system headers (e.g. zlib.h, linux/*.h) are pinned exactly in the verdict.
+    const cryptoMod = node<{createHash: (alg: string) => {update: (d: Uint8Array | string) => {digest: (enc: 'hex') => string}}}>('node:crypto')
+    const systemHeaders = [...systemFiles]
+      .filter(p => !p.startsWith('<'))
+      .sort()
+      .map(p => ({path: p, sha256: cryptoMod.createHash('sha256').update(fsFull.readFileSync(p)).digest('hex')}))
+    const systemHeadersSha256 = cryptoMod
+      .createHash('sha256')
+      .update(systemHeaders.map(h => `${h.path}\0${h.sha256}\n`).join(''))
+      .digest('hex')
     const includeDirs = activeFlags.filter(f => f.startsWith('-I'))
     const macroConfig: CSafetyMacroConfig = {
       target: targetTriple,
       ...(compiler ? {compiler} : {}),
       compilerPath: activeClang,
       libc,
+      systemHeadersSha256,
+      systemHeaders,
       std: effectiveStd,
       stdcVersion,
       envScrubbed: true,
@@ -2503,6 +2609,13 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
           const where = spell === '<command line>' ? '<command line>' : `${path.basename(spell)}:${spellLine}:1`
           throw new Refusal(where, `user-defined macro expanded inside system header ${path.basename(expand)}:${expandLine} is outside the C safety subset`)
         }
+      }
+      if (!isSystemNode(n)) {
+        if (n.kind === 'SourceLocExpr' || n.kind === 'PredefinedExpr')
+          throw new Refusal(pos(n), `invocation/location-dependent expression (${n.kind}) is outside the C safety subset`)
+        const refName = n.kind === 'DeclRefExpr' ? n.referencedDecl?.name : undefined
+        if (refName?.startsWith('__builtin_') && !ALLOWED_BUILTINS.has(refName))
+          throw new Refusal(pos(n), `compiler builtin ${refName} is outside the C safety subset`)
       }
       for (const c of n.inner ?? []) auditMacroExpansions(c)
     }

@@ -1401,7 +1401,7 @@ withClang('Review Probe 11: path-only system-header boundary (h3-h7), pragma/lin
     writeFileSync(cleanStd, macroHdr + 'void put(struct ring *r, int32_t v) {\n  if (r->n < 0 || r->n >= 8) return;\n  r->a[r->n] = v; r->n = r->n + 1;\n}\n')
     const rStdText = runCliText(['check', '--no-propose', cleanStd])
     expect(rStdText.code).toBe(0)
-    expect(rStdText.out).toMatch(/macro config: target: \S+; compiler: clang \S+ \(\/\S+\); libc: [^;]+; std: (?:gnu|c)(?:17|23) \(__STDC_VERSION__=(?:201710L|202311L)\); env: scrubbed; -I flags: none; -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined, DEBUG=undefined/)
+    expect(rStdText.out).toMatch(/macro config: target: \S+; compiler: clang \S+ \(\/\S+\); libc: [^;]+; system headers: \d+ \(sha256:[0-9a-f]{64}\); std: (?:gnu|c)(?:17|23) \(__STDC_VERSION__=(?:201710L|202311L)\); env: scrubbed; -I flags: none; -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined, DEBUG=undefined/)
 
     const rStdC23 = await check([cleanStd], {flags: ['-std=c23'], propose: false})
     expect(rStdC23.exit).toBe(0)
@@ -1773,6 +1773,121 @@ withClang('Review Probe 14: Clang-native lexer/token audit (s1/s2/s3/al/a-k), al
       expect(rAlE.exit).toBe(0)
       expect((rAlE.rules[0]?.safety as {macroConfig?: {libc?: string}})?.macroConfig?.libc).toBe(libcVal)
     }
+  } finally {
+    rmSync(dir, {recursive: true, force: true})
+  }
+}, 180_000)
+
+withClang('Review Probe 15: closed-world __builtin_* allowlist & AST-fact differential (b1-b4, ff), byte-contiguous raw-token parser (fg/fgc), -D newline hardening (d1), encoding plumbing, and system header SHA-256 digest (z2)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-probe15-'))
+  try {
+    const H = '// gdp: safety\n#include <stdint.h>\n'
+    const realClang = resolveSafetyClang('clang', join(dir, 'probe.c')).bin
+
+    // (1) Closed-world __builtin_* allowlist + AST-fact differential: __builtin_FILE,
+    // __builtin_FILE_NAME, __builtin_strlen (b1, b2, b3, b4, ff) are refused -> exit 2.
+    for (const [label, src, want] of [
+      ['b1_file_arr', H + 'struct ring { int32_t a[__builtin_strlen(__builtin_FILE())]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 40) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 39) r->n = r->n + 1; }\n', '__builtin_'],
+      ['b2_file_cond', H + 'struct ring { int32_t a[40]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < (int32_t)__builtin_strlen(__builtin_FILE())) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 100) r->n = r->n + 1; }\n', '__builtin_'],
+      ['b3_file_enum', H + 'enum { L = sizeof(struct { char c[__builtin_strlen(__builtin_FILE())]; }) };\nstruct ring { int32_t a[L]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 40) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 39) r->n = r->n + 1; }\n', '__builtin_'],
+      ['b4_file_tern', H + 'struct ring { int32_t a[__builtin_strlen(__builtin_FILE()) < 10 ? 40 : 4]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 40) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 39) r->n = r->n + 1; }\n', '__builtin_'],
+      ['ff_filename_arr', H + 'struct ring { int32_t a[__builtin_strlen(__builtin_FILE_NAME()) * 5]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 30) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 29) r->n = r->n + 1; }\n', '__builtin_'],
+      ['b_func_predef', H + 'struct ring { int32_t a[8]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < (int32_t)sizeof(__func__)) return r->a[r->n]; return 0; }\n', ''],
+    ] as const) {
+      const f = join(dir, `${label}.c`)
+      writeFileSync(f, src)
+      const res = await check([f], {propose: false})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+      if (want) expect(res.rules[0]?.refusals.map(r => r.what).join('; '), `${label} names ${want}`).toContain(want)
+    }
+
+    // Positive control: anonymous typedef struct + sizeof(unnamed struct) still proves cleanly
+    // through the AST-fact differential (anonymous-tag location normalization).
+    const posFile = join(dir, 'pos_anon_struct.c')
+    writeFileSync(posFile, H + 'typedef struct { int32_t a[sizeof(struct { char c[8]; })]; int32_t n; } ring_t;\nint32_t get(ring_t *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\nvoid put(ring_t *r) { if (r->n >= 0 && r->n < 7) r->n = r->n + 1; }\n')
+    const rPos = await check([posFile], {propose: false})
+    expect(rPos.exit).toBe(0)
+    expect(rPos.rules[0]?.safety).toMatchObject({status: 'proven', coveredFunctions: ['get', 'put']})
+
+    // (2) Byte-contiguous -dump-raw-tokens parser (fg vs fgc): forged Clang token records inside
+    // comments can never split a comment early or swallow a real #if __has_include directive -> exit 2.
+    const fgDir = join(dir, 'fg')
+    mkdirSync(fgDir, {recursive: true})
+    const fgFile = join(fgDir, 'ring.c')
+    const pre = `// gdp: safety\n#include <stdint.h>\n/*X'\t\tLoc=<${fgFile}:3:1>\ncomment '/**/\n#if __has_include(<stdint.h>)\n#define CAP 40\n#else\n#define CAP 4\n#endif\n#if 0\n`
+    const kLine = pre.split('\n').length
+    const tail = '\n#endif\nstruct ring { int32_t a[CAP]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 40) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 39) r->n = r->n + 1; }\n'
+    writeFileSync(fgFile, pre + '/**/' + tail)
+    const rawDump = spawnSync(realClang, ['-x', 'c', '-w', '-Xclang', '-dump-raw-tokens', '-fsyntax-only', fgFile], {encoding: 'utf8'}).stderr ?? ''
+    const ctext = `/*X'\t\tLoc=<${fgFile}:3:1>\ncomment '/**/`
+    const idxA = rawDump.indexOf(`comment '${ctext}`) + `comment '${ctext}`.length
+    const kk = `comment '/**/'\t [StartOfLine]\tLoc=<${fgFile}:${kLine}:1>`
+    const idxB = rawDump.indexOf(kk) + "comment '/**/".length
+    expect(idxA).toBeGreaterThan(0)
+    expect(idxB).toBeGreaterThan(idxA)
+    writeFileSync(fgFile, pre + '/**/' + rawDump.slice(idxA, idxB) + tail)
+    const rFg = await check([fgFile], {propose: false})
+    expect(rFg.exit, 'forged raw-token comment (fg) must exit 2').toBe(2)
+    expect(rFg.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+
+    const fgcFile = join(dir, 'fgc.c')
+    writeFileSync(fgcFile, H + '#if __has_include(<stdint.h>)\n#define CAP 40\n#else\n#define CAP 4\n#endif\nstruct ring { int32_t a[CAP]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 40) return r->a[r->n]; return 0; }\n')
+    const rFgc = await check([fgcFile], {propose: false})
+    expect(rFgc.exit, 'fgc control must exit 2').toBe(2)
+    expect(rFgc.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+
+    // (3) d1: newline inside -D flag value cannot shift subsequent -D flags past the audit -> exit 2.
+    const d1File = join(dir, 'd1.c')
+    writeFileSync(d1File, H + '#if HAVE_Z\n#define K 40\n#else\n#define K 4\n#endif\nstruct ring { int32_t a[K]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 40) return r->a[r->n]; return 0; }\n')
+    const rD1 = await check([d1File], {flags: ['-DPAD=1\n2', '-DHAVE_Z=__has_include(<stdint.h>)'], propose: false})
+    expect(rD1.exit).toBe(2)
+    expect(rD1.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+
+    // (4) Encoding plumbing: clean UTF-8 BOM + no-trailing-newline proves; hidden __FILE__ under
+    // BOM / lone-CR / CRLF-splice / NUL byte is refused -> exit 2.
+    const cleanBom = join(dir, 'clean_bom.c')
+    writeFileSync(cleanBom, Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(H + 'struct ring { int32_t a[8]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }')]))
+    const rBomOk = await check([cleanBom], {propose: false})
+    expect(rBomOk.exit).toBe(0)
+    expect(rBomOk.rules[0]?.safety).toMatchObject({status: 'proven', coveredFunctions: ['get']})
+
+    for (const [label, buf] of [
+      ['enc_bom_file', Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(H + 'struct ring { int32_t a[sizeof __FILE__]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n')])],
+      ['enc_lonecr_file', Buffer.from((H + 'struct ring { int32_t a[sizeof __FILE__]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n').replace(/\n/g, '\r'))],
+      ['enc_nul_byte', Buffer.concat([Buffer.from(H), Buffer.from([0x2f, 0x2a, 0x20, 0x00, 0x20, 0x2a, 0x2f, 0x0a]), Buffer.from('struct ring { int32_t a[8]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n')])],
+    ] as const) {
+      const f = join(dir, `${label}.c`)
+      writeFileSync(f, buf)
+      const res = await check([f], {propose: false})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+    }
+
+    // (5) System header digest & list (z2 class): every included system header's resolved path +
+    // exact SHA-256 is reported in JSON (`macroConfig.systemHeaders`) and summarized as one SHA-256
+    // (`macroConfig.systemHeadersSha256`) in both JSON and CLI TEXT; including an additional system
+    // header (<limits.h> vs <stdint.h> alone) changes both the header list and summary digest.
+    const hdr1 = join(dir, 'hdr_stdint.c')
+    const hdr2 = join(dir, 'hdr_limits.c')
+    writeFileSync(hdr1, H + 'struct ring { int32_t a[8]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n')
+    writeFileSync(hdr2, H + '#include <limits.h>\nstruct ring { int32_t a[8]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n')
+    const rH1 = await check([hdr1], {propose: false})
+    const rH2 = await check([hdr2], {propose: false})
+    expect(rH1.exit).toBe(0)
+    expect(rH2.exit).toBe(0)
+    const mc1 = (rH1.rules[0]?.safety as {macroConfig?: {systemHeadersSha256?: string, systemHeaders?: {path: string, sha256: string}[]}})?.macroConfig
+    const mc2 = (rH2.rules[0]?.safety as {macroConfig?: {systemHeadersSha256?: string, systemHeaders?: {path: string, sha256: string}[]}})?.macroConfig
+    expect(mc1?.systemHeadersSha256).toMatch(/^[0-9a-f]{64}$/)
+    expect(mc2?.systemHeadersSha256).toMatch(/^[0-9a-f]{64}$/)
+    expect(mc1?.systemHeaders?.length).toBeGreaterThan(0)
+    expect(mc2?.systemHeaders?.length).toBeGreaterThan(mc1!.systemHeaders!.length)
+    expect(mc2?.systemHeadersSha256).not.toBe(mc1?.systemHeadersSha256)
+    expect(mc1?.systemHeaders?.some(h => h.path.endsWith('/stdint.h') && /^[0-9a-f]{64}$/.test(h.sha256))).toBe(true)
+    expect(mc2?.systemHeaders?.some(h => h.path.endsWith('/limits.h') && /^[0-9a-f]{64}$/.test(h.sha256))).toBe(true)
+    const rH2Text = runCliText(['check', '--no-propose', hdr2])
+    expect(rH2Text.code).toBe(0)
+    expect(rH2Text.out).toContain(`; system headers: ${mc2!.systemHeaders!.length} (sha256:${mc2!.systemHeadersSha256});`)
   } finally {
     rmSync(dir, {recursive: true, force: true})
   }
