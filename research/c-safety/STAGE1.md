@@ -59,13 +59,13 @@ A `proven` Stage 1 verdict establishes absence of a **first** tracked array/tabl
 
 | Premise | Enforcement |
 |---|---|
-| **Translation-unit state closure (unselected functions & narrowed `methods`)** | Every non-selected function in the translation unit (including non-first-parameter writers such as `set_n(int32_t k, struct ring *r)`, `void *` callbacks, pointer writers, external/recursive calls, and functions dropped by `methods`/`functions` narrowing) is refused as `unchecked` unless proven unable to write state or escape pointers (`core/c/reader.ts`). |
+| **Translation-unit state closure (unselected functions, narrowed `methods`, & bodyless prototypes)** | Every non-selected function in the translation unit (including non-first-parameter writers such as `set_n(int32_t k, struct ring *r)`, `void *` callbacks, pointer writers, external/recursive calls, and functions dropped by `methods`/`functions` narrowing) is refused as `unchecked` unless proven unable to write state or escape pointers; bodyless external prototypes referencing the entry struct (anywhere in the TU) or taking pointers/non-scalars/variadics/K&R arguments (in the file or project headers) are also refused (`core/c/reader.ts`). |
 | **State-preserving configured failure paths (`fails`)** | `onError: 'discard'` is refused in safety mode (`core/extract-c.ts`, `core/extract-go.ts`); every configured `fails` return path runs `Stepper.unwritten()` and is refused as `unchecked` if any state write occurred prior to returning. |
-| **Globals linkage chain (`previousDecl`)** | Any modeled global or constant lookup table with multiple declarations in its linkage chain is refused as `unchecked`. |
+| **Globals linkage chain (`previousDecl`) & `InitListExpr` `array_filler`** | Any modeled global or constant lookup table with multiple declarations in its linkage chain is refused as `unchecked`. Partial and designated constant-table initializers (`array_filler`) are read in Clang's exact semantic order (and explicit narrowing/sign-changing casts in table initializers are refused). |
 | **Parameter declarators & types** | Adjusted arrays, VLAs, typedef-arrays, macro-spelled declarators, `volatile`/`_Atomic`, bitfields, and unsupported scalar widths (`> 32` bits) are refused as `unchecked`. |
 | **Pre-lowering site inventory & accounting** | Every tracked site is inventoried before lowering and frozen; `readGo` fails closed if any site is neither cut nor accounted for as dead. |
 | **Kernel proof binding & site-matched replay** | Every `proven` verdict passes `verifyCSafetyProof` (`checkLaws` / `checkKInduction`) bound to the exact safety machine (`primitiveFailure`, `params`, `inputs`, `state`, `maps`, `pre`, `assume`, `step`, `history`, `sums`, `inputMaps`, `counts`, `leasts`, `fns`, `facts`) and target laws. Every `broken` verdict requires ASan/UBSan replay with `built && reports.length > 0 && matchedSite`. |
-| **In-source `gdp: safety` non-override** | If a C file contains `// gdp: safety` or `/* gdp: safety */`, a `gdp.toml` setting `safety = false` (top-level or per-rule) is refused with exit `2` rather than silently disabling safety checking (`core/cli.ts`). |
+| **In-source `gdp: safety` non-override & comment syntax** | `gdp: safety` is recognized in standalone, inline, multiline, and trailing-text C comments (ignoring string literals), with a warning note for lookalike comments such as `// gdp: safe`. A `gdp.toml` setting `safety = false` (top-level or per-rule) is refused with exit `2` rather than silently disabling safety checking (`core/cli.ts`). |
 
 #### Remaining explicit assumptions (NOT checked by Stage 1)
 
@@ -76,12 +76,13 @@ A `proven` Stage 1 verdict establishes absence of a **first** tracked array/tabl
 
 ### 2.3 Default-Path Fixes Carried by Stage 1
 
-While C safety verification itself is strictly opt-in (`// gdp: safety`, `--safety`, `{safety: true}`), four bug fixes also apply to the default extraction path (and should be listed under `Fixed` in the release changelog):
+While C safety verification itself is strictly opt-in (`// gdp: safety`, `--safety`, `{safety: true}`), five bug fixes also apply to the default extraction path (and should be listed under `Fixed` in the release changelog):
 
 1. `core/extract-print.ts`: Wrap natural-valued `mul` and `modk` expressions in `Int.of(...)` when printed as a signed integer receiver (`!nat && recv`), preventing signed subtraction from lowering to saturating `Term.minus`.
 2. `core/extract.ts`: Skip hoisting branch-guarded `modk` expressions whose dividend is not unconditionally non-negative, matching `mul`.
 3. `core/c/reader.ts` (`parseT`): Do not treat pointer/array typedefs to structs (`typedef struct ring *ring_ptr;`) as bare struct values.
-4. `core/law-answer.ts`, `core/laws.ts`, `core/native-law.ts`, `core/extract-c.ts`, `core/extract-go-check.ts`: Validate keyed constant-argument C answers against actual native observations (`d5e9e2535`).
+4. `core/c/reader.ts` (`initListChildren`, `table`, `constTableOf`, `isAllZeroInit`): Read Clang JSON `InitListExpr` `array_filler` elements in semantic order (and refuse non-`InitListExpr` / unsupported fillers) instead of reading partial and designated constant tables as all zeros.
+5. `core/law-answer.ts`, `core/laws.ts`, `core/native-law.ts`, `core/extract-c.ts`, `core/extract-go-check.ts`: Validate keyed constant-argument C answers against actual native observations (`d5e9e2535`).
 
 ---
 

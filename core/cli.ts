@@ -301,8 +301,47 @@ function* expandInitializers(t: Target, o: Opts, laws: Scoped[], rows: ReadRule[
   }
   return out
 }
-const SAFETY_TAG_RE = /^[ \t]*(?:\/\/[ \t]*gdp:[ \t]*safety[ \t]*|\/\*[ \t]*gdp:[ \t]*safety[ \t]*\*\/[ \t]*)\r?$/m
-const hasSafetyTag = (t: Target): boolean => t.lang === 'c' && t.files.some(f => SAFETY_TAG_RE.test(fs.readFileSync(f, 'utf8')))
+// Extract C comment bodies (`// ...` and `/* ... */`), skipping string and char literals.
+function cCommentTexts(src: string): string[] {
+  const out: string[] = []
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i]
+    if (ch === '"' || ch === "'") {
+      const q = ch
+      for (i++; i < src.length; i++) {
+        if (src[i] === '\\') { i++; continue }
+        if (src[i] === q || src[i] === '\n') break
+      }
+    } else if (ch === '/' && src[i + 1] === '/') {
+      const start = i + 2
+      while (i < src.length && src[i] !== '\n') i++
+      out.push(src.slice(start, i))
+    } else if (ch === '/' && src[i + 1] === '*') {
+      const start = i + 2
+      const end = src.indexOf('*/', start)
+      if (end < 0) { out.push(src.slice(start)); break }
+      out.push(src.slice(start, end))
+      i = end + 1
+    }
+  }
+  return out
+}
+// Accept `// gdp: safety`, `/* gdp: safety */`, inline comments, multiline doc comments, and
+// comments with trailing text (e.g. `// gdp: safety (Stage 1)` or `/* gdp: safety: ring */`).
+const SAFETY_TAG_RE = /(?:^|[\s*])gdp:[ \t]*safety(?=$|(?![ \t]*=)[ \t:;,—–(\[]|[ \t]+-[ \t])/
+const SAFETY_LOOKALIKE_RE = /\bgdp[ \t]*:[ \t]*safe\w*(?:[ \t]*=[ \t]*\S+)?/i
+const hasSafetyTag = (t: Target): boolean =>
+  t.lang === 'c' && t.files.some(f => cCommentTexts(fs.readFileSync(f, 'utf8')).some(c => SAFETY_TAG_RE.test(c)))
+const safetyLookalikeNote = (t: Target): string | undefined => {
+  if (t.lang !== 'c' || hasSafetyTag(t)) return undefined
+  for (const f of t.files) {
+    for (const c of cCommentTexts(fs.readFileSync(f, 'utf8'))) {
+      const m = SAFETY_LOOKALIKE_RE.exec(c)
+      if (m) return `${path.basename(f)}: comment looks like a gdp: safety directive (${JSON.stringify(m[0].trim())}) but did not match 'gdp: safety'; write '// gdp: safety' or pass --safety to enable C safety checking`
+    }
+  }
+  return undefined
+}
 const safetyDisabledBy = (cfg: Config, entry?: string): boolean => cfg.all.safety === false || (!!entry && cfg.rules[entry]?.safety === false)
 const safetyOverrideRefusal = (t: Target): Extraction & {safety: SafetyReport} => ({
   ok: false,
@@ -505,6 +544,7 @@ function* checkPipeline(t: Target, o: Opts): Pipeline<RuleOut[]> {
     const r: RuleOut = {file: path.relative(proc.cwd(), t.at) || '.', lang: LANG_NAME[t.lang], ...(name ? {entry: name} : {}), ...(ctor !== undefined ? {ctor} : {}), ok: x.ok, refusals: x.refusals, notes: x.notes, names: x.names ?? [], laws: [], proposed: [], ...(x.source ? {source: x.source} : {})}
     const safety = safetyReport(x, o.safety === true || hasSafetyTag(t))
     if (safety) r.safety = safety
+    else if (o.safety !== true) { const warn = safetyLookalikeNote(t); if (warn && !r.notes.includes(warn)) r.notes.push(warn) }
     outs.push(r)
     // (the laws of this rule: all where it is the file's one, else those in its class or on it or its methods, and those
     // outside every class and function)

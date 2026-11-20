@@ -330,6 +330,44 @@ Passing owned examples does not establish third-party source support; a real-sou
 assessment needs exact revision/closure, ordinary domains, nonzero original-code
 conformance and stated laws, with the sampled-vs-equivalence distinction preserved.
 
+## Opt-in C safety (Stage 1)
+
+C memory and undefined-behavior safety checking is strictly opt-in via `--safety` on the CLI,
+`extractC(file, { ..., safety: true })`, or a `gdp: safety` directive in a C comment
+(`// gdp: safety`, `/* gdp: safety */`, inline comments, multiline block comments, or comments with
+trailing notes such as `// gdp: safety (Stage 1)`). Without opt-in, default C extraction and
+law checking are unchanged. A `gdp.toml` setting `safety = false` (top-level or under
+`[rules.<entry>]`) cannot silently override an in-source `gdp: safety` directive and is refused
+with exit code `2`; a lookalike comment such as `// gdp: safe` emits a warning note rather than
+silently doing nothing.
+
+In safety mode, every tracked fixed-array/table bounds check, signed integer overflow, and
+division/remainder site in the covered subset is lowered into a first-fault monitor. CLI exit codes
+are `0` (`proven`: every site proved clear and re-verified by `verifyCSafetyProof` via `checkLaws`
+or `checkKInduction`), `1` (`broken`: counterexample trace replayed natively under Clang ASan/UBSan
+with site-matched diagnostics `matchedSite`), and `2` (`unproven` or `unchecked`: neither proven
+nor reproduced at the target site, or the input leaves the covered subset).
+
+Every `CSafetyResult` carries the four stated assumptions and checked-scope premises verbatim in
+`result.assumptions` (`core/c/safety.ts`):
+
+1. **ABI & types (assumption)**: Clang target uses 8-bit `char`, 16-bit `short`, 32-bit `int`, and
+   two's-complement signed integers; only covered scalar types up to 32 bits, constant lookup
+   tables, and fixed arrays of known extent are modeled.
+2. **Ownership, zeroed start & aliasing (assumption)**: Selected methods execute sequentially on
+   one live, zero-initialized receiver (or single-declaration file-local `static` globals from
+   their C initialization) with non-aliasing receiver and scalar out-parameters, no concurrency,
+   and no external mutation from other translation units.
+3. **Checked TU closure & failure paths (checked)**: Non-selected functions in the translation
+   unit (including narrowed method lists, non-first-parameter writers, `void*`/pointer callbacks,
+   and bodyless prototypes taking the entry type or pointers) are refused unless proven unable to
+   write state; configured normal failure returns (`fails`) are refused if any failure path writes
+   state prior to returning.
+4. **First-fault & replay scope**: Only the first tracked array/table-bounds, signed-overflow, or
+   division/remainder fault is checked. Broken obligations require site-matched ASan/UBSan replay
+   (`matchedSite`); unproven sites are never claimed proven or broken. Abstract stutter on fault
+   is a monitor convention, not native rollback.
+
 ## Worked example: Python
 
 | Piece | File | Notes |

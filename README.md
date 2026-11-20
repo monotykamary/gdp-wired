@@ -186,6 +186,18 @@ laws from the clause's text, reads each over the code's names and prints the com
 `[unreviewed: drafted by ...]` until a person signs it (`[reviewed-by: <name>, <date>]`); `check --require-review`
 refuses a law cited unreviewed (`research/regulated/DESIGN.md`, `research/regulated/DRAFTING.md`).
 
+For C files, opt-in Stage 1 memory and undefined-behavior safety checking (`// gdp: safety`, `--safety`, or
+`extractC(file, {safety: true})`) proves absence of a first array/table-bounds, signed-overflow, or division/remainder
+fault over the covered C subset, re-checking every proof in the kernel (`verifyCSafetyProof`) and replaying every
+`broken` obligation under Clang ASan/UBSan (`matchedSite`). It relies on four explicit premises (returned on every
+result and documented in [docs/FRONTENDS.md](docs/FRONTENDS.md#opt-in-c-safety-stage-1)): (1) Clang 8/16/32-bit
+two's-complement ABI and covered scalar/table/fixed-array types; (2) sequential execution on one live zero-initialized
+receiver (or single-declaration file-local `static` globals) with non-aliasing receiver and scalar out-parameters, no
+concurrency, and no external mutation from other translation units; (3) mechanically checked translation-unit closure
+(refusing unselected writers, narrowed-out writers, `void*`/pointer callbacks, bodyless prototypes taking the entry
+type or pointers, and `fails` returns after state writes); and (4) first-fault monitor scope with site-matched
+ASan/UBSan replay (abstract stutter on fault is a monitor convention, not native rollback).
+
 ## Where it fits
 
 <img src="https://raw.githubusercontent.com/monotykamary/gdp-wired/main/static/venn.svg" alt="What Lean, Bend and gdp-wired each cover, and where they overlap" width="640" />

@@ -867,6 +867,114 @@ withClang('Review Probe 5: replay without matchedSite stays unproven (never mark
   }
 }, 60_000)
 
+withClang('Review Probe 6: partial and designated const tables (array_filler) t1/t2/t4/u1-u5 and cast initializers', () => {
+  const H = '#include <stdint.h>\n#include <stdbool.h>\n'
+  const S = H + 'struct ring { int32_t n; int32_t a[8]; };\n'
+  const brokenCases: [string, string, Parameters<typeof analyze>[1]?, string?][] = [
+    ['t1-designated', S + 'static const int32_t T[4] = {[3] = 9};\nint32_t f(struct ring *r, int32_t i) { if (i >= 1 && i < 4) return r->a[T[i]]; return 0; }\n'],
+    ['t2-partial', S + 'static const int32_t T[4] = {1, 2};\nint32_t f(struct ring *r, int32_t i) { if (i >= 0 && i < 4) return r->a[T[i] + 6]; return 0; }\n'],
+    ['t4-desig-over', S + 'static const int32_t T[3] = {7, [0] = 8};\nint32_t f(struct ring *r, int32_t i) { if (i >= 0 && i < 1) return r->a[T[i]]; return 0; }\n'],
+    ['u3-2d-partial', S + 'static const int32_t T[2][2] = {{0}, {9}};\nint32_t f(struct ring *r, int32_t i, int32_t j) { if (i >= 0 && i < 2 && j >= 0 && j < 2) return r->a[T[i][j]]; return 0; }\n'],
+    ['u4-ring-next', S + 'static const uint8_t NEXT[8] = {1, 2, 3, 4, 5, 6, 8};\nvoid adv(struct ring *r) { if (r->n >= 0 && r->n < 8) r->n = NEXT[r->n]; }\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[NEXT[r->n]]; return 0; }\n'],
+    ['u5-gmode-table', H + 'static int32_t buf[8];\nstatic int32_t cur;\nstatic const int32_t STEP[4] = {9};\nvoid put(int32_t k, int32_t v) { if (k >= 0 && k < 4) buf[STEP[k]] = v; }\n', {entry: 'gtab', methods: ['put']}, 'gtab.c'],
+  ]
+  for (const [label, code, opts, fname] of brokenCases) {
+    const res = analyze(code, {safetySearchMs: 10_000, ...opts}, fname)
+    expect(res.ok, `${label} must not succeed`).toBe(false)
+    expect(res.safety?.status, `${label} must never prove safe`).not.toBe('proven')
+    expect(res.safety?.status, `${label} must replay broken under ASan/UBSan`).toBe('broken')
+    const badIssue = res.safety!.issues.find(i => i.status === 'broken')
+    expect(badIssue?.replay?.matchedSite, `${label} matchedSite`).toBe(true)
+  }
+
+  // u1-overflow-partial (K[2]={65536}, K[i]*x) and u2-div-partial (K[2]={1}, x/(K[i]+1)) must NOT
+  // collapse K to [0,0] and falsely prove safe; with real non-zero table entries they are nonlinear/nonconstant
+  // and cleanly refused as unchecked (or broken if linear).
+  const u1 = analyze(S + 'static const int32_t K[2] = {65536};\nint32_t f(struct ring *r, int32_t i, int32_t x) { if (i >= 0 && i < 2 && x >= 0 && x < 65536) return K[i] * x; return 0; }\n')
+  expect(u1.ok).toBe(false)
+  expect(u1.safety?.status).not.toBe('proven')
+  expect(['unchecked', 'broken']).toContain(u1.safety?.status ?? '')
+
+  const u2 = analyze(S + 'static const int32_t K[2] = {1};\nint32_t f(struct ring *r, int32_t i, int32_t x) { if (i >= 0 && i < 2) return x / (K[i] + 1); return 0; }\n')
+  expect(u2.ok).toBe(false)
+  expect(u2.safety?.status).toBe('unchecked')
+
+  // Safe designated/partial positive control: T[4] = {[3] = 7} stays within [0, 8) -> proven.
+  const desigSafe = analyze(S + 'static const int32_t T[4] = {[3] = 7};\nint32_t f(struct ring *r, int32_t i) { if (i >= 0 && i < 4) return r->a[T[i]]; return 0; }\n')
+  expect(desigSafe.ok, JSON.stringify(desigSafe.refusals)).toBe(true)
+  expect(desigSafe.safety?.status).toBe('proven')
+  const desigArt = cSafetyArtifactOf(desigSafe.safety!)!
+  expect(verifyCSafetyProof(desigArt.machine, desigArt.targetLaws, desigArt.jointProof)).toBe(true)
+
+  // Narrowing C-style cast inside a const table initializer ((uint8_t)(-1) == 255, not -1) must be refused.
+  const castInit = analyze(S + 'static const int32_t T[2] = {(uint8_t)(-1), 0};\nint32_t f(struct ring *r, int32_t i) { if (i >= 0 && i < 2) return r->a[T[i] + 1]; return 0; }\n')
+  expect(castInit.ok).toBe(false)
+  expect(castInit.safety?.status).toBe('unchecked')
+}, 180_000)
+
+withClang('Review Probe 7: bodyless prototypes refused; inline/trailing gdp: safety accepted and lookalike warned', async () => {
+  const H = '#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r) { return r->a[r->n]; }\n'
+  for (const [label, extra] of [
+    ['entry-proto', 'void set_n(struct ring *r, int32_t k);\n'],
+    ['const-entry-proto', 'void inspect_ext(const struct ring *r);\n'],
+    ['void-ptr-proto', 'void on_event(void *ctx);\n'],
+    ['scalar-ptr-proto', 'void poke(int32_t *p);\n'],
+    ['kr-noproto', 'void mystery();\n'],
+    ['ret-entry-proto', 'struct ring *make_ring(void);\n'],
+  ] as const) {
+    const res = analyze(H + extra)
+    expect(res.ok, `${label} must be refused`).toBe(false)
+    expect(res.safety?.status, `${label} must be unchecked`).toBe('unchecked')
+  }
+
+  // Positive control: forward prototype of a function defined in the same translation unit is allowed.
+  const fwdDefined = analyze(`#include <stdint.h>
+struct ring { int32_t n; int32_t a[8]; };
+int32_t get(struct ring *r);
+int32_t get(struct ring *r) { return r->a[r->n]; }
+`)
+  expect(fwdDefined.ok, JSON.stringify(fwdDefined.refusals)).toBe(true)
+  expect(fwdDefined.safety?.status).toBe('proven')
+
+  // CLI gdp: safety directive syntax: inline, trailing text, multiline block, lookalike warning, string literal ignored.
+  const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-tag-'))
+  try {
+    const variants: [string, string][] = [
+      ['trailing.c', '// gdp: safety (Stage 1 bounds)\nstruct ring { int slots[8]; };\nvoid put(struct ring *r, int i) { if (i >= 0 && i < 8) r->slots[i] = 1; }\n'],
+      ['inline_line.c', 'struct ring { int slots[8]; }; // gdp: safety\nvoid put(struct ring *r, int i) { if (i >= 0 && i < 8) r->slots[i] = 1; }\n'],
+      ['inline_block.c', 'struct ring { int slots[8]; };\nvoid put(struct ring *r, int i) /* gdp: safety: ring */ { if (i >= 0 && i < 8) r->slots[i] = 1; }\n'],
+      ['multiline.c', '/*\n * ring buffer\n * gdp: safety\n */\nstruct ring { int slots[8]; };\nvoid put(struct ring *r, int i) { if (i >= 0 && i < 8) r->slots[i] = 1; }\n'],
+    ]
+    for (const [fname, code] of variants) {
+      const f = join(dir, fname)
+      writeFileSync(f, code)
+      const res = await check([f], {entry: 'ring', propose: false})
+      expect(res.exit, `${fname} exit`).toBe(0)
+      expect(res.rules[0]?.safety, `${fname} safety`).toMatchObject({status: 'proven'})
+    }
+
+    // Lookalike comment (`// gdp: safe`) emits a clear warning note.
+    const typoFile = join(dir, 'typo.c')
+    writeFileSync(typoFile, '// gdp: safe\nstruct ring { int slots[8]; };\nvoid put(struct ring *r, int i) { if (i >= 0 && i < 8) r->slots[i] = 1; }\n')
+    const rTypo = await check([typoFile], {entry: 'ring', propose: false})
+    expect(rTypo.rules[0]?.safety).toBeUndefined()
+    expect(rTypo.rules[0]?.notes.join('\n')).toMatch(/looks like a gdp: safety directive/)
+
+    // String literal mentioning `// gdp: safety` does not activate safety mode.
+    const strDir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-str-'))
+    try {
+      const strFile = join(strDir, 'str.c')
+      writeFileSync(strFile, 'struct ring { int n; };\nvoid put(struct ring *r) { if (r->n < 4) r->n++; }\nstatic const char *tag = "// gdp: safety";\n')
+      const rStr = await check([strFile], {entry: 'ring', propose: false})
+      expect(rStr.rules[0]?.safety).toBeUndefined()
+    } finally {
+      rmSync(strDir, {recursive: true, force: true})
+    }
+  } finally {
+    rmSync(dir, {recursive: true, force: true})
+  }
+}, 120_000)
+
 test('removing an abstract bounds guard does not prove absence of alarms', () => {
   const checkAbs = (guarded: boolean) => {
     const r = rule('abstract access guard').inputs({request: bool, inBounds: bool}).state({alarm: bool.from(false)})

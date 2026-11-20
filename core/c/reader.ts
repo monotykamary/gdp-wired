@@ -439,11 +439,61 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     const kind = op === '/' || op === '%' ? 'division' : op !== '&' && T(t).signed ? 'overflow' : undefined
     return {checkedType: t, ...(kind ? {site: siteOf(n, kind)} : {})}
   }
+  // Clang's JSON AST emits array_filler as [filler, ...semanticInits] with no inner key when an
+  // InitListExpr has an array filler (partial or designated initializers). Handle both that form
+  // and a separated array_filler + inner form, and refuse unknown/union shapes.
+  const initListChildren = (n: CN): {elems: CN[], filler?: CN} | undefined => {
+    if (n.kind !== 'InitListExpr' || 'field' in n) return undefined
+    const rawFiller = n.array_filler as CN[] | CN | undefined
+    if (rawFiller === undefined) return {elems: n.inner ?? []}
+    if (Array.isArray(rawFiller)) {
+      if (!rawFiller.length) return undefined
+      if (n.inner === undefined) return {filler: rawFiller[0]!, elems: rawFiller.slice(1)}
+      if (rawFiller.length === 1) return {filler: rawFiller[0]!, elems: n.inner}
+      return undefined
+    }
+    if (typeof rawFiller === 'object' && rawFiller !== null && 'kind' in rawFiller && n.inner !== undefined)
+      return {filler: rawFiller, elems: n.inner}
+    return undefined
+  }
+  const isAllZeroInit = (n0: CN): boolean => {
+    const n = strip(n0)
+    if (n.kind === 'ImplicitValueInitExpr') return true
+    if (n.kind === 'InitListExpr') {
+      const il = initListChildren(n)
+      if (!il) return false
+      if (il.filler && strip(il.filler).kind !== 'ImplicitValueInitExpr') return false
+      return il.elems.every(isAllZeroInit)
+    }
+    return fold(n) === 0
+  }
+  const fitsIn = (v: bigint, t: TT): boolean => {
+    if (t.k === 'bool') return v === 0n || v === 1n
+    if (t.k !== 'int' || !t.bits || t.bits < 1 || t.bits > 32) return false
+    const lo = t.signed ? -(1n << BigInt(t.bits - 1)) : 0n
+    const hi = t.signed ? (1n << BigInt(t.bits - 1)) - 1n : (1n << BigInt(t.bits)) - 1n
+    return v >= lo && v <= hi
+  }
   const exactConstInit = (n0: CN, et: TT): number | undefined => {
     const n = strip(n0)
     if (n.kind === 'ImplicitValueInitExpr') return 0
     if (n.kind === 'ConstantExpr' && n.inner?.length === 1) return exactConstInit(n.inner[0]!, et)
-    if (CAST.has(n.kind) && ['IntegralCast', 'IntegralToBoolean', 'NoOp'].includes(n.castKind!) && n.inner?.length === 1) return exactConstInit(n.inner[0]!, et)
+    if (n.kind === 'ImplicitCastExpr' && n.inner?.length === 1) {
+      if (n.castKind === 'NoOp') return exactConstInit(n.inner[0]!, et)
+      if (n.castKind === 'IntegralCast') {
+        const ct = n.type ? T(tyOf(n.type)) : undefined
+        if (!ct) return undefined
+        const v = exactConstInit(n.inner[0]!, ct)
+        return v !== undefined && fitsIn(BigInt(v), et) ? v : undefined
+      }
+      if (n.castKind === 'IntegralToBoolean') {
+        const it = n.inner[0]?.type ? T(tyOf(n.inner[0].type)) : undefined
+        if (!it) return undefined
+        const v = exactConstInit(n.inner[0]!, it)
+        return v === undefined ? undefined : (v === 0 ? 0 : 1)
+      }
+      return undefined
+    }
     if (n.kind === 'CXXBoolLiteralExpr') return n.value ? 1 : 0
     let v: bigint | undefined
     if (n.kind === 'IntegerLiteral' && n.value !== undefined) v = BigInt(n.value)
@@ -452,11 +502,9 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       if (inner.kind === 'IntegerLiteral' && inner.value !== undefined) v = n.opcode === '-' ? -BigInt(inner.value) : BigInt(inner.value)
     }
     if (v === undefined) return undefined
+    if (n.type && !fitsIn(v, T(tyOf(n.type)))) return undefined
     if (et.k === 'bool') return v === 0n ? 0 : 1
-    if (et.k !== 'int' || !et.bits || et.bits < 1 || et.bits > 32) return undefined
-    const lo = et.signed ? -(1n << BigInt(et.bits - 1)) : 0n
-    const hi = et.signed ? (1n << BigInt(et.bits - 1)) - 1n : (1n << BigInt(et.bits)) - 1n
-    if (v < lo || v > hi) return undefined
+    if (!fitsIn(v, et)) return undefined
     return Number(v)
   }
   type SafetyTable = {g: CN, dims: number[], idx: CN[], nodes: CN[], vals: number[], elemT: number}
@@ -482,17 +530,25 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     if (!et || et.nullflag || !(et.k === 'bool' || et.k === 'int' && et.bits! > 0 && et.bits! <= 32)) return undefined
     const vals: number[] = []
     const fill = (v: CN | undefined, dim: number): boolean => {
+      if (!v) return false
+      const s0 = strip(v)
       if (dim === dims.length) {
-        const k = v ? exactConstInit(v, et) : 0
+        const k = exactConstInit(s0, et)
         if (k === undefined) return false
         vals.push(k); return true
       }
-      if (!v) { const count = dims.slice(dim).reduce((u, w) => u * w, 1); for (let i = 0; i < count; i++) vals.push(0); return true }
-      const s0 = strip(v)
-      if (s0.kind !== 'InitListExpr') return false
-      const kids = s0.inner ?? []
-      if (kids.length > dims[dim]! || kids.some(k => k.kind === 'DesignatedInitExpr')) return false
-      for (let i = 0; i < dims[dim]!; i++) if (!fill(kids[i], dim + 1)) return false
+      if (s0.kind === 'ImplicitValueInitExpr') {
+        const count = dims.slice(dim).reduce((u, w) => u * w, 1)
+        for (let i = 0; i < count; i++) vals.push(0)
+        return true
+      }
+      const il = initListChildren(s0)
+      if (!il) return false
+      const {elems, filler} = il
+      if (elems.length > dims[dim]! || elems.some(k => k.kind === 'DesignatedInitExpr' || k.kind === 'DesignatedInitUpdateExpr' || k.kind === 'NoInitExpr')) return false
+      if (filler && strip(filler).kind !== 'ImplicitValueInitExpr') return false
+      if (elems.length < dims[dim]! && !filler) return false
+      for (let i = 0; i < dims[dim]!; i++) if (!fill(i < elems.length ? elems[i] : filler, dim + 1)) return false
       return true
     }
     if (!fill(g.inner[0], 0) || vals.length !== total) return undefined
@@ -560,34 +616,6 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   // (a float's value: left out, a value nothing the rule keeps may read; one read into an integer, a condition or a
   // comparison is refused there. Its operands are the code's measurements: an assignment or a call of the file's own
   // inside it is refused, its effect would be lost.)
-  // Clang's JSON AST emits array_filler as [filler, ...semanticInits] with no inner key when an
-  // InitListExpr has an array filler (partial or designated initializers). Handle both that form
-  // and a separated array_filler + inner form, and refuse unknown/union shapes.
-  const initListChildren = (n: CN): {elems: CN[], filler?: CN} | undefined => {
-    if (n.kind !== 'InitListExpr' || 'field' in n) return undefined
-    const rawFiller = n.array_filler as CN[] | CN | undefined
-    if (rawFiller === undefined) return {elems: n.inner ?? []}
-    if (Array.isArray(rawFiller)) {
-      if (!rawFiller.length) return undefined
-      if (n.inner === undefined) return {filler: rawFiller[0]!, elems: rawFiller.slice(1)}
-      if (rawFiller.length === 1) return {filler: rawFiller[0]!, elems: n.inner}
-      return undefined
-    }
-    if (typeof rawFiller === 'object' && rawFiller !== null && 'kind' in rawFiller && n.inner !== undefined)
-      return {filler: rawFiller, elems: n.inner}
-    return undefined
-  }
-  const isAllZeroInit = (n0: CN): boolean => {
-    const n = strip(n0)
-    if (n.kind === 'ImplicitValueInitExpr') return true
-    if (n.kind === 'InitListExpr') {
-      const il = initListChildren(n)
-      if (!il) return false
-      if (il.filler && strip(il.filler).kind !== 'ImplicitValueInitExpr') return false
-      return il.elems.every(isAllZeroInit)
-    }
-    return fold(n) === 0
-  }
   // A constant table read at indices (a transition table, a lookup; a const or constexpr array, a class's static one):
   // its entry by cases on the indices, each index outside its dimension undefined behavior, the step's failure (checked
   // before the statement, so the index must be free of side effects and read where the statement surely reads it).
@@ -1210,7 +1238,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
           }
           return bad(n, `a ${n.opcode} expression`)
         case 'ConditionalOperator': return kids.map(k => expr(k, receiver, outParams, inInit)).some(Boolean)
-        case 'InitListExpr': if (kids.length <= 1) return !!l && expr(l, receiver, outParams, inInit); break
+        case 'InitListExpr': if (n.array_filler === undefined && kids.length <= 1) return !!l && expr(l, receiver, outParams, inInit); break
         case 'CallExpr': return validateCall(n, receiver, outParams, inInit, false)
       }
       return bad(n, n.kind)
@@ -1339,8 +1367,8 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     // non-first-parameter functions, and void*/pointer callbacks). Only functions proven unable
     // to write modeled state or escape pointers may coexist outside the selected event set.
     const hasUnsafePtrType = (raw: string): boolean => /\bvoid\s*\*|\(\s*\*|\*\s*\*/.test(raw)
-    const typeMentionsEntry = (ty?: {qualType: string, desugaredQualType?: string}): boolean => {
-      if (!entryRec || !ty) return false
+    const typeIdxMentionsEntry = (start: number): boolean => {
+      if (!entryRec || start < 0) return false
       const seen = new Set<number>()
       const check = (idx: number): boolean => {
         if (seen.has(idx)) return false
@@ -1352,8 +1380,10 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         if (q.fields?.some(fl => check(fl.t))) return true
         return false
       }
-      return check(tyOf(ty))
+      return check(start)
     }
+    const typeMentionsEntry = (ty?: {qualType: string, desugaredQualType?: string}): boolean =>
+      !!entryRec && !!ty && typeIdxMentionsEntry(tyOf(ty))
     const verifiedReadOnly = new Set<string>()
     const checkUnselectedSafe = (name: string, f: CN, stack: Set<string>): void => {
       if (verifiedReadOnly.has(name)) return
@@ -1378,6 +1408,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       stack.add(name)
       try {
         const walkRo = (n: CN): void => {
+          if (n.kind === 'FunctionDecl') bad(n, `unselected function ${name} declares external function ${n.name ?? ''}`)
           if (n.type && hasUnsafePtrType(`${n.type.qualType} ${n.type.desugaredQualType ?? ''}`))
             bad(n, `unselected function ${name} uses void* or indirect pointer`)
           if (n.kind === 'VarDecl') {
@@ -1429,8 +1460,10 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       if (f.storageClass === 'static' && validatedHelpers.has(name)) continue
       checkUnselectedSafe(name, f, new Set())
     }
-    // Also reject any non-own TU function body (e.g. header outside root) that accesses modeled state,
-    // and any main-file global initializer that escapes a function address.
+    // Reject bodyless external function prototypes that could write modeled state (any prototype in
+    // the TU referencing the entry struct, and any own-file/project prototype taking pointers,
+    // indirect/function pointers, non-scalar values, variadics, or K&R unprototyped arguments),
+    // any non-own TU function body accessing modeled state, and main-file global fn-ptr escapes.
     const scanForeignStateAccess = (n: CN, fnName: string): void => {
       if (n.kind === 'MemberExpr' && entryRec && fields.get(n.referencedMemberDecl ?? '')?.rec === entryRec)
         bad(n, `external header function ${fnName} accesses entry struct ${entry}`)
@@ -1441,8 +1474,31 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       for (const c of n.inner ?? []) scanForeignStateAccess(c, fnName)
     }
     for (const n of top) {
-      if (n.kind === 'FunctionDecl' && !own(n) && n.inner?.some(c => c.kind === 'CompoundStmt'))
-        scanForeignStateAccess(n, n.name ?? '<anonymous>')
+      if (n.kind === 'FunctionDecl' && !n.isImplicit) {
+        const hasBody = !!n.inner?.some(c => c.kind === 'CompoundStmt')
+        if (!hasBody && !(n.name && funcs.has(n.name))) {
+          const fnName = n.name ?? '<anonymous>'
+          const ps = params(n)
+          const qt = n.type?.qualType ?? ''
+          const retIdx = qt ? parseT(qt.slice(0, retEnd(qt))) : -1
+          if (typeIdxMentionsEntry(retIdx) || ps.some(q => typeMentionsEntry(q.type)))
+            bad(n, `external function prototype ${fnName} references entry struct ${entry} with no body in this translation unit`)
+          if (own(n)) {
+            if (n.variadic || (ps.length === 0 && /\(\s*\)$/.test(qt)))
+              bad(n, `external function prototype ${fnName} has no body and an unclosed parameter list`)
+            if (retIdx >= 0 && !['void', 'bool', 'int'].includes(T(retIdx).k))
+              bad(n, `external function prototype ${fnName} returns non-scalar type ${T(retIdx).go ?? T(retIdx).k} with no body in this translation unit`)
+            for (const q of ps) {
+              const raw = `${q.type?.qualType ?? ''} ${q.type?.desugaredQualType ?? ''}`
+              const pt = q.type ? T(tyOf(q.type)) : undefined
+              if (hasUnsafePtrType(raw) || !pt || !['int', 'bool'].includes(pt.k))
+                bad(q, `external function prototype ${fnName} takes pointer or non-scalar parameter ${q.name ?? ''} with no body in this translation unit`)
+            }
+          }
+        } else if (hasBody && !own(n)) {
+          scanForeignStateAccess(n, n.name ?? '<anonymous>')
+        }
+      }
       if (n.kind === 'VarDecl' && mine(n) && n.init) {
         const scanInit = (c: CN): void => {
           if (c.kind === 'DeclRefExpr' && c.referencedDecl?.kind === 'FunctionDecl')
