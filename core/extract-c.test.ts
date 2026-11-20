@@ -419,3 +419,74 @@ t('reader fuzz 693042: a wrapping initializer needing division is refused before
   expect(x.ok).toBe(false)
   expect(x.refusals[0]!.what).toMatch(/division or remainder in an initializer.*outside the reader's start-expression subset/)
 }, 60_000)
+
+t('default C const tables read array_filler partial and designated initializers in semantic order (small, mid-idx, 2-D, cast-init)', () => {
+  const H = '#include <stdint.h>\n#include <stdbool.h>\n'
+  const S = H + 'struct ring { int32_t n; };\n'
+  // Every partial/designated const table extracts cleanly (0 differential mismatch) and refutes a false n == 0 law.
+  const valueCases: [string, string, string, Partial<COptions>?][] = [
+    ['t1-designated', S + 'static const int32_t T[4] = {[3] = 9};\nvoid f(struct ring *r, int32_t i) { if (i >= 1 && i < 4) r->n = T[i]; }\n', 'ring'],
+    ['t2-partial', S + 'static const int32_t T[4] = {1, 2};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 4) r->n = T[i] + 6; }\n', 'ring'],
+    ['t4-desig-over', S + 'static const int32_t T[3] = {7, [0] = 8};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 1) r->n = T[i]; }\n', 'ring'],
+    ['u1-value', S + 'static const int32_t K[2] = {65536};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 2) r->n = K[i]; }\n', 'ring'],
+    ['u2-value', S + 'static const int32_t K[2] = {1};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 2) r->n = K[i]; }\n', 'ring'],
+    ['u3-2d-partial', S + 'static const int32_t T[2][2] = {{0}, {9}};\nvoid f(struct ring *r, int32_t i, int32_t j) { if (i >= 0 && i < 2 && j >= 0 && j < 2) r->n = T[i][j]; }\n', 'ring'],
+    ['u4-ring-next', S + 'static const uint8_t NEXT[8] = {1, 2, 3, 4, 5, 6, 8};\nvoid adv(struct ring *r) { if (r->n >= 0 && r->n < 8) r->n = NEXT[r->n]; }\n', 'ring'],
+    ['u5-gmode-table', H + 'static int32_t n;\nstatic const int32_t STEP[4] = {9};\nvoid put(int32_t k) { if (k >= 0 && k < 4) n = STEP[k]; }\n', 'case', {methods: ['put']}],
+    ['mid-idx-64', S + 'static const int32_t T[64] = {[37] = 9};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 64) r->n = T[i]; }\n', 'ring'],
+    ['mid-idx-200', S + 'static const int32_t T[200] = {[137] = 9};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 200) r->n = T[i]; }\n', 'ring'],
+    ['2d-16x16', S + 'static const int32_t T[16][16] = {[7][11] = 9};\nvoid f(struct ring *r, int32_t i, int32_t j) { if (i >= 0 && i < 16 && j >= 0 && j < 16) r->n = T[i][j]; }\n', 'ring'],
+  ]
+  for (const [label, code, entry, opts] of valueCases) {
+    const x = ok(c(code, entry, opts))
+    const falseLaw = buildLaw(x, {name: `${label}: n stays zero`, expr: 'n == 0'}).law
+    const res = proveRule(x.rule!, [...(x.invariants ?? []), falseLaw])
+    expect(res.proven, `${label} must refute false n == 0 law`).toBe(false)
+    expect(res.run, `${label} must produce a concrete counterexample`).toBeDefined()
+  }
+
+  // Positive controls on sparse 1-D and 2-D tables: true laws prove with native cross-check.
+  const mid64 = ok(c(S + 'static const int32_t T[64] = {[37] = 9};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 64) r->n = T[i]; }\n', 'ring'))
+  native(proveRule(mid64.rule!, [...(mid64.invariants ?? []), buildLaw(mid64, {name: 'mid-idx-64: n is 0 or 9', expr: 'n == 0 or n == 9'}).law]), 'mid-idx-64: n is 0 or 9')
+  const sparse2d = ok(c(S + 'static const int32_t T[16][16] = {[7][11] = 9};\nvoid f(struct ring *r, int32_t i, int32_t j) { if (i >= 0 && i < 16 && j >= 0 && j < 16) r->n = T[i][j]; }\n', 'ring'))
+  native(proveRule(sparse2d.rule!, [...(sparse2d.invariants ?? []), buildLaw(sparse2d, {name: '2d-16x16: n is 0 or 9', expr: 'n == 0 or n == 9'}).law]), '2d-16x16: n is 0 or 9')
+
+  // Narrowing cast initializers ((uint8_t)(-1) == 255, (int8_t)255 == -1) wrap in C across both full and partial tables.
+  for (const [label, decl] of [
+    ['cast-init-full', 'static const int32_t T[2] = {(uint8_t)(-1), 0};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 2) r->n = T[i]; }\n'],
+    ['cast-init-partial', 'static const int32_t T[64] = {[37] = (uint8_t)(-1)};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 64) r->n = T[i]; }\n'],
+  ] as const) {
+    const x = ok(c(S + decl, 'ring'))
+    for (const falseExpr of ['n == 0', 'n == 0 or n == -1']) {
+      const res = proveRule(x.rule!, [...(x.invariants ?? []), buildLaw(x, {name: `${label}: ${falseExpr}`, expr: falseExpr}).law])
+      expect(res.proven, `${label} must refute ${falseExpr}`).toBe(false)
+      expect(res.run, `${label} counterexample for ${falseExpr}`).toBeDefined()
+    }
+    native(proveRule(x.rule!, [...(x.invariants ?? []), buildLaw(x, {name: `${label}: n is 0 or 255`, expr: 'n == 0 or n == 255'}).law]), `${label}: n is 0 or 255`)
+  }
+  const signedCast = ok(c(S + 'static const int32_t T[4] = {[2] = (int8_t)255};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 4) r->n = T[i]; }\n', 'ring'))
+  const scFalse = proveRule(signedCast.rule!, [...(signedCast.invariants ?? []), buildLaw(signedCast, {name: 'int8-cast: n stays zero', expr: 'n == 0'}).law])
+  expect(scFalse.proven).toBe(false)
+  expect(scFalse.run).toBeDefined()
+  native(proveRule(signedCast.rule!, [...(signedCast.invariants ?? []), buildLaw(signedCast, {name: 'int8-cast: n is 0 or -1', expr: 'n == 0 or n == -1'}).law]), 'int8-cast: n is 0 or -1')
+
+  // Exact u1 (K[i] * x) and u2 (x / (K[i] + 1)) must not collapse K to all zeros on the default path.
+  const u1Mul = c(S + 'static const int32_t K[2] = {65536};\nvoid f(struct ring *r, int32_t i, int32_t x) { if (i >= 0 && i < 2 && x >= 0 && x < 65536) r->n = K[i] * x; }\n', 'ring')
+  expect(u1Mul.ok).toBe(false)
+  const u2Div = c(S + 'static const int32_t K[2] = {1};\nvoid f(struct ring *r, int32_t i, int32_t x) { if (i >= 0 && i < 2) r->n = x / (K[i] + 1); }\n', 'ring')
+  expect(u2Div.ok).toBe(false)
+
+  // String-literal const tables, non-zero mutable static global arrays, and C++ non-zero array fields must not collapse to zeros.
+  const strTab = c(S + 'static const char T[8] = "hi";\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 8) r->n = T[i]; }\n', 'ring')
+  expect(strTab.ok).toBe(false)
+  const nonZeroArr = c(H + 'static int32_t buf[4] = {9};\nstatic int32_t cur;\nvoid put(void) { cur = buf[0]; }\n', 'case')
+  expect(nonZeroArr.ok).toBe(false)
+  const cppNonZeroArr = cpp('#include <cstdint>\nclass K {\n public:\n  int32_t buf[4] = {9};\n  int32_t n = 0;\n  void f() { n = buf[0]; }\n};\n', 'K')
+  expect(cppNonZeroArr.ok).toBe(false)
+
+  // C++ static constexpr partial const table also reads array_filler in semantic order.
+  const cppTab = ok(cpp('#include <cstdint>\nclass K {\n public:\n  int32_t n = 0;\n  static constexpr int32_t T[16] = {0, 0, 9};\n  void f(int32_t i) { if (i >= 0 && i < 16) n = T[i]; }\n};\n', 'K'))
+  const cppRes = proveRule(cppTab.rule!, [...(cppTab.invariants ?? []), buildLaw(cppTab, {name: 'cpp-constexpr: n stays zero', expr: 'n == 0'}).law])
+  expect(cppRes.proven).toBe(false)
+  expect(cppRes.run).toBeDefined()
+}, 180_000)

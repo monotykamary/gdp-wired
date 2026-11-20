@@ -117,7 +117,14 @@ function locate(root: CN) {
       else if (k === 'range') { n.$b = at(n.range!.begin); n.$e = at(n.range!.end) }
       // (doc comments, FullComment and its parts, are no code)
       // (a for's absent parts are empty objects, kind-less)
-      else if (k === 'inner') { n.inner = n.inner!.filter(c => !(c.kind ?? '').endsWith('Comment')); for (const c of n.inner) walk(c) }
+      else if (k === 'inner' || k === 'array_filler') {
+        const val = n[k]
+        if (Array.isArray(val)) {
+          const filtered = (val as CN[]).filter(c => !(c.kind ?? '').endsWith('Comment'))
+          n[k] = filtered
+          for (const c of filtered) walk(c)
+        } else if (val && typeof val === 'object') walk(val as CN)
+      }
     }
     n.$at ??= n.$b
   }
@@ -444,6 +451,34 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   // (a float's value: left out, a value nothing the rule keeps may read; one read into an integer, a condition or a
   // comparison is refused there. Its operands are the code's measurements: an assignment or a call of the file's own
   // inside it is refused, its effect would be lost.)
+  // Clang's JSON AST emits array_filler as [filler, ...semanticInits] with no inner key when an
+  // InitListExpr has an array filler (partial or designated initializers). Handle both that form
+  // and a separated array_filler + inner form, and refuse unknown/union shapes.
+  const initListChildren = (n: CN): {elems: CN[], filler?: CN} | undefined => {
+    if (n.kind !== 'InitListExpr' || 'field' in n) return undefined
+    const rawFiller = n.array_filler as CN[] | CN | undefined
+    if (rawFiller === undefined) return {elems: n.inner ?? []}
+    if (Array.isArray(rawFiller)) {
+      if (!rawFiller.length) return undefined
+      if (n.inner === undefined) return {filler: rawFiller[0]!, elems: rawFiller.slice(1)}
+      if (rawFiller.length === 1) return {filler: rawFiller[0]!, elems: n.inner}
+      return undefined
+    }
+    if (typeof rawFiller === 'object' && rawFiller !== null && 'kind' in rawFiller && n.inner !== undefined)
+      return {filler: rawFiller, elems: n.inner}
+    return undefined
+  }
+  const isAllZeroInit = (n0: CN): boolean => {
+    const n = strip(n0)
+    if (n.kind === 'ImplicitValueInitExpr') return true
+    if (n.kind === 'InitListExpr') {
+      const il = initListChildren(n)
+      if (!il) return false
+      if (il.filler && strip(il.filler).kind !== 'ImplicitValueInitExpr') return false
+      return il.elems.every(isAllZeroInit)
+    }
+    return fold(n) === 0
+  }
   // A constant table read at indices (a transition table, a lookup; a const or constexpr array, a class's static one):
   // its entry by cases on the indices, each index outside its dimension undefined behavior, the step's failure (checked
   // before the statement, so the index must be free of side effects and read where the statement surely reads it).
@@ -462,9 +497,18 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     const dims: number[] = [...qt.matchAll(/\[(\d+)\]/g)].map(m => Number(m[1]))
     if (dims.length !== idx.length || !['int', 'bool'].includes(T(t).k)) return no(n, `${text(n)}: a table read other than at every one of its dimensions`)
     const val = (v: CN | undefined, path: number[], k: number): number => {
-      if (k === dims.length) { const f = v ? fold(v) : 0; return f ?? NaN }
-      const s0 = v ? strip(v) : undefined, kids = s0?.kind === 'InitListExpr' ? (s0.inner ?? []) : []
-      return val(kids[path[k]!], path, k + 1)
+      if (!v) return NaN
+      const s0 = strip(v)
+      if (s0.kind === 'ImplicitValueInitExpr') return 0
+      if (k === dims.length) { const f = fold(s0); return f ?? NaN }
+      const il = initListChildren(s0)
+      if (!il) return NaN
+      const {elems, filler} = il
+      if (elems.length > dims[k]! || elems.some(c => c.kind === 'DesignatedInitExpr' || c.kind === 'DesignatedInitUpdateExpr' || c.kind === 'NoInitExpr')) return NaN
+      if (filler && strip(filler).kind !== 'ImplicitValueInitExpr') return NaN
+      if (elems.length < dims[k]! && !filler) return NaN
+      const i = path[k]!
+      return val(i < elems.length ? elems[i] : filler, path, k + 1)
     }
     if (idx.some(effects)) return no(n, `${text(n)}: a table read at an index with a side effect`)
     if (!pending || guarded) return no(n, `${text(n)}: a table read on some paths of an expression (the right of && or ||, a branch of ?:)`)
@@ -577,6 +621,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       case 'CompoundLiteralExpr': return x(kids[0]!)
       case 'InitListExpr': {
         // A struct's initializer: clang's semantic form lists every field, one not given an implicit zero.
+        if (n.array_filler !== undefined) return no(n, `${text(n)}: an array initializer of a ${n.type!.qualType}`)
         const tt = T(t)
         // (a scalar's braces, C++'s {v} and {})
         if ((tt.k === 'int' || tt.k === 'bool') && kids.length <= 1) return kids.length ? x(kids[0]!) : lit(n, 0, t)
@@ -811,7 +856,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     const pre: GS[] = []
     for (const g of gnodes) {
       const v = g.init ? (g.inner ?? []).find(c => !c.kind.endsWith('Attr')) : undefined, t = tyOf(g.type!)
-      const empty = !v || (strip(v).kind === 'InitListExpr' && (strip(v).inner ?? []).every(c => c.kind === 'ImplicitValueInitExpr'))
+      const empty = !v || isAllZeroInit(v)
       // (C's zero, leaf by leaf: each integer and boolean of it 0, an array a list of zeros already)
       const zeros = (tt: number, place: GX) => {
         const k = T(tt).k
@@ -834,7 +879,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     const pre: GS[] = []
     for (const [id, v0] of inits) {
       const f = fieldNode.get(id)!, ft = T(tyOf(f.type!)), v = strip(v0)
-      if (ft.mutex || (v.kind === 'InitListExpr' && (v.inner ?? []).every(k => k.kind === 'ImplicitValueInitExpr'))) continue
+      if (ft.mutex || (v.kind === 'InitListExpr' && isAllZeroInit(v))) continue
       if (v.kind === 'CXXConstructExpr' && !v.inner?.length) continue
       pre.push({s: 'assign', p: pos(v0), op: '=', l: [{e: 'sel', ...at(v0, tyOf(f.type!)), k: 'field', x: {e: 'id', ...at(v0, add(`ptr:${entryT}`, {k: 'ptr', go: `${entry} *`, elem: entryT})), o: 'var', id: 'this', n: 'this'}, path: [fields.get(id)!.i]}], r: [x(v)]})
     }
