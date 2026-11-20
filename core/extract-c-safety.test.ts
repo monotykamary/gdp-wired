@@ -1,12 +1,12 @@
 // C memory & UB safety tests (Stage 1): first-fault model, pre-lowering site accounting,
 // Astra soundness controls, off-by-one corpus mutants with ASan/UBSan replay, and CLI opt-in.
 import {expect, test} from 'bun:test'
-import {execFileSync} from 'node:child_process'
+import {execFileSync, spawnSync} from 'node:child_process'
 import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {proveLaws} from '../kernel/prove.ts'
-import {check, main} from './cli.ts'
+import {check} from './cli.ts'
 import {clangDump, readC} from './c/reader.ts'
 import {analyzeCSafety, cSafetyArtifactOf, verifyCSafetyProof, type CSafetyProofBundle} from './c/safety.ts'
 import {bool, rule} from './dsl.ts'
@@ -1008,22 +1008,12 @@ int32_t get(struct ring *r) { return r->a[r->n]; }
   }
 }, 120_000)
 
-const runCliText = async (argv: string[]): Promise<{code: number, out: string}> => {
-  let out = ''
-  const orig = process.stdout.write
-  process.stdout.write = ((chunk: string | Uint8Array) => {
-    out += typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8')
-    return true
-  }) as typeof process.stdout.write
-  try {
-    const code = await main(argv)
-    return {code, out}
-  } finally {
-    process.stdout.write = orig
-  }
+const runCliText = (argv: string[]): {code: number, out: string} => {
+  const proc = spawnSync(process.execPath, [new URL('./cli.ts', import.meta.url).pathname, ...argv], {encoding: 'utf8'})
+  return {code: proc.status ?? -1, out: proc.stdout ?? ''}
 }
 
-withClang('Review Probe 8: closed-TU function coverage (probe4 cli1/cli2/u01-u05/x04-x06/e05-e06) and explicit covered verdict', async () => {
+withClang('Review Probe 8: closed-TU function coverage (probe4 cli1/cli2/u01-u05/x04-x06/e05-e06) and explicit covered verdict', () => {
   const H = '#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\n'
 
   // Unchecked function-body variants from probe4 (s3 u01-u05, s7 x04-x06):
@@ -1067,7 +1057,7 @@ int32_t peek(int32_t i, struct ring *r) { return r->a[i]; }
 int32_t inc(int32_t x) { return x + 1; }
 int32_t dv(int32_t x, int32_t y) { return x / y; }
 `)
-    const r1 = await runCliText(['check', '--no-propose', cli1])
+    const r1 = runCliText(['check', '--no-propose', cli1])
     expect(r1.code).toBe(2)
     expect(r1.out).toContain('unchecked (covers: get)')
     expect(r1.out).toContain('unchecked functions: peek, inc, dv')
@@ -1080,7 +1070,7 @@ int32_t get(struct ring *r) { return r->a[r->n]; }
 int32_t peek(int32_t z, struct ring *r) { return r->a[r->n]; }
 int32_t peekv(struct ring r) { return r.a[r.n]; }
 `)
-    const r2 = await runCliText(['check', '--no-propose', cli2])
+    const r2 = runCliText(['check', '--no-propose', cli2])
     expect(r2.code).toBe(2)
     expect(r2.out).toContain('unchecked (covers: get)')
     expect(r2.out).toContain('unchecked functions: peek, peekv')
@@ -1094,7 +1084,7 @@ static int32_t clamp8(int32_t i) { return (i >= 0 && i < 8) ? i : 0; }
 int32_t get(struct ring *r) { return r->a[clamp8(r->n)]; }
 void set(struct ring *r, int32_t i, int32_t v) { if (i >= 0 && i < 8) r->a[i] = v; }
 `)
-    const rCov = await runCliText(['check', '--no-propose', covFile])
+    const rCov = runCliText(['check', '--no-propose', covFile])
     expect(rCov.code).toBe(0)
     expect(rCov.out).toContain('proven (covers: get, set; static helpers inlined: clamp8)')
   } finally {
@@ -1150,7 +1140,7 @@ withClang('Review Probe 9: SAFETY_TAG_RE variants (t1-t10), C23 digit separators
     ] as const) {
       const f = join(dir, fname)
       writeFileSync(f, header + safeBody)
-      const rText = await runCliText(['check', '--entry', 'ring', '--no-propose', f])
+      const rText = runCliText(['check', '--entry', 'ring', '--no-propose', f])
       expect(rText.code, `${fname} lookalike must exit 2`).toBe(2)
       expect(rText.out, `${fname} lookalike must print warning in TEXT output`).toMatch(/warning:.*looks like a gdp: safety directive/)
     }
