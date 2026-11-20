@@ -445,48 +445,67 @@ t('default C const tables read array_filler partial and designated initializers 
     expect(res.run, `${label} must produce a concrete counterexample`).toBeDefined()
   }
 
-  // Positive controls on sparse 1-D and 2-D tables: true laws prove with native cross-check.
+  // Position-sensitive proofs on sparse 1-D and 2-D tables: pin the exact non-zero index and every other index to 0.
+  const pinSteps = (x: X, label: string, method: string, exprs: string[]) => {
+    for (const expr of exprs) native(proveSteps(x.rule!, x.invariants ?? [], [buildLaw(x, {name: `${label}: ${expr}`, expr, method}).law]), `${label}: ${expr}`)
+  }
   const mid64 = ok(c(S + 'static const int32_t T[64] = {[37] = 9};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 64) r->n = T[i]; }\n', 'ring'))
+  pinSteps(mid64, 'mid-idx-64', 'f', ['i == 37 implies n == 9', 'i >= 0 and i < 64 and i != 37 implies n == 0'])
   native(proveRule(mid64.rule!, [...(mid64.invariants ?? []), buildLaw(mid64, {name: 'mid-idx-64: n is 0 or 9', expr: 'n == 0 or n == 9'}).law]), 'mid-idx-64: n is 0 or 9')
+  const mid200 = ok(c(S + 'static const int32_t T[200] = {[137] = 9};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 200) r->n = T[i]; }\n', 'ring'))
+  pinSteps(mid200, 'mid-idx-200', 'f', ['i == 137 implies n == 9', 'i >= 0 and i < 200 and i != 137 implies n == 0'])
+  native(proveRule(mid200.rule!, [...(mid200.invariants ?? []), buildLaw(mid200, {name: 'mid-idx-200: n is 0 or 9', expr: 'n == 0 or n == 9'}).law]), 'mid-idx-200: n is 0 or 9')
   const sparse2d = ok(c(S + 'static const int32_t T[16][16] = {[7][11] = 9};\nvoid f(struct ring *r, int32_t i, int32_t j) { if (i >= 0 && i < 16 && j >= 0 && j < 16) r->n = T[i][j]; }\n', 'ring'))
+  pinSteps(sparse2d, '2d-16x16', 'f', ['i == 7 and j == 11 implies n == 9', 'i >= 0 and i < 16 and j >= 0 and j < 16 and (i != 7 or j != 11) implies n == 0'])
   native(proveRule(sparse2d.rule!, [...(sparse2d.invariants ?? []), buildLaw(sparse2d, {name: '2d-16x16: n is 0 or 9', expr: 'n == 0 or n == 9'}).law]), '2d-16x16: n is 0 or 9')
 
   // Narrowing cast initializers ((uint8_t)(-1) == 255, (int8_t)255 == -1) wrap in C across both full and partial tables.
-  for (const [label, decl] of [
-    ['cast-init-full', 'static const int32_t T[2] = {(uint8_t)(-1), 0};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 2) r->n = T[i]; }\n'],
-    ['cast-init-partial', 'static const int32_t T[64] = {[37] = (uint8_t)(-1)};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 64) r->n = T[i]; }\n'],
-  ] as const) {
+  for (const [label, decl, pin] of [
+    ['cast-init-full', 'static const int32_t T[2] = {(uint8_t)(-1), 0};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 2) r->n = T[i]; }\n',
+      ['i == 0 implies n == 255', 'i == 1 implies n == 0']],
+    ['cast-init-partial', 'static const int32_t T[64] = {[37] = (uint8_t)(-1)};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 64) r->n = T[i]; }\n',
+      ['i == 37 implies n == 255', 'i >= 0 and i < 64 and i != 37 implies n == 0']],
+  ] as [string, string, string[]][]) {
     const x = ok(c(S + decl, 'ring'))
     for (const falseExpr of ['n == 0', 'n == 0 or n == -1']) {
       const res = proveRule(x.rule!, [...(x.invariants ?? []), buildLaw(x, {name: `${label}: ${falseExpr}`, expr: falseExpr}).law])
       expect(res.proven, `${label} must refute ${falseExpr}`).toBe(false)
       expect(res.run, `${label} counterexample for ${falseExpr}`).toBeDefined()
     }
+    pinSteps(x, label, 'f', pin)
     native(proveRule(x.rule!, [...(x.invariants ?? []), buildLaw(x, {name: `${label}: n is 0 or 255`, expr: 'n == 0 or n == 255'}).law]), `${label}: n is 0 or 255`)
   }
   const signedCast = ok(c(S + 'static const int32_t T[4] = {[2] = (int8_t)255};\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 4) r->n = T[i]; }\n', 'ring'))
   const scFalse = proveRule(signedCast.rule!, [...(signedCast.invariants ?? []), buildLaw(signedCast, {name: 'int8-cast: n stays zero', expr: 'n == 0'}).law])
   expect(scFalse.proven).toBe(false)
   expect(scFalse.run).toBeDefined()
+  pinSteps(signedCast, 'int8-cast', 'f', ['i == 2 implies n == -1', 'i >= 0 and i < 4 and i != 2 implies n == 0'])
   native(proveRule(signedCast.rule!, [...(signedCast.invariants ?? []), buildLaw(signedCast, {name: 'int8-cast: n is 0 or -1', expr: 'n == 0 or n == -1'}).law]), 'int8-cast: n is 0 or -1')
 
-  // Exact u1 (K[i] * x) and u2 (x / (K[i] + 1)) must not collapse K to all zeros on the default path.
+  // Exact u1 (K[i] * x) and u2 (x / (K[i] + 1)) must be refused statically (never collapsed to zero and failing only in checkC).
   const u1Mul = c(S + 'static const int32_t K[2] = {65536};\nvoid f(struct ring *r, int32_t i, int32_t x) { if (i >= 0 && i < 2 && x >= 0 && x < 65536) r->n = K[i] * x; }\n', 'ring')
   expect(u1Mul.ok).toBe(false)
+  expect(u1Mul.refusals[0]!.what).toMatch(/product of two numbers|multiplies only by constants/)
   const u2Div = c(S + 'static const int32_t K[2] = {1};\nvoid f(struct ring *r, int32_t i, int32_t x) { if (i >= 0 && i < 2) r->n = x / (K[i] + 1); }\n', 'ring')
   expect(u2Div.ok).toBe(false)
+  expect(u2Div.refusals[0]!.what).toMatch(/\/ by other than a constant/)
 
-  // String-literal const tables, non-zero mutable static global arrays, and C++ non-zero array fields must not collapse to zeros.
+  // String-literal const tables, non-zero mutable static global arrays, and C++ non-zero array fields must be refused up front.
   const strTab = c(S + 'static const char T[8] = "hi";\nvoid f(struct ring *r, int32_t i) { if (i >= 0 && i < 8) r->n = T[i]; }\n', 'ring')
   expect(strTab.ok).toBe(false)
+  expect(strTab.refusals[0]!.what).toMatch(/an entry that isn't a constant integer/)
   const nonZeroArr = c(H + 'static int32_t buf[4] = {9};\nstatic int32_t cur;\nvoid put(void) { cur = buf[0]; }\n', 'case')
   expect(nonZeroArr.ok).toBe(false)
+  expect(nonZeroArr.refusals[0]!.what).toMatch(/an array initializer of a int32_t\[4\]/)
   const cppNonZeroArr = cpp('#include <cstdint>\nclass K {\n public:\n  int32_t buf[4] = {9};\n  int32_t n = 0;\n  void f() { n = buf[0]; }\n};\n', 'K')
   expect(cppNonZeroArr.ok).toBe(false)
+  expect(cppNonZeroArr.refusals[0]!.what).toMatch(/an array initializer of a int32_t\[4\]/)
 
-  // C++ static constexpr partial const table also reads array_filler in semantic order.
+  // C++ static constexpr partial const table also reads array_filler in semantic order (both refutation and positive proofs).
   const cppTab = ok(cpp('#include <cstdint>\nclass K {\n public:\n  int32_t n = 0;\n  static constexpr int32_t T[16] = {0, 0, 9};\n  void f(int32_t i) { if (i >= 0 && i < 16) n = T[i]; }\n};\n', 'K'))
   const cppRes = proveRule(cppTab.rule!, [...(cppTab.invariants ?? []), buildLaw(cppTab, {name: 'cpp-constexpr: n stays zero', expr: 'n == 0'}).law])
   expect(cppRes.proven).toBe(false)
   expect(cppRes.run).toBeDefined()
+  pinSteps(cppTab, 'cpp-constexpr', 'f', ['i == 2 implies n == 9', 'i >= 0 and i < 16 and i != 2 implies n == 0'])
+  native(proveRule(cppTab.rule!, [...(cppTab.invariants ?? []), buildLaw(cppTab, {name: 'cpp-constexpr: n is 0 or 9', expr: 'n == 0 or n == 9'}).law]), 'cpp-constexpr: n is 0 or 9')
 }, 180_000)
