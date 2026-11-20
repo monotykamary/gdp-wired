@@ -20,18 +20,22 @@ type CN = {id?: string, kind: string, name?: string, inner?: CN[], type?: {qualT
   computeLHSType?: {qualType: string, desugaredQualType?: string}, computeResultType?: {qualType: string, desugaredQualType?: string}, init?: string, decl?: {id: string, kind: string}, loc?: L, range?: {begin: L, end: L}, $at?: At, $b?: At, $e?: At, [k: string]: unknown}
 type L = {offset?: number, file?: string, line?: number, col?: number, tokLen?: number, spellingLoc?: L, expansionLoc?: L, includedFrom?: unknown}
 type At = {file: string, line: number, col: number, off: number, tok: number}
-export type CTarget = {int: number, long: number, short: number, llong: number, charUnsigned: boolean, charBits?: number}
+export type CSafetyMacroConfig = {flags: readonly string[], defines: readonly string[], ndebugDefined: boolean, optimizeDefined: boolean}
+export type CSafetyClangMeta = {systemFiles: Set<string>, userFiles: Set<string>, macroConfig: CSafetyMacroConfig}
+export type CTarget = {int: number, long: number, short: number, llong: number, charUnsigned: boolean, charBits?: number, safetyMeta?: CSafetyClangMeta}
 // (consts: the project's enum constants by name, one of a name only, for the laws' terms)
 // (globals: the file's own globals read as the state, the file's stem the entry: each global's name, those the
 // request gives (read but never written here, another file's or the hardware's) apart)
-export type CRead = {pkg: GoPkg, methods: string[], helpers?: string[], entry: string, cname: string, consts: Record<string, number>, globals?: {state: string[], inputs: string[], types: Record<string, string>, externs: string[]}}
+export type CRead = {pkg: GoPkg, methods: string[], helpers?: string[], macroConfig?: CSafetyMacroConfig, entry: string, cname: string, consts: Record<string, number>, globals?: {state: string[], inputs: string[], types: Record<string, string>, externs: string[]}}
 export class SafetyUncoveredRefusal extends Refusal {
   readonly coveredFunctions: readonly string[]
   readonly uncheckedFunctions: readonly string[]
-  constructor(where: string, what: string, coveredFunctions: readonly string[], uncheckedFunctions: readonly string[]) {
+  readonly macroConfig?: CSafetyMacroConfig
+  constructor(where: string, what: string, coveredFunctions: readonly string[], uncheckedFunctions: readonly string[], macroConfig?: CSafetyMacroConfig) {
     super(where, what)
     this.coveredFunctions = coveredFunctions
     this.uncheckedFunctions = uncheckedFunctions
+    this.macroConfig = macroConfig
   }
 }
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
@@ -49,8 +53,8 @@ export const node = <T>(id: string): T => { const m = proc?.getBuiltinModule?.(i
 // --- running clang ------------------------------------------------------------------------------------------------------
 // (C++: only the declarations named after the class, `-ast-dump-filter`: its standard headers' are hundreds of MB;
 // clang writes them one after another, its locations' state going on from one to the next)
-export function clangDump(file: string, flags: string[], clang = 'clang', cpp = false, filter?: string): {tu: CN, target: CTarget} {
-  const cp = node<CP>('node:child_process'), lang = cpp ? ['-x', 'c++'] : ['-x', 'c']
+export function clangDump(file: string, flags: string[], clang = 'clang', cpp = false, filter?: string, safety = false): {tu: CN, target: CTarget} {
+  const cp = node<CP>('node:child_process'), path = node<{resolve: (...p: string[]) => string}>('node:path'), lang = cpp ? ['-x', 'c++'] : ['-x', 'c']
   const run = (args: string[]) => {
     try { return cp.execFileSync(clang, args, {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()}) }
     catch (e) {
@@ -64,7 +68,31 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
   const tu = filter ? {kind: 'TranslationUnitDecl', inner} as CN : JSON.parse(dump) as CN
   if (filter) for (let i = dump.indexOf('{'); i >= 0; i = dump.indexOf('{', i)) { const [o, e] = dec.decode(dump, i); inner.push(o as CN); i = e }
   const defs = run([...lang, ...flags, '-dM', '-E', '/dev/null']), def = (k: string) => Number(new RegExp(`#define ${k} (\\d+)`).exec(defs)?.[1] ?? 0)
-  return {tu, target: {int: def('__SIZEOF_INT__') * 8, long: def('__SIZEOF_LONG__') * 8, short: def('__SIZEOF_SHORT__') * 8, llong: def('__SIZEOF_LONG_LONG__') * 8, charBits: def('__CHAR_BIT__'), charUnsigned: /#define __CHAR_UNSIGNED__/.test(defs)}}
+  let safetyMeta: CSafetyClangMeta | undefined
+  if (safety && !cpp) {
+    // Use Clang's preprocessor linemarkers (`# line "path" flags`) to distinguish true system
+    // headers (flag 3, from -isystem / built-in compiler include dirs) from non-system headers
+    // (flag 1 without 3) and capture the exact active macro configuration.
+    const pp = run([...lang, ...flags, '-E', file])
+    const systemFiles = new Set<string>(['<built-in>', '<command line>'])
+    const userFiles = new Set<string>([path.resolve(file)])
+    for (const m of pp.matchAll(/^# \d+ "((?:[^"\\]|\\.)*)"(.*)$/gm)) {
+      const rawPath = m[1]!.replace(/\\(["\\])/g, '$1')
+      if (!rawPath || rawPath.startsWith('<')) continue
+      const nums = new Set(m[2]!.trim().split(/\s+/).filter(Boolean))
+      const rp = path.resolve(rawPath)
+      if (nums.has('3')) systemFiles.add(rp)
+      else if (nums.has('1')) userFiles.add(rp)
+    }
+    const macroConfig: CSafetyMacroConfig = {
+      flags: [...flags],
+      defines: flags.filter(f => f.startsWith('-D') || f.startsWith('-U')),
+      ndebugDefined: /^#define NDEBUG(?:\s|$)/m.test(defs),
+      optimizeDefined: /^#define __OPTIMIZE__(?:\s|$)/m.test(defs),
+    }
+    safetyMeta = {systemFiles, userFiles, macroConfig}
+  }
+  return {tu, target: {int: def('__SIZEOF_INT__') * 8, long: def('__SIZEOF_LONG__') * 8, short: def('__SIZEOF_SHORT__') * 8, llong: def('__SIZEOF_LONG_LONG__') * 8, charBits: def('__CHAR_BIT__'), charUnsigned: /#define __CHAR_UNSIGNED__/.test(defs), ...(safetyMeta ? {safetyMeta} : {})}}
 }
 // The values of names a law reads that the code defines as integer constants (a macro, an enum constant, a constexpr
 // variable), folded by clang itself: each the value of an enumerator of a probe that includes the file. A name that
@@ -1372,11 +1400,101 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     if (pickNames.length) {
       for (const want of pickNames) if (!validated.has(want)) bad(td0(), `selected method ${want} is missing or lacks a modeled receiver`)
     }
-    // Closed-TU function coverage: every function body in the translation unit (and project
-    // headers under root) must either be a selected, validated entry method or a file-local
-    // static helper actually inlined and inventoried by a selected method. Any other function
-    // body — including narrowed-out functions, non-first-parameter functions, by-value receivers,
-    // free functions, unused static helpers, and void*/pointer callbacks — is refused and named.
+    // Closed-TU function coverage & symbol/preprocessor audit:
+    // - Only real system headers (Clang preprocessor linemarker flag 3) are exempted; every
+    //   non-system header (under root, relative ../, or -I) is audited identically to own code.
+    // - Every non-system function body must be a selected validated method or an inlined
+    //   file-local static helper; any other body (even static, inline, or __-prefixed) is refused
+    //   and named.
+    // - Symbol export/alias/attribute escapes (__attribute__((alias/weak/constructor/destructor)),
+    //   #pragma weak, file-scope __asm__, post-definition redeclarations), global initializers
+    //   referencing functions in any non-system file, pointer/fn-ptr struct fields in globals,
+    //   #line directives, and build-mode macro conditionals (NDEBUG / __OPTIMIZE__) are refused.
+    const meta = target.safetyMeta
+    const systemFiles = meta?.systemFiles
+    const userFiles = meta?.userFiles ?? new Set<string>([main])
+    const isSystemFile = (f?: string): boolean => {
+      if (!f || f === '<built-in>' || f === '<command line>') return true
+      const rp = path.resolve(f)
+      if (userFiles.has(rp) || rp === main) return false
+      if (systemFiles) return systemFiles.has(rp)
+      return !own({$at: {file: f, line: 0, col: 0, off: 0, tok: 0}} as CN)
+    }
+    const isSystemNode = (n: CN): boolean => isSystemFile(n.$at?.file)
+    // Strip C comments and string/char literals while preserving line numbers so preprocessor
+    // directive scans over user files never match comments or literals.
+    const stripForPreproc = (raw: string): string => {
+      let out = ''
+      const isIdent = (c: string | undefined) => !!c && /[A-Za-z0-9_$]/.test(c)
+      const isDigit = (c: string | undefined) => !!c && c >= '0' && c <= '9'
+      for (let i = 0; i < raw.length; i++) {
+        const ch = raw[i]!
+        if ((isDigit(ch) && !isIdent(raw[i - 1])) || (ch === '.' && isDigit(raw[i + 1]))) {
+          let j = i + (ch === '.' ? 2 : 1)
+          while (j < raw.length) {
+            const c = raw[j]!
+            if ((c === 'e' || c === 'E' || c === 'p' || c === 'P') && (raw[j + 1] === '+' || raw[j + 1] === '-')) { j += 2; continue }
+            if (c === "'" && /[0-9A-Za-z_]/.test(raw[j + 1] ?? '')) { j += 2; continue }
+            if (/[0-9A-Za-z_.]/.test(c)) { j++; continue }
+            break
+          }
+          out += raw.slice(i, j)
+          i = j - 1
+        } else if (ch === '"' || ch === "'") {
+          const q = ch
+          out += ' '
+          for (i++; i < raw.length; i++) {
+            const c = raw[i]!
+            if (c === '\\') { out += ' '; i++; if (i < raw.length) out += raw[i] === '\n' ? '\n' : ' '; continue }
+            if (c === '\n') { out += '\n'; break }
+            out += ' '
+            if (c === q) break
+          }
+        } else if (ch === '/' && raw[i + 1] === '/') {
+          out += '  '
+          for (i += 2; i < raw.length; i++) {
+            if (raw[i] === '\\' && (raw[i + 1] === '\n' || (raw[i + 1] === '\r' && raw[i + 2] === '\n'))) {
+              out += raw[i + 1] === '\r' ? ' \n' : '\n'
+              i += raw[i + 1] === '\r' ? 2 : 1
+              continue
+            }
+            if (raw[i] === '\n') { out += '\n'; break }
+            out += ' '
+          }
+        } else if (ch === '/' && raw[i + 1] === '*') {
+          out += '  '
+          for (i += 2; i < raw.length; i++) {
+            if (raw[i] === '*' && raw[i + 1] === '/') { out += '  '; i++; break }
+            out += raw[i] === '\n' ? '\n' : ' '
+          }
+        } else {
+          out += ch
+        }
+      }
+      return out
+    }
+    const BUILD_MODE_MACRO_RE = /\b(NDEBUG|__OPTIMIZE__|__OPTIMIZE_SIZE__|__NO_INLINE__|__SANITIZE_ADDRESS__|__SANITIZE_UNDEFINED__)\b/
+    for (const uf of userFiles) {
+      const cleaned = stripForPreproc(src(uf)).split('\n')
+      for (let idx = 0; idx < cleaned.length; idx++) {
+        let line = cleaned[idx]!.replace(/\r$/, '')
+        const startLine = idx + 1
+        while (line.endsWith('\\') && idx + 1 < cleaned.length) {
+          line = line.slice(0, -1) + cleaned[++idx]!.replace(/\r$/, '')
+        }
+        const trimmed = line.trimStart()
+        if (!trimmed.startsWith('#')) continue
+        const body = trimmed.slice(1).trimStart()
+        const where = `${path.basename(uf)}:${startLine}:1`
+        if (/^(?:line\b|\d+\s+")/.test(body))
+          throw new Refusal(where, '#line directive is outside the C safety subset')
+        if (/^pragma\s+(?:weak|redefine_extname)\b/.test(body))
+          throw new Refusal(where, '#pragma weak/redefine_extname symbol alias is outside the C safety subset')
+        const macroHit = /^(?:if|ifdef|ifndef|elif|elifdef|elifndef|define|undef)\b/.test(body) ? BUILD_MODE_MACRO_RE.exec(body) : null
+        if (macroHit)
+          throw new Refusal(where, `preprocessor directive depends on build-mode macro ${macroHit[1]} (proof only holds for one macro configuration; outside the C safety subset)`)
+      }
+    }
     const hasUnsafePtrType = (raw: string): boolean => /\bvoid\s*\*|\(\s*\*|\*\s*\*/.test(raw)
     const typeIdxMentionsEntry = (start: number): boolean => {
       if (!entryRec || start < 0) return false
@@ -1393,6 +1511,21 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       }
       return check(start)
     }
+    const typeIdxHasPtrOrFunc = (start: number): boolean => {
+      if (start < 0) return false
+      const seen = new Set<number>()
+      const check = (idx: number): boolean => {
+        if (seen.has(idx)) return false
+        seen.add(idx)
+        const q = T(idx)
+        if (!q) return false
+        if (q.k === 'ptr' || q.k === 'func' || q.k === 'ref' || q.k === 'opaque' || q.k === 'union' || q.nullflag) return true
+        if (q.elem !== undefined && check(q.elem)) return true
+        if (q.fields?.some(fl => check(fl.t))) return true
+        return false
+      }
+      return check(start)
+    }
     const typeMentionsEntry = (ty?: {qualType: string, desugaredQualType?: string}): boolean =>
       !!entryRec && !!ty && typeIdxMentionsEntry(tyOf(ty))
     const uncheckedFns: {name: string, node: CN}[] = []
@@ -1403,8 +1536,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     }
     for (const n of top) {
       if (n.kind === 'FunctionDecl' && !n.isImplicit && !own(n) && n.inner?.some(c => c.kind === 'CompoundStmt')) {
-        if (n.storageClass !== 'static' && !n.inline && !(n.name ?? '').startsWith('__'))
-          uncheckedFns.push({name: n.name ?? '<anonymous>', node: n})
+        if (!isSystemNode(n)) uncheckedFns.push({name: n.name ?? '<anonymous>', node: n})
       }
     }
     if (uncheckedFns.length) {
@@ -1415,13 +1547,13 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         `unchecked function${names.length === 1 ? '' : 's'} in translation unit: ${names.join(', ')} (every function with a body must be covered by C safety; covered: ${covered.length ? covered.join(', ') : 'none'})`,
         covered,
         names,
+        meta?.macroConfig,
       )
     }
-    // Reject bodyless external function prototypes that could write modeled state (any prototype in
-    // the TU referencing the entry struct, and any own-file/project prototype taking pointers,
-    // indirect/function pointers, non-scalar values, variadics, or K&R unprototyped arguments),
-    // any non-own TU function body accessing modeled state, extern/pointer/entry-typed globals,
-    // and main-file global fn-ptr escapes.
+    // Reject file-scope asm, attributed/aliased/weak/constructor/destructor/post-definition
+    // function declarations, bodyless external prototypes that could write state, non-system
+    // globals with attributes/extern/pointers/fn-ptrs (including inside struct/array fields) or
+    // function-referencing initializers, and system-header declarations referencing modeled state.
     const scanForeignStateAccess = (n: CN, fnName: string): void => {
       if (n.kind === 'MemberExpr' && entryRec && fields.get(n.referencedMemberDecl ?? '')?.rec === entryRec)
         bad(n, `external header function ${fnName} accesses entry struct ${entry}`)
@@ -1431,17 +1563,28 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         bad(n, `external header function ${fnName} references entry struct ${entry}`)
       for (const c of n.inner ?? []) scanForeignStateAccess(c, fnName)
     }
+    const definedFns = new Set<string>()
     for (const n of top) {
+      if (n.kind === 'FileScopeAsmDecl')
+        bad(n, 'file-scope inline assembly is outside the closed translation unit')
       if (n.kind === 'FunctionDecl' && !n.isImplicit) {
         const hasBody = !!n.inner?.some(c => c.kind === 'CompoundStmt')
+        const nonSys = !isSystemNode(n)
+        const fnName = n.name ?? '<anonymous>'
+        if (nonSys) {
+          if (n.inner?.some(c => c.kind.endsWith('Attr')))
+            bad(n, `attributed function declaration ${fnName} (alias/weak/constructor/destructor) is outside the closed translation unit`)
+          if (!hasBody && n.name && definedFns.has(n.name))
+            bad(n, `post-definition redeclaration of function ${fnName} is outside the closed translation unit`)
+        }
+        if (hasBody && n.name) definedFns.add(n.name)
         if (!hasBody && !(n.name && funcs.has(n.name))) {
-          const fnName = n.name ?? '<anonymous>'
           const ps = params(n)
           const qt = n.type?.qualType ?? ''
           const retIdx = qt ? parseT(qt.slice(0, retEnd(qt))) : -1
           if (typeIdxMentionsEntry(retIdx) || ps.some(q => typeMentionsEntry(q.type)))
             bad(n, `external function prototype ${fnName} references entry struct ${entry} with no body in this translation unit`)
-          if (own(n)) {
+          if (nonSys) {
             if (n.variadic || (ps.length === 0 && /\(\s*\)$/.test(qt)))
               bad(n, `external function prototype ${fnName} has no body and an unclosed parameter list`)
             if (retIdx >= 0 && !['void', 'bool', 'int'].includes(T(retIdx).k))
@@ -1454,21 +1597,23 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
             }
           }
         } else if (hasBody && !own(n)) {
-          scanForeignStateAccess(n, n.name ?? '<anonymous>')
+          scanForeignStateAccess(n, fnName)
         }
       }
       if (n.kind === 'VarDecl' && !n.isImplicit) {
-        if (own(n)) {
+        if (!isSystemNode(n)) {
           if (!gfield.has(n.id!)) {
             const raw = `${n.type?.qualType ?? ''} ${n.type?.desugaredQualType ?? ''}`
+            if (n.inner?.some(c => c.kind.endsWith('Attr')))
+              bad(n, `attributed global ${n.name ?? ''} is outside the closed translation unit`)
             if (n.storageClass === 'extern')
               bad(n, `extern global ${n.name ?? ''} is outside the closed translation unit`)
             if (typeMentionsEntry(n.type))
               bad(n, `global ${n.name ?? ''} references entry struct ${entry}`)
-            if (hasUnsafePtrType(raw) || (n.type && T(tyOf(n.type)).k === 'ptr'))
-              bad(n, `pointer or function-pointer global ${n.name ?? ''} is outside the closed translation unit`)
+            if (hasUnsafePtrType(raw) || (n.type && typeIdxHasPtrOrFunc(tyOf(n.type))))
+              bad(n, `pointer, function-pointer, or unmodeled aggregate global ${n.name ?? ''} is outside the closed translation unit`)
           }
-          if (mine(n) && n.init) {
+          if (n.init) {
             const scanInit = (c: CN): void => {
               if (c.kind === 'DeclRefExpr' && c.referencedDecl?.kind === 'FunctionDecl')
                 bad(c, `global ${n.name ?? ''} initializer references function ${c.referencedDecl.name}`)
@@ -1530,7 +1675,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   // (the class's qualified name, which the harness spells: `this`'s type, as clang prints it)
   const thisOf = (n: CN): string | undefined => (n.kind === 'CXXThisExpr' ? n.type!.qualType : (n.inner ?? []).map(thisOf).find(Boolean))
   const self = cpp ? cxx.filter(m => m.$rec === entryRec).map(thisOf).find(Boolean)?.replace(/^const /, '').replace(/ \*$/, '') : undefined
-  return {pkg, methods, ...(safety && validatedHelpers.size ? {helpers: [...validatedHelpers]} : {}), entry, cname: self ?? T(entryT).go!, consts: Object.fromEntries([...named].filter(([, v]) => Number.isSafeInteger(v))),
+  return {pkg, methods, ...(safety && validatedHelpers.size ? {helpers: [...validatedHelpers]} : {}), ...(safety && target.safetyMeta ? {macroConfig: target.safetyMeta.macroConfig} : {}), entry, cname: self ?? T(entryT).go!, consts: Object.fromEntries([...named].filter(([, v]) => Number.isSafeInteger(v))),
     ...(gmode ? {globals: {state: gnodes.map(g => g.name!), inputs: gnodes.filter(g => ginput.has(g.id!)).map(g => g.name!), types: Object.fromEntries(gnodes.map(g => [g.name!, g.type!.qualType])),
       // (declared only, another file's to define: the check defines it, zero at the start)
       externs: gnodes.filter(g => ![...globals.values()].some(d => d.name === g.name && (d.storageClass !== 'extern' || d.init))).map(g => g.name!)}} : {})}

@@ -14,7 +14,8 @@ import {conjunction, proveKInduction, type KindProof} from '../kind.ts'
 import {evalC, interpret, walk, type C, type E, type Law, type Machine} from '../machine.ts'
 import {proofOutput, type ProofOutputNode, type PublicProofOutput} from '../proof-output.ts'
 import {allowed} from '../watch.ts'
-import {node, type CRead} from './reader.ts'
+import {node, type CRead, type CSafetyMacroConfig} from './reader.ts'
+export type {CSafetyMacroConfig} from './reader.ts'
 
 export type CSafetyKind = 'bounds' | 'overflow' | 'division'
 export type CSafetySite = {where: string, kind: CSafetyKind, condition: I.B}
@@ -29,6 +30,7 @@ export type CSafetyResult = {
   coveredFunctions: readonly string[],
   coveredHelpers?: readonly string[],
   uncheckedFunctions?: readonly string[],
+  macroConfig?: CSafetyMacroConfig,
 }
 
 export type CSafetyProofBundle =
@@ -49,14 +51,14 @@ const safetyArtifacts = new WeakMap<CSafetyResult, CSafetyArtifact>()
 export const cSafetyArtifactOf = (result: CSafetyResult): CSafetyArtifact | undefined => safetyArtifacts.get(result)
 
 const assumptions = [
-  'ABI & types (assumption): Clang target uses 8-bit char, 16-bit short, 32-bit int, and two’s-complement signed integers; only covered scalar types up to 32 bits, constant lookup tables, and fixed arrays of known extent are modeled.',
+  'ABI, types & macro configuration (assumption): Clang target uses 8-bit char, 16-bit short, 32-bit int, and two’s-complement signed integers under the reported preprocessor/macro configuration (macroConfig; only covered scalar types up to 32 bits, constant lookup tables, and fixed arrays of known extent are modeled).',
   'Ownership, zeroed start & aliasing (assumption): Selected methods execute sequentially on one live, zero-initialized receiver (or single-declaration file-local static globals from their C initialization) with non-aliasing receiver and scalar out-parameters, no concurrency, and no external mutation from other translation units.',
-  'Checked TU closure & failure paths (checked): Every function with a body in the translation unit must be covered as a selected method or an inlined file-local static helper (any other function body — including narrowed-out functions, non-first-parameter functions, by-value receivers, free functions, unused static helpers, and void*/pointer callbacks — is refused as unchecked and named); bodyless prototypes taking the entry type or pointers, extern/pointer/entry-typed globals, and configured normal failure returns (fails) that write state prior to returning are also refused.',
+  'Checked TU closure & failure paths (checked): Every function with a body in any non-system file of the translation unit (including headers outside root; only true Clang system headers are exempted) must be covered as a selected method or an inlined file-local static helper, or is refused as unchecked and named. Symbol aliases/weak/#pragma weak/file-scope __asm__/attributed or post-definition function declarations, non-system globals with pointers/fn-ptrs (including struct/array fields) or function-referencing initializers, bodyless prototypes taking the entry type or pointers, #line directives, build-mode macro conditionals (NDEBUG/__OPTIMIZE__), and configured failure returns (fails) after state writes are also refused.',
   'First-fault & replay scope: Only the first tracked array/table-bounds, signed-overflow, or division/remainder fault is checked. Broken obligations require site-matched ASan/UBSan replay (matchedSite); unproven sites are never claimed proven or broken. Abstract stutter on fault is a monitor convention, not native rollback.',
 ] as const
 export const uncheckedCSafety = (
   issues: CSafetyIssue[] = [],
-  coverage?: {coveredFunctions?: readonly string[], coveredHelpers?: readonly string[], uncheckedFunctions?: readonly string[]},
+  coverage?: {coveredFunctions?: readonly string[], coveredHelpers?: readonly string[], uncheckedFunctions?: readonly string[], macroConfig?: CSafetyMacroConfig},
 ): CSafetyResult => ({
   status: 'unchecked',
   issues,
@@ -64,6 +66,7 @@ export const uncheckedCSafety = (
   coveredFunctions: coverage?.coveredFunctions ?? [],
   ...(coverage?.coveredHelpers?.length ? {coveredHelpers: coverage.coveredHelpers} : {}),
   ...(coverage?.uncheckedFunctions?.length ? {uncheckedFunctions: coverage.uncheckedFunctions} : {}),
+  ...(coverage?.macroConfig ? {macroConfig: coverage.macroConfig} : {}),
 })
 
 const limits = ({bits, signed}: {bits: number, signed: boolean}): [number, number] => signed ? [-(2 ** (bits - 1)), 2 ** (bits - 1) - 1] : [0, 2 ** bits - 1]
@@ -520,7 +523,7 @@ export function analyzeCSafety(
 ): CSafetyResult {
   const coveredFunctions = read.methods.map(m => m.name)
   const coveredHelpers = c.helpers?.length ? [...c.helpers] : undefined
-  const coverage = {coveredFunctions, ...(coveredHelpers ? {coveredHelpers} : {})}
+  const coverage = {coveredFunctions, ...(coveredHelpers ? {coveredHelpers} : {}), ...(c.macroConfig ? {macroConfig: c.macroConfig} : {})}
   if (!sites.length) return uncheckedCSafety([], coverage)
   // A single source site can appear on several symbolic paths or events.
   const unique = new Map<string, CSafetySite>()

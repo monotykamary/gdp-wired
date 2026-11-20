@@ -301,9 +301,10 @@ function* expandInitializers(t: Target, o: Opts, laws: Scoped[], rows: ReadRule[
   }
   return out
 }
-// Extract C comment bodies (`// ...` and `/* ... */`), skipping string literals, char literals,
-// and C23 preprocessing numbers with digit separators (e.g. `1'000`, `0xDE'AD`).
-function cCommentTexts(src: string): string[] {
+// Extract C comment bodies (`// ...` and `/* ... */`), applying C phase-2 line splicing (`\<newline>`)
+// and skipping string literals, char literals, and C23 preprocessing numbers (`1'000`, `0xDE'AD`).
+function cCommentTexts(rawSrc: string): string[] {
+  const src = rawSrc.replace(/\\\r?\n/g, '')
   const out: string[] = []
   const isIdent = (c: string | undefined) => !!c && /[A-Za-z0-9_$]/.test(c)
   const isDigit = (c: string | undefined) => !!c && c >= '0' && c <= '9'
@@ -340,11 +341,16 @@ function cCommentTexts(src: string): string[] {
   }
   return out
 }
-// Accept `// gdp: safety`, `/* gdp: safety */`, case/punctuation variants (`GDP: safety`,
-// `gdp: safety.`, `gdp: safety!`, `TODO(gdp: safety)`, `gdp: safety's on`), inline comments,
-// multiline doc comments, and trailing text, while rejecting assignments like `gdp: safety = false`.
-const SAFETY_TAG_RE = /\bgdp[ \t]*:[ \t]*safety\b(?![ \t]*=)/i
-const SAFETY_LOOKALIKE_RE = /\bgdp[ \t]*:[ \t]*safe\w*(?:[ \t]*=[ \t]*\S+)?/i
+// Normalize Unicode whitespace (including NBSP and newlines), block-comment leading `*`, and
+// fullwidth/compatibility colons so lookalike directives are never silently missed.
+const normalizeSafetyText = (s: string): string =>
+  s.replace(/[\uFF1A\uFE55\uFE13\u2236]/g, ':')
+    .replace(/\r?\n[ \t]*\*+[ \t]*/g, ' ')
+    .replace(/[\s\u00A0\u1680\u2000-\u200B\u202F\u205F\u3000\uFEFF]+/g, ' ')
+// Accept `// gdp: safety`, `/* gdp: safety */`, multiline `/* gdp:\n safety */`, backslash-continued
+// `// ...\n gdp: safety`, case/punctuation variants, and trailing text, while rejecting assignments.
+const SAFETY_TAG_RE = /\bgdp[ \t\r\n]*:[ \t\r\n]*safety\b(?![ \t]*=)/i
+const SAFETY_LOOKALIKE_RE = /\bgdp(?:\s*:\s*|\s+)safe\w*(?:\s*=\s*\S+)?/i
 const SAFETY_LOOKALIKE_NOTE_RE = /looks like a gdp: safety directive/
 const hasSafetyTag = (t: Target): boolean =>
   t.lang === 'c' && t.files.some(f => cCommentTexts(fs.readFileSync(f, 'utf8')).some(c => SAFETY_TAG_RE.test(c)))
@@ -352,8 +358,11 @@ const safetyLookalikeNote = (t: Target): string | undefined => {
   if (t.lang !== 'c' || hasSafetyTag(t)) return undefined
   for (const f of t.files) {
     for (const c of cCommentTexts(fs.readFileSync(f, 'utf8'))) {
-      const m = SAFETY_LOOKALIKE_RE.exec(c)
-      if (m) return `${path.basename(f)}: comment looks like a gdp: safety directive (${JSON.stringify(m[0].trim())}) but did not match 'gdp: safety'; write '// gdp: safety' or pass --safety to enable C safety checking`
+      const m = SAFETY_LOOKALIKE_RE.exec(normalizeSafetyText(c))
+      if (m) {
+        const shown = /^gdp: safety$/i.test(m[0].trim()) ? c.trim().slice(0, 60) : m[0].trim()
+        return `${path.basename(f)}: comment looks like a gdp: safety directive (${JSON.stringify(shown)}) but did not match 'gdp: safety'; write '// gdp: safety' or pass --safety to enable C safety checking`
+      }
     }
   }
   return undefined
@@ -1029,6 +1038,12 @@ function printRule(r: RuleOut, o: Opts) {
       const cov = r.safety.coveredFunctions.length ? r.safety.coveredFunctions.join(', ') : 'none'
       const helpers = r.safety.coveredHelpers?.length ? `; static helpers inlined: ${r.safety.coveredHelpers.join(', ')}` : ''
       out(`    ${paint(color(r.safety.status), r.safety.status)} (covers: ${cov}${helpers})`)
+      if (r.safety.macroConfig) {
+        const mc = r.safety.macroConfig
+        const defs = mc.defines.length ? mc.defines.join(', ') : 'none'
+        const std = mc.flags.filter(f => f.startsWith('-std=')).join(', ')
+        out(`    macro config: -D flags: ${defs}${std ? `; std: ${std}` : ''}; NDEBUG=${mc.ndebugDefined ? 'defined' : 'undefined'}, __OPTIMIZE__=${mc.optimizeDefined ? 'defined' : 'undefined'}`)
+      }
       if (r.safety.uncheckedFunctions?.length) out(`    ${paint('yellow', 'unchecked functions:')} ${r.safety.uncheckedFunctions.join(', ')}`)
       for (const s of r.safety.issues) {
         out(`    ${paint(color(s.status), s.status)}: ${s.kind} at ${s.where}`)

@@ -334,45 +334,56 @@ conformance and stated laws, with the sampled-vs-equivalence distinction preserv
 
 C memory and undefined-behavior safety checking is strictly opt-in via `--safety` on the CLI,
 `extractC(file, { ..., safety: true })`, or a `gdp: safety` directive in a C comment
-(`// gdp: safety`, `/* gdp: safety */`, case/punctuation variants such as `// GDP: safety`,
-`// gdp: safety.`, `// TODO(gdp: safety)`, inline comments, multiline block comments, or comments
-with trailing notes, ignoring string/char literals and C23 digit separators like `1'000`). Without
-opt-in, default C extraction and law checking are unchanged. A `gdp.toml` setting `safety = false`
-(top-level or under `[rules.<entry>]`) cannot silently override an in-source `gdp: safety`
-directive and is refused with exit code `2`; a lookalike comment such as `// gdp: safe` or
-`// gdp: safety = false` emits a visible warning in both text and JSON output and exits `2` rather
+(`// gdp: safety`, `/* gdp: safety */`, multiline `/* gdp:\n safety */`, backslash-continued `//`,
+case/punctuation variants such as `// GDP: safety`, `// gdp: safety.`, `// TODO(gdp: safety)`,
+inline comments, or comments with trailing notes, ignoring string/char literals and C23 digit
+separators like `1'000`). Without opt-in, default C extraction and law checking are unchanged. A
+`gdp.toml` setting `safety = false` (top-level or under `[rules.<entry>]`) cannot silently override
+an in-source `gdp: safety` directive and is refused with exit code `2`; lookalike comments
+(including Unicode NBSP, fullwidth colons, `// gdp safety`, `// gdp: safe`, or
+`// gdp: safety = false`) emit a visible warning in both text and JSON output and exit `2` rather
 than silently doing nothing.
 
-In safety mode, every function with a body in the translation unit must be covered as a selected
-method or an inlined file-local `static` helper; any uncovered function body (including
-narrowed-out functions, non-first-parameter functions, by-value receivers, free functions, unused
-`static` helpers, or `void*`/pointer callbacks) is refused as `unchecked`, named explicitly in the
-verdict, and exits `2`. Every tracked fixed-array/table bounds check, signed integer overflow, and
-division/remainder site in the covered subset is lowered into a first-fault monitor, and every
-verdict lists the exact `coveredFunctions` (and any inlined `coveredHelpers`). CLI exit codes are
-`0` (`proven`: every site proved clear and re-verified by `verifyCSafetyProof` via `checkLaws` or
+In safety mode, every function with a body in any non-system file of the translation unit
+(including project headers under `root` and non-system headers outside `root`; only true Clang
+system headers are exempted) must be covered as a selected method or an inlined file-local `static`
+helper; any uncovered function body (including narrowed-out functions, non-first-parameter
+functions, by-value receivers, free functions, unused `static` helpers, `inline`/`__`-named
+non-system header bodies, or `void*`/pointer callbacks) is refused as `unchecked`, named explicitly
+in the verdict, and exits `2`. Symbol aliases/exports (`__attribute__((alias(...)))`,
+`#pragma weak`, weak aliases, file-scope `__asm__`, attributed/constructor/destructor or
+post-definition function declarations), non-system globals with pointers/function pointers
+(including struct/array fields) or function-referencing initializers, `#line` directives, and
+build-mode macro conditionals (`NDEBUG`, `__OPTIMIZE__`, `__OPTIMIZE_SIZE__`, `__NO_INLINE__`,
+`__SANITIZE_ADDRESS__`, `__SANITIZE_UNDEFINED__`) are also refused. Every verdict lists the exact
+`coveredFunctions` (and any inlined `coveredHelpers`) together with the active `macroConfig` (`-D`
+flags and whether `NDEBUG` and `__OPTIMIZE__` were defined or undefined). CLI exit codes are `0`
+(`proven`: every site proved clear and re-verified by `verifyCSafetyProof` via `checkLaws` or
 `checkKInduction`), `1` (`broken`: counterexample trace replayed natively under Clang ASan/UBSan
 with site-matched diagnostics `matchedSite`), and `2` (`unproven` or `unchecked`: neither proven
-nor reproduced at the target site, the input leaves the covered subset, uncovered TU functions
-exist, or an unhonoured `gdp: safety` lookalike directive was found).
+nor reproduced at the target site, the input leaves the covered subset, uncovered TU functions or
+macro-mode dependencies exist, or an unhonoured `gdp: safety` lookalike directive was found).
 
 Every `CSafetyResult` carries the four stated assumptions and checked-scope premises verbatim in
 `result.assumptions` (`core/c/safety.ts`):
 
-1. **ABI & types (assumption)**: Clang target uses 8-bit `char`, 16-bit `short`, 32-bit `int`, and
-   two's-complement signed integers; only covered scalar types up to 32 bits, constant lookup
-   tables, and fixed arrays of known extent are modeled.
+1. **ABI, types & macro configuration (assumption)**: Clang target uses 8-bit `char`, 16-bit
+   `short`, 32-bit `int`, and two's-complement signed integers under the reported
+   preprocessor/macro configuration (`macroConfig`; only covered scalar types up to 32 bits,
+   constant lookup tables, and fixed arrays of known extent are modeled).
 2. **Ownership, zeroed start & aliasing (assumption)**: Selected methods execute sequentially on
    one live, zero-initialized receiver (or single-declaration file-local `static` globals from
    their C initialization) with non-aliasing receiver and scalar out-parameters, no concurrency,
    and no external mutation from other translation units.
-3. **Checked TU closure & failure paths (checked)**: Every function with a body in the translation
-   unit must be covered as a selected method or an inlined file-local `static` helper (any other
-   function body — including narrowed-out functions, non-first-parameter functions, by-value
-   receivers, free functions, unused `static` helpers, and `void*`/pointer callbacks — is refused
-   as `unchecked` and named); bodyless prototypes taking the entry type or pointers,
-   `extern`/pointer/entry-typed globals, and configured normal failure returns (`fails`) that write
-   state prior to returning are also refused.
+3. **Checked TU closure & failure paths (checked)**: Every function with a body in any non-system
+   file of the translation unit (including headers outside `root`; only true Clang system headers
+   are exempted) must be covered as a selected method or an inlined file-local `static` helper, or
+   is refused as `unchecked` and named. Symbol aliases/weak/`#pragma weak`/file-scope `__asm__`/
+   attributed or post-definition function declarations, non-system globals with pointers/fn-ptrs
+   (including struct/array fields) or function-referencing initializers, bodyless prototypes taking
+   the entry type or pointers, `#line` directives, build-mode macro conditionals
+   (`NDEBUG`/`__OPTIMIZE__`), and configured failure returns (`fails`) after state writes are also
+   refused.
 4. **First-fault & replay scope**: Only the first tracked array/table-bounds, signed-overflow, or
    division/remainder fault is checked. Broken obligations require site-matched ASan/UBSan replay
    (`matchedSite`); unproven sites are never claimed proven or broken. Abstract stutter on fault

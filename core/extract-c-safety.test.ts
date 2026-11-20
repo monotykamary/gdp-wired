@@ -2,7 +2,7 @@
 // Astra soundness controls, off-by-one corpus mutants with ASan/UBSan replay, and CLI opt-in.
 import {expect, test} from 'bun:test'
 import {execFileSync, spawnSync} from 'node:child_process'
-import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {proveLaws} from '../kernel/prove.ts'
@@ -1140,6 +1140,170 @@ withClang('Review Probe 9: SAFETY_TAG_RE variants (t1-t10), C23 digit separators
     ] as const) {
       const f = join(dir, fname)
       writeFileSync(f, header + safeBody)
+      const rText = runCliText(['check', '--entry', 'ring', '--no-propose', f])
+      expect(rText.code, `${fname} lookalike must exit 2`).toBe(2)
+      expect(rText.out, `${fname} lookalike must print warning in TEXT output`).toMatch(/warning:.*looks like a gdp: safety directive/)
+    }
+  } finally {
+    rmSync(dir, {recursive: true, force: true})
+  }
+}, 180_000)
+
+withClang('Review Probe 10: alias/weak/asm exports (al1-al4, ds1-ds3), header globals (rh1), non-system headers (out1-out4), macro config (nd2/nd3), and normalized tags (tg4-tg6, tm1-tm2)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-p6-'))
+  try {
+    const H = '// gdp: safety\n#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\n'
+    const dvBase = H + `static int32_t dv(int32_t x, int32_t y) { return x / y; }
+int32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return dv(r->a[r->n], 2); return 0; }
+void put(struct ring *r, int32_t v) { if (r->n >= 0 && r->n < 7) { r->a[r->n] = v; r->n = r->n + 1; } }
+`
+    // (1) al1-al4: static helper exported via alias, #pragma weak, __asm__(".globl ..."), weak alias -> refused (exit 2).
+    for (const [label, extra] of [
+      ['al1-alias', 'int32_t pub(int32_t, int32_t) __attribute__((alias("dv")));\n'],
+      ['al2-pragma-weak', '#pragma weak pub = dv\n'],
+      ['al3-asm-globl', '__asm__(".globl dv");\n'],
+      ['al4-weak-alias', 'extern int32_t pub(int32_t, int32_t) __attribute__((weak, alias("dv")));\n'],
+    ] as const) {
+      const f = join(dir, `${label}.c`)
+      writeFileSync(f, dvBase + extra)
+      const res = await check([f], {propose: false})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.ok, `${label} must be refused`).toBe(false)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+    }
+
+    // ds1-ds3: destructor attribute (before, on, or redeclared after body) -> refused (exit 2).
+    for (const [label, code] of [
+      ['ds1-post-redecl', '// gdp: safety\n#include <stdint.h>\nstatic int32_t a[4];\nstatic int32_t i;\nstatic int32_t h(void) { return a[i]; }\nint32_t get(void) { if (i >= 0 && i < 4) return h(); return 0; }\nvoid set(int32_t v) { i = v; }\n__attribute__((destructor)) static int32_t h(void);\n'],
+      ['ds2-on-def', '// gdp: safety\n#include <stdint.h>\nstatic int32_t a[4];\nstatic int32_t i;\n__attribute__((destructor)) static int32_t h(void) { return a[i]; }\nint32_t get(void) { if (i >= 0 && i < 4) return h(); return 0; }\nvoid set(int32_t v) { i = v; }\n'],
+      ['ds3-pre-redecl', '// gdp: safety\n#include <stdint.h>\nstatic int32_t a[4];\nstatic int32_t i;\n__attribute__((destructor)) static int32_t h(void);\nstatic int32_t h(void) { return a[i]; }\nint32_t get(void) { if (i >= 0 && i < 4) return h(); return 0; }\nvoid set(int32_t v) { i = v; }\n'],
+    ] as const) {
+      const d = join(dir, label)
+      mkdirSync(d, {recursive: true})
+      const f = join(d, 'ring.c')
+      writeFileSync(f, code)
+      const res = await check([f], {entry: 'ring', propose: false})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+    }
+
+    // (2) rh1: global struct with function-pointer field initialized in header under root -> refused (exit 2).
+    const rhDir = join(dir, 'rh1')
+    mkdirSync(rhDir, {recursive: true})
+    writeFileSync(join(rhDir, 'h.h'), '#include <stdint.h>\nstatic int32_t dv(int32_t x, int32_t y);\nstruct ops { int32_t (*f)(int32_t, int32_t); };\nconst struct ops OPS = { dv };\n')
+    const rhFile = join(rhDir, 'ring.c')
+    writeFileSync(rhFile, `// gdp: safety
+#include <stdint.h>
+#include "h.h"
+struct ring { int32_t n; int32_t a[8]; };
+static int32_t dv(int32_t x, int32_t y) { return x / y; }
+int32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return dv(r->a[r->n], 2); return 0; }
+void put(struct ring *r, int32_t v) { if (r->n >= 0 && r->n < 7) { r->a[r->n] = v; r->n = r->n + 1; } }
+`)
+    const rRh = await check([rhFile], {propose: false})
+    expect(rRh.exit).toBe(2)
+    expect(rRh.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+
+    // (3) out1-out4: non-system header outside root (inline + extern, constructor, __dv, static + fn-ptr hook) -> refused (exit 2).
+    const ringOk = `// gdp: safety
+#include <stdint.h>
+struct ring { int32_t n; int32_t a[8]; };
+int32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }
+void put(struct ring *r, int32_t v) { if (r->n >= 0 && r->n < 7) { r->a[r->n] = v; r->n = r->n + 1; } }
+#include "../inc/h.h"
+`
+    for (const [label, hdr, tail] of [
+      ['out1-inline-ext', '#include <stdint.h>\ninline int32_t dv(int32_t x, int32_t y) { return x / y; }\n', 'extern int32_t dv(int32_t, int32_t);\n'],
+      ['out2-constructor', '#include <stdint.h>\nstatic void __attribute__((constructor)) boom(void) { volatile int32_t z = 0; volatile int32_t q = 1 / z; (void)q; }\n', ''],
+      ['out3-dunder', '#include <stdint.h>\nint32_t __dv(int32_t x, int32_t y) { return x / y; }\n', ''],
+      ['out4-static-hook', '#include <stdint.h>\nstatic int32_t dv(int32_t x, int32_t y) { return x / y; }\nint32_t (*hook)(int32_t, int32_t) = dv;\n', ''],
+    ] as const) {
+      const base = join(dir, label), inc = join(base, 'inc'), srcDir = join(base, 'src')
+      mkdirSync(inc, {recursive: true})
+      mkdirSync(srcDir, {recursive: true})
+      writeFileSync(join(inc, 'h.h'), hdr)
+      const f = join(srcDir, 'ring.c')
+      writeFileSync(f, ringOk + tail)
+      const res = await check([f], {propose: false})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+    }
+
+    // #line spoofing a system header path is also refused (exit 2).
+    const lineSpoof = join(dir, 'line_spoof.c')
+    writeFileSync(lineSpoof, H + `int32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }
+#line 1 "/usr/include/stdint.h"
+static int32_t dv(int32_t x, int32_t y) { return x / y; }
+`)
+    const rLine = await check([lineSpoof], {propose: false})
+    expect(rLine.exit).toBe(2)
+    expect(rLine.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+
+    // (4) nd2/nd3: build-mode macro conditionals (__OPTIMIZE__, NDEBUG) refused (exit 2);
+    // proven verdict explicitly states macroConfig (-D flags, NDEBUG=undefined, __OPTIMIZE__=undefined).
+    const nd2 = join(dir, 'nd2.c')
+    writeFileSync(nd2, H + `#ifdef __OPTIMIZE__
+void put(struct ring *r, int32_t v) { r->a[r->n] = v; r->n = r->n + 1; }
+#else
+void put(struct ring *r, int32_t v) { if (r->n >= 0 && r->n < 8) { r->a[r->n] = v; r->n = r->n + 1; } }
+#endif
+`)
+    const rNd2 = await check([nd2], {propose: false})
+    expect(rNd2.exit).toBe(2)
+    expect(rNd2.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+    expect(rNd2.rules[0]?.refusals.map(r => r.what).join('; ')).toContain('__OPTIMIZE__')
+
+    const nd3 = join(dir, 'nd3.c')
+    writeFileSync(nd3, H + `void put(struct ring *r, int32_t v) {
+#ifndef NDEBUG
+  if (r->n < 0 || r->n >= 8) return;
+#endif
+  r->a[r->n] = v; r->n = r->n + 1;
+}
+`)
+    const rNd3 = await check([nd3], {propose: false})
+    expect(rNd3.exit).toBe(2)
+    expect(rNd3.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+    expect(rNd3.rules[0]?.refusals.map(r => r.what).join('; ')).toContain('NDEBUG')
+
+    const cleanFile = join(dir, 'clean_cfg.c')
+    writeFileSync(cleanFile, H + 'int32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n')
+    const rClean = runCliText(['check', '--no-propose', cleanFile])
+    expect(rClean.code).toBe(0)
+    expect(rClean.out).toContain('proven (covers: get)')
+    expect(rClean.out).toContain('macro config: -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined')
+
+    const rWithDef = await check([cleanFile], {flags: ['-DLIMIT=8'], propose: false})
+    expect(rWithDef.exit).toBe(0)
+    expect(rWithDef.rules[0]?.safety).toMatchObject({
+      status: 'proven',
+      coveredFunctions: ['get'],
+      macroConfig: {defines: ['-DLIMIT=8'], ndebugDefined: false, optimizeDefined: false},
+    })
+
+    // (5) Normalized tag & lookalike handling: tm1 (newline in /* */) and tm2 (backslash-continued //)
+    // activate safety mode (exit 1 on buggy peek); tg4 (NBSP), tg5 (fullwidth colon), tg6 ('gdp safety'),
+    // and starred newline wrap emit visible TEXT warning + exit 2.
+    const buggyPeek = '#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t peek(struct ring *r, int32_t i) { return r->a[i]; }\n'
+    for (const [fname, header] of [
+      ['tm1_newline.c', '/* gdp:\n   safety */\n'],
+      ['tm2_bslash.c', '// see below \\\n   gdp: safety\n'],
+      ['tm3_doc.c', '/**\n * gdp: safety\n */\n'],
+    ] as const) {
+      const f = join(dir, fname)
+      writeFileSync(f, header + buggyPeek)
+      const res = await check([f], {entry: 'ring', propose: false})
+      expect(res.exit, `${fname} must activate safety and fail broken (exit 1)`).toBe(1)
+      expect(res.rules[0]?.safety, `${fname} safety status`).toMatchObject({status: 'broken'})
+    }
+    for (const [fname, header] of [
+      ['tg4_nbsp.c', '// gdp:\u00A0safety\n'],
+      ['tg5_fwcolon.c', '// gdp\uFF1A safety\n'],
+      ['tg6_nocolon.c', '// gdp safety\n'],
+      ['tm_starwrap.c', '/* gdp:\n * safety */\n'],
+    ] as const) {
+      const f = join(dir, fname)
+      writeFileSync(f, header + buggyPeek)
       const rText = runCliText(['check', '--entry', 'ring', '--no-propose', f])
       expect(rText.code, `${fname} lookalike must exit 2`).toBe(2)
       expect(rText.out, `${fname} lookalike must print warning in TEXT output`).toMatch(/warning:.*looks like a gdp: safety directive/)

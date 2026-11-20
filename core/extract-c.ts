@@ -34,7 +34,7 @@ import {type GoOptions, type GoPkg, type GoRead, goNames, readGo, unsignedDomain
 import {type GoCheckOptions, type GoEvidence, type GoLeaf, speak} from './extract-go-check.ts'
 import {type CRead, SafetyUncoveredRefusal, clangDump, constantsOf, flagsFor, node, readC} from './c/reader.ts'
 import {analyzeCSafety, replaySafety, uncheckedCSafety, type CSafetyResult} from './c/safety.ts'
-export {cSafetyArtifactOf, verifyCSafetyProof, type CSafetyArtifact, type CSafetyIssue, type CSafetyKind, type CSafetyProofBundle, type CSafetyReplay, type CSafetyResult, type CSafetyRun, type CSafetyStatus} from './c/safety.ts'
+export {cSafetyArtifactOf, verifyCSafetyProof, type CSafetyArtifact, type CSafetyIssue, type CSafetyKind, type CSafetyMacroConfig, type CSafetyProofBundle, type CSafetyReplay, type CSafetyResult, type CSafetyRun, type CSafetyStatus} from './c/safety.ts'
 export {minimizeRun, minimizeRunDetailed, proveRule, proveSteps} from './dsl.ts'
 
 export type COptions = {
@@ -88,7 +88,7 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
     if (ok.length !== 1) throw new Refusal(file, ok.length ? `several classes write their state (${ok.map(r => r.c.entry).join(', ')}): name one (entry)` : `no class whose methods write its state${why.length ? ` (${why.join('; ')})` : ''}: name the entry`)
     return ok[0]!
   }
-  const flags0 = [...flagsFor(file, opts.compileCommands), ...(opts.flags ?? [])], flags = cpp && !flags0.some(f => f.startsWith('-std=')) ? [...flags0, '-std=c++17'] : flags0, {tu, target} = clangDump(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, cpp && !smallTU(file, flags, opts.clang ?? 'clang++') ? opts.entry : undefined)
+  const flags0 = [...flagsFor(file, opts.compileCommands), ...(opts.flags ?? [])], flags = cpp && !flags0.some(f => f.startsWith('-std=')) ? [...flags0, '-std=c++17'] : flags0, {tu, target} = clangDump(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, cpp && !smallTU(file, flags, opts.clang ?? 'clang++') ? opts.entry : undefined, !!opts.safety)
   // (C++, its dump filtered to the class: each variable outside it the class reads, a namespace's constant, dumped too)
   if (cpp && opts.entry && !smallTU(file, flags, opts.clang ?? 'clang++')) {
     const have = new Set<string>(), want = new Map<string, string>()
@@ -175,7 +175,7 @@ function extractCSafety(file: string, opts: COptions, cpp: boolean): Extraction 
     const {c, flags} = readCFile(file, opts)
     c.pkg.dir = absFile.replace(/\/[^/]*$/, '')
     const read = readGo(c.pkg, {entry: c.entry, methods: opts.functions?.map(f => f.split('/')[0]!) ?? c.methods, strict: true, safety: true, ...(opts.fails ? {fails: opts.fails} : {})})
-    const coverage = {coveredFunctions: read.methods.map(m => m.name), ...(c.helpers?.length ? {coveredHelpers: c.helpers} : {})}
+    const coverage = {coveredFunctions: read.methods.map(m => m.name), ...(c.helpers?.length ? {coveredHelpers: c.helpers} : {}), ...(c.macroConfig ? {macroConfig: c.macroConfig} : {})}
     if (!read.safety) return unchecked(file, 'the C safety backend did not provide defined-prefix coverage', uncheckedCSafety([], coverage))
     if (!read.safety.sites.length) return unchecked(file, 'the C safety backend reported no covered sites', uncheckedCSafety([], coverage))
     const clang = opts.clang ?? 'clang'
@@ -202,6 +202,7 @@ function extractCSafety(file: string, opts: COptions, cpp: boolean): Extraction 
       return unchecked(e.where, e.what, uncheckedCSafety([], {
         coveredFunctions: e.coveredFunctions,
         uncheckedFunctions: e.uncheckedFunctions,
+        ...(e.macroConfig ? {macroConfig: e.macroConfig} : {}),
       }))
     }
     if (e instanceof Refusal) return unchecked(e.where, e.what)
