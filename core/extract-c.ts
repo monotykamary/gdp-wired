@@ -75,7 +75,7 @@ type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) =>
 const smallTUs = new Map<string, boolean>()
 function smallTU(file: string, flags: string[], clang: string): boolean {
   const k = `${clang} ${flags.join(' ')} ${file}`
-  if (!smallTUs.has(k)) { try { smallTUs.set(k, node<CP>('node:child_process').execFileSync(clang, ['-x', 'c++', ...flags, '-E', '-P', file], {encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore']}).length < 400_000) } catch { smallTUs.set(k, false) } }
+  if (!smallTUs.has(k)) { try { smallTUs.set(k, node<CP>('node:child_process').execFileSync(clang, ['-x', 'c++', ...flags, '-E', '-P', file], {encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore'], env: scrubbedClangEnv()}).length < 400_000) } catch { smallTUs.set(k, false) } }
   return smallTUs.get(k)!
 }
 export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead, flags: string[]} {
@@ -167,6 +167,8 @@ function extractCSafety(file: string, opts: COptions, cpp: boolean): Extraction 
     return unchecked(file, 'C safety does not accept skipped code, inferred/overridden inputs, narrowed domains, or discarded normal failures')
   if ((opts.methods !== undefined && !opts.methods.length) || (opts.functions !== undefined && !opts.functions.length))
     return unchecked(file, 'C safety does not accept an empty methods list')
+  if (opts.clang !== undefined)
+    return unchecked(file, 'C safety does not accept a custom compiler (clang option)')
   if (opts.compileCommands || opts.flags?.some(f => !/^(?:-std=(?:c|gnu)(?:99|11|17|23)|-I.+|-D[A-Za-z_]\w*(?:=.*)?)$/.test(f)))
     return unchecked(file, 'C safety does not cover custom compiler flags (except -std=c99/c11/c17/c23 or GNU modes, -I, and -D)')
   try {
@@ -178,7 +180,7 @@ function extractCSafety(file: string, opts: COptions, cpp: boolean): Extraction 
     const coverage = {coveredFunctions: read.methods.map(m => m.name), ...(c.helpers?.length ? {coveredHelpers: c.helpers} : {}), ...(c.macroConfig ? {macroConfig: c.macroConfig} : {})}
     if (!read.safety) return unchecked(file, 'the C safety backend did not provide defined-prefix coverage', uncheckedCSafety([], coverage))
     if (!read.safety.sites.length) return unchecked(file, 'the C safety backend reported no covered sites', uncheckedCSafety([], coverage))
-    const clang = opts.clang ?? 'clang'
+    const clang = c.macroConfig?.compilerPath ?? 'clang'
     let cachedHarness: string | undefined
     const replay = (run: import('./c/safety.ts').CSafetyRun, site: import('./c/safety.ts').CSafetySite) => {
       cachedHarness ??= harnessC(absFile, c, read, opts, false)

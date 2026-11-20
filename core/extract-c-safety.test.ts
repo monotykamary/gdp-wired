@@ -2,12 +2,12 @@
 // Astra soundness controls, off-by-one corpus mutants with ASan/UBSan replay, and CLI opt-in.
 import {expect, test} from 'bun:test'
 import {execFileSync, spawnSync} from 'node:child_process'
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {proveLaws} from '../kernel/prove.ts'
 import {check} from './cli.ts'
-import {clangDump, readC} from './c/reader.ts'
+import {clangDump, readC, resolveSafetyClang, verifyClangBinary} from './c/reader.ts'
 import {analyzeCSafety, cSafetyArtifactOf, verifyCSafetyProof, type CSafetyProofBundle} from './c/safety.ts'
 import {bool, rule} from './dsl.ts'
 import {extractC, type COptions} from './extract-c.ts'
@@ -1362,69 +1362,63 @@ withClang('Review Probe 11: path-only system-header boundary (h3-h7), pragma/lin
       expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
     }
 
-    // (3) m1, m5, m6: preprocessed user-code token-stream invariance catches DEBUG, digraph %:ifndef NDEBUG,
-    // and token-pasted #if !CAT(ND,EBUG) regardless of preprocessor spelling -> exit 2.
-    const macroHdr = '// gdp: safety\n#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\n#define CAT(a,b) a##b\n'
-    for (const [label, body, wantMacro] of [
+    // (3) m1, m5, m6: closed-world preprocessor allowlist + token-stream invariance catches DEBUG,
+    // digraph %:ifndef NDEBUG, and token-pasted #if !CAT(ND,EBUG) regardless of spelling -> exit 2.
+    const macroHdr = '// gdp: safety\n#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\n'
+    for (const [label, body, want] of [
       ['m1-debug', 'void put(struct ring *r, int32_t v) {\n#ifndef DEBUG\n  if (r->n < 0 || r->n >= 8) return;\n#endif\n  r->a[r->n] = v; r->n = r->n + 1;\n}\n', 'DEBUG'],
       ['m5-digraph-ndebug', 'void put(struct ring *r, int32_t v) {\n%:ifndef NDEBUG\n  if (r->n < 0 || r->n >= 8) return;\n#endif\n  r->a[r->n] = v; r->n = r->n + 1;\n}\n', 'NDEBUG'],
-      ['m6-cat-ndebug', 'void put(struct ring *r, int32_t v) {\n#if !CAT(ND,EBUG)\n  if (r->n < 0 || r->n >= 8) return;\n#endif\n  r->a[r->n] = v; r->n = r->n + 1;\n}\n', 'NDEBUG'],
+      ['m6-cat-ndebug', '#define CAT(a,b) a##b\nvoid put(struct ring *r, int32_t v) {\n#if !CAT(ND,EBUG)\n  if (r->n < 0 || r->n >= 8) return;\n#endif\n  r->a[r->n] = v; r->n = r->n + 1;\n}\n', '##'],
     ] as const) {
       const f = join(dir, `${label}.c`)
       writeFileSync(f, macroHdr + body)
       const res = await check([f], {propose: false})
       expect(res.exit, `${label} must exit 2`).toBe(2)
       expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
-      expect(res.rules[0]?.refusals.map(r => r.what).join('; '), `${label} names ${wantMacro}`).toContain(wantMacro)
+      expect(res.rules[0]?.refusals.map(r => r.what).join('; '), `${label} names ${want}`).toContain(want)
     }
 
-    // (4) m2, m3, m4, m7: target/compiler/std-dependent code proves under the active configuration AND
-    // explicitly states target triple, compiler, effective std, and __STDC_VERSION__ in JSON & TEXT.
-    for (const [label, cond] of [
-      ['m2_arch', 'defined(__x86_64__) || defined(__aarch64__) || defined(__LP64__)'],
-      ['m3_builtin', '__has_builtin(__builtin_trap)'],
+    // (4) m2, m3, m4, m7: under the closed-world preprocessor allowlist, conditionals referencing
+    // predefined macros (__x86_64__, __clang__, __STDC_VERSION__) or __has_* queries are refused
+    // (exit 2) naming the macro/operator and line; clean files still report target, compiler +
+    // absolute compilerPath, effective std, and __STDC_VERSION__ across default/-std=c23/-std=c11.
+    for (const [label, cond, want] of [
+      ['m2_arch', 'defined(__x86_64__) || defined(__aarch64__) || defined(__LP64__)', '__x86_64__'],
+      ['m3_builtin', '__has_builtin(__builtin_trap)', '__has_builtin'],
+      ['m4_stdc', '__STDC_VERSION__ >= 201710L', '__STDC_VERSION__'],
+      ['m7_not_clang', '!defined(__clang__)', '__clang__'],
     ] as const) {
       const f = join(dir, `${label}.c`)
       writeFileSync(f, macroHdr + `void put(struct ring *r, int32_t v) {\n#if ${cond}\n  if (r->n < 0 || r->n >= 8) return;\n#endif\n  r->a[r->n] = v; r->n = r->n + 1;\n}\n`)
-      const rTxt = runCliText(['check', '--no-propose', f])
-      expect(rTxt.code, `${label} must exit 0`).toBe(0)
-      expect(rTxt.out, `${label} must report target/compiler/std`).toMatch(/macro config: target: \S+.*; compiler: clang \S+; std: \S+ \(__STDC_VERSION__=\S+\)/)
+      const res = await check([f], {propose: false})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+      expect(res.rules[0]?.refusals.map(r => r.what).join('; '), `${label} names ${want}`).toContain(want)
+      expect(res.rules[0]?.refusals[0]?.where, `${label} reports line 5`).toContain(':5:')
     }
 
-    const m7File = join(dir, 'm7_not_clang.c')
-    writeFileSync(m7File, macroHdr + 'void put(struct ring *r, int32_t v) {\n#if !defined(__clang__)\n  if (r->n < 0 || r->n >= 8) return;\n#endif\n  r->a[r->n] = v; r->n = r->n + 1;\n}\n')
-    const rM7 = await check([m7File], {propose: false})
-    expect(rM7.exit).toBe(1)
-    expect(rM7.rules[0]?.safety).toMatchObject({status: 'broken'})
+    const cleanStd = join(dir, 'clean_std.c')
+    writeFileSync(cleanStd, macroHdr + 'void put(struct ring *r, int32_t v) {\n  if (r->n < 0 || r->n >= 8) return;\n  r->a[r->n] = v; r->n = r->n + 1;\n}\n')
+    const rStdText = runCliText(['check', '--no-propose', cleanStd])
+    expect(rStdText.code).toBe(0)
+    expect(rStdText.out).toMatch(/macro config: target: \S+; compiler: clang \S+ \(\/\S+\); std: (?:gnu|c)(?:17|23) \(__STDC_VERSION__=(?:201710L|202311L)\); env: scrubbed; -I flags: none; -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined, DEBUG=undefined/)
 
-    const m4File = join(dir, 'm4_stdc.c')
-    writeFileSync(m4File, macroHdr + `void put(struct ring *r, int32_t v) {
-#if __STDC_VERSION__ >= 201710L
-  if (r->n < 0 || r->n >= 8) return;
-#endif
-  r->a[r->n] = v; r->n = r->n + 1;
-}
-`)
-    const rM4Text = runCliText(['check', '--no-propose', m4File])
-    expect(rM4Text.code).toBe(0)
-    expect(rM4Text.out).toMatch(/macro config: target: \S+.*; std: (?:gnu|c)(?:17|23) \(__STDC_VERSION__=(?:201710L|202311L)\); env: scrubbed; -I flags: none; -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined, DEBUG=undefined/)
-
-    const rM4C23 = await check([m4File], {flags: ['-std=c23'], propose: false})
-    expect(rM4C23.exit).toBe(0)
-    expect(rM4C23.rules[0]?.safety).toMatchObject({
+    const rStdC23 = await check([cleanStd], {flags: ['-std=c23'], propose: false})
+    expect(rStdC23.exit).toBe(0)
+    expect(rStdC23.rules[0]?.safety).toMatchObject({
       status: 'proven',
       coveredFunctions: ['put'],
-      macroConfig: {std: 'c23', stdcVersion: '202311L', ndebugDefined: false, optimizeDefined: false, debugDefined: false},
+      macroConfig: {std: 'c23', stdcVersion: '202311L', envScrubbed: true, ndebugDefined: false, optimizeDefined: false, debugDefined: false},
     })
-    expect((rM4C23.rules[0]?.safety as {macroConfig?: {target?: string}})?.macroConfig?.target).toMatch(/\S+-\S+/)
+    const mc23 = (rStdC23.rules[0]?.safety as {macroConfig?: {target?: string, compilerPath?: string}})?.macroConfig
+    expect(mc23?.target).toMatch(/\S+-\S+/)
+    expect(mc23?.compilerPath).toMatch(/^\//)
 
-    // Under -std=c11 (__STDC_VERSION__=201112L), the >= 201710L guard vanishes -> broken (exit 1, UBSan)
-    // and macroConfig explicitly reports std: c11 (__STDC_VERSION__=201112L).
-    const rM4C11 = await check([m4File], {flags: ['-std=c11'], propose: false})
-    expect(rM4C11.exit).toBe(1)
-    expect(rM4C11.rules[0]?.safety).toMatchObject({
-      status: 'broken',
-      macroConfig: {std: 'c11', stdcVersion: '201112L'},
+    const rStdC11 = await check([cleanStd], {flags: ['-std=c11'], propose: false})
+    expect(rStdC11.exit).toBe(0)
+    expect(rStdC11.rules[0]?.safety).toMatchObject({
+      status: 'proven',
+      macroConfig: {std: 'c11', stdcVersion: '201112L', envScrubbed: true},
     })
   } finally {
     rmSync(dir, {recursive: true, force: true})
@@ -1493,7 +1487,7 @@ withClang('Review Probe 12: macro expansion in system headers (mx1/mx2/w4/-D), s
     const invHdr = '// gdp: safety\n#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\n'
     for (const [label, cond, want] of [
       ['os1-opt-size', '#ifdef __OPTIMIZE_SIZE__\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', '__OPTIMIZE_SIZE__'],
-      ['san-has-feat', '#if __has_feature(address_sanitizer)\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', '__SANITIZE_'],
+      ['san-has-feat', '#if __has_feature(address_sanitizer)\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', '__has_feature'],
       ['san-macro', '#ifdef __SANITIZE_UNDEFINED__\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', '__SANITIZE_'],
       ['dbg-gt-1', '#if DEBUG > 1\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', 'DEBUG'],
       ['ndebug-zero', '#if defined(NDEBUG) && NDEBUG == 0\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', 'NDEBUG'],
@@ -1518,6 +1512,167 @@ withClang('Review Probe 12: macro expansion in system headers (mx1/mx2/w4/-D), s
     expect(rIncText.code).toBe(0)
     expect(rIncText.out).toContain('env: scrubbed')
     expect(rIncText.out).toContain(`-I flags: -I${incDir}`)
+  } finally {
+    rmSync(dir, {recursive: true, force: true})
+  }
+}, 180_000)
+
+withClang('Review Probe 13: closed-world compiler verification & fixed PATH (e1-e3), closed-world #if macro allowlist (c_*), invocation-dependent macros (f1-f4), and #pragma once / user #define positive controls', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-probe13-'))
+  try {
+    // (1) e1, e2, e3: custom clang in gdp.toml or options is refused; PATH wrapper is ignored
+    // because PATH is scrubbed to a fixed safe list; verifyClangBinary refuses both shell wrappers
+    // and compiled native wrapper binaries that inject -isystem or -D.
+    const bin1 = join(dir, 'bin1'), bin2 = join(dir, 'bin2'), e1Inc = join(dir, 'e1inc')
+    mkdirSync(bin1, {recursive: true})
+    mkdirSync(bin2, {recursive: true})
+    mkdirSync(e1Inc, {recursive: true})
+    const realClang = resolveSafetyClang('clang', join(dir, 'probe.c')).bin
+    writeFileSync(join(e1Inc, 'util.h'), '#include <stdint.h>\nint32_t pub(int32_t x, int32_t y) { return x / y; }\n')
+    const wrap1 = join(bin1, 'clang')
+    writeFileSync(wrap1, `#!/bin/sh\nexec ${realClang} -isystem ${e1Inc} "$@"\n`)
+    chmodSync(wrap1, 0o755)
+    const wrap2 = join(bin2, 'clang')
+    writeFileSync(wrap2, `#!/bin/sh\nexec ${realClang} -DLIM=8 "$@"\n`)
+    chmodSync(wrap2, 0o755)
+
+    // e1: gdp.toml clang = wrapper adding -isystem -> exit 2
+    const e1Dir = join(dir, 'e1')
+    mkdirSync(e1Dir, {recursive: true})
+    writeFileSync(join(e1Dir, 'gdp.toml'), `clang = ${JSON.stringify(wrap1)}\n`)
+    const e1File = join(e1Dir, 'ring.c')
+    writeFileSync(e1File, '// gdp: safety\n#include <stdint.h>\n#include <util.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n')
+    const rE1 = await check([e1File], {propose: false})
+    expect(rE1.exit).toBe(2)
+    expect(rE1.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+    expect(rE1.rules[0]?.refusals.map(r => r.what).join('; ')).toMatch(/custom compiler/)
+
+    // e3: gdp.toml clang = wrapper adding -DLIM=8 -> exit 2
+    const e3Dir = join(dir, 'e3')
+    mkdirSync(e3Dir, {recursive: true})
+    writeFileSync(join(e3Dir, 'gdp.toml'), `clang = ${JSON.stringify(wrap2)}\n`)
+    const e3File = join(e3Dir, 'ring.c')
+    writeFileSync(e3File, '// gdp: safety\n#include <stdint.h>\n#ifndef LIM\n#define LIM 9\n#endif\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < LIM) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 8) r->n = r->n + 1; }\n')
+    const rE3 = await check([e3File], {propose: false})
+    expect(rE3.exit).toBe(2)
+    expect(rE3.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+
+    // e2: PATH wrapper first on PATH adding -DLIM=8 (or -isystem) is ignored due to fixed safe PATH -> exit 2
+    const e2Dir = join(dir, 'e2')
+    mkdirSync(e2Dir, {recursive: true})
+    const e2File = join(e2Dir, 'ring.c')
+    writeFileSync(e2File, '// gdp: safety\n#include <stdint.h>\n#ifndef LIM\n#define LIM 9\n#endif\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < LIM) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 8) r->n = r->n + 1; }\n')
+    const rE2 = runCliText(['check', '--no-propose', e2File], {PATH: `${bin2}:${process.env.PATH ?? ''}`})
+    expect(rE2.code).toBe(2)
+    expect(rE2.out).toContain('unchecked (covers: none)')
+    expect(rE2.out).not.toContain('proven (covers:')
+
+    const e2IncFile = join(e2Dir, 'inc_ring.c')
+    writeFileSync(e2IncFile, '// gdp: safety\n#include <stdint.h>\n#include <util.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n')
+    const rE2Inc = runCliText(['check', '--no-propose', e2IncFile], {PATH: `${bin1}:${process.env.PATH ?? ''}`})
+    expect(rE2Inc.code).toBe(2)
+    expect(rE2Inc.out).toContain('unchecked (covers: none)')
+
+    // Direct verifyClangBinary checks: rejects shell wrappers AND compiled native wrapper binaries.
+    expect(() => verifyClangBinary(wrap1, e1File)).toThrow(Refusal)
+    expect(() => verifyClangBinary(wrap2, e3File)).toThrow(Refusal)
+    const nativeWrapSrc = join(dir, 'wrap.c')
+    const nativeWrapBin = join(dir, 'clang-wrap')
+    writeFileSync(nativeWrapSrc, `#include <unistd.h>
+#include <stdlib.h>
+int main(int argc, char **argv) {
+  char **na = malloc((size_t)(argc + 2) * sizeof(char *));
+  na[0] = ${JSON.stringify(realClang)};
+  na[1] = "-DLIM=8";
+  for (int i = 1; i < argc; i++) na[i + 1] = argv[i];
+  na[argc + 1] = NULL;
+  execv(${JSON.stringify(realClang)}, na);
+  return 127;
+}
+`)
+    execFileSync(realClang, [nativeWrapSrc, '-o', nativeWrapBin])
+    expect(() => verifyClangBinary(nativeWrapBin, e3File)).toThrow(Refusal)
+
+    // (2) Closed-world #if/#ifdef/#ifndef/#elif/defined()/__has_* allowlist:
+    // Refuses every predefined or undefined-elsewhere macro (c___PIC__, c___AVX2__, c__REENTRANT,
+    // c___SANITIZE_THREAD__, c___SSP_STRONG__, __FAST_MATH__, __CHAR_UNSIGNED__, indirect alias,
+    // non-#if predefined macro use, and token pasting) with its name and line -> exit 2.
+    const ringTail = 'struct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < LIM) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 8) r->n = r->n + 1; }\n'
+    for (const [label, pre, want, wantLine] of [
+      ['c___PIC__', '#ifndef __PIC__\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', '__PIC__', 3],
+      ['c___AVX2__', '#ifdef __AVX2__\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', '__AVX2__', 3],
+      ['c__REENTRANT', '#ifdef _REENTRANT\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', '_REENTRANT', 3],
+      ['c___SANITIZE_THREAD__', '#ifdef __SANITIZE_THREAD__\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', '__SANITIZE_THREAD__', 3],
+      ['c___SSP_STRONG__', '#ifdef __SSP_STRONG__\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', '__SSP_STRONG__', 3],
+      ['c___FAST_MATH__', '#ifdef __FAST_MATH__\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', '__FAST_MATH__', 3],
+      ['c___CHAR_UNSIGNED__', '#ifdef __CHAR_UNSIGNED__\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', '__CHAR_UNSIGNED__', 3],
+      ['c_indirect_alias', '#define MY_ALIAS __AVX2__\n#if MY_ALIAS\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', '__AVX2__', 4],
+      ['c_expr_pic', '#define LIM (8 + (2 - __PIC__))\n', '__PIC__', 3],
+      ['c_pragma_pack', '#pragma pack(1)\n#define LIM 8\n', '#pragma pack(1)', 3],
+      ['g1_macro_pragma', '#define P(x) _Pragma(#x)\nP(weak evil = get)\n#define LIM 8\n', '_Pragma', 3],
+    ] as const) {
+      const f = join(dir, `${label}.c`)
+      writeFileSync(f, '// gdp: safety\n#include <stdint.h>\n' + pre + ringTail)
+      const res = await check([f], {propose: false})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+      expect(res.rules[0]?.refusals.map(r => r.what).join('; '), `${label} names ${want}`).toContain(want)
+      expect(res.rules[0]?.refusals[0]?.where, `${label} reports line ${wantLine}`).toContain(`:${wantLine}:`)
+    }
+
+    // (3) Invocation-dependent predefined macros (f1-f4: __FILE__, plus __BASE_FILE__, __FILE_NAME__,
+    // __TIMESTAMP__, __DATE__, __TIME__, __COUNTER__, __LINE__, __INCLUDE_LEVEL__) refused -> exit 2.
+    for (const [label, lineCode, want] of [
+      ['f4_file_arr', 'struct ring { int32_t n; int32_t a[sizeof(__FILE__) > 20 ? 9 : 8]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 9) return r->a[r->n]; return 0; }\n', '__FILE__'],
+      ['f_base_file', 'struct ring { int32_t n; int32_t a[sizeof(__BASE_FILE__) > 1 ? 8 : 4]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n', '__BASE_FILE__'],
+      ['f_file_name', 'struct ring { int32_t n; int32_t a[sizeof(__FILE_NAME__) > 1 ? 8 : 4]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n', '__FILE_NAME__'],
+      ['f_timestamp', 'struct ring { int32_t n; int32_t a[sizeof(__TIMESTAMP__) > 1 ? 8 : 4]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n', '__TIMESTAMP__'],
+      ['f_date', 'struct ring { int32_t n; int32_t a[sizeof(__DATE__) > 1 ? 8 : 4]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n', '__DATE__'],
+      ['f_time', 'struct ring { int32_t n; int32_t a[sizeof(__TIME__) > 1 ? 8 : 4]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n', '__TIME__'],
+      ['f_counter', 'struct ring { int32_t n; int32_t a[8 + __COUNTER__]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n', '__COUNTER__'],
+      ['f_line', 'struct ring { int32_t n; int32_t a[__LINE__ + 5]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n', '__LINE__'],
+      ['f_spliced_file', 'struct ring { int32_t n; int32_t a[sizeof(__FI\\\nLE__) > 20 ? 9 : 8]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 9) return r->a[r->n]; return 0; }\n', '__FILE__'],
+    ] as const) {
+      const f = join(dir, `${label}.c`)
+      writeFileSync(f, '// gdp: safety\n#include <stdint.h>\n' + lineCode)
+      const res = await check([f], {propose: false})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+      expect(res.rules[0]?.refusals.map(r => r.what).join('; '), `${label} names ${want}`).toContain(want)
+      expect(res.rules[0]?.refusals[0]?.where, `${label} reports line 3`).toContain(':3:')
+    }
+
+    // (4) Positive closed-world controls: #pragma once in a user header, user-defined macros, and
+    // explicit -D flags listed in the verdict ARE allowed in #if/#ifdef/#elif/defined(), and the
+    // verdict reports the verified absolute compilerPath in both JSON and CLI TEXT.
+    const okDir = join(dir, 'ok_allow')
+    mkdirSync(okDir, {recursive: true})
+    writeFileSync(join(okDir, 'cfg.h'), '#pragma once\n#define USER_CAP 8\n')
+    const okFile = join(okDir, 'ring.c')
+    writeFileSync(okFile, `// gdp: safety
+#include <stdint.h>
+#include "cfg.h"
+#if defined(USER_CAP) && USER_CAP == 8 && defined(CLI_LIM) && CLI_LIM == 8
+#define EFF_LIM USER_CAP
+#else
+#define EFF_LIM 4
+#endif
+struct ring { int32_t n; int32_t a[EFF_LIM]; };
+int32_t get(struct ring *r) { if (r->n >= 0 && r->n < EFF_LIM) return r->a[r->n]; return 0; }
+void put(struct ring *r) { if (r->n >= 0 && r->n < 7) r->n = r->n + 1; }
+`)
+    const rOk = await check([okFile], {flags: ['-DCLI_LIM=8'], propose: false})
+    expect(rOk.exit).toBe(0)
+    expect(rOk.rules[0]?.safety).toMatchObject({
+      status: 'proven',
+      coveredFunctions: ['get', 'put'],
+      macroConfig: {compilerPath: realClang, envScrubbed: true, defines: ['-DCLI_LIM=8']},
+    })
+    writeFileSync(join(okDir, 'gdp.toml'), 'flags = ["-DCLI_LIM=8"]\n')
+    const rOkTxt = runCliText(['check', '--no-propose', okFile])
+    expect(rOkTxt.code).toBe(0)
+    expect(rOkTxt.out).toContain(`(${realClang})`)
+    expect(rOkTxt.out).toContain('-D flags: -DCLI_LIM=8')
   } finally {
     rmSync(dir, {recursive: true, force: true})
   }
