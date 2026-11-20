@@ -1,6 +1,6 @@
 # C safety (Stage 1)
 
-See [`STAGE1.md`](./STAGE1.md) for the Stage 1 C memory & UB safety implementation summary, assumptions, independent Astra soundness-review discharge, bounds-check corpus & UBSan replay results, Lean 4 recheck axioms, and exact-commit Boat gate receipts.
+See [`STAGE1.md`](./STAGE1.md) for the Stage 1 C memory & UB safety implementation summary, the exact boundary between mechanically checked premises and remaining explicit assumptions (out-parameter aliasing, zeroed start, other translation units, ABI/first-fault scope), independent soundness-review fixes, bounds-check corpus & UBSan replay results, Lean 4 recheck axioms, and exact-commit Boat gate receipts.
 
 ## Research & Lean export scripts
 

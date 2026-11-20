@@ -42,10 +42,10 @@ const safetyArtifacts = new WeakMap<CSafetyResult, CSafetyArtifact>()
 export const cSafetyArtifactOf = (result: CSafetyResult): CSafetyArtifact | undefined => safetyArtifacts.get(result)
 
 const assumptions = [
-  'The Clang target uses 8-bit bytes and two’s-complement integers; only covered scalar types up to 32 bits, constant lookup tables, and fixed arrays of known extent are modeled.',
-  'Selected methods run sequentially on one live, zero-initialized receiver (and non-aliasing scalar out-parameters), or on single-declaration file-local globals from their C initialization; no other code changes this state.',
-  'Inputs are in their C types. Configured normal refusals end the admitted trace unless a tracked fault has already occurred.',
-  'Only the first tracked array/table-bounds, signed-overflow or division/remainder fault is checked. Broken obligations are replayed under ASan/UBSan; unproven sites are never claimed proven or broken.',
+  'ABI & types (assumption): Clang target uses 8-bit char, 16-bit short, 32-bit int, and two’s-complement signed integers; only covered scalar types up to 32 bits, constant lookup tables, and fixed arrays of known extent are modeled.',
+  'Ownership, zeroed start & aliasing (assumption): Selected methods execute sequentially on one live, zero-initialized receiver (or single-declaration file-local static globals from their C initialization) with non-aliasing receiver and scalar out-parameters, no concurrency, and no external mutation from other translation units.',
+  'Checked TU closure & failure paths (checked): Non-selected functions in the translation unit (including narrowed method lists, non-first-parameter writers, and void*/pointer callbacks) are refused unless proven unable to write state; configured normal failure returns (fails) are refused if any failure path writes state prior to returning.',
+  'First-fault & replay scope: Only the first tracked array/table-bounds, signed-overflow, or division/remainder fault is checked. Broken obligations require site-matched ASan/UBSan replay (matchedSite); unproven sites are never claimed proven or broken. Abstract stutter on fault is a monitor convention, not native rollback.',
 ] as const
 export const uncheckedCSafety = (issues: CSafetyIssue[] = []): CSafetyResult => ({status: 'unchecked', issues, assumptions})
 
@@ -134,9 +134,10 @@ export function monitorCSafety(m: Model, sites: readonly CSafetySite[], domain: 
 const isArithFn = (name: string) => /^(?:div|mod)\$\d+$/.test(name)
 function sameSafetyMachine(candidate: Machine, expected: Machine): boolean {
   const core = (m: Machine) => JSON.stringify({
+    primitiveFailure: m.primitiveFailure,
     params: m.params, inputs: m.inputs, state: m.state, maps: m.maps,
     pre: m.pre, assume: m.assume, step: m.step, history: m.history, sums: m.sums,
-    inputMaps: m.inputMaps, counts: m.counts,
+    inputMaps: m.inputMaps, counts: m.counts, leasts: m.leasts,
   })
   if (core(candidate) !== core(expected)) return false
   const efns = expected.fns ?? {}, cfns = candidate.fns ?? {}
@@ -482,7 +483,8 @@ export function replaySafety(o: {
       .map(l => l.replace(/^.*?([^/\s]+\.c:\d+:\d+: runtime error:)/, '$1').trim())
     const states = fs.existsSync(outFile) ? fs.readFileSync(outFile, 'utf8').trim().split('\n').filter(Boolean).slice(1) : []
     const siteFileLine = site?.where.replace(/#\d+$/, '').replace(/:\d+$/, ':')
-    const matchedSite = !siteFileLine ? reports.length > 0 : reports.some(l => l.includes(siteFileLine)) || r.stderr.includes(siteFileLine)
+    const siteRe = siteFileLine ? new RegExp(`(?:^|[/\\s])${siteFileLine.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) : undefined
+    const matchedSite = !siteRe ? reports.length > 0 : reports.some(l => siteRe.test(l)) || siteRe.test(r.stderr)
     return {built: true, requests, reports, states, stderr: r.stderr.slice(0, 4000), matchedSite}
   } finally {
     try { fs.rmSync(work, {recursive: true, force: true}) } catch { /* gone */ }
@@ -540,8 +542,15 @@ export function analyzeCSafety(
     const run = reused.run ?? probeBoundaryFault(read, c, rule, machine, alarmNames[j])
     if (run && opts.replay) {
       const rp = opts.replay(run, site)
-      if (rp.built && rp.reports.length > 0) return issue(site, 'broken', {replay: rp})
-      return issue(site, 'unproven', {replay: rp, why: rp.built ? 'counterexample run did not trigger ASan/UBSan on compiled C' : 'failed to build ASan/UBSan replay harness'})
+      if (rp.built && rp.reports.length > 0 && rp.matchedSite) return issue(site, 'broken', {replay: rp})
+      return issue(site, 'unproven', {
+        replay: rp,
+        why: !rp.built
+          ? 'failed to build ASan/UBSan replay harness'
+          : rp.reports.length > 0
+            ? `ASan/UBSan fired, but did not match target site ${site.where}`
+            : 'counterexample run did not trigger ASan/UBSan on compiled C',
+      })
     }
     return issue(site, 'unproven', {why: reused.why})
   })

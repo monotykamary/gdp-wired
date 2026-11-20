@@ -1332,6 +1332,126 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       if (gmode ? !requests.has(name) : !recvOf(f) || (pickNames.length ? !pickNames.includes(name) : !mine(f) || f.storageClass === 'static')) continue
       validateFunc(name, f, true)
     }
+    if (pickNames.length) {
+      for (const want of pickNames) if (!validated.has(want)) bad(td0(), `selected method ${want} is missing or lacks a modeled receiver`)
+    }
+    // Audit every non-selected function in the translation unit (including narrowed-out methods,
+    // non-first-parameter functions, and void*/pointer callbacks). Only functions proven unable
+    // to write modeled state or escape pointers may coexist outside the selected event set.
+    const hasUnsafePtrType = (raw: string): boolean => /\bvoid\s*\*|\(\s*\*|\*\s*\*/.test(raw)
+    const typeMentionsEntry = (ty?: {qualType: string, desugaredQualType?: string}): boolean => {
+      if (!entryRec || !ty) return false
+      const seen = new Set<number>()
+      const check = (idx: number): boolean => {
+        if (seen.has(idx)) return false
+        seen.add(idx)
+        if (idx === entryT) return true
+        const q = T(idx)
+        if (!q) return false
+        if (q.elem !== undefined && check(q.elem)) return true
+        if (q.fields?.some(fl => check(fl.t))) return true
+        return false
+      }
+      return check(tyOf(ty))
+    }
+    const verifiedReadOnly = new Set<string>()
+    const checkUnselectedSafe = (name: string, f: CN, stack: Set<string>): void => {
+      if (verifiedReadOnly.has(name)) return
+      if (stack.has(name)) bad(f, `recursive unselected function ${name} cannot be proven free of state writes`)
+      if (f.variadic || f.inner?.some(k => k.kind.endsWith('Attr')) || hasMacroLoc(f.loc))
+        bad(f, `unselected function ${name} cannot be verified free of state writes`)
+      const rt = parseT(f.type!.qualType.slice(0, retEnd(f.type!.qualType)))
+      const rtk = T(rt).k
+      if (rtk !== 'void' && rtk !== 'bool' && rtk !== 'int')
+        bad(f, `unselected function ${name} returns non-scalar type ${T(rt).go ?? rtk} that may alias state`)
+      const body = f.inner?.find(c => c.kind === 'CompoundStmt')
+      if (!body) bad(f, `unselected function ${name} has no inspectable body`)
+      const localPlain = new Set<string>()
+      for (const q of params(f)) {
+        const raw = `${q.type?.qualType ?? ''} ${q.type?.desugaredQualType ?? ''}`
+        if (hasUnsafePtrType(raw)) bad(q, `unselected function ${name} accepts void* or indirect pointer parameter ${q.name ?? ''}`)
+        if (q.id && q.type) {
+          const qt = T(tyOf(q.type))
+          if (qt.k === 'int' || qt.k === 'bool') localPlain.add(q.id)
+        }
+      }
+      stack.add(name)
+      try {
+        const walkRo = (n: CN): void => {
+          if (n.type && hasUnsafePtrType(`${n.type.qualType} ${n.type.desugaredQualType ?? ''}`))
+            bad(n, `unselected function ${name} uses void* or indirect pointer`)
+          if (n.kind === 'VarDecl') {
+            if (n.storageClass && n.storageClass !== 'auto' && n.storageClass !== 'register')
+              bad(n, `unselected function ${name} declares non-automatic local ${n.name ?? ''}`)
+            if (n.id && n.type) {
+              const qt = T(tyOf(n.type))
+              if (qt.k === 'int' || qt.k === 'bool') localPlain.add(n.id)
+            }
+          }
+          if (['GCCAsmStmt', 'AtomicExpr', 'VAArgExpr', 'StmtExpr', 'AddrLabelExpr'].includes(n.kind))
+            bad(n, `unselected function ${name} uses unmodeled ${n.kind}`)
+          if (CAST.has(n.kind)) {
+            if (['BitCast', 'IntegralToPointer', 'PointerToIntegral', 'FunctionToPointerDecay', 'BuiltinFnToFnPtr'].includes(n.castKind ?? ''))
+              bad(n, `unselected function ${name} performs pointer/bit cast ${n.castKind}`)
+            if (n.kind === 'CStyleCastExpr' && n.type && T(tyOf(n.type)).k === 'ptr')
+              bad(n, `unselected function ${name} casts to pointer type`)
+          }
+          if (n.kind === 'UnaryOperator') {
+            if (n.opcode === '&') bad(n, `unselected function ${name} takes an address with &`)
+            if (n.opcode === '++' || n.opcode === '--') {
+              const lhs = strip(n.inner![0]!)
+              if (lhs.kind !== 'DeclRefExpr' || !lhs.referencedDecl?.id || !localPlain.has(lhs.referencedDecl.id))
+                bad(n, `unselected function ${name} mutates non-local state`)
+            }
+          }
+          if ((n.kind === 'BinaryOperator' && n.opcode === '=') || n.kind === 'CompoundAssignOperator') {
+            const lhs = strip(n.inner![0]!)
+            if (lhs.kind !== 'DeclRefExpr' || !lhs.referencedDecl?.id || !localPlain.has(lhs.referencedDecl.id))
+              bad(n, `unselected function ${name} writes state or memory`)
+          }
+          if (n.kind === 'CallExpr') {
+            const cname = calleeName(n), callee = cname ? funcs.get(cname) : undefined
+            if (!callee) bad(n, `unselected function ${name} calls unverified function ${cname ?? '<indirect>'}`)
+            checkUnselectedSafe(cname!, callee, stack)
+            for (const c of (n.inner ?? []).slice(1)) walkRo(c)
+            return
+          }
+          for (const c of n.inner ?? []) walkRo(c)
+        }
+        walkRo(body)
+      } finally {
+        stack.delete(name)
+      }
+      verifiedReadOnly.add(name)
+    }
+    for (const [name, f] of funcs) {
+      if (validated.has(name)) continue
+      if (f.storageClass === 'static' && validatedHelpers.has(name)) continue
+      checkUnselectedSafe(name, f, new Set())
+    }
+    // Also reject any non-own TU function body (e.g. header outside root) that accesses modeled state,
+    // and any main-file global initializer that escapes a function address.
+    const scanForeignStateAccess = (n: CN, fnName: string): void => {
+      if (n.kind === 'MemberExpr' && entryRec && fields.get(n.referencedMemberDecl ?? '')?.rec === entryRec)
+        bad(n, `external header function ${fnName} accesses entry struct ${entry}`)
+      if (n.kind === 'DeclRefExpr' && n.referencedDecl?.kind === 'VarDecl' && gfield.has(n.referencedDecl.id))
+        bad(n, `external header function ${fnName} accesses modeled global state`)
+      if ((n.kind === 'ParmVarDecl' || n.kind === 'VarDecl') && typeMentionsEntry(n.type))
+        bad(n, `external header function ${fnName} references entry struct ${entry}`)
+      for (const c of n.inner ?? []) scanForeignStateAccess(c, fnName)
+    }
+    for (const n of top) {
+      if (n.kind === 'FunctionDecl' && !own(n) && n.inner?.some(c => c.kind === 'CompoundStmt'))
+        scanForeignStateAccess(n, n.name ?? '<anonymous>')
+      if (n.kind === 'VarDecl' && mine(n) && n.init) {
+        const scanInit = (c: CN): void => {
+          if (c.kind === 'DeclRefExpr' && c.referencedDecl?.kind === 'FunctionDecl')
+            bad(c, `global ${n.name ?? ''} initializer references function ${c.referencedDecl.name}`)
+          for (const k of c.inner ?? []) scanInit(k)
+        }
+        scanInit(n)
+      }
+    }
     sitesFrozen = true
   }
   let ctor: GoFunc | undefined

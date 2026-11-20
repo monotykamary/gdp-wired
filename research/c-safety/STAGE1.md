@@ -51,14 +51,37 @@ Without opt-in, `extractC` and `gdp check` leave the default C extraction and ve
    - Every counterexample run (including deterministic C scalar endpoint probes from `probeBoundaryFault` for nonlinear faults such as `uint16_t * uint16_t`) is compiled with Clang `-O0 -g -fno-omit-frame-pointer -fsanitize=address,undefined -fsanitize-recover=all` (and `-fstrict-flex-arrays=3` when supported) and executed with no shell interpolation (`spawnSync` + temp JSONL files).
    - An obligation is marked `broken` **only** if the harness builds cleanly and produces actual ASan/UBSan runtime diagnostics; otherwise it stays `unproven`.
 
-### 2.2 Explicit Scope & Honest Assumptions
+### 2.2 Checked Premises vs. Remaining Assumptions
 
-A `proven` Stage 1 verdict establishes absence of a **first** tracked bounds, signed-overflow, or division/remainder fault **under these explicit assumptions** (also returned verbatim on every `CSafetyResult.assumptions`):
+A `proven` Stage 1 verdict establishes absence of a **first** tracked array/table-bounds, signed-overflow, or division/remainder fault over the selected C methods. Below is the exact boundary between what Stage 1 **mechanically checks** and what **remains an explicit assumption** (also returned verbatim on every `CSafetyResult.assumptions`):
 
-1. **ABI & types**: Clang target uses 8-bit bytes and two's-complement integers; only covered scalar types up to 32 bits, constant lookup tables, and fixed arrays of known extent are modeled.
-2. **State ownership & initialization**: Selected methods execute sequentially on one live, zero-initialized receiver (plus non-aliasing scalar out-parameters), or on single-declaration file-local globals starting from their C initialization; no external code mutates this state.
-3. **Input domain & normal refusals**: Inputs lie in their C types. Configured normal refusals end admitted traces unless a tracked fault has already occurred.
-4. **First-fault & replay scope**: Only the first tracked array/table-bounds, signed-overflow, or division/remainder fault is checked. Fixed-array bounds proofs cover accesses to known live arrays of static extent, **not** general pointer provenance, dynamic heap lifetime, aliasing, concurrency, loops, recursion, or arbitrary inline assembly. Abstract stutter on fault is a monitor convention and does **not** claim native C rolls back prior writes.
+#### Mechanically checked by Stage 1
+
+| Premise | Enforcement |
+|---|---|
+| **Translation-unit state closure (unselected functions & narrowed `methods`)** | Every non-selected function in the translation unit (including non-first-parameter writers such as `set_n(int32_t k, struct ring *r)`, `void *` callbacks, pointer writers, external/recursive calls, and functions dropped by `methods`/`functions` narrowing) is refused as `unchecked` unless proven unable to write state or escape pointers (`core/c/reader.ts`). |
+| **State-preserving configured failure paths (`fails`)** | `onError: 'discard'` is refused in safety mode (`core/extract-c.ts`, `core/extract-go.ts`); every configured `fails` return path runs `Stepper.unwritten()` and is refused as `unchecked` if any state write occurred prior to returning. |
+| **Globals linkage chain (`previousDecl`)** | Any modeled global or constant lookup table with multiple declarations in its linkage chain is refused as `unchecked`. |
+| **Parameter declarators & types** | Adjusted arrays, VLAs, typedef-arrays, macro-spelled declarators, `volatile`/`_Atomic`, bitfields, and unsupported scalar widths (`> 32` bits) are refused as `unchecked`. |
+| **Pre-lowering site inventory & accounting** | Every tracked site is inventoried before lowering and frozen; `readGo` fails closed if any site is neither cut nor accounted for as dead. |
+| **Kernel proof binding & site-matched replay** | Every `proven` verdict passes `verifyCSafetyProof` (`checkLaws` / `checkKInduction`) bound to the exact safety machine (`primitiveFailure`, `params`, `inputs`, `state`, `maps`, `pre`, `assume`, `step`, `history`, `sums`, `inputMaps`, `counts`, `leasts`, `fns`, `facts`) and target laws. Every `broken` verdict requires ASan/UBSan replay with `built && reports.length > 0 && matchedSite`. |
+| **In-source `gdp: safety` non-override** | If a C file contains `// gdp: safety` or `/* gdp: safety */`, a `gdp.toml` setting `safety = false` (top-level or per-rule) is refused with exit `2` rather than silently disabling safety checking (`core/cli.ts`). |
+
+#### Remaining explicit assumptions (NOT checked by Stage 1)
+
+1. **Out-parameter aliasing**: Callers pass valid, non-null, non-aliasing pointers for the receiver and every scalar out-parameter (no out-parameter aliases the receiver, any of its fields, any global, or another out-parameter).
+2. **Zeroed start & live ownership**: Struct receivers start zero-initialized (live, valid, and properly aligned), or single-declaration file-local `static` globals start from their C initialization; execution is sequential (no concurrency, interrupts, or signal handlers mutating state).
+3. **Other translation units & external linkage**: No code in another translation unit (or linked binary, FFI, or inline assembly outside the checked TU) mutates the struct/globals or holds aliased pointers to them.
+4. **ABI & first-fault scope**: Clang target uses 8-bit `char`, 16-bit `short`, 32-bit `int`, and two's-complement signed integers. Only the first tracked array/table-bounds, signed-overflow, or division/remainder fault is checked; fixed-array bounds proofs cover accesses to known live arrays of static extent (not general heap lifetime, pointer provenance, loops, or recursion). Abstract stutter on fault is a monitor convention and does **not** claim native C rolls back prior writes.
+
+### 2.3 Default-Path Fixes Carried by Stage 1
+
+While C safety verification itself is strictly opt-in (`// gdp: safety`, `--safety`, `{safety: true}`), four bug fixes also apply to the default extraction path (and should be listed under `Fixed` in the release changelog):
+
+1. `core/extract-print.ts`: Wrap natural-valued `mul` and `modk` expressions in `Int.of(...)` when printed as a signed integer receiver (`!nat && recv`), preventing signed subtraction from lowering to saturating `Term.minus`.
+2. `core/extract.ts`: Skip hoisting branch-guarded `modk` expressions whose dividend is not unconditionally non-negative, matching `mul`.
+3. `core/c/reader.ts` (`parseT`): Do not treat pointer/array typedefs to structs (`typedef struct ring *ring_ptr;`) as bare struct values.
+4. `core/law-answer.ts`, `core/laws.ts`, `core/native-law.ts`, `core/extract-c.ts`, `core/extract-go-check.ts`: Validate keyed constant-argument C answers against actual native observations (`d5e9e2535`).
 
 ---
 

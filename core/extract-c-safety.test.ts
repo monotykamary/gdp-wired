@@ -8,7 +8,7 @@ import {join} from 'node:path'
 import {proveLaws} from '../kernel/prove.ts'
 import {check} from './cli.ts'
 import {clangDump, readC} from './c/reader.ts'
-import {cSafetyArtifactOf, verifyCSafetyProof, type CSafetyProofBundle} from './c/safety.ts'
+import {analyzeCSafety, cSafetyArtifactOf, verifyCSafetyProof, type CSafetyProofBundle} from './c/safety.ts'
 import {bool, rule} from './dsl.ts'
 import {extractC, type COptions} from './extract-c.ts'
 import {readGo} from './extract-go.ts'
@@ -118,7 +118,8 @@ void reset(struct ring *r) {
 withClang('C Safety never lets a later configured refusal hide INT_MIN % -1 and replays UBSan', () => {
   const x = analyze(`struct ring { int head; };
 int update(struct ring *r, int x) {
-  r->head = x % -1;
+  int v = x % -1;
+  (void)v;
   return -1;
 }
 `, {fails: {update: '== -1'}})
@@ -129,6 +130,16 @@ int update(struct ring *r, int x) {
   expect(div?.replay?.built).toBe(true)
   expect(div?.replay?.matchedSite).toBe(true)
   expect(div?.replay?.reports.join('\n')).toMatch(/ring\.c:3:\d+: runtime error: division of -2147483648 by -1 cannot be represented in type 'int'/)
+
+  // A configured refusal AFTER mutating state must be refused as unchecked (never discarded).
+  const writeBeforeFail = analyze(`struct ring { int head; };
+int update(struct ring *r, int x) {
+  r->head = x % -1;
+  return -1;
+}
+`, {fails: {update: '== -1'}})
+  expect(writeBeforeFail.ok).toBe(false)
+  expect(writeBeforeFail.safety?.status).toBe('unchecked')
 }, 60_000)
 
 withClang('C Safety checks signed overflow and division ordering with UBSan replay', () => {
@@ -497,14 +508,14 @@ withClang('Astra Integration: two-level branch, short-circuit &&, later refusal,
   const code = `struct ring { int data; int slots[2]; };
 int step(struct ring *r, int flag, int idx, int fail) {
   if (flag && (r->slots[idx] >= 0)) {
+    if (fail) return -1;
     r->slots[0] = 7;
     r->data = 11;
-    if (fail) return -1;
     return 1;
   } else {
+    if (fail) return -1;
     r->slots[1] = 9;
     r->data = 22;
-    if (fail) return -1;
     return 2;
   }
 }
@@ -600,10 +611,15 @@ void set(struct ring *r, int i) { if (i >= 0 && i < 4) r->slots[i] = 1; }
       machine: {...pArt.jointProof.machine, assume: {op: '<', a: {op: 'const', value: 1}, b: {op: 'const', value: 0}}},
     }
     expect(verifyCSafetyProof(pArt.machine, pArt.targetLaws, wrongMachine)).toBe(false)
+    const wrongFailure: CSafetyProofBundle = {
+      ...pArt.jointProof,
+      machine: {...pArt.jointProof.machine, primitiveFailure: {op: '=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}},
+    }
+    expect(verifyCSafetyProof(pArt.machine, pArt.targetLaws, wrongFailure)).toBe(false)
   }
 }, 60_000)
 
-// --- 8. CLI opt-in (`// gdp: safety`) and default path preservation -------------------------------------------------------
+// --- 8. CLI opt-in (`// gdp: safety`), gdp.toml override refusal, and default path preservation ---------------------------
 
 withClang('CLI opt-in // gdp: safety returns exit 0 (proven), 1 (broken+UBSan), 2 (unchecked); default path unchanged', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-cli-'))
@@ -632,10 +648,221 @@ withClang('CLI opt-in // gdp: safety returns exit 0 (proven), 1 (broken+UBSan), 
     const rPlain = await check([defaultFile], {entry: 'ring', propose: false})
     expect(rPlain.exit).toBe(0)
     expect(rPlain.rules[0]?.safety).toBeUndefined()
+
+    // gdp.toml cannot silently override an in-source `// gdp: safety` directive (top-level or per-rule).
+    const tomlDirTop = mkdtempSync(join(tmpdir(), 'gdp-c-safety-toml-top-'))
+    const tomlDirRule = mkdtempSync(join(tmpdir(), 'gdp-c-safety-toml-rule-'))
+    try {
+      const fTop = join(tomlDirTop, 'safe.c')
+      writeFileSync(fTop, '// gdp: safety\nstruct ring { int slots[8]; };\nvoid put(struct ring *r, int i) { if (i >= 0 && i < 8) r->slots[i] = 1; }\n')
+      writeFileSync(join(tomlDirTop, 'gdp.toml'), 'safety = false\n')
+      const rTop = await check([fTop], {propose: false})
+      expect(rTop.exit).toBe(2)
+      expect(rTop.rules[0]?.ok).toBe(false)
+      expect(rTop.rules[0]?.refusals.map(x => x.what).join('; ')).toMatch(/gdp\.toml/)
+
+      const fRule = join(tomlDirRule, 'safe.c')
+      writeFileSync(fRule, '// gdp: safety\nstruct ring { int slots[8]; };\nvoid put(struct ring *r, int i) { if (i >= 0 && i < 8) r->slots[i] = 1; }\n')
+      writeFileSync(join(tomlDirRule, 'gdp.toml'), '[rules.ring]\nsafety = false\n')
+      const rRuleExplicit = await check([fRule], {entry: 'ring', propose: false})
+      expect(rRuleExplicit.exit).toBe(2)
+      expect(rRuleExplicit.rules[0]?.ok).toBe(false)
+      const rRuleInferred = await check([fRule], {propose: false})
+      expect(rRuleInferred.exit).toBe(2)
+      expect(rRuleInferred.rules[0]?.ok).toBe(false)
+    } finally {
+      rmSync(tomlDirTop, {recursive: true, force: true})
+      rmSync(tomlDirRule, {recursive: true, force: true})
+    }
   } finally {
     rmSync(dir, {recursive: true, force: true})
   }
 }, 90_000)
+
+// --- 9. Independent Review Soundness Probes (no false SAFEs, site-matched replay) ---------------------------------------
+
+withClang('Review Probe 1: configured failure after state write (fails-after-write) is never proven safe', () => {
+  const code = `#include <stdint.h>
+struct ring { int32_t n; int32_t a[8]; };
+int push(struct ring *r, int32_t v) {
+  if (r->n > 100) return -1;
+  r->n = r->n + 1;
+  if (r->n > 8) return -1;
+  r->a[r->n - 1] = v;
+  return 0;
+}
+int top(struct ring *r) {
+  if (r->n > 0) return r->a[r->n - 1];
+  return 0;
+}
+`
+  // With fails: {push: '< 0'}, push writes r->n before returning -1 -> MUST be refused as unchecked.
+  const withFails = analyze(code, {fails: {push: '< 0'}})
+  expect(withFails.ok).toBe(false)
+  expect(withFails.safety?.status).toBe('unchecked')
+  expect(withFails.refusals.map(r => r.what).join('; ')).toMatch(/after the state is written/)
+
+  // Without fails, the write persists and the real OOB access in top() is found and replayed under UBSan.
+  const withoutFails = analyze(code)
+  expect(withoutFails.ok).toBe(false)
+  expect(withoutFails.safety?.status).toBe('broken')
+  const topOob = withoutFails.safety!.issues.find(i => i.kind === 'bounds' && i.status === 'broken')
+  expect(topOob?.replay?.matchedSite).toBe(true)
+  expect(topOob?.replay?.reports.join('\n')).toMatch(/index 8 out of bounds/)
+}, 90_000)
+
+withClang('Review Probe 2: unselected TU writers (non-first-param, void* callback, int* writer, wrapper) are refused', () => {
+  const nonMethodWriter = analyze(`#include <stdint.h>
+struct ring { int32_t n; int32_t a[8]; };
+int32_t get(struct ring *r) { return r->a[r->n]; }
+void set_n(int32_t k, struct ring *r) { r->n = k; }
+`)
+  expect(nonMethodWriter.ok).toBe(false)
+  expect(nonMethodWriter.safety?.status).toBe('unchecked')
+
+  const voidCtxCallback = analyze(`#include <stdint.h>
+struct ring { int32_t n; int32_t a[8]; };
+int32_t get(struct ring *r) { if (r->n >= 0 && r->n < 9) return r->a[r->n]; return 0; }
+void on_event(void *ctx) { struct ring *r = ctx; r->n = 8; }
+`)
+  expect(voidCtxCallback.ok).toBe(false)
+  expect(voidCtxCallback.safety?.status).toBe('unchecked')
+
+  const ptrWriter = analyze(`#include <stdint.h>
+struct ring { int32_t n; int32_t a[8]; };
+int32_t get(struct ring *r) { return r->a[r->n]; }
+void corrupt(int32_t *p) { *p = 8; }
+`)
+  expect(ptrWriter.ok).toBe(false)
+  expect(ptrWriter.safety?.status).toBe('unchecked')
+
+  const wrapperCallingStaticHelper = analyze(`#include <stdint.h>
+struct ring { int32_t n; int32_t a[8]; };
+static void set_helper(struct ring *r, int32_t k) { r->n = k; }
+int32_t get(struct ring *r) { set_helper(r, 0); return r->a[r->n]; }
+void evil(int32_t k, struct ring *r) { set_helper(r, k); }
+`)
+  expect(wrapperCallingStaticHelper.ok).toBe(false)
+  expect(wrapperCallingStaticHelper.safety?.status).toBe('unchecked')
+
+  // Positive control: a provably read-only non-selected function may coexist safely.
+  const readOnlyCoexist = analyze(`#include <stdint.h>
+struct ring { int32_t n; int32_t a[8]; };
+int32_t get(struct ring *r) { return r->a[r->n]; }
+int32_t add2(int32_t a, int32_t b) { return a + b; }
+`)
+  expect(readOnlyCoexist.ok, JSON.stringify(readOnlyCoexist.refusals)).toBe(true)
+  expect(readOnlyCoexist.safety?.status).toBe('proven')
+}, 90_000)
+
+withClang('Review Probe 3: narrowing methods/functions refuses dropped state writers and allows read-only readers', () => {
+  const droppedWriter = analyze(`#include <stdint.h>
+struct ring { int32_t n; int32_t a[8]; };
+int32_t get(struct ring *r) { return r->a[r->n]; }
+void set(struct ring *r, int32_t k) { r->n = k; }
+`, {methods: ['get']})
+  expect(droppedWriter.ok).toBe(false)
+  expect(droppedWriter.safety?.status).toBe('unchecked')
+
+  const droppedGlobalWriter = analyze(`static int buf[4];
+static int cursor = 0;
+void set_cursor(int k) { cursor = k; }
+int read_cur(void) { return buf[cursor]; }
+`, {entry: 'gbuf', methods: ['read_cur']}, 'gbuf.c')
+  expect(droppedGlobalWriter.ok).toBe(false)
+  expect(droppedGlobalWriter.safety?.status).toBe('unchecked')
+
+  const emptyMethods = analyze(`struct ring { int slots[4]; };
+void put(struct ring *r, int i) { if (i >= 0 && i < 4) r->slots[i] = 1; }
+`, {methods: []})
+  expect(emptyMethods.ok).toBe(false)
+  expect(emptyMethods.safety?.status).toBe('unchecked')
+
+  // Positive control: narrowing away a provably read-only observer is allowed.
+  const droppedReadOnly = analyze(`#include <stdint.h>
+struct ring { int32_t n; int32_t a[8]; };
+int32_t get(struct ring *r) { return r->a[r->n]; }
+int32_t current_n(const struct ring *r) { return r->n; }
+`, {methods: ['get']})
+  expect(droppedReadOnly.ok, JSON.stringify(droppedReadOnly.refusals)).toBe(true)
+  expect(droppedReadOnly.safety?.status).toBe('proven')
+}, 90_000)
+
+withClang('Review Probe 4: unsigned wrap, signed/unsigned cmp, div-m1, outparam, u8-inc, shortcircuit, mod-neg never prove safe', () => {
+  const H = '#include <stdint.h>\n'
+  const brokenCases: [string, string][] = [
+    ['unsigned-sub-wrap', H + `struct ring { uint32_t u; int32_t a[8]; };
+int32_t f(struct ring *r) { uint32_t k = r->u - 1u; if (k != 0u) return r->a[k & 15u]; return 0; }
+`],
+    ['unsigned-cmp-conv', H + `struct ring { int32_t n; int32_t a[8]; };
+int32_t f(struct ring *r, uint32_t u) { if (u < -1) return r->a[9]; return 0; }
+`],
+    ['div-m1', H + `struct ring { int32_t n; };
+int32_t f(struct ring *r, int32_t x) { return x / -1; }
+`],
+    ['outparam-index', H + `struct ring { int32_t n; int32_t a[8]; };
+void g(struct ring *r, int32_t *out) { *out = r->a[*out & 7]; }
+int32_t h(struct ring *r, int32_t *out) { if (*out > 8) return 0; return r->a[*out]; }
+`],
+    ['u8-inc-index', H + `struct ring { uint8_t i; int32_t a[200]; };
+void bump(struct ring *r) { r->i++; }
+int32_t get(struct ring *r) { if (r->i < 250) return r->a[r->i]; return 0; }
+`],
+    ['shortcircuit', H + `struct ring { int32_t n; int32_t a[8]; };
+int32_t f(struct ring *r, int32_t i) { return (i >= 0 && i < 8 && r->a[i] > 0) ? 1 : (i == 8 ? r->a[i] : 0); }
+`],
+  ]
+  for (const [label, code] of brokenCases) {
+    const res = analyze(code, {safetySearchMs: 10_000})
+    expect(res.ok, `${label} must not succeed`).toBe(false)
+    expect(res.safety?.status, `${label} must never prove safe`).not.toBe('proven')
+    expect(res.safety?.status, `${label} should replay broken under UBSan`).toBe('broken')
+    const badIssue = res.safety!.issues.find(i => i.status === 'broken')
+    expect(badIssue?.replay?.matchedSite, `${label} matchedSite`).toBe(true)
+  }
+
+  // mod-neg: signed % 8 where dividend may be negative (outside nat modk or broken) must never prove safe.
+  const modNeg = analyze(H + `struct ring { int32_t a[8]; };
+int32_t f(struct ring *r, int32_t i) { return r->a[i % 8]; }
+`, {safetySearchMs: 10_000})
+  expect(modNeg.ok).toBe(false)
+  expect(modNeg.safety?.status).not.toBe('proven')
+}, 180_000)
+
+withClang('Review Probe 5: replay without matchedSite stays unproven (never marked broken)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-matchsite-'))
+  try {
+    const file = join(dir, 'oob.c')
+    writeFileSync(file, 'struct ring { int slots[4]; };\nvoid set(struct ring *r, int i) { r->slots[i] = 1; }\n')
+    const {tu, target} = clangDump(file, [])
+    const c = readC(file, 'ring', tu, target, false, undefined, {}, [], [], [], true)
+    const read = readGo(c.pkg, {entry: 'ring', methods: c.methods, strict: true, safety: true})
+    const mismatched = analyzeCSafety(read, c, read.safety!.sites, {}, {
+      replay: () => ({
+        built: true, requests: ['set(4)'],
+        reports: ['other.c:99:1: runtime error: index 4 out of bounds'],
+        states: [], stderr: 'other.c:99:1: runtime error: index 4 out of bounds',
+        matchedSite: false,
+      }),
+    })
+    expect(mismatched.status).toBe('unproven')
+    expect(mismatched.issues[0]?.status).toBe('unproven')
+    expect(mismatched.issues[0]?.why).toMatch(/did not match target site/)
+
+    const matched = analyzeCSafety(read, c, read.safety!.sites, {}, {
+      replay: () => ({
+        built: true, requests: ['set(4)'],
+        reports: ['oob.c:2:35: runtime error: index 4 out of bounds'],
+        states: [], stderr: 'oob.c:2:35: runtime error: index 4 out of bounds',
+        matchedSite: true,
+      }),
+    })
+    expect(matched.status).toBe('broken')
+    expect(matched.issues[0]?.status).toBe('broken')
+  } finally {
+    rmSync(dir, {recursive: true, force: true})
+  }
+}, 60_000)
 
 test('removing an abstract bounds guard does not prove absence of alarms', () => {
   const checkAbs = (guarded: boolean) => {

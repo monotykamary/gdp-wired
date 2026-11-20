@@ -301,6 +301,15 @@ function* expandInitializers(t: Target, o: Opts, laws: Scoped[], rows: ReadRule[
   }
   return out
 }
+const SAFETY_TAG_RE = /^[ \t]*(?:\/\/[ \t]*gdp:[ \t]*safety[ \t]*|\/\*[ \t]*gdp:[ \t]*safety[ \t]*\*\/[ \t]*)\r?$/m
+const hasSafetyTag = (t: Target): boolean => t.lang === 'c' && t.files.some(f => SAFETY_TAG_RE.test(fs.readFileSync(f, 'utf8')))
+const safetyDisabledBy = (cfg: Config, entry?: string): boolean => cfg.all.safety === false || (!!entry && cfg.rules[entry]?.safety === false)
+const safetyOverrideRefusal = (t: Target): Extraction & {safety: SafetyReport} => ({
+  ok: false,
+  refusals: [{where: t.at, what: 'gdp.toml disables safety (safety = false), conflicting with the in-source gdp: safety directive'}],
+  notes: [],
+  safety: {why: 'gdp.toml cannot silently override an in-source gdp: safety directive'},
+})
 function* rulesOf(t: Target, o: Opts, laws: Scoped[]): Pipeline<ReadRule[]> {
   const got = yield* rulesOf0(t, o, laws)
   if (o.entry) return yield* expandInitializers(t, o, laws, got)
@@ -315,8 +324,12 @@ function* rulesOf(t: Target, o: Opts, laws: Scoped[]): Pipeline<ReadRule[]> {
   const {clock: _k, from: _f, env: _v, calendar: _cal, ...shared} = cfg.all
   void _k; void _f
   const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*/g) ?? []).flatMap(k => (k.includes('::') ? [k, ...k.split('::')] : [k])))]
+  const safetyTag = hasSafetyTag(t)
   const extra: ReadRule[] = []
-  for (const entry of more) extra.push({entry, x: yield {target: t, options: {...merge(merge({...shared, keep}, cfg.rules[entry] || {}), flags), entry}}})
+  for (const entry of more) {
+    if (safetyTag && safetyDisabledBy(cfg, entry)) { extra.push({entry, x: safetyOverrideRefusal(t)}); continue }
+    extra.push({entry, x: yield {target: t, options: {...merge(merge({...shared, keep}, cfg.rules[entry] || {}), flags), ...(safetyTag ? {safety: true} : {}), entry}}})
+  }
   // (the first rule, read with no entry named, kept only where it read something or nothing else was)
   return yield* expandInitializers(t, o, laws, [...got.filter(r => r.x.ok || r.entry || !extra.length), ...extra])
 }
@@ -331,11 +344,13 @@ function* rulesOf0(t: Target, o: Opts, laws: Scoped[]): Pipeline<ReadRule[]> {
   void _k
   // (the names the laws read, so an argument a law reads stays in the rule though the code ignores it)
   const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*/g) ?? []).flatMap(k => (k.includes('::') ? [k, ...k.split('::')] : [k])))]
-  const safetyTag = t.lang === 'c' && t.files.some(f => /^[ \t]*(?:\/\/[ \t]*gdp:[ \t]*safety[ \t]*|\/\*[ \t]*gdp:[ \t]*safety[ \t]*\*\/[ \t]*)\r?$/m.test(fs.readFileSync(f, 'utf8')))
-  const optsFor = (entry?: string) => merge(merge({...(safetyTag ? {safety: true} : {}), ...shared, keep}, (entry && cfg.rules[entry]) || {}), flags)
+  const safetyTag = hasSafetyTag(t)
+  const optsFor = (entry?: string) => ({...merge(merge({...shared, keep}, (entry && cfg.rules[entry]) || {}), flags), ...(safetyTag ? {safety: true} : {})})
   const one = function* (entry?: string): Pipeline<ReadRule> {
+    if (safetyTag && safetyDisabledBy(cfg, entry)) return {entry, x: safetyOverrideRefusal(t)}
     const x = yield {target: t, options: {...optsFor(entry), ...(entry ? {entry} : {})}}
-    const found = x.model?.name
+    const found = x.model?.name ?? (x as Extraction & {entry?: string}).entry
+    if (!entry && found && safetyTag && safetyDisabledBy(cfg, found)) return {entry: found, x: safetyOverrideRefusal(t)}
     return !entry && found && cfg.rules[found] ? {entry: found, x: yield {target: t, options: {...optsFor(found), entry: found}}} : {entry, x}
   }
   const manyOf = function* (entries: string[]): Pipeline<ReadRule[]> { const rows: ReadRule[] = []; for (const entry of entries) rows.push(yield* one(entry)); return rows }
@@ -485,10 +500,10 @@ function* checkPipeline(t: Target, o: Opts): Pipeline<RuleOut[]> {
     // Different initial states must never overwrite one another's certificates.
     const ctx = ctor !== undefined && baseCtx.cert ? {...baseCtx, cert: path.join(baseCtx.cert, `initializer-${initializerIndex}`)} : baseCtx
     let x = x0
-    const name = entry ?? (x.model?.name || undefined)
+    const name = entry ?? (x.model?.name || (x as Extraction & {entry?: string}).entry || undefined)
     // (a target that is the working directory, a crate's or a package's: `.`)
     const r: RuleOut = {file: path.relative(proc.cwd(), t.at) || '.', lang: LANG_NAME[t.lang], ...(name ? {entry: name} : {}), ...(ctor !== undefined ? {ctor} : {}), ok: x.ok, refusals: x.refusals, notes: x.notes, names: x.names ?? [], laws: [], proposed: [], ...(x.source ? {source: x.source} : {})}
-    const safety = safetyReport(x, o.safety === true)
+    const safety = safetyReport(x, o.safety === true || hasSafetyTag(t))
     if (safety) r.safety = safety
     outs.push(r)
     // (the laws of this rule: all where it is the file's one, else those in its class or on it or its methods, and those

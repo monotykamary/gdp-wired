@@ -158,12 +158,14 @@ export function extractC(at: string | FileURL, given: COptions = {}, cpp = false
   return {...x, leaves: read.leaves, names: goNames(read), ...(Object.keys(consts).length ? {consts} : {})}
 }
 
-function extractCSafety(file: string, opts: COptions, cpp: boolean): Extraction & {safety: CSafetyResult} {
+function extractCSafety(file: string, opts: COptions, cpp: boolean): Extraction & {safety: CSafetyResult, entry?: string} {
   const notes = ['C safety: first-fault model over the covered C subset; proven obligations are verified by checkLaws, broken obligations are replayed under ASan/UBSan.']
   const unchecked = (where: string, what: string, safety = uncheckedCSafety()) => ({ok: false, refusals: [{where, what}], notes, safety})
   if (cpp) return unchecked(file, 'C safety does not cover C++')
   if (opts.skip?.length || opts.leave?.length || opts.cut?.length || Object.keys(opts.answers ?? {}).length || Object.keys(opts.domains ?? {}).length || opts.onError === 'discard')
     return unchecked(file, 'C safety does not accept skipped code, inferred/overridden inputs, narrowed domains, or discarded normal failures')
+  if ((opts.methods !== undefined && !opts.methods.length) || (opts.functions !== undefined && !opts.functions.length))
+    return unchecked(file, 'C safety does not accept an empty methods list')
   if (opts.compileCommands || opts.flags?.some(f => !/^(?:-std=(?:c|gnu)(?:99|11|17)|-I.+|-D[A-Za-z_]\w*(?:=.*)?)$/.test(f)))
     return unchecked(file, 'C safety does not cover custom compiler flags (except -std=c99/c11/c17 or GNU modes, -I, and -D)')
   try {
@@ -192,7 +194,7 @@ function extractCSafety(file: string, opts: COptions, cpp: boolean): Extraction 
         ? `C ${site.kind} fault confirmed by ASan/UBSan: ${site.replay?.reports[0] ?? 'sanitizer diagnostic'}`
         : `absence of a first C ${site.kind} fault was not proved${site.why ? ` (${site.why})` : ''}`,
     }))
-    return {ok: safety.status === 'proven', safety, refusals, notes}
+    return {ok: safety.status === 'proven', safety, entry: c.entry, refusals, notes}
   } catch (e) {
     if (e instanceof Refusal) return unchecked(e.where, e.what)
     return unchecked(file, 'the C safety reader or prover could not complete')

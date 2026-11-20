@@ -605,7 +605,8 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
     const at = pkg.files[0]?.name ?? '?'
     if (!pkg.safety || pkg.lang !== 'c') refuse(at, 'C safety requires the checked source reader')
     if (Object.keys(opts.answers ?? {}).length || opts.skip?.length || Object.keys(opts.domains ?? {}).length) refuse(at, 'safety does not allow inferred boundaries or custom domains')
-    return readGo1(pkg, {...opts, onError: 'discard'}, new Go(pkg, {...opts, onError: 'discard'}))
+    if (opts.onError === 'discard') refuse(at, 'C safety does not allow discarding state writes on failure')
+    return readGo1(pkg, {...opts, onError: 'refuse'}, new Go(pkg, {...opts, onError: 'refuse'}))
   }
   if (pkg.safety) refuse(pkg.files[0]?.name ?? '?', 'checked C source requires safety lowering')
   if (!opts.entry && !opts.strict) {
