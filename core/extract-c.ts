@@ -119,18 +119,23 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
     const safetyMethods = opts.safety ? ((opts.functions ?? opts.methods)?.map(f => f.split('/')[0]!) ?? []) : []
     let firstRefusal: Refusal | undefined
     const ok = names.filter(n => { try { const c = readC(file, n, tu, target, cpp, opts.root, {}, safetyMethods, [], [], opts.safety); if (!opts.safety) readGo(c.pkg, {methods: c.methods}); return true } catch (e) { if (e instanceof Refusal) { firstRefusal ??= e; return false } throw e } })
+    const finishRead = (entryName: string) => {
+      const methods = (opts.functions ?? opts.methods)?.map(f => f.split('/')[0]!)
+      const c = readC(file, entryName, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])])), methods ?? [], opts.leave ?? [], [...Object.keys(opts.answers ?? {}), ...(opts.cut ?? [])], opts.safety)
+      return {c, flags}
+    }
     // (none: the file's globals, where its functions keep the state there)
     if (!ok.length && !cpp) {
       if (opts.safety && firstRefusal) throw firstRefusal
       const stem = file.replace(/^.*\//, '').replace(/\.[^.]*$/, '')
-      try { const r = readCFile(file, {...opts, entry: stem}, cpp); if (!opts.safety) readGo(r.c.pkg, {methods: r.c.methods, ...(opts.onError ? {onError: opts.onError} : {})} as GoOptions); return r } catch (e) {
+      try { const r = opts.safety ? finishRead(stem) : readCFile(file, {...opts, entry: stem}, cpp); if (!opts.safety) readGo(r.c.pkg, {methods: r.c.methods, ...(opts.onError ? {onError: opts.onError} : {})} as GoOptions); return r } catch (e) {
         if (!(e instanceof Refusal)) throw e
         // (its globals are its state, and something in them is refused: that, not the structs)
         if (!/^no global of /.test(e.what)) throw new Refusal(e.where, `${e.what} (the file's globals read as its state, ${stem}: no struct its functions write)`)
       }
     }
     if (ok.length !== 1) throw new Refusal(file, ok.length ? `several structs written by the file's functions (${ok.join(', ')}): name one (entry)` : 'no struct the file\'s functions write: name the entry')
-    return readCFile(file, {...opts, entry: ok[0]!}, cpp)
+    return opts.safety ? finishRead(ok[0]!) : readCFile(file, {...opts, entry: ok[0]!}, cpp)
   }
   const methods = (opts.functions ?? opts.methods)?.map(f => f.split('/')[0]!)
   const c = readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])])), methods ?? [], opts.leave ?? [], [...Object.keys(opts.answers ?? {}), ...(opts.cut ?? [])], opts.safety)
@@ -169,7 +174,7 @@ function extractCSafety(file: string, opts: COptions, cpp: boolean): Extraction 
     return unchecked(file, 'C safety does not accept an empty methods list')
   if (opts.clang !== undefined)
     return unchecked(file, 'C safety does not accept a custom compiler (clang option)')
-  if (opts.compileCommands || opts.flags?.some(f => !/^(?:-std=(?:c|gnu)(?:99|11|17|23)|-I.+|-D[A-Za-z_]\w*(?:=.*)?)$/.test(f)))
+  if (opts.compileCommands || opts.flags?.some(f => f === '-I-' || f.startsWith('-I=') || !/^(?:-std=(?:c|gnu)(?:99|11|17|23)|-I.+|-D[A-Za-z_]\w*(?:=.*)?)$/.test(f)))
     return unchecked(file, 'C safety does not cover custom compiler flags (except -std=c99/c11/c17/c23 or GNU modes, -I, and -D)')
   try {
     const path = node<{resolve: (p: string) => string}>('node:path')
@@ -191,6 +196,7 @@ function extractCSafety(file: string, opts: COptions, cpp: boolean): Extraction 
       }, run, site)
     }
     const safety = analyzeCSafety(read, c, read.safety.sites, {...unsignedDomains(read), ...signedDomains(c.pkg, read)}, {replay, ...(opts.safetySearchMs !== undefined ? {searchMs: opts.safetySearchMs} : {})})
+    c.verifySnapshotUnchanged?.()
     if (safety.status === 'unchecked') return unchecked(file, 'the C safety model could not be checked', safety)
     const refusals = safety.issues.filter(site => site.status !== 'proven').map(site => ({
       where: site.where,

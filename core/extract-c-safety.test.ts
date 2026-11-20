@@ -1,14 +1,14 @@
 // C memory & UB safety tests (Stage 1): first-fault model, pre-lowering site accounting,
 // Astra soundness controls, off-by-one corpus mutants with ASan/UBSan replay, and CLI opt-in.
 import {expect, test} from 'bun:test'
-import {execFileSync, spawnSync} from 'node:child_process'
+import {execFileSync, spawn, spawnSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
 import {chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {proveLaws} from '../kernel/prove.ts'
 import {check} from './cli.ts'
-import {clangDump, readC, resolveSafetyClang, verifyClangBinary} from './c/reader.ts'
+import {clangDump, isSpecialVirtualPath, readC, resolveSafetyClang, verifyClangBinary} from './c/reader.ts'
 import {analyzeCSafety, cSafetyArtifactOf, verifyCSafetyProof, type CSafetyProofBundle} from './c/safety.ts'
 import {bool, rule} from './dsl.ts'
 import {extractC, type COptions} from './extract-c.ts'
@@ -2033,6 +2033,158 @@ withClang('Review Probe 16: closed-world user include boundary & /proc|/dev|/sys
     const mcU2 = (rU2.rules[0]?.safety as {macroConfig?: {userFilesSha256?: string, userFiles?: {path: string, sha256: string}[]}})?.macroConfig
     expect(mcU2?.userFilesSha256).not.toBe(mcU1?.userFilesSha256)
     expect(mcU2?.userFiles?.find(f => f.path.endsWith('/local.h'))?.sha256).not.toBe(mcU1?.userFiles?.find(f => f.path.endsWith('/local.h'))?.sha256)
+  } finally {
+    rmSync(dir, {recursive: true, force: true})
+  }
+}, 180_000)
+
+withClang('Review Probe 17: atomic user-file snapshot & concurrent-writer refusal (c1), pre-clang FIFO check (d1), component-wise symlink walk (h1/f3/f6/g1/d8), -I= refusal (f2), trailing-space include (e1), and case-insensitive /proc|/dev|/sys check', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-probe17-'))
+  try {
+    const H = '// gdp: safety\n#include <stdint.h>\n'
+    const cliPath = new URL('./cli.ts', import.meta.url).pathname
+
+    // (1) Case-insensitive /proc, /dev, /sys check (for case-insensitive filesystems such as macOS).
+    for (const bad of ['/proc', '/proc/self/cwd', '/PROC/self/cwd', '/Proc/1', '/dev', '/dev/stdin', '/DEV/stdin', '/Dev/null', '/sys', '/SYS/kernel', '/Sys']) {
+      expect(isSpecialVirtualPath(bad), `${bad} must be refused`).toBe(true)
+    }
+    for (const ok of ['/tmp/proc/a.h', '/var/dev/a.h', '/dev_tools/a.h', '/procedure/a.h', '/system/a.h']) {
+      expect(isSpecialVirtualPath(ok), `${ok} must be allowed`).toBe(false)
+    }
+
+    // (2) c1 snapshot & concurrent-writer refusal:
+    // (a) Direct verification: clangDump snapshots n.h once, reports the snapshot SHA-256, and
+    //     verifySnapshotUnchanged() refuses if n.h is rewritten on disk afterward.
+    const c1Dir = join(dir, 'c1')
+    mkdirSync(c1Dir, {recursive: true})
+    const c1Hdr = join(c1Dir, 'n.h')
+    const c1Src = join(c1Dir, 'ring.c')
+    writeFileSync(c1Hdr, '#define LIM 7\n')
+    writeFileSync(c1Src, H + '#include "n.h"\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r) { return r->a[r->n]; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < LIM) r->n = r->n + 1; }\n')
+    const lim7Sha = createHash('sha256').update('#define LIM 7\n').digest('hex')
+    const lim8Sha = createHash('sha256').update('#define LIM 8\n').digest('hex')
+    const dumped = clangDump(c1Src, [], 'clang', false, undefined, true, c1Dir)
+    expect(dumped.target.safetyMeta?.macroConfig.userFiles?.find(u => u.path.endsWith('/n.h'))?.sha256).toBe(lim7Sha)
+    expect(() => dumped.target.safetyMeta?.verifySnapshotUnchanged?.()).not.toThrow()
+    writeFileSync(c1Hdr, '#define LIM 8\n')
+    expect(() => dumped.target.safetyMeta?.verifySnapshotUnchanged?.()).toThrow(Refusal)
+
+    // (b) Live concurrent-writer race on Linux via inotify IN_CLOSE_NOWRITE (probe13/watch.py):
+    //     swapping n.h from LIM 7 -> LIM 8 on close 1 or close 2 MUST exit 2 (never proven with
+    //     the LIM 8 digest!).
+    if (process.platform === 'linux') {
+      const pyCheck = spawnSync('python3', ['-c', 'import ctypes'], {stdio: 'ignore'})
+      if (pyCheck.status === 0) {
+        const watchPy = join(dir, 'watch.py')
+        writeFileSync(watchPy, `import ctypes, os, struct, sys
+f, n, new, log = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4]
+libc = ctypes.CDLL(None, use_errno=True)
+fd = libc.inotify_init()
+libc.inotify_add_watch(fd, f.encode(), 0x10)
+open(log, 'w').write('ready\\n')
+cnt = 0
+while True:
+  buf = os.read(fd, 4096)
+  i = 0
+  while i < len(buf):
+    _wd, mask, _cookie, ln = struct.unpack_from('iIII', buf, i)
+    i += 16 + ln
+    if mask & 0x10:
+      cnt += 1
+      if cnt == n:
+        with open(f, 'r+') as h:
+          h.seek(0); h.write(new); h.truncate()
+        open(log, 'a').write(f'swapped:{cnt}\\n')
+        sys.exit(0)
+`)
+        for (const closeN of [1, 2]) {
+          const rDir = join(dir, `race_${closeN}`)
+          mkdirSync(rDir, {recursive: true})
+          const rHdr = join(rDir, 'n.h')
+          const rSrc = join(rDir, 'ring.c')
+          const rLog = join(rDir, 'w.log')
+          writeFileSync(rHdr, '#define LIM 7\n')
+          writeFileSync(rSrc, H + '#include "n.h"\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r) { return r->a[r->n]; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < LIM) r->n = r->n + 1; }\n')
+          const watcher = spawn('python3', [watchPy, rHdr, String(closeN), '#define LIM 8\n', rLog], {stdio: 'ignore'})
+          try {
+            const deadline = Date.now() + 2000
+            while (Date.now() < deadline) {
+              try { if (readFileSync(rLog, 'utf8').includes('ready')) break } catch { /* wait */ }
+              await new Promise(r => setTimeout(r, 10))
+            }
+            const p = spawnSync(process.execPath, [cliPath, 'check', '--no-propose', '--json', rSrc], {cwd: rDir, encoding: 'utf8'})
+            expect(p.status, `live race at close ${closeN} must exit 2`).toBe(2)
+            const j = JSON.parse(p.stdout) as {rules: {safety?: {status: string, macroConfig?: {userFiles?: {sha256: string}[]}}, refusals: {what: string}[]}[]}
+            expect(j.rules[0]?.safety?.status).toBe('unchecked')
+            expect(j.rules[0]?.safety?.macroConfig?.userFiles?.some(u => u.sha256 === lim8Sha)).not.toBe(true)
+            expect(j.rules[0]?.refusals.map(r => r.what).join('; ')).toContain('changed on disk during analysis')
+          } finally {
+            watcher.kill('SIGKILL')
+          }
+        }
+      }
+    }
+
+    // (3) d1: FIFO include target is refused BEFORE the first clang pass (never hangs).
+    const d1Dir = join(dir, 'd1')
+    mkdirSync(d1Dir, {recursive: true})
+    const mkfifo = spawnSync('mkfifo', [join(d1Dir, 'n.h')], {stdio: 'ignore'})
+    if (mkfifo.status === 0) {
+      const d1Src = join(d1Dir, 'ring.c')
+      writeFileSync(d1Src, H + '#include "n.h"\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r) { return r->a[r->n]; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < LIM) r->n = r->n + 1; }\n')
+      const t0 = Date.now()
+      const rD1 = await check([d1Src], {propose: false})
+      expect(Date.now() - t0, 'FIFO refusal must return promptly without hanging').toBeLessThan(10_000)
+      expect(rD1.exit).toBe(2)
+      expect(rD1.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+      expect(rD1.rules[0]?.refusals.map(r => r.what).join('; ')).toContain('not a regular file')
+    }
+
+    // (4) h1: component-wise symlink walk catches `L/../n.h` where `L -> /proc/self/cwd/sub`
+    //     without lexically collapsing `L/..` first.
+    const h1Dir = join(dir, 'h1')
+    const hcwd = join(dir, 'hcwd')
+    mkdirSync(h1Dir, {recursive: true})
+    mkdirSync(join(hcwd, 'sub'), {recursive: true})
+    writeFileSync(join(hcwd, 'n.h'), '#define LIM 7\n')
+    writeFileSync(join(h1Dir, 'n.h'), '/* decoy */\n')
+    symlinkSync('/proc/self/cwd/sub', join(h1Dir, 'L'))
+    const h1Src = join(h1Dir, 'ring.c')
+    writeFileSync(h1Src, H + '#include "L/../n.h"\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r) { return r->a[r->n]; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < LIM) r->n = r->n + 1; }\n')
+    const rH1 = spawnSync(process.execPath, [cliPath, 'check', '--no-propose', '--json', h1Src], {cwd: hcwd, encoding: 'utf8'})
+    expect(rH1.status, 'h1 L/../n.h through /proc symlink must exit 2').toBe(2)
+    const jH1 = JSON.parse(rH1.stdout) as {rules: {safety?: {status: string}, refusals: {what: string}[]}[]}
+    expect(jH1.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+    expect(jH1.rules[0]?.refusals.map(r => r.what).join('; ')).toContain('/proc')
+
+    // (5) f2 (-I=...), f6 (-I<dir>/../../../proc/...), g1 (-I/ + "proc/self/cwd/n.h"), d8 (relative symlink to /proc).
+    const f3h = join(dir, 'f3h')
+    mkdirSync(f3h, {recursive: true})
+    writeFileSync(join(f3h, 'n.h'), '#define LIM 7\n')
+    const f2Src = join(dir, 'f2.c')
+    writeFileSync(f2Src, H + '#include "n.h"\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r) { return r->a[r->n]; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < LIM) r->n = r->n + 1; }\n')
+    const rF2 = await check([f2Src], {flags: [`-I=/proc/self/root${f3h}`], propose: false})
+    expect(rF2.exit).toBe(2)
+    const rF6 = await check([f2Src], {flags: [`-I${f3h}/../../../../../../../../proc/self/root${f3h}`], propose: false})
+    expect(rF6.exit).toBe(2)
+    const g1Src = join(dir, 'g1.c')
+    writeFileSync(g1Src, H + '#include "proc/self/cwd/n.h"\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r) { return r->a[r->n]; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < LIM) r->n = r->n + 1; }\n')
+    const rG1 = await check([g1Src], {flags: ['-I/'], propose: false})
+    expect(rG1.exit).toBe(2)
+
+    // (6) e1: trailing-space include filename ("n.h ") is preserved (not trimmed to decoy "n.h"),
+    //     proves cleanly, and reports the exact SHA-256 of "n.h ".
+    const e1Dir = join(dir, 'e1')
+    mkdirSync(e1Dir, {recursive: true})
+    writeFileSync(join(e1Dir, 'n.h'), '/* decoy */\n')
+    writeFileSync(join(e1Dir, 'n.h '), '#define LIM 7\n')
+    const e1Src = join(e1Dir, 'ring.c')
+    writeFileSync(e1Src, H + '#include "n.h "\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r) { return r->a[r->n]; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < LIM) r->n = r->n + 1; }\n')
+    const rE1 = await check([e1Src], {propose: false})
+    expect(rE1.exit).toBe(0)
+    const mcE1 = (rE1.rules[0]?.safety as {macroConfig?: {userFiles?: {path: string, sha256: string}[]}})?.macroConfig
+    expect(mcE1?.userFiles?.some(u => u.path.endsWith('/n.h ') && u.sha256 === lim7Sha)).toBe(true)
+    expect(mcE1?.userFiles?.some(u => u.path.endsWith('/n.h'))).toBe(false)
   } finally {
     rmSync(dir, {recursive: true, force: true})
   }

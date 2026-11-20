@@ -39,12 +39,18 @@ export type CSafetyMacroConfig = {
   optimizeDefined: boolean,
   debugDefined: boolean,
 }
-export type CSafetyClangMeta = {systemFiles: Set<string>, userFiles: Set<string>, macroConfig: CSafetyMacroConfig}
+export type CSafetyClangMeta = {
+  systemFiles: Set<string>,
+  userFiles: Set<string>,
+  macroConfig: CSafetyMacroConfig,
+  snapshotBytes?: ReadonlyMap<string, Uint8Array>,
+  verifySnapshotUnchanged?: () => void,
+}
 export type CTarget = {int: number, long: number, short: number, llong: number, charUnsigned: boolean, charBits?: number, safetyMeta?: CSafetyClangMeta}
 // (consts: the project's enum constants by name, one of a name only, for the laws' terms)
 // (globals: the file's own globals read as the state, the file's stem the entry: each global's name, those the
 // request gives (read but never written here, another file's or the hardware's) apart)
-export type CRead = {pkg: GoPkg, methods: string[], helpers?: string[], macroConfig?: CSafetyMacroConfig, entry: string, cname: string, consts: Record<string, number>, globals?: {state: string[], inputs: string[], types: Record<string, string>, externs: string[]}}
+export type CRead = {pkg: GoPkg, methods: string[], helpers?: string[], macroConfig?: CSafetyMacroConfig, verifySnapshotUnchanged?: () => void, entry: string, cname: string, consts: Record<string, number>, globals?: {state: string[], inputs: string[], types: Record<string, string>, externs: string[]}}
 export class SafetyUncoveredRefusal extends Refusal {
   readonly coveredFunctions: readonly string[]
   readonly uncheckedFunctions: readonly string[]
@@ -58,8 +64,20 @@ export class SafetyUncoveredRefusal extends Refusal {
 }
 type CP = {
   execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string,
-  spawnSync: (f: string, a: string[], o: Record<string, unknown>) => {status: number | null, stdout?: string, stderr?: string, error?: Error},
+  spawnSync: (f: string, a: string[], o: Record<string, unknown>) => {status: number | null, signal?: string | null, stdout?: string, stderr?: string, error?: Error},
 }
+const CLANG_TIMEOUT_MS = 30_000
+function clangRunOpts(extra?: Record<string, unknown>): Record<string, unknown> {
+  const rr = readerRun() as {timeout?: number, killSignal?: string}
+  const timeout = typeof rr.timeout === 'number' && rr.timeout > 0 ? Math.min(rr.timeout, CLANG_TIMEOUT_MS) : CLANG_TIMEOUT_MS
+  return {...rr, timeout, killSignal: 'SIGKILL', ...(extra ?? {})}
+}
+const isTimeoutErr = (err?: unknown, signal?: string | null): boolean =>
+  (err as {code?: string} | undefined)?.code === 'ETIMEDOUT' || signal === 'SIGKILL' || signal === 'SIGTERM'
+
+// Reject /proc, /dev, and /sys paths case-insensitively so case-insensitive filesystems
+// (e.g. macOS APFS/HFS+ where /Dev/stdin or /PROC/... alias /dev and /proc) cannot bypass checks.
+export const isSpecialVirtualPath = (p: string): boolean => /^\/(?:proc|dev|sys)(?:\/|$)/i.test(p)
 // (consecutive JSON values in one string, each with where it ends)
 class JSONDecoder {
   decode(s: string, i: number): [unknown, number] {
@@ -162,11 +180,13 @@ export function verifyClangBinary(clangPath: string, file: string): {bin: string
     throw new Refusal(file, `compiler ${resolved} is not a native executable (scripts and wrappers are refused in C safety mode)`)
   const clangEnv = scrubbedClangEnv()
   const runCheck = (bin: string, args: string[]): {stdout: string, stderr: string} => {
-    const r = cp.spawnSync(bin, args, {encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'pipe'], env: clangEnv, ...readerRun()})
-    if (r.error) {
+    const r = cp.spawnSync(bin, args, clangRunOpts({encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'pipe'], env: clangEnv}))
+    if (r.error || r.signal) {
       const stated = statedRefusal(r.error)
       if (stated) throw new Refusal(file, stated)
-      throw new Refusal(file, `failed to run compiler ${bin}: ${r.error.message}`)
+      if (isTimeoutErr(r.error, r.signal))
+        throw new Refusal(file, `compiler ${bin} timed out during verification`)
+      throw new Refusal(file, `failed to run compiler ${bin}: ${r.error?.message ?? r.signal}`)
     }
     if (r.status !== 0)
       throw new Refusal(file, `compiler ${bin} failed verification (${String(r.stderr ?? '').split('\n').slice(0, 2).join(' | ')})`)
@@ -288,15 +308,19 @@ function dumpClangRawTokens(
   reportFile: string,
 ): ClangRawTok[] {
   const cp = node<CP>('node:child_process')
-  const r = cp.spawnSync(activeClang, ['-x', 'c', '-w', ...stdFlags, '-Xclang', '-dump-raw-tokens', '-fsyntax-only', targetFile], {
+  const r = cp.spawnSync(activeClang, ['-x', 'c', '-w', ...stdFlags, '-Xclang', '-dump-raw-tokens', '-fsyntax-only', targetFile], clangRunOpts({
     encoding: 'utf8',
     maxBuffer: 1 << 28,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: clangEnv,
-    ...readerRun(),
-  })
-  if (r.error || r.status !== 0)
-    throw new Refusal(reportFile, `clang raw token dump failed for ${targetFile} (${String(r.stderr ?? r.error?.message ?? '').split('\n').slice(0, 2).join(' | ')})`)
+  }))
+  if (r.error || r.signal || r.status !== 0) {
+    const stated = statedRefusal(r.error)
+    if (stated) throw new Refusal(reportFile, stated)
+    if (isTimeoutErr(r.error, r.signal))
+      throw new Refusal(reportFile, `clang raw token dump timed out for ${reportFile} (outside the C safety subset)`)
+    throw new Refusal(reportFile, `clang raw token dump failed for ${reportFile} (${String(r.stderr ?? r.error?.message ?? '').split('\n').slice(0, 2).join(' | ')})`)
+  }
   const out = r.stderr ?? ''
   // Compute 0-based UTF-8 byte offsets of each 1-based source line in rawBuf (matching Clang's
   // handling of LF, CRLF, and lone CR line endings).
@@ -394,6 +418,7 @@ function dumpUserExpandedTokens(o: {
   reportFile: string,
   isSystemExpFile: (rawPath: string) => boolean,
   userFiles?: Set<string>,
+  mapFile?: (rawPath: string) => string,
   realPath?: (p: string) => string,
   basename?: (p: string) => string,
   clangEnv: Record<string, string>,
@@ -401,16 +426,20 @@ function dumpUserExpandedTokens(o: {
   failMessage?: string,
 }): string {
   const cp = node<CP>('node:child_process')
-  const r = cp.spawnSync(o.activeClang, [...o.lang, '-w', ...o.flags, '-Xclang', '-dump-tokens', '-fsyntax-only', o.targetFile], {
+  const r = cp.spawnSync(o.activeClang, [...o.lang, '-w', ...o.flags, '-Xclang', '-dump-tokens', '-fsyntax-only', o.targetFile], clangRunOpts({
     encoding: 'utf8',
     maxBuffer: 1 << 28,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: o.clangEnv,
     ...(o.cwd ? {cwd: o.cwd} : {}),
-    ...readerRun(),
-  })
-  if (r.error || r.status !== 0)
+  }))
+  if (r.error || r.signal || r.status !== 0) {
+    const stated = statedRefusal(r.error)
+    if (stated) throw new Refusal(o.reportFile, stated)
+    if (isTimeoutErr(r.error, r.signal))
+      throw new Refusal(o.reportFile, 'clang -dump-tokens audit timed out (possible non-regular file/FIFO or runaway preprocessing; outside the C safety subset)')
     throw new Refusal(o.reportFile, o.failMessage ?? `clang -dump-tokens audit failed (${String(r.stderr ?? r.error?.message ?? '').split('\n').slice(0, 2).join(' | ')})`)
+  }
   const userToks: string[] = []
   for (const rawLine of (r.stderr ?? '').split('\n')) {
     if (!rawLine) continue
@@ -439,8 +468,8 @@ function dumpUserExpandedTokens(o: {
     const expFile = hm[1]!
     const expLine = hm[2]!
     const expCol = hm[3]!
-    if (o.userFiles && o.realPath && o.basename && !expFile.startsWith('<')) {
-      const expReal = o.realPath(expFile)
+    if (o.userFiles && o.basename && !expFile.startsWith('<')) {
+      const expReal = o.mapFile ? o.mapFile(expFile) : (o.realPath ? o.realPath(expFile) : expFile)
       if (o.userFiles.has(expReal)) {
         if (loc.includes('<Spelling=<scratch space>:')) {
           throw new Refusal(
@@ -529,9 +558,13 @@ function validateSafetyFlags(flags: readonly string[], file: string): string[] {
       throw new Refusal(file, 'compiler flag containing newline or control character is outside the C safety subset')
     if (f === '-I') {
       const v = flags[++i]
-      if (!v || hasCtrl(v)) throw new Refusal(file, 'missing or invalid argument to -I flag in C safety mode')
+      if (!v || hasCtrl(v) || v.startsWith('=') || v === '-')
+        throw new Refusal(file, `missing or invalid argument to -I flag (${v ?? '(missing)'}) in C safety mode`)
       out.push(`-I${v}`)
     } else if (f.startsWith('-I') && f.length > 2) {
+      const v = f.slice(2)
+      if (v.startsWith('=') || v === '-')
+        throw new Refusal(file, `sysroot/split include flag ${f} is outside the C safety subset`)
       out.push(f)
     } else if (f === '-D') {
       const v = flags[++i]
@@ -575,14 +608,13 @@ function detectLibc(
   clangEnv: Record<string, string>,
 ): string {
   const cp = node<CP>('node:child_process')
-  const r = cp.spawnSync(activeClang, [...lang, ...stdFlags, '-dM', '-E', '-'], {
+  const r = cp.spawnSync(activeClang, [...lang, ...stdFlags, '-dM', '-E', '-'], clangRunOpts({
     encoding: 'utf8',
     input: '#include <stdint.h>\n#include <limits.h>\n',
     maxBuffer: 1 << 24,
     stdio: ['pipe', 'pipe', 'pipe'],
     env: clangEnv,
-    ...readerRun(),
-  })
+  }))
   const out = r.status === 0 ? (r.stdout ?? '') : ''
   const get = (k: string) => new RegExp(`^#define\\s+${k}\\s+(\\S+)`, 'm').exec(out)?.[1]
   const glibc = get('__GLIBC__')
@@ -638,12 +670,12 @@ function auditUserPreprocessor(o: {
   activeUserDefines: Set<string>,
   activeUserUndefs: Set<string>,
   readBytes: (p: string) => Uint8Array,
+  diskPath?: (p: string) => string,
   basename: (p: string) => string,
 }): void {
   const fs = node<{mkdtempSync: (p: string) => string, writeFileSync: (p: string, s: string) => void, rmSync: (p: string, o?: unknown) => void}>('node:fs')
   const os = node<{tmpdir: () => string}>('node:os')
   const path = node<{join: (...p: string[]) => string, resolve: (...p: string[]) => string, dirname: (p: string) => string}>('node:path')
-  const isProcDevSys = (p: string): boolean => /^\/(?:proc|dev|sys)(?:\/|$)/.test(p)
   const isC23 = o.effectiveStd === 'c23' || o.effectiveStd === 'gnu23'
   const predefinedMacros = new Set<string>()
   for (const m of o.bareDefs.matchAll(/^#define\s+([A-Za-z_]\w*)/gm)) predefinedMacros.add(m[1]!)
@@ -790,7 +822,7 @@ function auditUserPreprocessor(o: {
         throw new Refusal(`${label}:1:1`, 'NUL byte (0x00) in user file is outside the C safety subset')
       const rawText = new TextDecoder().decode(rawBuf)
       checkRawTrigraphs(rawText, label)
-      const rawToks = dumpClangRawTokens(o.activeClang, o.stdFlags, uf, rawBuf, o.clangEnv, uf)
+      const rawToks = dumpClangRawTokens(o.activeClang, o.stdFlags, o.diskPath ? o.diskPath(uf) : uf, rawBuf, o.clangEnv, uf)
       logicalLines = toLogicalLines(rawToks, label)
       rawLinesCache.set(uf, logicalLines)
     }
@@ -823,7 +855,7 @@ function auditUserPreprocessor(o: {
           if (!isQuoted && !isAngled)
             throw new Refusal(where, 'computed or non-literal #include directive is outside the C safety subset')
           const rawTarget = isQuoted ? rest[0]!.text.slice(1, -1) : rest.slice(1, -1).map(t => t.text).join('')
-          if (isProcDevSys(rawTarget) || isProcDevSys(path.resolve(path.dirname(uf), rawTarget)))
+          if (isSpecialVirtualPath(rawTarget) || isSpecialVirtualPath(path.resolve(path.dirname(uf), rawTarget)))
             throw new Refusal(where, `#include ${rest.map(t => t.text).join('')} under /proc, /dev, or /sys is outside the C safety subset`)
         } else if (dir === 'pragma') {
           if (!(rest.length === 1 && rest[0]!.kind === 'raw_identifier' && rest[0]!.text === 'once')) {
@@ -913,166 +945,428 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
   const verifiedClang = safety && !cpp ? resolveSafetyClang(clang, file) : undefined
   const activeClang = verifiedClang?.bin ?? clang
   const activeFlags = safety && !cpp ? validateSafetyFlags(flags, file) : flags
+  let sanitizeErr = (s: string): string => s
   const run = (args: string[]) => {
-    try { return cp.execFileSync(activeClang, args, {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], env: clangEnv, ...readerRun()}) }
+    try { return cp.execFileSync(activeClang, args, clangRunOpts({encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], env: clangEnv})) }
     catch (e) {
-      const x = e as {code?: string, stderr?: string, message: string}
+      const x = e as {code?: string, signal?: string | null, stderr?: string, message: string}
       const stated = statedRefusal(e)
       if (stated) throw new Refusal(file, stated)
-      throw new Refusal(file, x.code === 'ENOENT' ? `no ${activeClang} to run: clang is needed to extract ${cpp ? 'C++' : 'C'}` : `clang doesn't compile it (${String(x.stderr ?? x.message).split('\n').filter(l => /error/.test(l)).slice(0, 3).join(' | ')})`)
+      if (isTimeoutErr(e, x.signal))
+        throw new Refusal(file, 'clang timed out (possible non-regular file/FIFO or runaway preprocessing; outside the C safety subset)')
+      throw new Refusal(file, x.code === 'ENOENT' ? `no ${activeClang} to run: clang is needed to extract ${cpp ? 'C++' : 'C'}` : `clang doesn't compile it (${sanitizeErr(String(x.stderr ?? x.message).split('\n').filter(l => /error/.test(l)).slice(0, 3).join(' | '))})`)
     }
   }
   const runFull = (args: string[]): {stdout: string, stderr: string} => {
-    const r = cp.spawnSync(activeClang, args, {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], env: clangEnv, ...readerRun()})
-    if (r.error) {
-      const x = r.error as {code?: string, message: string}
+    const r = cp.spawnSync(activeClang, args, clangRunOpts({encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], env: clangEnv}))
+    if (r.error || r.signal) {
+      const x = (r.error ?? {}) as {code?: string, message?: string}
       const stated = statedRefusal(r.error)
       if (stated) throw new Refusal(file, stated)
-      throw new Refusal(file, x.code === 'ENOENT' ? `no ${activeClang} to run: clang is needed to extract ${cpp ? 'C++' : 'C'}` : x.message)
+      if (isTimeoutErr(r.error, r.signal))
+        throw new Refusal(file, 'clang timed out (possible non-regular file/FIFO or runaway preprocessing; outside the C safety subset)')
+      throw new Refusal(file, x.code === 'ENOENT' ? `no ${activeClang} to run: clang is needed to extract ${cpp ? 'C++' : 'C'}` : (x.message ?? String(r.signal)))
     }
     if (r.status !== 0)
-      throw new Refusal(file, `clang doesn't compile it (${String(r.stderr ?? '').split('\n').filter(l => /error/.test(l)).slice(0, 3).join(' | ')})`)
+      throw new Refusal(file, `clang doesn't compile it (${sanitizeErr(String(r.stderr ?? '').split('\n').filter(l => /error/.test(l)).slice(0, 3).join(' | '))})`)
     return {stdout: r.stdout ?? '', stderr: r.stderr ?? ''}
   }
-  const dump = run([...lang, ...activeFlags, '-Xclang', '-ast-dump=json', ...(filter ? ['-Xclang', `-ast-dump-filter=${filter}`] : []), '-fsyntax-only', file]), inner: CN[] = [], dec = new JSONDecoder()
-  const tu = filter ? {kind: 'TranslationUnitDecl', inner} as CN : JSON.parse(dump) as CN
-  if (filter) for (let i = dump.indexOf('{'); i >= 0; i = dump.indexOf('{', i)) { const [o, e] = dec.decode(dump, i); inner.push(o as CN); i = e }
   const defs = run([...lang, ...activeFlags, '-dM', '-E', '/dev/null']), def = (k: string) => Number(new RegExp(`#define ${k} (\\d+)`).exec(defs)?.[1] ?? 0)
-  let safetyMeta: CSafetyClangMeta | undefined
-  if (safety && !cpp) {
-    const fsFull = node<{
-      readFileSync: (p: string) => Uint8Array,
-      statSync: (p: string) => {isFile: () => boolean, isDirectory: () => boolean},
-      lstatSync: (p: string) => {isSymbolicLink: () => boolean},
-      readlinkSync: (p: string) => string,
-      mkdtempSync: (p: string) => string,
-      mkdirSync: (p: string, o?: unknown) => void,
-      copyFileSync: (src: string, dst: string) => void,
-      utimesSync: (p: string, a: number, m: number) => void,
-      rmSync: (p: string, o?: unknown) => void,
-    }>('node:fs')
-    const osMod = node<{tmpdir: () => string}>('node:os')
-    const pathFull = node<{join: (...p: string[]) => string, dirname: (p: string) => string}>('node:path')
-    const isProcDevSys = (p: string): boolean => /^\/(?:proc|dev|sys)(?:\/|$)/.test(p)
-    const walkNoProcDevSys = (rawPath: string, label: string, allowMissing = false): void => {
-      if (isProcDevSys(rawPath))
-        throw new Refusal(file, `${label} ${rawPath} under /proc, /dev, or /sys is outside the C safety subset`)
-      let cur = path.resolve(rawPath)
-      let hops = 0
-      outer: while (true) {
-        if (isProcDevSys(cur))
-          throw new Refusal(file, `${label} ${rawPath} resolves through /proc, /dev, or /sys (${cur}; outside the C safety subset)`)
-        const parts = cur.split('/').filter(Boolean)
-        let prefix = ''
-        for (let i = 0; i < parts.length; i++) {
-          prefix += `/${parts[i]!}`
-          if (isProcDevSys(prefix))
-            throw new Refusal(file, `${label} ${rawPath} resolves through /proc, /dev, or /sys (${prefix}; outside the C safety subset)`)
-          let lst: {isSymbolicLink: () => boolean}
-          try { lst = fsFull.lstatSync(prefix) }
-          catch {
-            if (allowMissing) return
-            throw new Refusal(file, `${label} ${rawPath} is not accessible (outside the C safety subset)`)
-          }
-          if (lst.isSymbolicLink()) {
-            if (++hops > 40)
-              throw new Refusal(file, `${label} ${rawPath} exceeds symlink hop limit (outside the C safety subset)`)
-            const target = fsFull.readlinkSync(prefix)
-            if (isProcDevSys(target))
-              throw new Refusal(file, `${label} ${rawPath} resolves through /proc, /dev, or /sys (${target}; outside the C safety subset)`)
-            const resolvedPrefix = path.isAbsolute(target) ? path.resolve(target) : path.resolve(pathFull.dirname(prefix), target)
-            if (isProcDevSys(resolvedPrefix))
-              throw new Refusal(file, `${label} ${rawPath} resolves through /proc, /dev, or /sys (${resolvedPrefix}; outside the C safety subset)`)
-            const rest = parts.slice(i + 1)
-            cur = rest.length ? path.resolve(resolvedPrefix, ...rest) : resolvedPrefix
-            continue outer
-          }
+  if (!safety || cpp) {
+    const dump = run([...lang, ...activeFlags, '-Xclang', '-ast-dump=json', ...(filter ? ['-Xclang', `-ast-dump-filter=${filter}`] : []), '-fsyntax-only', file]), inner: CN[] = [], dec = new JSONDecoder()
+    const tu = filter ? {kind: 'TranslationUnitDecl', inner} as CN : JSON.parse(dump) as CN
+    if (filter) for (let i = dump.indexOf('{'); i >= 0; i = dump.indexOf('{', i)) { const [o, e] = dec.decode(dump, i); inner.push(o as CN); i = e }
+    return {tu, target: {int: def('__SIZEOF_INT__') * 8, long: def('__SIZEOF_LONG__') * 8, short: def('__SIZEOF_SHORT__') * 8, llong: def('__SIZEOF_LONG_LONG__') * 8, charBits: def('__CHAR_BIT__'), charUnsigned: /#define __CHAR_UNSIGNED__/.test(defs)}}
+  }
+
+  // --- C safety mode: atomic user-file snapshot + closed-world audit ----------------------------------------------------
+  // Read every user file ONCE (after component-wise symlink resolution & O_NONBLOCK/O_NOFOLLOW
+  // fstat regular-file checks), write exact bytes into a private temp snapshot tree, run EVERY
+  // Clang pass strictly on that snapshot, rewrite snapshot paths back for reporting, hash the
+  // snapshot bytes, and re-hash original files on disk at the end to refuse concurrent writers.
+  const fsFull = node<{
+    openSync: (p: string, flags: number) => number,
+    closeSync: (fd: number) => void,
+    fstatSync: (fd: number) => {isFile: () => boolean},
+    readFileSync: (p: string | number) => Uint8Array,
+    writeFileSync: (p: string, data: Uint8Array | string) => void,
+    statSync: (p: string) => {isFile: () => boolean, isDirectory: () => boolean},
+    lstatSync: (p: string) => {isSymbolicLink: () => boolean},
+    readlinkSync: (p: string) => string,
+    mkdtempSync: (p: string) => string,
+    mkdirSync: (p: string, o?: unknown) => void,
+    utimesSync: (p: string, a: number, m: number) => void,
+    rmSync: (p: string, o?: unknown) => void,
+    constants: {O_RDONLY: number, O_NONBLOCK?: number, O_NOCTTY?: number, O_NOFOLLOW?: number},
+  }>('node:fs')
+  const osMod = node<{tmpdir: () => string}>('node:os')
+  const pathFull = node<{join: (...p: string[]) => string, dirname: (p: string) => string}>('node:path')
+  const cryptoMod = node<{createHash: (alg: string) => {update: (d: Uint8Array | string) => {digest: (enc: 'hex') => string}}}>('node:crypto')
+  const sha256Hex = (d: Uint8Array | string): string => cryptoMod.createHash('sha256').update(d).digest('hex')
+  const cwd = (globalThis as {process?: {cwd?: () => string}}).process?.cwd?.() ?? '/'
+
+  // Component-wise POSIX symlink walker: NEVER calls path.resolve/normalize before symlinks,
+  // so `L/../n.h` where `L -> /proc/self/cwd/sub` inspects `L` and catches the /proc hop before
+  // processing `..`. Rejects /proc, /dev, /sys case-insensitively at every segment and target.
+  const resolveComponentWise = (rawPath: string, baseDir: string, label: string, allowMissing = false): string | undefined => {
+    if (isSpecialVirtualPath(rawPath))
+      throw new Refusal(file, `${label} ${rawPath} under /proc, /dev, or /sys is outside the C safety subset`)
+    const stack: string[] = []
+    if (!rawPath.startsWith('/')) {
+      const baseRes = baseDir === '/' ? '/' : resolveComponentWise(baseDir, '/', label, false)!
+      for (const s of baseRes.split('/')) if (s.length > 0) stack.push(s)
+    }
+    const queue = rawPath.split('/').filter(s => s.length > 0)
+    let hops = 0
+    while (queue.length > 0) {
+      const seg = queue.shift()!
+      if (seg === '.') continue
+      if (seg === '..') {
+        if (stack.length > 0) stack.pop()
+        continue
+      }
+      stack.push(seg)
+      const cur = `/${stack.join('/')}`
+      if (isSpecialVirtualPath(cur))
+        throw new Refusal(file, `${label} ${rawPath} resolves through /proc, /dev, or /sys (${cur}; outside the C safety subset)`)
+      let lst: {isSymbolicLink: () => boolean}
+      try { lst = fsFull.lstatSync(cur) }
+      catch {
+        if (allowMissing) return undefined
+        throw new Refusal(file, `${label} ${rawPath} is not accessible (outside the C safety subset)`)
+      }
+      if (lst.isSymbolicLink()) {
+        if (++hops > 40)
+          throw new Refusal(file, `${label} ${rawPath} exceeds symlink hop limit (outside the C safety subset)`)
+        const target = fsFull.readlinkSync(cur)
+        if (isSpecialVirtualPath(target))
+          throw new Refusal(file, `${label} ${rawPath} resolves through /proc, /dev, or /sys (${target}; outside the C safety subset)`)
+        stack.pop()
+        if (target.startsWith('/')) stack.length = 0
+        const tSegs = target.split('/').filter(s => s.length > 0)
+        queue.unshift(...tSegs)
+      }
+    }
+    return `/${stack.join('/')}`
+  }
+
+  // Open an already component-wise-resolved path with O_NONBLOCK | O_NOCTTY | O_NOFOLLOW so a
+  // FIFO never hangs and a symlink race fails closed, verify fstatSync(fd).isFile(), and read
+  // the exact bytes once from that open descriptor.
+  const openFlags = fsFull.constants.O_RDONLY | (fsFull.constants.O_NONBLOCK ?? 0) | (fsFull.constants.O_NOCTTY ?? 0) | (fsFull.constants.O_NOFOLLOW ?? 0)
+  const readRegularFileOnce = (resolvedPath: string, rawLabel: string, kindLabel: string): Uint8Array => {
+    if (isSpecialVirtualPath(resolvedPath))
+      throw new Refusal(file, `${kindLabel} ${rawLabel} resolves under /proc, /dev, or /sys (${resolvedPath}; outside the C safety subset)`)
+    let fd: number
+    try { fd = fsFull.openSync(resolvedPath, openFlags) }
+    catch { throw new Refusal(file, `${kindLabel} ${rawLabel} is not accessible as a regular file (outside the C safety subset)`) }
+    try {
+      const st = fsFull.fstatSync(fd)
+      if (!st.isFile())
+        throw new Refusal(file, `${kindLabel} ${rawLabel} is not a regular file (outside the C safety subset)`)
+      const raw = fsFull.readFileSync(fd)
+      return Uint8Array.from(raw)
+    } finally {
+      fsFull.closeSync(fd)
+    }
+  }
+
+  // Probe Clang's built-in search list & metadata on /dev/null BEFORE reading any user file.
+  const stripUserIncludes = (fsList: readonly string[]): string[] => fsList.filter(f => !f.startsWith('-I'))
+  const probeV = runFull([...lang, ...stripUserIncludes(activeFlags), '-E', '-v', '-o', '/dev/null', '/dev/null'])
+  if (/^Configuration file:/m.test(probeV.stderr))
+    throw new Refusal(file, `compiler ${activeClang} loaded an external configuration file (outside the C safety subset)`)
+  const targetTriple = /^Target:\s*(\S+)/m.exec(probeV.stderr)?.[1]?.trim() ?? 'unknown'
+  const compilerMatch = /clang version\s+([^\s(]+)/.exec(probeV.stderr)
+  const compiler = compilerMatch ? `clang ${compilerMatch[1]}` : undefined
+  const systemDirs = parseSearchDirs(probeV.stderr, realPath)
+
+  const mainReal = resolveComponentWise(file, cwd, 'source file', false)!
+  const rootReal = root ? resolveComponentWise(root, cwd, 'project root', false)! : pathFull.dirname(mainReal)
+  const includeDirMap = new Map<string, string>() // raw -I dir -> component-wise resolved dir
+  const includeDirRealPaths: string[] = []
+  for (const f of activeFlags) {
+    if (!f.startsWith('-I') || f.length <= 2) continue
+    const rawDir = f.slice(2)
+    const rp = resolveComponentWise(rawDir, cwd, 'include directory -I', true)
+    if (rp) {
+      try {
+        if (fsFull.statSync(rp).isDirectory()) {
+          includeDirMap.set(rawDir, rp)
+          includeDirRealPaths.push(rp)
         }
+      } catch { /* missing */ }
+    }
+  }
+  const allowedUserRoots = [rootReal, ...includeDirRealPaths]
+  const isUnderDir = (rp: string, dir: string): boolean => {
+    const rel = path.relative(dir, rp)
+    return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel)
+  }
+  const isUnderSystemDir = (rawPath: string): boolean => {
+    if (rawPath === '<built-in>') return true
+    if (!rawPath || rawPath.startsWith('<')) return false
+    const rp = realPath(rawPath)
+    if (rp === mainReal) return false
+    return systemDirs.some(dir => isUnderDir(rp, dir))
+  }
+
+  // Extract literal #include / #include_next / #embed targets from a file's bytes (ignoring C
+  // comments and non-directive string literals, handling backslash line continuations, and
+  // preserving trailing spaces in filenames such as `#include "n.h "`).
+  const extractPreClangIncludes = (bytes: Uint8Array): {kind: 'quoted' | 'angled', target: string}[] => {
+    const raw = new TextDecoder('utf-8', {fatal: false}).decode(bytes).replace(/\\[ \t]*(?:\r?\n|\r)/g, '')
+    let clean = ''
+    let i = 0
+    let atLineStart = true
+    let inDirective = false
+    while (i < raw.length) {
+      const ch = raw[i]!
+      const nx = raw[i + 1]
+      if (ch === '\n' || ch === '\r') {
+        clean += '\n'
+        if (ch === '\r' && nx === '\n') i++
+        atLineStart = true
+        inDirective = false
+        i++
+        continue
+      }
+      if (ch === '/' && nx === '/') {
+        while (i < raw.length && raw[i] !== '\n' && raw[i] !== '\r') i++
+        continue
+      }
+      if (ch === '/' && nx === '*') {
+        i += 2
+        while (i < raw.length && !(raw[i] === '*' && raw[i + 1] === '/')) {
+          if (raw[i] === '\n') clean += '\n'
+          i++
+        }
+        if (i < raw.length) i += 2
+        clean += ' '
+        continue
+      }
+      if (atLineStart && (ch === ' ' || ch === '\t')) { clean += ch; i++; continue }
+      if (atLineStart && (ch === '#' || (ch === '%' && nx === ':'))) {
+        inDirective = true
+        atLineStart = false
+        clean += ch
+        i++
+        continue
+      }
+      atLineStart = false
+      if (!inDirective && (ch === '"' || ch === "'")) {
+        const q = ch
+        clean += q
+        i++
+        while (i < raw.length && raw[i] !== q && raw[i] !== '\n' && raw[i] !== '\r') {
+          if (raw[i] === '\\' && i + 1 < raw.length) i += 2
+          else i++
+        }
+        if (i < raw.length && raw[i] === q) { clean += q; i++ }
+        continue
+      }
+      clean += ch
+      i++
+    }
+    const out: {kind: 'quoted' | 'angled', target: string}[] = []
+    for (const line of clean.split('\n')) {
+      const m = /^[ \t]*(?:#|%:)[ \t]*(?:include|include_next|embed)[ \t]*(?:"([^"\r\n]+)"|<([^>\r\n]+)>)/.exec(line)
+      if (!m) continue
+      if (m[1] !== undefined) out.push({kind: 'quoted', target: m[1]!})
+      else if (m[2] !== undefined) out.push({kind: 'angled', target: m[2]!})
+    }
+    return out
+  }
+
+  type SnapEntry = {origReal: string, snapPath: string, bytes: Uint8Array, sha256: string}
+  const snapRootRaw = fsFull.mkdtempSync(pathFull.join(osMod.tmpdir(), 'gdp-c-safety-snap-'))
+  const snapRoot = realPath(snapRootRaw)
+  const snapBase = pathFull.join(snapRoot, 'u')
+  const snapOf = (rp: string): string => pathFull.join(snapBase, rp.replace(/^\/+/, ''))
+  const snapEntries = new Map<string, SnapEntry>()
+  const snapToOrigReal = new Map<string, string>()
+  const discoveredPairs = new Set<string>()
+
+  const registerSnapPath = (snapPath: string, origReal: string) => {
+    snapToOrigReal.set(snapPath, origReal)
+    const rp = realPath(snapPath)
+    if (rp !== snapPath) snapToOrigReal.set(rp, origReal)
+  }
+
+  const snapshotUserFile = (origReal: string, rawLabel: string, kindLabel: string): SnapEntry => {
+    const existing = snapEntries.get(origReal)
+    if (existing) return existing
+    if (origReal !== mainReal && !allowedUserRoots.some(d => isUnderDir(origReal, d)))
+      throw new Refusal(file, `user include ${rawLabel} (resolved: ${origReal}) lies outside project root and listed -I directories (outside the C safety subset)`)
+    const bytes = readRegularFileOnce(origReal, rawLabel, kindLabel)
+    const sha256 = sha256Hex(bytes)
+    const snapPath = snapOf(origReal)
+    fsFull.mkdirSync(pathFull.dirname(snapPath), {recursive: true})
+    fsFull.writeFileSync(snapPath, bytes)
+    const entry: SnapEntry = {origReal, snapPath, bytes, sha256}
+    snapEntries.set(origReal, entry)
+    registerSnapPath(snapPath, origReal)
+    return entry
+  }
+
+  const materializeAlias = (snapAliasPath: string, entry: SnapEntry) => {
+    if (snapToOrigReal.has(snapAliasPath)) return
+    fsFull.mkdirSync(pathFull.dirname(snapAliasPath), {recursive: true})
+    fsFull.writeFileSync(snapAliasPath, entry.bytes)
+    registerSnapPath(snapAliasPath, entry.origReal)
+  }
+
+  const ensureDotDotDirsInSnap = (baseLogicalDir: string, target: string) => {
+    if (!target.includes('..')) return
+    const segs = target.split('/')
+    let cur = baseLogicalDir
+    for (let k = 0; k < segs.length - 1; k++) {
+      const s = segs[k]!
+      if (!s || s === '.') continue
+      if (s === '..') { cur = pathFull.dirname(cur); continue }
+      cur = pathFull.join(cur, s)
+      if (cur.startsWith('/')) fsFull.mkdirSync(snapOf(cur), {recursive: true})
+    }
+  }
+
+  const discoverAndSnapshot = (origReal: string, logicalDir: string, rawLabel: string, kindLabel: string): void => {
+    const visitKey = `${origReal}\0${logicalDir}`
+    if (discoveredPairs.has(visitKey)) return
+    discoveredPairs.add(visitKey)
+    const entry = snapshotUserFile(origReal, rawLabel, kindLabel)
+    for (const inc of extractPreClangIncludes(entry.bytes)) {
+      const {kind, target} = inc
+      if (isSpecialVirtualPath(target))
+        throw new Refusal(file, `include ${target} under /proc, /dev, or /sys is outside the C safety subset`)
+      if (target.startsWith('/')) {
+        const resolved = resolveComponentWise(target, '/', 'include', true)
+        if (!resolved) continue
+        if (isUnderSystemDir(resolved)) continue
+        if (!allowedUserRoots.some(d => isUnderDir(resolved, d)))
+          throw new Refusal(file, `user include ${target} (resolved: ${resolved}) lies outside project root and listed -I directories (outside the C safety subset)`)
+        // Check regular-file status before refusing absolute path (e.g. FIFO at absolute path).
+        readRegularFileOnce(resolved, target, 'include')
+        throw new Refusal(file, `absolute user include ${target} bypasses the input snapshot (use a relative or -I include; outside the C safety subset)`)
+      }
+      const searchDirs = kind === 'quoted'
+        ? [logicalDir, ...(logicalDir !== pathFull.dirname(origReal) ? [pathFull.dirname(origReal)] : []), ...includeDirRealPaths, ...systemDirs]
+        : [...includeDirRealPaths, ...systemDirs]
+      for (const sDir of searchDirs) {
+        const resolved = resolveComponentWise(target, sDir, 'include', true)
+        if (!resolved) continue
+        if (isUnderSystemDir(resolved)) break
+        const child = snapshotUserFile(resolved, target, 'include')
+        ensureDotDotDirsInSnap(sDir, target)
+        const logicalTarget = path.resolve(sDir, target)
+        if (logicalTarget !== resolved) materializeAlias(snapOf(logicalTarget), child)
+        discoverAndSnapshot(child.origReal, pathFull.dirname(logicalTarget), target, 'include')
         break
       }
     }
-    const auditRegularPath = (rawPath: string, label: string): string => {
-      walkNoProcDevSys(rawPath, label, false)
-      const rp = realPath(rawPath)
-      if (isProcDevSys(rp))
-        throw new Refusal(file, `${label} ${rawPath} resolves under /proc, /dev, or /sys (${rp}; outside the C safety subset)`)
-      let st: {isFile: () => boolean}
-      try { st = fsFull.statSync(rp) }
-      catch { throw new Refusal(file, `${label} ${rawPath} is not a regular file (outside the C safety subset)`) }
-      if (!st.isFile())
-        throw new Refusal(file, `${label} ${rawPath} is not a regular file (outside the C safety subset)`)
-      return rp
-    }
-    const auditIncludeDir = (rawDir: string): string | undefined => {
-      walkNoProcDevSys(rawDir, `include directory -I${rawDir}`, true)
-      const rp = realPath(rawDir)
-      if (isProcDevSys(rp))
-        throw new Refusal(file, `include directory -I${rawDir} resolves under /proc, /dev, or /sys (${rp}; outside the C safety subset)`)
-      try { return fsFull.statSync(rp).isDirectory() ? rp : undefined } catch { return undefined }
-    }
-    // Decide system-ness by PATH ONLY: read Clang's built-in search directories from
-    // `clang -E -v` (with user -I flags stripped), never trusting linemarker flag 3 (which
-    // `#pragma`/`_Pragma` GCC system_header sets and propagates to included files).
-    const stripUserIncludes = (fsList: readonly string[]): string[] => fsList.filter(f => !f.startsWith('-I'))
-    const probeV = runFull([...lang, ...stripUserIncludes(activeFlags), '-E', '-v', '-o', '/dev/null', '/dev/null'])
-    if (/^Configuration file:/m.test(probeV.stderr))
-      throw new Refusal(file, `compiler ${activeClang} loaded an external configuration file (outside the C safety subset)`)
-    const targetTriple = /^Target:\s*(\S+)/m.exec(probeV.stderr)?.[1]?.trim() ?? 'unknown'
-    const compilerMatch = /clang version\s+([^\s(]+)/.exec(probeV.stderr)
-    const compiler = compilerMatch ? `clang ${compilerMatch[1]}` : undefined
-    const systemDirs = parseSearchDirs(probeV.stderr, realPath)
-    const mainReal = auditRegularPath(file, 'source file')
-    const rootReal = realPath(root ?? pathFull.dirname(mainReal))
-    const includeDirRealPaths = activeFlags
-      .filter(f => f.startsWith('-I') && f.length > 2)
-      .map(f => auditIncludeDir(f.slice(2)))
-      .filter((d): d is string => !!d)
-    const allowedUserRoots = [rootReal, ...includeDirRealPaths]
-    const isUnderDir = (rp: string, dir: string): boolean => {
-      const rel = path.relative(dir, rp)
-      return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel)
-    }
-    const isUnderSystemDir = (rawPath: string): boolean => {
-      if (rawPath === '<built-in>') return true
-      if (!rawPath || rawPath.startsWith('<')) return false
-      const rp = realPath(rawPath)
-      if (rp === mainReal) return false
-      return systemDirs.some(dir => isUnderDir(rp, dir))
-    }
-    // Run `-E -H -dD` once to collect actual physically included headers (immune to #line spoofing),
-    // enforce closed-world regular-file + root/`-I` containment on every user include, and gather
-    // exact active `#define`/`#undef` sites, include order, and linemarkers.
-    const ppRes = runFull([...lang, ...activeFlags, '-E', '-H', '-dD', file])
-    const physicalFiles = new Set<string>([mainReal])
-    const rawIncluded: {raw: string, real: string}[] = []
-    for (const rawLine of ppRes.stderr.split('\n')) {
-      const hm = /^\.+\s+(.+)$/.exec(rawLine.replace(/\r$/, ''))
-      if (hm) {
-        const rawInc = hm[1]!.trim()
-        const rp = auditRegularPath(rawInc, 'include')
-        physicalFiles.add(rp)
-        rawIncluded.push({raw: rawInc, real: rp})
+  }
+
+  try {
+    // Step 1: Discover and snapshot every reachable user file BEFORE the first Clang pass.
+    discoverAndSnapshot(mainReal, pathFull.dirname(mainReal), file, 'source file')
+    const snapMain = snapEntries.get(mainReal)!.snapPath
+    // Build snapshot-only compiler flags: every -I points ONLY inside snapRoot (never live disk).
+    const snapFlags: string[] = []
+    for (const f of activeFlags) {
+      if (f.startsWith('-I') && f.length > 2) {
+        const rp = includeDirMap.get(f.slice(2))
+        if (rp) {
+          const sDir = snapOf(rp)
+          fsFull.mkdirSync(sDir, {recursive: true})
+          snapFlags.push(`-I${sDir}`)
+        }
+      } else {
+        snapFlags.push(f)
       }
+    }
+    const mapSnapToOrig = (rawPath: string): string => {
+      if (!rawPath || rawPath.startsWith('<')) return rawPath
+      const direct = snapToOrigReal.get(rawPath)
+      if (direct) return direct
+      const rp = realPath(rawPath)
+      return snapToOrigReal.get(rp) ?? rp
+    }
+    const snapPathReplacements = [...snapToOrigReal.entries()].sort((a, b) => b[0].length - a[0].length)
+    const rewriteSnapInStr = (s: string): string => {
+      let out = s
+      for (const [sp, orig] of snapPathReplacements) if (out.includes(sp)) out = out.replaceAll(sp, orig)
+      return out
+    }
+    sanitizeErr = rewriteSnapInStr
+    const rewriteLoc = (loc: L | undefined): void => {
+      if (!loc) return
+      if (typeof loc.file === 'string') loc.file = mapSnapToOrig(loc.file)
+      if (typeof loc.presumedFile === 'string') loc.presumedFile = mapSnapToOrig(loc.presumedFile)
+      if (loc.spellingLoc) rewriteLoc(loc.spellingLoc)
+      if (loc.expansionLoc) rewriteLoc(loc.expansionLoc)
+      if (loc.includedFrom && typeof loc.includedFrom === 'object') rewriteLoc(loc.includedFrom as L)
+    }
+    const rewriteAst = (n: CN): void => {
+      rewriteLoc(n.loc)
+      if (n.range) { rewriteLoc(n.range.begin); rewriteLoc(n.range.end) }
+      if (n.type) {
+        n.type.qualType = rewriteSnapInStr(n.type.qualType)
+        if (n.type.desugaredQualType !== undefined) n.type.desugaredQualType = rewriteSnapInStr(n.type.desugaredQualType)
+      }
+      if (n.referencedDecl?.type) n.referencedDecl.type.qualType = rewriteSnapInStr(n.referencedDecl.type.qualType)
+      const argType = n.argType as {qualType?: string, desugaredQualType?: string} | undefined
+      if (argType) {
+        if (typeof argType.qualType === 'string') argType.qualType = rewriteSnapInStr(argType.qualType)
+        if (typeof argType.desugaredQualType === 'string') argType.desugaredQualType = rewriteSnapInStr(argType.desugaredQualType)
+      }
+      if (n.array_filler) {
+        if (Array.isArray(n.array_filler)) for (const c of n.array_filler as CN[]) rewriteAst(c)
+        else rewriteAst(n.array_filler as CN)
+      }
+      for (const c of n.inner ?? []) rewriteAst(c)
+    }
+
+    // Step 2: Run `-E -H -dD` strictly on the snapshot; verify every non-system included file came
+    // from snapRoot (preserving trailing spaces via `/^\.+ (.+)$/` with no `.trim()`).
+    const ppRes = runFull([...lang, ...snapFlags, '-E', '-H', '-dD', snapMain])
+    const physicalFiles = new Set<string>([mainReal])
+    const systemFiles = new Set<string>(['<built-in>'])
+    const userFiles = new Set<string>([mainReal])
+    for (const rawLine of ppRes.stderr.split('\n')) {
+      const hm = /^\.+ (.+)$/.exec(rawLine.replace(/\r$/, ''))
+      if (!hm) continue
+      const rawInc = hm[1]!
+      if (isSpecialVirtualPath(rawInc))
+        throw new Refusal(file, `include ${rawInc} under /proc, /dev, or /sys is outside the C safety subset`)
+      const mapped = snapToOrigReal.get(rawInc) ?? snapToOrigReal.get(realPath(rawInc))
+      if (mapped) {
+        physicalFiles.add(mapped)
+        userFiles.add(mapped)
+        continue
+      }
+      const sysResolved = resolveComponentWise(rawInc, '/', 'include', false)!
+      if (isUnderSystemDir(sysResolved)) {
+        readRegularFileOnce(sysResolved, rawInc, 'system header')
+        physicalFiles.add(sysResolved)
+        systemFiles.add(sysResolved)
+        continue
+      }
+      throw new Refusal(file, `user include ${rawInc} bypassed the input snapshot or lies outside project root and listed -I directories (outside the C safety subset)`)
     }
     const isSystemPath = (rawPath: string): boolean => {
       if (rawPath === '<built-in>') return true
       if (!rawPath || rawPath.startsWith('<')) return false
-      const rp = realPath(rawPath)
-      if (rp === mainReal || !physicalFiles.has(rp)) return false
-      return systemDirs.some(dir => isUnderDir(rp, dir))
+      const mapped = mapSnapToOrig(rawPath)
+      if (mapped === mainReal || userFiles.has(mapped) || !physicalFiles.has(mapped)) return false
+      return systemFiles.has(mapped)
     }
-    for (const {raw: rawInc, real: rp} of rawIncluded) {
-      if (isSystemPath(rp) || rp === mainReal) continue
-      if (!allowedUserRoots.some(d => isUnderDir(rp, d)))
-        throw new Refusal(file, `user include ${rawInc} (resolved: ${rp}) lies outside project root and listed -I directories (outside the C safety subset)`)
-    }
-    const systemFiles = new Set<string>(['<built-in>'])
-    const userFiles = new Set<string>([mainReal])
-    for (const p of physicalFiles) {
-      if (isSystemPath(p)) systemFiles.add(p)
-      else userFiles.add(p)
-    }
-    // Audit Clang's linemarkers and extract exact user-file include order + active #define/#undef sites.
+
+    // Step 3: Run Clang AST dump strictly on the snapshot and rewrite snapshot paths back.
+    const dump = run([...lang, ...snapFlags, '-Xclang', '-ast-dump=json', ...(filter ? ['-Xclang', `-ast-dump-filter=${filter}`] : []), '-fsyntax-only', snapMain]), inner: CN[] = [], dec = new JSONDecoder()
+    const tu = filter ? {kind: 'TranslationUnitDecl', inner} as CN : JSON.parse(dump) as CN
+    if (filter) for (let i = dump.indexOf('{'); i >= 0; i = dump.indexOf('{', i)) { const [o, e] = dec.decode(dump, i); inner.push(o as CN); i = e }
+    rewriteAst(tu)
+
+    // Step 4: Audit Clang's linemarkers and extract exact user-file include order + active #define/#undef sites.
     const stack: string[] = [mainReal]
     const pendingIncludes: {parent: string, child: string}[] = []
     const includesBeforeLine = new Map<string, Map<number, string[]>>()
@@ -1096,14 +1390,14 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
         curLine = lineNum
         if (!rawPath) continue
         if (!rawPath.startsWith('<')) {
-          const rp = realPath(rawPath)
+          const rp = mapSnapToOrig(rawPath)
           const sys = isSystemPath(rawPath)
           if (nums.has('3') && !sys)
-            throw new Refusal(rawPath, '#pragma GCC system_header or system-header linemarker in non-system file is outside the C safety subset')
+            throw new Refusal(rp, '#pragma GCC system_header or system-header linemarker in non-system file is outside the C safety subset')
           const prev = stack[stack.length - 1]
           if (nums.has('1')) {
             if (!physicalFiles.has(rp))
-              throw new Refusal(prev ?? file, `linemarker references non-included file ${rawPath} (outside the C safety subset)`)
+              throw new Refusal(prev ?? file, `linemarker references non-included file ${rp} (outside the C safety subset)`)
             if (prev && userFiles.has(prev) && userFiles.has(rp)) pendingIncludes.push({parent: prev, child: rp})
             stack.push(rp)
           } else if (nums.has('2')) {
@@ -1116,7 +1410,7 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
             if (idx >= 0) stack.length = idx + 1
             else if (stack.length > 1) stack.pop()
           } else if (prev && !isSystemPath(prev) && rp !== prev) {
-            throw new Refusal(prev, `#line or linemarker filename change to ${rawPath} is outside the C safety subset`)
+            throw new Refusal(prev, `#line or linemarker filename change to ${rp} is outside the C safety subset`)
           }
           curFile = rp
         } else {
@@ -1140,7 +1434,8 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       }
       curLine++
     }
-    // Collect compiler predefined macros with no user -D/-U flags and compute effective std + libc.
+
+    // Step 5: Audit every user file's preprocessor directives & macros using the snapshot ONLY.
     const stdFlags = activeFlags.filter(f => f.startsWith('-std='))
     const hasDefFlags = activeFlags.some(f => f.startsWith('-D') || f.startsWith('-U'))
     const bareDefs = hasDefFlags ? run([...lang, ...stdFlags, '-dM', '-E', '/dev/null']) : defs
@@ -1166,7 +1461,8 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       includesBeforeLine,
       activeUserDefines,
       activeUserUndefs,
-      readBytes: p => fsFull.readFileSync(p),
+      readBytes: p => snapEntries.get(p)!.bytes,
+      diskPath: p => snapEntries.get(p)!.snapPath,
       basename: p => path.basename(p),
     })
 
@@ -1177,25 +1473,25 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
     const debugMatch = /^#define DEBUG(?:\s+(.*))?$/m.exec(defs)
     const debugDefined = !!debugMatch
     const debugVal = debugMatch?.[1]?.trim() ?? ''
-    // Capture Clang's own preprocessed user-code token stream (`-Xclang -dump-tokens`), simultaneously
-    // enforcing the `<scratch space>` audit on user expansions (zero hand-rolled lexing).
+
+    // Step 6: Capture expanded user tokens & folded AST facts strictly from the snapshot.
     const baseTokens = dumpUserExpandedTokens({
       activeClang,
       lang,
-      flags: activeFlags,
-      targetFile: file,
+      flags: snapFlags,
+      targetFile: snapMain,
       reportFile: file,
       isSystemExpFile: isUnderSystemDir,
       userFiles,
-      realPath,
+      mapFile: mapSnapToOrig,
       basename: p => path.basename(p),
       clangEnv,
     })
     const baseAstFacts = astFactsOf(tu, isUnderSystemDir)
-    // Lexer-independent differential backstop: mirror all user files into a temp tree with
-    // strictly different path & basename lengths, two distinct mtimes, two distinct empty cwds
-    // with stdin=/dev/null, and compare BOTH Clang's `-dump-tokens` stream AND Clang's folded AST
-    // facts (array sizes, constants, types) across two SOURCE_DATE_EPOCH days.
+
+    // Step 7: Lexer-independent differential backstop written purely from in-memory snapshot bytes
+    // (never reading live disk again) across alternate path/basename length, two empty cwds with
+    // stdin=/dev/null, two mtimes, and two SOURCE_DATE_EPOCH days.
     const altRoot = fsFull.mkdtempSync(pathFull.join(osMod.tmpdir(), 'gdp-c-safety-diff-path-check-'))
     try {
       const mirrorOf = (rp: string) => pathFull.join(altRoot, 'p_extra_len_dir', rp.replace(/^\/+/, ''))
@@ -1204,34 +1500,49 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       fsFull.mkdirSync(altCwd1, {recursive: true})
       fsFull.mkdirSync(altCwd2, {recursive: true})
       const mirroredPaths: string[] = []
-      for (const uf of userFiles) {
-        const dst = mirrorOf(uf)
+      const mirroredSet = new Set<string>()
+      const writeMirrored = (dst: string, bytes: Uint8Array) => {
+        if (mirroredSet.has(dst)) return
+        mirroredSet.add(dst)
         fsFull.mkdirSync(pathFull.dirname(dst), {recursive: true})
-        fsFull.copyFileSync(uf, dst)
+        fsFull.writeFileSync(dst, bytes)
         fsFull.utimesSync(dst, 1700000000, 1700000000)
         mirroredPaths.push(dst)
       }
+      for (const [sp, orig] of snapToOrigReal) {
+        if (!userFiles.has(orig)) continue
+        const relToBase = path.relative(snapBase, sp)
+        if (!relToBase || relToBase.startsWith('..') || path.isAbsolute(relToBase)) continue
+        writeMirrored(pathFull.join(altRoot, 'p_extra_len_dir', relToBase), snapEntries.get(orig)!.bytes)
+      }
+      for (const uf of userFiles) writeMirrored(mirrorOf(uf), snapEntries.get(uf)!.bytes)
       const altMainDir = pathFull.dirname(mirrorOf(mainReal))
       const altMain = pathFull.join(altMainDir, `gdp_alt_path_${path.basename(mainReal)}`)
-      fsFull.mkdirSync(altMainDir, {recursive: true})
-      fsFull.copyFileSync(mainReal, altMain)
-      fsFull.utimesSync(altMain, 1700000000, 1700000000)
-      mirroredPaths.push(altMain)
+      writeMirrored(altMain, snapEntries.get(mainReal)!.bytes)
       const altFlags: string[] = []
       for (const f of activeFlags) {
         if (f.startsWith('-I') && f.length > 2) {
-          const d = realPath(f.slice(2))
-          altFlags.push(`-I${mirrorOf(d)}`, `-I${d}`)
+          const d = includeDirMap.get(f.slice(2))
+          if (d) {
+            const mDir = mirrorOf(d)
+            fsFull.mkdirSync(mDir, {recursive: true})
+            altFlags.push(`-I${mDir}`)
+          }
         } else {
           altFlags.push(f)
         }
       }
-      const dumpAltAstFacts = (env: Record<string, string>, cwd: string): string => {
-        const r = cp.spawnSync(activeClang, [...lang, ...altFlags, '-Xclang', '-ast-dump=json', '-fsyntax-only', altMain], {
-          encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], env, cwd, ...readerRun(),
-        })
-        if (r.error || r.status !== 0)
+      const dumpAltAstFacts = (env: Record<string, string>, altCwd: string): string => {
+        const r = cp.spawnSync(activeClang, [...lang, ...altFlags, '-Xclang', '-ast-dump=json', '-fsyntax-only', altMain], clangRunOpts({
+          encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], env, cwd: altCwd,
+        }))
+        if (r.error || r.signal || r.status !== 0) {
+          const stated = statedRefusal(r.error)
+          if (stated) throw new Refusal(file, stated)
+          if (isTimeoutErr(r.error, r.signal))
+            throw new Refusal(file, 'user AST differential invariance check timed out (outside the C safety subset)')
           throw new Refusal(file, 'user AST failed differential path/cwd/date invariance check (outside the C safety subset)')
+        }
         return astFactsOf(JSON.parse(r.stdout ?? '') as CN, isUnderSystemDir)
       }
       const env1 = scrubbedClangEnv({SOURCE_DATE_EPOCH: '1000000000'})
@@ -1268,6 +1579,8 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
     } finally {
       try { fsFull.rmSync(altRoot, {recursive: true, force: true}) } catch { /* gone */ }
     }
+
+    // Step 8: Build-mode differential alternates strictly on the snapshot.
     const alternates: {label: string, extra: string[]}[] = [
       ...(ndebugDefined ? [{label: 'NDEBUG', extra: ['-UNDEBUG']}] : []),
       ...(!ndebugDefined || ndebugVal !== '0' ? [{label: 'NDEBUG', extra: ['-DNDEBUG=0']}] : []),
@@ -1286,8 +1599,8 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       const altTok = dumpUserExpandedTokens({
         activeClang,
         lang,
-        flags: [...activeFlags, ...alt.extra],
-        targetFile: file,
+        flags: [...snapFlags, ...alt.extra],
+        targetFile: snapMain,
         reportFile: file,
         isSystemExpFile: isUnderSystemDir,
         clangEnv,
@@ -1296,16 +1609,35 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       if (altTok !== baseTokens)
         throw new Refusal(file, `preprocessed user code depends on ${alt.label} (differs under ${alt.extra.join(' ')}; proof only holds for one build-mode configuration)`)
     }
-    // Digest every user file AND every real system header actually included (path + SHA-256)
-    // plus one summary SHA-256 for each so the exact inputs and headers are pinned in the verdict.
-    const cryptoMod = node<{createHash: (alg: string) => {update: (d: Uint8Array | string) => {digest: (enc: 'hex') => string}}}>('node:crypto')
-    const digestList = (paths: string[]) => {
-      const list = paths.sort().map(p => ({path: p, sha256: cryptoMod.createHash('sha256').update(fsFull.readFileSync(p)).digest('hex')}))
-      const sha = cryptoMod.createHash('sha256').update(list.map(h => `${h.path}\0${h.sha256}\n`).join('')).digest('hex')
-      return {list, sha}
+
+    // Step 9: Report exact SHA-256 of the SNAPSHOT bytes for every included user file (never a
+    // fresh disk read) alongside every included system header, then re-hash original user files
+    // on disk so any concurrent modification during analysis is immediately refused.
+    const userFileList = [...userFiles]
+      .filter(p => !p.startsWith('<'))
+      .sort()
+      .map(p => ({path: p, sha256: snapEntries.get(p)!.sha256}))
+    const userFilesSha256 = sha256Hex(userFileList.map(h => `${h.path}\0${h.sha256}\n`).join(''))
+    const systemHeaders = [...systemFiles]
+      .filter(p => !p.startsWith('<'))
+      .sort()
+      .map(p => ({path: p, sha256: sha256Hex(readRegularFileOnce(p, p, 'system header'))}))
+    const systemHeadersSha256 = sha256Hex(systemHeaders.map(h => `${h.path}\0${h.sha256}\n`).join(''))
+    const snapshotBytes = new Map<string, Uint8Array>()
+    for (const {path: p} of userFileList) snapshotBytes.set(p, snapEntries.get(p)!.bytes)
+
+    const verifySnapshotUnchanged = (): void => {
+      for (const {path: origPath, sha256: expectedSha} of userFileList) {
+        const currentResolved = resolveComponentWise(origPath, '/', 'user file', false)!
+        if (currentResolved !== origPath)
+          throw new Refusal(file, `user file ${origPath} path resolution changed on disk during analysis (concurrent modification detected; outside the C safety subset)`)
+        const endBytes = readRegularFileOnce(currentResolved, origPath, 'user file')
+        if (sha256Hex(endBytes) !== expectedSha)
+          throw new Refusal(file, `user file ${origPath} changed on disk during analysis (concurrent modification detected; outside the C safety subset)`)
+      }
     }
-    const {list: userFileList, sha: userFilesSha256} = digestList([...userFiles].filter(p => !p.startsWith('<')))
-    const {list: systemHeaders, sha: systemHeadersSha256} = digestList([...systemFiles].filter(p => !p.startsWith('<')))
+    verifySnapshotUnchanged()
+
     const includeDirs = activeFlags.filter(f => f.startsWith('-I'))
     const macroConfig: CSafetyMacroConfig = {
       target: targetTriple,
@@ -1326,9 +1658,11 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       optimizeDefined,
       debugDefined,
     }
-    safetyMeta = {systemFiles, userFiles, macroConfig}
+    const safetyMeta: CSafetyClangMeta = {systemFiles, userFiles, macroConfig, snapshotBytes, verifySnapshotUnchanged}
+    return {tu, target: {int: def('__SIZEOF_INT__') * 8, long: def('__SIZEOF_LONG__') * 8, short: def('__SIZEOF_SHORT__') * 8, llong: def('__SIZEOF_LONG_LONG__') * 8, charBits: def('__CHAR_BIT__'), charUnsigned: /#define __CHAR_UNSIGNED__/.test(defs), safetyMeta}}
+  } finally {
+    try { fsFull.rmSync(snapRootRaw, {recursive: true, force: true}) } catch { /* gone */ }
   }
-  return {tu, target: {int: def('__SIZEOF_INT__') * 8, long: def('__SIZEOF_LONG__') * 8, short: def('__SIZEOF_SHORT__') * 8, llong: def('__SIZEOF_LONG_LONG__') * 8, charBits: def('__CHAR_BIT__'), charUnsigned: /#define __CHAR_UNSIGNED__/.test(defs), ...(safetyMeta ? {safetyMeta} : {})}}
 }
 // The values of names a law reads that the code defines as integer constants (a macro, an enum constant, a constexpr
 // variable), folded by clang itself: each the value of an enumerator of a probe that includes the file. A name that
@@ -1342,7 +1676,7 @@ export function constantsOf(file: string, flags: string[], clang: string, cpp: b
     for (let round = 0; round < 3 && left.length; round++) {
       fs.writeFileSync(probe, `#include ${JSON.stringify(path.resolve(file))}\n${left.map((n, i) => `enum gdp_k${i}_e ${cpp ? ': long long ' : ''}{ gdp_k${i} = (${n}) };`).join('\n')}\n`)
       let dump = ''
-      try { dump = cp.execFileSync(clang, [...(cpp ? ['-x', 'c++'] : ['-x', 'c']), ...flags, '-w', '-ferror-limit=0', '-Xclang', '-ast-dump=json', '-Xclang', '-ast-dump-filter=gdp_k', '-fsyntax-only', probe], {encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'pipe'], env: scrubbedClangEnv(), ...readerRun()}) }
+      try { dump = cp.execFileSync(clang, [...(cpp ? ['-x', 'c++'] : ['-x', 'c']), ...flags, '-w', '-ferror-limit=0', '-Xclang', '-ast-dump=json', '-Xclang', '-ast-dump-filter=gdp_k', '-fsyntax-only', probe], clangRunOpts({encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'pipe'], env: scrubbedClangEnv()})) }
       catch (e) {
         // (the lines that don't compile: their names left out, the rest tried again)
         const bad = new Set([...String((e as {stderr?: string}).stderr ?? '').matchAll(/probe\.c(?:pp)?:(\d+):\d+: error/g)].map(m => Number(m[1]) - 2))
@@ -1430,16 +1764,29 @@ const FAIL: Record<string, string> = {abort: 'abort()', __assert_rtn: 'an assert
 export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp = false, root?: string, picks: Record<string, number> = {}, pickNames: string[] = [], leave: string[] = [], cut: string[] = [], safety = false): CRead {
   const path = node<{resolve: (...p: string[]) => string, basename: (p: string) => string}>('node:path'), fs = node<{readFileSync: (p: string, e: string) => string, realpathSync: (p: string) => string}>('node:fs')
   const realPath = (p: string): string => { try { return fs.realpathSync(p) } catch { return path.resolve(p) } }
-  const main = path.resolve(file), mainReal = realPath(file), base = path.basename(file), dir = `${path.resolve(root ?? main.replace(/\/[^/]*$/, ''))}/`, srcs = new Map<string, string>()
+  const main = path.resolve(file), mainReal = realPath(file), base = path.basename(file), dir = `${path.resolve(root ?? main.replace(/\/[^/]*$/, ''))}/`, realDir = `${realPath(root ?? mainReal.replace(/\/[^/]*$/, ''))}/`, srcs = new Map<string, string>()
   locate(tu)
-  const top = tu.inner ?? [], mine = (n: CN) => n.$at?.file === main || n.$at?.file === file, own = (n: CN) => mine(n) || (!!n.$at?.file && path.resolve(n.$at.file).startsWith(dir))
+  const top = tu.inner ?? [], mine = (n: CN) => n.$at?.file === main || n.$at?.file === mainReal || n.$at?.file === file, own = (n: CN) => mine(n) || (!!n.$at?.file && (path.resolve(n.$at.file).startsWith(dir) || realPath(n.$at.file).startsWith(realDir)))
   const refuse = (n: CN | undefined, what: string): never => { throw new Refusal(pos(n), what) }
   const pos = (n: CN | undefined) => (n?.$at && own(n) ? `${path.basename(n.$at.file)}:${n.$at.line}:${n.$at.col}` : base)
-  const src = (f: string) => { let s = srcs.get(f); if (s === undefined) { try { s = fs.readFileSync(path.resolve(f), 'utf8') } catch { s = '' }; srcs.set(f, s) } return s }
+  const snapBytes = target.safetyMeta?.snapshotBytes
+  const src = (f: string) => {
+    let s = srcs.get(f)
+    if (s === undefined) {
+      const sb = snapBytes?.get(f) ?? snapBytes?.get(realPath(f))
+      if (sb) s = new TextDecoder('utf-8', {fatal: false}).decode(sb)
+      else { try { s = fs.readFileSync(path.resolve(f), 'utf8') } catch { s = '' } }
+      srcs.set(f, s)
+    }
+    return s
+  }
   const srcBytesMap = new Map<string, Uint8Array>()
   const sliceBytes = (f: string, start: number, end: number) => {
     let b = srcBytesMap.get(f)
-    if (b === undefined) { b = new TextEncoder().encode(src(f)); srcBytesMap.set(f, b) }
+    if (b === undefined) {
+      b = snapBytes?.get(f) ?? snapBytes?.get(realPath(f)) ?? new TextEncoder().encode(src(f))
+      srcBytesMap.set(f, b)
+    }
     return new TextDecoder().decode(b.subarray(start, end))
   }
   const text = (n: CN) => (n.$b && n.$e && n.$b.file === n.$e.file && own(n) && n.$e.off + n.$e.tok >= n.$b.off ? sliceBytes(n.$b.file, n.$b.off, n.$e.off + n.$e.tok) || n.kind : n.kind)
@@ -2910,7 +3257,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   // (the class's qualified name, which the harness spells: `this`'s type, as clang prints it)
   const thisOf = (n: CN): string | undefined => (n.kind === 'CXXThisExpr' ? n.type!.qualType : (n.inner ?? []).map(thisOf).find(Boolean))
   const self = cpp ? cxx.filter(m => m.$rec === entryRec).map(thisOf).find(Boolean)?.replace(/^const /, '').replace(/ \*$/, '') : undefined
-  return {pkg, methods, ...(safety && validatedHelpers.size ? {helpers: [...validatedHelpers]} : {}), ...(safety && target.safetyMeta ? {macroConfig: target.safetyMeta.macroConfig} : {}), entry, cname: self ?? T(entryT).go!, consts: Object.fromEntries([...named].filter(([, v]) => Number.isSafeInteger(v))),
+  return {pkg, methods, ...(safety && validatedHelpers.size ? {helpers: [...validatedHelpers]} : {}), ...(safety && target.safetyMeta ? {macroConfig: target.safetyMeta.macroConfig, ...(target.safetyMeta.verifySnapshotUnchanged ? {verifySnapshotUnchanged: target.safetyMeta.verifySnapshotUnchanged} : {})} : {}), entry, cname: self ?? T(entryT).go!, consts: Object.fromEntries([...named].filter(([, v]) => Number.isSafeInteger(v))),
     ...(gmode ? {globals: {state: gnodes.map(g => g.name!), inputs: gnodes.filter(g => ginput.has(g.id!)).map(g => g.name!), types: Object.fromEntries(gnodes.map(g => [g.name!, g.type!.qualType])),
       // (declared only, another file's to define: the check defines it, zero at the start)
       externs: gnodes.filter(g => ![...globals.values()].some(d => d.name === g.name && (d.storageClass !== 'extern' || d.init))).map(g => g.name!)}} : {})}

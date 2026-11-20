@@ -402,9 +402,13 @@ Every `CSafetyResult` carries the four stated assumptions and checked-scope prem
    package-manager caveat**: headers under Clang's default search list, such as
    `/opt/homebrew/include` on macOS, are trusted as system headers), and an AST node is system only
    if both its spelling and expansion locations are system files. Every non-system user file and
-   include must resolve (`realpath`) to a regular file under the project root or a listed `-I`
-   directory (refusing `/proc`, `/dev`, `/sys`, non-regular files, and includes outside the root/`-I`
-   boundary). Any user-defined or `-D` macro
+   include is resolved component-wise (without collapsing `..` before symlinks), verified via
+   `O_NONBLOCK`/`O_NOFOLLOW` `fstat` as a regular file under the project root or a listed `-I`
+   directory (refusing case-insensitive `/proc`, `/dev`, `/sys`, non-regular files/FIFOs, absolute
+   user includes, and includes outside the root/`-I` boundary) BEFORE the first Clang pass,
+   snapshotted once into a private temp tree that every timed Clang pass reads exclusively, digested
+   from those snapshot bytes, and re-hashed on disk at the end to refuse concurrent writers. Any
+   user-defined or `-D` macro
    expanded inside a system header is refused. User files are audited directly from Clang's own
    lexer and preprocessor (`-Xclang -dump-raw-tokens` verified byte-contiguously from byte 0/BOM
    to EOF with raw NUL bytes refused, `-Xclang -dump-tokens`, and `-E -H -dD`; never re-lexed in
