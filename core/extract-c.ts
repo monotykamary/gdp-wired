@@ -32,7 +32,7 @@ import type {Sorts} from './extract-print.ts'
 import type {Coverage} from './extract-check.ts'
 import {type GoOptions, type GoPkg, type GoRead, goNames, readGo, unsignedDomains} from './extract-go.ts'
 import {type GoCheckOptions, type GoEvidence, type GoLeaf, speak} from './extract-go-check.ts'
-import {type CRead, SafetyUncoveredRefusal, clangDump, constantsOf, flagsFor, node, readC} from './c/reader.ts'
+import {type CRead, SafetyUncoveredRefusal, clangDump, constantsOf, flagsFor, node, readC, scrubbedClangEnv} from './c/reader.ts'
 import {analyzeCSafety, replaySafety, uncheckedCSafety, type CSafetyResult} from './c/safety.ts'
 export {cSafetyArtifactOf, verifyCSafetyProof, type CSafetyArtifact, type CSafetyIssue, type CSafetyKind, type CSafetyMacroConfig, type CSafetyProofBundle, type CSafetyReplay, type CSafetyResult, type CSafetyRun, type CSafetyStatus} from './c/safety.ts'
 export {minimizeRun, minimizeRunDetailed, proveRule, proveSteps} from './dsl.ts'
@@ -531,7 +531,7 @@ int main(int argc, char **argv) {
 // (a fixed array last in a struct is still of its length, its index checked: clang 15 and later)
 const flexOK = new Map<string, boolean>()
 function strictFlex(clang: string): string[] {
-  if (!flexOK.has(clang)) { try { node<CP>('node:child_process').execFileSync(clang, ['-fstrict-flex-arrays=3', '-x', 'c', '-fsyntax-only', '/dev/null'], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}); flexOK.set(clang, true) } catch { flexOK.set(clang, false) } }
+  if (!flexOK.has(clang)) { try { node<CP>('node:child_process').execFileSync(clang, ['-fstrict-flex-arrays=3', '-x', 'c', '-fsyntax-only', '/dev/null'], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: scrubbedClangEnv()}); flexOK.set(clang, true) } catch { flexOK.set(clang, false) } }
   return flexOK.get(clang) ? ['-fstrict-flex-arrays=3'] : []
 }
 // A demangled C++ function's own name: `void events::send<A, B>(unsigned int, ...)` is send, `A::f(int) const` f.
@@ -563,7 +563,7 @@ export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r:
     // code's failure where the rule took the step, a difference), but those left out (skip, stated or inferred: they
     // change nothing the rule keeps, and nothing reads their value), which do nothing.
     const clang = opts.clang ?? (cpp ? 'clang++' : 'clang'), stubs = `${work}/gdp_stubs.c`
-    const run = (cc: string, args: string[]) => cp.execFileSync(cc, args, {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26, timeout: compileLimit(), killSignal: 'SIGKILL'})
+    const run = (cc: string, args: string[]) => cp.execFileSync(cc, args, {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26, timeout: compileLimit(), killSignal: 'SIGKILL', env: scrubbedClangEnv()})
     // (the stubs are C, compiled apart: the project's flags, a C++ -std among them, are the harness's)
     const link = (more: string[]) => { for (const m of more) run(clang.replace(/\+\+$/, ''), ['-w', '-c', '-x', 'c', m, '-o', `${m}.o`]); return run(clang, [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', ...strictFlex(clang), h, ...(more.length ? ['-x', 'none', ...more.map(m => `${m}.o`)] : []), '-o', `${work}/harness`]) }
     const why = (x: unknown) => String((x as {stderr?: string}).stderr ?? (x as Error).message)

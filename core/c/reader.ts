@@ -17,7 +17,7 @@ import {Refusal, readerRun, statedRefusal} from '../extract-read.ts'
 
 type CN = {id?: string, kind: string, name?: string, inner?: CN[], type?: {qualType: string, desugaredQualType?: string, typeAliasDeclId?: string}, value?: string, opcode?: string, castKind?: string, isArrow?: boolean, isPostfix?: boolean,
   referencedDecl?: {id: string, kind: string, name: string, type?: {qualType: string}}, referencedMemberDecl?: string, previousDecl?: string, storageClass?: string, isImplicit?: boolean, completeDefinition?: boolean, tagUsed?: string, hasElse?: boolean,
-  computeLHSType?: {qualType: string, desugaredQualType?: string}, computeResultType?: {qualType: string, desugaredQualType?: string}, init?: string, decl?: {id: string, kind: string}, loc?: L, range?: {begin: L, end: L}, $at?: At, $b?: At, $e?: At, [k: string]: unknown}
+  computeLHSType?: {qualType: string, desugaredQualType?: string}, computeResultType?: {qualType: string, desugaredQualType?: string}, init?: string, decl?: {id: string, kind: string}, loc?: L, range?: {begin: L, end: L}, $at?: At, $b?: At, $e?: At, $files?: Set<string>, $macroExpansions?: {spell: string, spellLine: number, expand: string, expandLine: number}[], [k: string]: unknown}
 type L = {offset?: number, file?: string, line?: number, col?: number, tokLen?: number, spellingLoc?: L, expansionLoc?: L, includedFrom?: unknown}
 type At = {file: string, line: number, col: number, off: number, tok: number}
 export type CSafetyMacroConfig = {
@@ -25,6 +25,8 @@ export type CSafetyMacroConfig = {
   compiler?: string,
   std: string,
   stdcVersion: string,
+  envScrubbed: boolean,
+  includeDirs: readonly string[],
   flags: readonly string[],
   defines: readonly string[],
   ndebugDefined: boolean,
@@ -60,8 +62,47 @@ class JSONDecoder {
     return [JSON.parse(s.slice(i, j + 1)), j + 1]
   }
 }
-const proc = (globalThis as {process?: {getBuiltinModule?: (id: string) => unknown}}).process
+const proc = (globalThis as {process?: {getBuiltinModule?: (id: string) => unknown, env?: Record<string, string | undefined>}}).process
 export const node = <T>(id: string): T => { const m = proc?.getBuiltinModule?.(id); if (!m) throw new Error(`the C front end runs clang through ${id} (Node 20.16 or later, or Bun)`); return m as T }
+
+// Environment variables that can inject compiler include paths, options, or driver overrides into
+// clang (CPATH, C_INCLUDE_PATH, CCC_OVERRIDE_OPTIONS, etc.). Unset on every clang invocation so
+// system search directories and compilation cannot be tampered with through the environment.
+export const SCRUBBED_CLANG_ENV_KEYS = new Set([
+  'CPATH',
+  'C_INCLUDE_PATH',
+  'CPLUS_INCLUDE_PATH',
+  'OBJC_INCLUDE_PATH',
+  'OBJCPLUS_INCLUDE_PATH',
+  'INCLUDE',
+  'CCC_OVERRIDE_OPTIONS',
+  'CCC_ADD_ARGS',
+  'CCC_FALLBACK',
+  'CLANG_CONFIG_FILE',
+  'CLANG_CONFIG_FILE_USER_DIR',
+  'CLANG_CONFIG_FILE_SYSTEM_DIR',
+  'COMPILER_PATH',
+  'LIBRARY_PATH',
+  'GCC_EXEC_PREFIX',
+  'CFLAGS',
+  'CPPFLAGS',
+  'CXXFLAGS',
+  'LDFLAGS',
+  'DEPENDENCIES_OUTPUT',
+  'SUNPRO_DEPENDENCIES',
+  'SDKROOT',
+])
+
+export function scrubbedClangEnv(extra?: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(proc?.env ?? {})) {
+    if (v === undefined) continue
+    if (SCRUBBED_CLANG_ENV_KEYS.has(k) || /^(?:CCC_|CLANG_CONFIG_)/i.test(k)) continue
+    out[k] = v
+  }
+  if (extra) Object.assign(out, extra)
+  return out
+}
 
 // --- running clang ------------------------------------------------------------------------------------------------------
 // (C++: only the declarations named after the class, `-ast-dump-filter`: its standard headers' are hundreds of MB;
@@ -72,8 +113,9 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
   const path = node<{resolve: (...p: string[]) => string, relative: (from: string, to: string) => string, isAbsolute: (p: string) => boolean}>('node:path')
   const lang = cpp ? ['-x', 'c++'] : ['-x', 'c']
   const realPath = (p: string): string => { try { return fs.realpathSync(p) } catch { return path.resolve(p) } }
+  const clangEnv = scrubbedClangEnv()
   const run = (args: string[]) => {
-    try { return cp.execFileSync(clang, args, {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()}) }
+    try { return cp.execFileSync(clang, args, {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], env: clangEnv, ...readerRun()}) }
     catch (e) {
       const x = e as {code?: string, stderr?: string, message: string}
       const stated = statedRefusal(e)
@@ -82,7 +124,7 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
     }
   }
   const runFull = (args: string[]): {stdout: string, stderr: string} => {
-    const r = cp.spawnSync(clang, args, {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()})
+    const r = cp.spawnSync(clang, args, {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], env: clangEnv, ...readerRun()})
     if (r.error) {
       const x = r.error as {code?: string, message: string}
       const stated = statedRefusal(r.error)
@@ -135,7 +177,7 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel)
     }
     const isUnderSystemDir = (rawPath: string): boolean => {
-      if (rawPath === '<built-in>' || rawPath === '<command line>') return true
+      if (rawPath === '<built-in>') return true
       if (!rawPath || rawPath.startsWith('<')) return false
       const rp = realPath(rawPath)
       if (rp === mainReal) return false
@@ -150,13 +192,13 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       if (hm) physicalFiles.add(realPath(hm[1]!.trim()))
     }
     const isSystemPath = (rawPath: string): boolean => {
-      if (rawPath === '<built-in>' || rawPath === '<command line>') return true
+      if (rawPath === '<built-in>') return true
       if (!rawPath || rawPath.startsWith('<')) return false
       const rp = realPath(rawPath)
       if (rp === mainReal || !physicalFiles.has(rp)) return false
       return systemDirs.some(dir => isUnderDir(rp, dir))
     }
-    const systemFiles = new Set<string>(['<built-in>', '<command line>'])
+    const systemFiles = new Set<string>(['<built-in>'])
     const userFiles = new Set<string>([mainReal])
     for (const p of physicalFiles) {
       if (isSystemPath(p)) systemFiles.add(p)
@@ -262,28 +304,39 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
     }
     const baseTokens = tokenizeUserCode(ppRes.stdout)
     const alternates: {label: string, extra: string[]}[] = [
-      ...(ndebugDefined
-        ? [{label: 'NDEBUG', extra: ['-UNDEBUG']}, ...(ndebugVal === '1' ? [] : [{label: 'NDEBUG', extra: ['-DNDEBUG=1']}])]
-        : [{label: 'NDEBUG', extra: ['-DNDEBUG']}]),
-      ...(optimizeDefined
-        ? [{label: '__OPTIMIZE__', extra: ['-O0']}]
-        : [{label: '__OPTIMIZE__', extra: ['-O2']}]),
-      ...(debugDefined
-        ? [{label: 'DEBUG', extra: ['-UDEBUG']}, ...(debugVal === '1' ? [] : [{label: 'DEBUG', extra: ['-DDEBUG=1']}])]
-        : [{label: 'DEBUG', extra: ['-DDEBUG=1']}]),
+      ...(ndebugDefined ? [{label: 'NDEBUG', extra: ['-UNDEBUG']}] : []),
+      ...(!ndebugDefined || ndebugVal !== '0' ? [{label: 'NDEBUG', extra: ['-DNDEBUG=0']}] : []),
+      ...(!ndebugDefined || ndebugVal !== '1' ? [{label: 'NDEBUG', extra: ['-DNDEBUG=1']}] : []),
+      ...(optimizeDefined ? [{label: '__OPTIMIZE__', extra: ['-O0']}] : []),
+      {label: '__OPTIMIZE__', extra: ['-O2']},
+      {label: '__OPTIMIZE_SIZE__', extra: ['-Os']},
+      {label: '__SANITIZE_ADDRESS__/__SANITIZE_UNDEFINED__', extra: ['-fsanitize=address,undefined']},
+      {label: '__SANITIZE_ADDRESS__/__SANITIZE_UNDEFINED__', extra: ['-D__SANITIZE_ADDRESS__=1', '-D__SANITIZE_UNDEFINED__=1']},
+      ...(debugDefined ? [{label: 'DEBUG', extra: ['-UDEBUG']}] : []),
+      ...(!debugDefined || debugVal !== '0' ? [{label: 'DEBUG', extra: ['-DDEBUG=0']}] : []),
+      ...(!debugDefined || debugVal !== '1' ? [{label: 'DEBUG', extra: ['-DDEBUG=1']}] : []),
+      ...(!debugDefined || debugVal !== '2' ? [{label: 'DEBUG', extra: ['-DDEBUG=2']}] : []),
     ]
     for (const alt of alternates) {
-      const r = cp.spawnSync(clang, [...lang, ...flags, ...alt.extra, '-E', file], {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()})
+      const r = cp.spawnSync(clang, [...lang, ...flags, ...alt.extra, '-E', file], {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], env: clangEnv, ...readerRun()})
       if (r.error || r.status !== 0)
         throw new Refusal(file, `preprocessed user code depends on ${alt.label} (preprocessing failed under ${alt.extra.join(' ')}; proof only holds for one build-mode configuration)`)
       if (tokenizeUserCode(r.stdout ?? '') !== baseTokens)
         throw new Refusal(file, `preprocessed user code depends on ${alt.label} (differs under ${alt.extra.join(' ')}; proof only holds for one build-mode configuration)`)
+    }
+    const includeDirs: string[] = []
+    for (let i = 0; i < flags.length; i++) {
+      const f = flags[i]!
+      if (f === '-I' && i + 1 < flags.length) includeDirs.push(`-I${flags[++i]!}`)
+      else if (f.startsWith('-I')) includeDirs.push(f)
     }
     const macroConfig: CSafetyMacroConfig = {
       target: targetTriple,
       ...(compiler ? {compiler} : {}),
       std: explicitStd ?? inferredStd,
       stdcVersion,
+      envScrubbed: true,
+      includeDirs,
       flags: [...flags],
       defines: flags.filter(f => f.startsWith('-D') || f.startsWith('-U')),
       ndebugDefined,
@@ -306,7 +359,7 @@ export function constantsOf(file: string, flags: string[], clang: string, cpp: b
     for (let round = 0; round < 3 && left.length; round++) {
       fs.writeFileSync(probe, `#include ${JSON.stringify(path.resolve(file))}\n${left.map((n, i) => `enum gdp_k${i}_e ${cpp ? ': long long ' : ''}{ gdp_k${i} = (${n}) };`).join('\n')}\n`)
       let dump = ''
-      try { dump = cp.execFileSync(clang, [...(cpp ? ['-x', 'c++'] : ['-x', 'c']), ...flags, '-w', '-ferror-limit=0', '-Xclang', '-ast-dump=json', '-Xclang', '-ast-dump-filter=gdp_k', '-fsyntax-only', probe], {encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()}) }
+      try { dump = cp.execFileSync(clang, [...(cpp ? ['-x', 'c++'] : ['-x', 'c']), ...flags, '-w', '-ferror-limit=0', '-Xclang', '-ast-dump=json', '-Xclang', '-ast-dump-filter=gdp_k', '-fsyntax-only', probe], {encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'pipe'], env: scrubbedClangEnv(), ...readerRun()}) }
       catch (e) {
         // (the lines that don't compile: their names left out, the rest tried again)
         const bad = new Set([...String((e as {stderr?: string}).stderr ?? '').matchAll(/probe\.c(?:pp)?:(\d+):\d+: error/g)].map(m => Number(m[1]) - 2))
@@ -342,17 +395,25 @@ export function flagsFor(file: string, compileCommands?: string): string[] {
 // the dump's order (an include's chain, `includedFrom`, doesn't count): read in that order, each node gets its own.
 function locate(root: CN) {
   let file = '', line = 0
-  const at = (l: L | undefined): At | undefined => {
+  const at = (l: L | undefined, files?: Set<string>, pairs?: {spell: string, spellLine: number, expand: string, expandLine: number}[]): At | undefined => {
     if (!l) return undefined
-    if (l.spellingLoc || l.expansionLoc) { at(l.spellingLoc); return at(l.expansionLoc) }
+    if (l.spellingLoc || l.expansionLoc) {
+      const sp = at(l.spellingLoc, files, pairs), spFile = file, spLine = line
+      const ex = at(l.expansionLoc, files, pairs), exFile = file, exLine = line
+      if (pairs && spFile && exFile) pairs.push({spell: spFile, spellLine: spLine, expand: exFile, expandLine: exLine})
+      return ex ?? sp
+    }
     if (l.file !== undefined) file = l.file
     if (l.line !== undefined) line = l.line
+    if (file && files) files.add(file)
     return l.offset === undefined ? undefined : {file, line, col: l.col ?? 0, off: l.offset, tok: l.tokLen ?? 0}
   }
   const walk = (n: CN) => {
+    const files = new Set<string>()
+    const pairs: {spell: string, spellLine: number, expand: string, expandLine: number}[] = []
     for (const k of Object.keys(n)) {
-      if (k === 'loc') n.$at = at(n.loc)
-      else if (k === 'range') { n.$b = at(n.range!.begin); n.$e = at(n.range!.end) }
+      if (k === 'loc') n.$at = at(n.loc, files, pairs)
+      else if (k === 'range') { n.$b = at(n.range!.begin, files, pairs); n.$e = at(n.range!.end, files, pairs) }
       // (doc comments, FullComment and its parts, are no code)
       // (a for's absent parts are empty objects, kind-less)
       else if (k === 'inner' || k === 'array_filler') {
@@ -365,6 +426,8 @@ function locate(root: CN) {
       }
     }
     n.$at ??= n.$b
+    if (files.size) n.$files = files
+    if (pairs.length) n.$macroExpansions = pairs
   }
   walk(root)
 }
@@ -1617,13 +1680,37 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     const systemFiles = meta?.systemFiles
     const userFiles = meta?.userFiles ?? new Set<string>([mainReal])
     const isSystemFile = (f?: string): boolean => {
-      if (!f || f === '<built-in>' || f === '<command line>') return true
+      if (!f) return false
+      if (f === '<built-in>') return true
+      if (f === '<command line>') return false
       const rp = realPath(f)
       if (userFiles.has(rp) || rp === mainReal) return false
       if (systemFiles) return systemFiles.has(rp)
       return !own({$at: {file: f, line: 0, col: 0, off: 0, tok: 0}} as CN)
     }
-    const isSystemNode = (n: CN): boolean => isSystemFile(n.$at?.file)
+    // A node is system ONLY if BOTH its expansion location AND every spelling/expansion file in
+    // its loc/range chain are system files (never trusting expansionLoc alone when a user or -D
+    // macro is expanded inside a system header).
+    const isSystemNode = (n: CN): boolean => {
+      if (!isSystemFile(n.$at?.file)) return false
+      if (n.$files) {
+        for (const f of n.$files) if (!isSystemFile(f)) return false
+      }
+      return true
+    }
+    // Whole-class refusal: refuse any user-defined (or -D command-line) macro expanded inside a
+    // system header anywhere in the TU (prevents hiding functions, attributes, aliases, or globals
+    // inside system header locations via macro hijacking such as `#define ptrdiff_t ...`).
+    const auditMacroExpansions = (n: CN): void => {
+      for (const {spell, spellLine, expand, expandLine} of n.$macroExpansions ?? []) {
+        if (expand !== '<built-in>' && isSystemFile(expand) && !isSystemFile(spell)) {
+          const where = spell === '<command line>' ? '<command line>' : `${path.basename(spell)}:${spellLine}:1`
+          throw new Refusal(where, `user-defined macro expanded inside system header ${path.basename(expand)}:${expandLine} is outside the C safety subset`)
+        }
+      }
+      for (const c of n.inner ?? []) auditMacroExpansions(c)
+    }
+    auditMacroExpansions(tu)
     // Strip C comments (and optionally string/char literals) while preserving line numbers so
     // directive and _Pragma scans over user files never match inside comments or literals.
     const stripForPreproc = (raw: string, keepStrings = false): string => {
@@ -1704,8 +1791,8 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         const where = `${path.basename(uf)}:${startLine}:1`
         if (/^(?:line\b|\d+(?:\s|$))/.test(body))
           throw new Refusal(where, '#line or linemarker directive is outside the C safety subset')
-        if (/^pragma\s+(?:GCC\s+)?system_header\b/.test(body))
-          throw new Refusal(where, '#pragma GCC system_header in user file is outside the C safety subset')
+        if (/^pragma\s+(?:(?:GCC|clang)\s+)?system_header\b/.test(body))
+          throw new Refusal(where, '#pragma GCC/clang system_header in user file is outside the C safety subset')
         if (/^pragma\s+(?:weak|redefine_extname)\b/.test(body))
           throw new Refusal(where, '#pragma weak/redefine_extname symbol alias is outside the C safety subset')
       }

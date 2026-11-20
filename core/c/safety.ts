@@ -14,7 +14,7 @@ import {conjunction, proveKInduction, type KindProof} from '../kind.ts'
 import {evalC, interpret, walk, type C, type E, type Law, type Machine} from '../machine.ts'
 import {proofOutput, type ProofOutputNode, type PublicProofOutput} from '../proof-output.ts'
 import {allowed} from '../watch.ts'
-import {node, type CRead, type CSafetyMacroConfig} from './reader.ts'
+import {node, scrubbedClangEnv, type CRead, type CSafetyMacroConfig} from './reader.ts'
 export type {CSafetyMacroConfig} from './reader.ts'
 
 export type CSafetyKind = 'bounds' | 'overflow' | 'division'
@@ -51,9 +51,9 @@ const safetyArtifacts = new WeakMap<CSafetyResult, CSafetyArtifact>()
 export const cSafetyArtifactOf = (result: CSafetyResult): CSafetyArtifact | undefined => safetyArtifacts.get(result)
 
 const assumptions = [
-  'ABI, types & macro configuration (assumption): Clang target uses 8-bit char, 16-bit short, 32-bit int, and two’s-complement signed integers under the reported target triple, compiler, C standard (__STDC_VERSION__/std), and preprocessor/macro configuration (macroConfig; only covered scalar types up to 32 bits, constant lookup tables, and fixed arrays of known extent are modeled).',
+  'ABI, types & macro configuration (assumption): Clang runs in a scrubbed environment (CPATH, C_INCLUDE_PATH, CPLUS_INCLUDE_PATH, OBJC_INCLUDE_PATH, CCC_OVERRIDE_OPTIONS, etc. unset) with 8-bit char, 16-bit short, 32-bit int, and two’s-complement signed integers under the reported target triple, compiler, C standard (__STDC_VERSION__/std), -I/-D flags, and preprocessor/macro configuration (macroConfig; only covered scalar types up to 32 bits, constant lookup tables, and fixed arrays of known extent are modeled).',
   'Ownership, zeroed start & aliasing (assumption): Selected methods execute sequentially on one live, zero-initialized receiver (or single-declaration file-local static globals from their C initialization) with non-aliasing receiver and scalar out-parameters, no concurrency, and no external mutation from other translation units.',
-  'Checked TU closure & failure paths (checked): System headers are classified strictly by resolved path under Clang’s built-in or -isystem search directories (never by linemarker flag 3); #pragma/_Pragma GCC system_header and #line/linemarker directives in user files are refused in all spellings. Every function with a body in any non-system file of the translation unit must be covered as a selected method or an inlined file-local static helper, or is refused as unchecked and named. Symbol aliases/weak/#pragma weak/file-scope __asm__/attributed or post-definition function declarations, non-system globals with pointers/fn-ptrs (including struct/array fields) or function-referencing initializers, bodyless prototypes taking the entry type or pointers, user-code preprocessing divergence across NDEBUG, -O0 vs -O2 (__OPTIMIZE__), or DEBUG, and configured failure returns (fails) after state writes are also refused.',
+  'Checked TU closure & failure paths (checked): System headers are classified strictly by resolved path under Clang’s built-in or -isystem search directories (in a scrubbed environment, never by linemarker flag 3), and an AST node is system only if both its spelling and expansion locations are system files. Any user-defined or -D macro expanded inside a system header, #pragma/_Pragma GCC/clang system_header, and #line/linemarker directives in user files are refused in all spellings. Every function with a body in any non-system file of the translation unit must be covered as a selected method or an inlined file-local static helper, or is refused as unchecked and named. Symbol aliases/weak/#pragma weak/file-scope __asm__/attributed or post-definition function declarations, non-system globals with pointers/fn-ptrs (including struct/array fields) or function-referencing initializers, bodyless prototypes taking the entry type or pointers, user-code preprocessing divergence across NDEBUG (undef/0/1), -O0/-O2/-Os (__OPTIMIZE__/__OPTIMIZE_SIZE__), -fsanitize=address,undefined (__SANITIZE_*), or DEBUG (undef/0/1/2), and configured failure returns (fails) after state writes are also refused.',
   'First-fault & replay scope: Only the first tracked array/table-bounds, signed-overflow, or division/remainder fault is checked. Broken obligations require site-matched ASan/UBSan replay (matchedSite); unproven sites are never claimed proven or broken. Abstract stutter on fault is a monitor convention, not native rollback.',
 ] as const
 export const uncheckedCSafety = (
@@ -464,7 +464,7 @@ export function replaySafety(o: {
       ...replayFlags, '-w', '-O0', '-g', '-fno-omit-frame-pointer',
       '-fsanitize=address,undefined', '-fsanitize-recover=all',
       ...(o.strictFlex ?? []), h, '-o', bin,
-    ], {encoding: 'utf8', timeout: 60_000})
+    ], {encoding: 'utf8', timeout: 60_000, env: scrubbedClangEnv()})
     if (b.status !== 0) return {built: false, requests: [], reports: [], states: [], stderr: b.stderr.split('\n').slice(0, 12).join('\n'), matchedSite: false}
     const name = (t: Record<string, unknown>) => (typeof t.method === 'number' ? o.choices[t.method] : typeof t.method === 'string' ? t.method : o.methods[0]!.name)!
     const decodeScalar = (t: Record<string, unknown>, key: string, ty: TT | undefined): number | boolean => {
@@ -495,11 +495,10 @@ export function replaySafety(o: {
       lines.push(JSON.stringify({op: 'call', id: 1, m: m.name, a}))
     }
     fs.writeFileSync(inFile, lines.join('\n') + '\n')
-    const env = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
     const r = cp.spawnSync(bin, [inFile, outFile], {
       encoding: 'utf8',
       timeout: 30_000,
-      env: {...env, ASAN_OPTIONS: 'detect_leaks=0:halt_on_error=0', UBSAN_OPTIONS: 'print_stacktrace=0:halt_on_error=0'},
+      env: scrubbedClangEnv({ASAN_OPTIONS: 'detect_leaks=0:halt_on_error=0', UBSAN_OPTIONS: 'print_stacktrace=0:halt_on_error=0'}),
     })
     const reports = r.stderr.split('\n')
       .filter(l => /runtime error:|ERROR: AddressSanitizer|SUMMARY: AddressSanitizer|WRITE of size|READ of size/.test(l))

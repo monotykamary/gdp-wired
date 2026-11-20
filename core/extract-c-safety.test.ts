@@ -1008,8 +1008,11 @@ int32_t get(struct ring *r) { return r->a[r->n]; }
   }
 }, 120_000)
 
-const runCliText = (argv: string[]): {code: number, out: string} => {
-  const proc = spawnSync(process.execPath, [new URL('./cli.ts', import.meta.url).pathname, ...argv], {encoding: 'utf8'})
+const runCliText = (argv: string[], extraEnv?: Record<string, string>): {code: number, out: string} => {
+  const proc = spawnSync(process.execPath, [new URL('./cli.ts', import.meta.url).pathname, ...argv], {
+    encoding: 'utf8',
+    ...(extraEnv ? {env: {...process.env, ...extraEnv}} : {}),
+  })
   return {code: proc.status ?? -1, out: proc.stdout ?? ''}
 }
 
@@ -1271,14 +1274,14 @@ void put(struct ring *r, int32_t v) { if (r->n >= 0 && r->n < 8) { r->a[r->n] = 
     const rClean = runCliText(['check', '--no-propose', cleanFile])
     expect(rClean.code).toBe(0)
     expect(rClean.out).toContain('proven (covers: get)')
-    expect(rClean.out).toMatch(/macro config: target: \S+.*; std: \S+ \(__STDC_VERSION__=\S+\); -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined, DEBUG=undefined/)
+    expect(rClean.out).toMatch(/macro config: target: \S+.*; std: \S+ \(__STDC_VERSION__=\S+\); env: scrubbed; -I flags: none; -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined, DEBUG=undefined/)
 
     const rWithDef = await check([cleanFile], {flags: ['-DLIMIT=8'], propose: false})
     expect(rWithDef.exit).toBe(0)
     expect(rWithDef.rules[0]?.safety).toMatchObject({
       status: 'proven',
       coveredFunctions: ['get'],
-      macroConfig: {defines: ['-DLIMIT=8'], ndebugDefined: false, optimizeDefined: false, debugDefined: false},
+      macroConfig: {envScrubbed: true, includeDirs: [], defines: ['-DLIMIT=8'], ndebugDefined: false, optimizeDefined: false, debugDefined: false},
     })
 
     // (5) Normalized tag & lookalike handling: tm1 (newline in /* */) and tm2 (backslash-continued //)
@@ -1404,7 +1407,7 @@ withClang('Review Probe 11: path-only system-header boundary (h3-h7), pragma/lin
 `)
     const rM4Text = runCliText(['check', '--no-propose', m4File])
     expect(rM4Text.code).toBe(0)
-    expect(rM4Text.out).toMatch(/macro config: target: \S+.*; std: (?:gnu|c)(?:17|23) \(__STDC_VERSION__=(?:201710L|202311L)\); -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined, DEBUG=undefined/)
+    expect(rM4Text.out).toMatch(/macro config: target: \S+.*; std: (?:gnu|c)(?:17|23) \(__STDC_VERSION__=(?:201710L|202311L)\); env: scrubbed; -I flags: none; -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined, DEBUG=undefined/)
 
     const rM4C23 = await check([m4File], {flags: ['-std=c23'], propose: false})
     expect(rM4C23.exit).toBe(0)
@@ -1423,6 +1426,97 @@ withClang('Review Probe 11: path-only system-header boundary (h3-h7), pragma/lin
       status: 'broken',
       macroConfig: {std: 'c11', stdcVersion: '201112L'},
     })
+  } finally {
+    rmSync(dir, {recursive: true, force: true})
+  }
+}, 180_000)
+
+withClang('Review Probe 12: macro expansion in system headers (mx1/mx2/w4/-D), scrubbed clang env (cp1/cp2/CCC_OVERRIDE_OPTIONS), -Os/sanitizer/DEBUG=2/NDEBUG=0 invariance (os1/dbg), and CLI text -I & env reporting', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-probe12-'))
+  try {
+    // (1) mx1, mx2, w4, and -D command-line macro hijack inside a system header (<stddef.h>):
+    // A node is system only if BOTH spelling and expansion locations are system files, and any
+    // user-defined or -D macro expanded inside a system header is refused (exit 2).
+    const mxBase = '// gdp: safety\n#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\n'
+    const mxTail = '#include <stddef.h>\n#undef ptrdiff_t\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n'
+    for (const [label, code, flags] of [
+      ['mx1-fn', mxBase + '#define ptrdiff_t PD_; int32_t pub(int32_t x, int32_t y) { return x / y; } typedef long PD2_\n' + mxTail, [] as string[]],
+      ['mx2-ctor', mxBase + '#define ptrdiff_t PD_; __attribute__((constructor)) static void boot(void) { volatile int32_t z = 0; int32_t a[8]; a[8 + z] = 1 / z; } typedef long PD2_\n' + mxTail, [] as string[]],
+      ['w4-size-t', mxBase + 'int32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n#define size_t SZ_; int32_t (*leak(void))(struct ring *, int32_t); typedef unsigned long SZ2_\n#include <stddef.h>\n#undef size_t\n', [] as string[]],
+      ['mx-cli-D', mxBase + '#include <stddef.h>\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n', ['-Dptrdiff_t=PD_; int32_t pub(int32_t x, int32_t y) { return x / y; } typedef long PD2_']],
+    ] as const) {
+      const f = join(dir, `${label}.c`)
+      writeFileSync(f, code)
+      const res = await check([f], {propose: false, ...(flags.length ? {flags: [...flags]} : {})})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+    }
+
+    // (2) cp1, cp2, CCC_OVERRIDE_OPTIONS: Clang invocations run in a scrubbed environment so
+    // CPATH / C_INCLUDE_PATH / CCC_OVERRIDE_OPTIONS cannot smuggle headers as system dirs.
+    const cpRoot = join(dir, 'cp'), cpInc = join(cpRoot, 'inc'), cpSrc = join(cpRoot, 'src')
+    mkdirSync(cpInc, {recursive: true})
+    mkdirSync(cpSrc, {recursive: true})
+    writeFileSync(join(cpInc, 'evil.h'), '#include <stdint.h>\nint32_t pub(int32_t x, int32_t y) { return x / y; }\n')
+    const cpFile = join(cpSrc, 'ring.c')
+    writeFileSync(cpFile, '// gdp: safety\n#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\n#include "evil.h"\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n')
+    for (const [label, extraEnv] of [
+      ['cp1-CPATH', {CPATH: cpInc}],
+      ['cp2-C_INCLUDE_PATH', {C_INCLUDE_PATH: cpInc}],
+      ['cp3-CCC_OVERRIDE_OPTIONS', {CCC_OVERRIDE_OPTIONS: `+-isystem${cpInc}`}],
+    ] as const) {
+      const rEnv = runCliText(['check', '--no-propose', cpFile], extraEnv)
+      expect(rEnv.code, `${label} must exit 2 (env scrubbed)`).toBe(2)
+      expect(rEnv.out, `${label} must not prove`).not.toContain('proven')
+    }
+
+    // (3) q1/q2: #pragma clang system_header and _Pragma("clang system_header") refused (exit 2).
+    for (const [label, pragmaLine] of [
+      ['q1-pragma-clang', '#pragma clang system_header\n'],
+      ['q2-op-pragma-clang', '_Pragma("clang system_header")\n'],
+    ] as const) {
+      const qRoot = join(dir, label), qInc = join(qRoot, 'inc'), qSrc = join(qRoot, 'src')
+      mkdirSync(qInc, {recursive: true})
+      mkdirSync(qSrc, {recursive: true})
+      writeFileSync(join(qInc, 'evil.h'), '#include <stdint.h>\nint32_t pub(int32_t x, int32_t y) { return x / y; }\n')
+      writeFileSync(join(qInc, 'h.h'), pragmaLine + '#include "evil.h"\n')
+      const f = join(qSrc, 'ring.c')
+      writeFileSync(f, '// gdp: safety\n#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\n#include "h.h"\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n')
+      const res = await check([f], {flags: [`-I${qInc}`], propose: false})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+    }
+
+    // (4) os1, sanitizer macros, dbg (DEBUG > 1), NDEBUG=0: invariance check covers -Os,
+    // -fsanitize=address,undefined, __SANITIZE_*, -DDEBUG=2, and -DNDEBUG=0 -> exit 2.
+    const invHdr = '// gdp: safety\n#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\n'
+    for (const [label, cond, want] of [
+      ['os1-opt-size', '#ifdef __OPTIMIZE_SIZE__\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', '__OPTIMIZE_SIZE__'],
+      ['san-has-feat', '#if __has_feature(address_sanitizer)\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', '__SANITIZE_'],
+      ['san-macro', '#ifdef __SANITIZE_UNDEFINED__\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', '__SANITIZE_'],
+      ['dbg-gt-1', '#if DEBUG > 1\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', 'DEBUG'],
+      ['ndebug-zero', '#if defined(NDEBUG) && NDEBUG == 0\n#define LIM 9\n#else\n#define LIM 8\n#endif\n', 'NDEBUG'],
+    ] as const) {
+      const f = join(dir, `${label}.c`)
+      writeFileSync(f, invHdr + cond + 'int32_t get(struct ring *r) { if (r->n >= 0 && r->n < LIM) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 8) r->n = r->n + 1; }\n')
+      const res = await check([f], {propose: false})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+      expect(res.rules[0]?.refusals.map(r => r.what).join('; '), `${label} names ${want}`).toContain(want)
+    }
+
+    // (5) CLI TEXT and JSON report scrubbed env and -I flags explicitly.
+    const incRoot = join(dir, 'clean-inc'), incDir = join(incRoot, 'inc'), srcDir = join(incRoot, 'src')
+    mkdirSync(incDir, {recursive: true})
+    mkdirSync(srcDir, {recursive: true})
+    writeFileSync(join(incDir, 'lim.h'), '#define RING_LIM 8\n')
+    const incFile = join(srcDir, 'ring.c')
+    writeFileSync(incFile, '// gdp: safety\n#include <stdint.h>\n#include "lim.h"\nstruct ring { int32_t n; int32_t a[RING_LIM]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < RING_LIM) return r->a[r->n]; return 0; }\n')
+    writeFileSync(join(srcDir, 'gdp.toml'), `flags = ["-I${incDir}"]\n`)
+    const rIncText = runCliText(['check', '--no-propose', incFile])
+    expect(rIncText.code).toBe(0)
+    expect(rIncText.out).toContain('env: scrubbed')
+    expect(rIncText.out).toContain(`-I flags: -I${incDir}`)
   } finally {
     rmSync(dir, {recursive: true, force: true})
   }

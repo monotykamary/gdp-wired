@@ -191,20 +191,23 @@ For C files, opt-in Stage 1 memory and undefined-behavior safety checking (`// g
 fault over the covered C subset, naming the exact functions covered (`coveredFunctions`) and target/standard/macro
 configuration (`macroConfig`), re-checking every proof in the kernel (`verifyCSafetyProof`), and replaying every
 `broken` obligation under Clang ASan/UBSan (`matchedSite`). It relies on four explicit premises (returned on every
-result and documented in [docs/FRONTENDS.md](docs/FRONTENDS.md#opt-in-c-safety-stage-1)): (1) Clang 8/16/32-bit
-two's-complement ABI, covered scalar/table/fixed-array types, and the reported target triple, compiler, C standard
-(`__STDC_VERSION__`/`std`), and macro configuration (`-D` flags, `NDEBUG`/`__OPTIMIZE__`/`DEBUG` status); (2)
-sequential execution on one live zero-initialized receiver (or single-declaration file-local `static` globals) with
+result and documented in [docs/FRONTENDS.md](docs/FRONTENDS.md#opt-in-c-safety-stage-1)): (1) Clang running in a
+scrubbed environment (`CPATH`, `C_INCLUDE_PATH`, `CPLUS_INCLUDE_PATH`, `OBJC_INCLUDE_PATH`, `CCC_OVERRIDE_OPTIONS`,
+etc. unset) with 8/16/32-bit two's-complement ABI, covered scalar/table/fixed-array types, and the reported target
+triple, compiler, C standard (`__STDC_VERSION__`/`std`), `-I`/`-D` flags, and `NDEBUG`/`__OPTIMIZE__`/`DEBUG` status;
+(2) sequential execution on one live zero-initialized receiver (or single-declaration file-local `static` globals) with
 non-aliasing receiver and scalar out-parameters, no concurrency, and no external mutation from other translation units;
 (3) mechanically checked translation-unit closure across all non-system files classified strictly by resolved path
-under Clang's built-in or `-isystem` search directories (never linemarker flag `3`; `#pragma`/`_Pragma`
-`GCC system_header` and `#line`/linemarker directives in user files are refused in all spellings; every non-system
-function body must be a selected method or inlined file-local `static` helper, or is refused as `unchecked` and named;
-symbol aliases/`#pragma weak`/file-scope `__asm__`/attributed or post-definition function declarations, non-system
-globals with pointers/fn-ptrs or function-referencing initializers, bodyless prototypes taking the entry type or
-pointers, preprocessed user-code divergence across `NDEBUG`, `-O0` vs `-O2`, or `DEBUG`, and `fails` returns after
-state writes are also refused); and (4) first-fault monitor scope with site-matched ASan/UBSan replay (abstract
-stutter on fault is a monitor convention, not native rollback).
+under Clang's built-in or `-isystem` search directories (never linemarker flag `3`, requiring both spelling and
+expansion locations to be system files; user-defined or `-D` macros expanded inside system headers, `#pragma`/`_Pragma`
+`GCC`/`clang` `system_header`, and `#line`/linemarker directives in user files are refused in all spellings; every
+non-system function body must be a selected method or inlined file-local `static` helper, or is refused as `unchecked`
+and named; symbol aliases/`#pragma weak`/file-scope `__asm__`/attributed or post-definition function declarations,
+non-system globals with pointers/fn-ptrs or function-referencing initializers, bodyless prototypes taking the entry
+type or pointers, preprocessed user-code divergence across `NDEBUG` (undef/`0`/`1`), `-O0`/`-O2`/`-Os`,
+`-fsanitize=address,undefined` (`__SANITIZE_*`), or `DEBUG` (undef/`0`/`1`/`2`), and `fails` returns after state
+writes are also refused); and (4) first-fault monitor scope with site-matched ASan/UBSan replay (abstract stutter on
+fault is a monitor convention, not native rollback).
 
 ## Where it fits
 
