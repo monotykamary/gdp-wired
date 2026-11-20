@@ -1401,7 +1401,7 @@ withClang('Review Probe 11: path-only system-header boundary (h3-h7), pragma/lin
     writeFileSync(cleanStd, macroHdr + 'void put(struct ring *r, int32_t v) {\n  if (r->n < 0 || r->n >= 8) return;\n  r->a[r->n] = v; r->n = r->n + 1;\n}\n')
     const rStdText = runCliText(['check', '--no-propose', cleanStd])
     expect(rStdText.code).toBe(0)
-    expect(rStdText.out).toMatch(/macro config: target: \S+; compiler: clang \S+ \(\/\S+\); std: (?:gnu|c)(?:17|23) \(__STDC_VERSION__=(?:201710L|202311L)\); env: scrubbed; -I flags: none; -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined, DEBUG=undefined/)
+    expect(rStdText.out).toMatch(/macro config: target: \S+; compiler: clang \S+ \(\/\S+\); libc: [^;]+; std: (?:gnu|c)(?:17|23) \(__STDC_VERSION__=(?:201710L|202311L)\); env: scrubbed; -I flags: none; -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined, DEBUG=undefined/)
 
     const rStdC23 = await check([cleanStd], {flags: ['-std=c23'], propose: false})
     expect(rStdC23.exit).toBe(0)
@@ -1673,6 +1673,106 @@ void put(struct ring *r) { if (r->n >= 0 && r->n < 7) r->n = r->n + 1; }
     expect(rOkTxt.code).toBe(0)
     expect(rOkTxt.out).toContain(`(${realClang})`)
     expect(rOkTxt.out).toContain('-D flags: -DCLI_LIM=8')
+  } finally {
+    rmSync(dir, {recursive: true, force: true})
+  }
+}, 180_000)
+
+withClang('Review Probe 14: Clang-native lexer/token audit (s1/s2/s3/al/a-k), all 9 trigraphs, non-C23 digit-quote refusal vs C23 positive control, closed-world flag allowlist, and libc version reporting', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-probe14-'))
+  try {
+    const H = '// gdp: safety\n#include <stdint.h>\n'
+    const tail = 'int32_t get(struct ring *r) { if (r->n >= 0 && r->n < 4) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 3) r->n = r->n + 1; }\n'
+
+    // (1) probe10 s1/r40, s1/r200, s2/t40, s3/tm, al/j, al/k: trigraph comment-hide (`// note ??/`)
+    // and non-C23 digit-quote (`0'x'`) can never hide __FILE__, __DATE__, or predefined macros -> exit 2.
+    for (const [label, src, want] of [
+      ['s1_r40', H + "#define SECOND(a, b) b\nstruct ring { int32_t a[SECOND(0'x', sizeof __FILE__)]; int32_t n; };\n" +
+        'int32_t get(struct ring *r) { if (r->n >= 0 && r->n < 40) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 39) r->n = r->n + 1; }\n', "digit followed by quote (')"],
+      ['s2_t40', H + '// layout note ??/\nstruct ring { int32_t a[sizeof __FILE__]; int32_t n; };\n' +
+        'int32_t get(struct ring *r) { if (r->n >= 0 && r->n < 40) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 39) r->n = r->n + 1; }\n', 'trigraph sequence ??/'],
+      ['s3_tm', H + "// layout note ??/\nstruct ring { int32_t a['9' - __DATE__[5] + 1]; int32_t n; };\n" +
+        'int32_t get(struct ring *r) { if (r->n >= 0 && r->n < 10) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 9) r->n = r->n + 1; }\n', 'trigraph sequence ??/'],
+      ['al_j', H + '#include <limits.h>\n// note ??/\n#if __PIC__ == 2\n#define K 8\n#endif\nstruct ring { int32_t a[K]; int32_t n; };\n' + tail, 'trigraph sequence ??/'],
+      ['al_k', H + "#include <limits.h>\n#define SECOND(a,b) b\nenum { K = SECOND(0'x', __STDC_HOSTED__ * 8) };\nstruct ring { int32_t a[K]; int32_t n; };\n" + tail, "digit followed by quote (')"],
+      ['al_a', H + '#include <limits.h>\n#if INT_MAX > 100\n#define K 8\n#endif\nstruct ring { int32_t a[K]; int32_t n; };\n' + tail, 'INT_MAX'],
+      ['al_b', H + '#include <limits.h>\n#if __SIZEOF_LONG__ == 8\n#define K 8\n#endif\nstruct ring { int32_t a[K]; int32_t n; };\n' + tail, '__SIZEOF_LONG__'],
+      ['al_c', H + '#include <limits.h>\n#if __has_include(<stdint.h>)\n#define K 8\n#endif\nstruct ring { int32_t a[K]; int32_t n; };\n' + tail, '__has_include'],
+      ['al_d', H + '#include <limits.h>\nstruct ring { int32_t a[__SIZEOF_LONG__]; int32_t n; };\n' + tail, '__SIZEOF_LONG__'],
+      ['al_f', H + '#include <limits.h>\n#ifdef INT_MAX\n#define K 8\n#endif\nstruct ring { int32_t a[K]; int32_t n; };\n' + tail, 'INT_MAX'],
+      ['al_h', H + '#include <limits.h>\n#define F(x) defined(x)\n#if F(__x86_64__)\n#define K 8\n#endif\nstruct ring { int32_t a[K]; int32_t n; };\n' + tail, ''],
+    ] as const) {
+      const f = join(dir, `${label}.c`)
+      writeFileSync(f, src)
+      const res = await check([f], {propose: false})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+      if (want) expect(res.rules[0]?.refusals.map(r => r.what).join('; '), `${label} mentions ${want}`).toContain(want)
+    }
+
+    // (2) All 9 C trigraph sequences refused anywhere in user files (even inside comments/strings).
+    for (const [idx, tri] of ['??=', '??/', "??'", '??(', '??)', '??!', '??<', '??>', '??-'].entries()) {
+      const f = join(dir, `tri_${idx}.c`)
+      writeFileSync(f, H + `/* ${tri} */\nstruct ring { int32_t a[8]; int32_t n; };\n` + tail)
+      const res = await check([f], {propose: false})
+      expect(res.exit, `trigraph ${tri} must exit 2`).toBe(2)
+      expect(res.rules[0]?.refusals.map(r => r.what).join('; ')).toContain(`trigraph sequence ${tri}`)
+    }
+
+    // (3) Non-C23 digit-quote (`0'x'`, `1'000`) refused in default/gnu17; C23 digit separator (`1'000`)
+    // under `-std=c23` and ordinary char literals (`'0'`, `'9'`, `'\0'`) in default mode still prove.
+    const nonC23Sep = join(dir, 'non_c23_sep.c')
+    writeFileSync(nonC23Sep, H + "struct ring { int32_t a[8]; int32_t n; };\nint32_t get(struct ring *r) { int32_t k = 1'000; (void)k; if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n")
+    const rNonC23 = await check([nonC23Sep], {propose: false})
+    expect(rNonC23.exit).toBe(2)
+    expect(rNonC23.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+
+    const c23Ok = join(dir, 'c23_sep_ok.c')
+    writeFileSync(c23Ok, H + "struct ring { int32_t a[8]; int32_t n; };\nint32_t get(struct ring *r) { int32_t k = 1'000; if (k == 1'000 && r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n")
+    const rC23Ok = await check([c23Ok], {flags: ['-std=c23'], propose: false})
+    expect(rC23Ok.exit).toBe(0)
+    expect(rC23Ok.rules[0]?.safety).toMatchObject({status: 'proven', coveredFunctions: ['get']})
+
+    // (4) Closed-world flag allowlist: refuses -isystem, -include, -trigraphs, -funsigned-char,
+    // and audits 2-argument `-D FOO=__FILE__`.
+    const cleanFlagFile = join(dir, 'clean_flag.c')
+    writeFileSync(cleanFlagFile, H + "/* '\tLoc=<FAKE:1:1>\n * résumé */\r\n#include <stdbool.h>\r\nstruct ring { int32_t a[sizeof(long) + _Generic((char)0, signed char: 0, unsigned char: 1, default: 2)]; int32_t n; };\r\nint32_t get(struct ring *r) { _Bool ok = (r->n >= 0 && r->n < 4); int32_t c = '9' - '0'; (void)c; if (ok) return r->a[r->n]; return 0; }\r\n")
+    const rEdgeOk = await check([cleanFlagFile], {propose: false})
+    expect(rEdgeOk.exit).toBe(0)
+    expect(rEdgeOk.rules[0]?.safety).toMatchObject({status: 'proven', coveredFunctions: ['get']})
+
+    for (const [label, badFlags] of [
+      ['flag_isystem', ['-isystem', dir]],
+      ['flag_include', ['-include', cleanFlagFile]],
+      ['flag_trigraphs', ['-trigraphs']],
+      ['flag_uchar', ['-funsigned-char']],
+      ['flag_2arg_D_file', ['-D', 'BAD=__FILE__']],
+    ] as const) {
+      const res = await check([cleanFlagFile], {flags: [...badFlags], propose: false})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+    }
+
+    // (5) libc + version reported in both JSON (`macroConfig.libc`) and CLI TEXT (`; libc: ...;`)
+    // including files relying on system constants like PATH_MAX (al/i) and __GLIBC_MINOR__ (al/e).
+    const alI = join(dir, 'al_i.c')
+    writeFileSync(alI, H + '#define _GNU_SOURCE 1\n#include <limits.h>\nstruct ring { int32_t a[PATH_MAX / 1024]; int32_t n; };\n' + tail)
+    const rAlI = await check([alI], {propose: false})
+    expect(rAlI.exit).toBe(0)
+    const libcVal = (rAlI.rules[0]?.safety as {macroConfig?: {libc?: string}})?.macroConfig?.libc
+    expect(libcVal).toBeTruthy()
+    expect(libcVal).not.toBe('unknown')
+    const rAlIText = runCliText(['check', '--no-propose', alI])
+    expect(rAlIText.code).toBe(0)
+    expect(rAlIText.out).toContain(`; libc: ${libcVal};`)
+
+    if (libcVal?.startsWith('glibc ')) {
+      const alE = join(dir, 'al_e.c')
+      writeFileSync(alE, H + '#define _GNU_SOURCE 1\n#include <limits.h>\nstruct ring { int32_t a[__GLIBC_MINOR__]; int32_t n; };\n' + tail)
+      const rAlE = await check([alE], {propose: false})
+      expect(rAlE.exit).toBe(0)
+      expect((rAlE.rules[0]?.safety as {macroConfig?: {libc?: string}})?.macroConfig?.libc).toBe(libcVal)
+    }
   } finally {
     rmSync(dir, {recursive: true, force: true})
   }

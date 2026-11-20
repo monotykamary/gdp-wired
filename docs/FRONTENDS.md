@@ -368,9 +368,9 @@ undefined/`0`/`1`, `-O0`/`-O2`/`-Os` for `__OPTIMIZE__`/`__OPTIMIZE_SIZE__`,
 comparing the preprocessed user-code token stream, immune to digraphs and macro pasting) are also
 refused. Every verdict lists the exact `coveredFunctions` (and any inlined `coveredHelpers`)
 together with the active `macroConfig` (`target` triple, compiler version and verified absolute
-`compilerPath`, effective `std` and `__STDC_VERSION__`, scrubbed allowlisted environment status,
-`-I` flags, `-D` flags, and whether `NDEBUG`, `__OPTIMIZE__`, and `DEBUG` were defined or
-undefined). CLI exit codes are `0` (`proven`: every site proved clear and re-verified by
+`compilerPath`, `libc` version, effective `std` and `__STDC_VERSION__`, scrubbed allowlisted
+environment status, `-I` flags, `-D` flags, and whether `NDEBUG`, `__OPTIMIZE__`, and `DEBUG` were
+defined or undefined). CLI exit codes are `0` (`proven`: every site proved clear and re-verified by
 `verifyCSafetyProof` via `checkLaws` or `checkKInduction`), `1` (`broken`: counterexample trace
 replayed natively under Clang ASan/UBSan with site-matched diagnostics `matchedSite`), and `2`
 (`unproven` or `unchecked`: neither proven nor reproduced at the target site, the input leaves the
@@ -386,9 +386,9 @@ Every `CSafetyResult` carries the four stated assumptions and checked-scope prem
    differ from direct `-cc1`, and external `.cfg` files are refused) running in a closed-world
    allowlisted environment (`PATH`, `LC_ALL=C`, `TMPDIR` only), with 8-bit `char`, 16-bit `short`,
    32-bit `int`, and two's-complement signed integers under the reported target triple, compiler &
-   absolute path, C standard (`__STDC_VERSION__`/`std`), `-I`/`-D` flags, and macro configuration
-   (`macroConfig`; only covered scalar types up to 32 bits, constant lookup tables, and fixed arrays
-   of known extent are modeled).
+   absolute path, `libc` version (e.g. `glibc 2.39`), C standard (`__STDC_VERSION__`/`std`),
+   `-I`/`-D` flags, and macro configuration (`macroConfig`; only covered scalar types up to 32 bits,
+   constant lookup tables, and fixed arrays of known extent are modeled).
 2. **Ownership, zeroed start & aliasing (assumption)**: Selected methods execute sequentially on
    one live, zero-initialized receiver (or single-declaration file-local `static` globals from
    their C initialization) with non-aliasing receiver and scalar out-parameters, no concurrency,
@@ -398,22 +398,26 @@ Every `CSafetyResult` carries the four stated assumptions and checked-scope prem
    package-manager caveat**: headers under Clang's default search list, such as
    `/opt/homebrew/include` on macOS, are trusted as system headers), and an AST node is system only
    if both its spelling and expansion locations are system files. Any user-defined or `-D` macro
-   expanded inside a system header is refused. User files follow a closed-world preprocessor
-   allowlist: only literal `#include`, `#define`, `#undef`,
+   expanded inside a system header is refused. User files are audited directly from Clang's own
+   lexer and preprocessor (`-Xclang -dump-raw-tokens`, `-Xclang -dump-tokens`, and `-E -H -dD`;
+   never re-lexed in TypeScript): all 9 trigraph sequences (`??=` `??/` `??'` `??(` `??)` `??!`
+   `??<` `??>` `??-`) and non-C23 digit-quote sequences are refused outright; only literal
+   `#include`, `#define`, `#undef`,
    `#if`/`#elif`/`#ifdef`/`#ifndef`/`#elifdef`/`#elifndef`/`#else`/`#endif`, `#pragma once`, and
    `#error`/`#warning` are allowed; every `#if`/`#ifdef`/`#ifndef`/`#elif`/`defined()` may
    reference only macros defined earlier in user files or listed in `-D` flags (any predefined or
    undefined-elsewhere macro, `__has_*` query, `_Pragma`, non-`once` `#pragma`, token pasting `##`,
-   or invocation-dependent macro `__FILE__`/`__BASE_FILE__`/`__FILE_NAME__`/`__TIMESTAMP__`/
-   `__DATE__`/`__TIME__`/`__COUNTER__`/`__LINE__`/`__INCLUDE_LEVEL__` is refused with its name and
-   line), with preprocessed token-stream invariance across `NDEBUG`, `-O0`/`-O2`/`-Os`,
-   `-fsanitize=address,undefined`, and `DEBUG` kept as a second check. Every function with a body
-   in any non-system file of the translation unit must be covered as a selected method or an
-   inlined file-local `static` helper, or is refused as `unchecked` and named. Symbol
-   aliases/weak/file-scope `__asm__`/attributed or post-definition function declarations,
-   non-system globals with pointers/fn-ptrs (including struct/array fields) or function-referencing
-   initializers, bodyless prototypes taking the entry type or pointers, and configured failure
-   returns (`fails`) after state writes are also refused.
+   `<scratch space>` expansion, or invocation-dependent macro
+   `__FILE__`/`__BASE_FILE__`/`__FILE_NAME__`/`__TIMESTAMP__`/`__DATE__`/`__TIME__`/`__COUNTER__`/
+   `__LINE__`/`__INCLUDE_LEVEL__` is refused with its name and line), backed by lexer-independent
+   differential preprocessing across alternate path/filename length, file mtime,
+   `SOURCE_DATE_EPOCH` days, and `NDEBUG`/`-O0`/`-O2`/`-Os`/`-fsanitize=address,undefined`/`DEBUG`.
+   Every function with a body in any non-system file of the translation unit must be covered as a
+   selected method or an inlined file-local `static` helper, or is refused as `unchecked` and
+   named. Symbol aliases/weak/file-scope `__asm__`/attributed or post-definition function
+   declarations, non-system globals with pointers/fn-ptrs (including struct/array fields) or
+   function-referencing initializers, bodyless prototypes taking the entry type or pointers, and
+   configured failure returns (`fails`) after state writes are also refused.
 4. **First-fault & replay scope**: Only the first tracked array/table-bounds, signed-overflow, or
    division/remainder fault is checked. Broken obligations require site-matched ASan/UBSan replay
    (`matchedSite`); unproven sites are never claimed proven or broken. Abstract stutter on fault

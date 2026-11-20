@@ -195,20 +195,23 @@ result and documented in [docs/FRONTENDS.md](docs/FRONTENDS.md#opt-in-c-safety-s
 fixed safe `PATH` to a verified native executable (custom `clang` options, scripts, wrapper binaries, and external `.cfg`
 files are refused) running in a closed-world allowlisted environment (`PATH`, `LC_ALL=C`, `TMPDIR` only) with
 8/16/32-bit two's-complement ABI, covered scalar/table/fixed-array types, and the reported target triple, compiler &
-absolute path, C standard (`__STDC_VERSION__`/`std`), `-I`/`-D` flags, and `NDEBUG`/`__OPTIMIZE__`/`DEBUG` status;
+absolute path, `libc` version (e.g. `glibc 2.39`), C standard (`__STDC_VERSION__`/`std`), `-I`/`-D` flags, and
+`NDEBUG`/`__OPTIMIZE__`/`DEBUG` status;
 (2) sequential execution on one live zero-initialized receiver (or single-declaration file-local `static` globals) with
 non-aliasing receiver and scalar out-parameters, no concurrency, and no external mutation from other translation units;
 (3) mechanically checked translation-unit closure across all non-system files classified strictly by resolved path
 under Clang's built-in search directories (never linemarker flag `3`, requiring both spelling and expansion locations to
 be system files; **macOS caveat**: headers under Clang's default search list, such as `/opt/homebrew/include`, are
-trusted as system headers; user-defined or `-D` macros expanded inside system headers are refused; user files follow a
-closed-world preprocessor allowlist allowing only user-defined or `-D` macros in `#if`/`#ifdef`/`#ifndef`/`#elif`/
-`defined()`, only `#pragma once`, and refusing predefined or undefined-elsewhere macros, `__has_*`, `_Pragma`, token
-pasting `##`, and invocation-dependent macros `__FILE__`/`__BASE_FILE__`/`__FILE_NAME__`/`__TIMESTAMP__`/`__DATE__`/
-`__TIME__`/`__COUNTER__`/`__LINE__`/`__INCLUDE_LEVEL__`, with preprocessed token-stream invariance across `NDEBUG`,
-`-O0`/`-O2`/`-Os`, `-fsanitize=address,undefined`, and `DEBUG` kept as a second check; every non-system function body
-must be a selected method or inlined file-local `static` helper, or is refused as `unchecked` and named; symbol
-aliases/weak/file-scope `__asm__`/attributed or post-definition function declarations, non-system globals with
+trusted as system headers; user-defined or `-D` macros expanded inside system headers are refused; user files are
+audited directly via Clang's own lexer and preprocessor `-Xclang -dump-raw-tokens`/`-dump-tokens`/`-E -H -dD`, refusing
+all 9 trigraphs and non-C23 digit-quote sequences outright, allowing only user-defined or `-D` macros in
+`#if`/`#ifdef`/`#ifndef`/`#elif`/`defined()` and only `#pragma once`, refusing predefined or undefined-elsewhere macros,
+`__has_*`, `_Pragma`, token pasting `##`, `<scratch space>` expansions, and invocation-dependent macros
+`__FILE__`/`__BASE_FILE__`/`__FILE_NAME__`/`__TIMESTAMP__`/`__DATE__`/`__TIME__`/`__COUNTER__`/`__LINE__`/
+`__INCLUDE_LEVEL__`, backed by lexer-independent differential checks across alternate path/filename length, file mtime,
+`SOURCE_DATE_EPOCH` days, and `NDEBUG`/`-O0`/`-O2`/`-Os`/`-fsanitize=address,undefined`/`DEBUG`; every non-system
+function body must be a selected method or inlined file-local `static` helper, or is refused as `unchecked` and named;
+symbol aliases/weak/file-scope `__asm__`/attributed or post-definition function declarations, non-system globals with
 pointers/fn-ptrs or function-referencing initializers, bodyless prototypes taking the entry type or pointers, and `fails`
 returns after state writes are also refused); and (4) first-fault monitor scope with site-matched ASan/UBSan replay
 (abstract stutter on fault is a monitor convention, not native rollback).

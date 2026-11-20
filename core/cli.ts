@@ -1045,8 +1045,9 @@ function printRule(r: RuleOut, o: Opts) {
         const compiler = mc.compiler
           ? `; compiler: ${mc.compiler}${mc.compilerPath ? ` (${mc.compilerPath})` : ''}`
           : mc.compilerPath ? `; compiler: ${mc.compilerPath}` : ''
+        const libc = mc.libc ? `; libc: ${mc.libc}` : ''
         const envNote = mc.envScrubbed ? 'scrubbed' : 'inherited'
-        out(`    macro config: target: ${mc.target}${compiler}; std: ${mc.std} (__STDC_VERSION__=${mc.stdcVersion}); env: ${envNote}; -I flags: ${incs}; -D flags: ${defs}; NDEBUG=${mc.ndebugDefined ? 'defined' : 'undefined'}, __OPTIMIZE__=${mc.optimizeDefined ? 'defined' : 'undefined'}, DEBUG=${mc.debugDefined ? 'defined' : 'undefined'}`)
+        out(`    macro config: target: ${mc.target}${compiler}${libc}; std: ${mc.std} (__STDC_VERSION__=${mc.stdcVersion}); env: ${envNote}; -I flags: ${incs}; -D flags: ${defs}; NDEBUG=${mc.ndebugDefined ? 'defined' : 'undefined'}, __OPTIMIZE__=${mc.optimizeDefined ? 'defined' : 'undefined'}, DEBUG=${mc.debugDefined ? 'defined' : 'undefined'}`)
       }
       if (r.safety.uncheckedFunctions?.length) out(`    ${paint('yellow', 'unchecked functions:')} ${r.safety.uncheckedFunctions.join(', ')}`)
       for (const s of r.safety.issues) {
