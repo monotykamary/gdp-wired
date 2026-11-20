@@ -3,6 +3,35 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.54.2
+
+### Fixed
+
+- **Soundness fix — upgrade if you extract C or C++ code (affects `0.46.0`
+  through `0.54.1`; C++ class array field initializers from `0.45.0`).**
+  A partially or designated-initialized C or C++ `const`/`constexpr` lookup
+  table could make a false law report as `proven` (CLI exit `0`). Clang's JSON
+  AST emits `InitListExpr` elements under `array_filler` (with no `inner` key)
+  whenever an initializer list has an array filler; the default C/C++ reader
+  (`core/c/reader.ts`) read only `inner` and treated every entry as `0`. Small
+  tables were caught by the native cross-check, but sparse or mid-index tables
+  (such as `T[64] = {[37] = 9}`, `T[200] = {[137] = 9}`, or
+  `T[16][16] = {[7][11] = 9}`) collapsed to constant `0` with no branch witness
+  for the non-zero index, passing the cross-check and proving false laws.
+  The reader now walks `array_filler` in `locate()` and reads `array_filler` in
+  semantic order in `table()`, failing closed on union/unknown shapes, non-zero
+  fillers, or unexpected designated/no-init nodes.
+- String-literal `const` char tables (such as `static const char T[8] = "hi"`)
+  and partially initialized non-zero mutable arrays (both global arrays in
+  globals mode from `0.46.0` and C++ class array fields from `0.45.0`) were
+  likewise read or skipped as all zeros and are now refused up front.
+
+### Scope
+
+- Untrusted C/C++ frontend only (`core/c/reader.ts` and
+  `core/extract-c.test.ts`); trusted kernel files (`kernel/`,
+  `lean-kernel/*.lean`) are unchanged.
+
 ## 0.54.1
 
 ### Fixed
