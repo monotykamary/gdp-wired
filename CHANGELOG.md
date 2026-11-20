@@ -3,6 +3,30 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.55.0
+
+### Added
+
+- **Per-group totals proven by the kernel and checked in Lean:** default proof
+  search (`proveRule`) now proves universally quantified laws that bound a row's
+  value or count by a per-group running total indexed by a key read from the row
+  (for example, a block's memory charge bounded by its tag's total, or a stored
+  message implying a positive per-subject count).
+- The trusted kernel checks these proofs directly using parameter-indexed sums
+  over a map's keys (`ParamSumMachine`) and fresh observer-key elimination,
+  without adding ghost maps. `toLean` exports the retained proof trees verbatim
+  and replays them in Lean (`Kern.GroupedSums.grouped_sum_sound`) with
+  `decide +kernel` under only the standard axioms (`propext`,
+  `Classical.choice`, `Quot.sound`).
+
+### Scope
+
+- Trusted additions are confined to two new files (`kernel/grouped-sum.ts` and
+  `lean-kernel/GroupedSums.lean`); existing trusted kernel modules
+  (`kernel/kernel.ts`, `lean-kernel/Kernel.lean`, `lean-kernel/Sets.lean`,
+  `lean-kernel/Sums.lean`, and the rest of the existing kernel) are unchanged.
+- `search: false`, `from: 'any'`, and explicit counted-work mode are unchanged.
+
 ## 0.54.2
 
 ### Fixed
