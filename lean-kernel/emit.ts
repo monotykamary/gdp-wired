@@ -26,8 +26,10 @@ import {countsForReads} from '../core/count-facts.ts'
 import {requireSourceTranslation} from '../core/source-check.ts'
 import {finiteSumToLean} from './finite-sum-export.ts'
 import {ghostWriteToLean} from './ghost-write-export.ts'
+import {groupedSumToLean} from './grouped-sum-export.ts'
 import type {FiniteSumCertificate} from '../kernel/finite-sum.ts'
 import type {GhostWriteCertificate} from '../kernel/ghost-write.ts'
+import type {GroupedSumCertificate} from '../kernel/grouped-sum.ts'
 import type {AggregateKinds} from '../core/aggregate-kinds.ts'
 export {leanLibrary}
 
@@ -1174,7 +1176,7 @@ function machineNames(m: Machine, laws: Law[], allSteps: StepLaw[], stepLaws: St
 // A tampered twin: its k, the base depths it keeps (indices into the k-step laws' base), the law, and kernel.ts's answer.
 export type KindLean = {kl: KInduction, start: {goal: Goal, tree: Tree, inst: Instances}, tampers?: {what: string, k: number, base: number[], law?: C, expect: boolean}[]}
 export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], tamper?: {what: string, machine: Machine}, simp?: string[], free?: string[],
-    ghosts?: string[], after?: (ix: (name: string) => number, mx: (name: string) => number, lit: (m: Machine) => string, c: (condition: C) => string) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
+    ghosts?: string[], after?: (ix: (name: string) => number, mx: (name: string) => number, lit: (m: Machine) => string, c: (condition: C) => string, e: (term: E) => string, enc: (goal: Goal, tree: Tree) => {tab: string, hyps: string, tree: string}) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
     // (ghost maps: `given` is kernel.ts's ghostedMachine(ghosted), exported as GhostMap.lean's SGhostedM; `forallSome`, the
     // laws read ∀∃, each with the ghost map it reads, at the key term `at`, read as the variable `as`)
     ghosted?: Ghosted, forallSome?: {law: string, map: string, at: E, as: string}[],
@@ -1621,7 +1623,7 @@ theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_pro
 ${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: words ? `Kern.WordReach.WordSReach ${id}_word ρ μ` : `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e, ghosts: !rf && !gm && gv.length > 0, explicitExistentials: new Set((opts.ghostSubst ?? []).map(g => g.law))})}${sm ? sumsBlock() : ''}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
-example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix, mx, lit, c)}` : ''}`
+example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix, mx, lit, c, e, enc)}` : ''}`
 }
 
 // --- the cyclic certificate's export (GDP_CERT=cyclic) -------------------------------------------------------------
@@ -2264,7 +2266,7 @@ export type LeanItem =
   | {id: string, kInduction: {machine: Machine, laws: Law[], law: Law, k?: number, ms?: number}}
   // Construct from an aggregate node retained by proofOutput.on; keep the
   // independently checked kind family with the aggregate claim when present.
-  | {id: string, aggregate: {source: Machine, law: Law, certificate: FiniteSumCertificate | GhostWriteCertificate, kinds?: AggregateKinds}}
+  | {id: string, aggregate: {source: Machine, law: Law, certificate: FiniteSumCertificate | GhostWriteCertificate | GroupedSumCertificate, kinds?: AggregateKinds}}
   | {id: string, countedGoal: CountedGoal, certificate: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[]}}
   | {id: string, countedMachine: Machine, laws: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}}
   | {id: string, goal: Goal}
@@ -2344,7 +2346,11 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
       }
       const save = checkBy
       checkBy = 'decide +kernel'
-      try { parts.push(certificate.kind === 'finite-sum' ? finiteSumToLean(id, source, law, certificate) : ghostWriteToLean(id, source, law, certificate)) }
+      try {
+        parts.push(certificate.kind === 'finite-sum' ? finiteSumToLean(id, source, law, certificate)
+          : certificate.kind === 'ghost-write' ? ghostWriteToLean(id, source, law, certificate)
+          : groupedSumToLean(id, source, law, certificate))
+      }
       finally { checkBy = save }
     } else if ('countedGoal' in item) {
       if (!checkCounted(item.countedGoal, item.certificate)) throw new Error(`${item.id}: counted certificate does not check`)
@@ -2441,8 +2447,9 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   // The file the items need: Live.lean for a liveness or a loop, Sets.lean (which imports Steps.lean) for any machine.
   const finiteImport = items.some(item => 'aggregate' in item && item.aggregate.certificate.kind === 'finite-sum') ? 'import FiniteSumComposition\n' : ''
   const ghostImport = items.some(item => 'aggregate' in item && item.aggregate.certificate.kind === 'ghost-write') ? 'import Sums\nimport GhostWriteTransport\nimport GhostSourceViews\n' : ''
+  const groupedImport = items.some(item => 'aggregate' in item && item.aggregate.certificate.kind === 'grouped-sum') ? 'import GroupedSums\n' : ''
   return `import History
-${finiteImport}${ghostImport}${wordReads(items).length ? 'import WordFacts\nimport WordSMachine\n' : ''}${items.some(item => 'countedGoal' in item || 'countedMachine' in item) ? 'import QAlpha\n' : ''}${items.some(item => 'machine' in item && item.machine.sums && Object.keys(item.machine.sums).length) ? 'import Sums\n' : ''}${items.some(item => 'neverEnds' in item) ? 'import NonTerm\n' : ''}${items.some(item => 'kInduction' in item) ? 'import KInd\n' : ''}${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && (item.ghosts?.length || item.laws.some(l => l.some?.length))) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
+${finiteImport}${ghostImport}${groupedImport}${wordReads(items).length ? 'import WordFacts\nimport WordSMachine\n' : ''}${items.some(item => 'countedGoal' in item || 'countedMachine' in item) ? 'import QAlpha\n' : ''}${items.some(item => 'machine' in item && item.machine.sums && Object.keys(item.machine.sums).length) ? 'import Sums\n' : ''}${items.some(item => 'neverEnds' in item) ? 'import NonTerm\n' : ''}${items.some(item => 'kInduction' in item) ? 'import KInd\n' : ''}${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && (item.ghosts?.length || item.laws.some(l => l.some?.length))) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
