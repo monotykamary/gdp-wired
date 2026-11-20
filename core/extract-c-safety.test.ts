@@ -11,7 +11,7 @@ import {clangDump, readC} from './c/reader.ts'
 import {analyzeCSafety, cSafetyArtifactOf, verifyCSafetyProof, type CSafetyProofBundle} from './c/safety.ts'
 import {bool, rule} from './dsl.ts'
 import {extractC, type COptions} from './extract-c.ts'
-import {readGo} from './extract-go.ts'
+import {readGo, unsignedDomains} from './extract-go.ts'
 import {Refusal} from './extract-read.ts'
 import {interpret} from './machine.ts'
 import {allowed} from './watch.ts'
@@ -804,10 +804,6 @@ int32_t f(struct ring *r, int32_t x) { return x / -1; }
 void g(struct ring *r, int32_t *out) { *out = r->a[*out & 7]; }
 int32_t h(struct ring *r, int32_t *out) { if (*out > 8) return 0; return r->a[*out]; }
 `],
-    ['u8-inc-index', H + `struct ring { uint8_t i; int32_t a[200]; };
-void bump(struct ring *r) { r->i++; }
-int32_t get(struct ring *r) { if (r->i < 250) return r->a[r->i]; return 0; }
-`],
     ['shortcircuit', H + `struct ring { int32_t n; int32_t a[8]; };
 int32_t f(struct ring *r, int32_t i) { return (i >= 0 && i < 8 && r->a[i] > 0) ? 1 : (i == 8 ? r->a[i] : 0); }
 `],
@@ -821,10 +817,17 @@ int32_t f(struct ring *r, int32_t i) { return (i >= 0 && i < 8 && r->a[i] > 0) ?
     expect(badIssue?.replay?.matchedSite, `${label} matchedSite`).toBe(true)
   }
 
-  // mod-neg: signed % 8 where dividend may be negative (outside nat modk or broken) must never prove safe.
+  // Deep (201-step) u8-inc-index and negative signed mod-neg must never prove safe.
+  const u8Inc = analyze(H + `struct ring { uint8_t i; int32_t a[200]; };
+void bump(struct ring *r) { r->i++; }
+int32_t get(struct ring *r) { if (r->i < 250) return r->a[r->i]; return 0; }
+`, {safetySearchMs: 5_000})
+  expect(u8Inc.ok).toBe(false)
+  expect(['broken', 'unproven']).toContain(u8Inc.safety?.status)
+
   const modNeg = analyze(H + `struct ring { int32_t a[8]; };
 int32_t f(struct ring *r, int32_t i) { return r->a[i % 8]; }
-`, {safetySearchMs: 10_000})
+`, {safetySearchMs: 5_000})
   expect(modNeg.ok).toBe(false)
   expect(modNeg.safety?.status).not.toBe('proven')
 }, 180_000)
@@ -833,11 +836,11 @@ withClang('Review Probe 5: replay without matchedSite stays unproven (never mark
   const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-matchsite-'))
   try {
     const file = join(dir, 'oob.c')
-    writeFileSync(file, 'struct ring { int slots[4]; };\nvoid set(struct ring *r, int i) { r->slots[i] = 1; }\n')
+    writeFileSync(file, '#include <stdint.h>\nstruct ring { uint32_t slots[4]; };\nvoid set(struct ring *r, uint32_t i) { r->slots[i] = 1u; }\n')
     const {tu, target} = clangDump(file, [])
     const c = readC(file, 'ring', tu, target, false, undefined, {}, [], [], [], true)
     const read = readGo(c.pkg, {entry: 'ring', methods: c.methods, strict: true, safety: true})
-    const mismatched = analyzeCSafety(read, c, read.safety!.sites, {}, {
+    const mismatched = analyzeCSafety(read, c, read.safety!.sites, unsignedDomains(read), {
       replay: () => ({
         built: true, requests: ['set(4)'],
         reports: ['other.c:99:1: runtime error: index 4 out of bounds'],
@@ -849,11 +852,11 @@ withClang('Review Probe 5: replay without matchedSite stays unproven (never mark
     expect(mismatched.issues[0]?.status).toBe('unproven')
     expect(mismatched.issues[0]?.why).toMatch(/did not match target site/)
 
-    const matched = analyzeCSafety(read, c, read.safety!.sites, {}, {
+    const matched = analyzeCSafety(read, c, read.safety!.sites, unsignedDomains(read), {
       replay: () => ({
         built: true, requests: ['set(4)'],
-        reports: ['oob.c:2:35: runtime error: index 4 out of bounds'],
-        states: [], stderr: 'oob.c:2:35: runtime error: index 4 out of bounds',
+        reports: ['oob.c:3:40: runtime error: index 4 out of bounds'],
+        states: [], stderr: 'oob.c:3:40: runtime error: index 4 out of bounds',
         matchedSite: true,
       }),
     })
