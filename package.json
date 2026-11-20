@@ -36,6 +36,10 @@
       "types": "./dist/core/mutate.d.ts",
       "default": "./dist/core/mutate.js"
     },
+    "./minimize": {
+      "types": "./dist/core/minimize.d.ts",
+      "default": "./dist/core/minimize.js"
+    },
     "./machine": {
       "types": "./dist/core/machine.d.ts",
       "default": "./dist/core/machine.js"
@@ -193,6 +197,7 @@
     "LICENSE",
     "docs/agent-consult.md",
     "docs/lean-aggregate.md",
+    "docs/minimize.md",
     "docs/agent-consult-workspace-check.md",
     "examples/agent-consult.json"
   ],

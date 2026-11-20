@@ -36,7 +36,7 @@ import {concreteSolidity, SolidityHarnessRefusal, type SolidityHarness} from './
 export type {SolidityHarness} from './sol-concrete.ts'
 const refuse = (where: string, what: string): never => { throw new Refusal(where, what) }
 import {asset, type Harness, type SFunc, type SModule, type SParam, type SRec, type SS, type SType, type SX, type StepOptions, type StepRead, checkStep, node, readStep, stepNames} from './extract-step.ts'
-export {proveRule, proveSteps} from './dsl.ts'
+export {minimizeRun, minimizeRunDetailed, proveRule, proveSteps} from './dsl.ts'
 
 export type SolOptions = StepOptions & {
   // The project root solc resolves imports from (by default the file's directory), and remappings

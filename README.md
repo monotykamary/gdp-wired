@@ -323,8 +323,10 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   on rules read from code as on written ones; `proveTwoRuns` proves the law of the two runs side by side as one rule, a
   refutation the two runs (`research/regulated/`).
 
-When a law is false, the GPU search finds a real run that breaks it. When a law needs an invariant nobody wrote,
-`inferLaws` finds one on the CPU (and the GPU synthesizer, at scale, in `research/synth/`) and the kernel proves it.
+When a law is false, the prover or GPU search finds a real run that breaks it, and `minimizeRun(rule, law, run)`
+([`docs/minimize.md`](docs/minimize.md)) shrinks a refuting run on the original rule until no single request can be
+removed. When a law needs an invariant nobody wrote, `proveRule` proposes checked covering sums for item-against-total
+laws and `inferLaws` finds invariants on the CPU (and the GPU synthesizer, at scale, in `research/synth/`) and the kernel proves it.
 
 **What it leaves to Lean or Bend.** Two things, and neither is a gap the next feature closes: proofs the prover would
 have to invent (induction over a recursive structure whose proof needs a lemma nobody stated and `discover` doesn't find, and arithmetic with
@@ -634,7 +636,7 @@ Proving and checking: a law over 64 steps proves in about 5 s, and Lean checks i
 | `kernel/` | The trusted kernel and the untrusted prover, with soundness fuzz (`kernel.test.ts`, `history.test.ts`) |
 | `lean-kernel/` | The kernel's Lean twin, its soundness proofs, and the exported trees |
 | `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `guide.ts` (the guide's code), `groups.ts` (two groups decided at every pair), `budget.ts`, `gdp.ts` (gdp-ts's example, its checks proven), `exists.ts` (laws with "there exists"), `datatypes.ts` (records and variants), `lemmas.ts` (recurrences and their lemmas), `invoices.ts` (lists a request carries), `folds.ts` (folds over trees), `trees.ts` (trees and lists of lists in the state), `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `arith.ts` (division and remainder by a constant, integers in rules and datatypes), `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 64 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
-| `docs/` | [ARCHITECTURE.md](docs/ARCHITECTURE.md) (the trust boundaries and what guards each), [FRONTENDS.md](docs/FRONTENDS.md) (how a language's reader plugs in), [interchange.md](docs/interchange.md) (certificates as JSON, for checkers in other languages), the comparison with Bend and Lean |
+| `docs/` | [ARCHITECTURE.md](docs/ARCHITECTURE.md) (the trust boundaries and what guards each), [FRONTENDS.md](docs/FRONTENDS.md) (how a language's reader plugs in), [minimize.md](docs/minimize.md) (shrinking refuting runs with `minimizeRun`), [interchange.md](docs/interchange.md) (certificates as JSON, for checkers in other languages), the comparison with Bend and Lean |
 | `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
 | `research/` | Everything around the library ([`research/README.md`](research/README.md)): the GPU searches (`search/`, `hw/`, `modal-gpu/`), invariant and rank synthesis (`synth/`), relational laws and guard synthesis (`next/`), bit-vector laws (`sat/`), the enumeration and benchmarks (`enum/`, `gpu/`, `perf/`), the first Lean checker (`lean/`) and the first prototype, the audit path (`audit/`) |
 | `supercomputer/` | Everything above as jobs on boat (a warm pool), Modal and RunPod: `suite.json` is the regression suite (`modal/` links here until every lane has merged the rename) |
@@ -646,7 +648,8 @@ The npm package is built from `core/`, `kernel/` and `lean-kernel/` alone; nothi
 
 ## Running
 
-The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-wired/machine`), composition
+The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-wired/machine`), refutation run
+minimization (`gdp-wired/minimize`, also exported from `gdp-wired`, `gdp-wired/machine`, and every frontend subpath), composition
 (`gdp-wired/compose`), XState machines as charts (`gdp-wired/xstate`), rules read from the code (`gdp-wired/extract`, with
 `typescript` installed), Effect services (`gdp-wired/effect`, with `typescript` and `effect`), lemmas nobody stated (`gdp-wired/discover`), invariant
 inference (`gdp-wired/infer`), the

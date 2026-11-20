@@ -33,7 +33,7 @@ import type {Coverage} from './extract-check.ts'
 import {type GoOptions, type GoPkg, type GoRead, goNames, readGo, unsignedDomains} from './extract-go.ts'
 import {type GoCheckOptions, type GoEvidence, type GoLeaf, speak} from './extract-go-check.ts'
 import {type CRead, clangDump, constantsOf, flagsFor, node, readC} from './c/reader.ts'
-export {proveRule, proveSteps} from './dsl.ts'
+export {minimizeRun, minimizeRunDetailed, proveRule, proveSteps} from './dsl.ts'
 
 export type COptions = {
   // The struct (C++: the class), and the functions read as its requests (by default each non-static one whose first

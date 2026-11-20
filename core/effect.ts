@@ -30,7 +30,7 @@ import {Parts, type ScheduleRule, readSchedule, replaySchedule, scheduleConforms
 import {asRule, lift} from './system.ts'
 import {attachSource, inheritSource} from './source-check.ts'
 import {type Prim, rewritePrims} from './effect-prims.ts'
-export {proveRule, proveSteps} from './dsl.ts'
+export {minimizeRun, minimizeRunDetailed, proveRule, proveSteps} from './dsl.ts'
 export {jitterRun, replaySchedule, scheduleConforms, stepper} from './effect-schedule.ts'
 export {primitiveConforms, primitiveLaws, primitiveRule} from './effect-prims.ts'
 

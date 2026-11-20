@@ -134,3 +134,22 @@ test('the recorded refutations of the real-world corpus (results.json), as they 
   }
   expect(seen).toBeGreaterThan(3)
 })
+
+test('a law reading a map sum over a broadcast clear minimizes cleanly', () => {
+  const r = rule('sum-broadcast-minimize')
+    .inputs({op: oneOf('noop', 'put', 'clear'), id: nat})
+    .state({hasPut: 0})
+    .maps({M: 0})
+    .flags(({op, id, M}) => ({puts: op.is('put').and(M.at(id).eq(0)), clears: op.is('clear').and(M.at(id).eq(0))}))
+    .step(({id, hasPut, M, puts, clears}) => ({
+      hasPut: when(puts, 1, hasPut),
+      M: M.each(k => when(clears, 0, when(puts.and(k.eq(id)), 1, M.at(k)))),
+    }))
+  const law = r.law('hasPut <= M.sum()', ({hasPut, M}) => hasPut.atMost(M.sum()))
+  const enc = (op: string, id = 0) => (r as never as {encodeInput: (i: unknown) => Record<string, number>}).encodeInput({op, id})
+  const trace = [enc('noop', 0), enc('put', 1), enc('noop', 2), enc('clear', 2), enc('noop', 3)]
+  const out = minimizeRunDetailed(r as never, law, {params: {}, trace})
+  expect(out.minimal).toBe(true)
+  expect(out.to).toBe(2)
+  oneMinimal(r.withSumsOf(law) as never, law, {}, out.run.trace)
+})

@@ -19,12 +19,16 @@ Measure a representative successful search, preserve its checked result and work
 ## Additional strategies use the existing grant
 
 Default search can try checked row supports, scalar lockstep, guard-distance
-ranks, compressed counterexamples and native aggregate certificates within the
-existing allowance. These are proposals, not extra facts. A successful native
-aggregate proof also checks the rule's companion kind laws. Its stage uses at
-most half the requested wall allowance and no more than 30 seconds, and is
-skipped in explicit counted-work mode. New stages do not increase the caller's
-budget or bypass `from: 'any'` and `search: false`.
+ranks, compressed counterexamples, covering-sum candidates and native aggregate
+certificates within the existing allowance. These are proposals, not extra
+facts. The covering-sum stage proposes filtered sums and companion cell facts
+for one-key item-against-total laws within at most half the requested wall
+allowance (capped at 25 seconds), returning only a kernel-checked family with
+the original law. A successful native aggregate proof also checks the rule's
+companion kind laws. Its stage uses at most half the requested wall allowance
+and no more than 30 seconds. Both stages are skipped in explicit counted-work
+mode. New stages do not increase the caller's budget or bypass `from: 'any'`
+and `search: false`.
 
 A verdict may carry `acceleratedRun` (a finite run with checked repeat
 segments and a total step count) or `fairRing` (a checked recurring run for a

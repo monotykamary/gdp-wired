@@ -22,7 +22,7 @@
 //
 // The budget (`ms`, wall time, 2000 by default) stops the work where it is: the run returned still breaks the law,
 // and `minimal` (minimizeRunDetailed) says whether the closing pass finished.
-import {type Law, type Machine, type Request, type State, interpret, evalC} from './machine.ts'
+import {type Law, type Machine, type Request, type State, divisorsIn, interpret, evalC} from './machine.ts'
 import {allowed, isStepLaw, watch, type Watched} from './watch.ts'
 
 type Env = Record<string, number>
@@ -37,7 +37,13 @@ export type MinimizeOptions = {
   shortest?: boolean // also search for a shortest breaking subsequence (true)
 }
 export type Minimized<R> = {run: R, minimal: boolean, from: number, to: number, replays: number, steps: number, ms: number}
-type RuleLike = {machine: Machine, encodeInput?: (input: never) => Request} | Machine
+type RuleObject = {
+  machine: Machine
+  encodeInput?: (input: never) => Request
+  withSumsOf?: (...xs: unknown[]) => RuleObject
+  withDivisors?: (...ks: number[]) => RuleObject
+}
+type RuleLike = RuleObject | Machine
 
 const now = () => performance.now()
 const isPlain = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !(x instanceof Map) && !Array.isArray(x)
@@ -77,7 +83,13 @@ class OutOfTime extends Error {}
 
 export function minimizeRunDetailed<R extends RunTrace | readonly RunRequest[]>(rule: RuleLike, law: Watched, run: R, opts: MinimizeOptions = {}): Minimized<R> {
   const t0 = now(), deadline = t0 + Math.max(0, opts.ms ?? 2000)
-  const m: Machine = 'machine' in rule && typeof (rule as {machine?: unknown}).machine === 'object' ? (rule as {machine: Machine}).machine : rule as Machine
+  let ruleObj = 'machine' in rule && typeof (rule as {machine?: unknown}).machine === 'object' ? (rule as RuleObject) : undefined
+  if (ruleObj) {
+    const ks = divisorsIn([law] as never)
+    if (ks.size && typeof ruleObj.withDivisors === 'function') ruleObj = ruleObj.withDivisors(...ks)
+    if (typeof ruleObj.withSumsOf === 'function') ruleObj = ruleObj.withSumsOf(law)
+  }
+  const m: Machine = ruleObj ? ruleObj.machine : rule as Machine
   const isArray = Array.isArray(run)
   const params: Env = {...(isArray ? opts.params ?? {} : (run as RunTrace).params)}
   const given: readonly RunRequest[] = isArray ? run as readonly RunRequest[] : (run as RunTrace).trace

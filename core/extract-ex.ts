@@ -19,7 +19,7 @@
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
 import {asset, type Harness, type SModule, type StepOptions, type StepRead, extractStep, node} from './extract-step.ts'
-export {proveRule, proveSteps} from './dsl.ts'
+export {minimizeRun, minimizeRunDetailed, proveRule, proveSteps} from './dsl.ts'
 
 export type ExOptions = StepOptions & {elixir?: string}
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}

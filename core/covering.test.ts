@@ -49,3 +49,34 @@ test('a law with no total, or about two keys, has no covering shape', () => {
   expect(coveringShapes(members.machine, members.law('cells are flags', ({In}) => forall(k => In.at(k).atMost(1))))).toHaveLength(0)
   expect(coveringShapes(members.machine, members.law('a pair', ({In, size}) => forall((k, j) => In.at(k).plus(In.at(j)).atMost(size.plus(1)))))).toHaveLength(0)
 })
+
+test('covering skips uncovered broadcast clears and still proves covered each writes', () => {
+  const withClear = rule('broadcast-covering-clear')
+    .inputs({op: oneOf('put', 'clear'), id: nat, val: nat})
+    .state({total: 0})
+    .maps({M: 0})
+    .flags(({op, id, M}) => ({puts: op.is('put').and(M.at(id).eq(0)), clears: op.is('clear')}))
+    .step(({id, val, total, M, puts, clears}) => ({
+      total: when(clears, 0, when(puts, total.plus(val), total)),
+      M: M.each(k => when(clears, 0, when(puts.and(k.eq(id)), val, M.at(k)))),
+    }))
+  const clearLaw = withClear.law('every cell fits in total', ({M, total}) => forall(k => M.at(k).atMost(total)))
+  const vClear = proveRule(withClear, [clearLaw], {search: {ms: 2_000}})
+  expect(vClear.proven).toBe(false)
+  expect(vClear.checked).toBe(false)
+  expect(vClear.run).toBeUndefined()
+
+  const coveredEach = rule('broadcast-covering-covered')
+    .inputs({op: oneOf('put', 'remove'), id: nat, val: nat})
+    .state({total: 0})
+    .maps({M: 0})
+    .flags(({op, id, M}) => ({puts: op.is('put').and(M.at(id).eq(0)), removes: op.is('remove').and(M.at(id).gt(0))}))
+    .step(({id, val, total, M, puts, removes}) => ({
+      total: when(puts, total.plus(val), when(removes, total.minus(M.at(id)), total)),
+      M: M.each(k => when(puts.and(k.eq(id)), val, when(removes.and(k.eq(id)), 0, M.at(k)))),
+    }))
+  const coveredLaw = coveredEach.law('every cell fits in total', ({M, total}) => forall(k => M.at(k).atMost(total)))
+  const vCovered = proveRule(coveredEach, [coveredLaw], {search: {ms: 10_000}})
+  expect(vCovered.proven && vCovered.checked).toBe(true)
+  expect(vCovered.found?.laws?.some(l => l.text.startsWith('covering'))).toBe(true)
+})

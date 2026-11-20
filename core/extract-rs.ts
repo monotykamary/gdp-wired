@@ -22,7 +22,7 @@
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
 import {asset, type Harness, type Leaf, type SModule, type SType, type StepOptions, type StepRead, buildCheck, compileLimit, entryNames, extractStep, node, stubbed} from './extract-step.ts'
-export {proveRule, proveSteps} from './dsl.ts'
+export {minimizeRun, minimizeRunDetailed, proveRule, proveSteps} from './dsl.ts'
 
 export type RsOptions = StepOptions & {cargo?: string}
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}

@@ -1522,3 +1522,5 @@ export function search(m: Machine, law: Law, depth = 3, bound = 2): {params: Env
 export function conditionCases(c: C, truth: boolean): Constraint[][] {
   return symC(c, {names: {}, reads: noReads}, truth).map(cs => cs.path)
 }
+
+export {minimizeRun, minimizeRunDetailed, type MinimizeOptions, type Minimized, type RunRequest, type RunTrace} from './minimize.ts'

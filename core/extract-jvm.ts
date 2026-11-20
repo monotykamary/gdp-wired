@@ -31,7 +31,7 @@
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
 import {asset, type Harness, type SModule, type SX, type StepOptions, type StepRead, compileLimit, entryNames, extractStep, node} from './extract-step.ts'
-export {proveRule, proveSteps} from './dsl.ts'
+export {minimizeRun, minimizeRunDetailed, proveRule, proveSteps} from './dsl.ts'
 
 export type JvmOptions = StepOptions & {
   // The source root the file's package resolves from (javac's -sourcepath); by default the file's package root.

@@ -10,7 +10,7 @@ reachable from the start.
 | `proven: true, checked: false` | The prover's tree was rejected by the kernel. | A bug in gdp-wired: report it with the rule. Never ship on this. |
 | `stuck: 'sat'` at `<law> @start` | The law is false in the start state for the witness's params. | Fix the start state, the law, or add `.pre` if those params are impossible. |
 | `stuck: 'sat'` with a `witness` and no `run`, at `@step law` | A state the laws allow (maybe one no run reaches) from which one step breaks the step law, and the search (on by default) found neither a run to it nor the law that rules it out. | Fix the rule, or add the law that rules the state out (the step law then holds from the states it allows). |
-| `stuck: 'sat'` with `run` | A few random runs found a real run from the start that breaks the law: `run.params` and each request in `run.trace`. | The rule (or the law) is wrong. Replay the run with `rule.interpreter()`. |
+| `stuck: 'sat'` with `run` | A few random runs found a real run from the start that breaks the law: `run.params` and each request in `run.trace`. | The rule (or the law) is wrong. Shrink it with `minimizeRun(rule, law, verdict.run)` and replay with `rule.interpreter()`. |
 | `stuck: 'sat'` at `<law> @step` | Some state where the laws hold steps to one where this law fails. The witness may be unreachable. | Run `search` (below). |
 | `proven: true, checked: true` with `found` | Proven with laws or lemmas nobody stated, which `proveRule`/`proveSteps` found when the prover alone stopped: `found.laws` (pass them with yours), `found.lemmas` (per function or list, the lemmas to state). | Paste them, so the next proof needs no search. |
 | `proven: true, checked: true` with `assumes: {states: 'reachable', laws}` | Proven in every state a run from the start reaches, not in every state the laws allow. The proof needed invariants the search found (`laws`, their texts), each proven from the start, or k-induction (`laws` empty, `k` set). A step law holds from every reachable state; from a state no run reaches it may fail. | Fine when the rule only ever steps from states its own runs reached. If the code steps it from states it is handed (a host's, a stored state it doesn't check), prove with `{from: 'any'}` and require `proven && checked && !assumes`. |
@@ -27,7 +27,7 @@ search(uncapped.machine, bounded, 6, 4)    // deeper (requests) and wider (value
 The bound widens naturals; a choice, a yes/no or an `upTo` of at most 15 is always tried at every value it may take.
 
 - **A run comes back:** it is a real sequence of requests from the start that breaks the law. The rule (or the law)
-  is wrong. Replay it with `rule.interpreter()` to see each state.
+  is wrong. Call `minimizeRun(rule, law, run)` to drop irrelevant requests to a 1-minimal breaking trace, and replay it with `rule.interpreter()` to see each state.
 - **No run:** the law is probably true but not inductive: the witness is a state no run reaches. The search the prove
   calls run by default looked for the fact and didn't find it (`why` says so). Find the fact that rules that state out and add it as another law in the same call (`proveRule(r, [helper, law])`); the laws are
   proven together. Example: gcd's rank only drops if `a >= 1` and `b >= 1` are laws too.

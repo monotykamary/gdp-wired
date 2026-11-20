@@ -22,15 +22,21 @@ printf '{"name":"smoke","private":true,"type":"module"}\n' > package.json
 npm install --no-audit --no-fund --silent "$tarball" "typescript@$(node -p "require('$root/package.json').devDependencies.typescript")" \
   "@gdp-ts/core@$(node -p "require('$root/package.json').devDependencies['@gdp-ts/core']")"
 cat > smoke.mjs <<'JS'
-import {everyKey, min, nat, proveRule, recur, rule, variant, when} from 'gdp-wired'
+import {everyKey, min, minimizeRun, nat, proveRule, recur, rule, variant, when} from 'gdp-wired'
 import {interpret} from 'gdp-wired/machine'
+import {minimizeRunDetailed} from 'gdp-wired/minimize'
 import {leanProject, toLean} from 'gdp-wired/lean'
 import {lift} from 'gdp-wired/lift'
 if (typeof lift !== 'function') throw new Error('gdp-wired/lift: missing product entry point')
 const budget = rule('budget').params({b: nat, m: nat}).inputs({c: nat}).state({s: 0})
   .step(({c, s, b, m}) => ({s: when(s.lt(b), s.plus(min(c, m)), s)}))
-const v = proveRule(budget, [budget.law('spend stays within b + m', ({s, b, m}) => s.atMost(b.plus(m)))])
+const boundedLaw = budget.law('spend stays within b + m', ({s, b, m}) => s.atMost(b.plus(m)))
+const v = proveRule(budget, [boundedLaw])
 if (!v.proven || !v.checked) throw new Error(`not proven: ${JSON.stringify(v)}`)
+const uncapped = budget.step(({c, s, b}) => ({s: when(s.lt(b), s.plus(c), s)}))
+const minRun = minimizeRun(uncapped, boundedLaw, {params: {b: 1, m: 0}, trace: [{c: 0}, {c: 0}, {c: 2}, {c: 0}]})
+const minDet = minimizeRunDetailed(uncapped, boundedLaw, [{c: 0}, {c: 2}], {params: {b: 1, m: 0}})
+if (minRun.trace.length !== 1 || !minDet.minimal || minDet.to !== 1) throw new Error(`minimizeRun: unexpected result ${JSON.stringify({minRun, minDet})}`)
 const run = budget.compiled(), params = budget.encodeParams({b: 100, m: 30})
 let st = run.init(params)
 for (const c of [50, 40, 70, 20]) st = run.step(params, st, budget.encodeInput({c}))
@@ -145,7 +151,8 @@ npx --no-install gdp-wired check wallet2.ts --no-propose > cli.log || code=$?
 grep -q 'broken   a credit adds one more' cli.log || { cat cli.log; exit 1; }
 echo "gdp-wired check: a proven law exits 0, a broken one 1"
 cat > consumer.ts <<'TS'
-import {bool, forall, fun, nat, proveRule, proveSteps, record, recur, rule, variant, type Verdict} from 'gdp-wired'
+import {bool, forall, fun, minimizeRun, minimizeRunDetailed, type MinimizeOptions, type Minimized, nat, proveRule, proveSteps, record, recur, rule, variant, type Verdict} from 'gdp-wired'
+import {minimizeRun as minimizeSubpath} from 'gdp-wired/minimize'
 import type {Machine} from 'gdp-wired/machine'
 import {check} from 'gdp-wired/kernel'
 import {type LeanItem, toLean} from 'gdp-wired/lean'
@@ -175,7 +182,9 @@ const pay = fun('pay').inputs({p: variant({card: {amount: nat}, cash: {}}), who:
   .returns(({p, who}) => ({ok: p.match({card: c => c.amount.atMost(who.limit), cash: () => p.is('cash')})}))
 const ok: boolean = pay.run({p: {tag: 'card', amount: 3}, who: {limit: 5}}).ok
 const steps = recur('steps', {zero: 0, next: (_, y) => y.plus(1)}, {'at most x': (x, y) => y.atMost(x)})
-export {v, s, m, check, text, mint, ok, steps, effectRead, service, pyRead, goRead, liftAPI}
+const minOpts: MinimizeOptions = {ms: 1000}
+const minDetail: Minimized<{params: Record<string, number>, trace: Record<string, unknown>[]}> = minimizeRunDetailed(caps, caps.law('at most one a day', ({Day}) => forall(k => Day.at(k).atMost(1))), {params: {d: 1}, trace: []}, minOpts)
+export {v, s, m, check, text, mint, ok, steps, effectRead, service, pyRead, goRead, liftAPI, minimizeRun, minimizeSubpath, minDetail}
 TS
 printf '{"compilerOptions":{"strict":true,"noEmit":true,"module":"nodenext","moduleResolution":"nodenext","target":"es2022","lib":["es2022"],"types":[],"skipLibCheck":false},"files":["consumer.ts"]}\n' > tsconfig.json
 npx tsc -p tsconfig.json

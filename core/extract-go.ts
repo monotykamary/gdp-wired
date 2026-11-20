@@ -41,7 +41,7 @@ import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, ty
 import {type Extraction, type Name, fromModel} from './extract.ts'
 import {asset, type Answer, type Inferred, type IntTy, type Recipe, type SType, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, iteTerm, mapWritesOf, phiP, rangeLaws, rangeOf, varTerm} from './extract-step.ts'
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
-export {proveRule, proveSteps} from './dsl.ts'
+export {minimizeRun, minimizeRunDetailed, proveRule, proveSteps} from './dsl.ts'
 
 // --- the reader's JSON ----------------------------------------------------------------------------------------------
 export type TT = {k: string, go?: string, nullflag?: boolean, fixed?: boolean, box?: boolean, mutex?: boolean, generic?: boolean, name?: string, pkg?: string, own?: boolean, bits?: number, signed?: boolean, untyped?: boolean, ub?: boolean, elem?: number, key?: number,

@@ -45,8 +45,10 @@ for (const [sub, fn, beside] of FRONT) {
     }
     const mod = await import(built ? `${pkg.name}/${sub.slice(2)}` : `${root}${src}`) as Record<string, unknown>
     expect(typeof mod[fn]).toBe('function')
-    // (one import: the rule read is proven from the same module)
+    // (one import: the rule read is proven and minimized from the same module)
     expect(typeof mod.proveRule).toBe('function')
+    expect(typeof mod.minimizeRun).toBe('function')
+    expect(typeof mod.minimizeRunDetailed).toBe('function')
   })
 }
 
@@ -76,6 +78,17 @@ test('mutation runner: separate public subpath with no runtime dependencies', as
   const mod = await import(built ? `${pkg.name}/mutate` : `${root}core/mutate.ts`) as Record<string, unknown>
   expect(typeof mod.checkMutations).toBe('function')
   expect(typeof mod.deriveDecisionMutants).toBe('function')
+})
+
+test('run minimization: exported from root, machine and ./minimize subpath', async () => {
+  const e = pkg.exports['./minimize']!
+  expect(e.types).toBe('./dist/core/minimize.d.ts')
+  expect(build.files).toContain('core/minimize.ts')
+  for (const [sub, src] of [['', 'core/dsl.ts'], ['/minimize', 'core/minimize.ts'], ['/machine', 'core/machine.ts']] as const) {
+    const mod = await import(built ? `${pkg.name}${sub}` : `${root}${src}`) as Record<string, unknown>
+    expect(typeof mod.minimizeRun).toBe('function')
+    expect(typeof mod.minimizeRunDetailed).toBe('function')
+  }
 })
 
 test('Effect Schema: public typed frontend stays on the existing optional Effect subpath', async () => {
@@ -154,7 +167,7 @@ test('the packed tarball holds every export, the bin and every runtime asset the
   const {leanLibraries} = await import('../lean-kernel/lean-aggregate/assets.ts')
   const leanFiles = [...new Set(Object.values(leanLibraries).flat())].map(f =>
     f.startsWith('../') ? `dist/lean-kernel/${f.slice(3)}` : `dist/lean-kernel/lean-aggregate/${f.slice(2)}`)
-  expect(missing(['docs/lean-aggregate.md', 'dist/lean-kernel/lean-aggregate/worker.js', ...leanFiles])).toEqual([])
+  expect(missing(['docs/lean-aggregate.md', 'docs/minimize.md', 'dist/lean-kernel/lean-aggregate/worker.js', ...leanFiles])).toEqual([])
   const assets = runtimeAssets()
   for (const dir of ['py', 'rb', 'ex', 'jvm', 'rs', 'go', 'swift', 'sol']) expect(assets.some(f => f.startsWith(`${dir}/`))).toBe(true)
   expect(missing(assets.map(f => `dist/core/${f}`))).toEqual([])

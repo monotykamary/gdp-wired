@@ -28,7 +28,7 @@
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
 import {asset, type Answer, type Harness, type Leaf, type PArg, type SModule, type SType, type StepOptions, type StepRead, buildCheck, compileLimit, entryNames, extractStep, node, stubbed} from './extract-step.ts'
-export {proveRule, proveSteps} from './dsl.ts'
+export {minimizeRun, minimizeRunDetailed, proveRule, proveSteps} from './dsl.ts'
 
 export type SwiftOptions = StepOptions & {
   // The toolchain's `swift` (by default the one on the PATH; $GDP_SWIFT).

@@ -51,7 +51,7 @@ import {type CheckOptions, type Evidence, check} from './extract-check.ts'
 import {extractOrm, type OrmOptions} from './extract-orm.ts'
 export type {OrmOptions} from './extract-orm.ts'
 // (a rule read is proven from the same import: proveRule(x.rule!, [x.rule!.law(...)]))
-export {proveRule, proveSteps} from './dsl.ts'
+export {minimizeRun, minimizeRunDetailed, proveRule, proveSteps} from './dsl.ts'
 
 export type ExtractOptions = Omit<ReadOptions, 'entry' | 'functions'> & {
   // The class, reducer, slice or factory read (by default the one the file's exports have that reads), or several
