@@ -301,12 +301,26 @@ function* expandInitializers(t: Target, o: Opts, laws: Scoped[], rows: ReadRule[
   }
   return out
 }
-// Extract C comment bodies (`// ...` and `/* ... */`), skipping string and char literals.
+// Extract C comment bodies (`// ...` and `/* ... */`), skipping string literals, char literals,
+// and C23 preprocessing numbers with digit separators (e.g. `1'000`, `0xDE'AD`).
 function cCommentTexts(src: string): string[] {
   const out: string[] = []
+  const isIdent = (c: string | undefined) => !!c && /[A-Za-z0-9_$]/.test(c)
+  const isDigit = (c: string | undefined) => !!c && c >= '0' && c <= '9'
+  const isPpCont = (c: string | undefined) => !!c && /[0-9A-Za-z_.]/.test(c)
   for (let i = 0; i < src.length; i++) {
-    const ch = src[i]
-    if (ch === '"' || ch === "'") {
+    const ch = src[i]!
+    if ((isDigit(ch) && !isIdent(src[i - 1])) || (ch === '.' && isDigit(src[i + 1]))) {
+      let j = i + (ch === '.' ? 2 : 1)
+      while (j < src.length) {
+        const c = src[j]!
+        if ((c === 'e' || c === 'E' || c === 'p' || c === 'P') && (src[j + 1] === '+' || src[j + 1] === '-')) { j += 2; continue }
+        if (c === "'" && /[0-9A-Za-z_]/.test(src[j + 1] ?? '')) { j += 2; continue }
+        if (isPpCont(c)) { j++; continue }
+        break
+      }
+      i = j - 1
+    } else if (ch === '"' || ch === "'") {
       const q = ch
       for (i++; i < src.length; i++) {
         if (src[i] === '\\') { i++; continue }
@@ -326,10 +340,12 @@ function cCommentTexts(src: string): string[] {
   }
   return out
 }
-// Accept `// gdp: safety`, `/* gdp: safety */`, inline comments, multiline doc comments, and
-// comments with trailing text (e.g. `// gdp: safety (Stage 1)` or `/* gdp: safety: ring */`).
-const SAFETY_TAG_RE = /(?:^|[\s*])gdp:[ \t]*safety(?=$|(?![ \t]*=)[\s:;,—–([]|[ \t]+-[ \t])/
+// Accept `// gdp: safety`, `/* gdp: safety */`, case/punctuation variants (`GDP: safety`,
+// `gdp: safety.`, `gdp: safety!`, `TODO(gdp: safety)`, `gdp: safety's on`), inline comments,
+// multiline doc comments, and trailing text, while rejecting assignments like `gdp: safety = false`.
+const SAFETY_TAG_RE = /\bgdp[ \t]*:[ \t]*safety\b(?![ \t]*=)/i
 const SAFETY_LOOKALIKE_RE = /\bgdp[ \t]*:[ \t]*safe\w*(?:[ \t]*=[ \t]*\S+)?/i
+const SAFETY_LOOKALIKE_NOTE_RE = /looks like a gdp: safety directive/
 const hasSafetyTag = (t: Target): boolean =>
   t.lang === 'c' && t.files.some(f => cCommentTexts(fs.readFileSync(f, 'utf8')).some(c => SAFETY_TAG_RE.test(c)))
 const safetyLookalikeNote = (t: Target): string | undefined => {
@@ -969,6 +985,7 @@ export const proposedLaws = (x: Extraction, lang: Lang, ms = 2000): {shown: LawO
 const ROLE: Record<Name['role'], string> = {state: 'state', param: 'made with', input: 'request', answer: 'answered', result: 'result', failed: 'failed', method: 'method', clock: 'clock', const: 'constant'}
 function printRule(r: RuleOut, o: Opts) {
   out(`${r.file}${r.entry ? `: ${r.entry}` : ''}${r.ctor !== undefined ? ` [ctor ${r.ctor}]` : ''} (${r.lang})`)
+  const safetyWarnings = r.notes.filter(n => SAFETY_LOOKALIKE_NOTE_RE.test(n))
   if (!r.ok) {
     for (const f of r.refusals) out(`  ${paint('yellow', `refused at ${f.where}:`)} ${f.what}`)
   } else {
@@ -980,6 +997,7 @@ function printRule(r: RuleOut, o: Opts) {
     const w = Math.min(36, Math.max(...r.names.map(n => label(n).length), 8))
     for (const n of r.names) out(`    ${paint('dim', `${label(n).padEnd(w)}  ${ROLE[n.role].padEnd(9)} ${n.rule}${n.none ? `${n.rule ? ', ' : ''}None: ${n.none}` : ''}${n.map ? ` (cells: ${n.map.fields.join(', ')}${n.map.tpl ? `; key ${JSON.stringify(n.map.tpl)}` : ''})` : ''}${n.role === 'const' ? String(n.value) : ''}`)}`)
   }
+  for (const n of safetyWarnings) out(`  ${paint('yellow', 'warning:')} ${n}`)
   const law = (l: LawOut, proposed: boolean) => {
     out(`    ${paint(VERDICT[l.verdict], l.verdict)}${' '.repeat(Math.max(0, 9 - l.verdict.length))}${l.name}${l.from ? ' (from any state)' : ''}${proposed ? '' : `  ${paint('dim', `(${l.where})`)}`}`)
     if (!proposed && l.verdict !== 'proven') out(`             ${l.expr}`)
@@ -1008,7 +1026,10 @@ function printRule(r: RuleOut, o: Opts) {
     if ('why' in r.safety) out(`    ${paint('yellow', 'unchecked')}: ${r.safety.why}`)
     else {
       const color = (s: string) => s === 'proven' ? 'green' : s === 'broken' ? 'red' : 'yellow'
-      out(`    ${paint(color(r.safety.status), r.safety.status)}`)
+      const cov = r.safety.coveredFunctions.length ? r.safety.coveredFunctions.join(', ') : 'none'
+      const helpers = r.safety.coveredHelpers?.length ? `; static helpers inlined: ${r.safety.coveredHelpers.join(', ')}` : ''
+      out(`    ${paint(color(r.safety.status), r.safety.status)} (covers: ${cov}${helpers})`)
+      if (r.safety.uncheckedFunctions?.length) out(`    ${paint('yellow', 'unchecked functions:')} ${r.safety.uncheckedFunctions.join(', ')}`)
       for (const s of r.safety.issues) {
         out(`    ${paint(color(s.status), s.status)}: ${s.kind} at ${s.where}`)
         if (s.replay?.requests.length) out(`      run: ${s.replay.requests.join(' -> ')}`)
@@ -1063,7 +1084,8 @@ export async function check(targets: string[], given: Partial<Opts> = {}, each?:
   for (const p of targets) for (const t of targetsOf(p)) { const rs = await checkTarget(t, o); all.push(...rs); if (each) rs.forEach(each) }
   const stated = all.flatMap(r => r.laws)
   // A sampled source translation cannot turn an unknown proof into a successful check.
-  const uncheckedSafety = all.some(r => r.safety && ('why' in r.safety || r.safety.status === 'unchecked' || r.safety.status === 'unproven'))
+  const safetyLookalike = all.some(r => r.notes.some(n => SAFETY_LOOKALIKE_NOTE_RE.test(n)))
+  const uncheckedSafety = safetyLookalike || all.some(r => r.safety && ('why' in r.safety || r.safety.status === 'unchecked' || r.safety.status === 'unproven'))
   const brokenSafety = all.some(r => r.safety && !('why' in r.safety) && r.safety.status === 'broken')
   return {rules: all, exit: uncheckedSafety || stated.some(l => l.verdict === 'unknown' || l.translation === 'unchecked' || l.translation === 'error') ? 2 : brokenSafety || stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') || o.security && all.some(r => !r.ok) ? 2 : 0}
 }

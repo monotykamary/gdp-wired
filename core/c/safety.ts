@@ -22,7 +22,14 @@ export type CSafetyStatus = 'proven' | 'broken' | 'unproven' | 'unchecked'
 export type CSafetyRun = {params: Record<string, number>, trace: Record<string, unknown>[]}
 export type CSafetyReplay = {built: boolean, requests: string[], reports: string[], states: string[], stderr: string, matchedSite: boolean}
 export type CSafetyIssue = {where: string, kind: CSafetyKind, status: CSafetyStatus, replay?: CSafetyReplay, why?: string}
-export type CSafetyResult = {status: CSafetyStatus, issues: CSafetyIssue[], assumptions: readonly string[]}
+export type CSafetyResult = {
+  status: CSafetyStatus,
+  issues: CSafetyIssue[],
+  assumptions: readonly string[],
+  coveredFunctions: readonly string[],
+  coveredHelpers?: readonly string[],
+  uncheckedFunctions?: readonly string[],
+}
 
 export type CSafetyProofBundle =
   | {kind: 'usual', machine: Machine, laws: Law[], proof: {instances: Record<string, Instances>, trees: Record<string, Tree>}}
@@ -44,10 +51,20 @@ export const cSafetyArtifactOf = (result: CSafetyResult): CSafetyArtifact | unde
 const assumptions = [
   'ABI & types (assumption): Clang target uses 8-bit char, 16-bit short, 32-bit int, and two’s-complement signed integers; only covered scalar types up to 32 bits, constant lookup tables, and fixed arrays of known extent are modeled.',
   'Ownership, zeroed start & aliasing (assumption): Selected methods execute sequentially on one live, zero-initialized receiver (or single-declaration file-local static globals from their C initialization) with non-aliasing receiver and scalar out-parameters, no concurrency, and no external mutation from other translation units.',
-  'Checked TU closure & failure paths (checked): Non-selected functions in the translation unit (including narrowed method lists, non-first-parameter writers, void*/pointer callbacks, and bodyless prototypes taking the entry type or pointers) are refused unless proven unable to write state; configured normal failure returns (fails) are refused if any failure path writes state prior to returning.',
+  'Checked TU closure & failure paths (checked): Every function with a body in the translation unit must be covered as a selected method or an inlined file-local static helper (any other function body — including narrowed-out functions, non-first-parameter functions, by-value receivers, free functions, unused static helpers, and void*/pointer callbacks — is refused as unchecked and named); bodyless prototypes taking the entry type or pointers, extern/pointer/entry-typed globals, and configured normal failure returns (fails) that write state prior to returning are also refused.',
   'First-fault & replay scope: Only the first tracked array/table-bounds, signed-overflow, or division/remainder fault is checked. Broken obligations require site-matched ASan/UBSan replay (matchedSite); unproven sites are never claimed proven or broken. Abstract stutter on fault is a monitor convention, not native rollback.',
 ] as const
-export const uncheckedCSafety = (issues: CSafetyIssue[] = []): CSafetyResult => ({status: 'unchecked', issues, assumptions})
+export const uncheckedCSafety = (
+  issues: CSafetyIssue[] = [],
+  coverage?: {coveredFunctions?: readonly string[], coveredHelpers?: readonly string[], uncheckedFunctions?: readonly string[]},
+): CSafetyResult => ({
+  status: 'unchecked',
+  issues,
+  assumptions,
+  coveredFunctions: coverage?.coveredFunctions ?? [],
+  ...(coverage?.coveredHelpers?.length ? {coveredHelpers: coverage.coveredHelpers} : {}),
+  ...(coverage?.uncheckedFunctions?.length ? {uncheckedFunctions: coverage.uncheckedFunctions} : {}),
+})
 
 const limits = ({bits, signed}: {bits: number, signed: boolean}): [number, number] => signed ? [-(2 ** (bits - 1)), 2 ** (bits - 1) - 1] : [0, 2 ** bits - 1]
 
@@ -437,8 +454,11 @@ export function replaySafety(o: {
   const work = fs.mkdtempSync(`${os.tmpdir()}/gdp-replay-`), h = `${work}/harness.c`, bin = `${work}/harness`, inFile = `${work}/in.jsonl`, outFile = `${work}/out.jsonl`
   try {
     fs.writeFileSync(h, o.harness)
+    // The generated replay harness uses POSIX sigsetjmp/siglongjmp/setitimer, which strict
+    // -std=c99/c11/c17/c23 hides on glibc/BSD; keep the same C standard year in GNU mode for replay.
+    const replayFlags = o.flags.map(f => f.replace(/^-std=c(\d+)$/, '-std=gnu$1'))
     const b = cp.spawnSync(o.clang ?? 'clang', [
-      ...o.flags, '-w', '-O0', '-g', '-fno-omit-frame-pointer',
+      ...replayFlags, '-w', '-O0', '-g', '-fno-omit-frame-pointer',
       '-fsanitize=address,undefined', '-fsanitize-recover=all',
       ...(o.strictFlex ?? []), h, '-o', bin,
     ], {encoding: 'utf8', timeout: 60_000})
@@ -498,7 +518,10 @@ export function analyzeCSafety(
   domains: Record<string, 'nat' | 'int'>,
   opts: {replay?: (run: CSafetyRun, site: CSafetySite) => CSafetyReplay, searchMs?: number} = {},
 ): CSafetyResult {
-  if (!sites.length) return uncheckedCSafety()
+  const coveredFunctions = read.methods.map(m => m.name)
+  const coveredHelpers = c.helpers?.length ? [...c.helpers] : undefined
+  const coverage = {coveredFunctions, ...(coveredHelpers ? {coveredHelpers} : {})}
+  if (!sites.length) return uncheckedCSafety([], coverage)
   // A single source site can appear on several symbolic paths or events.
   const unique = new Map<string, CSafetySite>()
   for (const site of sites) {
@@ -511,11 +534,11 @@ export function analyzeCSafety(
   const {domain, sorts} = inputDomain(read, c)
   const {model, alarmNames} = monitorCSafety(read.model, all, domain)
   const x = fromSafetyModel(model, `${c.entry}.c`, {...domains, ...sorts})
-  if (!x.ok || !x.rule) return uncheckedCSafety(all.map(s => issue(s, 'unchecked')))
+  if (!x.ok || !x.rule) return uncheckedCSafety(all.map(s => issue(s, 'unchecked')), coverage)
   const rule = x.rule, machine = rule.machine
   const laws = x.invariants ?? []
   const first = (read.model.laws ?? []).length, targets = laws.slice(first, first + all.length)
-  if (targets.length !== all.length) return uncheckedCSafety(all.map(s => issue(s, 'unchecked')))
+  if (targets.length !== all.length) return uncheckedCSafety(all.map(s => issue(s, 'unchecked')), coverage)
   const modelInvariants = [...laws.slice(0, first), ...laws.slice(first + all.length)]
   const base = [...rule.kindLaws(), ...modelInvariants]
   const searchMs = opts.searchMs ?? 25_000
@@ -523,7 +546,7 @@ export function analyzeCSafety(
   const jointly = proveCSafetyTarget(rule, machine, base, modelInvariants, targets, searchMs)
   if (jointly.proven) {
     const issues = all.map(site => issue(site, 'proven'))
-    const result: CSafetyResult = {status: 'proven', issues, assumptions}
+    const result: CSafetyResult = {status: 'proven', issues, assumptions, ...coverage}
     safetyArtifacts.set(result, {rule, machine, source: x.source ?? '', baseLaws: base, targetLaws: targets, jointProof: jointly.bundle, siteProofs: targets.map(() => jointly.bundle)})
     return result
   }
@@ -577,7 +600,7 @@ export function analyzeCSafety(
       if (verifyCSafetyProof(machine, targets, bundle)) jointProof = bundle
     }
   }
-  const result: CSafetyResult = {status, issues, assumptions}
+  const result: CSafetyResult = {status, issues, assumptions, ...coverage}
   safetyArtifacts.set(result, {rule, machine, source: x.source ?? '', baseLaws: base, targetLaws: targets, ...(jointProof ? {jointProof} : {}), siteProofs})
   return result
 }

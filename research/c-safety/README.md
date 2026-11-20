@@ -1,6 +1,6 @@
 # C safety (Stage 1)
 
-See [`STAGE1.md`](./STAGE1.md) and [`docs/FRONTENDS.md#opt-in-c-safety-stage-1`](../../docs/FRONTENDS.md#opt-in-c-safety-stage-1) for the Stage 1 C memory & UB safety implementation summary, the four stated assumptions and mechanically checked premises (ABI/types, ownership/zeroed start/aliasing, TU closure including bodyless prototypes and `fails` paths, first-fault/replay scope), independent soundness-review fixes, bounds-check corpus & UBSan replay results, Lean 4 recheck axioms, and exact-commit Boat gate receipts.
+See [`STAGE1.md`](./STAGE1.md) and [`docs/FRONTENDS.md#opt-in-c-safety-stage-1`](../../docs/FRONTENDS.md#opt-in-c-safety-stage-1) for the Stage 1 C memory & UB safety implementation summary, the four stated assumptions and mechanically checked premises (ABI/types, ownership/zeroed start/aliasing, closed-TU function coverage with explicit `coveredFunctions`/`uncheckedFunctions` reporting, bodyless prototypes, globals, and `fails` paths, first-fault/replay scope), independent soundness-review fixes, bounds-check corpus & UBSan replay results, Lean 4 recheck axioms, and exact-commit Boat gate receipts.
 
 ## Research & Lean export scripts
 

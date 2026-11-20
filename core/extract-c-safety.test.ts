@@ -6,7 +6,7 @@ import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {proveLaws} from '../kernel/prove.ts'
-import {check} from './cli.ts'
+import {check, main} from './cli.ts'
 import {clangDump, readC} from './c/reader.ts'
 import {analyzeCSafety, cSafetyArtifactOf, verifyCSafetyProof, type CSafetyProofBundle} from './c/safety.ts'
 import {bool, rule} from './dsl.ts'
@@ -711,7 +711,7 @@ int top(struct ring *r) {
   expect(topOob?.replay?.reports.join('\n')).toMatch(/index 8 out of bounds/)
 }, 90_000)
 
-withClang('Review Probe 2: unselected TU writers (non-first-param, void* callback, int* writer, wrapper) are refused', () => {
+withClang('Review Probe 2: unselected TU functions (writers, callbacks, free functions) are refused and named', () => {
   const nonMethodWriter = analyze(`#include <stdint.h>
 struct ring { int32_t n; int32_t a[8]; };
 int32_t get(struct ring *r) { return r->a[r->n]; }
@@ -719,6 +719,7 @@ void set_n(int32_t k, struct ring *r) { r->n = k; }
 `)
   expect(nonMethodWriter.ok).toBe(false)
   expect(nonMethodWriter.safety?.status).toBe('unchecked')
+  expect(nonMethodWriter.safety?.uncheckedFunctions).toEqual(['set_n'])
 
   const voidCtxCallback = analyze(`#include <stdint.h>
 struct ring { int32_t n; int32_t a[8]; };
@@ -727,6 +728,7 @@ void on_event(void *ctx) { struct ring *r = ctx; r->n = 8; }
 `)
   expect(voidCtxCallback.ok).toBe(false)
   expect(voidCtxCallback.safety?.status).toBe('unchecked')
+  expect(voidCtxCallback.safety?.uncheckedFunctions).toEqual(['on_event'])
 
   const ptrWriter = analyze(`#include <stdint.h>
 struct ring { int32_t n; int32_t a[8]; };
@@ -735,6 +737,7 @@ void corrupt(int32_t *p) { *p = 8; }
 `)
   expect(ptrWriter.ok).toBe(false)
   expect(ptrWriter.safety?.status).toBe('unchecked')
+  expect(ptrWriter.safety?.uncheckedFunctions).toEqual(['corrupt'])
 
   const wrapperCallingStaticHelper = analyze(`#include <stdint.h>
 struct ring { int32_t n; int32_t a[8]; };
@@ -744,18 +747,32 @@ void evil(int32_t k, struct ring *r) { set_helper(r, k); }
 `)
   expect(wrapperCallingStaticHelper.ok).toBe(false)
   expect(wrapperCallingStaticHelper.safety?.status).toBe('unchecked')
+  expect(wrapperCallingStaticHelper.safety?.uncheckedFunctions).toEqual(['evil'])
 
-  // Positive control: a provably read-only non-selected function may coexist safely.
-  const readOnlyCoexist = analyze(`#include <stdint.h>
+  // An unselected free function (even read-only on struct ring, e.g. signed overflow a + b) must be refused and named.
+  const freeFnOverflow = analyze(`#include <stdint.h>
 struct ring { int32_t n; int32_t a[8]; };
 int32_t get(struct ring *r) { return r->a[r->n]; }
 int32_t add2(int32_t a, int32_t b) { return a + b; }
 `)
-  expect(readOnlyCoexist.ok, JSON.stringify(readOnlyCoexist.refusals)).toBe(true)
-  expect(readOnlyCoexist.safety?.status).toBe('proven')
+  expect(freeFnOverflow.ok).toBe(false)
+  expect(freeFnOverflow.safety?.status).toBe('unchecked')
+  expect(freeFnOverflow.safety?.coveredFunctions).toEqual(['get'])
+  expect(freeFnOverflow.safety?.uncheckedFunctions).toEqual(['add2'])
+
+  // Positive control: a file-local static helper actually inlined and inventoried by get() is covered.
+  const staticHelperCovered = analyze(`#include <stdint.h>
+struct ring { int32_t n; int32_t a[8]; };
+static int32_t clamp_idx(int32_t i) { return (i >= 0 && i < 8) ? i : 0; }
+int32_t get(struct ring *r) { return r->a[clamp_idx(r->n)]; }
+`)
+  expect(staticHelperCovered.ok, JSON.stringify(staticHelperCovered.refusals)).toBe(true)
+  expect(staticHelperCovered.safety?.status).toBe('proven')
+  expect(staticHelperCovered.safety?.coveredFunctions).toEqual(['get'])
+  expect(staticHelperCovered.safety?.coveredHelpers).toEqual(['clamp_idx'])
 }, 90_000)
 
-withClang('Review Probe 3: narrowing methods/functions refuses dropped state writers and allows read-only readers', () => {
+withClang('Review Probe 3: narrowing methods/functions refuses any dropped TU function (writer or reader) and names it', () => {
   const droppedWriter = analyze(`#include <stdint.h>
 struct ring { int32_t n; int32_t a[8]; };
 int32_t get(struct ring *r) { return r->a[r->n]; }
@@ -763,6 +780,7 @@ void set(struct ring *r, int32_t k) { r->n = k; }
 `, {methods: ['get']})
   expect(droppedWriter.ok).toBe(false)
   expect(droppedWriter.safety?.status).toBe('unchecked')
+  expect(droppedWriter.safety?.uncheckedFunctions).toEqual(['set'])
 
   const droppedGlobalWriter = analyze(`static int buf[4];
 static int cursor = 0;
@@ -771,6 +789,7 @@ int read_cur(void) { return buf[cursor]; }
 `, {entry: 'gbuf', methods: ['read_cur']}, 'gbuf.c')
   expect(droppedGlobalWriter.ok).toBe(false)
   expect(droppedGlobalWriter.safety?.status).toBe('unchecked')
+  expect(droppedGlobalWriter.safety?.uncheckedFunctions).toEqual(['set_cursor'])
 
   const emptyMethods = analyze(`struct ring { int slots[4]; };
 void put(struct ring *r, int i) { if (i >= 0 && i < 4) r->slots[i] = 1; }
@@ -778,14 +797,26 @@ void put(struct ring *r, int i) { if (i >= 0 && i < 4) r->slots[i] = 1; }
   expect(emptyMethods.ok).toBe(false)
   expect(emptyMethods.safety?.status).toBe('unchecked')
 
-  // Positive control: narrowing away a provably read-only observer is allowed.
-  const droppedReadOnly = analyze(`#include <stdint.h>
+  // Narrowing away even a read-only function leaves it unchecked -> refused and named.
+  const droppedReader = analyze(`#include <stdint.h>
 struct ring { int32_t n; int32_t a[8]; };
 int32_t get(struct ring *r) { return r->a[r->n]; }
 int32_t current_n(const struct ring *r) { return r->n; }
 `, {methods: ['get']})
-  expect(droppedReadOnly.ok, JSON.stringify(droppedReadOnly.refusals)).toBe(true)
-  expect(droppedReadOnly.safety?.status).toBe('proven')
+  expect(droppedReader.ok).toBe(false)
+  expect(droppedReader.safety?.status).toBe('unchecked')
+  expect(droppedReader.safety?.coveredFunctions).toEqual(['get'])
+  expect(droppedReader.safety?.uncheckedFunctions).toEqual(['current_n'])
+
+  // Positive control: selecting every function in the TU proves safe and lists exact coveredFunctions.
+  const allSelected = analyze(`#include <stdint.h>
+struct ring { int32_t n; int32_t a[8]; };
+int32_t get(struct ring *r) { return r->a[r->n]; }
+int32_t current_n(const struct ring *r) { return r->n; }
+`, {methods: ['get', 'current_n']})
+  expect(allSelected.ok, JSON.stringify(allSelected.refusals)).toBe(true)
+  expect(allSelected.safety?.status).toBe('proven')
+  expect(allSelected.safety?.coveredFunctions).toEqual(['get', 'current_n'])
 }, 90_000)
 
 withClang('Review Probe 4: unsigned wrap, signed/unsigned cmp, div-m1, outparam, u8-inc, shortcircuit, mod-neg never prove safe', () => {
@@ -953,10 +984,11 @@ int32_t get(struct ring *r) { return r->a[r->n]; }
       expect(res.rules[0]?.safety, `${fname} safety`).toMatchObject({status: 'proven'})
     }
 
-    // Lookalike comment (`// gdp: safe`) emits a clear warning note.
+    // Lookalike comment (`// gdp: safe`) emits a clear warning note and exits 2 (non-zero).
     const typoFile = join(dir, 'typo.c')
     writeFileSync(typoFile, '// gdp: safe\nstruct ring { int slots[8]; };\nvoid put(struct ring *r, int i) { if (i >= 0 && i < 8) r->slots[i] = 1; }\n')
     const rTypo = await check([typoFile], {entry: 'ring', propose: false})
+    expect(rTypo.exit).toBe(2)
     expect(rTypo.rules[0]?.safety).toBeUndefined()
     expect(rTypo.rules[0]?.notes.join('\n')).toMatch(/looks like a gdp: safety directive/)
 
@@ -966,6 +998,7 @@ int32_t get(struct ring *r) { return r->a[r->n]; }
       const strFile = join(strDir, 'str.c')
       writeFileSync(strFile, 'struct ring { int n; };\nvoid put(struct ring *r) { if (r->n < 4) r->n++; }\nstatic const char *tag = "// gdp: safety";\n')
       const rStr = await check([strFile], {entry: 'ring', propose: false})
+      expect(rStr.exit).toBe(0)
       expect(rStr.rules[0]?.safety).toBeUndefined()
     } finally {
       rmSync(strDir, {recursive: true, force: true})
@@ -974,6 +1007,157 @@ int32_t get(struct ring *r) { return r->a[r->n]; }
     rmSync(dir, {recursive: true, force: true})
   }
 }, 120_000)
+
+const runCliText = async (argv: string[]): Promise<{code: number, out: string}> => {
+  let out = ''
+  const orig = process.stdout.write
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    out += typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8')
+    return true
+  }) as typeof process.stdout.write
+  try {
+    const code = await main(argv)
+    return {code, out}
+  } finally {
+    process.stdout.write = orig
+  }
+}
+
+withClang('Review Probe 8: closed-TU function coverage (probe4 cli1/cli2/u01-u05/x04-x06/e05-e06) and explicit covered verdict', async () => {
+  const H = '#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\n'
+
+  // Unchecked function-body variants from probe4 (s3 u01-u05, s7 x04-x06):
+  const uncheckedCases: [string, string, string[], COptions?][] = [
+    ['u01-peek-second-param', H + 'int32_t get(struct ring *r) { return r->a[r->n]; }\nint32_t peek(int32_t z, struct ring *r) { return r->a[r->n]; }\n', ['peek']],
+    ['u02-free-overflow', H + 'int32_t get(struct ring *r) { return r->a[r->n]; }\nint32_t inc(int32_t x) { return x + 1; }\n', ['inc']],
+    ['u03-free-div', H + 'int32_t get(struct ring *r) { return r->a[r->n]; }\nint32_t dv(int32_t x, int32_t y) { return x / y; }\n', ['dv']],
+    ['u04-static-unused-reader', H + 'static int32_t peek(struct ring *r, int32_t i) { return r->a[i]; }\nint32_t get(struct ring *r) { return r->a[r->n]; }\n', ['peek']],
+    ['u05-narrowed-reader', H + 'int32_t get(struct ring *r) { return r->a[r->n]; }\nint32_t peek(struct ring *r, int32_t i) { return r->a[i]; }\n', ['peek'], {methods: ['get']}],
+    ['x04-byvalue', H + 'int32_t get(struct ring *r) { return r->a[r->n]; }\nint32_t peekv(struct ring r) { return r.a[r.n]; }\n', ['peekv']],
+    ['x06-static-called-by-unselected', H + 'static int32_t h(struct ring *r, int32_t i) { return r->a[i]; }\nint32_t peek(int32_t z, struct ring *r) { return h(r, z); }\nint32_t get(struct ring *r) { return r->a[r->n]; }\n', ['h', 'peek']],
+  ]
+  for (const [label, code, expectedUnchecked, opts] of uncheckedCases) {
+    const res = analyze(code, opts)
+    expect(res.ok, `${label} must be refused`).toBe(false)
+    expect(res.safety?.status, `${label} must be unchecked`).toBe('unchecked')
+    expect(res.safety?.coveredFunctions, `${label} coveredFunctions`).toEqual(['get'])
+    expect(res.safety?.uncheckedFunctions, `${label} uncheckedFunctions`).toEqual(expectedUnchecked)
+    for (const fn of expectedUnchecked) {
+      expect(res.refusals.map(r => r.what).join('; '), `${label} refusal names ${fn}`).toContain(fn)
+    }
+  }
+
+  // Unmodeled globals from probe4 s8 (e05-fnptr-global, e06-extern-ring-global):
+  const e05 = analyze(H + 'void (*hook)(struct ring *);\nint32_t get(struct ring *r) { return r->a[r->n]; }\n')
+  expect(e05.ok).toBe(false)
+  expect(e05.safety?.status).toBe('unchecked')
+  const e06 = analyze(H + 'extern struct ring R0;\nint32_t get(struct ring *r) { return r->a[r->n]; }\n')
+  expect(e06.ok).toBe(false)
+  expect(e06.safety?.status).toBe('unchecked')
+
+  // CLI end-to-end tests matching probe4/cli1 and probe4/cli2 (both inferred entry and explicit text output):
+  const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-p4-cli-'))
+  try {
+    const cli1 = join(dir, 'cli1_ring.c')
+    writeFileSync(cli1, `// gdp: safety
+#include <stdint.h>
+struct ring { int32_t n; int32_t a[8]; };
+int32_t get(struct ring *r) { return r->a[r->n]; }
+int32_t peek(int32_t i, struct ring *r) { return r->a[i]; }
+int32_t inc(int32_t x) { return x + 1; }
+int32_t dv(int32_t x, int32_t y) { return x / y; }
+`)
+    const r1 = await runCliText(['check', '--no-propose', cli1])
+    expect(r1.code).toBe(2)
+    expect(r1.out).toContain('unchecked (covers: get)')
+    expect(r1.out).toContain('unchecked functions: peek, inc, dv')
+
+    const cli2 = join(dir, 'cli2_ring.c')
+    writeFileSync(cli2, `// gdp: safety
+#include <stdint.h>
+struct ring { int32_t n; int32_t a[8]; };
+int32_t get(struct ring *r) { return r->a[r->n]; }
+int32_t peek(int32_t z, struct ring *r) { return r->a[r->n]; }
+int32_t peekv(struct ring r) { return r.a[r.n]; }
+`)
+    const r2 = await runCliText(['check', '--no-propose', cli2])
+    expect(r2.code).toBe(2)
+    expect(r2.out).toContain('unchecked (covers: get)')
+    expect(r2.out).toContain('unchecked functions: peek, peekv')
+
+    // Proven CLI text verdict explicitly names the covered functions and any inlined static helpers.
+    const covFile = join(dir, 'covered.c')
+    writeFileSync(covFile, `// gdp: safety
+#include <stdint.h>
+struct ring { int32_t n; int32_t a[8]; };
+static int32_t clamp8(int32_t i) { return (i >= 0 && i < 8) ? i : 0; }
+int32_t get(struct ring *r) { return r->a[clamp8(r->n)]; }
+void set(struct ring *r, int32_t i, int32_t v) { if (i >= 0 && i < 8) r->a[i] = v; }
+`)
+    const rCov = await runCliText(['check', '--no-propose', covFile])
+    expect(rCov.code).toBe(0)
+    expect(rCov.out).toContain('proven (covers: get, set; static helpers inlined: clamp8)')
+  } finally {
+    rmSync(dir, {recursive: true, force: true})
+  }
+}, 120_000)
+
+withClang('Review Probe 9: SAFETY_TAG_RE variants (t1-t10), C23 digit separators, and visible TEXT warning + exit 2 on lookalikes', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-p4-tags-'))
+  try {
+    const buggyBody = '#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t f(struct ring *r, int32_t i) { return r->a[i]; }\n'
+    const tagVariants: [string, string][] = [
+      ['t1_period.c', '// gdp: safety.\n' + buggyBody],
+      ['t2_docblock.c', '/** gdp: safety **/\n' + buggyBody],
+      ['t3_bang_prefix.c', '//! gdp: safety\n' + buggyBody],
+      ['t4_uppercase.c', '// GDP: safety\n' + buggyBody],
+      ['t5_spaces.c', '// gdp:  safety\n' + buggyBody],
+      ['t6_todo_paren.c', '// TODO(gdp: safety)\n' + buggyBody],
+      ['t7_excl.c', '// gdp: safety!\n' + buggyBody],
+      ['t8_apostrophe.c', "// gdp: safety's on\n" + buggyBody],
+      ['t9_tight_block.c', '/*gdp: safety*/\n' + buggyBody],
+      ['t10_prefix_text.c', '// see gdp: safety\n' + buggyBody],
+    ]
+    for (const [fname, code] of tagVariants) {
+      const f = join(dir, fname)
+      writeFileSync(f, code)
+      const res = await check([f], {entry: 'ring', propose: false})
+      expect(res.exit, `${fname} must trigger safety mode and fail broken (exit 1)`).toBe(1)
+      expect(res.rules[0]?.safety, `${fname} safety status`).toMatchObject({status: 'broken', coveredFunctions: ['f']})
+    }
+
+    // C23 digit separators before a trailing `// gdp: safety` or `/* gdp: safety */` comment must not be misparsed as char literals.
+    const c23Cases: [string, string, string[]][] = [
+      ['c23_dec.c', "#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t f(struct ring *r, int32_t i) { int32_t k = 1'000; (void)k; return r->a[i]; } // gdp: safety\n", ['-std=c23']],
+      ['c23_hex.c', "#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t f(struct ring *r, int32_t i) { uint32_t k = 0xDE'AD'BE'EFu; (void)k; return r->a[i]; } /* gdp: safety */\n", ['-std=c23']],
+      ['c23_bin.c', "#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t f(struct ring *r, int32_t i) { int32_t k = 0b1010'0101; (void)k; return r->a[i]; } // gdp: safety\n", ['-std=c23']],
+      ['c23_u8_char_quote.c', "#if 0\nunsigned char q = u8'\"'; // gdp: safety\n#endif\n" + buggyBody, []],
+    ]
+    for (const [fname, code, flags] of c23Cases) {
+      const f = join(dir, fname)
+      writeFileSync(f, code)
+      const res = await check([f], {entry: 'ring', ...(flags.length ? {flags} : {}), propose: false})
+      expect(res.exit, `${fname} must honor trailing gdp: safety directive`).toBe(1)
+      expect(res.rules[0]?.safety, `${fname} safety status`).toMatchObject({status: 'broken'})
+    }
+
+    // Lookalikes not honoured as `gdp: safety` must print warning in TEXT output AND exit 2 (non-zero).
+    const safeBody = 'struct ring { int slots[8]; };\nvoid put(struct ring *r, int i) { if (i >= 0 && i < 8) r->slots[i] = 1; }\n'
+    for (const [fname, header] of [
+      ['look_safe.c', '// gdp: safe\n'],
+      ['look_assign.c', '// gdp: safety = false\n'],
+      ['look_suffix.c', '// gdp: safety_mode\n'],
+    ] as const) {
+      const f = join(dir, fname)
+      writeFileSync(f, header + safeBody)
+      const rText = await runCliText(['check', '--entry', 'ring', '--no-propose', f])
+      expect(rText.code, `${fname} lookalike must exit 2`).toBe(2)
+      expect(rText.out, `${fname} lookalike must print warning in TEXT output`).toMatch(/warning:.*looks like a gdp: safety directive/)
+    }
+  } finally {
+    rmSync(dir, {recursive: true, force: true})
+  }
+}, 180_000)
 
 test('removing an abstract bounds guard does not prove absence of alarms', () => {
   const checkAbs = (guarded: boolean) => {

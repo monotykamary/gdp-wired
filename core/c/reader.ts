@@ -24,7 +24,16 @@ export type CTarget = {int: number, long: number, short: number, llong: number, 
 // (consts: the project's enum constants by name, one of a name only, for the laws' terms)
 // (globals: the file's own globals read as the state, the file's stem the entry: each global's name, those the
 // request gives (read but never written here, another file's or the hardware's) apart)
-export type CRead = {pkg: GoPkg, methods: string[], entry: string, cname: string, consts: Record<string, number>, globals?: {state: string[], inputs: string[], types: Record<string, string>, externs: string[]}}
+export type CRead = {pkg: GoPkg, methods: string[], helpers?: string[], entry: string, cname: string, consts: Record<string, number>, globals?: {state: string[], inputs: string[], types: Record<string, string>, externs: string[]}}
+export class SafetyUncoveredRefusal extends Refusal {
+  readonly coveredFunctions: readonly string[]
+  readonly uncheckedFunctions: readonly string[]
+  constructor(where: string, what: string, coveredFunctions: readonly string[], uncheckedFunctions: readonly string[]) {
+    super(where, what)
+    this.coveredFunctions = coveredFunctions
+    this.uncheckedFunctions = uncheckedFunctions
+  }
+}
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
 // (consecutive JSON values in one string, each with where it ends)
 class JSONDecoder {
@@ -1363,9 +1372,11 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     if (pickNames.length) {
       for (const want of pickNames) if (!validated.has(want)) bad(td0(), `selected method ${want} is missing or lacks a modeled receiver`)
     }
-    // Audit every non-selected function in the translation unit (including narrowed-out methods,
-    // non-first-parameter functions, and void*/pointer callbacks). Only functions proven unable
-    // to write modeled state or escape pointers may coexist outside the selected event set.
+    // Closed-TU function coverage: every function body in the translation unit (and project
+    // headers under root) must either be a selected, validated entry method or a file-local
+    // static helper actually inlined and inventoried by a selected method. Any other function
+    // body — including narrowed-out functions, non-first-parameter functions, by-value receivers,
+    // free functions, unused static helpers, and void*/pointer callbacks — is refused and named.
     const hasUnsafePtrType = (raw: string): boolean => /\bvoid\s*\*|\(\s*\*|\*\s*\*/.test(raw)
     const typeIdxMentionsEntry = (start: number): boolean => {
       if (!entryRec || start < 0) return false
@@ -1384,86 +1395,33 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     }
     const typeMentionsEntry = (ty?: {qualType: string, desugaredQualType?: string}): boolean =>
       !!entryRec && !!ty && typeIdxMentionsEntry(tyOf(ty))
-    const verifiedReadOnly = new Set<string>()
-    const checkUnselectedSafe = (name: string, f: CN, stack: Set<string>): void => {
-      if (verifiedReadOnly.has(name)) return
-      if (stack.has(name)) bad(f, `recursive unselected function ${name} cannot be proven free of state writes`)
-      if (f.variadic || f.inner?.some(k => k.kind.endsWith('Attr')) || hasMacroLoc(f.loc))
-        bad(f, `unselected function ${name} cannot be verified free of state writes`)
-      const rt = parseT(f.type!.qualType.slice(0, retEnd(f.type!.qualType)))
-      const rtk = T(rt).k
-      if (rtk !== 'void' && rtk !== 'bool' && rtk !== 'int')
-        bad(f, `unselected function ${name} returns non-scalar type ${T(rt).go ?? rtk} that may alias state`)
-      const body = f.inner?.find(c => c.kind === 'CompoundStmt')
-      if (!body) bad(f, `unselected function ${name} has no inspectable body`)
-      const localPlain = new Set<string>()
-      for (const q of params(f)) {
-        const raw = `${q.type?.qualType ?? ''} ${q.type?.desugaredQualType ?? ''}`
-        if (hasUnsafePtrType(raw)) bad(q, `unselected function ${name} accepts void* or indirect pointer parameter ${q.name ?? ''}`)
-        if (q.id && q.type) {
-          const qt = T(tyOf(q.type))
-          if (qt.k === 'int' || qt.k === 'bool') localPlain.add(q.id)
-        }
-      }
-      stack.add(name)
-      try {
-        const walkRo = (n: CN): void => {
-          if (n.kind === 'FunctionDecl') bad(n, `unselected function ${name} declares external function ${n.name ?? ''}`)
-          if (n.type && hasUnsafePtrType(`${n.type.qualType} ${n.type.desugaredQualType ?? ''}`))
-            bad(n, `unselected function ${name} uses void* or indirect pointer`)
-          if (n.kind === 'VarDecl') {
-            if (n.storageClass && n.storageClass !== 'auto' && n.storageClass !== 'register')
-              bad(n, `unselected function ${name} declares non-automatic local ${n.name ?? ''}`)
-            if (n.id && n.type) {
-              const qt = T(tyOf(n.type))
-              if (qt.k === 'int' || qt.k === 'bool') localPlain.add(n.id)
-            }
-          }
-          if (['GCCAsmStmt', 'AtomicExpr', 'VAArgExpr', 'StmtExpr', 'AddrLabelExpr'].includes(n.kind))
-            bad(n, `unselected function ${name} uses unmodeled ${n.kind}`)
-          if (CAST.has(n.kind)) {
-            if (['BitCast', 'IntegralToPointer', 'PointerToIntegral', 'FunctionToPointerDecay', 'BuiltinFnToFnPtr'].includes(n.castKind ?? ''))
-              bad(n, `unselected function ${name} performs pointer/bit cast ${n.castKind}`)
-            if (n.kind === 'CStyleCastExpr' && n.type && T(tyOf(n.type)).k === 'ptr')
-              bad(n, `unselected function ${name} casts to pointer type`)
-          }
-          if (n.kind === 'UnaryOperator') {
-            if (n.opcode === '&') bad(n, `unselected function ${name} takes an address with &`)
-            if (n.opcode === '++' || n.opcode === '--') {
-              const lhs = strip(n.inner![0]!)
-              if (lhs.kind !== 'DeclRefExpr' || !lhs.referencedDecl?.id || !localPlain.has(lhs.referencedDecl.id))
-                bad(n, `unselected function ${name} mutates non-local state`)
-            }
-          }
-          if ((n.kind === 'BinaryOperator' && n.opcode === '=') || n.kind === 'CompoundAssignOperator') {
-            const lhs = strip(n.inner![0]!)
-            if (lhs.kind !== 'DeclRefExpr' || !lhs.referencedDecl?.id || !localPlain.has(lhs.referencedDecl.id))
-              bad(n, `unselected function ${name} writes state or memory`)
-          }
-          if (n.kind === 'CallExpr') {
-            const cname = calleeName(n), callee = cname ? funcs.get(cname) : undefined
-            if (!callee) bad(n, `unselected function ${name} calls unverified function ${cname ?? '<indirect>'}`)
-            checkUnselectedSafe(cname!, callee, stack)
-            for (const c of (n.inner ?? []).slice(1)) walkRo(c)
-            return
-          }
-          for (const c of n.inner ?? []) walkRo(c)
-        }
-        walkRo(body)
-      } finally {
-        stack.delete(name)
-      }
-      verifiedReadOnly.add(name)
-    }
+    const uncheckedFns: {name: string, node: CN}[] = []
     for (const [name, f] of funcs) {
       if (validated.has(name)) continue
       if (f.storageClass === 'static' && validatedHelpers.has(name)) continue
-      checkUnselectedSafe(name, f, new Set())
+      uncheckedFns.push({name, node: f})
+    }
+    for (const n of top) {
+      if (n.kind === 'FunctionDecl' && !n.isImplicit && !own(n) && n.inner?.some(c => c.kind === 'CompoundStmt')) {
+        if (n.storageClass !== 'static' && !n.inline && !(n.name ?? '').startsWith('__'))
+          uncheckedFns.push({name: n.name ?? '<anonymous>', node: n})
+      }
+    }
+    if (uncheckedFns.length) {
+      const names = uncheckedFns.map(u => u.name)
+      const covered = [...validated]
+      throw new SafetyUncoveredRefusal(
+        pos(uncheckedFns[0]!.node),
+        `unchecked function${names.length === 1 ? '' : 's'} in translation unit: ${names.join(', ')} (every function with a body must be covered by C safety; covered: ${covered.length ? covered.join(', ') : 'none'})`,
+        covered,
+        names,
+      )
     }
     // Reject bodyless external function prototypes that could write modeled state (any prototype in
     // the TU referencing the entry struct, and any own-file/project prototype taking pointers,
     // indirect/function pointers, non-scalar values, variadics, or K&R unprototyped arguments),
-    // any non-own TU function body accessing modeled state, and main-file global fn-ptr escapes.
+    // any non-own TU function body accessing modeled state, extern/pointer/entry-typed globals,
+    // and main-file global fn-ptr escapes.
     const scanForeignStateAccess = (n: CN, fnName: string): void => {
       if (n.kind === 'MemberExpr' && entryRec && fields.get(n.referencedMemberDecl ?? '')?.rec === entryRec)
         bad(n, `external header function ${fnName} accesses entry struct ${entry}`)
@@ -1499,13 +1457,28 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
           scanForeignStateAccess(n, n.name ?? '<anonymous>')
         }
       }
-      if (n.kind === 'VarDecl' && mine(n) && n.init) {
-        const scanInit = (c: CN): void => {
-          if (c.kind === 'DeclRefExpr' && c.referencedDecl?.kind === 'FunctionDecl')
-            bad(c, `global ${n.name ?? ''} initializer references function ${c.referencedDecl.name}`)
-          for (const k of c.inner ?? []) scanInit(k)
+      if (n.kind === 'VarDecl' && !n.isImplicit) {
+        if (own(n)) {
+          if (!gfield.has(n.id!)) {
+            const raw = `${n.type?.qualType ?? ''} ${n.type?.desugaredQualType ?? ''}`
+            if (n.storageClass === 'extern')
+              bad(n, `extern global ${n.name ?? ''} is outside the closed translation unit`)
+            if (typeMentionsEntry(n.type))
+              bad(n, `global ${n.name ?? ''} references entry struct ${entry}`)
+            if (hasUnsafePtrType(raw) || (n.type && T(tyOf(n.type)).k === 'ptr'))
+              bad(n, `pointer or function-pointer global ${n.name ?? ''} is outside the closed translation unit`)
+          }
+          if (mine(n) && n.init) {
+            const scanInit = (c: CN): void => {
+              if (c.kind === 'DeclRefExpr' && c.referencedDecl?.kind === 'FunctionDecl')
+                bad(c, `global ${n.name ?? ''} initializer references function ${c.referencedDecl.name}`)
+              for (const k of c.inner ?? []) scanInit(k)
+            }
+            scanInit(n)
+          }
+        } else if (typeMentionsEntry(n.type)) {
+          bad(n, `external header global ${n.name ?? ''} references entry struct ${entry}`)
         }
-        scanInit(n)
       }
     }
     sitesFrozen = true
@@ -1557,7 +1530,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   // (the class's qualified name, which the harness spells: `this`'s type, as clang prints it)
   const thisOf = (n: CN): string | undefined => (n.kind === 'CXXThisExpr' ? n.type!.qualType : (n.inner ?? []).map(thisOf).find(Boolean))
   const self = cpp ? cxx.filter(m => m.$rec === entryRec).map(thisOf).find(Boolean)?.replace(/^const /, '').replace(/ \*$/, '') : undefined
-  return {pkg, methods, entry, cname: self ?? T(entryT).go!, consts: Object.fromEntries([...named].filter(([, v]) => Number.isSafeInteger(v))),
+  return {pkg, methods, ...(safety && validatedHelpers.size ? {helpers: [...validatedHelpers]} : {}), entry, cname: self ?? T(entryT).go!, consts: Object.fromEntries([...named].filter(([, v]) => Number.isSafeInteger(v))),
     ...(gmode ? {globals: {state: gnodes.map(g => g.name!), inputs: gnodes.filter(g => ginput.has(g.id!)).map(g => g.name!), types: Object.fromEntries(gnodes.map(g => [g.name!, g.type!.qualType])),
       // (declared only, another file's to define: the check defines it, zero at the start)
       externs: gnodes.filter(g => ![...globals.values()].some(d => d.name === g.name && (d.storageClass !== 'extern' || d.init))).map(g => g.name!)}} : {})}
