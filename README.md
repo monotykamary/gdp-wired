@@ -649,7 +649,7 @@ The npm package is built from `core/`, `kernel/` and `lean-kernel/` alone; nothi
 ## Running
 
 The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-wired/machine`), refutation run
-minimization (`gdp-wired/minimize`, also exported from `gdp-wired`, `gdp-wired/machine`, and every frontend subpath), composition
+minimization (`gdp-wired/minimize`, also exported from `gdp-wired` and every frontend subpath), composition
 (`gdp-wired/compose`), XState machines as charts (`gdp-wired/xstate`), rules read from the code (`gdp-wired/extract`, with
 `typescript` installed), Effect services (`gdp-wired/effect`, with `typescript` and `effect`), lemmas nobody stated (`gdp-wired/discover`), invariant
 inference (`gdp-wired/infer`), the

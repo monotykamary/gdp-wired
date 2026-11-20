@@ -12,7 +12,6 @@ subsequence of the caller's own requests that anyone can replay directly.
 
 - `gdp-wired` (the root entry point)
 - `gdp-wired/minimize` (the standalone subpath)
-- `gdp-wired/machine` (beside `search` and `interpret`)
 - every language frontend subpath (`gdp-wired/extract`, `gdp-wired/effect`,
   `gdp-wired/extract-py`, `gdp-wired/extract-rb`, `gdp-wired/extract-ex`,
   `gdp-wired/extract-rs`, `gdp-wired/extract-swift`, `gdp-wired/extract-go`,

@@ -80,11 +80,11 @@ test('mutation runner: separate public subpath with no runtime dependencies', as
   expect(typeof mod.deriveDecisionMutants).toBe('function')
 })
 
-test('run minimization: exported from root, machine and ./minimize subpath', async () => {
+test('run minimization: exported from root and ./minimize subpath', async () => {
   const e = pkg.exports['./minimize']!
   expect(e.types).toBe('./dist/core/minimize.d.ts')
   expect(build.files).toContain('core/minimize.ts')
-  for (const [sub, src] of [['', 'core/dsl.ts'], ['/minimize', 'core/minimize.ts'], ['/machine', 'core/machine.ts']] as const) {
+  for (const [sub, src] of [['', 'core/dsl.ts'], ['/minimize', 'core/minimize.ts']] as const) {
     const mod = await import(built ? `${pkg.name}${sub}` : `${root}${src}`) as Record<string, unknown>
     expect(typeof mod.minimizeRun).toBe('function')
     expect(typeof mod.minimizeRunDetailed).toBe('function')
