@@ -823,7 +823,7 @@ void bump(struct ring *r) { r->i++; }
 int32_t get(struct ring *r) { if (r->i < 250) return r->a[r->i]; return 0; }
 `, {safetySearchMs: 5_000})
   expect(u8Inc.ok).toBe(false)
-  expect(['broken', 'unproven']).toContain(u8Inc.safety?.status)
+  expect(['broken', 'unproven']).toContain(u8Inc.safety?.status ?? '')
 
   const modNeg = analyze(H + `struct ring { int32_t a[8]; };
 int32_t f(struct ring *r, int32_t i) { return r->a[i % 8]; }
