@@ -21,7 +21,7 @@ import {checkRefutation} from '../core/check.ts'
 import {observeCheckStep, observeTableCells} from '../core/meter.ts'
 import {admittedLinearSub as rowSub, admittedLinearAdd as rowAdd, admittedLinearScale as rowScale, admittedLinearCopy as rowCopy, admittedLinearVariable as rowVariable, visitLinearCells} from '../core/linear-admission.ts'
 import type {C, Counted, E, Law, Machine, MapUpdate} from '../core/machine.ts'
-import {parseWordDivisionName, wordDivisionArgs, wordDivisionFacts} from './word-division.ts'
+import {hasWordDivision, parseWordDivisionName, wordDivisionArgs, wordDivisionFacts} from './word-division.ts'
 import {type Constraint, type Lin, type Step} from '../core/solver.ts'
 import {fundedAdd as add,fundedConstant as k,fundedScale as scale,fundedSub as sub,fundedVariable as v,admittedLinearProduct,everyLinearCell} from '../core/linear-admission.ts'
 import {workMap,workFilter,workConcat,workStrings,workJoin,workSlice,workSetArray,workEntries,workJSON,workFlatMap,workArraySlice} from '../core/work-collections.ts'
@@ -824,26 +824,43 @@ export type Subst = {vars: Record<string, E>, maps: Record<string, (key: E) => E
 // record the kernel reads by a name of the rule or the certificate reads it so, and every Lin is built on no prototype,
 // where a name __proto__ is a key like any other.)
 export const own = <T>(r: Record<string, T>, k: string): T | undefined => (Object.hasOwn(r, k) ? r[k] : undefined)
-export function substE(e: E, s: Subst): E {
-  switch (e.op) {
-    case 'var': return own(s.vars, e.name) ?? e
-    case 'const': return e
-    case 'mul': return {...e, a: substE(e.a, s)}
-    case 'prod': return {...e, a: substE(e.a, s), b: substE(e.b, s)}
-    case 'if': return {op: 'if', c: substC(e.c, s), then: substE(e.then, s), else: substE(e.else, s)}
-    case 'get': { const key = substE(e.key, s), f = own(s.maps, e.map); return f ? f(key) : {op: 'get', map: e.map, key} }
-    case 'add': case 'sub': case 'min': case 'max': case 'tup': return {...e, a: substE(e.a, s), b: substE(e.b, s)}
-    case 'proj': return {...e, a: substE(e.a, s)}
-    default: return unreachable(e)
+function substWith(s: Subst) {
+  const me = new WeakMap<E, E>(), mc = new WeakMap<C, C>()
+  const se = (e: E): E => {
+    const hit = me.get(e)
+    if (hit !== undefined) return hit
+    let out: E
+    switch (e.op) {
+      case 'var': out = own(s.vars, e.name) ?? e; break
+      case 'const': out = e; break
+      case 'mul': case 'proj': { const a = se(e.a); out = a === e.a ? e : {...e, a}; break }
+      case 'if': { const c = sc(e.c), t = se(e.then), f = se(e.else); out = c === e.c && t === e.then && f === e.else ? e : {op: 'if', c, then: t, else: f}; break }
+      case 'get': { const key = se(e.key), f = own(s.maps, e.map); out = f ? f(key) : key === e.key ? e : {op: 'get', map: e.map, key}; break }
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': { const a = se(e.a), b = se(e.b); out = a === e.a && b === e.b ? e : {...e, a, b}; break }
+      default: return unreachable(e)
+    }
+    me.set(e, out)
+    return out
   }
+  const sc = (c: C): C => {
+    const hit = mc.get(c)
+    if (hit !== undefined) return hit
+    let out: C
+    if (c.op === 'flag') { const f = own(s.flags, c.name); if (!f) throw new Error(`unknown flag ${c.name}`); out = f }
+    else if (c.op === 'not') { const x = sc(c.x); out = x === c.x ? c : {op: 'not', x} }
+    else if (c.op === 'all') {
+      const keys = boundOf(c), vars = Object.fromEntries(Object.entries(s.vars).filter(([n]) => !keys.includes(n)))
+      const cc = substWith({...s, vars}).sc(c.c); out = cc === c.c ? c : {...c, c: cc}
+    } else if (c.op === 'and' || c.op === 'or') {
+      const xs = c.xs.map(sc); out = xs.every((y, i) => y === c.xs[i]) ? c : {op: c.op, xs}
+    } else { const a = se(c.a), b = se(c.b); out = a === c.a && b === c.b ? c : {...c, a, b} }
+    mc.set(c, out)
+    return out
+  }
+  return {se, sc}
 }
-export function substC(c: C, s: Subst): C {
-  if (c.op === 'flag') { const f = own(s.flags, c.name); if (!f) throw new Error(`unknown flag ${c.name}`); return f }
-  if (c.op === 'not') return {op: 'not', x: substC(c.x, s)}
-  if (c.op === 'all') { const keys = boundOf(c), vars = Object.fromEntries(Object.entries(s.vars).filter(([n]) => !keys.includes(n))); return {...c, c: substC(c.c, {...s, vars})} }
-  if (c.op === 'and' || c.op === 'or') return {op: c.op, xs: c.xs.map(y => substC(y, s))}
-  return {...c, a: substE(c.a, s), b: substE(c.b, s)}
-}
+export function substE(e: E, s: Subst): E { return substWith(s).se(e) }
+export function substC(c: C, s: Subst): C { return substWith(s).sc(c) }
 const mentions = (c: C, names: string[]): boolean => JSON.stringify(c).match(/"name":"([^"]+)"/g)?.some(m => names.includes(m.slice(8, -1))) ?? false
 // A precondition reads the params and nothing else: no state, no request, no map.
 const aboutParams = (c: C, params: string[]): boolean => !JSON.stringify(c).includes('"op":"get"') && (JSON.stringify(c).match(/"name":"([^"]+)"/g) ?? []).every(m => params.includes(m.slice(8, -1)))
@@ -915,8 +932,9 @@ const divisionArithmetic = (x: unknown, seen = new Set<object>()): boolean => {
   return Object.values(x).some(value => divisionArithmetic(value, seen))
 }
 
-const goal = (name: string, r: Run, conclusion: C): Goal => {
+const goal = (name: string, r: Run, conclusion: C, checkWord = true): Goal => {
   const hyps: C[] = [...r.hyps, {op: 'not', x: conclusion}]
+  if (!checkWord) return {name, hyps}
   // These are kernel-generated consequences of the reserved total Nat helpers,
   // never caller-supplied assumptions. Domain guards preserve invalid-input cases.
   const facts = wordDivisionFacts(hyps)
@@ -1465,7 +1483,7 @@ export function obligations(m: Machine, laws: Law[], instances: Record<string, I
   // A law about every two keys keeps its second key as it is: a fresh name nothing else reads, so the goal is about every
   // value of it too (the Lean twin reads it so).
   const proven = (law: Law) => (law.forall ? substC(law.holds, {vars: {[law.forall]: {op: 'var', name: `${law.forall}#`}}, maps: {}, flags: {}}) : law.holds)
-  const pre = preOf(m), u = updateOf(m), assume = m.assume ? [inlineFlags(m, m.assume)] : []
+  const pre = preOf(m), u = updateOf(m), assume = m.assume ? [inlineFlags(m, m.assume)] : [], hasWord = hasWordDivision([m, laws, instances])
   return laws.flatMap((law, i) => {
     if (only !== undefined && i !== only) return []
     // At the start: the precondition, and no request. One step: from a state where the laws hold, a request allowed.
@@ -1473,7 +1491,7 @@ export function obligations(m: Machine, laws: Law[], instances: Record<string, I
     const inst = own(instances, law.name) ?? {}
     const start = given(m, holds(from(startOf(m)), pre), inst)
     const turn = step(holds(given(m, from(), inst), [...pre, ...assume, ...assumed(laws, inst), ...closing(m, inst)]), u)
-    return [goal(`${law.name} @start`, start, atEnd(start, proven(law))), goal(`${law.name} @step`, turn, atEnd(turn, proven(law)))]
+    return [goal(`${law.name} @start`, start, atEnd(start, proven(law)), hasWord), goal(`${law.name} @step`, turn, atEnd(turn, proven(law)), hasWord)]
   })
 }
 
@@ -1729,10 +1747,10 @@ export function progressObligations(m0: Machine, laws: Law[], instances: Instanc
   // causes. Maps a request carries are left as any maps: the step is shown for all of them.
   const before = holds(given(m, from(), instances), [...preOf(m), ...assumed(laws, instances), p.when])
   const asked = holds(reading(before, p.request), closing(m, instances))
-  const caused = step(asked, updateOf(m))
+  const caused = step(asked, updateOf(m)), hasWord = hasWordDivision([m, laws, instances, p])
   return [
-    ...(own ? [goal(`${p.name}: the request is allowed`, asked, substC(inlineFlags(m, own), req))] : []),
-    goal(`${p.name}: the step it causes`, caused, across(caused, p.then, Object.keys(m.state), Object.keys(m.maps ?? {}), {inputs: p.request, flags})),
+    ...(own ? [goal(`${p.name}: the request is allowed`, asked, substC(inlineFlags(m, own), req), hasWord)] : []),
+    goal(`${p.name}: the step it causes`, caused, across(caused, p.then, Object.keys(m.state), Object.keys(m.maps ?? {}), {inputs: p.request, flags}), hasWord),
   ]
 }
 
@@ -1850,7 +1868,7 @@ export function stepLawObligations(machine: Machine, laws: Law[], instances: Ins
     run = step(holds(run, [...assumed(laws, instances), ...assume, ...(whens[j - 1] ? [inlineFlags(m, whens[j - 1]!)] : []), ...closing(m, instances)]), u)
     if (j < k) run = nameState(run, state, j)
   }
-  return [goal(k === 1 ? `${sl.name} @step law` : `${sl.name} @${k} steps`, run, across(run, sl.then, state, maps, {inputs: {}, flags: flagsOf(m)}))]
+  return [goal(k === 1 ? `${sl.name} @step law` : `${sl.name} @${k} steps`, run, across(run, sl.then, state, maps, {inputs: {}, flags: flagsOf(m)}), hasWordDivision([m, laws, instances, sl]))]
 }
 
 // The laws' proof and every step law's tree: all must check.
@@ -1941,7 +1959,8 @@ export function foldObligations(f: Fold, laws: Law[]): Goal[] {
   const assume = [...preOf(f), ...(f.assume ? [f.assume] : [])]
   const leaf = holds(from({vars: {...f.leaf}, maps: {}, flags: {}}), assume)
   const node = step(holds(from(), [...assume, ...laws.flatMap(h => [substC(h.holds, side('l_')), substC(h.holds, side('r_'))])]), {vars: f.node, maps: {}})
-  return laws.flatMap(law => [goal(`${law.name} @leaf`, leaf, atEnd(leaf, law.holds)), goal(`${law.name} @node`, node, atEnd(node, law.holds))])
+  const hasWord = hasWordDivision([f, laws])
+  return laws.flatMap(law => [goal(`${law.name} @leaf`, leaf, atEnd(leaf, law.holds), hasWord), goal(`${law.name} @node`, node, atEnd(node, law.holds), hasWord)])
 }
 
 // --- rationals: Rationals.lean's twin --------------------------------------------------------------------------------
@@ -2370,14 +2389,14 @@ export function countedObligations(m: Machine, laws: Law[], instances: Record<st
   const proven = (law: Law) => { const h = substC(law.holds, ren); return law.forall ? substC(h, {vars: {[law.forall]: {op: 'var', name: `${law.forall}#`}}, maps: {}, flags: {}}) : h }
   const all = declsOf(m), st = all.filter(d => stateOnly(m, d))
   const after = (at: Subst): CountDecl[] => st.map(d => ({...d, map: postName(d.map), below: substE(d.below, at), body: substE(d.body, at)}))
-  const pre = preOf(m), u = updateOf(m), assume = m.assume ? [inlineFlags(m, m.assume)] : []
+  const pre = preOf(m), u = updateOf(m), assume = m.assume ? [inlineFlags(m, m.assume)] : [], hasWord = hasWordDivision([m, laws, instances])
   return laws.flatMap((law, i) => {
     if (only !== undefined && i !== only) return []
     const inst = own(instances, law.name) ?? {}
     const start = given(m, holds(from(startOf(m)), pre), inst)
     const turn = step(holds(given(m, from(), inst), [...pre, ...assume, ...assumed(laws, inst), ...closing(m, inst)]), u)
-    return [{goal: goal(`${law.name} @start`, start, atEnd(start, proven(law))), decls: after(start.at)},
-      {goal: goal(`${law.name} @step`, turn, atEnd(turn, proven(law))), decls: [...all, ...after(turn.at)]}]
+    return [{goal: goal(`${law.name} @start`, start, atEnd(start, proven(law)), hasWord), decls: after(start.at)},
+      {goal: goal(`${law.name} @step`, turn, atEnd(turn, proven(law)), hasWord), decls: [...all, ...after(turn.at)]}]
   })
 }
 // witsOk: a certificate's witnesses are names nothing of the machine or its laws reads or binds: none of its names, bound

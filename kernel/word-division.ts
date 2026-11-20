@@ -83,6 +83,20 @@ export function wordDivisionValue(width: 8 | 16 | 32 | 64, part: 'q' | 'r' | 'c'
 // optional consequences, never add a stale trusted assumption. Positive facts
 // are always rebuilt from the current syntax. Legacy shared ASTs need no rescan.
 const wordFree = new WeakSet<object>()
+export function hasWordDivision(terms: unknown): boolean {
+  const seen = new WeakSet<object>()
+  const visit = (value: unknown): boolean => {
+    if (!value || typeof value !== 'object' || wordFree.has(value) || seen.has(value)) return false
+    seen.add(value)
+    if (!Array.isArray(value)) {
+      const node = value as Record<string, unknown>
+      if (node.op === 'get' && typeof node.map === 'string' && node.map.startsWith('worddiv$')) return true
+    }
+    for (const child of Object.values(value)) if (visit(child)) return true
+    return false
+  }
+  return visit(terms)
+}
 export function wordDivisionFacts(terms: unknown[]): C[] {
   const out: C[] = []
   const seen = new Set<object>()
@@ -149,7 +163,7 @@ export function wordDivisionFacts(terms: unknown[]): C[] {
       }
     }
     for (const child of Object.values(value)) hasWord = visit(child) || hasWord
-    if (!hasWord) wordFree.add(value)
+    if (!hasWord) { wordFree.add(value); seen.delete(value) }
     return hasWord
   }
   visit(terms)
