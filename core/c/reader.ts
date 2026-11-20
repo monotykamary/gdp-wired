@@ -18,7 +18,7 @@ import {Refusal, readerRun, statedRefusal} from '../extract-read.ts'
 type CN = {id?: string, kind: string, name?: string, inner?: CN[], type?: {qualType: string, desugaredQualType?: string, typeAliasDeclId?: string}, value?: string, opcode?: string, castKind?: string, isArrow?: boolean, isPostfix?: boolean,
   referencedDecl?: {id: string, kind: string, name: string, type?: {qualType: string}}, referencedMemberDecl?: string, previousDecl?: string, storageClass?: string, isImplicit?: boolean, completeDefinition?: boolean, tagUsed?: string, hasElse?: boolean,
   computeLHSType?: {qualType: string, desugaredQualType?: string}, computeResultType?: {qualType: string, desugaredQualType?: string}, init?: string, decl?: {id: string, kind: string}, loc?: L, range?: {begin: L, end: L}, $at?: At, $b?: At, $e?: At, $files?: Set<string>, $macroExpansions?: {spell: string, spellLine: number, expand: string, expandLine: number}[], [k: string]: unknown}
-type L = {offset?: number, file?: string, line?: number, col?: number, tokLen?: number, spellingLoc?: L, expansionLoc?: L, includedFrom?: unknown}
+type L = {offset?: number, file?: string, line?: number, col?: number, tokLen?: number, presumedFile?: string, presumedLine?: number, spellingLoc?: L, expansionLoc?: L, includedFrom?: unknown}
 type At = {file: string, line: number, col: number, off: number, tok: number}
 export type CSafetyMacroConfig = {
   target: string,
@@ -394,18 +394,20 @@ export function flagsFor(file: string, compileCommands?: string): string[] {
 // Where each node is: clang writes a location's file and line only where they change from the last one it wrote, in
 // the dump's order (an include's chain, `includedFrom`, doesn't count): read in that order, each node gets its own.
 function locate(root: CN) {
-  let file = '', line = 0
+  let file = '', line = 0, presumed: string | undefined
   const at = (l: L | undefined, files?: Set<string>, pairs?: {spell: string, spellLine: number, expand: string, expandLine: number}[]): At | undefined => {
     if (!l) return undefined
     if (l.spellingLoc || l.expansionLoc) {
-      const sp = at(l.spellingLoc, files, pairs), spFile = file, spLine = line
-      const ex = at(l.expansionLoc, files, pairs), exFile = file, exLine = line
+      const sp = at(l.spellingLoc, files, pairs), spFile = presumed === '<command line>' ? '<command line>' : file, spLine = line
+      const ex = at(l.expansionLoc, files, pairs), exFile = presumed === '<command line>' ? '<command line>' : file, exLine = line
       if (pairs && spFile && exFile) pairs.push({spell: spFile, spellLine: spLine, expand: exFile, expandLine: exLine})
       return ex ?? sp
     }
-    if (l.file !== undefined) file = l.file
+    if (l.file !== undefined) { file = l.file; presumed = l.presumedFile }
+    else if (l.presumedFile !== undefined) presumed = l.presumedFile
     if (l.line !== undefined) line = l.line
-    if (file && files) files.add(file)
+    const effFile = presumed === '<command line>' ? '<command line>' : file
+    if (effFile && files) files.add(effFile)
     return l.offset === undefined ? undefined : {file, line, col: l.col ?? 0, off: l.offset, tok: l.tokLen ?? 0}
   }
   const walk = (n: CN) => {
