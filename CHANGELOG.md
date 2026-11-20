@@ -3,6 +3,17 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.53.2
+
+### Fixed
+
+- Skip `@cover` solver checks when invariant inference only tests whether to
+  reserve time for a follow-up map-sum pass (`withMapSums(false)`). Rules with
+  uncovered broadcast (`each`) map writes no longer spend extra solver work
+  inside the invariant-search clock before the sums pass runs. Full `@cover`
+  checks remain unchanged whenever `withMapSums()` actually adds map sums, and
+  trusted kernel checking is untouched.
+
 ## 0.53.1
 
 ### Fixed
