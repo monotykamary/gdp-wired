@@ -1467,7 +1467,8 @@ withClang('Review Probe 12: macro expansion in system headers (mx1/mx2/w4/-D), s
     ] as const) {
       const rEnv = runCliText(['check', '--no-propose', cpFile], extraEnv)
       expect(rEnv.code, `${label} must exit 2 (env scrubbed)`).toBe(2)
-      expect(rEnv.out, `${label} must not prove`).not.toContain('proven')
+      expect(rEnv.out, `${label} must report unchecked`).toContain('unchecked (covers: none)')
+      expect(rEnv.out, `${label} must not prove`).not.toContain('proven (covers:')
     }
 
     // (3) q1/q2: #pragma clang system_header and _Pragma("clang system_header") refused (exit 2).
