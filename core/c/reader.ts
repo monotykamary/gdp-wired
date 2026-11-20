@@ -253,7 +253,7 @@ const PREPROC_OPERATORS = new Set([
 
 // All 9 C trigraph sequences. Refused outright anywhere in user files (and -D values) so
 // trigraph-mode differences between standards (e.g. gnu17 vs c11) can never hide code or macros.
-const TRIGRAPH_RE = /\?\?[=\/'()!<>-]/
+const TRIGRAPH_RE = /\?\?[=/'()!<>-]/
 
 type ClangRawTok = {
   kind: string,
@@ -745,8 +745,10 @@ function auditUserPreprocessor(o: {
           if (!isQuoted && !isAngled)
             throw new Refusal(where, 'computed or non-literal #include directive is outside the C safety subset')
         } else if (dir === 'pragma') {
-          if (!(rest.length === 1 && rest[0]!.kind === 'raw_identifier' && rest[0]!.text === 'once'))
-            throw new Refusal(where, `#pragma ${rest.map(t => t.text).join(' ') || '(empty)'} in user file is outside the C safety subset (only #pragma once is allowed)`)
+          if (!(rest.length === 1 && rest[0]!.kind === 'raw_identifier' && rest[0]!.text === 'once')) {
+            const fmtRest = rest.map((t, i) => (i > 0 && t.hadSpaceBefore ? ' ' : '') + t.text).join('')
+            throw new Refusal(where, `#pragma ${fmtRest || '(empty)'} in user file is outside the C safety subset (only #pragma once is allowed)`)
+          }
         } else if (dir === 'define') {
           const nameTok = rest[0]
           if (!nameTok || nameTok.kind !== 'raw_identifier')
@@ -1239,7 +1241,13 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   const refuse = (n: CN | undefined, what: string): never => { throw new Refusal(pos(n), what) }
   const pos = (n: CN | undefined) => (n?.$at && own(n) ? `${path.basename(n.$at.file)}:${n.$at.line}:${n.$at.col}` : base)
   const src = (f: string) => { let s = srcs.get(f); if (s === undefined) { try { s = fs.readFileSync(path.resolve(f), 'utf8') } catch { s = '' }; srcs.set(f, s) } return s }
-  const text = (n: CN) => (n.$b && n.$e && n.$b.file === n.$e.file && own(n) && n.$e.off + n.$e.tok >= n.$b.off ? src(n.$b.file).slice(n.$b.off, n.$e.off + n.$e.tok) || n.kind : n.kind)
+  const srcBytesMap = new Map<string, Uint8Array>()
+  const sliceBytes = (f: string, start: number, end: number) => {
+    let b = srcBytesMap.get(f)
+    if (b === undefined) { b = new TextEncoder().encode(src(f)); srcBytesMap.set(f, b) }
+    return new TextDecoder().decode(b.subarray(start, end))
+  }
+  const text = (n: CN) => (n.$b && n.$e && n.$b.file === n.$e.file && own(n) && n.$e.off + n.$e.tok >= n.$b.off ? sliceBytes(n.$b.file, n.$b.off, n.$e.off + n.$e.tok) || n.kind : n.kind)
 
   if (safety) {
     if (cpp) refuse(undefined, 'C++ is outside the checked C safety subset')
@@ -2127,7 +2135,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         if (!okBool) bad(q, 'a macro-expanded parameter declarator')
       }
       if (q.$e.off !== q.$at.off || q.$e.tok !== q.$at.tok) bad(q, 'an adjusted or variably-modified parameter declarator')
-      const rawDecl = stripComments(src(main).slice(q.$b.off, q.$e.off + q.$e.tok)).trim()
+      const rawDecl = stripComments(sliceBytes(main, q.$b.off, q.$e.off + q.$e.tok)).trim()
       if (!rawDecl || /[[\]()]/.test(rawDecl) || /\b(?:volatile|_Atomic)\b/.test(`${rawDecl} ${q.type?.qualType ?? ''} ${q.type?.desugaredQualType ?? ''}`))
         bad(q, 'an adjusted, variably-modified, or qualified parameter declarator')
       if (kind === 'scalar') {

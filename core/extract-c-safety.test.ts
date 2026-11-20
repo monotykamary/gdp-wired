@@ -1736,7 +1736,7 @@ withClang('Review Probe 14: Clang-native lexer/token audit (s1/s2/s3/al/a-k), al
     // (4) Closed-world flag allowlist: refuses -isystem, -include, -trigraphs, -funsigned-char,
     // and audits 2-argument `-D FOO=__FILE__`.
     const cleanFlagFile = join(dir, 'clean_flag.c')
-    writeFileSync(cleanFlagFile, H + "/* '\tLoc=<FAKE:1:1>\n * résumé */\r\n#include <stdbool.h>\r\nstruct ring { int32_t a[sizeof(long) + _Generic((char)0, signed char: 0, unsigned char: 1, default: 2)]; int32_t n; };\r\nint32_t get(struct ring *r) { _Bool ok = (r->n >= 0 && r->n < 4); int32_t c = '9' - '0'; (void)c; if (ok) return r->a[r->n]; return 0; }\r\n")
+    writeFileSync(cleanFlagFile, H + "/* '\tLoc=<FAKE:1:1>\n * résumé */\r\n#include <stdbool.h>\r\nstruct ring { int32_t a[('9' - '0') + _Generic((char)0, signed char: 0, unsigned char: 1, default: 2)]; int32_t n; };\r\nint32_t get(struct ring *r) { _Bool ok = (r->n >= 0 && r->n < 4); if (ok) return r->a[r->n]; return 0; }\r\n")
     const rEdgeOk = await check([cleanFlagFile], {propose: false})
     expect(rEdgeOk.exit).toBe(0)
     expect(rEdgeOk.rules[0]?.safety).toMatchObject({status: 'proven', coveredFunctions: ['get']})
