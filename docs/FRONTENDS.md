@@ -368,8 +368,9 @@ undefined/`0`/`1`, `-O0`/`-O2`/`-Os` for `__OPTIMIZE__`/`__OPTIMIZE_SIZE__`,
 comparing the preprocessed user-code token stream, immune to digraphs and macro pasting) are also
 refused. Every verdict lists the exact `coveredFunctions` (and any inlined `coveredHelpers`)
 together with the active `macroConfig` (`target` triple, compiler version and verified absolute
-`compilerPath`, `libc` version, SHA-256 digest and path list of every included system header
-`systemHeadersSha256`/`systemHeaders`, effective `std` and `__STDC_VERSION__`, scrubbed allowlisted
+`compilerPath`, `libc` version, SHA-256 digest and path list of every included user file
+`userFilesSha256`/`userFiles` and every included system header `systemHeadersSha256`/`systemHeaders`,
+effective `std` and `__STDC_VERSION__`, scrubbed allowlisted
 environment status, `-I` flags, `-D` flags, and whether `NDEBUG`, `__OPTIMIZE__`, and `DEBUG` were
 defined or undefined). CLI exit codes are `0` (`proven`: every site proved clear and re-verified by
 `verifyCSafetyProof` via `checkLaws` or `checkKInduction`), `1` (`broken`: counterexample trace
@@ -388,9 +389,10 @@ Every `CSafetyResult` carries the four stated assumptions and checked-scope prem
    are refused) running in a closed-world allowlisted environment (`PATH`, `LC_ALL=C`, `TMPDIR` only),
    with 8-bit `char`, 16-bit `short`, 32-bit `int`, and two's-complement signed integers under the
    reported target triple, compiler & absolute path, `libc` version (e.g. `glibc 2.39`), SHA-256 digest
-   and path list of every included system header (`systemHeadersSha256`/`systemHeaders`), C standard
-   (`__STDC_VERSION__`/`std`), `-I`/`-D` flags, and macro configuration (`macroConfig`; only covered
-   scalar types up to 32 bits, constant lookup tables, and fixed arrays of known extent are modeled).
+   and path list of every included user file (`userFilesSha256`/`userFiles`) and every included system
+   header (`systemHeadersSha256`/`systemHeaders`), C standard (`__STDC_VERSION__`/`std`), `-I`/`-D`
+   flags, and macro configuration (`macroConfig`; only covered scalar types up to 32 bits, constant
+   lookup tables, and fixed arrays of known extent are modeled).
 2. **Ownership, zeroed start & aliasing (assumption)**: Selected methods execute sequentially on
    one live, zero-initialized receiver (or single-declaration file-local `static` globals from
    their C initialization) with non-aliasing receiver and scalar out-parameters, no concurrency,
@@ -399,10 +401,14 @@ Every `CSafetyResult` carries the four stated assumptions and checked-scope prem
    resolved path under Clang's built-in search directories (never linemarker flag `3`; **macOS /
    package-manager caveat**: headers under Clang's default search list, such as
    `/opt/homebrew/include` on macOS, are trusted as system headers), and an AST node is system only
-   if both its spelling and expansion locations are system files. Any user-defined or `-D` macro
+   if both its spelling and expansion locations are system files. Every non-system user file and
+   include must resolve (`realpath`) to a regular file under the project root or a listed `-I`
+   directory (refusing `/proc`, `/dev`, `/sys`, non-regular files, and includes outside the root/`-I`
+   boundary). Any user-defined or `-D` macro
    expanded inside a system header is refused. User files are audited directly from Clang's own
    lexer and preprocessor (`-Xclang -dump-raw-tokens` verified byte-contiguously from byte 0/BOM
-   to EOF, `-Xclang -dump-tokens`, and `-E -H -dD`; never re-lexed in TypeScript): all 9 trigraph
+   to EOF with raw NUL bytes refused, `-Xclang -dump-tokens`, and `-E -H -dD`; never re-lexed in
+   TypeScript): all 9 trigraph
    sequences (`??=` `??/` `??'` `??(` `??)` `??!` `??<` `??>` `??-`) and non-C23 digit-quote
    sequences are refused outright; only literal `#include`, `#define`, `#undef`,
    `#if`/`#elif`/`#ifdef`/`#ifndef`/`#elifdef`/`#elifndef`/`#else`/`#endif`, `#pragma once`, and
@@ -414,7 +420,8 @@ Every `CSafetyResult` carries the four stated assumptions and checked-scope prem
    `__LINE__`/`__INCLUDE_LEVEL__`, `SourceLocExpr`/`PredefinedExpr`, or any `__builtin_*`
    identifier is refused with its name and line), backed by lexer-independent differential checks comparing both preprocessed tokens
    and folded AST facts (array sizes, constants, types) across alternate path/filename length, file
-   mtime, `SOURCE_DATE_EPOCH` days, and `NDEBUG`/`-O0`/`-O2`/`-Os`/`-fsanitize=address,undefined`/`DEBUG`.
+   mtime, `SOURCE_DATE_EPOCH` days, distinct empty working directories with `stdin=/dev/null`, and
+   `NDEBUG`/`-O0`/`-O2`/`-Os`/`-fsanitize=address,undefined`/`DEBUG`.
    Every function with a body in any non-system file of the translation unit must be covered as a
    selected method or an inlined file-local `static` helper, or is refused as `unchecked` and
    named. Symbol aliases/weak/file-scope `__asm__`/attributed or post-definition function

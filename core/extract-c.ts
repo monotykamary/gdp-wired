@@ -88,7 +88,7 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
     if (ok.length !== 1) throw new Refusal(file, ok.length ? `several classes write their state (${ok.map(r => r.c.entry).join(', ')}): name one (entry)` : `no class whose methods write its state${why.length ? ` (${why.join('; ')})` : ''}: name the entry`)
     return ok[0]!
   }
-  const flags0 = [...flagsFor(file, opts.compileCommands), ...(opts.flags ?? [])], flags = cpp && !flags0.some(f => f.startsWith('-std=')) ? [...flags0, '-std=c++17'] : flags0, {tu, target} = clangDump(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, cpp && !smallTU(file, flags, opts.clang ?? 'clang++') ? opts.entry : undefined, !!opts.safety)
+  const flags0 = [...flagsFor(file, opts.compileCommands), ...(opts.flags ?? [])], flags = cpp && !flags0.some(f => f.startsWith('-std=')) ? [...flags0, '-std=c++17'] : flags0, {tu, target} = clangDump(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, cpp && !smallTU(file, flags, opts.clang ?? 'clang++') ? opts.entry : undefined, !!opts.safety, opts.root)
   // (C++, its dump filtered to the class: each variable outside it the class reads, a namespace's constant, dumped too)
   if (cpp && opts.entry && !smallTU(file, flags, opts.clang ?? 'clang++')) {
     const have = new Set<string>(), want = new Map<string, string>()

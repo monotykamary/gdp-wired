@@ -2,7 +2,8 @@
 // Astra soundness controls, off-by-one corpus mutants with ASan/UBSan replay, and CLI opt-in.
 import {expect, test} from 'bun:test'
 import {execFileSync, spawnSync} from 'node:child_process'
-import {chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {createHash} from 'node:crypto'
+import {chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {proveLaws} from '../kernel/prove.ts'
@@ -1401,7 +1402,7 @@ withClang('Review Probe 11: path-only system-header boundary (h3-h7), pragma/lin
     writeFileSync(cleanStd, macroHdr + 'void put(struct ring *r, int32_t v) {\n  if (r->n < 0 || r->n >= 8) return;\n  r->a[r->n] = v; r->n = r->n + 1;\n}\n')
     const rStdText = runCliText(['check', '--no-propose', cleanStd])
     expect(rStdText.code).toBe(0)
-    expect(rStdText.out).toMatch(/macro config: target: \S+; compiler: clang \S+ \(\/\S+\); libc: [^;]+; system headers: \d+ \(sha256:[0-9a-f]{64}\); std: (?:gnu|c)(?:17|23) \(__STDC_VERSION__=(?:201710L|202311L)\); env: scrubbed; -I flags: none; -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined, DEBUG=undefined/)
+    expect(rStdText.out).toMatch(/macro config: target: \S+; compiler: clang \S+ \(\/\S+\); libc: [^;]+; user files: \d+ \(sha256:[0-9a-f]{64}\); system headers: \d+ \(sha256:[0-9a-f]{64}\); std: (?:gnu|c)(?:17|23) \(__STDC_VERSION__=(?:201710L|202311L)\); env: scrubbed; -I flags: none; -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined, DEBUG=undefined/)
 
     const rStdC23 = await check([cleanStd], {flags: ['-std=c23'], propose: false})
     expect(rStdC23.exit).toBe(0)
@@ -1888,6 +1889,150 @@ withClang('Review Probe 15: closed-world __builtin_* allowlist & AST-fact differ
     const rH2Text = runCliText(['check', '--no-propose', hdr2])
     expect(rH2Text.code).toBe(0)
     expect(rH2Text.out).toContain(`; system headers: ${mc2!.systemHeaders!.length} (sha256:${mc2!.systemHeadersSha256});`)
+  } finally {
+    rmSync(dir, {recursive: true, force: true})
+  }
+}, 180_000)
+
+withClang('Review Probe 16: closed-world user include boundary & /proc|/dev|/sys refusal (w1-w3, symlinks, outside-root), colon paths (c:olon), and userFiles SHA-256 reporting', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-probe16-'))
+  try {
+    const H = '// gdp: safety\n#include <stdint.h>\n'
+    const cliPath = new URL('./cli.ts', import.meta.url).pathname
+
+    // (1) w1 & w2: #include "/dev/stdin" -> exit 2 (unchecked), naming /dev/stdin.
+    for (const [label, body] of [
+      ['w1', 'struct ring { int32_t n; int32_t a[8\n#include "/dev/stdin"\n]; };\n'],
+      ['w2', 'struct ring { int32_t a[8\n#include "/dev/stdin"\n]; int32_t n; };\n'],
+    ] as const) {
+      const f = join(dir, `${label}.c`)
+      writeFileSync(f, H + body + 'int32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 7) r->n = r->n + 1; }\n')
+      const res = await check([f], {propose: false})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+      expect(res.rules[0]?.refusals.map(r => r.what).join('; '), `${label} names /dev/stdin`).toContain('/dev/stdin')
+    }
+
+    // (2) w3: #include "/proc/self/cwd/cap.h" even when invoked with cwd containing cap.h -> exit 2,
+    // naming /proc/self/cwd/cap.h (via subprocess with cwd=w3/b1 where cap.h holds `8`).
+    const w3Root = join(dir, 'w3')
+    const w3Src = join(w3Root, 'src')
+    const w3B1 = join(w3Root, 'b1')
+    mkdirSync(w3Src, {recursive: true})
+    mkdirSync(w3B1, {recursive: true})
+    writeFileSync(join(w3B1, 'cap.h'), '8\n')
+    const w3Ring = join(w3Src, 'ring.c')
+    writeFileSync(w3Ring, H + 'struct ring { int32_t a[\n#include "/proc/self/cwd/cap.h"\n]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 7) r->n = r->n + 1; }\n')
+    const w3Proc = spawnSync(process.execPath, [cliPath, 'check', '--no-propose', '--json', w3Ring], {cwd: w3B1, encoding: 'utf8'})
+    expect(w3Proc.status, 'w3 run from b1 must exit 2').toBe(2)
+    const w3Json = JSON.parse(w3Proc.stdout) as {rules: {safety?: {status: string}, refusals: {what: string}[]}[]}
+    expect(w3Json.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+    expect(w3Json.rules[0]?.refusals.map(r => r.what).join('; ')).toContain('/proc/self/cwd/cap.h')
+
+    // (3) Symlinks & outside-root boundary:
+    // (a) symlink file inside root -> /proc/self/cwd/cap.h (invoked from w3/b1) -> exit 2
+    // (b) symlink directory inside root -> /proc/self/cwd (even when cwd IS inside root!) -> exit 2
+    // (c) symlink file inside root -> regular file outside root -> exit 2
+    // (d) direct absolute #include to regular file outside root and not in -I -> exit 2
+    // (e) -I /proc/self/cwd -> exit 2
+    const outsideDir = join(dir, 'outside')
+    mkdirSync(outsideDir, {recursive: true})
+    const extHdr = join(outsideDir, 'ext.h')
+    writeFileSync(extHdr, '#define EXT_CAP 8\n')
+
+    const projDir = join(dir, 'proj')
+    const projB1 = join(projDir, 'b1')
+    mkdirSync(projB1, {recursive: true})
+    writeFileSync(join(projB1, 'cap.h'), '8\n')
+    symlinkSync('/proc/self/cwd/cap.h', join(projDir, 'sym_proc.h'))
+    symlinkSync('/proc/self/cwd', join(projDir, 'sym_proc_dir'))
+    symlinkSync(extHdr, join(projDir, 'sym_out.h'))
+
+    const symProcFile = join(projDir, 'use_sym_proc.c')
+    writeFileSync(symProcFile, H + 'struct ring { int32_t a[\n#include "sym_proc.h"\n]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n')
+    const rSymProc = spawnSync(process.execPath, [cliPath, 'check', '--no-propose', '--json', symProcFile], {cwd: projB1, encoding: 'utf8'})
+    expect(rSymProc.status, 'symlink to /proc/self/cwd/cap.h must exit 2').toBe(2)
+    expect(JSON.parse(rSymProc.stdout).rules[0]?.safety).toMatchObject({status: 'unchecked'})
+
+    const symDirFile = join(projDir, 'use_sym_dir.c')
+    writeFileSync(symDirFile, H + 'struct ring { int32_t a[\n#include "sym_proc_dir/cap.h"\n]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n')
+    const rSymDir = spawnSync(process.execPath, [cliPath, 'check', '--no-propose', '--json', symDirFile], {cwd: projB1, encoding: 'utf8'})
+    expect(rSymDir.status, 'symlink dir to /proc/self/cwd inside root must exit 2').toBe(2)
+    expect(JSON.parse(rSymDir.stdout).rules[0]?.safety).toMatchObject({status: 'unchecked'})
+
+    const symOutFile = join(projDir, 'use_sym_out.c')
+    writeFileSync(symOutFile, H + '#include "sym_out.h"\nstruct ring { int32_t a[EXT_CAP]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n')
+    const rSymOut = await check([symOutFile], {root: projDir, propose: false})
+    expect(rSymOut.exit, 'symlink outside root must exit 2').toBe(2)
+    expect(rSymOut.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+    expect(rSymOut.rules[0]?.refusals.map(r => r.what).join('; ')).toContain('sym_out.h')
+
+    const absOutFile = join(projDir, 'use_abs_out.c')
+    writeFileSync(absOutFile, H + `#include "${extHdr}"\nstruct ring { int32_t a[EXT_CAP]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n`)
+    const rAbsOut = await check([absOutFile], {root: projDir, propose: false})
+    expect(rAbsOut.exit, 'absolute include outside root/-I must exit 2').toBe(2)
+    expect(rAbsOut.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+    expect(rAbsOut.rules[0]?.refusals.map(r => r.what).join('; ')).toContain('ext.h')
+
+    const procIncFile = join(projDir, 'use_proc_inc.c')
+    writeFileSync(procIncFile, H + 'struct ring { int32_t a[8]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n')
+    const rProcInc = await check([procIncFile], {root: projDir, flags: ['-I/proc/self/cwd'], propose: false})
+    expect(rProcInc.exit, '-I/proc/self/cwd must exit 2').toBe(2)
+    expect(rProcInc.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+
+    // (4) Paths containing colons (`c:olon/ring.c`): clean file proves (exit 0) AND hidden
+    // invocation-dependent / predefined macros inside `c:olon/` are still refused (exit 2),
+    // confirming `dumpUserExpandedTokens` parses colon paths instead of skipping them.
+    const colonDir = join(dir, 'c:olon')
+    mkdirSync(colonDir, {recursive: true})
+    const colonClean = join(colonDir, 'ring.c')
+    writeFileSync(colonClean, H + 'struct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\nvoid put(struct ring *r) { if (r->n >= 0 && r->n < 7) r->n = r->n + 1; }\n')
+    const rColonOk = await check([colonClean], {propose: false})
+    expect(rColonOk.exit, 'c:olon/ring.c clean must prove (exit 0)').toBe(0)
+    expect(rColonOk.rules[0]?.safety).toMatchObject({status: 'proven', coveredFunctions: ['get', 'put']})
+
+    const colonBadFile = join(colonDir, 'bad_file.c')
+    writeFileSync(colonBadFile, H + 'struct ring { int32_t a[sizeof __FILE__]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n')
+    const rColonBad = await check([colonBadFile], {propose: false})
+    expect(rColonBad.exit, 'c:olon/bad_file.c must exit 2').toBe(2)
+    expect(rColonBad.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+
+    const colonBadLine = join(colonDir, 'bad_line.c')
+    writeFileSync(colonBadLine, H + 'struct ring { int32_t a[__LINE__]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n')
+    const rColonLine = await check([colonBadLine], {propose: false})
+    expect(rColonLine.exit, 'c:olon/bad_line.c must exit 2').toBe(2)
+    expect(rColonLine.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+
+    // (5) User file digest & list (`macroConfig.userFiles` and `macroConfig.userFilesSha256`) in
+    // JSON and CLI TEXT: exact SHA-256 of every user file under root and listed `-I` dirs, and
+    // editing an included user header changes both its per-file hash and the summary digest.
+    const incDir = join(dir, 'inc')
+    mkdirSync(incDir, {recursive: true})
+    writeFileSync(join(incDir, 'inc_cap.h'), '#define INC_CAP 8\n')
+    const localHdr = join(projDir, 'local.h')
+    writeFileSync(localHdr, '// v1\n#define LOCAL_LIM INC_CAP\n')
+    const goodUser = join(projDir, 'good_user.c')
+    writeFileSync(goodUser, H + '#include "inc_cap.h"\n#include "local.h"\nstruct ring { int32_t a[LOCAL_LIM]; int32_t n; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < LOCAL_LIM) return r->a[r->n]; return 0; }\n')
+    const rU1 = await check([goodUser], {root: projDir, flags: [`-I${incDir}`], propose: false})
+    expect(rU1.exit).toBe(0)
+    const mcU1 = (rU1.rules[0]?.safety as {macroConfig?: {userFilesSha256?: string, userFiles?: {path: string, sha256: string}[], systemHeadersSha256?: string, systemHeaders?: {path: string, sha256: string}[]}})?.macroConfig
+    expect(mcU1?.userFilesSha256).toMatch(/^[0-9a-f]{64}$/)
+    expect(mcU1?.userFiles?.length).toBe(3)
+    for (const uf of mcU1!.userFiles!) {
+      const diskSha = createHash('sha256').update(readFileSync(uf.path)).digest('hex')
+      expect(uf.sha256).toBe(diskSha)
+    }
+    writeFileSync(join(projDir, 'gdp.toml'), `flags = ["-I${incDir}"]\n`)
+    const rU1Text = runCliText(['check', '--no-propose', goodUser])
+    expect(rU1Text.code).toBe(0)
+    expect(rU1Text.out).toContain(`; user files: 3 (sha256:${mcU1!.userFilesSha256}); system headers: ${mcU1!.systemHeaders!.length} (sha256:${mcU1!.systemHeadersSha256});`)
+
+    writeFileSync(localHdr, '// v2 changed\n#define LOCAL_LIM INC_CAP\n')
+    const rU2 = await check([goodUser], {root: projDir, flags: [`-I${incDir}`], propose: false})
+    expect(rU2.exit).toBe(0)
+    const mcU2 = (rU2.rules[0]?.safety as {macroConfig?: {userFilesSha256?: string, userFiles?: {path: string, sha256: string}[]}})?.macroConfig
+    expect(mcU2?.userFilesSha256).not.toBe(mcU1?.userFilesSha256)
+    expect(mcU2?.userFiles?.find(f => f.path.endsWith('/local.h'))?.sha256).not.toBe(mcU1?.userFiles?.find(f => f.path.endsWith('/local.h'))?.sha256)
   } finally {
     rmSync(dir, {recursive: true, force: true})
   }

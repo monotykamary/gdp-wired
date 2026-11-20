@@ -25,6 +25,8 @@ export type CSafetyMacroConfig = {
   compiler?: string,
   compilerPath?: string,
   libc?: string,
+  userFilesSha256?: string,
+  userFiles?: readonly {path: string, sha256: string}[],
   systemHeadersSha256?: string,
   systemHeaders?: readonly {path: string, sha256: string}[],
   std: string,
@@ -395,6 +397,7 @@ function dumpUserExpandedTokens(o: {
   realPath?: (p: string) => string,
   basename?: (p: string) => string,
   clangEnv: Record<string, string>,
+  cwd?: string,
   failMessage?: string,
 }): string {
   const cp = node<CP>('node:child_process')
@@ -403,6 +406,7 @@ function dumpUserExpandedTokens(o: {
     maxBuffer: 1 << 28,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: o.clangEnv,
+    ...(o.cwd ? {cwd: o.cwd} : {}),
     ...readerRun(),
   })
   if (r.error || r.status !== 0)
@@ -424,23 +428,17 @@ function dumpUserExpandedTokens(o: {
     const kind = head[1]!
     const text = prefix.slice(head[0].length, q)
     const loc = rawLine.slice(locIdx + 6, -1)
-    let expFile: string | undefined
-    let expLine = '1'
-    let expCol = '1'
-    const special = /^(<[^<>]+>):(\d+):(\d+)/.exec(loc)
-    if (special) {
-      expFile = special[1]!
-      expLine = special[2]!
-      expCol = special[3]!
-    } else {
-      const hm = /^([^:<>]+):(\d+):(\d+)/.exec(loc)
-      if (hm) {
-        expFile = hm[1]!
-        expLine = hm[2]!
-        expCol = hm[3]!
-      }
-    }
-    if (!expFile) continue
+    if (kind === 'eof' && loc === '<invalid loc>') continue
+    // Split off any trailing ` <Spelling=...>` / ` <...>` annotations, then parse `<path>:<line>:<col>`
+    // greedily from the right so paths containing colons (e.g. `c:olon/ring.c`) parse faithfully;
+    // fail closed on any unparseable location instead of silently skipping tokens.
+    const expPart = loc.includes(' <') ? loc.slice(0, loc.indexOf(' <')) : loc
+    const hm = /^(.+):(\d+):(\d+)$/.exec(expPart)
+    if (!hm)
+      throw new Refusal(o.reportFile, `unexpected clang -dump-tokens location format: ${loc.slice(0, 120)}`)
+    const expFile = hm[1]!
+    const expLine = hm[2]!
+    const expCol = hm[3]!
     if (o.userFiles && o.realPath && o.basename && !expFile.startsWith('<')) {
       const expReal = o.realPath(expFile)
       if (o.userFiles.has(expReal)) {
@@ -644,7 +642,8 @@ function auditUserPreprocessor(o: {
 }): void {
   const fs = node<{mkdtempSync: (p: string) => string, writeFileSync: (p: string, s: string) => void, rmSync: (p: string, o?: unknown) => void}>('node:fs')
   const os = node<{tmpdir: () => string}>('node:os')
-  const path = node<{join: (...p: string[]) => string}>('node:path')
+  const path = node<{join: (...p: string[]) => string, resolve: (...p: string[]) => string, dirname: (p: string) => string}>('node:path')
+  const isProcDevSys = (p: string): boolean => /^\/(?:proc|dev|sys)(?:\/|$)/.test(p)
   const isC23 = o.effectiveStd === 'c23' || o.effectiveStd === 'gnu23'
   const predefinedMacros = new Set<string>()
   for (const m of o.bareDefs.matchAll(/^#define\s+([A-Za-z_]\w*)/gm)) predefinedMacros.add(m[1]!)
@@ -823,6 +822,9 @@ function auditUserPreprocessor(o: {
           const isAngled = rest.length >= 3 && rest[0]!.kind === 'less' && rest[rest.length - 1]!.kind === 'greater'
           if (!isQuoted && !isAngled)
             throw new Refusal(where, 'computed or non-literal #include directive is outside the C safety subset')
+          const rawTarget = isQuoted ? rest[0]!.text.slice(1, -1) : rest.slice(1, -1).map(t => t.text).join('')
+          if (isProcDevSys(rawTarget) || isProcDevSys(path.resolve(path.dirname(uf), rawTarget)))
+            throw new Refusal(where, `#include ${rest.map(t => t.text).join('')} under /proc, /dev, or /sys is outside the C safety subset`)
         } else if (dir === 'pragma') {
           if (!(rest.length === 1 && rest[0]!.kind === 'raw_identifier' && rest[0]!.text === 'once')) {
             const fmtRest = rest.map((t, i) => (i > 0 && t.hadSpaceBefore ? ' ' : '') + t.text).join('')
@@ -901,7 +903,7 @@ function auditUserPreprocessor(o: {
 // --- running clang ------------------------------------------------------------------------------------------------------
 // (C++: only the declarations named after the class, `-ast-dump-filter`: its standard headers' are hundreds of MB;
 // clang writes them one after another, its locations' state going on from one to the next)
-export function clangDump(file: string, flags: string[], clang = 'clang', cpp = false, filter?: string, safety = false): {tu: CN, target: CTarget} {
+export function clangDump(file: string, flags: string[], clang = 'clang', cpp = false, filter?: string, safety = false, root?: string): {tu: CN, target: CTarget} {
   const cp = node<CP>('node:child_process')
   const fs = node<{realpathSync: (p: string) => string, readFileSync: (p: string, e: string) => string}>('node:fs')
   const path = node<{resolve: (...p: string[]) => string, relative: (from: string, to: string) => string, isAbsolute: (p: string) => boolean, basename: (p: string) => string}>('node:path')
@@ -938,6 +940,76 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
   const defs = run([...lang, ...activeFlags, '-dM', '-E', '/dev/null']), def = (k: string) => Number(new RegExp(`#define ${k} (\\d+)`).exec(defs)?.[1] ?? 0)
   let safetyMeta: CSafetyClangMeta | undefined
   if (safety && !cpp) {
+    const fsFull = node<{
+      readFileSync: (p: string) => Uint8Array,
+      statSync: (p: string) => {isFile: () => boolean, isDirectory: () => boolean},
+      lstatSync: (p: string) => {isSymbolicLink: () => boolean},
+      readlinkSync: (p: string) => string,
+      mkdtempSync: (p: string) => string,
+      mkdirSync: (p: string, o?: unknown) => void,
+      copyFileSync: (src: string, dst: string) => void,
+      utimesSync: (p: string, a: number, m: number) => void,
+      rmSync: (p: string, o?: unknown) => void,
+    }>('node:fs')
+    const osMod = node<{tmpdir: () => string}>('node:os')
+    const pathFull = node<{join: (...p: string[]) => string, dirname: (p: string) => string}>('node:path')
+    const isProcDevSys = (p: string): boolean => /^\/(?:proc|dev|sys)(?:\/|$)/.test(p)
+    const walkNoProcDevSys = (rawPath: string, label: string, allowMissing = false): void => {
+      if (isProcDevSys(rawPath))
+        throw new Refusal(file, `${label} ${rawPath} under /proc, /dev, or /sys is outside the C safety subset`)
+      let cur = path.resolve(rawPath)
+      let hops = 0
+      outer: while (true) {
+        if (isProcDevSys(cur))
+          throw new Refusal(file, `${label} ${rawPath} resolves through /proc, /dev, or /sys (${cur}; outside the C safety subset)`)
+        const parts = cur.split('/').filter(Boolean)
+        let prefix = ''
+        for (let i = 0; i < parts.length; i++) {
+          prefix += `/${parts[i]!}`
+          if (isProcDevSys(prefix))
+            throw new Refusal(file, `${label} ${rawPath} resolves through /proc, /dev, or /sys (${prefix}; outside the C safety subset)`)
+          let lst: {isSymbolicLink: () => boolean}
+          try { lst = fsFull.lstatSync(prefix) }
+          catch {
+            if (allowMissing) return
+            throw new Refusal(file, `${label} ${rawPath} is not accessible (outside the C safety subset)`)
+          }
+          if (lst.isSymbolicLink()) {
+            if (++hops > 40)
+              throw new Refusal(file, `${label} ${rawPath} exceeds symlink hop limit (outside the C safety subset)`)
+            const target = fsFull.readlinkSync(prefix)
+            if (isProcDevSys(target))
+              throw new Refusal(file, `${label} ${rawPath} resolves through /proc, /dev, or /sys (${target}; outside the C safety subset)`)
+            const resolvedPrefix = path.isAbsolute(target) ? path.resolve(target) : path.resolve(pathFull.dirname(prefix), target)
+            if (isProcDevSys(resolvedPrefix))
+              throw new Refusal(file, `${label} ${rawPath} resolves through /proc, /dev, or /sys (${resolvedPrefix}; outside the C safety subset)`)
+            const rest = parts.slice(i + 1)
+            cur = rest.length ? path.resolve(resolvedPrefix, ...rest) : resolvedPrefix
+            continue outer
+          }
+        }
+        break
+      }
+    }
+    const auditRegularPath = (rawPath: string, label: string): string => {
+      walkNoProcDevSys(rawPath, label, false)
+      const rp = realPath(rawPath)
+      if (isProcDevSys(rp))
+        throw new Refusal(file, `${label} ${rawPath} resolves under /proc, /dev, or /sys (${rp}; outside the C safety subset)`)
+      let st: {isFile: () => boolean}
+      try { st = fsFull.statSync(rp) }
+      catch { throw new Refusal(file, `${label} ${rawPath} is not a regular file (outside the C safety subset)`) }
+      if (!st.isFile())
+        throw new Refusal(file, `${label} ${rawPath} is not a regular file (outside the C safety subset)`)
+      return rp
+    }
+    const auditIncludeDir = (rawDir: string): string | undefined => {
+      walkNoProcDevSys(rawDir, `include directory -I${rawDir}`, true)
+      const rp = realPath(rawDir)
+      if (isProcDevSys(rp))
+        throw new Refusal(file, `include directory -I${rawDir} resolves under /proc, /dev, or /sys (${rp}; outside the C safety subset)`)
+      try { return fsFull.statSync(rp).isDirectory() ? rp : undefined } catch { return undefined }
+    }
     // Decide system-ness by PATH ONLY: read Clang's built-in search directories from
     // `clang -E -v` (with user -I flags stripped), never trusting linemarker flag 3 (which
     // `#pragma`/`_Pragma` GCC system_header sets and propagates to included files).
@@ -949,7 +1021,13 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
     const compilerMatch = /clang version\s+([^\s(]+)/.exec(probeV.stderr)
     const compiler = compilerMatch ? `clang ${compilerMatch[1]}` : undefined
     const systemDirs = parseSearchDirs(probeV.stderr, realPath)
-    const mainReal = realPath(file)
+    const mainReal = auditRegularPath(file, 'source file')
+    const rootReal = realPath(root ?? pathFull.dirname(mainReal))
+    const includeDirRealPaths = activeFlags
+      .filter(f => f.startsWith('-I') && f.length > 2)
+      .map(f => auditIncludeDir(f.slice(2)))
+      .filter((d): d is string => !!d)
+    const allowedUserRoots = [rootReal, ...includeDirRealPaths]
     const isUnderDir = (rp: string, dir: string): boolean => {
       const rel = path.relative(dir, rp)
       return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel)
@@ -962,12 +1040,19 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       return systemDirs.some(dir => isUnderDir(rp, dir))
     }
     // Run `-E -H -dD` once to collect actual physically included headers (immune to #line spoofing),
-    // exact active `#define`/`#undef` sites in user files, include order, and linemarkers.
+    // enforce closed-world regular-file + root/`-I` containment on every user include, and gather
+    // exact active `#define`/`#undef` sites, include order, and linemarkers.
     const ppRes = runFull([...lang, ...activeFlags, '-E', '-H', '-dD', file])
     const physicalFiles = new Set<string>([mainReal])
+    const rawIncluded: {raw: string, real: string}[] = []
     for (const rawLine of ppRes.stderr.split('\n')) {
       const hm = /^\.+\s+(.+)$/.exec(rawLine.replace(/\r$/, ''))
-      if (hm) physicalFiles.add(realPath(hm[1]!.trim()))
+      if (hm) {
+        const rawInc = hm[1]!.trim()
+        const rp = auditRegularPath(rawInc, 'include')
+        physicalFiles.add(rp)
+        rawIncluded.push({raw: rawInc, real: rp})
+      }
     }
     const isSystemPath = (rawPath: string): boolean => {
       if (rawPath === '<built-in>') return true
@@ -975,6 +1060,11 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       const rp = realPath(rawPath)
       if (rp === mainReal || !physicalFiles.has(rp)) return false
       return systemDirs.some(dir => isUnderDir(rp, dir))
+    }
+    for (const {raw: rawInc, real: rp} of rawIncluded) {
+      if (isSystemPath(rp) || rp === mainReal) continue
+      if (!allowedUserRoots.some(d => isUnderDir(rp, d)))
+        throw new Refusal(file, `user include ${rawInc} (resolved: ${rp}) lies outside project root and listed -I directories (outside the C safety subset)`)
     }
     const systemFiles = new Set<string>(['<built-in>'])
     const userFiles = new Set<string>([mainReal])
@@ -1064,16 +1154,6 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       : (strictAnsi ? 'c89' : 'gnu89')
     const effectiveStd = explicitStd ?? inferredStd
     const libc = detectLibc(activeClang, lang, stdFlags, targetTriple, clangEnv)
-    const fsFull = node<{
-      readFileSync: (p: string) => Uint8Array,
-      mkdtempSync: (p: string) => string,
-      mkdirSync: (p: string, o?: unknown) => void,
-      copyFileSync: (src: string, dst: string) => void,
-      utimesSync: (p: string, a: number, m: number) => void,
-      rmSync: (p: string, o?: unknown) => void,
-    }>('node:fs')
-    const osMod = node<{tmpdir: () => string}>('node:os')
-    const pathFull = node<{join: (...p: string[]) => string, dirname: (p: string) => string}>('node:path')
     auditUserPreprocessor({
       activeClang,
       stdFlags,
@@ -1113,12 +1193,16 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
     })
     const baseAstFacts = astFactsOf(tu, isUnderSystemDir)
     // Lexer-independent differential backstop: mirror all user files into a temp tree with
-    // strictly different path & basename lengths and two distinct mtimes, and compare BOTH
-    // Clang's `-dump-tokens` stream AND Clang's folded AST facts (array sizes, constants, types)
-    // across two different SOURCE_DATE_EPOCH days (Sep 9 2001 vs Sep 11 2001).
+    // strictly different path & basename lengths, two distinct mtimes, two distinct empty cwds
+    // with stdin=/dev/null, and compare BOTH Clang's `-dump-tokens` stream AND Clang's folded AST
+    // facts (array sizes, constants, types) across two SOURCE_DATE_EPOCH days.
     const altRoot = fsFull.mkdtempSync(pathFull.join(osMod.tmpdir(), 'gdp-c-safety-diff-path-check-'))
     try {
       const mirrorOf = (rp: string) => pathFull.join(altRoot, 'p_extra_len_dir', rp.replace(/^\/+/, ''))
+      const altCwd1 = pathFull.join(altRoot, 'alt_empty_cwd_1')
+      const altCwd2 = pathFull.join(altRoot, 'alt_empty_cwd_two_longer')
+      fsFull.mkdirSync(altCwd1, {recursive: true})
+      fsFull.mkdirSync(altCwd2, {recursive: true})
       const mirroredPaths: string[] = []
       for (const uf of userFiles) {
         const dst = mirrorOf(uf)
@@ -1142,12 +1226,12 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
           altFlags.push(f)
         }
       }
-      const dumpAltAstFacts = (env: Record<string, string>): string => {
+      const dumpAltAstFacts = (env: Record<string, string>, cwd: string): string => {
         const r = cp.spawnSync(activeClang, [...lang, ...altFlags, '-Xclang', '-ast-dump=json', '-fsyntax-only', altMain], {
-          encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], env, ...readerRun(),
+          encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], env, cwd, ...readerRun(),
         })
         if (r.error || r.status !== 0)
-          throw new Refusal(file, 'user AST failed differential path/date invariance check (outside the C safety subset)')
+          throw new Refusal(file, 'user AST failed differential path/cwd/date invariance check (outside the C safety subset)')
         return astFactsOf(JSON.parse(r.stdout ?? '') as CN, isUnderSystemDir)
       }
       const env1 = scrubbedClangEnv({SOURCE_DATE_EPOCH: '1000000000'})
@@ -1159,9 +1243,10 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
         reportFile: file,
         isSystemExpFile: isUnderSystemDir,
         clangEnv: env1,
-        failMessage: 'preprocessed user code failed differential path/date invariance check (outside the C safety subset)',
+        cwd: altCwd1,
+        failMessage: 'preprocessed user code failed differential path/cwd/date invariance check (outside the C safety subset)',
       })
-      const altFacts1 = dumpAltAstFacts(env1)
+      const altFacts1 = dumpAltAstFacts(env1, altCwd1)
       for (const mp of mirroredPaths) fsFull.utimesSync(mp, 1700172837, 1700172837)
       const env2 = scrubbedClangEnv({SOURCE_DATE_EPOCH: '1000172837'})
       const altTok2 = dumpUserExpandedTokens({
@@ -1172,13 +1257,14 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
         reportFile: file,
         isSystemExpFile: isUnderSystemDir,
         clangEnv: env2,
-        failMessage: 'preprocessed user code failed differential path/date invariance check (outside the C safety subset)',
+        cwd: altCwd2,
+        failMessage: 'preprocessed user code failed differential path/cwd/date invariance check (outside the C safety subset)',
       })
-      const altFacts2 = dumpAltAstFacts(env2)
+      const altFacts2 = dumpAltAstFacts(env2, altCwd2)
       if (altTok1 !== baseTokens || altTok2 !== baseTokens || altTok1 !== altTok2)
-        throw new Refusal(file, 'preprocessed user code depends on invocation path or date/time (differs under alternate path, mtime, or SOURCE_DATE_EPOCH; outside the C safety subset)')
+        throw new Refusal(file, 'preprocessed user code depends on invocation path, cwd, stdin, or date/time (differs under alternate path, cwd, mtime, or SOURCE_DATE_EPOCH; outside the C safety subset)')
       if (altFacts1 !== baseAstFacts || altFacts2 !== baseAstFacts || altFacts1 !== altFacts2)
-        throw new Refusal(file, 'folded AST facts (types, array extents, or constants) depend on invocation path or date/time (differs under alternate path, mtime, or SOURCE_DATE_EPOCH; outside the C safety subset)')
+        throw new Refusal(file, 'folded AST facts (types, array extents, or constants) depend on invocation path, cwd, stdin, or date/time (differs under alternate path, cwd, mtime, or SOURCE_DATE_EPOCH; outside the C safety subset)')
     } finally {
       try { fsFull.rmSync(altRoot, {recursive: true, force: true}) } catch { /* gone */ }
     }
@@ -1210,23 +1296,24 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       if (altTok !== baseTokens)
         throw new Refusal(file, `preprocessed user code depends on ${alt.label} (differs under ${alt.extra.join(' ')}; proof only holds for one build-mode configuration)`)
     }
-    // Digest every real system header actually included (path + SHA-256) plus one summary SHA-256
-    // so non-libc system headers (e.g. zlib.h, linux/*.h) are pinned exactly in the verdict.
+    // Digest every user file AND every real system header actually included (path + SHA-256)
+    // plus one summary SHA-256 for each so the exact inputs and headers are pinned in the verdict.
     const cryptoMod = node<{createHash: (alg: string) => {update: (d: Uint8Array | string) => {digest: (enc: 'hex') => string}}}>('node:crypto')
-    const systemHeaders = [...systemFiles]
-      .filter(p => !p.startsWith('<'))
-      .sort()
-      .map(p => ({path: p, sha256: cryptoMod.createHash('sha256').update(fsFull.readFileSync(p)).digest('hex')}))
-    const systemHeadersSha256 = cryptoMod
-      .createHash('sha256')
-      .update(systemHeaders.map(h => `${h.path}\0${h.sha256}\n`).join(''))
-      .digest('hex')
+    const digestList = (paths: string[]) => {
+      const list = paths.sort().map(p => ({path: p, sha256: cryptoMod.createHash('sha256').update(fsFull.readFileSync(p)).digest('hex')}))
+      const sha = cryptoMod.createHash('sha256').update(list.map(h => `${h.path}\0${h.sha256}\n`).join('')).digest('hex')
+      return {list, sha}
+    }
+    const {list: userFileList, sha: userFilesSha256} = digestList([...userFiles].filter(p => !p.startsWith('<')))
+    const {list: systemHeaders, sha: systemHeadersSha256} = digestList([...systemFiles].filter(p => !p.startsWith('<')))
     const includeDirs = activeFlags.filter(f => f.startsWith('-I'))
     const macroConfig: CSafetyMacroConfig = {
       target: targetTriple,
       ...(compiler ? {compiler} : {}),
       compilerPath: activeClang,
       libc,
+      userFilesSha256,
+      userFiles: userFileList,
       systemHeadersSha256,
       systemHeaders,
       std: effectiveStd,
