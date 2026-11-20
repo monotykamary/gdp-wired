@@ -46,7 +46,7 @@ import * as I from './extract-ir.ts'
 import {type B, type K, type N, PASS} from './extract-ir.ts'
 import {type Arg, type Layout, type MapDecl, type MapWrite, type Model, Refusal, type Source, type Term, type Var, placed, sourceOf, syntaxError, tooDeep} from './extract-read.ts'
 import {type ReadOptions, isFactory, isSlice, readClass, readFactory, readFunctions, readSlice, readStandalone} from './extract-shapes.ts'
-import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pidx, pk, pnum, pterm, sortsOf} from './extract-print.ts'
+import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, nonneg, pb, pidx, pk, pnum, pterm, sortsOf} from './extract-print.ts'
 import {type CheckOptions, type Evidence, check} from './extract-check.ts'
 import {extractOrm, type OrmOptions} from './extract-orm.ts'
 export type {OrmOptions} from './extract-orm.ts'
@@ -209,6 +209,27 @@ export function fromModel(model: Model, file: string, domains: Record<string, 'n
   if (evidence.mismatch) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `the rule and the code differ: ${evidence.mismatch}`}], notes}
   attachSource(rule, evidence, invariants)
   return {ok: true, rule, ...(invariants.length ? {invariants} : {}), source, model, sorts, evidence, refusals: [], notes}
+}
+// Internal builder for the C safety first-fault monitor machine: evaluates the
+// monitored model and its invariants without marking the monitor rule as an
+// unchecked normal source extraction (C safety uses its own strict AST subset
+// gate, independent checkLaws/checkKInduction, and ASan/UBSan replay, and never
+// exposes this rule via Extraction.rule).
+export function fromSafetyModel(model: Model, file: string, domains?: Record<string, 'nat' | 'int'>): {ok: boolean, rule?: Rule, invariants?: Law[], source?: string, refusals: {where: string, what: string}[]} {
+  let sorts: Sorts, body: string, source: string
+  try {
+    const s = sortsOf(model, domains)
+    sorts = s.sorts
+    datesInRange(model, sorts)
+    body = builderOf(model, sorts)
+    source = moduleOf(model, body, file)
+  } catch (e) {
+    if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}]}
+    throw e
+  }
+  let rule: Rule, invariants: Law[]
+  try { rule = evaluate(body); invariants = evaluateLaws(rule, invariantsOf(model, sorts)) } catch (e) { return {ok: false, source, refusals: [{where: file, what: `the rule printed doesn't build: ${(e as Error).message}`}]} }
+  return {ok: true, rule, invariants, source, refusals: []}
 }
 // The check's own failure (twice): no verdict on the code, neither a difference nor a pass.
 export const HARNESS_FAILED = 'the check\'s harness failed, twice (a request past its time or its transport, not the code): '
@@ -477,7 +498,11 @@ function hoist(m: Model, P: Printer, roots: object[]) {
     // (a product of integers kept at 0 or above only by the conditions the path is under: printed where it is read,
     // under them, never hoisted out of them)
     let guarded = false
-    walk(node, o => { if (o.op === 'mul' && !(natOK(o.a as N, {m, sorts: P.sorts, atoms: []}) && natOK(o.b as N, {m, sorts: P.sorts, atoms: []}))) guarded = true })
+    walk(node, o => {
+      const ctx0 = {m, sorts: P.sorts, atoms: []}
+      if (o.op === 'mul' && !(natOK(o.a as N, ctx0) && natOK(o.b as N, ctx0))) guarded = true
+      if (o.op === 'modk' && !natOK(o.a as N, ctx0) && !nonneg(o.a as N, ctx0)) guarded = true
+    })
     if (guarded) continue
     if (!isBool(node, m)) {
       const ctx: Ctx = {m, sorts: P.sorts, atoms: []}, free = natOK(node as N, ctx)

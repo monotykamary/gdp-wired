@@ -33,8 +33,8 @@ import type {Coverage} from './extract-check.ts'
 import {type GoOptions, type GoPkg, type GoRead, goNames, readGo, unsignedDomains} from './extract-go.ts'
 import {type GoCheckOptions, type GoEvidence, type GoLeaf, speak} from './extract-go-check.ts'
 import {type CRead, clangDump, constantsOf, flagsFor, node, readC} from './c/reader.ts'
-import {analyzeCSafety, uncheckedCSafety, type CSafetyResult} from './c/safety.ts'
-export type {CSafetyIssue, CSafetyKind, CSafetyResult, CSafetyStatus} from './c/safety.ts'
+import {analyzeCSafety, replaySafety, uncheckedCSafety, type CSafetyResult} from './c/safety.ts'
+export {cSafetyArtifactOf, verifyCSafetyProof, type CSafetyArtifact, type CSafetyIssue, type CSafetyKind, type CSafetyProofBundle, type CSafetyReplay, type CSafetyResult, type CSafetyRun, type CSafetyStatus} from './c/safety.ts'
 export {minimizeRun, minimizeRunDetailed, proveRule, proveSteps} from './dsl.ts'
 
 export type COptions = {
@@ -62,8 +62,10 @@ export type COptions = {
   // the request's value, of its declared type, the check giving it in the copy of the file.
   cut?: string[],
   onError?: 'refuse' | 'discard', domains?: Record<string, 'nat' | 'int'>, check?: GoCheckOptions,
-  /** Static first-fault analysis of the covered C subset. Never builds, runs, or replays the C program. */
+  /** First-fault C safety analysis of the covered subset, with ASan/UBSan replay on broken obligations. */
   safety?: boolean,
+  /** Optional prover search budget per safety obligation (ms, default 10000). */
+  safetySearchMs?: number,
 }
 type FS = {readFileSync: (p: string, e: string) => string, mkdtempSync: (p: string) => string, writeFileSync: (p: string, s: string) => void, rmSync: (p: string, o?: unknown) => void, mkdirSync: (p: string, o?: unknown) => void}
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
@@ -107,10 +109,15 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
   if (!opts.entry) {
     // (each struct by its tag or a typedef's name, an unnamed one's typedef too, that a function of the file takes a
     // pointer to first)
-    const firsts = new Set((tu.inner ?? []).filter(n => n.kind === 'FunctionDecl' && n.inner?.some(c => c.kind === 'CompoundStmt')).map(n => n.inner!.find(c => c.kind === 'ParmVarDecl')?.type?.qualType.replace(/\b(const|volatile|struct)\b|\*/g, '').trim()).filter((t): t is string => !!t))
+    const firsts = new Set((tu.inner ?? []).filter(n => n.kind === 'FunctionDecl' && n.inner?.some(c => c.kind === 'CompoundStmt')).flatMap(n => {
+      const p = n.inner!.find(c => c.kind === 'ParmVarDecl')
+      const qs = [p?.type?.qualType, ...(opts.safety ? [p?.type?.desugaredQualType] : [])]
+      return qs.map(q => q?.replace(/\b(const|volatile|struct)\b|\*/g, '').trim()).filter((t): t is string => !!t)
+    }))
     const typedefNames = (tu.inner ?? []).filter(n => n.kind === 'TypedefDecl' && (n.inner ?? []).some(c => /Record|Elaborated/.test(c.kind))).map(n => String(n.name))
     const names = [...new Set([...(tu.inner ?? []).filter(n => n.kind === 'RecordDecl' && n.name && n.completeDefinition).map(n => String(n.name)), ...typedefNames])].filter(n => firsts.has(n))
-    const ok = names.filter(n => { try { const c = readC(file, n, tu, target, cpp, opts.root); if (!opts.safety) readGo(c.pkg, {methods: c.methods}); return true } catch (e) { if (e instanceof Refusal) return false; throw e } })
+    let firstRefusal: Refusal | undefined
+    const ok = names.filter(n => { try { const c = readC(file, n, tu, target, cpp, opts.root, {}, [], [], [], opts.safety); if (!opts.safety) readGo(c.pkg, {methods: c.methods}); return true } catch (e) { if (e instanceof Refusal) { firstRefusal ??= e; return false } throw e } })
     // (none: the file's globals, where its functions keep the state there)
     if (!ok.length && !cpp) {
       const stem = file.replace(/^.*\//, '').replace(/\.[^.]*$/, '')
@@ -118,6 +125,7 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
         if (!(e instanceof Refusal)) throw e
         // (its globals are its state, and something in them is refused: that, not the structs)
         if (!/^no global of /.test(e.what)) throw new Refusal(e.where, `${e.what} (the file's globals read as its state, ${stem}: no struct its functions write)`)
+        if (opts.safety && firstRefusal) throw firstRefusal
       }
     }
     if (ok.length !== 1) throw new Refusal(file, ok.length ? `several structs written by the file's functions (${ok.join(', ')}): name one (entry)` : 'no struct the file\'s functions write: name the entry')
@@ -151,27 +159,42 @@ export function extractC(at: string | FileURL, given: COptions = {}, cpp = false
 }
 
 function extractCSafety(file: string, opts: COptions, cpp: boolean): Extraction & {safety: CSafetyResult} {
-  const notes = ['C safety is a static analysis; no source conformance check or replay was performed.']
+  const notes = ['C safety: first-fault model over the covered C subset; proven obligations are verified by checkLaws, broken obligations are replayed under ASan/UBSan.']
   const unchecked = (where: string, what: string, safety = uncheckedCSafety()) => ({ok: false, refusals: [{where, what}], notes, safety})
   if (cpp) return unchecked(file, 'C safety does not cover C++')
   if (opts.skip?.length || opts.leave?.length || opts.cut?.length || Object.keys(opts.answers ?? {}).length || Object.keys(opts.domains ?? {}).length || opts.onError === 'discard')
     return unchecked(file, 'C safety does not accept skipped code, inferred/overridden inputs, narrowed domains, or discarded normal failures')
-  if (opts.compileCommands || opts.flags?.some(f => !/^-std=(?:c|gnu)(?:99|11|17)$/.test(f)))
-    return unchecked(file, 'C safety does not cover custom compiler flags (except -std=c99/c11/c17 or their GNU modes)')
+  if (opts.compileCommands || opts.flags?.some(f => !/^(?:-std=(?:c|gnu)(?:99|11|17)|-I.+|-D[A-Za-z_]\w*(?:=.*)?)$/.test(f)))
+    return unchecked(file, 'C safety does not cover custom compiler flags (except -std=c99/c11/c17 or GNU modes, -I, and -D)')
   try {
-    const {c} = readCFile(file, opts)
-    c.pkg.dir = node<{resolve: (p: string) => string}>('node:path').resolve(file).replace(/\/[^/]*$/, '')
+    const path = node<{resolve: (p: string) => string}>('node:path')
+    const absFile = path.resolve(file)
+    const {c, flags} = readCFile(file, opts)
+    c.pkg.dir = absFile.replace(/\/[^/]*$/, '')
     const read = readGo(c.pkg, {entry: c.entry, methods: opts.functions?.map(f => f.split('/')[0]!) ?? c.methods, strict: true, safety: true, ...(opts.fails ? {fails: opts.fails} : {})})
     if (!read.safety) return unchecked(file, 'the C safety backend did not provide defined-prefix coverage')
     if (!read.safety.sites.length) return unchecked(file, 'the C safety backend reported no covered sites')
-    const safety = analyzeCSafety(read, c, read.safety.sites, {...unsignedDomains(read), ...signedDomains(c.pkg, read)})
-    if (safety.status === 'unchecked') return unchecked(file, 'the static C safety model could not be checked', safety)
-    const refusals = safety.issues.filter(site => site.status !== 'proven').map(site => ({where: site.where, what: `absence of a first C ${site.kind} fault was not proved`}))
+    const clang = opts.clang ?? 'clang'
+    let cachedHarness: string | undefined
+    const replay = (run: import('./c/safety.ts').CSafetyRun, site: import('./c/safety.ts').CSafetySite) => {
+      cachedHarness ??= harnessC(absFile, c, read, opts, false)
+      return replaySafety({
+        flags, harness: cachedHarness, clang, strictFlex: strictFlex(clang),
+        methods: read.methods, choices: read.methods.map(m => m.name),
+        ctor: (read.ctor ?? []).map(p => p.name), ttab: c.pkg.ttab,
+      }, run, site)
+    }
+    const safety = analyzeCSafety(read, c, read.safety.sites, {...unsignedDomains(read), ...signedDomains(c.pkg, read)}, {replay, ...(opts.safetySearchMs !== undefined ? {searchMs: opts.safetySearchMs} : {})})
+    if (safety.status === 'unchecked') return unchecked(file, 'the C safety model could not be checked', safety)
+    const refusals = safety.issues.filter(site => site.status !== 'proven').map(site => ({
+      where: site.where,
+      what: site.status === 'broken'
+        ? `C ${site.kind} fault confirmed by ASan/UBSan: ${site.replay?.reports[0] ?? 'sanitizer diagnostic'}`
+        : `absence of a first C ${site.kind} fault was not proved${site.why ? ` (${site.why})` : ''}`,
+    }))
     return {ok: safety.status === 'proven', safety, refusals, notes}
   } catch (e) {
     if (e instanceof Refusal) return unchecked(e.where, e.what)
-    // A renderer/prover error cannot become a safety verdict. Its diagnostic may
-    // have internal model data, which this static-only response does not expose.
     return unchecked(file, 'the C safety reader or prover could not complete')
   }
 }

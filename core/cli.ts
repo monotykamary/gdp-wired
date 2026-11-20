@@ -949,11 +949,16 @@ function printRule(r: RuleOut, o: Opts) {
   }
   if (r.laws.length) { out('  laws stated in the code:'); for (const l of r.laws) law(l, false) }
   if (r.safety) {
-    out('  C safety (checked in the extracted model; not native replay):')
+    out('  C safety (first-fault model; broken obligations replayed under ASan/UBSan):')
     if ('why' in r.safety) out(`    ${paint('yellow', 'unchecked')}: ${r.safety.why}`)
     else {
-      out(`    ${paint(r.safety.status === 'proven' ? 'green' : 'yellow', r.safety.status)}`)
-      for (const s of r.safety.issues) out(`    ${paint(s.status === 'proven' ? 'green' : 'yellow', s.status)}: ${s.kind} at ${s.where}`)
+      const color = (s: string) => s === 'proven' ? 'green' : s === 'broken' ? 'red' : 'yellow'
+      out(`    ${paint(color(r.safety.status), r.safety.status)}`)
+      for (const s of r.safety.issues) {
+        out(`    ${paint(color(s.status), s.status)}: ${s.kind} at ${s.where}`)
+        if (s.replay?.requests.length) out(`      run: ${s.replay.requests.join(' -> ')}`)
+        for (const line of s.replay?.reports ?? []) out(`      sanitizer: ${line}`)
+      }
       for (const a of r.safety.assumptions) out(`    ${a}`)
     }
   }
@@ -986,7 +991,7 @@ the clause a law answers: \`gdp: cite <law name>: <clause>\` (drafted from the c
 --cert <dir> writes each proven law's certificate (its meta the citations); --from any (or from = "any" in gdp.toml, for every
 rule or one) proves every law from every state the laws allow, for code that steps the rule from states it is handed. Exit code: 1 when a stated law is broken, 2 when
 one couldn't be checked.
---safety (or a C file's \`// gdp: safety\`) checks undefined-behavior obligations in the supported C model. It does not run fault inputs.
+--safety (or a C file's \`// gdp: safety\`) checks undefined-behavior obligations in the supported C subset and replays broken obligations under ASan/UBSan.
 --security proposes authorization, tenant-write isolation, workflow, quota and ledger candidates over the code's names.
 Candidates require policy review, show broken runs too, and do not affect the exit code. Arbitrary input identities are
 not authenticated identities. State the intended policy with gdp: law comments; use gdp: env for concurrent isolation.`
@@ -1003,8 +1008,9 @@ export async function check(targets: string[], given: Partial<Opts> = {}, each?:
   for (const p of targets) for (const t of targetsOf(p)) { const rs = await checkTarget(t, o); all.push(...rs); if (each) rs.forEach(each) }
   const stated = all.flatMap(r => r.laws)
   // A sampled source translation cannot turn an unknown proof into a successful check.
-  const uncheckedSafety = all.some(r => r.safety && ('why' in r.safety || r.safety.status !== 'proven'))
-  return {rules: all, exit: uncheckedSafety || stated.some(l => l.verdict === 'unknown' || l.translation === 'unchecked' || l.translation === 'error') ? 2 : stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') || o.security && all.some(r => !r.ok) ? 2 : 0}
+  const uncheckedSafety = all.some(r => r.safety && ('why' in r.safety || r.safety.status === 'unchecked' || r.safety.status === 'unproven'))
+  const brokenSafety = all.some(r => r.safety && !('why' in r.safety) && r.safety.status === 'broken')
+  return {rules: all, exit: uncheckedSafety || stated.some(l => l.verdict === 'unknown' || l.translation === 'unchecked' || l.translation === 'error') ? 2 : brokenSafety || stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') || o.security && all.some(r => !r.ok) ? 2 : 0}
 }
 // --- draft: laws from a clause, for a person to review ----------------------------------------------------------------
 // gdp-wired draft <file> --clause <text> | --clause-file <f> --cite <ref> [--llm <command> | --answer <file>] [--by <who>]:

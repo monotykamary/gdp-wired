@@ -263,7 +263,8 @@ function pn(e: N, P: Printer, ctx: Ctx, mode: 'nat' | 'int', recv = false): stri
         const prod = `${f(e.a, true)}.mul(${f(e.b, false)})`
         return nat ? prod : `Int.of(${prod})`
       }
-      return `${pn(e.a, P, ctx, 'nat', true)}.mul(${pn(e.b, P, ctx, 'nat')})`
+      const prod = `${pn(e.a, P, ctx, 'nat', true)}.mul(${pn(e.b, P, ctx, 'nat')})`
+      return !nat && recv ? `Int.of(${prod})` : prod
     case 'min': return nat ? `min(${A(e.a)}, ${A(e.b)})` : `${R(e.a)}.min(${A(e.b)})`
     case 'max':
       if (nat) {
@@ -279,7 +280,8 @@ function pn(e: N, P: Printer, ctx: Ctx, mode: 'nat' | 'int', recv = false): stri
       // JavaScript's % takes the dividend's sign (-7 % 3 is -1); modBy is the remainder at least 0 (2): the same only
       // where the dividend is at least 0.
       if (!natOK(e.a, ctx) && !nonneg(e.a, ctx)) throw new Refusal(P.m.file, 'x % k where x may be negative (JavaScript\'s remainder takes the sign of x)')
-      return `${pn(e.a, P, ctx, natOK(e.a, ctx) ? 'nat' : 'int', true)}.modBy(${e.k})`
+      const rem = `${pn(e.a, P, ctx, natOK(e.a, ctx) ? 'nat' : 'int', true)}.modBy(${e.k})`
+      return !nat && recv ? `Int.of(${rem})` : rem
     case 'ite': {
       const d = decided(e.c, ctx)
       if (d !== undefined) return pn(d ? e.a : e.b, P, ctx, mode, recv)

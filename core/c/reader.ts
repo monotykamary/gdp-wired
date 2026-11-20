@@ -15,9 +15,9 @@ import type {GS, GX, GoFunc, GoPkg, TT} from '../extract-go.ts'
 import type {SafetySite} from '../extract-step.ts'
 import {Refusal, readerRun, statedRefusal} from '../extract-read.ts'
 
-type CN = {id?: string, kind: string, name?: string, inner?: CN[], type?: {qualType: string, desugaredQualType?: string}, value?: string, opcode?: string, castKind?: string, isArrow?: boolean, isPostfix?: boolean,
-  referencedDecl?: {id: string, kind: string, name: string, type?: {qualType: string}}, referencedMemberDecl?: string, storageClass?: string, isImplicit?: boolean, completeDefinition?: boolean, tagUsed?: string, hasElse?: boolean,
-  computeLHSType?: {qualType: string, desugaredQualType?: string}, init?: string, decl?: {id: string, kind: string}, loc?: L, range?: {begin: L, end: L}, $at?: At, $b?: At, $e?: At, [k: string]: unknown}
+type CN = {id?: string, kind: string, name?: string, inner?: CN[], type?: {qualType: string, desugaredQualType?: string, typeAliasDeclId?: string}, value?: string, opcode?: string, castKind?: string, isArrow?: boolean, isPostfix?: boolean,
+  referencedDecl?: {id: string, kind: string, name: string, type?: {qualType: string}}, referencedMemberDecl?: string, previousDecl?: string, storageClass?: string, isImplicit?: boolean, completeDefinition?: boolean, tagUsed?: string, hasElse?: boolean,
+  computeLHSType?: {qualType: string, desugaredQualType?: string}, computeResultType?: {qualType: string, desugaredQualType?: string}, init?: string, decl?: {id: string, kind: string}, loc?: L, range?: {begin: L, end: L}, $at?: At, $b?: At, $e?: At, [k: string]: unknown}
 type L = {offset?: number, file?: string, line?: number, col?: number, tokLen?: number, spellingLoc?: L, expansionLoc?: L, includedFrom?: unknown}
 type At = {file: string, line: number, col: number, off: number, tok: number}
 export type CTarget = {int: number, long: number, short: number, llong: number, charUnsigned: boolean, charBits?: number}
@@ -158,12 +158,13 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     if ((target.charBits ?? 8) !== 8 || target.int !== 32 || target.short !== 16) refuse(undefined, 'unsupported C integer ABI for safety lowering')
   }
   // The declarations: typedefs, records and enums of every file (a header's types are the file's too), the globals.
-  const typedefs = new Map<string, {qual: string, desug?: string, rec?: string}>(), records = new Map<string, CN>(), tags = new Map<string, string>(), anon = new Map<string, string>()
+  const typedefs = new Map<string, {qual: string, desug?: string, rec?: string}>(), typedefNode = new Map<string, CN>(), records = new Map<string, CN>(), tags = new Map<string, string>(), anon = new Map<string, string>()
   const members = new Map<string, CN>(), fieldNode = new Map<string, CN>(), enums = new Map<string, CN>(), enumById = new Map<string, CN>(), cxx: CN[] = []
-  const enumConst = new Map<string, number>(), named = new Map<string, number>(), globals = new Map<string, CN>(), fields = new Map<string, {rec: string, i: number}>(), recName = new Map<string, string>()
+  const enumConst = new Map<string, number>(), named = new Map<string, number>(), globals = new Map<string, CN>(), globalByName = new Map<string, CN[]>(), redeclaredGlobals = new Set<string>(), fields = new Map<string, {rec: string, i: number}>(), recName = new Map<string, string>()
   const declOf = (n: CN): {id: string, kind: string} | undefined => n.decl ?? (n.inner ?? []).map(declOf).find(Boolean)
   const visitDecl = (n: CN) => {
     if (n.kind === 'TypedefDecl' && n.name) {
+      if (n.id) typedefNode.set(n.id, n)
       const d = declOf(n)
       // (a typedef of an unnamed enum names it: clang 21 spells it `enum state_t`, desugared to the typedef's own name)
       const en = d?.kind === 'EnumDecl' ? enumById.get(d.id) : undefined
@@ -186,7 +187,15 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       if (n.name) for (const q of [n.name, ...(n.$outer ? [`${n.$outer as string}::${n.name}`] : []), `enum ${n.name}`]) enums.set(q, n)
       let v = -1
       for (const c of n.inner ?? []) if (c.kind === 'EnumConstantDecl') { const k = c.inner?.length ? fold(c.inner[0]!) : undefined; v = k ?? v + 1; enumConst.set(c.id!, v); if (c.name) named.set(c.name, named.has(c.name) && named.get(c.name) !== v ? NaN : v) }
-    } else if (n.kind === 'VarDecl') globals.set(n.id!, n)
+    } else if (n.kind === 'VarDecl') {
+      globals.set(n.id!, n)
+      if (n.previousDecl) { redeclaredGlobals.add(n.id!); redeclaredGlobals.add(String(n.previousDecl)) }
+      if (n.name) {
+        const list = globalByName.get(n.name) ?? []
+        list.push(n); globalByName.set(n.name, list)
+        if (list.length > 1) for (const d of list) if (d.id) redeclaredGlobals.add(d.id)
+      }
+    }
     else if (n.kind === 'LinkageSpecDecl' || n.kind === 'NamespaceDecl') for (const c of n.inner ?? []) visitDecl(c)
     // (a method defined outside its class: its class by the declaration's context)
     else if (/^CXX(Method|Constructor|Destructor)Decl$/.test(n.kind) && n.inner?.some(c => c.kind === 'CompoundStmt')) { n.$rec = n.parentDeclContextId as string; n.$access = members.get(n.previousDecl as string)?.$access ?? 'public'; cxx.push(n) }
@@ -265,11 +274,13 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   function tyOf(ty: {qualType: string, desugaredQualType?: string}): number { return parseT(ty.qualType, ty.desugaredQualType) }
   function parseT(s0: string, desug?: string): number {
     const s = s0.replace(/\b(const|volatile|restrict|__restrict)\b/g, '').replace(/\s+/g, ' ').replace(/ \*/g, '*').replace(/\*/g, ' *').replace(/\* \*/g, '**').trim()
-    if (safety && !s.includes('*') && typedefs.has(s) && !typedefs.get(s)!.rec) {
+    if (safety && !s.includes('*') && typedefs.has(s)) {
       const td = typedefs.get(s)!, underlying = td.desug ?? td.qual
-      const it = T(parseT(underlying))
-      if (it.k === 'int') return intT(s, it.bits!, it.signed!)
-      return it.k === 'bool' ? boolT : parseT(underlying)
+      if (!td.rec || /[*[]/.test(underlying)) {
+        const it = T(parseT(underlying))
+        if (it.k === 'int') return intT(s, it.bits!, it.signed!)
+        return it.k === 'bool' ? boolT : parseT(underlying)
+      }
     }
     if (s === '_Bool' || s === 'bool') return boolT
     const arr = /^(.*?)\s*\[(\d+)\]$/.exec(s)
@@ -294,7 +305,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     if (cpp && /::/.test(s) && tags.has(s.replace(/^(\w+::)+/, ''))) return recT(tags.get(s.replace(/^(\w+::)+/, ''))!, s)
     const td = typedefs.get(s.replace(/^(struct|union|class) /, ''))
     if (td) {
-      if (td.rec && records.has(td.rec)) return recT(td.rec, s)
+      if (td.rec && !/[*[]/.test(td.desug ?? td.qual) && records.has(td.rec)) return recT(td.rec, s)
       const inner = parseT(td.desug ?? td.qual), it = T(inner)
       // (an integer type keeps its name: the notes and the harness spell it so)
       return it.k === 'int' ? intT(s, it.bits!, it.signed!) : inner
@@ -366,6 +377,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       if (leave.includes(g.name!)) { left.add(id); continue }
       const qt = g.type!.qualType
       if (!safety && /^const /.test(qt) && !writes.has(id)) continue
+      if (safety && /\bconst\b/.test(qt) && /\[\d+\]/.test(qt) && g.init && !writes.has(id)) continue
       if (/\[\]$/.test(qt.trim())) refuse(g, `${g.name}: an array of unknown size (its length is another file's)`)
       if (!safety && !writes.has(id) && (g.storageClass === 'extern' || /\bvolatile\b/.test(qt) || g.storageClass !== 'static')) ginput.add(id)
       gfield.set(id, gnodes.length); gnodes.push(g)
@@ -402,22 +414,89 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   }
   const at = (n: CN, t: number) => ({p: pos(n), t, text: text(n)})
   // Use the AST node's source range, not the wording or position of an emitted diagnostic.
+  // In safety mode, sites are inventoried before lowering and frozen so lowering cannot silently create or drop sites.
   const sites = new Map<CN, SafetySite>(), locations = new Map<string, number>()
+  let sitesFrozen = false, activeSites: SafetySite[] | undefined
   const siteOf = (n: CN, kind: SafetySite['kind']): SafetySite => {
     const old = sites.get(n)
-    if (old) return old
+    if (old) {
+      if (old.kind !== kind) refuse(n, `mismatched C safety site kind (${old.kind} vs ${kind})`)
+      if (activeSites && !activeSites.includes(old)) activeSites.push(old)
+      return old
+    }
+    if (sitesFrozen) refuse(n, 'lowering requested an uninventoried C safety site')
     const start = n.$b ?? refuse(n, 'a checked C operation without a source range')
     const loc = `${path.basename(start.file)}:${start.line}:${start.col}`
     const idx = (locations.get(loc) ?? 0) + 1
     locations.set(loc, idx)
     const site = {where: idx === 1 ? loc : `${loc}#${idx}`, kind}
     sites.set(n, site)
+    if (activeSites) activeSites.push(site)
     return site
   }
   const checked = (n: CN, t: number, op: string): Pick<GX, 'checkedType' | 'site'> => {
-    if (!safety || !['+', '-', '*', '/', '%'].includes(op)) return {}
-    const kind = op === '/' || op === '%' ? 'division' : T(t).signed ? 'overflow' : undefined
+    if (!safety || !['+', '-', '*', '/', '%', '&'].includes(op)) return {}
+    const kind = op === '/' || op === '%' ? 'division' : op !== '&' && T(t).signed ? 'overflow' : undefined
     return {checkedType: t, ...(kind ? {site: siteOf(n, kind)} : {})}
+  }
+  const exactConstInit = (n0: CN, et: TT): number | undefined => {
+    const n = strip(n0)
+    if (n.kind === 'ImplicitValueInitExpr') return 0
+    if (n.kind === 'ConstantExpr' && n.inner?.length === 1) return exactConstInit(n.inner[0]!, et)
+    if (CAST.has(n.kind) && ['IntegralCast', 'IntegralToBoolean', 'NoOp'].includes(n.castKind!) && n.inner?.length === 1) return exactConstInit(n.inner[0]!, et)
+    if (n.kind === 'CXXBoolLiteralExpr') return n.value ? 1 : 0
+    let v: bigint | undefined
+    if (n.kind === 'IntegerLiteral' && n.value !== undefined) v = BigInt(n.value)
+    else if (n.kind === 'UnaryOperator' && (n.opcode === '-' || n.opcode === '+') && n.inner?.length === 1) {
+      const inner = strip(n.inner[0]!)
+      if (inner.kind === 'IntegerLiteral' && inner.value !== undefined) v = n.opcode === '-' ? -BigInt(inner.value) : BigInt(inner.value)
+    }
+    if (v === undefined) return undefined
+    if (et.k === 'bool') return v === 0n ? 0 : 1
+    if (et.k !== 'int' || !et.bits || et.bits < 1 || et.bits > 32) return undefined
+    const lo = et.signed ? -(1n << BigInt(et.bits - 1)) : 0n
+    const hi = et.signed ? (1n << BigInt(et.bits - 1)) - 1n : (1n << BigInt(et.bits)) - 1n
+    if (v < lo || v > hi) return undefined
+    return Number(v)
+  }
+  type SafetyTable = {g: CN, dims: number[], idx: CN[], nodes: CN[], vals: number[], elemT: number}
+  const constTableOf = (n: CN): SafetyTable | undefined => {
+    const idx: CN[] = [], nodes: CN[] = []
+    let b: CN = n
+    while (b.kind === 'ArraySubscriptExpr') {
+      nodes.unshift(b); idx.unshift(b.inner![1]!)
+      b = strip(b.inner![0]!)
+      if (CAST.has(b.kind) && b.castKind === 'ArrayToPointerDecay') b = strip(b.inner![0]!)
+    }
+    const d = b.kind === 'DeclRefExpr' ? b.referencedDecl : undefined
+    if (d?.kind !== 'VarDecl' || !globals.has(d.id)) return undefined
+    const g = globals.get(d.id)!, qt = g.type?.qualType ?? ''
+    if (!/\bconst\b/.test(qt) || /\b(?:volatile|_Atomic|enum)\b/.test(`${qt} ${g.type?.desugaredQualType ?? ''}`)) return undefined
+    if (g.storageClass !== 'static' || g.tls || !mine(g) || !g.init || g.inner?.length !== 1 || g.inner.some(k => k.kind.endsWith('Attr'))) return undefined
+    if (g.previousDecl || redeclaredGlobals.has(g.id!) || (g.name && (globalByName.get(g.name)?.length ?? 0) > 1)) return undefined
+    const dims = [...qt.matchAll(/\[(\d+)\]/g)].map(m => Number(m[1]))
+    if (!dims.length || dims.length !== idx.length || dims.some(k => !Number.isSafeInteger(k) || k <= 0)) return undefined
+    const total = dims.reduce((u, v) => u * v, 1)
+    if (!Number.isSafeInteger(total) || total <= 0 || total > 256) return undefined
+    const elemT = n.type ? tyOf(n.type) : -1, et = T(elemT)
+    if (!et || et.nullflag || !(et.k === 'bool' || et.k === 'int' && et.bits! > 0 && et.bits! <= 32)) return undefined
+    const vals: number[] = []
+    const fill = (v: CN | undefined, dim: number): boolean => {
+      if (dim === dims.length) {
+        const k = v ? exactConstInit(v, et) : 0
+        if (k === undefined) return false
+        vals.push(k); return true
+      }
+      if (!v) { const count = dims.slice(dim).reduce((u, w) => u * w, 1); for (let i = 0; i < count; i++) vals.push(0); return true }
+      const s0 = strip(v)
+      if (s0.kind !== 'InitListExpr') return false
+      const kids = s0.inner ?? []
+      if (kids.length > dims[dim]! || kids.some(k => k.kind === 'DesignatedInitExpr')) return false
+      for (let i = 0; i < dims[dim]!; i++) if (!fill(kids[i], dim + 1)) return false
+      return true
+    }
+    if (!fill(g.inner[0], 0) || vals.length !== total) return undefined
+    return {g, dims, idx, nodes, vals, elemT}
   }
   const no = (n: CN, why: string): GX => ({e: 'no', ...at(n, -1), why})
   const lit = (n: CN, v: number, t: number): GX => ({e: 'lit', ...at(n, t), c: {int: String(v)}})
@@ -618,7 +697,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       case 'BinaryOperator': {
         const op = n.opcode!, [l, r] = kids as [CN, CN]
         if (CMP.has(op) || op === '&&' || op === '||') { const c = cond(n); return T(t).k === 'bool' ? c : {e: 'ite', ...a, x: c, y: lit(n, 1, t), b: lit(n, 0, t)} }
-        if (op === '&') {
+        if (!safety && op === '&') {
           // u & (2^k − 1): u's low k bits, u % 2^k for an unsigned u.
           const m = fold(r)
           // (of a signed x, two's complement: the floor remainder, ((x % 2^k) + 2^k) % 2^k by C's truncating %)
@@ -661,6 +740,10 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         return {e: 'comp', ...a, elts: kids.flatMap((k, i) => (k.kind === 'ImplicitValueInitExpr' ? [] : [{field: tt.fields![i]!.name, v: x(k)}]))}
       }
       case 'ArraySubscriptExpr': {
+        if (safety) {
+          const ct = constTableOf(n)
+          if (ct) return {e: 'table', ...a, sites: ct.nodes.map(k => siteOf(k, 'bounds')), dims: ct.dims, vals: ct.vals, indices: ct.idx.map(x)}
+        }
         const tb = safety ? undefined : table(n)
         if (tb) return tb
         // An index into an array of the state (its decay to a pointer undone); pointer arithmetic is outside.
@@ -890,51 +973,190 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       ...(/\.\.\.\)$/.test(f.type!.qualType) ? {params: [{t: -1, variadic: true}]} : {}),
       static: f.storageClass === 'static', ...(f.virtual ? {why: `${name}: a virtual method (its dispatch)`} : {})} as GoFunc
   }
-  const validated = new Set<string>()
+  const validated = new Set<string>(), validatedHelpers = new Set<string>()
+  const methodSites = new Map<string, SafetySite[]>(), ctorSites: SafetySite[] = []
   // Validate the Clang AST before any lowering can erase a construct. Only pure expressions are admitted;
   // where C does not order operands, at most one may fault. Assignments may have a faulting lvalue OR RHS.
+  // Inventory every typed safety site during validation and freeze the inventory before lowering.
   if (safety) {
-    const bad = (n: CN, why: string): never => refuse(n, `${why} (outside the C safety subset)`)
+    function bad(n: CN, why: string): never { return refuse(n, `${why} (outside the C safety subset)`) }
+    const stripComments = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ')
+    const hasMacroLoc = (l?: L): boolean => Boolean(l?.expansionLoc || l?.spellingLoc)
     const scalar = (n: CN, t = n.type ? tyOf(n.type) : -1) => {
       const q = T(t), raw = n.type?.desugaredQualType ?? n.type?.qualType ?? ''
       if (/\b(?:volatile|_Atomic|enum)\b/.test(`${n.type?.qualType ?? ''} ${raw}`) || !q || q.nullflag || !(q.k === 'bool' || q.k === 'int' && q.bits! > 0 && q.bits! <= 32)) bad(n, `unmodeled scalar type ${raw}`)
       return q
     }
+    const validatePointerTypedef = (aliasId: string, n: CN) => {
+      const seen = new Set<string>()
+      let cur: string | undefined = aliasId
+      while (cur) {
+        if (seen.has(cur)) bad(n, 'cyclic typedef in pointer declarator')
+        seen.add(cur)
+        const td = typedefNode.get(cur)
+        if (!td || td.inner?.some(k => k.kind.endsWith('Attr')) || hasMacroLoc(td.loc)) bad(n, 'uninspectable pointer typedef declarator')
+        const raw = `${td.type?.qualType ?? ''} ${td.type?.desugaredQualType ?? ''}`
+        if (/[[\]()]/.test(raw) || /\b(?:volatile|_Atomic)\b/.test(raw)) bad(n, 'adjusted array or variably-modified pointer typedef')
+        cur = td.type?.typeAliasDeclId
+      }
+    }
+    const validateParamDecl = (q: CN, kind: 'receiver' | 'scalar' | 'out') => {
+      if (!q.id || !q.name || q.name === '_' || q.inner?.some(k => k.kind.endsWith('Attr'))) bad(q, 'a parameter with unmodeled binding or attributes')
+      if (!q.$at || !q.$b || !q.$e || !mine(q) || q.$b.file !== main || q.$e.file !== main) bad(q, 'a parameter without inspectable source range in main file')
+      if (hasMacroLoc(q.loc) || hasMacroLoc(q.range?.end)) bad(q, 'a macro-expanded parameter declarator')
+      if (hasMacroLoc(q.range?.begin)) {
+        const sp = q.range?.begin?.spellingLoc
+        const okBool = kind === 'scalar' && q.type?.qualType === 'bool' && !!sp?.file && /(?:^|\/)stdbool\.h$/.test(sp.file)
+        if (!okBool) bad(q, 'a macro-expanded parameter declarator')
+      }
+      if (q.$e.off !== q.$at.off || q.$e.tok !== q.$at.tok) bad(q, 'an adjusted or variably-modified parameter declarator')
+      const rawDecl = stripComments(src(main).slice(q.$b.off, q.$e.off + q.$e.tok)).trim()
+      if (!rawDecl || /[[\]()]/.test(rawDecl) || /\b(?:volatile|_Atomic)\b/.test(`${rawDecl} ${q.type?.qualType ?? ''} ${q.type?.desugaredQualType ?? ''}`))
+        bad(q, 'an adjusted, variably-modified, or qualified parameter declarator')
+      if (kind === 'scalar') {
+        if (rawDecl.includes('*')) bad(q, 'a pointer declarator for a scalar parameter')
+        scalar(q)
+      } else {
+        const aliasId = q.type?.typeAliasDeclId
+        if (aliasId) {
+          validatePointerTypedef(aliasId, q)
+          if (!/^(?:const\s+)?[A-Za-z_]\w*(?:\s+(?:const|restrict|__restrict))*\s+[A-Za-z_]\w*$/.test(rawDecl))
+            bad(q, 'a non-plain pointer-typedef parameter declarator')
+        } else if (!/^(?:const\s+)?(?:(?:struct|signed|unsigned|short|long)\s+)*[A-Za-z_]\w*\s*\*\s*(?:(?:const|restrict|__restrict)\s+)*[A-Za-z_]\w*$/.test(rawDecl)) {
+          bad(q, 'an adjusted or non-plain pointer parameter declarator')
+        }
+        if (kind === 'out') {
+          const pt = T(tyOf(q.type!))
+          if (pt.k !== 'ptr') bad(q, 'an out-parameter that is not a pointer')
+          scalar(q, pt.elem!)
+        }
+      }
+    }
+    const checkNoRedeclaredGlobal = (g: CN) => {
+      if (g.previousDecl || redeclaredGlobals.has(g.id!) || (g.name && (globalByName.get(g.name)?.length ?? 0) > 1))
+        bad(g, `global ${g.name ?? ''} has multiple declarations in its linkage chain`)
+    }
     const field = (n: CN, receiver: string | undefined) => {
       const f = fields.get(n.referencedMemberDecl ?? ''), b = n.inner?.[0] && strip(n.inner[0])
       if (!f || f.rec !== entryRec || !n.isArrow || b?.kind !== 'DeclRefExpr' || !receiver || b.referencedDecl?.id !== receiver) bad(n, 'a member not directly in the event receiver')
     }
-    const direct = (n: CN, receiver: string | undefined, allowArray = false) => {
+    const isOutDeref = (n: CN, outParams: Set<string>): boolean => {
+      if (n.kind !== 'UnaryOperator' || n.opcode !== '*' || !n.inner?.length) return false
+      const r = strip(n.inner[0]!)
+      return r.kind === 'DeclRefExpr' && !!r.referencedDecl?.id && outParams.has(r.referencedDecl.id)
+    }
+    const direct = (n: CN, receiver: string | undefined, outParams: Set<string>, allowArray = false, inInit = false) => {
       if (n.kind === 'MemberExpr') field(n, receiver)
       else if (n.kind === 'DeclRefExpr') {
         const d = n.referencedDecl
-        if (!d || !['VarDecl', 'ParmVarDecl'].includes(d.kind) || d.id === receiver || (globals.has(d.id) && !gfield.has(d.id))) bad(n, 'a reference to an unmodeled declaration')
+        if (!d || !['VarDecl', 'ParmVarDecl'].includes(d.kind) || d.id === receiver || outParams.has(d.id) || (globals.has(d.id) && (inInit || !gfield.has(d.id)))) bad(n, 'a reference to an unmodeled declaration')
+      } else if (!allowArray && isOutDeref(n, outParams)) {
+        // valid direct scalar out-parameter dereference
       } else bad(n, 'an indirect or computed place')
       if (!allowArray) scalar(n)
     }
-    const access = (n: CN, receiver: string | undefined): true => {
+    const access = (n: CN, receiver: string | undefined, outParams: Set<string>, inInit = false): true => {
       scalar(n)
       const b = strip(n.inner![0]!), arr = b.kind === 'ImplicitCastExpr' && b.castKind === 'ArrayToPointerDecay' && b.inner?.[0]
       if (!arr) return bad(n, 'array access through a pointer or an unknown extent')
       const a = strip(arr)
-      direct(a, receiver, true)
+      direct(a, receiver, outParams, true, inInit)
       const t = T(tyOf(a.type!))
       if (!t.fixed || !Number.isSafeInteger(t.len) || t.len! <= 0) bad(a, 'array without a known positive extent')
-      expr(n.inner![1]!, receiver)
+      expr(n.inner![1]!, receiver, outParams, inInit)
+      siteOf(n, 'bounds')
       return true
     }
     const unordered = (n: CN, a: boolean, b: boolean) => {
       if (a && b) bad(n, 'unspecified order between two potentially faulting operands')
       return a || b
     }
-    const expr = (n: CN, receiver?: string): boolean => {
+    const safeConstVal = (n0: CN): bigint | undefined => {
+      const n = strip(n0)
+      if (n.kind === 'ConstantExpr' && n.inner?.length === 1) return safeConstVal(n.inner[0]!)
+      if (n.kind === 'IntegerLiteral' && n.value !== undefined && n.type) {
+        const t = T(tyOf(n.type))
+        if (t.k !== 'int' || !t.bits || t.bits > 32) return undefined
+        const v = BigInt(n.value), hi = 2n ** BigInt(t.bits - Number(t.signed)) - 1n
+        return v >= 0n && v <= hi ? v : undefined
+      }
+      if (n.kind === 'UnaryOperator' && (n.opcode === '+' || n.opcode === '-') && n.inner?.length === 1 && n.type) {
+        const v = safeConstVal(n.inner[0]!), t = T(tyOf(n.type))
+        if (v === undefined || t.k !== 'int' || !t.bits || t.bits > 32) return undefined
+        const r = n.opcode === '-' ? -v : v
+        if (t.signed) { const lo = -(2n ** BigInt(t.bits - 1)), hi = -lo - 1n; return r >= lo && r <= hi ? r : undefined }
+        const m = 2n ** BigInt(t.bits); return ((r % m) + m) % m
+      }
+      if (n.kind === 'BinaryOperator' && n.inner?.length === 2 && n.type) {
+        const a = safeConstVal(n.inner[0]!), b = safeConstVal(n.inner[1]!), t = T(tyOf(n.type))
+        if (a === undefined || b === undefined || t.k !== 'int' || !t.bits || t.bits > 32) return undefined
+        const lo = t.signed ? -(2n ** BigInt(t.bits - 1)) : 0n, hi = t.signed ? -lo - 1n : (2n ** BigInt(t.bits)) - 1n
+        let r: bigint | undefined
+        if (n.opcode === '+') r = a + b
+        else if (n.opcode === '-') r = a - b
+        else if (n.opcode === '*') r = a * b
+        else if (n.opcode === '/' || n.opcode === '%') {
+          if (b === 0n || (t.signed && a === lo && b === -1n)) return undefined
+          r = n.opcode === '/' ? a / b : a % b
+        } else return undefined
+        if (t.signed) return r >= lo && r <= hi ? r : undefined
+        const m = 2n ** BigInt(t.bits); return ((r % m) + m) % m
+      }
+      return undefined
+    }
+    const helperInfo = new Map<string, {sites: SafetySite[], canFault: boolean, mutates: boolean}>(), activeCallStack = new Set<string>()
+    let activeMutates = false
+    const isStatePlace = (n0: CN, outParams: Set<string>): boolean => {
+      const n = strip(n0)
+      if (n.kind === 'MemberExpr' || n.kind === 'ArraySubscriptExpr') return true
+      if (isOutDeref(n, outParams)) return true
+      if (n.kind === 'DeclRefExpr' && n.referencedDecl?.id && gfield.has(n.referencedDecl.id)) return true
+      return false
+    }
+    const validateCall = (n: CN, receiver: string | undefined, outParams: Set<string>, inInit: boolean, allowMutate: boolean): boolean => {
+      if (inInit) return bad(n, 'a call inside a global initializer')
+      const kids = n.inner ?? [], cname = calleeName(n), callee = cname && !FAIL[cname] ? funcs.get(cname) : undefined
+      if (!callee || !mine(callee)) return bad(n, `call to ${cname ?? 'indirect function'}`)
+      if (activeCallStack.has(cname!)) return bad(n, `recursive call to ${cname}`)
+      const callArgs = kids.slice(1), cRecv = recvOf(callee), cParams = args0(callee)
+      let argFault = false
+      if (!gmode && cRecv) {
+        if (callArgs.length !== cParams.length + 1) return bad(n, `arity mismatch calling ${cname}`)
+        const r0 = strip(callArgs[0]!)
+        if (r0.kind !== 'DeclRefExpr' || !receiver || r0.referencedDecl?.id !== receiver) return bad(n, `helper ${cname} called without the event receiver`)
+        for (let i = 0; i < cParams.length; i++) {
+          const ca = callArgs[i + 1]!, cp = cParams[i]!
+          if (boxed.has(cp.id!)) {
+            const ar = strip(ca)
+            if (ar.kind !== 'DeclRefExpr' || !ar.referencedDecl?.id || !outParams.has(ar.referencedDecl.id)) return bad(ca, `helper ${cname} out-parameter must forward a direct out-parameter`)
+          } else argFault = unordered(n, argFault, expr(ca, receiver, outParams, inInit))
+        }
+      } else {
+        if (callArgs.length !== cParams.length) return bad(n, `arity mismatch calling ${cname}`)
+        for (let i = 0; i < cParams.length; i++) {
+          const ca = callArgs[i]!, cp = cParams[i]!
+          if (boxed.has(cp.id!)) {
+            const ar = strip(ca)
+            if (ar.kind !== 'DeclRefExpr' || !ar.referencedDecl?.id || !outParams.has(ar.referencedDecl.id)) return bad(ca, `helper ${cname} out-parameter must forward a direct out-parameter`)
+          } else argFault = unordered(n, argFault, expr(ca, receiver, outParams, inInit))
+        }
+      }
+      const info = validateFunc(cname!, callee, false)
+      if (info.mutates) {
+        if (!allowMutate) bad(n, `call to state-mutating helper ${cname} inside an expression`)
+        activeMutates = true
+      }
+      for (const s of info.sites) if (activeSites && !activeSites.includes(s)) activeSites.push(s)
+      return argFault || info.canFault
+    }
+    const expr = (n: CN, receiver?: string, outParams: Set<string> = new Set(), inInit = false): boolean => {
       const kids = n.inner ?? [], [l, r] = kids
-      if (n.kind === 'ParenExpr') return expr(l!, receiver)
-      if (n.kind === 'ConstantExpr' && kids.length === 1) return expr(l!, receiver)
+      if (n.kind === 'ParenExpr') return expr(l!, receiver, outParams, inInit)
+      if (n.kind === 'ConstantExpr' && kids.length === 1) return expr(l!, receiver, outParams, inInit)
       if (CAST.has(n.kind)) {
         if (n.castKind !== 'ToVoid') scalar(n)
         if (!['LValueToRValue', 'NoOp', 'IntegralCast', 'IntegralToBoolean', 'ToVoid'].includes(n.castKind!)) return bad(n, `a ${n.castKind} conversion`)
-        return expr(l!, receiver)
+        return expr(l!, receiver, outParams, inInit)
       }
       const t = scalar(n)
       switch (n.kind) {
@@ -943,62 +1165,144 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
           if (v < 0 || v > hi) bad(n, 'an integer literal outside its exact Clang type range')
           return false
         }
-        case 'DeclRefExpr': case 'MemberExpr': direct(n, receiver); return false
-        case 'ArraySubscriptExpr': return access(n, receiver)
+        case 'DeclRefExpr': case 'MemberExpr': direct(n, receiver, outParams, false, inInit); return false
+        case 'ArraySubscriptExpr': {
+          const ct = constTableOf(n)
+          if (ct) {
+            checkNoRedeclaredGlobal(ct.g)
+            let anyFault = false
+            for (let k = 0; k < ct.idx.length; k++) {
+              const f = expr(ct.idx[k]!, receiver, outParams, inInit)
+              // Earlier subscript bounds check already may fault; later index expressions are unordered with it.
+              if (k > 0) unordered(ct.nodes[k]!, true, f)
+              else anyFault = f
+              siteOf(ct.nodes[k]!, 'bounds')
+            }
+            void anyFault
+            return true
+          }
+          return access(n, receiver, outParams, inInit)
+        }
         case 'BinaryOperator': {
-          const op = n.opcode!, a = expr(l!, receiver), b = expr(r!, receiver)
+          const op = n.opcode!, a = expr(l!, receiver, outParams, inInit), b = expr(r!, receiver, outParams, inInit)
           if (op === '&&' || op === '||') return a || b
           const child = unordered(n, a, b)
           if (CMP.has(op)) return child
-          if (['+', '-', '*', '/', '%'].includes(op)) return child || t.signed === true || op === '/' || op === '%'
+          if (op === '&') {
+            const m = fold(r!)
+            if (m === undefined || m <= 0 || m + 1 > 2 ** 31 || !Number.isInteger(Math.log2(m + 1))) bad(n, 'bitwise & with other than a positive power-of-two constant mask')
+            return child
+          }
+          if (['+', '-', '*', '/', '%'].includes(op)) {
+            if (op === '/' || op === '%') siteOf(n, 'division')
+            else if (t.signed === true) siteOf(n, 'overflow')
+            if (!child && safeConstVal(n) !== undefined) return false
+            return child || t.signed === true || op === '/' || op === '%'
+          }
           return bad(n, `a ${op} expression`)
         }
         case 'UnaryOperator':
-          if (['+', '-', '!'].includes(n.opcode!)) return expr(l!, receiver) || (n.opcode === '-' && t.signed === true && strip(l!).kind !== 'IntegerLiteral')
+          if (n.opcode === '*' && isOutDeref(n, outParams)) return false
+          if (['+', '-', '!'].includes(n.opcode!)) {
+            const child = expr(l!, receiver, outParams, inInit)
+            if (n.opcode === '-' && t.signed === true) siteOf(n, 'overflow')
+            return child || (n.opcode === '-' && t.signed === true && strip(l!).kind !== 'IntegerLiteral')
+          }
           return bad(n, `a ${n.opcode} expression`)
-        case 'ConditionalOperator': return kids.map(k => expr(k, receiver)).some(Boolean)
-        case 'InitListExpr': if (kids.length <= 1) return !!l && expr(l, receiver); break
+        case 'ConditionalOperator': return kids.map(k => expr(k, receiver, outParams, inInit)).some(Boolean)
+        case 'InitListExpr': if (kids.length <= 1) return !!l && expr(l, receiver, outParams, inInit); break
+        case 'CallExpr': return validateCall(n, receiver, outParams, inInit, false)
       }
       return bad(n, n.kind)
     }
-    const placeFault = (n: CN, receiver?: string) => {
+    const placeFault = (n: CN, receiver: string | undefined, outParams: Set<string>) => {
       const v = strip(n)
-      if (v.kind === 'ArraySubscriptExpr') return access(v, receiver)
-      direct(v, receiver)
+      if (isStatePlace(v, outParams)) activeMutates = true
+      if (v.kind === 'ArraySubscriptExpr') return access(v, receiver, outParams)
+      direct(v, receiver, outParams)
       return false
     }
-    const stmt = (n: CN, receiver?: string): void => {
+    const stmt = (n: CN, receiver: string | undefined, outParams: Set<string>): boolean => {
       const kids = n.inner ?? [], [l, r] = kids
       switch (n.kind) {
-        case 'CompoundStmt': kids.forEach(k => stmt(k, receiver)); return
-        case 'NullStmt': return
-        case 'ParenExpr': stmt(l!, receiver); return
-        case 'ReturnStmt': kids.forEach(k => expr(k, receiver)); return
-        case 'IfStmt':
+        case 'CompoundStmt': return kids.map(k => stmt(k, receiver, outParams)).some(Boolean)
+        case 'NullStmt': return false
+        case 'ParenExpr': return stmt(l!, receiver, outParams)
+        case 'CallExpr': return validateCall(n, receiver, outParams, false, true)
+        case 'WhileStmt': case 'ForStmt': case 'DoStmt': return bad(n, 'a loop (while/for/do)')
+        case 'SwitchStmt': case 'GotoStmt': case 'BreakStmt': case 'ContinueStmt': case 'LabelStmt': return bad(n, `a ${n.kind} statement`)
+        case 'ReturnStmt': return kids.map(k => expr(k, receiver, outParams)).some(Boolean)
+        case 'IfStmt': {
           if (n.hasInitStorage || n.hasVarStorage || (kids.length !== 2 && kids.length !== 3)) return bad(n, 'an if with extra context')
-          expr(l!, receiver); kids.slice(1).forEach(k => stmt(k, receiver)); return
-        case 'DeclStmt':
+          const c = expr(l!, receiver, outParams), arms = kids.slice(1).map(k => stmt(k, receiver, outParams)).some(Boolean)
+          return c || arms
+        }
+        case 'DeclStmt': {
+          let f = false
           for (const d of kids) {
             if (d.kind !== 'VarDecl' || d.name === '_' || (d.storageClass && d.storageClass !== 'auto' && d.storageClass !== 'register') || !d.init || d.inner?.length !== 1) return bad(d, 'a local without a modeled automatic scalar initializer')
-            scalar(d); expr(d.inner[0]!, receiver)
+            scalar(d); if (expr(d.inner[0]!, receiver, outParams)) f = true
           }
-          return
+          return f
+        }
         case 'BinaryOperator':
-          if (n.opcode === '=') { unordered(n, placeFault(l!, receiver), expr(r!, receiver)); return }
-          if (n.opcode === ',') { kids.forEach(k => stmt(k, receiver)); return }
+          if (n.opcode === '=') return unordered(n, placeFault(l!, receiver, outParams), expr(r!, receiver, outParams))
+          if (n.opcode === ',') return kids.map(k => stmt(k, receiver, outParams)).some(Boolean)
           break
-        case 'CompoundAssignOperator':
-          if (!['+=', '-=', '*=', '/=', '%='].includes(n.opcode!) || placeFault(l!, receiver)) return bad(n, 'a compound assignment to other than a direct scalar place or an unsupported operator')
-          expr(r!, receiver); return
+        case 'CompoundAssignOperator': {
+          if (!['+=', '-=', '*=', '/=', '%='].includes(n.opcode!) || placeFault(l!, receiver, outParams)) return bad(n, 'a compound assignment to other than a direct scalar place or an unsupported operator')
+          const op = n.opcode!.slice(0, -1), rf = expr(r!, receiver, outParams)
+          const result = n.computeResultType, ot = result ? tyOf(result) : bad(n, 'missing C compound-assignment result type')
+          if (op === '/' || op === '%') { siteOf(n, 'division'); return true }
+          if (T(ot).signed === true) { siteOf(n, 'overflow'); return true }
+          return rf
+        }
         case 'UnaryOperator':
           if (['++', '--'].includes(n.opcode!)) {
-            if (placeFault(l!, receiver)) return bad(n, 'increment/decrement of other than a direct scalar place')
-            if (scalar(l!).k !== 'int') return bad(n, 'increment/decrement of a non-integer place')
-            return
+            if (placeFault(l!, receiver, outParams)) return bad(n, 'increment/decrement of other than a direct scalar place')
+            const lt = tyOf(l!.type!), tt = scalar(l!, lt)
+            if (tt.k !== 'int') return bad(n, 'increment/decrement of a non-integer place')
+            const it = tt.bits! >= target.int ? lt : intT('int', target.int, true)
+            if (T(it).signed === true) { siteOf(n, 'overflow'); return true }
+            return false
           }
           break
       }
-      expr(n, receiver)
+      return expr(n, receiver, outParams)
+    }
+    const validateFunc = (name: string, f: CN, isEntry: boolean): {sites: SafetySite[], canFault: boolean, mutates: boolean} => {
+      const cached = helperInfo.get(name)
+      if (cached) { if (isEntry) validated.add(name); else validatedHelpers.add(name); return cached }
+      if (!mine(f) || f.variadic || f.inner?.some(k => k.kind.endsWith('Attr')) || hasMacroLoc(f.loc)) bad(f, 'a definition outside the main file, or an attributed, macro-spelled, or variadic function')
+      const recv = recvOf(f)
+      if (!gmode && recv) validateParamDecl(recv, 'receiver')
+      else if (!gmode && isEntry) bad(f, 'an entry method without a receiver')
+      const ret = parseT(f.type!.qualType.slice(0, retEnd(f.type!.qualType)))
+      if (T(ret).k !== 'void') scalar(f, ret)
+      const outParams = new Set<string>()
+      for (const q of args0(f)) {
+        if (boxed.has(q.id!)) { validateParamDecl(q, 'out'); outParams.add(q.id!) }
+        else validateParamDecl(q, 'scalar')
+      }
+      const prevSites = activeSites, prevMutates = activeMutates, fnSites: SafetySite[] = []
+      activeSites = fnSites
+      activeMutates = false
+      activeCallStack.add(name)
+      let canFault = false, mutates = false
+      try {
+        canFault = stmt(f.inner!.find(c => c.kind === 'CompoundStmt')!, gmode ? undefined : recv?.id, outParams)
+        mutates = activeMutates
+      } finally {
+        activeCallStack.delete(name)
+        activeSites = prevSites
+        activeMutates = prevMutates
+      }
+      const info = {sites: fnSites, canFault, mutates}
+      helperInfo.set(name, info)
+      methodSites.set(name, fnSites)
+      if (isEntry) validated.add(name)
+      else validatedHelpers.add(name)
+      return info
     }
     const state = (d: CN) => {
       const q = T(tyOf(d.type!)), raw = `${d.type!.qualType} ${d.type!.desugaredQualType ?? ''}`
@@ -1013,28 +1317,29 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       if (rec.tagUsed !== 'struct' || rec.inner?.some(k => k.kind.endsWith('Attr'))) bad(rec, 'an entry other than a plain struct')
       for (const f of rec.inner ?? []) if (f.kind === 'FieldDecl') state(f)
     }
+    activeSites = ctorSites
     for (const g of gnodes) {
+      checkNoRedeclaredGlobal(g)
       state(g)
       if (g.storageClass !== 'static' || g.tls || !mine(g)) bad(g, 'state not defined as file-local in this translation unit')
-      if (g.init) expr(g.inner![0]!)
+      if (g.init) {
+        if (g.inner?.length !== 1) bad(g, 'global initializer with unexpected structure')
+        expr(g.inner[0]!, undefined, new Set(), true)
+      }
     }
+    activeSites = undefined
     for (const [name, f] of funcs) {
       if (gmode ? !requests.has(name) : !recvOf(f) || (pickNames.length ? !pickNames.includes(name) : !mine(f) || f.storageClass === 'static')) continue
-      if (!mine(f) || f.variadic || f.inner?.some(k => k.kind.endsWith('Attr'))) bad(f, 'a definition outside the main file, or an attributed or variadic function')
-      const recv = recvOf(f)
-      if (!gmode && (!recv?.id || /\b(?:volatile|_Atomic)\b/.test(recv.type!.qualType))) bad(f, 'a receiver with unmodeled qualifiers or binding')
-      const ret = parseT(f.type!.qualType.slice(0, retEnd(f.type!.qualType)))
-      if (T(ret).k !== 'void') scalar(f, ret)
-      for (const q of args0(f)) {
-        if (!q.id || q.name === '_' || q.inner?.some(k => k.kind.endsWith('Attr'))) bad(q, 'a parameter with unmodeled binding or attributes')
-        scalar(q)
-      }
-      stmt(f.inner!.find(c => c.kind === 'CompoundStmt')!, gmode ? undefined : recv?.id)
-      validated.add(name)
+      validateFunc(name, f, true)
     }
+    sitesFrozen = true
   }
   let ctor: GoFunc | undefined
-  for (const [name, f] of funcs) if (!safety || validated.has(name)) out.push(fn(name, f))
+  for (const [name, f] of funcs) if (!safety || validated.has(name) || validatedHelpers.has(name)) {
+    const gf = fn(name, f)
+    if (safety) gf.safetySites = methodSites.get(name) ?? []
+    out.push(gf)
+  }
   // (the globals' start: each one's initializer, where it has one; C's zero where not)
   if (gmode) {
     const pre: GS[] = []
@@ -1051,7 +1356,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       if (empty) zeros(t, place)
       else pre.push({s: 'assign', p: pos(v!), op: '=', l: [place], r: [x(v!)]})
     }
-    ctor = {name: '$ctor', p: pos(td0()), span: [0, 0], recv: {t: ptrT, ptr: true, type: entry, name: 'this', id: 'this'}, params: [], results: [], body: pre} as GoFunc
+    ctor = {name: '$ctor', p: pos(td0()), span: [0, 0], recv: {t: ptrT, ptr: true, type: entry, name: 'this', id: 'this'}, params: [], results: [], body: pre, ...(safety ? {safetySites: ctorSites} : {})} as GoFunc
   }
   // The constructor (C++): its member initializers (each field's own in-class one where it has no other), then its body;
   // the rule starts where it leaves the object, its parameters the rule's.

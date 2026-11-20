@@ -48,11 +48,11 @@ export type TT = {k: string, go?: string, nullflag?: boolean, fixed?: boolean, b
   fields?: {name: string, t: number, embedded: boolean}[], xfields?: {name: string, t: number, embedded: boolean, exported: boolean}[], methods?: {name: string, ptr: boolean}[], params?: number[], results?: number[], elems?: number[], iface?: boolean, args?: number[], len?: number}
 type GC = {int?: string, bool?: boolean, str?: string, float?: string, other?: string}
 export type GX = {e: string, p: string, t: number, text: string, c?: GC, why?: string, what?: string, b?: GX, n?: string, o?: string, id?: string, x?: GX, y?: GX, op?: string, f?: GX, a?: GX[], k?: string, lo?: GX, hi?: GX, three?: boolean,
-  path?: number[], indirect?: boolean, mptr?: boolean, mtype?: string, mpkg?: string, pkg?: string, builtin?: string, conv?: boolean, ell?: boolean, elts?: {field?: string, k?: GX, v: GX}[], i?: GX, end?: string, site?: SafetySite, checkedType?: number}
+  path?: number[], indirect?: boolean, mptr?: boolean, mtype?: string, mpkg?: string, pkg?: string, builtin?: string, conv?: boolean, ell?: boolean, elts?: {field?: string, k?: GX, v: GX}[], i?: GX, end?: string, site?: SafetySite, sites?: SafetySite[], checkedType?: number, dims?: number[], vals?: number[], indices?: GX[]}
 export type GS = {s: string, p: string, why?: string, x?: GX, op?: string, l?: GX[], r?: GX[], c?: GX, then?: GS[], else?: GS, init?: GS, tag?: GX, cases?: {list?: GX[], default?: boolean, b: GS[], p: string}[],
   b?: GS[], specs?: {names: {name: string, id: string, t: number, c?: GC}[], v: GX[], const?: boolean, type?: boolean}[], tok?: string, label?: string, st?: GS}
 export type GoParam = {name?: string, id?: string, t: number, variadic?: boolean, ts?: string}
-export type GoFunc = {name: string, p: string, span: [number, number], recv?: {t: number, ptr: boolean, type: string, name?: string, id?: string}, generic?: boolean, params: GoParam[], results: GoParam[], body?: GS[]}
+export type GoFunc = {name: string, p: string, span: [number, number], recv?: {t: number, ptr: boolean, type: string, name?: string, id?: string}, generic?: boolean, params: GoParam[], results: GoParam[], body?: GS[], safetySites?: SafetySite[]}
 // (`lang`: the language the JSON was read from, Go's reader's or another's in its shape, core/c/reader.ts's)
 // (`ctor`: C++'s constructor, run once for the start state, its parameters the rule's)
 // (`dir`: where its files are, for the comments that tag calls and the check's rewritten copies)
@@ -210,6 +210,7 @@ class Go {
         if (xt.k === 'slice' || xt.fixed) return {e: 'lidx', ...at, s: this.x(x.x!), i: this.x(x.i!), ty: this.intTy(xt.elem!)}
         return this.no(x, `${x.text}: an index into a ${this.tname(x.x!.t)}`, {pre: [this.x(x.x!), this.x(x.i!)]})
       }
+      case 'table': return {e: 'table', ...at, sites: x.sites, dims: x.dims, vals: x.vals, indices: (x.indices ?? []).map(y => this.x(y)), ity: this.intTy(x.t), isBool: this.T(x.t).k === 'bool'}
       case 'slice': {
         // s[:len(s)-1] of a slice of the state: its last item taken off (put back in s's own place).
         const h = x.hi, ok = !x.lo && !x.three && h?.e === 'bin' && h.op === '-' && h.y?.c?.int === '1' && h.x?.e === 'call' && h.x.builtin === 'len' && h.x.a?.[0]?.text === x.x!.text
@@ -657,9 +658,22 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
       if (pa.id) p = g.bindLocal(pa.id, it ? {t: 'num', e: I.nvar(v.name), ty: it} : {t: 'bool', e: I.bvar(v.name)}, fn, p)
     }
     p = g.bindLocal('this', {t: 'ptr', to: {k: 'obj', id: 'this', path: []}}, fn, p)
+    const ctorCut = g.safety ? new Set<string>() : undefined, ctorDead = g.safety ? new Set<string>() : undefined
+    if (g.safety) {
+      if (fn.safetySites === undefined) refuse(fn, 'missing pre-lowering C safety site inventory on initializer')
+      g.safetyCutSites = ctorCut; g.safetyDeadSites = ctorDead
+    }
     const flow = g.block(go.fn(fn).body, p), ends = [...flow.rets.map(([q]) => q), ...(flow.live ? [flow.live] : [])]
-    if (g.safety && [...g.safety.values()].some(s => !(s.condition.op === 'const' && !s.condition.v))) refuse(fn, 'a constructor with a possible C safety fault')
-    g.safety?.clear()
+    if (g.safety) {
+      const expected = new Set((fn.safetySites ?? []).map(s => `${s.kind}:${s.where}`))
+      for (const s of fn.safetySites ?? []) {
+        const key = `${s.kind}:${s.where}`
+        if (!ctorCut!.has(key) && !ctorDead!.has(key)) refuse(fn, `unaccounted C safety initializer site (${s.kind} at ${s.where})`)
+      }
+      for (const k of ctorCut!) if (!expected.has(k)) refuse(fn, `uninventoried C safety initializer cut (${k})`)
+      if ([...g.safety.values()].some(s => !(s.condition.op === 'const' && !s.condition.v))) refuse(fn, 'a constructor with a possible C safety fault')
+      g.safety.clear(); g.safetyCutSites = undefined; g.safetyDeadSites = undefined
+    }
     if (g.refusals.length > n0 || !ends.length) refuse(fn, 'a constructor that can fail (the rule\'s start is where it leaves the object)')
     const m = materialize(go, g.join(ends, fn)!, fn)
     if (m.lists.size || m.maps.size) refuse(fn, 'a constructor that writes an array (a list starts as zeros)')
@@ -683,9 +697,10 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
     let p: Path = {pc: [sel], locals: new Map(), heap: new Map(heap), called: [], locks: [], defers: []}
     const beforeInput = g.refusals.length
     const bound = go.bindParams(fn, sel, p), args = bound.args, params = bound.params
-    p = g.safety ? g.assume(bound.p, I.not(I.or(...g.refusals.slice(beforeInput)))) : bound.p
+    p = bound.p
     // (an out-parameter a path leaves as the caller gave it: what the caller gave, an input, read at the start)
     for (const pa of fn.params) { const pt = go.T(pa.t); if (pt.k === 'ptr' && go.T(pt.elem!).box && (go.T(pt.elem!).fields ?? []).length === 1 && boxKept(lowered0(fn), pa.id)) g.lazyFieldIn(`in:${fn.name}_${pa.name ?? 'arg'}`, 'value', p, fn) }
+    if (g.safety) p = g.assume(p, I.not(I.or(...g.refusals.slice(beforeInput))))
     // The receiver.
     if (fn.recv?.id) p = g.bindLocal(fn.recv.id, fn.recv.ptr ? {t: 'ptr', to: {k: 'obj', id: 'this', path: []}} : {t: 'struct', ty: String(td.t), f: fields}, fn, p)
     const errAt = fn.results.length && go.T(fn.results.at(-1)!.t).k === 'error' ? fn.results.length - 1 : -1
@@ -693,16 +708,23 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
     if (kept.length > 1) refuse(fn, `${fn.name} returns ${kept.length} values (a result kept is one value)`)
     const lowered = lowered0(fn)
     g.spans.set(`${opts.entry}.${fn.name}`, [fn.p.split(':')[0]!, fn.span[0], fn.span[1]])
+    const methodCut = g.safety ? new Set<string>() : undefined, methodDead = g.safety ? new Set<string>() : undefined
     if (g.safety) {
-      const visit = (v: unknown) => {
-        if (!v || typeof v !== 'object') return
-        if ('site' in v && v.site) g.registerSafety(v.site as SafetySite)
-        for (const c of Object.values(v)) visit(c)
-      }
-      visit(fn.body)
+      if (fn.safetySites === undefined) refuse(fn, 'missing pre-lowering C safety site inventory')
+      g.safetyCutSites = methodCut; g.safetyDeadSites = methodDead
     }
     const beforeBody = g.refusals.length
     const flow = g.block(lowered.body, p)
+    if (g.safety) {
+      g.safetyCutSites = undefined; g.safetyDeadSites = undefined
+      const expected = new Set(fn.safetySites!.map(s => `${s.kind}:${s.where}`))
+      for (const s of fn.safetySites!) {
+        const key = `${s.kind}:${s.where}`
+        if (!methodCut!.has(key) && !methodDead!.has(key)) refuse(fn, `unaccounted C safety source site (${s.kind} at ${s.where})`)
+        g.registerSafety(s)
+      }
+      for (const k of methodCut!) if (!expected.has(k)) refuse(fn, `uninventoried C safety cut (${k})`)
+    }
     if (g.safety && g.refusals.length !== beforeBody) refuse(fn, 'an untracked refusal on a C safety source path')
     if (g.safety && flow.live && fn.results.length) { const c = g.cond(flow.live); if (!(c.op === 'const' && !c.v)) refuse(fn, 'a non-void C method with a reachable fallthrough') }
     if (flow.brk?.length) refuse(fn, 'a break outside a switch')
@@ -740,7 +762,17 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
       // This method still exists as an event: a fault can be its only exit.
       // Its normal slot values are immaterial on faults (the monitor stutters).
       const vs: V[] = fn.results.map(r => go.T(r.t).k === 'bool' ? {t: 'bool', e: I.F} : {t: 'num', e: I.num(0), ty: go.intTy(r.t)})
-      ok.push([g.assume(p, I.F), vs])
+      const dummy = g.assume(p, I.F)
+      for (const pa of params) {
+        const pt = go.T(pa.t)
+        if (pt.k !== 'ptr' || !go.T(pt.elem!).box) continue
+        const id = `in:${fn.name}_${pa.name}`, obj = dummy.heap.get(id)
+        if (obj?.k === 'rec' && !obj.f.has('value')) {
+          const et = go.T(pt.elem!).fields![0]!.t
+          dummy.heap.set(id, {...obj, f: new Map(obj.f).set('value', go.T(et).k === 'bool' ? {t: 'bool', e: I.F} : {t: 'num', e: I.num(0), ty: go.intTy(et)})})
+        }
+      }
+      ok.push([dummy, vs])
     }
     // The kept result: by the path that returned it (a local the join merges).
     const ri = fn.results.findIndex((_, i) => i !== errAt)

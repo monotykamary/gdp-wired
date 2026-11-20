@@ -136,7 +136,7 @@ const or = (a: number, b: number): number => a + b - and(a, b)
 const xor = (a: number, b: number): number => a + b - 2 * and(a, b)
 
 type V =
-  | {t: 'num', e: N, ty?: IntTy, cmp?: [N, N], slen?: K, bits?: Bits} | {t: 'bool', e: B} | {t: 'str', e: K} | {t: 'choice', e: L}
+  | {t: 'num', e: N, ty?: IntTy, cmp?: [N, N], slen?: K, bits?: Bits, range?: [number, number]} | {t: 'bool', e: B} | {t: 'str', e: K} | {t: 'choice', e: L}
   | {t: 'none'} | {t: 'opt', has: B, v: V}
   | {t: 'ref', id: string} | {t: 'cell', map: string, key: K}
   // A string made by a format with one hole (a store's key): its template and the hole's value.
@@ -274,15 +274,38 @@ export class Stepper {
   readonly notes = new Set<string>()
   readonly refusals: B[] = []
   safety?: Map<string, SafetySite & {condition: B}>
+  safetyCutSites?: Set<string>
+  safetyDeadSites?: Set<string>
   registerSafety(site: SafetySite) {
     const key = `${site.kind}:${site.where}`
     if (!this.safety?.has(key)) this.safety?.set(key, {...site, condition: I.F})
     return this.safety?.get(key)
   }
+  markSafetyDead(node: unknown, seenFns = new Set<string>()): void {
+    if (!this.safety || !node || typeof node !== 'object') return
+    if (Array.isArray(node)) { for (const x of node) this.markSafetyDead(x, seenFns); return }
+    const o = node as Record<string, unknown>
+    if (o.site && typeof o.site === 'object') {
+      const s = o.site as SafetySite
+      this.safetyDeadSites?.add(`${s.kind}:${s.where}`)
+      this.registerSafety(s)
+    }
+    if (Array.isArray(o.sites)) for (const s of o.sites as SafetySite[]) {
+      this.safetyDeadSites?.add(`${s.kind}:${s.where}`)
+      this.registerSafety(s)
+    }
+    if (o.e === 'gcall' && typeof o.fn === 'string' && !seenFns.has(o.fn)) {
+      seenFns.add(o.fn)
+      const f = this.mod.funcs[o.fn]
+      if (f) this.markSafetyDead(f.body, seenFns)
+    }
+    for (const v of Object.values(o)) this.markSafetyDead(v, seenFns)
+  }
   safetyCut(p: Path, at: SX, kind: SafetySite['kind'], bad: B): Path {
     const site = at.site as SafetySite | undefined
     if (!site || site.kind !== kind) return refuse(at, `missing typed C ${kind} site`)
     const alarm = this.registerSafety(site)!
+    this.safetyCutSites?.add(`${site.kind}:${site.where}`)
     alarm.condition = I.or(alarm.condition, I.and(this.cond(p), bad))
     return this.assume(p, I.not(bad))
   }
@@ -1069,7 +1092,13 @@ export class Stepper {
     if (c.op === 'const') return c.v ? a : b
     if (a === b) return a
     // (a number keeps its type)
-    if (a.t === 'num' && b.t === 'num') return {t: 'num', e: I.nite(c, a.e, b.e), ...(a.ty ? {ty: a.ty} : {})}
+    if (a.t === 'num' && b.t === 'num') {
+      if (this.safety) {
+        const [al, ah] = this.safetyBounds(a, at as SX), [bl, bh] = this.safetyBounds(b, at as SX)
+        return {t: 'num', e: I.nite(c, a.e, b.e), ...(a.ty ? {ty: a.ty} : {}), range: [Math.min(al, bl), Math.max(ah, bh)]}
+      }
+      return {t: 'num', e: I.nite(c, a.e, b.e), ...(a.ty ? {ty: a.ty} : {})}
+    }
     if (firm(a) || firm(b)) return this.iteFirm(c, a, b, at)
     if (keyV(a) === keyV(b)) return a
     if (a.t === 'opaque') return a
@@ -1243,11 +1272,12 @@ export class Stepper {
   block(ss: SS[], p: Path): Flow {
     let live: Path | undefined = p, ft: Path | undefined
     const rets: [Path, V][] = [], brk: Path[] = []
-    for (const s of ss) {
-      if (!live) break
+    for (let i = 0; i < ss.length; i++) {
+      const s = ss[i]!
+      if (!live) { if (this.safety) this.markSafetyDead(ss.slice(i)); break }
       // (a path a failure ended inside an expression: nothing after it runs)
-      if (dead(live)) { live = undefined; break }
-      if (s.s === 'fallthrough') { ft = live; live = undefined; break }
+      if (dead(live)) { if (this.safety) this.markSafetyDead(ss.slice(i)); live = undefined; break }
+      if (s.s === 'fallthrough') { if (this.safety) this.markSafetyDead(ss.slice(i + 1)); ft = live; live = undefined; break }
       const f = this.stmt(s, live)
       rets.push(...f.rets)
       if (f.brk) brk.push(...f.brk)
@@ -1272,6 +1302,8 @@ export class Stepper {
         const c = c0 ?? (s.strict ? (cv!.t === 'bool' ? cv!.e : refuse({p: s.cp as string}, s.strict as string)) : this.truthy(cv!, sc, q))
         if (!(c.op === 'const' && !c.v)) this.arm(s.then as SS[])
         if (!(c.op === 'const' && c.v)) this.arm(s.else as SS[])
+        if (this.safety && c.op === 'const' && !c.v) this.markSafetyDead(s.then)
+        if (this.safety && c.op === 'const' && c.v) this.markSafetyDead(s.else)
         const t = c.op === 'const' && !c.v ? undefined : this.block(s.then as SS[], this.assume(q0, c))
         const e = c.op === 'const' && c.v ? undefined : this.block(s.else as SS[], this.assume(q0, I.not(c)))
         const lives = [t?.live, e?.live].filter((x): x is Path => !!x)
@@ -2472,9 +2504,9 @@ export class Stepper {
         if (this.safety) {
           if (!ty || v.t !== 'num') return refuse(x, String(x.why))
           const [lo, hi] = this.safetyRange(ty, x), [fromLo, fromHi] = this.safetyBounds(v, x)
-          if (lo <= fromLo && fromHi <= hi) return [{t: 'num', e: v.e, ty}, q]
+          if (lo <= fromLo && fromHi <= hi) return [{t: 'num', e: v.e, ty, range: [fromLo, fromHi]}, q]
           if (ty.signed) return refuse(x, 'a conversion with a potentially out-of-range signed result (implementation-defined)')
-          return [{t: 'num', e: this.safetyModulo(v.e, hi + 1), ty}, q]
+          return [{t: 'num', e: this.safetyWrapUnsigned(v.e, BigInt(fromLo), BigInt(fromHi), hi + 1), ty, range: [lo, hi]}, q]
         }
         if (ty && v.t === 'num') return [{t: 'num', e: this.wrap(v.e, ty.ub ? {bits: ty.bits, signed: ty.signed, name: ty.name, t: ty.t} : ty, x, q), ty}, q]; return refuse(x, v.t === 'opaque' && v.ask ? `${String(x.why)}: of ${v.why}` : String(x.why)) }
       case 'binop': {
@@ -2485,7 +2517,7 @@ export class Stepper {
       case 'andalso': {
         // The right side runs only where the left doesn't decide: its failures and effects only there.
         const and = x.op === '&&', [a, q] = this.ev(x.x as SX, p), ab = this.boolv(a, x.x as SX), c = and ? ab : I.not(ab)
-        if (this.safety && c.op === 'const' && !c.v) return [{t: 'bool', e: ab}, q]
+        if (this.safety && c.op === 'const' && !c.v) { this.markSafetyDead(x.y); return [{t: 'bool', e: ab}, q] }
         const [b, q2] = this.ev(x.y as SX, this.assume(q, c)), bb = this.boolv(b, x.y as SX)
         if (this.safety) return [{t: 'bool', e: and ? I.and(ab, bb) : I.or(ab, bb)}, this.merge(q2, this.assume(q, I.not(c)), x)]
         return [{t: 'bool', e: and ? I.and(ab, bb) : I.or(ab, bb)}, q2.heap === q.heap ? q : this.merge({...q2, pc: [...q.pc, c]}, q, x)]
@@ -2552,6 +2584,37 @@ export class Stepper {
       case 'panic': { let q = p; for (const a of x.args as SX[]) q = this.ev(a, q)[1]; this.refuseWhere(q, I.T, x, (x.what as string | undefined) ?? 'a panic'); return [{t: 'tuple', xs: []}, {...q, pc: [...q.pc, I.F]}] }
       case 'midx': { const [b, q] = this.ev(x.m as SX, p), [i, q2] = this.ev(x.k as SX, q); return [this.mapRead(b, i, x, q2).v, q2] }
       case 'lidx': { const [b, q] = this.ev(x.s as SX, p), [i, q2] = this.ev(x.i as SX, q); return this.listGet(b, i, x, q2) }
+      case 'table': {
+        if (!this.safety) return refuse(x, 'table lookup requires C safety mode')
+        const dims = x.dims as number[], vals = x.vals as number[], sites = x.sites as SafetySite[], idxExprs = x.indices as SX[], isBool = Boolean(x.isBool)
+        if (!dims?.length || dims.length !== sites?.length || dims.length !== idxExprs?.length) return refuse(x, 'malformed C safety table lookup')
+        let q = p
+        const idxs: N[] = []
+        for (let k = 0; k < dims.length; k++) {
+          const [iv, q2] = this.ev(idxExprs[k]!, q), idx = this.numv(iv, idxExprs[k]!)
+          const inside = I.and(I.cmp('<=', I.num(0), idx), I.cmp('<', idx, I.num(dims[k]!)))
+          q = this.safetyCut(q2, {...x, site: sites[k]!}, 'bounds', I.not(inside))
+          idxs.push(idx)
+        }
+        const total = dims.reduce((a, b) => a * b, 1)
+        if (vals.length !== total) return refuse(x, 'C safety table size mismatch')
+        const buildN = (k: number, off: number, stride: number): N => {
+          if (k === dims.length) return I.num(vals[off]!)
+          const next = stride / dims[k]!
+          let acc = buildN(k + 1, off + (dims[k]! - 1) * next, next)
+          for (let j = dims[k]! - 2; j >= 0; j--) acc = I.nite(I.cmp('=', idxs[k]!, I.num(j)), buildN(k + 1, off + j * next, next), acc)
+          return acc
+        }
+        const buildB = (k: number, off: number, stride: number): B => {
+          if (k === dims.length) return vals[off]! ? I.T : I.F
+          const next = stride / dims[k]!
+          let acc = buildB(k + 1, off + (dims[k]! - 1) * next, next)
+          for (let j = dims[k]! - 2; j >= 0; j--) acc = I.bite(I.cmp('=', idxs[k]!, I.num(j)), buildB(k + 1, off + j * next, next), acc)
+          return acc
+        }
+        if (isBool) return [{t: 'bool', e: buildB(0, 0, total)}, q]
+        return [{t: 'num', e: buildN(0, 0, total), ty: x.ity as IntTy, range: [Math.min(...vals), Math.max(...vals)]}, q]
+      }
       case 'pop': {
         const [s, q] = this.ev(x.s as SX, p)
         if (s.t === 'list' && x.ok) {
@@ -2592,7 +2655,7 @@ export class Stepper {
         const [cv, q] = this.ev(x.c as SX, p)
         if (cv.t === 'opaque') return [cv, q]
         const c = this.truthy(cv, x.c as SX, q)
-        if (c.op === 'const') return this.ev((c.v ? x.a : x.b) as SX, q)
+        if (c.op === 'const') { if (this.safety) this.markSafetyDead(c.v ? x.b : x.a); return this.ev((c.v ? x.a : x.b) as SX, q) }
         const [a, qa] = this.ev(x.a as SX, this.assume(q, c)), [b, qb] = this.ev(x.b as SX, this.assume(q, I.not(c)))
         return [this.ite(c, a, b, x), this.merge(qa, qb, x)]
       }
@@ -3606,44 +3669,88 @@ export class Stepper {
   }
   safetyBounds(v: Extract<V, {t: 'num'}>, at: SX): [number, number] {
     if (v.e.op === 'const' && Number.isSafeInteger(v.e.v)) return [v.e.v, v.e.v]
+    if (v.range) return v.range
     return this.safetyRange(v.ty, at)
   }
-  safetyModulo(e: N, m: number): N {
+  safetyModulo(e: N, m: number, lo?: number): N {
     if (e.op === 'const') return I.num(Number((BigInt(e.v) % BigInt(m) + BigInt(m)) % BigInt(m)))
+    if (lo !== undefined && lo >= 0) return I.modk(m, e)
     // The DSL's remainder is natural. Keep both operands in the natural domain.
     const r = I.modk(m, I.neg(e))
     return I.nite(I.cmp('<', e, I.num(0)), I.nite(I.cmp('=', r, I.num(0)), I.num(0), I.sub(I.num(m), r)), I.modk(m, e))
+  }
+  safetyWrapUnsigned(e: N, lo: bigint, hi: bigint, mod: number): N {
+    const M = BigInt(mod)
+    if (e.op === 'const') return I.num(Number(((BigInt(e.v) % M) + M) % M))
+    if (0n <= lo && hi < M) return e
+    if (0n <= lo && hi < 2n * M) return I.nite(I.cmp('<=', I.num(mod), e), I.sub(e, I.num(mod)), e)
+    if (-M <= lo && hi < M) return I.nite(I.cmp('<', e, I.num(0)), I.add(e, I.num(mod)), e)
+    if (lo >= 0n) return I.modk(mod, e)
+    return this.safetyModulo(e, mod)
   }
   safetyArith(op: string, a: V, b: V, at: SX, p: Path): [V, Path] {
     if (a.t !== 'num' || b.t !== 'num') return refuse(at, `C safety arithmetic on ${a.t} and ${b.t}`)
     const ty = at.ity as IntTy, [lo, hi] = this.safetyRange(ty, at), zero = I.num(0)
     const [al, ah] = this.safetyBounds(a, at), [bl, bh] = this.safetyBounds(b, at)
     if (al < lo || ah > hi || bl < lo || bh > hi) return refuse(at, 'arithmetic operands not converted to the C operation type')
+    if (op === '&') {
+      if (b.e.op !== 'const') return refuse(at, 'bitwise & by a nonconstant mask')
+      const m = b.e.v + 1
+      if (m <= 1 || m > 2 ** 31 || !Number.isInteger(Math.log2(m))) return refuse(at, 'bitwise & with other than a positive power-of-two mask')
+      return [{t: 'num', e: this.safetyModulo(a.e, m, al), ty, range: [0, m - 1]}, p]
+    }
     if (op === '/' || op === '%') {
       if (b.e.op !== 'const') return refuse(at, `${op} by a nonconstant divisor (no exact successful continuation in the subset)`)
       const d = b.e.v
       // Both operators first require the quotient to be representable, even when the remainder is zero.
-      const bad = d === 0 ? I.T : ty.signed && d === -1 ? I.cmp('=', a.e, I.num(lo)) : I.F
+      const bad = d === 0 ? I.T : ty.signed && d === -1 ? (al > lo ? I.F : I.cmp('=', a.e, I.num(lo))) : I.F
       const q = this.safetyCut(p, at, 'division', bad)
       const e = d === 0 ? zero : a.e.op === 'const' ? I.num(Number(op === '/' ? BigInt(a.e.v) / BigInt(d) : BigInt(a.e.v) % BigInt(d)))
-        : op === '%' ? this.rem(a.e, Math.abs(d)) : d < 0 ? I.neg(this.quot(a.e, -d)) : this.quot(a.e, d)
-      return [{t: 'num', e: I.nite(bad, zero, e), ty}, q]
+        : op === '%' ? (al >= 0 ? I.modk(Math.abs(d), a.e) : this.rem(a.e, Math.abs(d)))
+        : d < 0 ? I.neg(al >= 0 ? I.divk(-d, a.e) : this.quot(a.e, -d)) : (al >= 0 ? I.divk(d, a.e) : this.quot(a.e, d))
+      let outLo = 0, outHi = 0
+      if (d !== 0) {
+        if (op === '%') {
+          const ad = Math.abs(d) - 1
+          outLo = al >= 0 ? 0 : Math.max(lo, al, -ad)
+          outHi = ah <= 0 ? 0 : Math.min(hi, ah, ad)
+        } else {
+          const nal = ty.signed && d === -1 ? Math.max(al, lo + 1) : al
+          if (nal <= ah) {
+            const q1 = Math.trunc(nal / d), q2 = Math.trunc(ah / d)
+            outLo = Math.max(lo, Math.min(q1, q2))
+            outHi = Math.min(hi, Math.max(q1, q2))
+          }
+        }
+      }
+      const range: [number, number] = bad.op === 'const' && !bad.v ? [outLo, outHi] : [Math.min(0, outLo), Math.max(0, outHi)]
+      return [{t: 'num', e: I.nite(bad, zero, e), ty, range}, q]
     }
-    let e: N
+    let resLoB: bigint, resHiB: bigint
     switch (op) {
-      case '+': e = I.add(a.e, b.e); break
-      case '-': e = I.sub(a.e, b.e); break
+      case '+': resLoB = BigInt(al) + BigInt(bl); resHiB = BigInt(ah) + BigInt(bh); break
+      case '-': resLoB = BigInt(al) - BigInt(bh); resHiB = BigInt(ah) - BigInt(bl); break
       case '*': {
-        const max = BigInt(Number.MAX_SAFE_INTEGER), xs = [al, ah].flatMap(l => [bl, bh].map(r => BigInt(l) * BigInt(r)))
-        if (xs.some(n => n > max || n < -max)) return refuse(at, 'a C product whose mathematical intermediate may exceed the exact IR range')
-        e = I.mul(a.e, b.e)
+        const xs = [al, ah].flatMap(l => [bl, bh].map(r => BigInt(l) * BigInt(r)))
+        resLoB = xs.reduce((u, v) => (v < u ? v : u))
+        resHiB = xs.reduce((u, v) => (v > u ? v : u))
         break
       }
       default: return refuse(at, `unsupported C safety arithmetic operator: ${op}`)
     }
-    if (!ty.signed) return [{t: 'num', e: this.safetyModulo(e, hi + 1), ty}, p]
-    const bad = I.or(I.cmp('<', e, I.num(lo)), I.cmp('<', I.num(hi), e))
-    return [{t: 'num', e: I.nite(bad, zero, e), ty}, this.safetyCut(p, at, 'overflow', bad)]
+    const max = BigInt(Number.MAX_SAFE_INTEGER)
+    if (resLoB < -max || resHiB > max) return refuse(at, 'a C product whose mathematical intermediate may exceed the exact IR range')
+    const e: N = op === '+' ? I.add(a.e, b.e) : op === '-' ? I.sub(a.e, b.e) : I.mul(a.e, b.e)
+    if (!ty.signed) {
+      if (BigInt(lo) <= resLoB && resHiB <= BigInt(hi)) return [{t: 'num', e, ty, range: [Number(resLoB), Number(resHiB)]}, p]
+      return [{t: 'num', e: this.safetyWrapUnsigned(e, resLoB, resHiB, hi + 1), ty, range: [lo, hi]}, p]
+    }
+    const below = resLoB < BigInt(lo) ? I.cmp('<', e, I.num(lo)) : I.F
+    const above = resHiB > BigInt(hi) ? I.cmp('<', I.num(hi), e) : I.F
+    const bad = I.or(below, above)
+    const outLo = Math.max(lo, Number(resLoB)), outHi = Math.min(hi, Number(resHiB))
+    const range: [number, number] = bad.op === 'const' && !bad.v ? [outLo, outHi] : outLo <= outHi ? [Math.min(0, outLo), Math.max(0, outHi)] : [0, 0]
+    return [{t: 'num', e: I.nite(bad, zero, e), ty, range}, this.safetyCut(p, at, 'overflow', bad)]
   }
   // Integer arithmetic at the type's width: the exact result, wrapped as the type wraps it (or refused, at 64 bits).
   arith(op: string, a: V, b: V, x: {p: string}, p: Path): V {
