@@ -196,7 +196,7 @@ type ProveOutcome =
 // Fast generic Houdini pass over scalar state bounds directly mentioned by the
 // machine's own transitions and safety guards. Every surviving bound is verified
 // from init and step by the kernel and checked jointly via verifyCSafetyProof.
-function tryScalarBoundsProof(machine: Machine, base: Law[], targets: Law[], budgetMs: number): CSafetyProofBundle | undefined {
+function tryScalarBoundsProof(rule: Rule, machine: Machine, base: Law[], targets: Law[], budgetMs: number): CSafetyProofBundle | undefined {
   const stateKeys = Object.keys(machine.state)
   const scalars = stateKeys.filter(k => !k.startsWith('cSafetyAlarm') && !k.endsWith('$neg') && !k.endsWith('_len') && !k.endsWith('_result'))
   if (!scalars.length) return undefined
@@ -241,22 +241,63 @@ function tryScalarBoundsProof(machine: Machine, base: Law[], targets: Law[], bud
     check(o.a, o.b)
     check(o.b, o.a)
   })
-  const initSt = interpret(machine).init({})
+  const run = interpret(machine), g = rule.compiled(), p = rule.encodeParams({})
+  const initSt = run.init(p)
   const rawCands: Law[] = []
   for (const v of scalars) {
     const negName = `${v}$neg`
     if (negName in machine.state) {
       const holds: C = {op: '<=', a: {op: 'var', name: negName}, b: {op: 'const', value: 0}}
-      if (evalC(holds, {}, initSt, machine)) rawCands.push({name: `c safety bound: ${v} >= 0`, holds})
+      if (evalC(holds, p, initSt, machine)) rawCands.push({name: `c safety bound: ${v} >= 0`, holds})
     }
     const ks = [...(boundsByVar.get(v) ?? [])].sort((a, b) => a - b).slice(0, 4)
     for (const k of ks) {
       const holds: C = {op: '<=', a: {op: 'var', name: v}, b: {op: 'const', value: k}}
-      if (evalC(holds, {}, initSt, machine)) rawCands.push({name: `c safety bound: ${v} <= ${k}`, holds})
+      if (evalC(holds, p, initSt, machine)) rawCands.push({name: `c safety bound: ${v} <= ${k}`, holds})
     }
   }
   const existing = new Set(base.map(l => JSON.stringify(l.holds)))
   let kept = rawCands.filter(l => !existing.has(JSON.stringify(l.holds))).slice(0, 16)
+  if (!kept.length) return undefined
+  // Fast concrete reachability pre-filter (sound: only discards bounds falsified on
+  // reachable states before calling the kernel; all survivors are still proven by checkLaws).
+  const methodKey = machine.inputs[0]
+  if (methodKey) {
+    const zeroInp = (mIdx: number, fill = 0): Record<string, number> => {
+      const inp: Record<string, number> = {}
+      for (const name of machine.inputs) inp[name] = name === methodKey ? mIdx : (name.endsWith('$neg') ? 0 : fill)
+      return inp
+    }
+    const filterAt = (st: ReturnType<typeof run.init>) => {
+      kept = kept.filter(l => evalC(l.holds, p, st, machine))
+    }
+    for (let mIdx = 0; mIdx < 16 && kept.length; mIdx++) {
+      for (const fill of [0, 1]) {
+        const inp = zeroInp(mIdx, fill)
+        let st = g.init(p)
+        if (!allowed(machine, run, p, st, inp)) continue
+        for (let step = 0; step < 32 && kept.length; step++) {
+          if (!allowed(machine, run, p, st, inp)) break
+          st = g.step(p, st, inp)
+          filterAt(st)
+        }
+      }
+    }
+    if (kept.length) {
+      let st = g.init(p)
+      for (let step = 0; step < 32 && kept.length; step++) {
+        let moved = false
+        for (let mIdx = 0; mIdx < 16 && kept.length; mIdx++) {
+          const inp = zeroInp(mIdx, step & 1)
+          if (!allowed(machine, run, p, st, inp)) continue
+          st = g.step(p, st, inp)
+          filterAt(st)
+          moved = true
+        }
+        if (!moved) break
+      }
+    }
+  }
   if (!kept.length) return undefined
   const until = clock() + Math.max(500, budgetMs)
   return withDeadline(until, () => {
@@ -294,7 +335,7 @@ function proveCSafetyTarget(rule: Rule, machine: Machine, base: Law[], ruleInvar
     if (verifyCSafetyProof(machine, targets, bundle)) return {proven: true, bundle}
   }
   // Fast generic scalar-bounds Houdini before full invariant search.
-  const seeded = tryScalarBoundsProof(machine, base, targets, Math.min(3_000, Math.floor(searchMs / 4)))
+  const seeded = tryScalarBoundsProof(rule, machine, base, targets, Math.min(12_000, Math.floor(searchMs / 2)))
   if (seeded) return {proven: true, bundle: seeded}
   const liveTargets = targets.filter(t => !t.name.includes('(static #'))
   const sought = liveTargets.length ? liveTargets : targets
@@ -505,7 +546,29 @@ export function analyzeCSafety(
     return issue(site, 'unproven', {why: reused.why})
   })
   const status: CSafetyStatus = issues.some(s => s.status === 'broken') ? 'broken' : issues.every(s => s.status === 'proven') ? 'proven' : 'unproven'
+  // If every site proved individually, assemble a single unified jointProof when possible.
+  let jointProof: CSafetyProofBundle | undefined
+  if (status === 'proven') {
+    const seen = new Set<string>(base.map(l => JSON.stringify(l.holds)))
+    const combined: Law[] = [...base]
+    for (const sp of siteProofs) {
+      if (sp?.kind !== 'usual') continue
+      for (const l of sp.laws) {
+        const key = JSON.stringify(l.holds)
+        if (!seen.has(key)) { seen.add(key); combined.push(l) }
+      }
+    }
+    for (const t of targets) {
+      const key = JSON.stringify(t.holds)
+      if (!seen.has(key)) { seen.add(key); combined.push(t) }
+    }
+    const jp = quietly(() => proveLaws(machine, combined))
+    if (jp.proven && jp.checked && jp.proof) {
+      const bundle: CSafetyProofBundle = {kind: 'usual', machine, laws: combined, proof: jp.proof}
+      if (verifyCSafetyProof(machine, targets, bundle)) jointProof = bundle
+    }
+  }
   const result: CSafetyResult = {status, issues, assumptions}
-  safetyArtifacts.set(result, {rule, machine, source: x.source ?? '', baseLaws: base, targetLaws: targets, siteProofs})
+  safetyArtifacts.set(result, {rule, machine, source: x.source ?? '', baseLaws: base, targetLaws: targets, ...(jointProof ? {jointProof} : {}), siteProofs})
   return result
 }
