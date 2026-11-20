@@ -1041,8 +1041,8 @@ function printRule(r: RuleOut, o: Opts) {
       if (r.safety.macroConfig) {
         const mc = r.safety.macroConfig
         const defs = mc.defines.length ? mc.defines.join(', ') : 'none'
-        const std = mc.flags.filter(f => f.startsWith('-std=')).join(', ')
-        out(`    macro config: -D flags: ${defs}${std ? `; std: ${std}` : ''}; NDEBUG=${mc.ndebugDefined ? 'defined' : 'undefined'}, __OPTIMIZE__=${mc.optimizeDefined ? 'defined' : 'undefined'}`)
+        const compiler = mc.compiler ? `; compiler: ${mc.compiler}` : ''
+        out(`    macro config: target: ${mc.target}${compiler}; std: ${mc.std} (__STDC_VERSION__=${mc.stdcVersion}); -D flags: ${defs}; NDEBUG=${mc.ndebugDefined ? 'defined' : 'undefined'}, __OPTIMIZE__=${mc.optimizeDefined ? 'defined' : 'undefined'}, DEBUG=${mc.debugDefined ? 'defined' : 'undefined'}`)
       }
       if (r.safety.uncheckedFunctions?.length) out(`    ${paint('yellow', 'unchecked functions:')} ${r.safety.uncheckedFunctions.join(', ')}`)
       for (const s of r.safety.issues) {

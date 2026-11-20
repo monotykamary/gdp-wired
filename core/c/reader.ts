@@ -20,7 +20,17 @@ type CN = {id?: string, kind: string, name?: string, inner?: CN[], type?: {qualT
   computeLHSType?: {qualType: string, desugaredQualType?: string}, computeResultType?: {qualType: string, desugaredQualType?: string}, init?: string, decl?: {id: string, kind: string}, loc?: L, range?: {begin: L, end: L}, $at?: At, $b?: At, $e?: At, [k: string]: unknown}
 type L = {offset?: number, file?: string, line?: number, col?: number, tokLen?: number, spellingLoc?: L, expansionLoc?: L, includedFrom?: unknown}
 type At = {file: string, line: number, col: number, off: number, tok: number}
-export type CSafetyMacroConfig = {flags: readonly string[], defines: readonly string[], ndebugDefined: boolean, optimizeDefined: boolean}
+export type CSafetyMacroConfig = {
+  target: string,
+  compiler?: string,
+  std: string,
+  stdcVersion: string,
+  flags: readonly string[],
+  defines: readonly string[],
+  ndebugDefined: boolean,
+  optimizeDefined: boolean,
+  debugDefined: boolean,
+}
 export type CSafetyClangMeta = {systemFiles: Set<string>, userFiles: Set<string>, macroConfig: CSafetyMacroConfig}
 export type CTarget = {int: number, long: number, short: number, llong: number, charUnsigned: boolean, charBits?: number, safetyMeta?: CSafetyClangMeta}
 // (consts: the project's enum constants by name, one of a name only, for the laws' terms)
@@ -38,7 +48,10 @@ export class SafetyUncoveredRefusal extends Refusal {
     this.macroConfig = macroConfig
   }
 }
-type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
+type CP = {
+  execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string,
+  spawnSync: (f: string, a: string[], o: Record<string, unknown>) => {status: number | null, stdout?: string, stderr?: string, error?: Error},
+}
 // (consecutive JSON values in one string, each with where it ends)
 class JSONDecoder {
   decode(s: string, i: number): [unknown, number] {
@@ -54,7 +67,11 @@ export const node = <T>(id: string): T => { const m = proc?.getBuiltinModule?.(i
 // (C++: only the declarations named after the class, `-ast-dump-filter`: its standard headers' are hundreds of MB;
 // clang writes them one after another, its locations' state going on from one to the next)
 export function clangDump(file: string, flags: string[], clang = 'clang', cpp = false, filter?: string, safety = false): {tu: CN, target: CTarget} {
-  const cp = node<CP>('node:child_process'), path = node<{resolve: (...p: string[]) => string}>('node:path'), lang = cpp ? ['-x', 'c++'] : ['-x', 'c']
+  const cp = node<CP>('node:child_process')
+  const fs = node<{realpathSync: (p: string) => string}>('node:fs')
+  const path = node<{resolve: (...p: string[]) => string, relative: (from: string, to: string) => string, isAbsolute: (p: string) => boolean}>('node:path')
+  const lang = cpp ? ['-x', 'c++'] : ['-x', 'c']
+  const realPath = (p: string): string => { try { return fs.realpathSync(p) } catch { return path.resolve(p) } }
   const run = (args: string[]) => {
     try { return cp.execFileSync(clang, args, {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()}) }
     catch (e) {
@@ -64,31 +81,214 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       throw new Refusal(file, x.code === 'ENOENT' ? `no ${clang} to run: clang is needed to extract ${cpp ? 'C++' : 'C'}` : `clang doesn't compile it (${String(x.stderr ?? x.message).split('\n').filter(l => /error/.test(l)).slice(0, 3).join(' | ')})`)
     }
   }
+  const runFull = (args: string[]): {stdout: string, stderr: string} => {
+    const r = cp.spawnSync(clang, args, {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()})
+    if (r.error) {
+      const x = r.error as {code?: string, message: string}
+      const stated = statedRefusal(r.error)
+      if (stated) throw new Refusal(file, stated)
+      throw new Refusal(file, x.code === 'ENOENT' ? `no ${clang} to run: clang is needed to extract ${cpp ? 'C++' : 'C'}` : x.message)
+    }
+    if (r.status !== 0)
+      throw new Refusal(file, `clang doesn't compile it (${String(r.stderr ?? '').split('\n').filter(l => /error/.test(l)).slice(0, 3).join(' | ')})`)
+    return {stdout: r.stdout ?? '', stderr: r.stderr ?? ''}
+  }
   const dump = run([...lang, ...flags, '-Xclang', '-ast-dump=json', ...(filter ? ['-Xclang', `-ast-dump-filter=${filter}`] : []), '-fsyntax-only', file]), inner: CN[] = [], dec = new JSONDecoder()
   const tu = filter ? {kind: 'TranslationUnitDecl', inner} as CN : JSON.parse(dump) as CN
   if (filter) for (let i = dump.indexOf('{'); i >= 0; i = dump.indexOf('{', i)) { const [o, e] = dec.decode(dump, i); inner.push(o as CN); i = e }
   const defs = run([...lang, ...flags, '-dM', '-E', '/dev/null']), def = (k: string) => Number(new RegExp(`#define ${k} (\\d+)`).exec(defs)?.[1] ?? 0)
   let safetyMeta: CSafetyClangMeta | undefined
   if (safety && !cpp) {
-    // Use Clang's preprocessor linemarkers (`# line "path" flags`) to distinguish true system
-    // headers (flag 3, from -isystem / built-in compiler include dirs) from non-system headers
-    // (flag 1 without 3) and capture the exact active macro configuration.
-    const pp = run([...lang, ...flags, '-E', file])
+    // Decide system-ness by PATH ONLY: read Clang's built-in and -isystem search directories
+    // from `clang -E -v` (with user -I / -iquote flags stripped), never trusting linemarker
+    // flag 3 (which `#pragma`/`_Pragma` GCC system_header sets and propagates to included files).
+    const stripUserIncludes = (fsList: readonly string[]): string[] => {
+      const out: string[] = []
+      for (let i = 0; i < fsList.length; i++) {
+        const f = fsList[i]!
+        if (f === '-I' || f === '-iquote') { i++; continue }
+        if (f.startsWith('-I') || f.startsWith('-iquote')) continue
+        out.push(f)
+      }
+      return out
+    }
+    const probeV = runFull([...lang, ...stripUserIncludes(flags), '-E', '-v', '-o', '/dev/null', '/dev/null'])
+    const targetTriple = /^Target:\s*(\S+)/m.exec(probeV.stderr)?.[1]?.trim() ?? 'unknown'
+    const compilerMatch = /clang version\s+([^\s(]+)/.exec(probeV.stderr)
+    const compiler = compilerMatch ? `clang ${compilerMatch[1]}` : undefined
+    const systemDirs: string[] = []
+    {
+      let inAngle = false
+      for (const rawLine of probeV.stderr.split('\n')) {
+        const line = rawLine.replace(/\r$/, '')
+        if (/^#include <\.\.\.> search starts here:\s*$/.test(line)) { inAngle = true; continue }
+        if (inAngle) {
+          if (/^End of search list\.\s*$/.test(line)) break
+          const dir = line.trim().replace(/\s+\(framework directory\)$/, '')
+          if (dir) systemDirs.push(realPath(dir))
+        }
+      }
+    }
+    const mainReal = realPath(file)
+    const isUnderDir = (rp: string, dir: string): boolean => {
+      const rel = path.relative(dir, rp)
+      return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel)
+    }
+    const isUnderSystemDir = (rawPath: string): boolean => {
+      if (rawPath === '<built-in>' || rawPath === '<command line>') return true
+      if (!rawPath || rawPath.startsWith('<')) return false
+      const rp = realPath(rawPath)
+      if (rp === mainReal) return false
+      return systemDirs.some(dir => isUnderDir(rp, dir))
+    }
+    // Run `-E -H` once to collect actual physically included headers (immune to #line spoofing)
+    // and audit all preprocessor linemarkers for system_header pragmas or filename changes.
+    const ppRes = runFull([...lang, ...flags, '-E', '-H', file])
+    const physicalFiles = new Set<string>([mainReal])
+    for (const rawLine of ppRes.stderr.split('\n')) {
+      const hm = /^\.+\s+(.+)$/.exec(rawLine.replace(/\r$/, ''))
+      if (hm) physicalFiles.add(realPath(hm[1]!.trim()))
+    }
+    const isSystemPath = (rawPath: string): boolean => {
+      if (rawPath === '<built-in>' || rawPath === '<command line>') return true
+      if (!rawPath || rawPath.startsWith('<')) return false
+      const rp = realPath(rawPath)
+      if (rp === mainReal || !physicalFiles.has(rp)) return false
+      return systemDirs.some(dir => isUnderDir(rp, dir))
+    }
     const systemFiles = new Set<string>(['<built-in>', '<command line>'])
-    const userFiles = new Set<string>([path.resolve(file)])
-    for (const m of pp.matchAll(/^# \d+ "((?:[^"\\]|\\.)*)"(.*)$/gm)) {
+    const userFiles = new Set<string>([mainReal])
+    for (const p of physicalFiles) {
+      if (isSystemPath(p)) systemFiles.add(p)
+      else userFiles.add(p)
+    }
+    // Audit Clang's linemarkers: refuse flag 3 on any non-system file (catches #pragma / _Pragma /
+    // digraph / macro-expanded GCC system_header in all spellings) and refuse any filename change
+    // from a user file without include enter/leave flags (catches #line / %:line / ??= linemarkers).
+    const stack: string[] = [mainReal]
+    for (const m of ppRes.stdout.matchAll(/^# \d+ "((?:[^"\\]|\\.)*)"(.*)$/gm)) {
       const rawPath = m[1]!.replace(/\\(["\\])/g, '$1')
-      if (!rawPath || rawPath.startsWith('<')) continue
+      if (!rawPath) continue
       const nums = new Set(m[2]!.trim().split(/\s+/).filter(Boolean))
-      const rp = path.resolve(rawPath)
-      if (nums.has('3')) systemFiles.add(rp)
-      else if (nums.has('1')) userFiles.add(rp)
+      if (!rawPath.startsWith('<')) {
+        const rp = realPath(rawPath)
+        const sys = isSystemPath(rawPath)
+        if (nums.has('3') && !sys)
+          throw new Refusal(rawPath, '#pragma GCC system_header or system-header linemarker in non-system file is outside the C safety subset')
+        const prev = stack[stack.length - 1]
+        if (nums.has('1')) {
+          if (!physicalFiles.has(rp))
+            throw new Refusal(prev ?? file, `linemarker references non-included file ${rawPath} (outside the C safety subset)`)
+          stack.push(rp)
+        } else if (nums.has('2')) {
+          const idx = stack.lastIndexOf(rp)
+          if (idx >= 0) stack.length = idx + 1
+          else if (stack.length > 1) stack.pop()
+        } else if (prev && !isSystemPath(prev) && rp !== prev) {
+          throw new Refusal(prev, `#line or linemarker filename change to ${rawPath} is outside the C safety subset`)
+        }
+      } else {
+        if (nums.has('1')) stack.push(rawPath)
+        else if (nums.has('2')) {
+          const idx = stack.lastIndexOf(rawPath)
+          if (idx >= 0) stack.length = idx + 1
+          else if (stack.length > 1) stack.pop()
+        }
+      }
+    }
+    const stdcVersion = /^#define __STDC_VERSION__\s+(\S+)/m.exec(defs)?.[1] ?? 'none'
+    const strictAnsi = /^#define __STRICT_ANSI__(?:\s|$)/m.test(defs)
+    const explicitStd = [...flags].reverse().find(f => f.startsWith('-std='))?.slice(5)
+    const inferredStd = stdcVersion === '202311L' ? (strictAnsi ? 'c23' : 'gnu23')
+      : stdcVersion === '201710L' ? (strictAnsi ? 'c17' : 'gnu17')
+      : stdcVersion === '201112L' ? (strictAnsi ? 'c11' : 'gnu11')
+      : stdcVersion === '199901L' ? (strictAnsi ? 'c99' : 'gnu99')
+      : (strictAnsi ? 'c89' : 'gnu89')
+    const ndebugMatch = /^#define NDEBUG(?:\s+(.*))?$/m.exec(defs)
+    const ndebugDefined = !!ndebugMatch
+    const ndebugVal = ndebugMatch?.[1]?.trim() ?? ''
+    const optimizeDefined = /^#define __OPTIMIZE__(?:\s|$)/m.test(defs)
+    const debugMatch = /^#define DEBUG(?:\s+(.*))?$/m.exec(defs)
+    const debugDefined = !!debugMatch
+    const debugVal = debugMatch?.[1]?.trim() ?? ''
+    // Verify preprocessed user-code token stream is invariant across build-mode configurations
+    // (NDEBUG defined vs undefined, -O0 vs -O2 for __OPTIMIZE__, and DEBUG defined vs undefined).
+    // Comparing preprocessed tokens directly is immune to digraphs (%:), trigraphs, and macro pasting.
+    const tokenizeUserCode = (pp: string): string => {
+      const userChunks: string[] = []
+      let inUser = true
+      for (const line of pp.split('\n')) {
+        const lm = /^# \d+ "((?:[^"\\]|\\.)*)"(.*)$/.exec(line)
+        if (lm) {
+          const rawPath = lm[1]!.replace(/\\(["\\])/g, '$1')
+          inUser = !isUnderSystemDir(rawPath)
+          continue
+        }
+        if (inUser) userChunks.push(line)
+      }
+      const text = userChunks.join('\n')
+      const toks: string[] = []
+      for (let i = 0; i < text.length; ) {
+        const ch = text[i]!
+        if (ch === ' ' || ch === '\t' || ch === '\r' || ch === '\n' || ch === '\f' || ch === '\v') { i++; continue }
+        if (ch === '"' || ch === "'") {
+          const q = ch
+          let j = i + 1
+          while (j < text.length) {
+            if (text[j] === '\\') { j += 2; continue }
+            if (text[j] === q) { j++; break }
+            j++
+          }
+          toks.push(text.slice(i, j))
+          i = j
+          continue
+        }
+        if (/[A-Za-z0-9_$.]/.test(ch)) {
+          let j = i + 1
+          while (j < text.length) {
+            const c = text[j]!
+            if (c === "'" && /[0-9A-Za-z_]/.test(text[j + 1] ?? '') && /[0-9]/.test(text[i]!)) { j += 2; continue }
+            if (/[A-Za-z0-9_$]/.test(c)) { j++; continue }
+            break
+          }
+          toks.push(text.slice(i, j))
+          i = j
+          continue
+        }
+        toks.push(ch)
+        i++
+      }
+      return toks.join(' ')
+    }
+    const baseTokens = tokenizeUserCode(ppRes.stdout)
+    const alternates: {label: string, extra: string[]}[] = [
+      ...(ndebugDefined
+        ? [{label: 'NDEBUG', extra: ['-UNDEBUG']}, ...(ndebugVal === '1' ? [] : [{label: 'NDEBUG', extra: ['-DNDEBUG=1']}])]
+        : [{label: 'NDEBUG', extra: ['-DNDEBUG']}]),
+      ...(optimizeDefined
+        ? [{label: '__OPTIMIZE__', extra: ['-O0']}]
+        : [{label: '__OPTIMIZE__', extra: ['-O2']}]),
+      ...(debugDefined
+        ? [{label: 'DEBUG', extra: ['-UDEBUG']}, ...(debugVal === '1' ? [] : [{label: 'DEBUG', extra: ['-DDEBUG=1']}])]
+        : [{label: 'DEBUG', extra: ['-DDEBUG=1']}]),
+    ]
+    for (const alt of alternates) {
+      const r = cp.spawnSync(clang, [...lang, ...flags, ...alt.extra, '-E', file], {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()})
+      if (r.error || r.status !== 0)
+        throw new Refusal(file, `preprocessed user code depends on ${alt.label} (preprocessing failed under ${alt.extra.join(' ')}; proof only holds for one build-mode configuration)`)
+      if (tokenizeUserCode(r.stdout ?? '') !== baseTokens)
+        throw new Refusal(file, `preprocessed user code depends on ${alt.label} (differs under ${alt.extra.join(' ')}; proof only holds for one build-mode configuration)`)
     }
     const macroConfig: CSafetyMacroConfig = {
+      target: targetTriple,
+      ...(compiler ? {compiler} : {}),
+      std: explicitStd ?? inferredStd,
+      stdcVersion,
       flags: [...flags],
       defines: flags.filter(f => f.startsWith('-D') || f.startsWith('-U')),
-      ndebugDefined: /^#define NDEBUG(?:\s|$)/m.test(defs),
-      optimizeDefined: /^#define __OPTIMIZE__(?:\s|$)/m.test(defs),
+      ndebugDefined,
+      optimizeDefined,
+      debugDefined,
     }
     safetyMeta = {systemFiles, userFiles, macroConfig}
   }
@@ -180,8 +380,9 @@ const FAIL: Record<string, string> = {abort: 'abort()', __assert_rtn: 'an assert
 // (leave: globals the rule leaves out, an output the code writes for other code, never read into what it keeps)
 // (cut: the file's own functions a call of which the request answers, as another file's)
 export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp = false, root?: string, picks: Record<string, number> = {}, pickNames: string[] = [], leave: string[] = [], cut: string[] = [], safety = false): CRead {
-  const path = node<{resolve: (...p: string[]) => string, basename: (p: string) => string}>('node:path'), fs = node<{readFileSync: (p: string, e: string) => string}>('node:fs')
-  const main = path.resolve(file), base = path.basename(file), dir = `${path.resolve(root ?? main.replace(/\/[^/]*$/, ''))}/`, srcs = new Map<string, string>()
+  const path = node<{resolve: (...p: string[]) => string, basename: (p: string) => string}>('node:path'), fs = node<{readFileSync: (p: string, e: string) => string, realpathSync: (p: string) => string}>('node:fs')
+  const realPath = (p: string): string => { try { return fs.realpathSync(p) } catch { return path.resolve(p) } }
+  const main = path.resolve(file), mainReal = realPath(file), base = path.basename(file), dir = `${path.resolve(root ?? main.replace(/\/[^/]*$/, ''))}/`, srcs = new Map<string, string>()
   locate(tu)
   const top = tu.inner ?? [], mine = (n: CN) => n.$at?.file === main || n.$at?.file === file, own = (n: CN) => mine(n) || (!!n.$at?.file && path.resolve(n.$at.file).startsWith(dir))
   const refuse = (n: CN | undefined, what: string): never => { throw new Refusal(pos(n), what) }
@@ -1401,29 +1602,31 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       for (const want of pickNames) if (!validated.has(want)) bad(td0(), `selected method ${want} is missing or lacks a modeled receiver`)
     }
     // Closed-TU function coverage & symbol/preprocessor audit:
-    // - Only real system headers (Clang preprocessor linemarker flag 3) are exempted; every
-    //   non-system header (under root, relative ../, or -I) is audited identically to own code.
+    // - System headers are classified strictly by resolved path under Clang's built-in or -isystem
+    //   search directories (never linemarker flag 3); every non-system file in the TU (including
+    //   headers under root, relative ../, or -I) is audited identically to own code.
     // - Every non-system function body must be a selected validated method or an inlined
     //   file-local static helper; any other body (even static, inline, or __-prefixed) is refused
     //   and named.
     // - Symbol export/alias/attribute escapes (__attribute__((alias/weak/constructor/destructor)),
-    //   #pragma weak, file-scope __asm__, post-definition redeclarations), global initializers
-    //   referencing functions in any non-system file, pointer/fn-ptr struct fields in globals,
-    //   #line directives, and build-mode macro conditionals (NDEBUG / __OPTIMIZE__) are refused.
+    //   #pragma weak, _Pragma("weak ..."), file-scope __asm__, post-definition redeclarations),
+    //   system_header pragmas and #line/linemarker directives in all spellings (#, %:, ??=, _Pragma),
+    //   global initializers referencing functions in any non-system file, pointer/fn-ptr struct
+    //   fields in globals, and user-code build-mode divergence (checked in clangDump) are refused.
     const meta = target.safetyMeta
     const systemFiles = meta?.systemFiles
-    const userFiles = meta?.userFiles ?? new Set<string>([main])
+    const userFiles = meta?.userFiles ?? new Set<string>([mainReal])
     const isSystemFile = (f?: string): boolean => {
       if (!f || f === '<built-in>' || f === '<command line>') return true
-      const rp = path.resolve(f)
-      if (userFiles.has(rp) || rp === main) return false
+      const rp = realPath(f)
+      if (userFiles.has(rp) || rp === mainReal) return false
       if (systemFiles) return systemFiles.has(rp)
       return !own({$at: {file: f, line: 0, col: 0, off: 0, tok: 0}} as CN)
     }
     const isSystemNode = (n: CN): boolean => isSystemFile(n.$at?.file)
-    // Strip C comments and string/char literals while preserving line numbers so preprocessor
-    // directive scans over user files never match comments or literals.
-    const stripForPreproc = (raw: string): string => {
+    // Strip C comments (and optionally string/char literals) while preserving line numbers so
+    // directive and _Pragma scans over user files never match inside comments or literals.
+    const stripForPreproc = (raw: string, keepStrings = false): string => {
       let out = ''
       const isIdent = (c: string | undefined) => !!c && /[A-Za-z0-9_$]/.test(c)
       const isDigit = (c: string | undefined) => !!c && c >= '0' && c <= '9'
@@ -1442,12 +1645,17 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
           i = j - 1
         } else if (ch === '"' || ch === "'") {
           const q = ch
-          out += ' '
+          out += keepStrings ? q : ' '
           for (i++; i < raw.length; i++) {
             const c = raw[i]!
-            if (c === '\\') { out += ' '; i++; if (i < raw.length) out += raw[i] === '\n' ? '\n' : ' '; continue }
+            if (c === '\\') {
+              out += keepStrings ? '\\' : ' '
+              i++
+              if (i < raw.length) out += keepStrings ? raw[i]! : (raw[i] === '\n' ? '\n' : ' ')
+              continue
+            }
             if (c === '\n') { out += '\n'; break }
-            out += ' '
+            out += keepStrings ? c : ' '
             if (c === q) break
           }
         } else if (ch === '/' && raw[i + 1] === '/') {
@@ -1473,9 +1681,16 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       }
       return out
     }
-    const BUILD_MODE_MACRO_RE = /\b(NDEBUG|__OPTIMIZE__|__OPTIMIZE_SIZE__|__NO_INLINE__|__SANITIZE_ADDRESS__|__SANITIZE_UNDEFINED__)\b/
+    const FORBIDDEN_OP_PRAGMA_RE = /\b_Pragma\s*\(\s*(?:L|u8|u|U)?\s*"(?:[^"\\]|\\.)*(?:system_header|\bweak\b|\bredefine_extname\b)(?:[^"\\]|\\.)*"\s*\)/
     for (const uf of userFiles) {
-      const cleaned = stripForPreproc(src(uf)).split('\n')
+      const rawSrc = src(uf).replace(/\?\?\//g, '\\')
+      const noComments = stripForPreproc(rawSrc, true)
+      const opHit = FORBIDDEN_OP_PRAGMA_RE.exec(noComments)
+      if (opHit) {
+        const lineNo = noComments.slice(0, opHit.index).split('\n').length
+        throw new Refusal(`${path.basename(uf)}:${lineNo}:1`, `_Pragma(${opHit[0].includes('system_header') ? 'GCC system_header' : 'weak/redefine_extname'}) is outside the C safety subset`)
+      }
+      const cleaned = stripForPreproc(rawSrc, false).split('\n')
       for (let idx = 0; idx < cleaned.length; idx++) {
         let line = cleaned[idx]!.replace(/\r$/, '')
         const startLine = idx + 1
@@ -1483,16 +1698,16 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
           line = line.slice(0, -1) + cleaned[++idx]!.replace(/\r$/, '')
         }
         const trimmed = line.trimStart()
-        if (!trimmed.startsWith('#')) continue
-        const body = trimmed.slice(1).trimStart()
+        const prefixLen = trimmed.startsWith('#') ? 1 : trimmed.startsWith('%:') ? 2 : trimmed.startsWith('??=') ? 3 : 0
+        if (!prefixLen) continue
+        const body = trimmed.slice(prefixLen).trimStart()
         const where = `${path.basename(uf)}:${startLine}:1`
-        if (/^(?:line\b|\d+\s+")/.test(body))
-          throw new Refusal(where, '#line directive is outside the C safety subset')
+        if (/^(?:line\b|\d+(?:\s|$))/.test(body))
+          throw new Refusal(where, '#line or linemarker directive is outside the C safety subset')
+        if (/^pragma\s+(?:GCC\s+)?system_header\b/.test(body))
+          throw new Refusal(where, '#pragma GCC system_header in user file is outside the C safety subset')
         if (/^pragma\s+(?:weak|redefine_extname)\b/.test(body))
           throw new Refusal(where, '#pragma weak/redefine_extname symbol alias is outside the C safety subset')
-        const macroHit = /^(?:if|ifdef|ifndef|elif|elifdef|elifndef|define|undef)\b/.test(body) ? BUILD_MODE_MACRO_RE.exec(body) : null
-        if (macroHit)
-          throw new Refusal(where, `preprocessor directive depends on build-mode macro ${macroHit[1]} (proof only holds for one macro configuration; outside the C safety subset)`)
       }
     }
     const hasUnsafePtrType = (raw: string): boolean => /\bvoid\s*\*|\(\s*\*|\*\s*\*/.test(raw)

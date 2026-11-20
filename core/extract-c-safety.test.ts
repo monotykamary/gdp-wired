@@ -1271,14 +1271,14 @@ void put(struct ring *r, int32_t v) { if (r->n >= 0 && r->n < 8) { r->a[r->n] = 
     const rClean = runCliText(['check', '--no-propose', cleanFile])
     expect(rClean.code).toBe(0)
     expect(rClean.out).toContain('proven (covers: get)')
-    expect(rClean.out).toContain('macro config: -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined')
+    expect(rClean.out).toMatch(/macro config: target: \S+.*; std: \S+ \(__STDC_VERSION__=\S+\); -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined, DEBUG=undefined/)
 
     const rWithDef = await check([cleanFile], {flags: ['-DLIMIT=8'], propose: false})
     expect(rWithDef.exit).toBe(0)
     expect(rWithDef.rules[0]?.safety).toMatchObject({
       status: 'proven',
       coveredFunctions: ['get'],
-      macroConfig: {defines: ['-DLIMIT=8'], ndebugDefined: false, optimizeDefined: false},
+      macroConfig: {defines: ['-DLIMIT=8'], ndebugDefined: false, optimizeDefined: false, debugDefined: false},
     })
 
     // (5) Normalized tag & lookalike handling: tm1 (newline in /* */) and tm2 (backslash-continued //)
@@ -1308,6 +1308,121 @@ void put(struct ring *r, int32_t v) { if (r->n >= 0 && r->n < 8) { r->a[r->n] = 
       expect(rText.code, `${fname} lookalike must exit 2`).toBe(2)
       expect(rText.out, `${fname} lookalike must print warning in TEXT output`).toMatch(/warning:.*looks like a gdp: safety directive/)
     }
+  } finally {
+    rmSync(dir, {recursive: true, force: true})
+  }
+}, 180_000)
+
+withClang('Review Probe 11: path-only system-header boundary (h3-h7), pragma/linemarker spellings (l1-l3, p1-p2), build-mode token invariance (m1/m5/m6), and target/std config reporting (m2-m4)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-probe11-'))
+  try {
+    // (1) h3-h7 + digraph %:pragma + macro-hidden _Pragma: #pragma GCC system_header (and _Pragma /
+    // %:pragma / macro-expanded _Pragma) in a non-system project header must NEVER exempt that header
+    // or any header it includes (via -I or relative ../inc), regardless of whether it hides a plain
+    // function body (h3), a function-pointer global (h4), or a static-helper alias (h5-h7).
+    const baseGet = '// gdp: safety\n#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return r->a[r->n]; return 0; }\n'
+    const baseHelper = '// gdp: safety\n#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\nstatic int32_t dv(int32_t x, int32_t y) { return x / y; }\nint32_t get(struct ring *r) { if (r->n >= 0 && r->n < 8) return dv(r->a[r->n], 2); return 0; }\n'
+    for (const [label, hContent, evilContent, ringBody, useDashI] of [
+      ['h3-I-fn', '#pragma GCC system_header\n#include "evil.h"\n', '#include <stdint.h>\nint32_t pub(int32_t x, int32_t y) { return x / y; }\n', baseGet + '#include "h.h"\n', true],
+      ['h4-I-fnptr', '#pragma GCC system_header\n#include "evil.h"\n', '#include <stdint.h>\nint32_t (*pubp)(int32_t, int32_t) = dv;\n', baseHelper + '#include "h.h"\n', true],
+      ['h5-I-alias', '#pragma GCC system_header\n#include "evil.h"\n', '#include <stdint.h>\nint32_t pub(int32_t, int32_t) __attribute__((alias("dv")));\n', baseHelper + '#include "h.h"\n', true],
+      ['h6-rel-alias', '#pragma GCC system_header\n#include "evil.h"\n', '#include <stdint.h>\nint32_t pub(int32_t, int32_t) __attribute__((alias("dv")));\n', baseHelper + '#include "../inc/h.h"\n', false],
+      ['h7-op-pragma', '_Pragma("GCC system_header")\n#include "evil.h"\n', '#include <stdint.h>\nint32_t pub(int32_t, int32_t) __attribute__((alias("dv")));\n', baseHelper + '#include "../inc/h.h"\n', false],
+      ['h8-digraph-sh', '%:pragma GCC system_header\n#include "evil.h"\n', '#include <stdint.h>\nint32_t pub(int32_t x, int32_t y) { return x / y; }\n', baseGet + '#include "../inc/h.h"\n', false],
+      ['h9-macro-sh', '#define HIDE(x) _Pragma(#x)\nHIDE(GCC system_header)\n#include "evil.h"\n', '#include <stdint.h>\nint32_t pub(int32_t x, int32_t y) { return x / y; }\n', baseGet + '#include "../inc/h.h"\n', false],
+    ] as const) {
+      const rootDir = join(dir, label), inc = join(rootDir, 'inc'), srcDir = join(rootDir, 'src')
+      mkdirSync(inc, {recursive: true})
+      mkdirSync(srcDir, {recursive: true})
+      writeFileSync(join(inc, 'evil.h'), evilContent)
+      writeFileSync(join(inc, 'h.h'), hContent)
+      const f = join(srcDir, 'ring.c')
+      writeFileSync(f, ringBody)
+      const res = await check([f], {propose: false, ...(useDashI ? {flags: [`-I${inc}`]} : {})})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+    }
+
+    // (2) l1-l3 & p1-p2: digraph (%:), trigraph (??=), and _Pragma linemarkers/weak exports -> exit 2.
+    for (const [label, code, flags] of [
+      ['l1-digraph-lm', baseGet + '%: 1 "/usr/include/zz_fake.h" 3\nint32_t pub(int32_t x, int32_t y) { return x / y; }\n', [] as string[]],
+      ['l2-trigraph-lm', baseGet + '??= 1 "/usr/include/zz_fake.h" 3\nint32_t pub(int32_t x, int32_t y) { return x / y; }\n', ['-std=c11']],
+      ['l3-digraph-line', baseGet + '%:line 1 "/usr/include/zz_fake.h"\nint32_t pub(int32_t x, int32_t y) { return x / y; }\n', [] as string[]],
+      ['l4-real-stdint-line', baseGet + '%:line 1 "/usr/include/stdint.h"\nstatic int32_t pub(int32_t x, int32_t y) { return x / y; }\n', [] as string[]],
+      ['p1-op-weak', baseHelper + '_Pragma("weak pub = dv")\n', [] as string[]],
+      ['p2-digraph-weak', baseHelper + '%:pragma weak pub = dv\n', [] as string[]],
+    ] as const) {
+      const f = join(dir, `${label}.c`)
+      writeFileSync(f, code)
+      const res = await check([f], {propose: false, ...(flags.length ? {flags: [...flags]} : {})})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+    }
+
+    // (3) m1, m5, m6: preprocessed user-code token-stream invariance catches DEBUG, digraph %:ifndef NDEBUG,
+    // and token-pasted #if !CAT(ND,EBUG) regardless of preprocessor spelling -> exit 2.
+    const macroHdr = '// gdp: safety\n#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\n#define CAT(a,b) a##b\n'
+    for (const [label, body, wantMacro] of [
+      ['m1-debug', 'void put(struct ring *r, int32_t v) {\n#ifndef DEBUG\n  if (r->n < 0 || r->n >= 8) return;\n#endif\n  r->a[r->n] = v; r->n = r->n + 1;\n}\n', 'DEBUG'],
+      ['m5-digraph-ndebug', 'void put(struct ring *r, int32_t v) {\n%:ifndef NDEBUG\n  if (r->n < 0 || r->n >= 8) return;\n#endif\n  r->a[r->n] = v; r->n = r->n + 1;\n}\n', 'NDEBUG'],
+      ['m6-cat-ndebug', 'void put(struct ring *r, int32_t v) {\n#if !CAT(ND,EBUG)\n  if (r->n < 0 || r->n >= 8) return;\n#endif\n  r->a[r->n] = v; r->n = r->n + 1;\n}\n', 'NDEBUG'],
+    ] as const) {
+      const f = join(dir, `${label}.c`)
+      writeFileSync(f, macroHdr + body)
+      const res = await check([f], {propose: false})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+      expect(res.rules[0]?.refusals.map(r => r.what).join('; '), `${label} names ${wantMacro}`).toContain(wantMacro)
+    }
+
+    // (4) m2, m3, m4, m7: target/compiler/std-dependent code proves under the active configuration AND
+    // explicitly states target triple, compiler, effective std, and __STDC_VERSION__ in JSON & TEXT.
+    for (const [label, cond] of [
+      ['m2_arch', 'defined(__x86_64__) || defined(__aarch64__) || defined(__LP64__)'],
+      ['m3_builtin', '__has_builtin(__builtin_trap)'],
+    ] as const) {
+      const f = join(dir, `${label}.c`)
+      writeFileSync(f, macroHdr + `void put(struct ring *r, int32_t v) {\n#if ${cond}\n  if (r->n < 0 || r->n >= 8) return;\n#endif\n  r->a[r->n] = v; r->n = r->n + 1;\n}\n`)
+      const rTxt = runCliText(['check', '--no-propose', f])
+      expect(rTxt.code, `${label} must exit 0`).toBe(0)
+      expect(rTxt.out, `${label} must report target/compiler/std`).toMatch(/macro config: target: \S+.*; compiler: clang \S+; std: \S+ \(__STDC_VERSION__=\S+\)/)
+    }
+
+    const m7File = join(dir, 'm7_not_clang.c')
+    writeFileSync(m7File, macroHdr + 'void put(struct ring *r, int32_t v) {\n#if !defined(__clang__)\n  if (r->n < 0 || r->n >= 8) return;\n#endif\n  r->a[r->n] = v; r->n = r->n + 1;\n}\n')
+    const rM7 = await check([m7File], {propose: false})
+    expect(rM7.exit).toBe(1)
+    expect(rM7.rules[0]?.safety).toMatchObject({status: 'broken'})
+
+    const m4File = join(dir, 'm4_stdc.c')
+    writeFileSync(m4File, macroHdr + `void put(struct ring *r, int32_t v) {
+#if __STDC_VERSION__ >= 201710L
+  if (r->n < 0 || r->n >= 8) return;
+#endif
+  r->a[r->n] = v; r->n = r->n + 1;
+}
+`)
+    const rM4Text = runCliText(['check', '--no-propose', m4File])
+    expect(rM4Text.code).toBe(0)
+    expect(rM4Text.out).toMatch(/macro config: target: \S+.*; std: (?:gnu|c)(?:17|23) \(__STDC_VERSION__=(?:201710L|202311L)\); -D flags: none; NDEBUG=undefined, __OPTIMIZE__=undefined, DEBUG=undefined/)
+
+    const rM4C23 = await check([m4File], {flags: ['-std=c23'], propose: false})
+    expect(rM4C23.exit).toBe(0)
+    expect(rM4C23.rules[0]?.safety).toMatchObject({
+      status: 'proven',
+      coveredFunctions: ['put'],
+      macroConfig: {std: 'c23', stdcVersion: '202311L', ndebugDefined: false, optimizeDefined: false, debugDefined: false},
+    })
+    expect((rM4C23.rules[0]?.safety as {macroConfig?: {target?: string}})?.macroConfig?.target).toMatch(/\S+-\S+/)
+
+    // Under -std=c11 (__STDC_VERSION__=201112L), the >= 201710L guard vanishes -> broken (exit 1, UBSan)
+    // and macroConfig explicitly reports std: c11 (__STDC_VERSION__=201112L).
+    const rM4C11 = await check([m4File], {flags: ['-std=c11'], propose: false})
+    expect(rM4C11.exit).toBe(1)
+    expect(rM4C11.rules[0]?.safety).toMatchObject({
+      status: 'broken',
+      macroConfig: {std: 'c11', stdcVersion: '201112L'},
+    })
   } finally {
     rmSync(dir, {recursive: true, force: true})
   }

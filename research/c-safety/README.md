@@ -1,6 +1,6 @@
 # C safety (Stage 1)
 
-See [`STAGE1.md`](./STAGE1.md) and [`docs/FRONTENDS.md#opt-in-c-safety-stage-1`](../../docs/FRONTENDS.md#opt-in-c-safety-stage-1) for the Stage 1 C memory & UB safety implementation summary, the four stated assumptions and mechanically checked premises (ABI/types/macroConfig, ownership/zeroed start/aliasing, closed-TU coverage across all non-system files including symbol aliases/weak/asm exports, struct-field fn-ptrs, non-system headers, build-mode macro conditionals, bodyless prototypes, and `fails` paths, first-fault/replay scope), independent soundness-review fixes, bounds-check corpus & UBSan replay results, Lean 4 recheck axioms, and exact-commit Boat gate receipts.
+See [`STAGE1.md`](./STAGE1.md) and [`docs/FRONTENDS.md#opt-in-c-safety-stage-1`](../../docs/FRONTENDS.md#opt-in-c-safety-stage-1) for the Stage 1 C memory & UB safety implementation summary, the four stated assumptions and mechanically checked premises (ABI/types/target/std/`macroConfig`, ownership/zeroed start/aliasing, path-only system-header boundary via `clang -E -v` + closed-TU coverage across all non-system files including `system_header`/`#line` pragma refusal, symbol aliases/weak/asm exports, struct-field fn-ptrs, preprocessed token-stream invariance across `NDEBUG`/`-O0` vs `-O2`/`DEBUG`, bodyless prototypes, and `fails` paths, first-fault/replay scope), independent soundness-review fixes, bounds-check corpus & UBSan replay results, Lean 4 recheck axioms, and exact-commit Boat gate receipts.
 
 ## Research & Lean export scripts
 
