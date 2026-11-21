@@ -157,7 +157,12 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
   const {js, arms} = instrument(code, file, init ? `\n;(globalThis as any).__gdpInit = () => (${init});\n` : '', [...nativeCaptureEdits(code, file, nativeMethods), ...extra])
   const captured = new Map<string, Record<string, unknown>>(), captureErrors = new Map<string, string>()
   const counts = arms.map(() => 0)
-  let now = 0, invocation = 0, observedClock: number | undefined, observing = false
+  let now = 0, invocation = 0, observedClock: number | undefined, observationError: string | undefined, observing = false
+  const recordClock = (t: number) => {
+    if (!observing) return
+    if (observedClock !== undefined && observedClock !== t) observationError ??= 'conflicting actual clock reads'
+    else observedClock = t
+  }
   let ticks = 0, deadline = Infinity, limitMs = 0, timedOut = false
   const startBudget = (ms: number) => { ticks = 0; limitMs = ms; timedOut = false; deadline = performance.now() + ms }
   const stopBudget = () => { deadline = Infinity; timedOut = false }
@@ -175,7 +180,7 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
   })
   const module = {exports: {} as Record<string, unknown>}
   const ctx = vm.createContext({
-    __cov: (i: number) => { counts[i]!++ }, __now: () => { if (observing) observedClock = now; return now }, module, exports: module.exports,
+    __cov: (i: number) => { counts[i]!++ }, __now: () => { recordClock(now); return now }, __gdp_clock: () => now, __gdp_observe_clock: (t: number) => { recordClock(t) }, module, exports: module.exports,
     __gdp_native_capture: (name: string, value: Record<string, unknown>) => {
       if (captured.has(name) || captureErrors.has(name)) return
       try { captured.set(name, nativeSnapshot(value) as Record<string, unknown>) } catch (e) { captureErrors.set(name, String(e)) }
@@ -224,7 +229,7 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
   const call = (f: string, self: unknown, args: unknown[], housekeeping = false) => {
     // Reading/restoring a factory's closure is harness work, not a new request.
     const request = !housekeeping
-    if (request) { captured.clear(); captureErrors.clear(); invocation++; observedClock = undefined }
+    if (request) { captured.clear(); captureErrors.clear(); invocation++; observedClock = undefined; observationError = undefined }
     observing = request
     Object.assign(ctx, {__f: f, __self: self, __args: args})
     if (isBun) {
@@ -244,7 +249,7 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
     }
     return ctx.__r as {ok: true, value: unknown} | {ok: false, error: string}
   }
-  return {ctx, counts, arms, call, observations: () => validateNativeObservations({invocation, calls: {}, ...(observedClock === undefined ? {} : {clock: observedClock})}, new Set()), setNow: n => { now = n }, get: name => vm.runInContext(`__gdp[${JSON.stringify(name)}]`, ctx),
+  return {ctx, counts, arms, call, observations: () => validateNativeObservations({invocation, calls: {}, ...(observedClock === undefined ? {} : {clock: observedClock}), ...(observationError === undefined ? {} : {error: observationError})}, new Set()), setNow: n => { now = n }, get: name => vm.runInContext(`__gdp[${JSON.stringify(name)}]`, ctx),
     bindings: method => { if (captureErrors.has(method)) throw new Error(captureErrors.get(method)!); return captured.get(method) }}
 }
 

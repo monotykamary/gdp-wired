@@ -6,11 +6,32 @@ import {normalize, program, scriptKind} from './extract-read.ts'
 export type NativeInputs = {domains?: unknown[][], reason?: string}
 const LIMIT = 65536
 class TooLarge extends Error {}
-function named(n: ts.Node): string | undefined {
+const unwrap = (n: ts.Node): ts.Node => {
+  while (ts.isParenthesizedExpression(n) || ts.isAsExpression(n) || ts.isSatisfiesExpression(n)) n = n.expression
+  return n
+}
+const climb = (n: ts.Node): ts.Node | undefined => {
+  let p = n.parent
+  while (p && (ts.isParenthesizedExpression(p) || ts.isAsExpression(p) || ts.isSatisfiesExpression(p))) p = p.parent
+  return p
+}
+// An Effect.fn / Effect.fnUntraced call wrapping a generator method body (with or without a span name).
+function effectFnCall(p: ts.Node | undefined, n: ts.FunctionExpression): ts.CallExpression | undefined {
+  if (!n.asteriskToken || !p || !ts.isCallExpression(p) || p.arguments.length !== 1 || unwrap(p.arguments[0]!) !== n) return undefined
+  const callee = unwrap(p.expression)
+  const head = ts.isCallExpression(callee) ? unwrap(callee.expression) : callee
+  if (!ts.isPropertyAccessExpression(head)) return undefined
+  return (ts.isCallExpression(callee) ? head.name.text === 'fn' : head.name.text === 'fn' || head.name.text === 'fnUntraced') ? p : undefined
+}
+function named(n: ts.Node, allowEffectFn = false): string | undefined {
   if (ts.isFunctionDeclaration(n) || ts.isMethodDeclaration(n)) return n.name && (ts.isIdentifier(n.name) || ts.isStringLiteral(n.name)) ? n.name.text : undefined
   if (ts.isArrowFunction(n) || ts.isFunctionExpression(n)) {
-    const p = n.parent
-    if ((ts.isVariableDeclaration(p) || ts.isPropertyAssignment(p)) && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) return p.name.text
+    const p = climb(n)
+    if (p && (ts.isVariableDeclaration(p) || ts.isPropertyAssignment(p)) && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) return p.name.text
+    if (allowEffectFn && ts.isFunctionExpression(n)) {
+      const call = effectFnCall(p, n), holder = call && climb(call)
+      if (holder && (ts.isVariableDeclaration(holder) || ts.isPropertyAssignment(holder)) && (ts.isIdentifier(holder.name) || ts.isStringLiteral(holder.name))) return holder.name.text
+    }
   }
   return undefined
 }
@@ -22,10 +43,13 @@ export function nativeCaptureEdits(code: string, file: string, methods: string[]
   if (!methods.length) return []
   const sf = ts.createSourceFile(file, code, ts.ScriptTarget.ES2022, true, scriptKind(file)), edits: [number, string][] = []
   const visit = (n: ts.Node) => {
-    if (callable(n) && n.body && methods.includes(named(n) ?? '')) {
-      const names = n.parameters.flatMap(p => bindingNames(p.name)), capture = `__gdp_native_capture(${JSON.stringify(named(n))}, {${names.join(',')}})`
-      if (ts.isBlock(n.body)) edits.push([n.body.getStart(sf) + 1, `${capture};`])
-      else edits.push([n.body.getStart(sf), `(${capture}, (`], [n.body.end, '))'])
+    if (callable(n) && n.body) {
+      const method = named(n, true)
+      if (method && methods.includes(method)) {
+        const names = n.parameters.flatMap(p => bindingNames(p.name)), capture = `__gdp_native_capture(${JSON.stringify(method)}, {${names.join(',')}})`
+        if (ts.isBlock(n.body)) edits.push([n.body.getStart(sf) + 1, `${capture};`])
+        else edits.push([n.body.getStart(sf), `(${capture}, (`], [n.body.end, '))'])
+      }
     }
     ts.forEachChild(n, visit)
   }

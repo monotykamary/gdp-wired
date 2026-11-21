@@ -472,10 +472,11 @@ export function scoped(file: string): Scoped[] {
     let cls: string | undefined, fn: string | undefined
     // (the nearest enclosing class statement: its keyword at the start of a line, after modifiers, never a word in a
     // docstring's or a comment's prose; in Python, at an indentation that encloses the law's)
-    const indent = (x: string) => /^\s*/.exec(x)![0].length, lawIndent = indent(lines[l.line! - 1]!), py = file.endsWith('.py')
+    const indent = (x: string) => /^\s*/.exec(x)![0].length, lawIndent = indent(lines[l.line! - 1]!), py = file.endsWith('.py'), tsjs = /\.[cm]?[jt]sx?$/.test(file)
     for (let i = l.line! - 1; i >= 0 && !cls; i--) {
       const m = classAt(lines[i]!)
       if (m && (!py || indent(lines[i]!) < lawIndent)) cls = m
+      else if (tsjs && /^(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:const|let|var|function)\b/.test(lines[i]!)) break
     }
     // (a law right above a class statement, past comments, blank lines and annotations, is that class's: a contract's,
     // a struct's, a class's, never its first member's; one indented inside a class above a class after it isn't)

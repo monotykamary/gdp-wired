@@ -28,7 +28,7 @@ import {type ExtractOptions, type Extraction, fromModel, namesOf} from './extrac
 import {check, sandbox} from './extract-check.ts'
 import {Parts, type ScheduleRule, readSchedule, replaySchedule, scheduleConforms, scheduleRule} from './effect-schedule.ts'
 import {asRule, lift} from './system.ts'
-import {attachSource, inheritSource} from './source-check.ts'
+import {attachSource, inheritSource, rememberNative} from './source-check.ts'
 import {type Prim, rewritePrims} from './effect-prims.ts'
 export {minimizeRun, minimizeRunDetailed, proveRule, proveSteps} from './dsl.ts'
 export {jitterRun, replaySchedule, scheduleConforms, stepper} from './effect-schedule.ts'
@@ -157,7 +157,7 @@ function factoryOf(s: Setup, entry: string): FactoryOf {
     const refs = new Map<string, string>(), locks = new Set<ts.Node>(), effects = new Map<ts.Node, ts.Expression>()
     s.effect = hook(s, refs, locks, effects)
     s.notes.add(`${entry} is an Effect service: its state is its Refs, each method an event, a failure the step's refusal; each method is one step, which holds where calls don't interleave (one at a time, or under a Semaphore of 1)`)
-    const R = 'require("gdp-wired:effect")', run = (f: string) => `{ const f = ${f}; return __R.run(typeof f === 'function' ? f(...args) : f, __now()) }`
+    const R = 'require("gdp-wired:effect")', run = (f: string) => `{ const f = ${f}; return __R.run(typeof f === 'function' ? f(...args) : f, __gdp_clock(), __gdp_observe_clock) }`
     return {
       fn, params, obj: o,
       decl: d => {
@@ -444,41 +444,46 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
 // --- running the code -----------------------------------------------------------------------------------------------
 // Effects run synchronously on the Effect given (3.x or 4.x), the clock fixed at the request's time; a failure (a typed
 // one, a defect, or an effect that would wait) is thrown, as the check reads a refusal.
-export type Runner = {run: (eff: unknown, now?: number) => unknown, exit: (eff: unknown, now: number) => {ok: true, value: unknown} | {ok: false, error: string}, get: (mod: string, ref: unknown) => unknown, set: (mod: string, ref: unknown, v: unknown) => unknown}
+export type Runner = {run: (eff: unknown, now?: number, observeClock?: (t: number) => void) => unknown, exit: (eff: unknown, now: number, observeClock?: (t: number) => void) => {ok: true, value: unknown} | {ok: false, error: string}, get: (mod: string, ref: unknown) => unknown, set: (mod: string, ref: unknown, v: unknown) => unknown}
 export function runner(E: Mod): Runner {
   const {Effect, Exit, Cause, Clock} = E, v4 = 'TxRef' in E
   if (!Effect?.runSyncExit) throw new Error('effect: give the `effect` package itself (import * as effect from \'effect\')')
-  let now = 0
+  let now = 0, onClock: ((t: number) => void) | undefined
+  const readMillis = () => { onClock?.(now); return now }
   // A Clock at `now`: 4.x names its unsafe reads currentTime<X>Unsafe, 3.x unsafeCurrentTime<X>.
+  // Effect.fn span tracing reads nanos internally; only millisecond reads observe the service's clock.
   const unsafe = (x: string) => (v4 ? `currentTime${x}Unsafe` : `unsafeCurrentTime${x}`), ns = () => BigInt(now) * 1_000_000n
   // (a sleep, a retry's or a repeat's, passes at once: the clock moves on by its duration)
-  const clock = Object.create(Effect.runSync(v4 ? Effect.clockWith((c: unknown) => Effect.succeed(c)) : Effect.clock), {[unsafe('Millis')]: {value: () => now}, currentTimeMillis: {value: Effect.sync(() => now)}, [unsafe('Nanos')]: {value: ns}, currentTimeNanos: {value: Effect.sync(ns)},
+  const clock = Object.create(Effect.runSync(v4 ? Effect.clockWith((c: unknown) => Effect.succeed(c)) : Effect.clock), {[unsafe('Millis')]: {value: readMillis}, currentTimeMillis: {value: Effect.sync(readMillis)}, [unsafe('Nanos')]: {value: ns}, currentTimeNanos: {value: Effect.sync(ns)},
     sleep: {value: (d: unknown) => Effect.sync(() => { now += E.Duration.toMillis(d) })}})
-  const exit = (eff: unknown, t: number): {ok: true, value: unknown} | {ok: false, error: string} => {
+  const exit = (eff: unknown, t: number, observeClock?: (t: number) => void): {ok: true, value: unknown} | {ok: false, error: string} => {
     if (!Effect.isEffect(eff)) return {ok: false, error: `not an effect: ${String(eff).slice(0, 60)}`}
     now = t
+    onClock = observeClock
     // (3.x on a scheduler of its own, so a fiber left waiting, a transaction that retries, is interrupted at once: it
     // would otherwise wake and commit inside a later request)
     let x: Mod, waiting: {fiber: Mod} | undefined
-    if (v4) {
-      x = Effect.runSyncExit(Effect.provideService(eff, Clock.Clock, clock))
-      waiting = Exit.isSuccess(x) ? undefined : (x.cause.reasons ?? []).map((r: {defect?: unknown}) => r.defect).find((d: unknown) => d && typeof d === 'object' && 'fiber' in d)
-      waiting?.fiber.interruptUnsafe()
-    } else {
-      // (on a scheduler of its own: what yields to it (a SynchronizedRef's lock) runs on when it is flushed; a fiber still
-      // waiting then is interrupted there)
-      const sch = new E.Scheduler.SyncScheduler()
-      x = Effect.runSyncExit(Effect.withScheduler(Effect.withClock(eff, clock), sch))
-      const fiber = Exit.isSuccess(x) ? undefined : (x.cause.defect as {fiber?: Mod} | undefined)?.fiber
-      if (fiber) {
-        for (let i = 0; i < 64 && !(x = fiber.unsafePoll()); i++) sch.flush()
-        if (!x) { waiting = {fiber}; fiber.unsafeInterruptAsFork(E.FiberId.none); sch.flush() }
+    try {
+      if (v4) {
+        x = Effect.runSyncExit(Effect.provideService(eff, Clock.Clock, clock))
+        waiting = Exit.isSuccess(x) ? undefined : (x.cause.reasons ?? []).map((r: {defect?: unknown}) => r.defect).find((d: unknown) => d && typeof d === 'object' && 'fiber' in d)
+        waiting?.fiber.interruptUnsafe()
+      } else {
+        // (on a scheduler of its own: what yields to it (a SynchronizedRef's lock) runs on when it is flushed; a fiber still
+        // waiting then is interrupted there)
+        const sch = new E.Scheduler.SyncScheduler()
+        x = Effect.runSyncExit(Effect.withScheduler(Effect.withClock(eff, clock), sch))
+        const fiber = Exit.isSuccess(x) ? undefined : (x.cause.defect as {fiber?: Mod} | undefined)?.fiber
+        if (fiber) {
+          for (let i = 0; i < 64 && !(x = fiber.unsafePoll()); i++) sch.flush()
+          if (!x) { waiting = {fiber}; fiber.unsafeInterruptAsFork(E.FiberId.none); sch.flush() }
+        }
       }
-    }
+    } finally { onClock = undefined }
     if (x && Exit.isSuccess(x)) return {ok: true, value: x.value}
     return {ok: false, error: waiting ? 'it waits (an effect that suspends: a transaction that retries, a fiber it waits for)' : String(Cause.pretty(x.cause)).split('\n')[0]!}
   }
-  const run = (eff: unknown, t = now) => { const x = exit(eff, t); if (!x.ok) throw new Error(x.error); return x.value }
+  const run = (eff: unknown, t = now, observeClock?: (t: number) => void) => { const x = exit(eff, t, observeClock); if (!x.ok) throw new Error(x.error); return x.value }
   return {run, exit, get: (mod, ref) => run(E[mod].get(ref)), set: (mod, ref, v) => run(E[mod].set(ref, v))}
 }
 
@@ -515,7 +520,7 @@ function modelled(code: string, file: string, entry: string, E: Mod, opts: Effec
   if (!/\b(Queue|Semaphore|makeSemaphore|unsafeMakeSemaphore)\b/.test(code)) return undefined
   const s = setupOf(code, placed(file), {}, opts.files), w = rewritePrims(s, factoryOf(s, entry), x => apiOf(s, x), V4, {params: !!opts.capacityParam})
   if (!w) return undefined
-  const x = extractEffect(w.code, {...opts, capacityParam: false, file: normalize(placed(file)), entry, effect: E, perFiber: w.prims.flatMap(p => (p.kind === 'semaphore' ? [`${p.name}_held`] : []))})
+  const x = extractEffect(w.code, {...opts, check: {...opts.check, lawCrossCheck: false}, capacityParam: false, file: normalize(placed(file)), entry, effect: E, perFiber: w.prims.flatMap(p => (p.kind === 'semaphore' ? [`${p.name}_held`] : []))})
   if (!x.ok || !x.rule) return {...x, notes: [...w.notes, ...x.notes]}
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   type St = Record<string, any>
@@ -539,8 +544,13 @@ function modelled(code: string, file: string, entry: string, E: Mod, opts: Effec
     return {...p, invariants: [r.law(`${p.name} never has more permits taken than ${typeof p.permits === 'number' ? `its ${p.permits}` : p.permits}`, st => val(st, f('taken')).atMost(total(st))), r.law(`${p.name}'s permits taken are those its fibers hold`, st => val(st, f('taken')).eq(held(st)))],
       laws: [r.law(`${p.name} is never released past what was taken`, st => val(st, f('taken')).atLeast(0))], lemmas}
   })
-  const lemmas = prims.flatMap(p => p.lemmas ?? [])
-  return {...x, invariants: [...x.invariants ?? [], ...prims.flatMap(p => p.invariants)], notes: [...w.notes, ...x.notes], primitives: prims, ...(lemmas.length ? {lemmas} : {})} as Extraction
+  const lemmas = prims.flatMap(p => p.lemmas ?? []), invariants = [...x.invariants ?? [], ...prims.flatMap(p => p.invariants)]
+  // Rewritten Queue/Semaphore models do not run native primitives; never treat their check as native source confirmation.
+  if (!x.fibers && x.evidence) {
+    rememberNative(x.evidence, {enabled: false, complete: false, scope: 'sampled', reason: 'Effect Queue/Semaphore primitives are checked through a rewritten model, not native source replay', observations: []})
+    attachSource(x.rule, x.evidence, invariants)
+  }
+  return {...x, invariants, notes: [...w.notes, ...x.notes], primitives: prims, ...(lemmas.length ? {lemmas} : {})} as Extraction
 }
 // The extraction with its lemmas (laws that hold where the code uses its primitives as they are meant to be, a
 // semaphore's permits given back by the fiber that took them) proven first, each with the invariants and those proven
@@ -707,7 +717,7 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
   out = `import {Effect as __gdp_Effect, Ref as __gdp_Ref} from 'effect'\n${out}`
   // One fiber: the service written again, read and checked as any.
   // (by its absolute path, `..` resolved: the checker reads the code written again there, not the file on disk)
-  const one = extractEffect(out, {...opts, file: normalize(placed(file)), entry, effect: E, fibers: false})
+  const one = extractEffect(out, {...opts, check: {...opts.check, lawCrossCheck: false}, file: normalize(placed(file)), entry, effect: E, fibers: false})
   if (!one.ok || !one.rule) return {...one, notes: [`read as one fiber's steps (${split.map(mt => `${mt.name}: ${mt.units.length}`).join(', ')}), the service written again:`, out, ...one.notes]}
   const m0 = one.rule.machine, model = one.model!
   // (an integer is two naturals, x and x$neg)

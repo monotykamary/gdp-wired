@@ -298,11 +298,11 @@ for (const [lang, c] of Object.entries(CASES)) {
       expect(broken.run!.at(-1)!).toMatch(/hit/i)
       expect(exit).toBe(1)
     } else {
-      // The native frontends now retain source-law samples; Effect and XState are still model-only.
-      if (lang === 'effect' || lang === 'xstate') {
+      // The native frontends (including Effect services) retain source-law samples; XState is still model-only.
+      if (lang === 'xstate') {
         unchecked(positive, true)
         unchecked(broken, false)
-        if (lang === 'xstate') unchecked(by('it stays open'), true)
+        unchecked(by('it stays open'), true)
         expect(exit).toBe(2)
       } else {
         sampledProof(positive)

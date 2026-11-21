@@ -204,15 +204,18 @@ test('the CLI on a file using Schedule and STM (4.x, examples/effect-bank.ts; 3.
   expect(exit).toBe(2)
   expect(rules.map(r => [r.entry, r.laws.map(l => `${l.name}: ${l.verdict}`)])).toEqual([
     ['backoff', ['the delay never exceeds the cap: unknown', 'never more than 5 retries: unknown', 'it stops after the deadline: unknown']],
-    ['make', ['the money is conserved: unknown', 'checking is never overdrawn: unknown']],
+    ['make', ['the money is conserved: proven', 'checking is never overdrawn: proven']],
   ])
-  // 3.x: the same bank in STM with its backoff, and the bank broken (save in two transactions): broken, with its run.
+  for (const l of rules.find(r => r.entry === 'backoff')!.laws) expect(l).toMatchObject({kernelProven: true, translation: 'unchecked', verdict: 'unknown'})
+  for (const l of rules.find(r => r.entry === 'make')!.laws) { expect(l).toMatchObject({translation: 'sampled', verdict: 'proven'}); expect(l.translationChecks).toBeGreaterThan(0) }
+  // 3.x: the same bank in STM with its backoff, and the bank broken (save in two transactions): lifted multi-fiber remains unchecked.
   const laws = '// gdp: law the money is conserved: checking + savings == 100\n'
   const ok3 = inProject(3, 'bank.ts', `${bank3().replace('export const make', `// gdp: law the delay never exceeds the cap: delay <= 2000\nexport const backoff = Schedule.exponential('100 millis').pipe(Schedule.union(Schedule.spaced('2 seconds')), Schedule.intersect(Schedule.recurs(5)))\n${laws}export const make`).replace("import {Data, Effect, STM, TRef} from 'effect'", "import {Data, Effect, STM, Schedule, TRef} from 'effect'")}`)
   const r3 = await check([ok3], {ms: 8000, propose: false})
   expect(r3.exit).toBe(2)
-  expect(r3.rules.flatMap(r => r.laws.map(l => `${r.entry}: ${l.name}: ${l.verdict}`))).toEqual(['backoff: the delay never exceeds the cap: unknown', 'make: the money is conserved: unknown'])
-  for (const r of [...rules, ...r3.rules]) for (const l of r.laws) expect(l).toMatchObject({kernelProven: true, translation: 'unchecked', verdict: 'unknown'})
+  expect(r3.rules.flatMap(r => r.laws.map(l => `${r.entry}: ${l.name}: ${l.verdict}`))).toEqual(['backoff: the delay never exceeds the cap: unknown', 'make: the money is conserved: proven'])
+  for (const l of r3.rules.find(r => r.entry === 'backoff')!.laws) expect(l).toMatchObject({kernelProven: true, translation: 'unchecked', verdict: 'unknown'})
+  for (const l of r3.rules.find(r => r.entry === 'make')!.laws) { expect(l).toMatchObject({translation: 'sampled', verdict: 'proven'}); expect(l.translationChecks).toBeGreaterThan(0) }
   for (const [v, code] of [[4, bank4('two transactions')], [3, bank3('two transactions')]] as const) {
     // (the 4.x bank file states the law above its make already)
     const file = inProject(v, 'broken.ts', v === 4 ? code : code.replace('export const make', `${laws}export const make`))
