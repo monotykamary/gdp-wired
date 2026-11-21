@@ -30,17 +30,23 @@ noted), each with the command that reproduces it.
   `userFilesSha256`/`userFiles` and system header
   `systemHeadersSha256`/`systemHeaders`, effective C standard and
   `__STDC_VERSION__`, scrubbed allowlisted environment status, `-I`/`-D` flags,
-  and `NDEBUG`/`__OPTIMIZE__`/`DEBUG` state). Every user file and include is
+  and `NDEBUG`/`__OPTIMIZE__`/`DEBUG` state). The full include closure (user
+  files and system headers) is discovered from Clang (`-E -H`) on the original
+  tree (with no TypeScript include lexing); every file and `-I` directory is
   resolved component-wise (refusing `/proc`, `/dev`, `/sys` case-insensitively,
-  non-regular files/FIFOs, absolute user includes, and includes outside the
-  project root or listed `-I` directories) before the first Clang pass,
-  snapshotted once into a private temporary tree read exclusively by timed Clang
-  passes, audited directly from Clang's own lexer and preprocessor
-  (`-Xclang -dump-raw-tokens`, `-Xclang -dump-tokens`, `-E -H -dD`) against
-  closed-world directive, macro, and builtin allowlists plus
-  path/cwd/stdin/mtime/`SOURCE_DATE_EPOCH`/build-mode differentials, digested
-  from the snapshot bytes, and re-hashed on disk at the end to refuse concurrent
-  writers.
+  non-regular files/FIFOs, absolute user includes, non-system includes outside
+  the project root or listed `-I` directories, `-I` directories overlapping
+  system directories, and user-visible includes resolving into system
+  directories), snapshotted once read-only into a private temporary tree, and
+  analysed under `-nostdinc` with mapped `-I` and `-isystem` directories by
+  timed Clang passes. A second Clang `-E -H` pass on the snapshot requires exact
+  include-list, depth, and order equality with the original tree; preprocessor
+  directives, macros, and builtins are audited from Clang's own lexer and
+  preprocessor (`-Xclang -dump-raw-tokens`, `-Xclang -dump-tokens`,
+  `-E -H -dD`) against closed-world allowlists plus
+  path/cwd/stdin/mtime/`SOURCE_DATE_EPOCH`/build-mode differentials; both user
+  files and system headers are digested from the snapshot bytes and re-hashed on
+  disk at the end to refuse concurrent writers.
 
 ### Scope
 
@@ -51,10 +57,10 @@ noted), each with the command that reproduces it.
   file-local `static` globals) with non-aliasing receiver and scalar
   out-parameters, no concurrency, and no external mutation from other
   translation units is modeled; system headers are classified strictly by
-  resolved path under Clang's built-in search directories (caveat: on macOS or
-  setups where package-manager directories such as `/opt/homebrew/include`
-  appear in Clang's default search list, headers under those directories are
-  trusted as system); only the first tracked bounds, signed-overflow, or
+  resolved path under Clang's default search directories, so headers under
+  writable default search directories such as `/usr/local/include` on Linux or
+  Homebrew directories (e.g., `/opt/homebrew/include`) on macOS are trusted as
+  system headers; only the first tracked bounds, signed-overflow, or
   division/remainder fault is checked, and abstract stutter on fault is a
   monitor convention rather than native rollback; uncovered TU function bodies,
   symbol aliases/weak/file-scope `__asm__`/attributed or post-definition
