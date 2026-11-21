@@ -1,15 +1,15 @@
-// Native source-law confirmation for Effect services (core/effect.ts + core/native-domain.ts):
-// real Effect.fn / Effect.fnUntraced parameter capture, invocation-bound Clock.currentTimeMillis
-// observations, real native Ref/TxRef/TRef/SynchronizedRef states, broken-twin counterexamples,
-// disagreeing-binding controls, and fail-closed boundaries for rewritten primitives, schedules
-// and lifted multi-fiber models.
+// Native source-law confirmation for Effect services (core/effect.ts + core/native-domain.ts + core/cli.ts):
+// atomic Ref.modify, Semaphore(1)-locked, and transactional services confirm natively (exit 0 / broken exit 1),
+// while multi-op plain-Ref methods (race.ts, nolock.ts, get-then-set limiter, quota, lease), unlocked siblings,
+// Schedules, rewritten Queue/Semaphore models, and lifted multi-fiber models fail closed as unchecked with clear
+// reasons; AST-based TS/JS law scoping (scope.ts) prevents template literals/comments from detaching class laws.
 import {expect, test} from 'bun:test'
 import {mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import * as effect from 'effect'
 import * as effect3 from 'effect3'
-import {check} from './cli.ts'
+import {check, scoped} from './cli.ts'
 import {proveRule, proveSteps} from './dsl.ts'
 import {extractEffect, runner} from './effect.ts'
 import {type CodeSide, drive, sandbox} from './extract-check.ts'
@@ -17,8 +17,69 @@ import {buildLaw} from './laws.ts'
 import {nativeCaptureEdits} from './native-domain.ts'
 import {attachSource} from './source-check.ts'
 
-// Exact limiter source from the TypeScript/Effect short film (Effect 4.0.7).
-const FILM_LIMITER = `import {Effect, Ref, Schema} from 'effect'
+// Atomic token limiter using Ref.modify (one atomic state operation per method).
+const ATOMIC_MODIFY_LIMITER = `import {Effect, Ref, Schema} from 'effect'
+
+export class RateLimited extends Schema.TaggedError<RateLimited>()(
+  'RateLimited',
+  {n: Schema.Number},
+) {}
+
+// gdp: law tokens stay within the capacity: tokens <= capacity
+export const make = (capacity: number) => Effect.gen(function* () {
+  const tokens = yield* Ref.make(capacity)
+
+  const take = Effect.fn('take')(function* (n: number) {
+    const next = yield* Ref.modify(tokens, (t) =>
+      n < 0 || n > t ? [undefined, t] as const : [t - n, t - n] as const)
+    if (next === undefined) {
+      return yield* new RateLimited({n})
+    }
+    return next
+  })
+
+  const refill = (n: number) =>
+    Ref.update(tokens, (t) =>
+      Math.min(capacity, t + Math.max(0, n)))
+
+  return {take, refill}
+})
+`
+
+// Atomic token limiter guarding all stateful methods under one Semaphore(1) lock.
+const ATOMIC_LOCK_LIMITER = `import {Effect, Ref, Schema, Semaphore} from 'effect'
+
+export class RateLimited extends Schema.TaggedError<RateLimited>()(
+  'RateLimited',
+  {n: Schema.Number},
+) {}
+
+// gdp: law tokens stay within the capacity: tokens <= capacity
+export const make = (capacity: number) => Effect.gen(function* () {
+  const tokens = yield* Ref.make(capacity)
+  const lock = yield* Semaphore.make(1)
+
+  const take = Effect.fn('take')(function* (n: number) {
+    return yield* lock.withPermits(1)(Effect.gen(function* () {
+      const t = yield* Ref.get(tokens)
+      if (n < 0 || n > t) {
+        return yield* new RateLimited({n})
+      }
+      yield* Ref.set(tokens, t - n)
+      return t - n
+    }))
+  })
+
+  const refill = (n: number) =>
+    lock.withPermits(1)(Ref.update(tokens, (t) =>
+      Math.min(capacity, t + Math.max(0, n))))
+
+  return {take, refill}
+})
+`
+
+// Non-atomic get-then-set limiter (the original film source): Ref.get and Ref.set can interleave under concurrency.
+const NON_ATOMIC_LIMITER = `import {Effect, Ref, Schema} from 'effect'
 
 export class RateLimited extends Schema.TaggedError<RateLimited>()(
   'RateLimited',
@@ -55,26 +116,24 @@ function withTempEffectFile<T>(v: 3 | 4, name: string, code: string, run: (file:
   return run(file).finally(() => rmSync(dir, {recursive: true, force: true}))
 }
 
-test('film limiter: CLI proves the Effect service law natively (exit 0) and proves step laws on take and refill', async () => {
-  await withTempEffectFile(4, 'limiter.ts', FILM_LIMITER, async file => {
+test('atomic Ref.modify limiter: proven natively (exit 0), step laws proven, broken twins caught with real run (exit 1)', async () => {
+  await withTempEffectFile(4, 'limiter-modify.ts', ATOMIC_MODIFY_LIMITER, async file => {
     const {rules, exit} = await check([file], {ms: 10_000, propose: true, check: {runs: 40, depth: 6, states: 60}})
     expect(exit).toBe(0)
     expect(rules.length).toBe(1)
     const r = rules[0]!
     expect(r.ok).toBe(true)
-    expect(r.laws.length).toBe(1)
     const law = r.laws[0]!
     expect(law).toMatchObject({name: 'tokens stay within the capacity', verdict: 'proven', translation: 'sampled'})
     expect(law.translationChecks).toBeGreaterThan(0)
     expect(law.why).toBeUndefined()
-    // Proposed laws must not fail with native parameter capture unavailable either.
     for (const p of r.proposed) expect(p.why ?? '').not.toContain('native parameter capture unavailable')
   })
 
-  const withStepLaws = FILM_LIMITER
+  const withStepLaws = ATOMIC_MODIFY_LIMITER
     .replace("  const take = Effect.fn('take')", "  // gdp: law take lowers tokens by n: tokens == old(tokens) - n and result == tokens\n  const take = Effect.fn('take')")
     .replace('  const refill = (n: number) =>', '  // gdp: law refill never lowers tokens: tokens >= old(tokens) and tokens <= capacity\n  const refill = (n: number) =>')
-  await withTempEffectFile(4, 'limiter-steps.ts', withStepLaws, async file => {
+  await withTempEffectFile(4, 'limiter-modify-steps.ts', withStepLaws, async file => {
     const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 40, depth: 6, states: 60}})
     expect(exit).toBe(0)
     expect(rules[0]!.laws.map(l => [l.name, l.verdict, l.translation])).toEqual([
@@ -84,44 +143,250 @@ test('film limiter: CLI proves the Effect service law natively (exit 0) and prov
     ])
     for (const l of rules[0]!.laws) expect(l.translationChecks).toBeGreaterThan(0)
   })
-}, 120_000)
 
-test('broken limiter twins: skipping the negative-take check or the refill cap breaks with a real run (exit 1)', async () => {
-  // Broken twin 1: take skips n < 0, so a negative take adds tokens past capacity.
-  const brokenTake = FILM_LIMITER.replace('if (n < 0 || n > t)', 'if (n > t)')
-  await withTempEffectFile(4, 'broken-take.ts', brokenTake, async file => {
+  // Broken twin 1: take skips n < 0, allowing negative takes to exceed capacity.
+  const brokenTake = ATOMIC_MODIFY_LIMITER.replace('n < 0 || n > t', 'n > t')
+  await withTempEffectFile(4, 'broken-modify-take.ts', brokenTake, async file => {
     const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 40, depth: 6, states: 60}})
     expect(exit).toBe(1)
     const law = rules[0]!.laws[0]!
     expect(law).toMatchObject({verdict: 'broken', translation: 'sampled'})
     expect(law.run!.length).toBeGreaterThan(0)
     expect(law.run!.at(-1)!).toMatch(/take\(n=-\d+\)/)
-    // Independently confirm the bug on the real Effect runtime.
     const real = effect.Effect.runSync(effect.Effect.gen(function* () {
       const tokens = yield* effect.Ref.make(0)
-      const t = yield* effect.Ref.get(tokens)
-      const n = -1
-      if (n <= t) yield* effect.Ref.set(tokens, t - n)
+      yield* effect.Ref.modify(tokens, t => (-1 > t ? [undefined, t] as const : [t - -1, t - -1] as const))
       return yield* effect.Ref.get(tokens)
     }))
     expect(real).toBeGreaterThan(0)
   })
 
-  // Broken twin 2: refill skips Math.min(capacity, ...), overflowing capacity.
-  const brokenRefill = FILM_LIMITER.replace('Math.min(capacity, t + Math.max(0, n))', 't + Math.max(0, n)')
-  await withTempEffectFile(4, 'broken-refill.ts', brokenRefill, async file => {
+  // Broken twin 2: refill omits Math.min(capacity, ...).
+  const brokenRefill = ATOMIC_MODIFY_LIMITER.replace('Math.min(capacity, t + Math.max(0, n))', 't + Math.max(0, n)')
+  await withTempEffectFile(4, 'broken-modify-refill.ts', brokenRefill, async file => {
     const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 40, depth: 6, states: 60}})
     expect(exit).toBe(1)
     const law = rules[0]!.laws[0]!
     expect(law).toMatchObject({verdict: 'broken', translation: 'sampled'})
-    expect(law.run!.length).toBeGreaterThan(0)
     expect(law.run!.at(-1)!).toMatch(/refill\(n=\d+\)/)
+  })
+}, 120_000)
+
+test('atomic Semaphore(1)-locked limiter: proven natively (exit 0), broken twins caught (exit 1), unlocked sibling stays unchecked (exit 2)', async () => {
+  await withTempEffectFile(4, 'limiter-lock.ts', ATOMIC_LOCK_LIMITER, async file => {
+    const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 40, depth: 6, states: 60}})
+    expect(exit).toBe(0)
+    expect(rules[0]!.laws[0]).toMatchObject({name: 'tokens stay within the capacity', verdict: 'proven', translation: 'sampled'})
+    expect(rules[0]!.laws[0]!.translationChecks).toBeGreaterThan(0)
+  })
+
+  // Broken twin 1: locked take skips n < 0.
+  const brokenTake = ATOMIC_LOCK_LIMITER.replace('if (n < 0 || n > t)', 'if (n > t)')
+  await withTempEffectFile(4, 'broken-lock-take.ts', brokenTake, async file => {
+    const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 40, depth: 6, states: 60}})
+    expect(exit).toBe(1)
+    expect(rules[0]!.laws[0]).toMatchObject({verdict: 'broken', translation: 'sampled'})
+    expect(rules[0]!.laws[0]!.run!.at(-1)!).toMatch(/take\(n=-\d+\)/)
+  })
+
+  // Broken twin 2: locked refill omits Math.min(capacity, ...).
+  const brokenRefill = ATOMIC_LOCK_LIMITER.replace('Math.min(capacity, t + Math.max(0, n))', 't + Math.max(0, n)')
+  await withTempEffectFile(4, 'broken-lock-refill.ts', brokenRefill, async file => {
+    const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 40, depth: 6, states: 60}})
+    expect(exit).toBe(1)
+    expect(rules[0]!.laws[0]).toMatchObject({verdict: 'broken', translation: 'sampled'})
+    expect(rules[0]!.laws[0]!.run!.at(-1)!).toMatch(/refill\(n=\d+\)/)
+  })
+
+  // Control: if take relies on lock across get+set, an unlocked refill can interleave -> must stay unchecked (exit 2).
+  const unlockedRefill = ATOMIC_LOCK_LIMITER.replace(
+    'lock.withPermits(1)(Ref.update(tokens, (t) =>\n      Math.min(capacity, t + Math.max(0, n))))',
+    'Ref.update(tokens, (t) =>\n      Math.min(capacity, t + Math.max(0, n)))',
+  )
+  await withTempEffectFile(4, 'unlocked-sibling.ts', unlockedRefill, async file => {
+    const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+    expect(exit).toBe(2)
+    const law = rules[0]!.laws[0]!
+    expect(law).toMatchObject({verdict: 'unknown', translation: 'unchecked'})
+    expect(law.why).toContain('refill')
+    expect(law.why).toContain('Semaphore(1) lock')
+  })
+}, 120_000)
+
+test('non-atomic plain-Ref methods (race.ts, nolock.ts on v4 & v3, get-then-set limiter): never proven exit 0; analyzed with interleavings and reported unchecked with actionable reason', async () => {
+  const raceCode = `import {Effect, Ref} from 'effect'
+
+// gdp: law only one grant: granted <= 1
+export const make = Effect.gen(function* () {
+  const consumed = yield* Ref.make(0)
+  const granted = yield* Ref.make(0)
+  const claim = Effect.fn('claim')(function* () {
+    const current = yield* Ref.get(consumed)
+    if (current !== 0) return
+    yield* Effect.sleep('10 millis')
+    yield* Ref.set(consumed, 1)
+    yield* Ref.update(granted, n => n + 1)
+  })
+  const count = Effect.fn('count')(function* () { return yield* Ref.get(granted) })
+  return {claim, count}
+})
+`
+  const nolockCode = `import {Effect, Ref} from 'effect'
+
+// gdp: law only one grant: granted <= 1
+export const make = Effect.gen(function* () {
+  const consumed = yield* Ref.make(0)
+  const granted = yield* Ref.make(0)
+  const claim = Effect.fn('claim')(function* () {
+    const current = yield* Ref.get(consumed)
+    if (current !== 0) return
+    yield* Ref.set(consumed, 1)
+    yield* Ref.update(granted, n => n + 1)
+  })
+  return {claim}
+})
+`
+  for (const v of [4, 3] as const) {
+    for (const [name, code] of [['race.ts', raceCode], ['nolock.ts', nolockCode]] as const) {
+      await withTempEffectFile(v, name, code, async file => {
+        const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+        expect([v, name, exit]).toEqual([v, name, 2])
+        const law = rules[0]!.laws[0]!
+        // Fibered interleaving model refutes the race (kernelProven: false) and source verdict stays unchecked.
+        expect(law).toMatchObject({name: 'only one grant', verdict: 'unknown', translation: 'unchecked', kernelProven: false})
+        expect(law.why).toContain('claim')
+        expect(law.why).toContain('consumed')
+        expect(law.why).toContain('Ref.modify')
+        expect(law.why).toContain('Semaphore(1)')
+      })
+    }
+  }
+
+  // Independently confirm the real Effect.all concurrency race on Effect 4 gives granted === 2.
+  const racedGranted = await effect.Effect.runPromise(effect.Effect.gen(function* () {
+    const consumed = yield* effect.Ref.make(0)
+    const granted = yield* effect.Ref.make(0)
+    const claim = effect.Effect.fn('claim')(function* () {
+      const current = yield* effect.Ref.get(consumed)
+      if (current !== 0) return
+      yield* effect.Effect.sleep('10 millis')
+      yield* effect.Ref.set(consumed, 1)
+      yield* effect.Ref.update(granted, n => n + 1)
+    })
+    yield* effect.Effect.all([claim(), claim()], {concurrency: 'unbounded'})
+    return yield* effect.Ref.get(granted)
+  }))
+  expect(racedGranted).toBe(2)
+
+  // Original non-atomic film limiter (Ref.get then Ref.set): must stay unchecked with clear fix guidance.
+  await withTempEffectFile(4, 'non-atomic-limiter.ts', NON_ATOMIC_LIMITER, async file => {
+    const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+    expect(exit).toBe(2)
+    const law = rules[0]!.laws[0]!
+    expect(law).toMatchObject({name: 'tokens stay within the capacity', verdict: 'unknown', translation: 'unchecked'})
+    expect(law.why).toContain('take reads and writes tokens in separate steps; concurrent calls can interleave: make it atomic with Ref.modify, a Semaphore(1) lock or a transaction')
+  })
+
+  // Plain Ref inside Effect.tx is NOT transactional on Effect 4 -> must be refused.
+  const fakeTx = `import {Effect, Ref} from 'effect'
+export const make = Effect.gen(function* () {
+  const n = yield* Ref.make(0)
+  const inc = Effect.fn('inc')(function* () {
+    yield* Effect.tx(Effect.gen(function* () {
+      const c = yield* Ref.get(n)
+      yield* Ref.set(n, c + 1)
+    }))
+  })
+  return {inc}
+})`
+  const fx = extractEffect(fakeTx, {file: 'fake-tx.ts', entry: 'make', effect})
+  expect(fx.ok).toBe(false)
+  expect(fx.refusals[0]!.what).toContain('only TxRef and TRef participate in a transaction')
+}, 180_000)
+
+test('AST scoping regression (scope.ts): template literals and comments inside a class never detach its law onto an Effect service', async () => {
+  const scopeProbe = `import {Effect, Ref} from 'effect'
+
+export class Ledger {
+  bal = 10
+  help() { return \`
+let me explain
+\` }
+  // gdp: law never negative: bal >= 0
+  take(k: number) { if (k < 0) throw new Error('neg'); this.bal -= k }
+}
+
+export const make = Effect.gen(function* () {
+  const bal = yield* Ref.make(10)
+  const take = Effect.fn('take')(function* (k: number) {
+    const next = yield* Ref.modify(bal, b => (k < 0 || k > b ? [undefined, b] as const : [b - k, b - k] as const))
+    if (next === undefined) return yield* Effect.fail('no')
+  })
+  return {take}
+})
+`
+  await withTempEffectFile(4, 'scope.ts', scopeProbe, async file => {
+    expect(scoped(file).map(l => [l.name, l.cls ?? '', l.fn ?? ''])).toEqual([['never negative', 'Ledger', 'take']])
+    const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+    expect(exit).toBe(2)
+    const makeRule = rules.find(r => r.entry === 'make')!
+    expect(makeRule.laws).toEqual([])
+    const ledgerRule = rules.find(r => r.entry === 'Ledger')!
+    expect(ledgerRule.ok).toBe(false)
+    const ledgerLaw = ledgerRule.laws.find(l => l.name === 'never negative')!
+    expect(ledgerLaw).toMatchObject({verdict: 'not read', why: 'the rule was refused'})
+  })
+
+  // Non-exported class with template literal decoy: Ledger's law still stays scoped to Ledger, never leaking to make.
+  await withTempEffectFile(4, 'scope-unexported.ts', scopeProbe.replace('export class Ledger', 'class Ledger'), async file => {
+    expect(scoped(file).map(l => [l.name, l.cls ?? '', l.fn ?? ''])).toEqual([['never negative', 'Ledger', 'take']])
+    const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+    expect(exit).toBe(2)
+    const makeRule = rules.find(r => r.entry === 'make')!
+    expect(makeRule.laws).toEqual([])
+    const ledgerRule = rules.find(r => r.entry === 'Ledger')!
+    expect(ledgerRule.ok).toBe(false)
+    expect(ledgerRule.laws.find(l => l.name === 'never negative')).toMatchObject({verdict: 'not read', why: 'the rule was refused'})
+  })
+
+  // Also test block comments containing column-0 `const` inside a class, plus closed error class above `make`.
+  const blockCommentProbe = `import {Effect, Ref, Schema} from 'effect'
+
+export class RateLimited extends Schema.TaggedError<RateLimited>()('RateLimited', {n: Schema.Number}) {}
+
+export class Vault {
+  bal = 10
+  /*
+export const fake = 1
+function decoy() {}
+  */
+  // gdp: law vault law: bal >= 0
+  take(k: number) { this.bal -= k }
+}
+
+// gdp: law service inv: tokens <= 10
+export const make = Effect.gen(function* () {
+  const tokens = yield* Ref.make(10)
+  // gdp: law service step: tokens <= old(tokens)
+  const take = Effect.fn('take')(function* (n: number) {
+    const next = yield* Ref.modify(tokens, t => (n < 0 || n > t ? [undefined, t] as const : [t - n, t - n] as const))
+    if (next === undefined) return yield* new RateLimited({n})
+  })
+  return {take}
+})
+`
+  await withTempEffectFile(4, 'scope-block.ts', blockCommentProbe, async file => {
+    expect(scoped(file).map(l => [l.name, l.cls ?? '', l.fn ?? ''])).toEqual([
+      ['vault law', 'Vault', 'take'],
+      ['service inv', '', 'make'],
+      ['service step', '', 'take'],
+    ])
   })
 }, 120_000)
 
 test('controls: faulty lowering, disagreeing captured parameters, missing capture and disabled replay all refuse', () => {
   // 1. Faulty symbolic law lowering is caught by the native Effect observations and captured bindings.
-  const x = extractEffect(FILM_LIMITER, {file: 'limiter.ts', entry: 'make', effect, check: {runs: 25, depth: 5, states: 20, probes: false}})
+  const x = extractEffect(ATOMIC_MODIFY_LIMITER, {file: 'limiter.ts', entry: 'make', effect, check: {runs: 25, depth: 5, states: 20, probes: false}})
   expect(x.ok).toBe(true)
   const bad = buildLaw(x, {name: 'wrong take step', expr: 'tokens == old(tokens) - n + 1', method: 'take'})
   if (bad.kind !== 'step') throw new Error('expected step law')
@@ -169,10 +434,9 @@ export const make = Effect.gen(function* () {
       const svc: LimiterSvc = {
         tokens, capacity: cap,
         take: (n: number) => effect.Effect.gen(function* () {
-          const t = yield* effect.Ref.get(tokens)
-          if (n < 0 || n > t) return yield* effect.Effect.fail('RateLimited')
-          yield* effect.Ref.set(tokens, t - n)
-          return t - n
+          const next = yield* effect.Ref.modify(tokens, t => (n < 0 || n > t ? [-1, t] as const : [t - n, t - n] as const))
+          if (next < 0) return yield* effect.Effect.fail('RateLimited')
+          return next
         }),
         refill: (n: number) => effect.Ref.update(tokens, t => Math.min(cap, t + Math.max(0, n))),
       }
@@ -184,10 +448,9 @@ export const make = Effect.gen(function* () {
       return {
         tokens, capacity: cap,
         take: (n: number) => effect.Effect.gen(function* () {
-          const t = yield* effect.Ref.get(tokens)
-          if (n < 0 || n > t) return yield* effect.Effect.fail('RateLimited')
-          yield* effect.Ref.set(tokens, t - n)
-          return t - n
+          const next = yield* effect.Ref.modify(tokens, t => (n < 0 || n > t ? [-1, t] as const : [t - n, t - n] as const))
+          if (next < 0) return yield* effect.Effect.fail('RateLimited')
+          return next
         }),
         refill: (n: number) => effect.Ref.update(tokens, t => Math.min(cap, t + Math.max(0, n))),
       }
@@ -228,24 +491,22 @@ export const make = Effect.gen(function* () {
   expect(missingVerdict.why).toContain('native parameter capture unavailable')
 
   // 5. Disabled cross-check and uncapturable syntactic shapes stay fail-closed.
-  const disabled = extractEffect(FILM_LIMITER, {file: 'limiter.ts', entry: 'make', effect, check: {runs: 10, depth: 4, states: 0, probes: false, lawCrossCheck: false}})
+  const disabled = extractEffect(ATOMIC_MODIFY_LIMITER, {file: 'limiter.ts', entry: 'make', effect, check: {runs: 10, depth: 4, states: 0, probes: false, lawCrossCheck: false}})
   const dLaw = buildLaw(disabled, {name: 'bounded', expr: 'tokens <= capacity'})
   expect(proveRule(disabled.rule!, [dLaw.law], {search: false})).toMatchObject({proven: false, checked: false, kernelProven: true, translation: 'unchecked'})
   expect(nativeCaptureEdits(`const take = Effect.fn('take')(function* (n: number) { return n }, Effect.tap(() => Effect.void))`, 'extra.ts', ['take'])).toEqual([])
   expect(nativeCaptureEdits(`const inner = Effect.fn('take')(function* (n: number) { return n }); const o = {take: inner}`, 'alias.ts', ['take'])).toEqual([])
 }, 120_000)
 
-test('Effect.fn forms across Effect 4.x and 3.x: unnamed, fnUntraced, inline property, aliased import, Layer/Service', async () => {
+test('Effect.fn forms across Effect 4.x and 3.x: unnamed, fnUntraced, inline property, aliased import, Effect.Service', async () => {
   const shapes4 = [
     `import {Effect, Ref} from 'effect'
 // gdp: law bounded: n <= 5
 export const make = Effect.gen(function* () {
   const n = yield* Ref.make(0)
   const inc = Effect.fn(function* (k: number) {
-    if (k < 0) return yield* Effect.fail('neg')
-    const cur = yield* Ref.get(n)
-    if (cur + k > 5) return yield* Effect.fail('cap')
-    yield* Ref.set(n, cur + k)
+    const ok = yield* Ref.modify(n, cur => (k < 0 || cur + k > 5 ? [false, cur] as const : [true, cur + k] as const))
+    if (!ok) return yield* Effect.fail('cap')
   })
   return {inc}
 })`,
@@ -255,10 +516,8 @@ export const make = Ef.gen(function* () {
   const n = yield* Ref.make(0)
   return {
     inc: Ef.fn('Counter.inc')(function* (k: number) {
-      if (k < 0) return yield* Ef.fail('neg')
-      const cur = yield* Ref.get(n)
-      if (cur + k > 5) return yield* Ef.fail('cap')
-      yield* Ref.set(n, cur + k)
+      const ok = yield* Ref.modify(n, cur => (k < 0 || cur + k > 5 ? [false, cur] as const : [true, cur + k] as const))
+      if (!ok) return yield* Ef.fail('cap')
     }),
   }
 })`,
@@ -267,10 +526,8 @@ export const make = Ef.gen(function* () {
 export const make = E.Effect.gen(function* () {
   const n = yield* E.Ref.make(0)
   const inc = (E.Effect.fnUntraced(function* (k: number) {
-    if (k < 0) return yield* E.Effect.fail('neg')
-    const cur = yield* E.Ref.get(n)
-    if (cur + k > 5) return yield* E.Effect.fail('cap')
-    yield* E.Ref.set(n, cur + k)
+    const ok = yield* E.Ref.modify(n, cur => (k < 0 || cur + k > 5 ? [false, cur] as const : [true, cur + k] as const))
+    if (!ok) return yield* E.Effect.fail('cap')
   }))
   return {inc}
 })`,
@@ -283,7 +540,7 @@ export const make = E.Effect.gen(function* () {
     })
   }
 
-  // Effect 3.x with Effect.Service, SynchronizedRef, Effect.fn, Clock.currentTimeMillis.
+  // Effect 3.x with Effect.Service, atomic SynchronizedRef.modify, Effect.fn, Clock.currentTimeMillis.
   const svc3 = `import {Clock, Data, Effect, SynchronizedRef} from 'effect'
 export class Cooling extends Data.TaggedError('Cooling')<{}> {}
 // gdp: law last never negative: last >= 0
@@ -293,8 +550,8 @@ export class Cooldown extends Effect.Service<Cooldown>()('Cooldown', {
     // gdp: law fire records the clock: last == now
     const fire = Effect.fn('Cooldown.fire')(function* () {
       const now = yield* Clock.currentTimeMillis
-      if (now < 0 || now - (yield* SynchronizedRef.get(last)) < 10) return yield* Effect.fail(new Cooling())
-      yield* SynchronizedRef.set(last, now)
+      const ok = yield* SynchronizedRef.modify(last, cur => (now < 0 || now - cur < 10 ? [false, cur] as const : [true, now] as const))
+      if (!ok) return yield* Effect.fail(new Cooling())
     })
     return {fire}
   })
@@ -324,33 +581,22 @@ export const make = Effect.gen(function* () {
   })
   return {fire, reset}
 })`
-  const x = extractEffect(code, {file: 'clock-svc.ts', entry: 'make', effect, check: {runs: 25, depth: 5, states: 20, probes: false}})
-  expect(x.ok).toBe(true)
+  for (const [v, E] of [[4, effect], [3, effect3]] as const) {
+    const x = extractEffect(code, {file: `clock-svc${v}.ts`, entry: 'make', effect: E, check: {runs: 20, depth: 4, states: 20, probes: false}})
+    expect(x.ok).toBe(true)
+    const fireLaw = buildLaw(x, {name: `fire records now ${v}`, expr: 'last == now and result == now', method: 'fire'})
+    if (fireLaw.kind !== 'step') throw new Error('expected step law')
+    const fireV = proveSteps(x.rule!, x.invariants ?? [], [fireLaw.law], {search: false})
+    expect(fireV).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+    expect(fireV.translationChecks).toBeGreaterThan(0)
+    const resetLaw = buildLaw(x, {name: `reset claims now ${v}`, expr: 'last == 0 and now >= 0', method: 'reset'})
+    if (resetLaw.kind !== 'step') throw new Error('expected step law')
+    const resetV = proveSteps(x.rule!, x.invariants ?? [], [resetLaw.law], {search: false})
+    expect(resetV).toMatchObject({proven: false, checked: false, kernelProven: true, translation: 'unchecked'})
+    expect(resetV.why).toContain('unobserved native clock read')
+  }
 
-  // Method that reads Clock.currentTimeMillis: law reading `now` is natively confirmed.
-  const fireLaw = buildLaw(x, {name: 'fire records now', expr: 'last == now and result == now', method: 'fire'})
-  if (fireLaw.kind !== 'step') throw new Error('expected step law')
-  const fireV = proveSteps(x.rule!, x.invariants ?? [], [fireLaw.law], {search: false})
-  expect(fireV).toMatchObject({proven: true, checked: true, translation: 'sampled'})
-  expect(fireV.translationChecks).toBeGreaterThan(0)
-
-  // Method that does NOT read Clock.currentTimeMillis (even with Effect.fn span tracing):
-  // `now` was never natively observed, so a law reading `now` MUST refuse as unchecked.
-  const resetLaw = buildLaw(x, {name: 'reset claims now', expr: 'last == 0 and now >= 0', method: 'reset'})
-  if (resetLaw.kind !== 'step') throw new Error('expected step law')
-  const resetV = proveSteps(x.rule!, x.invariants ?? [], [resetLaw.law], {search: false})
-  expect(resetV).toMatchObject({proven: false, checked: false, kernelProven: true, translation: 'unchecked'})
-  expect(resetV.why).toContain('unobserved native clock read')
-
-  // Direct sandbox check: conflicting clock reads across Effect.sleep fail closed, and Effect 3.x matches.
-  const x3 = extractEffect(code, {file: 'clock-svc3.ts', entry: 'make', effect: effect3, check: {runs: 20, depth: 4, states: 20, probes: false}})
-  expect(x3.ok).toBe(true)
-  const fireLaw3 = buildLaw(x3, {name: 'fire records now 3', expr: 'last == now and result == now', method: 'fire'})
-  if (fireLaw3.kind !== 'step') throw new Error('expected step law')
-  expect(proveSteps(x3.rule!, x3.invariants ?? [], [fireLaw3.law], {search: false})).toMatchObject({proven: true, checked: true, translation: 'sampled'})
-  const resetLaw3 = buildLaw(x3, {name: 'reset claims now 3', expr: 'last == 0 and now >= 0', method: 'reset'})
-  if (resetLaw3.kind !== 'step') throw new Error('expected step law')
-  expect(proveSteps(x3.rule!, x3.invariants ?? [], [resetLaw3.law], {search: false})).toMatchObject({proven: false, checked: false, kernelProven: true, translation: 'unchecked'})
+  // Direct sandbox check: conflicting clock reads across Effect.sleep fail closed.
   const modules = {effect, 'gdp-wired:effect': runner(effect)}
   const driftCode = `import {Clock, Effect} from 'effect'
 const R = require('gdp-wired:effect')
@@ -374,38 +620,32 @@ export function quiet() {
   expect(() => box.observations()).toThrow('conflicting actual clock reads')
 }, 120_000)
 
-test('existing Effect examples: quota and lease services prove natively; rewritten Queue/Semaphore and Schedule stay unchecked', async () => {
-  // 1. examples/effect-quota.ts with its laws as comments (Map ref, Clock, Effect.fn).
+test('existing Effect examples: non-atomic plain-Ref quota/lease, Schedule, and rewritten Queue/Semaphore stay unchecked with clear reasons', async () => {
+  // 1. examples/effect-quota.ts: spend does Ref.get then Ref.update (non-atomic under concurrency) -> unchecked with fix reason.
   const quotaSrc = readFileSync(join(import.meta.dir, '../examples/effect-quota.ts'), 'utf8')
     .replace('export const make =', '// gdp: law a user stays within limit: forall k in usage: usage[k].used <= limit\nexport const make =')
-    .replace('  const spend = Effect.fn', '  // gdp: law spend reports non-negative remaining: result >= 0 and usage[user].windowStart <= now\n  const spend = Effect.fn')
-    .replace('  const refund = (user: string, units: number) =>', '  // gdp: law refund never raises use: forall k in usage: usage[k].used <= old(usage[k].used)\n  const refund = (user: string, units: number) =>')
   await withTempEffectFile(4, 'effect-quota.ts', quotaSrc, async file => {
-    const {rules, exit} = await check([file], {entry: 'make', ms: 15_000, propose: false, check: {runs: 30, depth: 6, states: 40}})
-    expect(exit).toBe(0)
-    expect(rules[0]!.laws.map(l => [l.name, l.verdict, l.translation])).toEqual([
-      ['a user stays within limit', 'proven', 'sampled'],
-      ['spend reports non-negative remaining', 'proven', 'sampled'],
-      ['refund never raises use', 'proven', 'sampled'],
-    ])
-    for (const l of rules[0]!.laws) expect(l.translationChecks).toBeGreaterThan(0)
+    const {rules, exit} = await check([file], {entry: 'make', ms: 15_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+    expect(exit).toBe(2)
+    expect(rules[0]!.laws[0]).toMatchObject({name: 'a user stays within limit', verdict: 'unknown', translation: 'unchecked'})
+    expect(rules[0]!.laws[0]!.why).toContain('spend reads and writes usage in separate steps')
+    expect(rules[0]!.laws[0]!.why).toContain('Ref.modify')
   })
 
-  // 2. examples/effect-retry-policy.ts: lease service proves natively; Schedule backoff remains unchecked.
+  // 2. examples/effect-retry-policy.ts: acquire/release do Ref.get then Ref.set (non-atomic) and backoff is Schedule -> both unchecked.
   const leaseSrc = readFileSync(join(import.meta.dir, '../examples/effect-retry-policy.ts'), 'utf8')
     .replace('  const acquire = Effect.fn', '  // gdp: law acquire never steals lease: old(holder) == 0 or holder == old(holder)\n  const acquire = Effect.fn')
   await withTempEffectFile(4, 'effect-retry-policy.ts', leaseSrc, async file => {
     const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
-    expect(exit).toBe(2) // backoff is a Schedule (unchecked)
+    expect(exit).toBe(2)
     const backoff = rules.find(r => r.entry === 'backoff')!
     const makeRule = rules.find(r => r.entry === 'make')!
     for (const l of backoff.laws) expect(l).toMatchObject({verdict: 'unknown', translation: 'unchecked', kernelProven: true})
-    expect(makeRule.laws).toHaveLength(1)
-    expect(makeRule.laws[0]).toMatchObject({name: 'acquire never steals lease', verdict: 'proven', translation: 'sampled'})
-    expect(makeRule.laws[0]!.translationChecks).toBeGreaterThan(0)
+    expect(makeRule.laws[0]).toMatchObject({name: 'acquire never steals lease', verdict: 'unknown', translation: 'unchecked'})
+    expect(makeRule.laws[0]!.why).toContain('acquire, release read and write holder in separate steps')
   })
 
-  // 3. Single-step rewritten Queue and Semaphore services (where fibered() does NOT run) MUST still stay unchecked.
+  // 3. Single-step rewritten Queue and Semaphore services MUST stay unchecked.
   const singleStepQueue = `import {Effect, Option, Queue} from 'effect'
 // gdp: law head stays at most tail: q_head <= q_tail
 export const make = Effect.gen(function* () {

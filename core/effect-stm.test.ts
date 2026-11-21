@@ -109,7 +109,7 @@ test('broken: save in two transactions is every fiber\'s two steps; a lost updat
   }
 }, 300_000)
 
-test('fibers on a service of plain Refs: off by default (each method one step), on when asked: a get-then-set loses an update', () => {
+test('fibers on a service of plain Refs: interleaving by default (a get-then-set loses an update); single-step only with fibers: false', () => {
   const code = `import {Effect, Ref} from 'effect'
 export const make = Effect.gen(function* () {
   const n = yield* Ref.make(0)
@@ -121,10 +121,10 @@ export const make = Effect.gen(function* () {
   })
   return {add}
 })`
-  const one = extractEffect(code, {file: 'svc.ts', entry: 'make', effect}), r1 = one.rule as Any
+  const one = extractEffect(code, {file: 'svc.ts', entry: 'make', effect, fibers: false}), r1 = one.rule as Any
   expect([one.ok, r1.machine.name]).toEqual([true, 'make'])
   expect(proveRule(r1, [r1.law('n counts every add', ({n, total}: Any) => n.eq(total))])).toMatchObject(modelOnly)
-  const many = extractEffect(code, {file: 'svc.ts', entry: 'make', effect, fibers: true}), r = many.rule as Any
+  const many = extractEffect(code, {file: 'svc.ts', entry: 'make', effect}), r = many.rule as Any
   expect([many.ok, r.machine.name]).toEqual([true, 'make, every fiber'])
   const v = proveRule(r, [r.law('n counts every add', ({n, total}: Any) => n.eq(total))])
   expect(v.proven).toBe(false)

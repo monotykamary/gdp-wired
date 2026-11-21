@@ -247,7 +247,7 @@ export class Limiter {
   }
 }
 `}},
-  // An Effect service: its Refs the state, the laws above its make effect; read with effect from the file's project.
+  // An Effect service: its Refs the state, atomic Ref.modify method, the laws above its make effect.
   effect: {modules: true, files: {'limiter.ts': `
 import {Effect, Ref} from 'effect'
 
@@ -256,10 +256,7 @@ import {Effect, Ref} from 'effect'
 export const make = (limit: number) => Effect.gen(function* () {
   const count = yield* Ref.make(0)
   const hit = Effect.fn('hit')(function* () {
-    const c = yield* Ref.get(count)
-    if (c >= limit) return false
-    yield* Ref.set(count, c + 1)
-    return true
+    return yield* Ref.modify(count, c => c >= limit ? [false, c] as const : [true, c + 1] as const)
   })
   return {hit}
 })

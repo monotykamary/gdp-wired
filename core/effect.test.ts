@@ -29,10 +29,9 @@ export class RateLimited extends Schema.TaggedError<RateLimited>()('RateLimited'
 export const make = (capacity: number) => Effect.gen(function* () {
   const tokens = yield* Ref.make(capacity)
   const take = Effect.fn('take')(function* (n: number) {
-    const t = yield* Ref.get(tokens)
-    if (n < 0 || n > t) return yield* new RateLimited({n})
-    yield* Ref.set(tokens, t - n)
-    return t - n
+    const next = yield* Ref.modify(tokens, t => (n < 0 || n > t ? [undefined, t] as const : [t - n, t - n] as const))
+    if (next === undefined) return yield* new RateLimited({n})
+    return next
   })
   const refill = (n: number) => Ref.update(tokens, t => Math.min(capacity, t + Math.max(0, n)))
   return {take, refill}
@@ -245,7 +244,8 @@ export const b = Effect.gen(function* () { const n = yield* Ref.make(0); return 
 
 test('what the reader doesn\'t take is refused where it is, with the reason', () => {
   const cases: [string, RegExp][] = [
-    [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {bump: Effect.fn(function* () { yield* Ref.update(n, x => x + 1); if ((yield* Ref.get(n)) > 3) return yield* Effect.fail('too many') })} })`, /fails after writing n: a Ref keeps what was written/],
+    [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {bump: Effect.fn(function* () { const v = yield* Ref.updateAndGet(n, x => x + 1); if (v > 3) return yield* Effect.fail('too many') })} })`, /fails after writing n: a Ref keeps what was written/],
+    [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {bump: Effect.fn(function* (k: number) { const ok = yield* Ref.modify(n, x => (k < 0 ? [false, x + 1] as const : [true, x + k] as const)); if (!ok) return yield* Effect.fail('neg') })} })`, /fails after writing n: a Ref keeps what was written/],
     [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {go: (op: 'a' | 'b') => Ref.update(n, x => Match.value(op).pipe(Match.when('a', () => x + 1), Match.orElse(() => x)))} })`, /Match.value\(op\): a matcher/],
     [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {go: () => Ref.update(n, x => x + 1).pipe(Effect.tap(() => Effect.void))} })`, /Effect.tap\(\(\) => Effect.void\) in a pipe/],
     [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {roll: Effect.fn(function* () { yield* Ref.set(n, yield* Random.nextInt) })} })`, /Random.nextInt: an answer from outside/],

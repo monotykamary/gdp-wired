@@ -466,17 +466,139 @@ const declares = (code: string, open: number) => {
   const m = /^\s*(?:[A-Za-z_$][\w$]*\s+)*([A-Za-z_$][\w$]*)\s*(?:;|=(?![=>]))/.exec(code.slice(i + 1))
   return !!m && !/^(const|override|final|noexcept|volatile|default|delete)$/.test(m[1]!)
 }
+// AST-based law scoping for TypeScript/JavaScript so template literals, comments, strings, and closed classes
+// can never spoof the enclosing class or target method.
+type TSMod = typeof import('typescript')
+let cachedTS: TSMod | undefined
+function loadTS(): TSMod {
+  if (cachedTS) return cachedTS
+  const {createRequire} = proc.getBuiltinModule('node:module') as {createRequire: (p: string) => (id: string) => unknown}
+  cachedTS = createRequire(import.meta.url)('typescript') as TSMod
+  return cachedTS
+}
+function scopedTS(file: string, text: string, laws: LawText[]): Scoped[] {
+  if (!laws.length) return []
+  const ts = loadTS(), ext = path.extname(file).toLowerCase()
+  const kind = ext === '.tsx' ? ts.ScriptKind.TSX : ext === '.jsx' ? ts.ScriptKind.JSX : ext === '.js' || ext === '.mjs' || ext === '.cjs' ? ts.ScriptKind.JS : ts.ScriptKind.TS
+  const sf = ts.createSourceFile(file, text, ts.ScriptTarget.ES2022, true, kind), lines = text.split('\n')
+  const propName = (n: import('typescript').PropertyName | undefined): string | undefined =>
+    n && (ts.isIdentifier(n) || ts.isStringLiteral(n) || ts.isNumericLiteral(n)) ? n.text : undefined
+  const unwrap = (n: import('typescript').Expression): import('typescript').Expression => {
+    while (ts.isParenthesizedExpression(n) || ts.isAsExpression(n) || ts.isSatisfiesExpression(n)) n = n.expression
+    return n
+  }
+  const isCallableInit = (init: import('typescript').Expression | undefined): boolean => {
+    if (!init) return false
+    const e = unwrap(init)
+    if (ts.isArrowFunction(e) || ts.isFunctionExpression(e)) return true
+    if (ts.isCallExpression(e) && e.arguments.length >= 1) {
+      const first = unwrap(e.arguments[0]!)
+      if (ts.isFunctionExpression(first) && first.asteriskToken) {
+        const callee = unwrap(e.expression), head = ts.isCallExpression(callee) ? unwrap(callee.expression) : callee
+        if (ts.isPropertyAccessExpression(head) && (head.name.text === 'fn' || head.name.text === 'fnUntraced')) return true
+      }
+    }
+    return false
+  }
+  const classNameOf = (n: import('typescript').Node): string | undefined => {
+    if (ts.isClassDeclaration(n)) return n.name?.text
+    if (ts.isClassExpression(n)) {
+      if (n.name) return n.name.text
+      const p = n.parent
+      if (p && (ts.isVariableDeclaration(p) || ts.isPropertyAssignment(p))) return propName(p.name as import('typescript').PropertyName)
+    }
+    return undefined
+  }
+  const listOf = (n: import('typescript').Node): readonly import('typescript').Node[] | undefined => {
+    if (ts.isSourceFile(n) || ts.isBlock(n) || ts.isModuleBlock(n) || ts.isCaseClause(n) || ts.isDefaultClause(n)) return n.statements
+    if (ts.isClassDeclaration(n) || ts.isClassExpression(n)) return n.members
+    if (ts.isObjectLiteralExpression(n)) return n.properties
+    return undefined
+  }
+  return laws.map(l => {
+    const lineIdx = Math.max(0, (l.line ?? 1) - 1), rawLine = lines[lineIdx] ?? ''
+    const indent = /^\s*/.exec(rawLine)![0].length
+    const lineStart = sf.getPositionOfLineAndCharacter(lineIdx, 0)
+    const lineEnd = lineIdx + 1 < lines.length ? sf.getPositionOfLineAndCharacter(lineIdx + 1, 0) : text.length
+    const pos = Math.min(text.length, lineStart + indent)
+    // Collect the exact chain of AST nodes whose real token span [getStart(sf), end) covers `pos`.
+    const chain: import('typescript').Node[] = [sf]
+    const descend = (n: import('typescript').Node): void => {
+      ts.forEachChild(n, c => {
+        const s = c.getStart(sf)
+        if (s <= pos && pos < c.end) { chain.push(c); descend(c) }
+      })
+    }
+    descend(sf)
+    // Innermost enclosing class (real AST span, never fooled by strings, template literals, comments, or closed classes).
+    let cls: string | undefined
+    for (let i = chain.length - 1; i >= 0; i--) {
+      const c = classNameOf(chain[i]!)
+      if (c) { cls = c; break }
+    }
+    // If the law itself is a decorator on a class (before the class's body `{`), it belongs to the class as a whole.
+    const inDecorator = chain.some(n => ts.isDecorator(n))
+    if (inDecorator) {
+      if (chain.some(n => ts.isDecorator(n) && (ts.isClassDeclaration(n.parent) || ts.isClassExpression(n.parent))) && cls) return {...l, cls}
+      for (let i = chain.length - 1; i >= 0; i--) {
+        const n = chain[i]!
+        if (ts.isMethodDeclaration(n) || ts.isGetAccessorDeclaration(n) || ts.isSetAccessorDeclaration(n)) {
+          const fn = propName(n.name)
+          return {...l, ...(cls ? {cls} : {}), ...(fn ? {fn} : {})}
+        }
+      }
+    }
+    // Find the innermost list container (SourceFile, Class, Block, ObjectLiteral) enclosing `pos`,
+    // and inspect the next sibling declaration inside THAT container only (never crossing out of a closed class/block).
+    let container: import('typescript').Node = sf
+    for (let i = chain.length - 1; i >= 0; i--) {
+      const n = chain[i]!
+      if (listOf(n)) {
+        // For a class, only treat `n.members` as the sibling list if `pos` is inside its `{ ... }` body (not in heritage/extends).
+        if ((ts.isClassDeclaration(n) || ts.isClassExpression(n)) && n.members.pos > pos) continue
+        container = n
+        break
+      }
+    }
+    const items = listOf(container) ?? []
+    // Prefer a node starting on the same line (inline trailing comment), else the first sibling starting at/after `pos`.
+    const next = items.find(it => { const s = it.getStart(sf); return s >= lineStart && s < lineEnd })
+      ?? items.find(it => it.getStart(sf) >= pos)
+    let fn: string | undefined
+    if (next) {
+      if (ts.isClassDeclaration(next) && next.name) return {...l, cls: next.name.text}
+      if (ts.isMethodDeclaration(next) || ts.isGetAccessorDeclaration(next) || ts.isSetAccessorDeclaration(next)) fn = propName(next.name)
+      else if (ts.isFunctionDeclaration(next) && next.name) fn = next.name.text
+      else if (ts.isPropertyDeclaration(next) && isCallableInit(next.initializer)) fn = propName(next.name)
+      else if (ts.isPropertyAssignment(next) || ts.isShorthandPropertyAssignment(next)) fn = propName(next.name)
+      else if (ts.isVariableStatement(next)) {
+        const d = next.declarationList.declarations[0]
+        if (d && ts.isIdentifier(d.name) && (container === sf || isCallableInit(d.initializer))) fn = d.name.text
+      }
+    }
+    if (!fn) {
+      for (let i = chain.length - 1; i >= 0; i--) {
+        const n = chain[i]!
+        if (ts.isMethodDeclaration(n) || ts.isGetAccessorDeclaration(n) || ts.isSetAccessorDeclaration(n)) { fn = propName(n.name); break }
+        if (ts.isFunctionDeclaration(n) && n.name) { fn = n.name.text; break }
+        if (!cls && ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.parent?.parent?.parent === sf) { fn = n.name.text; break }
+      }
+    }
+    return {...l, ...(cls ? {cls} : {}), ...(fn ? {fn} : {})}
+  })
+}
 export function scoped(file: string): Scoped[] {
-  const text = fs.readFileSync(file, 'utf8'), lines = text.split('\n')
-  return lawsIn(text, path.basename(file)).map(l => {
+  const text = fs.readFileSync(file, 'utf8'), laws = lawsIn(text, path.basename(file))
+  if (/\.[cm]?[jt]sx?$/.test(file)) return scopedTS(file, text, laws)
+  const lines = text.split('\n')
+  return laws.map(l => {
     let cls: string | undefined, fn: string | undefined
     // (the nearest enclosing class statement: its keyword at the start of a line, after modifiers, never a word in a
     // docstring's or a comment's prose; in Python, at an indentation that encloses the law's)
-    const indent = (x: string) => /^\s*/.exec(x)![0].length, lawIndent = indent(lines[l.line! - 1]!), py = file.endsWith('.py'), tsjs = /\.[cm]?[jt]sx?$/.test(file)
+    const indent = (x: string) => /^\s*/.exec(x)![0].length, lawIndent = indent(lines[l.line! - 1]!), py = file.endsWith('.py')
     for (let i = l.line! - 1; i >= 0 && !cls; i--) {
       const m = classAt(lines[i]!)
       if (m && (!py || indent(lines[i]!) < lawIndent)) cls = m
-      else if (tsjs && /^(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:const|let|var|function)\b/.test(lines[i]!)) break
     }
     // (a law right above a class statement, past comments, blank lines and annotations, is that class's: a contract's,
     // a struct's, a class's, never its first member's; one indented inside a class above a class after it isn't)

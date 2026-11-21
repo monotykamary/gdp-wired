@@ -71,8 +71,10 @@ const changedOn = (p: Path, k = CHANGED): I.B => { const o = p.heap.get(k); retu
 // Inside a transaction (STM.gen, STM.commit, 4.x's Effect.tx), the writes made before it: what a failure there keeps
 // (the transaction's own are rolled back).
 const OUTER = '$outer', flagged = (b: I.B) => ({k: 'alias', to: {t: 'bool', e: b}}) as never
+const changedExpr = (e: {op: string, c?: I.B, a?: unknown, b?: unknown}, ce: object): I.B =>
+  I.same(e, ce) ? I.F : (e.op === 'ite' || e.op === 'kite') && e.c ? I.bite(e.c, changedExpr(e.a as never, ce), changedExpr(e.b as never, ce)) : I.T
 const changedOf = (v: V, c: V): I.B => (v.t === 'phi' ? I.bite(v.c, changedOf(v.a, c), changedOf(v.b, c)) : v.t === 'ref' && c.t === 'ref' && v.id === c.id ? I.F
-  : (v.t === 'num' || v.t === 'bool' || v.t === 'str' || v.t === 'choice') && v.t === c.t && I.same(v.e as never, (c as unknown as {e: never}).e) ? I.F : I.T)
+  : (v.t === 'num' || v.t === 'bool' || v.t === 'str' || v.t === 'choice') && v.t === c.t ? changedExpr(v.e as never, (c as unknown as {e: object}).e) : I.T)
 
 // --- the reader -----------------------------------------------------------------------------------------------------
 // The module of Effect a name is (Ref for `import * as Ref from 'effect/Ref'`, `import {Ref} from 'effect'`, or `E.Ref`
@@ -428,6 +430,7 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
     if (base !== 'get' && !/[sS]et/.test(base) && (!fn || fn.asteriskToken)) return f ? refuse(f, `${m}.${op} of other than a function written here`) : refuse(e, `${m}.${op} with no function`)
     const [given, q0] = /[sS]et/.test(base) ? ex.ev(f ?? refuse(e, `${m}.${op} with no value`), p) : [undefined, p]
     return [eff(q => {
+      if (q.heap.has(OUTER) && m !== 'TxRef' && m !== 'TRef') refuse(e, `${m}.${op} inside a transaction (only TxRef and TRef participate in a transaction)`)
       const [c, q1] = ex.field(self, name, r, q)
       if (base === 'get') return [c, q1]
       let [v, q2]: [V, Path] = given ? [given, q1] : ex.inline({decl: fn!}, [c], f!, q1, ts.isIdentifier(f!) ? new Map() : locals)
@@ -488,7 +491,7 @@ export function runner(E: Mod): Runner {
 }
 
 export function extractEffect(at: Source, opts: EffectOptions = {}): Extraction {
-  let m, code: string, file: string, E: Mod | undefined
+  let m, code: string, file: string, E: Mod | undefined, nonAtomicReason: string | undefined
   try {
     ;({code, file} = sourceOf(at, opts.file, 'input.ts'))
     E = opts.effect ?? beside<Mod>(file, 'effect')
@@ -499,7 +502,9 @@ export function extractEffect(at: Source, opts: EffectOptions = {}): Extraction 
     const entry = opts.entry ?? serviceOf(code, file, opts)
     const pr = modelled(code, file, entry, E, opts)
     if (pr) return pr
-    if (opts.fibers !== false) { const f = fibered(code, file, entry, E, opts); if (f) return f }
+    const fl = fibered(code, file, entry, E, opts)
+    if (fl && 'ok' in fl) return fl
+    if (fl) nonAtomicReason = fl.nonAtomicReason
     m = readFactory(code, placed(file), {...opts, entry}, s => factoryOf(s, entry)); m.file = file
     if (!opts.entry) m.notes.unshift(`the entry inferred: ${entry}, the file's one make effect`)
   } catch (e) {
@@ -509,7 +514,14 @@ export function extractEffect(at: Source, opts: EffectOptions = {}): Extraction 
   // The modules the code imports, by specifier (effect, effect/<Module>), and the check's runner.
   const model = m, modules = {effect: E, ...Object.fromEntries(Object.entries(E).map(([k, x]) => [`effect/${k}`, x])), 'gdp-wired:effect': runner(E), ...opts.modules}
   const schedules = found
-  return {...fromModel(model, file, opts.domains, [], (rule, sorts) => check(code, file, model, rule, sorts, {...opts.check, modules, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})), names: namesOf(model), ...(schedules.length ? {schedules} : {})} as Extraction
+  const checkOpts = nonAtomicReason ? {...opts.check, lawCrossCheck: false} : opts.check
+  const out = {...fromModel(model, file, opts.domains, [], (rule, sorts) => check(code, file, model, rule, sorts, {...checkOpts, modules, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})), names: namesOf(model), ...(schedules.length ? {schedules} : {})} as Extraction
+  if (nonAtomicReason && out.ok && out.rule) {
+    const token = out.evidence ?? {}
+    rememberNative(token, {enabled: false, complete: false, scope: 'sampled', reason: nonAtomicReason, observations: []})
+    attachSource(out.rule, token, out.invariants ?? [])
+  }
+  return out
 }
 // --- Effect's primitives: a Queue, a Semaphore (core/effect-prims.ts) ----------------------------------------------------
 // The service with its primitives written again as their model (TxRefs, or TRefs, in transactions), read as any: each
@@ -593,69 +605,192 @@ export function withLemmas(x: Extraction, opts: {ms?: number, work?: number, wat
 // (`__gdp_pc`) and what it carries from one step to the next (its arguments, its locals) in Refs of its own, read and
 // checked as any service; then lift (core/system.ts) makes those Refs every fiber's at once (maps keyed by `fiber`, an
 // input), the service's own Refs shared, and each request one fiber's next step.
-const QUIET = new Set(['Effect.fail', 'Effect.failSync', 'Effect.die', 'Effect.dieMessage', 'Effect.void', 'Effect.sleep', 'Effect.yieldNow', 'Effect.txRetry', 'STM.fail', 'STM.die', 'STM.retry', ...[...LOGS].map(l => `Effect.${l}`)])
+const QUIET = new Set(['Effect.fail', 'Effect.failSync', 'Effect.die', 'Effect.dieMessage', 'Effect.void', 'Effect.unit', 'Effect.succeed', 'Effect.sync', 'Effect.sleep', 'Effect.yieldNow', 'Effect.txRetry', 'Clock.currentTimeMillis', 'STM.fail', 'STM.failSync', 'STM.die', 'STM.dieMessage', 'STM.void', 'STM.unit', 'STM.succeed', 'STM.sync', 'STM.retry', 'STM.check', ...[...LOGS].map(l => `Effect.${l}`)])
 const TX = /\b(TRef|TxRef|STM)\.|Effect\.tx\b/, WAITS = new Set(['Effect.txRetry', 'STM.retry'])
-function fibered(code: string, file: string, entry: string, E: Mod, opts: EffectOptions): Extraction | undefined {
+function fibered(code: string, file: string, entry: string, E: Mod, opts: EffectOptions): Extraction | {nonAtomicReason: string} | undefined {
   const s = setupOf(code, placed(file), {}, opts.files), f = factoryOf(s, entry)
   const failing = (y: ts.YieldExpression) => { const x = y.expression && strip(y.expression); return !!x && (ts.isNewExpression(x) || /^(Effect|STM)\.(fail|failSync|die|dieMessage)$/.test((ts.isCallExpression(x) ? callOf(s, x) : '') ?? '')) }
+  // Collect the service's declared Refs and Semaphore(1) locks from make's body.
+  const serviceRefs = new Set<string>(), serviceLocks = new Set<ts.Node>()
+  if (f.fn.body && ts.isBlock(f.fn.body)) {
+    for (const st of f.fn.body.statements) {
+      if (!ts.isVariableStatement(st)) continue
+      for (const d of st.declarationList.declarations) {
+        if (!ts.isIdentifier(d.name) || !d.initializer) continue
+        const init = strip(d.initializer), call = ts.isYieldExpression(init) && init.expression ? strip(init.expression) : init
+        const api = callOf(s, call) ?? '', [m = '', op = ''] = api.split('.')
+        if (REFS.has(m) && MAKES.includes(op)) serviceRefs.add(d.name.text)
+        else if (m === 'Semaphore' || /^Effect\.(unsafeM|m)akeSemaphore$/.test(api)) {
+          const n = (call as ts.CallExpression).arguments[0]
+          if (n && ts.isNumericLiteral(n) && n.text === '1') serviceLocks.add(d)
+        }
+      }
+    }
+  }
+  const lockOf = (x: ts.Expression | undefined): ts.Node | undefined => {
+    const d = x && ts.isIdentifier(x) ? s.checker.getSymbolAtLocation(x)?.valueDeclaration : undefined
+    return d && serviceLocks.has(d) ? d : undefined
+  }
+  const lockCall = (e: ts.CallExpression): {lock: ts.Node, body: ts.Expression} | undefined => {
+    if (e.arguments.length !== 1) return undefined
+    const callee = strip(e.expression), body = e.arguments[0]!
+    if (ts.isPropertyAccessExpression(callee) && memberName(callee.name) === 'withPermit') {
+      const lock = lockOf(callee.expression)
+      return lock ? {lock, body} : undefined
+    }
+    if (ts.isCallExpression(callee)) {
+      const inner = strip(callee.expression), n = callee.arguments.at(-1)
+      if (ts.isPropertyAccessExpression(inner) && memberName(inner.name) === 'withPermits' && n && ts.isNumericLiteral(n) && n.text === '1') {
+        const lock = lockOf(inner.expression) ?? (apiOf(s, inner) === 'Semaphore.withPermits' ? lockOf(callee.arguments[0]) : undefined)
+        if (lock) return {lock, body}
+      }
+    }
+    return undefined
+  }
   // How many effects on the state a piece of a method runs one after another, each a point another fiber's step may
-  // come between: a Ref or TRef operation, a transaction or a lock's body one each; an Effect.gen's or a helper's body
-  // counted through; a branch its larger side; a repeat several; a failure, a log, a sleep or a wait none.
+  // come between: a Ref or TRef operation, a transaction or a Semaphore(1) lock's body one each; an Effect.gen's or a
+  // helper's body counted through; a branch its larger side; a repeat several; a failure, a log, a sleep, a Clock read
+  // or a wait none.
   const TXS = new Set(['Effect.tx', 'STM.gen', 'STM.commit'])
-  const units = (n: ts.Node): number => {
+  type ScanCtx = {raw: boolean, inLock?: ts.Node, inTx: boolean, refs: Set<string>, locks: Set<ts.Node>, lockedMulti: Set<ts.Node>, unlockedOps: number, seen: Set<ts.Node>}
+  const makeCtx = (raw = false): ScanCtx => ({raw, inTx: false, refs: new Set(), locks: new Set(), lockedMulti: new Set(), unlockedOps: 0, seen: new Set()})
+  const units = (n: ts.Node, ctx: ScanCtx): number => {
     if (ts.isFunctionLike(n)) return 0
-    if (ts.isIfStatement(n)) return units(n.expression) + Math.max(units(n.thenStatement), n.elseStatement ? units(n.elseStatement) : 0)
-    if (ts.isConditionalExpression(n)) return units(n.condition) + Math.max(units(n.whenTrue), units(n.whenFalse))
+    if (ts.isIfStatement(n)) return units(n.expression, ctx) + Math.max(units(n.thenStatement, ctx), n.elseStatement ? units(n.elseStatement, ctx) : 0)
+    if (ts.isConditionalExpression(n)) return units(n.condition, ctx) + Math.max(units(n.whenTrue, ctx), units(n.whenFalse, ctx))
     // (a yield inside the effect's arguments runs before it: its own points first)
-    if (ts.isYieldExpression(n)) { let inner = 0; if (n.expression) ts.forEachChild(n.expression, c => { inner += units(c) }); return inner + (n.expression ? ran(n.expression) : 0) }
+    if (ts.isYieldExpression(n)) { let inner = 0; if (n.expression) ts.forEachChild(n.expression, c => { inner += units(c, ctx) }); return inner + (n.expression ? ran(n.expression, ctx) : 0) }
     let t = 0
-    ts.forEachChild(n, c => { t += units(c) })
+    ts.forEachChild(n, c => { t += units(c, ctx) })
     return t
   }
   const helper = (x: ts.Expression): ts.FunctionLikeDeclaration | undefined => { const d = ts.isIdentifier(x) ? s.checker.getSymbolAtLocation(x)?.valueDeclaration : undefined; return d && ts.isVariableDeclaration(d) && d.initializer ? fnOf(s, d.initializer) ?? (genOf(s, d.initializer) as ts.FunctionLikeDeclaration | undefined) : undefined }
-  const bodyUnits = (fn: ts.FunctionLikeDeclaration): number => (!fn.body ? 0 : ts.isBlock(fn.body) ? units(fn.body) : ran(fn.body as ts.Expression))
-  const ran = (e0: ts.Expression): number => {
+  const bodyUnits = (fn: ts.FunctionLikeDeclaration, ctx: ScanCtx): number => (!fn.body ? 0 : ts.isBlock(fn.body) ? units(fn.body, ctx) : ran(fn.body as ts.Expression, ctx))
+  const ran = (e0: ts.Expression, ctx: ScanCtx): number => {
     const e = strip(e0)
     if (ts.isNewExpression(e)) return 0
     const api = (ts.isCallExpression(e) ? callOf(s, e) : apiOf(s, e)) ?? ''
     if (QUIET.has(api)) return 0
-    if (TXS.has(api)) return 1
+    if (TXS.has(api)) {
+      const innerCtx: ScanCtx = {...ctx, raw: true, inTx: true}
+      let inner = 1
+      if (ts.isCallExpression(e)) {
+        if (api === 'STM.gen') { const g = genOf(s, e, 'STM.gen'); inner = g ? bodyUnits(g, innerCtx) : 1 }
+        else if (e.arguments[0]) inner = ran(e.arguments[0], innerCtx)
+      }
+      ctx.unlockedOps += 0 // transactions serialize via STM, not a Semaphore lock
+      return ctx.raw ? inner : inner > 0 ? 1 : 0
+    }
     if (ts.isCallExpression(e)) {
+      const lc = lockCall(e)
+      if (lc) {
+        const innerCtx: ScanCtx = {...ctx, raw: true, inLock: lc.lock}
+        const inner = ran(lc.body, innerCtx)
+        if (inner > 0) {
+          ctx.locks.add(lc.lock)
+          if (inner >= 2) ctx.lockedMulti.add(lc.lock)
+        }
+        return ctx.raw ? inner : inner > 0 ? 1 : 0
+      }
       const callee = strip(e.expression)
       if (ts.isPropertyAccessExpression(callee) && memberName(callee.name) === 'pipe' && !api) {
-        const fs = e.arguments.map(a => callOf(s, a) ?? apiOf(s, a) ?? ''), head = ran(callee.expression)
-        return fs.includes('STM.commit') ? 1 : fs.includes('Effect.repeat') && head ? 2 : head
+        const fs = e.arguments.map(a => callOf(s, a) ?? apiOf(s, a) ?? '')
+        if (fs.includes('STM.commit')) {
+          const inner = ran(callee.expression, {...ctx, raw: true, inTx: true})
+          return ctx.raw ? inner : inner > 0 ? 1 : 0
+        }
+        const head = ran(callee.expression, ctx)
+        return fs.includes('Effect.repeat') && head ? Math.max(2, head) : head
       }
-      // (a lock's body: one at a time)
-      if (ts.isCallExpression(callee) && ts.isPropertyAccessExpression(strip(callee.expression)) && /^withPermits?$/.test(memberName((strip(callee.expression) as ts.PropertyAccessExpression).name))) return e.arguments[0] && ran(e.arguments[0]) ? 1 : 0
-      if (api === 'Effect.gen') { const g = genOf(s, e); return g ? bodyUnits(g) : 1 }
-      if (api === 'Effect.retry') return ran(e.arguments[0]!)
-      if (api === 'Effect.repeat') return ran(e.arguments[0]!) ? 2 : 0
+      if (api === 'Effect.gen') { const g = genOf(s, e); return g ? bodyUnits(g, ctx) : 1 }
+      if (api === 'Effect.retry') return e.arguments[0] ? ran(e.arguments[0], ctx) : 1
+      if (api === 'Effect.repeat') { const h = e.arguments[0] ? ran(e.arguments[0], ctx) : 1; return h ? Math.max(2, h) : 0 }
+      const [m = '', op = ''] = api.split('.')
+      if (REFS.has(m)) {
+        const r = e.arguments[0] && strip(e.arguments[0])
+        if (r && ts.isIdentifier(r) && serviceRefs.has(r.text)) ctx.refs.add(r.text)
+        if (!ctx.inLock && !ctx.inTx) ctx.unlockedOps++
+        let extra = 0
+        if (/Effect$/.test(op) && e.arguments[1]) {
+          const cb = fnOf(s, e.arguments[1])
+          if (cb) extra = bodyUnits(cb, ctx)
+        }
+        return 1 + extra
+      }
       const h = helper(callee)
-      if (h) return bodyUnits(h)
+      if (h) {
+        if (ctx.seen.has(h)) return 1
+        ctx.seen.add(h)
+        const n = bodyUnits(h, ctx)
+        ctx.seen.delete(h)
+        return n
+      }
     }
-    if (ts.isIdentifier(e)) { const d = s.checker.getSymbolAtLocation(e)?.valueDeclaration; if (d && ts.isVariableDeclaration(d) && d.initializer && !fnOf(s, d.initializer)) return ran(d.initializer) }
+    if (ts.isIdentifier(e)) {
+      const d = s.checker.getSymbolAtLocation(e)?.valueDeclaration
+      if (d && ts.isVariableDeclaration(d) && d.initializer && !fnOf(s, d.initializer)) {
+        if (ctx.seen.has(d)) return 1
+        ctx.seen.add(d)
+        const n = ran(d.initializer, ctx)
+        ctx.seen.delete(d)
+        return n
+      }
+    }
+    if (!ctx.inLock && !ctx.inTx) ctx.unlockedOps++
     return 1
   }
   // The methods: each property of the returned object, its function where the make effect writes it.
   type M = {name: string, fn: ts.FunctionExpression, at: ts.Expression, units: number[], stmts: readonly ts.Statement[]}
-  const methods: M[] = [], several: [string, ts.Node, number][] = []
+  type Meta = {name: string, refs: Set<string>, locks: Set<ts.Node>, lockedMulti: Set<ts.Node>, unlockedOps: number, rawOps: number}
+  const methods: M[] = [], several: [string, ts.Node, number][] = [], metas: Meta[] = []
   for (const pr of f.obj.properties) {
     const name = pr.name ? memberName(pr.name) : ''
     let init: ts.Expression | undefined = ts.isPropertyAssignment(pr) ? pr.initializer : ts.isShorthandPropertyAssignment(pr) ? pr.name : undefined
     if (init && ts.isIdentifier(strip(init))) { const d = (ts.isShorthandPropertyAssignment(pr) ? s.checker.getShorthandAssignmentValueSymbol(pr) : s.checker.getSymbolAtLocation(strip(init)))?.valueDeclaration; init = d && ts.isVariableDeclaration(d) ? d.initializer : init }
     const fn = init && fnOf(s, init)
     if (!fn?.body) continue
-    if (!ts.isFunctionExpression(fn) || !fn.asteriskToken || !ts.isBlock(fn.body)) { const n = bodyUnits(fn); if (n >= 2) several.push([name, fn, n]); continue }
-    const stmts = fn.body.statements, per = stmts.map(units), units0 = stmts.flatMap((_, i) => (per[i]! > 0 ? [i] : []))
+    const rawCtx = makeCtx(true), rawOps = bodyUnits(fn, rawCtx)
+    metas.push({name, refs: rawCtx.refs, locks: rawCtx.locks, lockedMulti: rawCtx.lockedMulti, unlockedOps: rawCtx.unlockedOps, rawOps})
+    if (!ts.isFunctionExpression(fn) || !fn.asteriskToken || !ts.isBlock(fn.body)) {
+      const n = bodyUnits(fn, makeCtx(false))
+      if (n >= 2) several.push([name, fn, n])
+      continue
+    }
+    const stmts = fn.body.statements, per = stmts.map(st => units(st, makeCtx(false))), units0 = stmts.flatMap((_, i) => (per[i]! > 0 ? [i] : []))
     if (per.reduce((a, b) => a + b, 0) >= 2) for (const [i, n] of per.entries()) if (n >= 2) several.push([name, stmts[i]!, n])
     methods.push({name, fn, at: init!, units: units0, stmts})
   }
   const split = methods.filter(mt => mt.units.length >= 2 || several.some(([n]) => n === mt.name))
-  if ((!split.length && !several.length) || (opts.fibers === undefined && !TX.test(code))) {
-    if (split.length || several.length) s.notes.add(`${[...new Set([...split.map(mt => mt.name), ...several.map(([n]) => n)])].join(', ')} run several Ref operations one after another: each method is read as one step, which holds where calls don't interleave (fibers: true reads them as interleaving steps)`)
-    return undefined
+  const multiNames = [...new Set([...split.map(mt => mt.name), ...several.map(([n]) => n)])]
+  // Check cross-method lock consistency: if any method relies on a Semaphore(1) lock across >=2 raw state ops,
+  // every stateful method must guard its state operations with that same Semaphore(1) lock.
+  const multiLocks = new Set<ts.Node>(), lockedMultiMethods: string[] = []
+  for (const mt of metas) if (mt.lockedMulti.size) { lockedMultiMethods.push(mt.name); mt.lockedMulti.forEach(l => multiLocks.add(l)) }
+  const lockGapMethods: string[] = []
+  if (multiLocks.size) {
+    const soleLock = multiLocks.size === 1 ? [...multiLocks][0]! : undefined
+    for (const mt of metas) {
+      if (mt.rawOps === 0) continue
+      if (mt.unlockedOps > 0 || !soleLock || !mt.locks.has(soleLock) || mt.locks.size > 1) lockGapMethods.push(mt.name)
+    }
   }
+  let nonAtomicReason: string | undefined
+  if (multiNames.length) {
+    const refNames = [...new Set(multiNames.flatMap(n => [...(metas.find(mt => mt.name === n)?.refs ?? [])]))]
+    const verb = multiNames.length === 1 ? 'reads and writes' : 'read and write'
+    const pron = multiNames.length === 1 ? 'it' : 'them'
+    nonAtomicReason = `${multiNames.join(', ')} ${verb} ${refNames.length ? refNames.join(', ') : 'state'} in separate steps; concurrent calls can interleave: make ${pron} atomic with Ref.modify, a Semaphore(1) lock or a transaction`
+  } else if (lockGapMethods.length) {
+    const verb = lockGapMethods.length === 1 ? 'accesses' : 'access'
+    nonAtomicReason = `${lockGapMethods.join(', ')} ${verb} state outside the Semaphore(1) lock held by ${lockedMultiMethods.join(', ')}; concurrent calls can interleave: guard all stateful methods with the same Semaphore(1) lock, or use Ref.modify or a transaction`
+  }
+  if (!multiNames.length) return nonAtomicReason ? {nonAtomicReason} : undefined
+  if (opts.fibers === false) return {nonAtomicReason: nonAtomicReason!}
+  // For plain-Ref services without explicit fibers: true, try lifting to the interleaving model; if lifting refuses
+  // (e.g. a non-scalar carried local or multi-op retry expression), fall back to the sequential model with native
+  // source confirmation explicitly disabled and the clear non-atomic reason attached.
+  const canFallback = opts.fibers === undefined && !TX.test(code)
+  try {
   // (each step of a method read for many fibers is one statement of its body, with one effect on the state at most)
   for (const [name, at, n] of several) refuse(at, `${name}: ${text(at)} runs ${n} effects on the state one after another${ts.isStatement(at) ? ' in one statement' : ''}, and another fiber's step may come between them: write the method as Effect.fn('${name}')(function* ...) with each in a statement of its own (each a step), or in one transaction`)
   // Each split method's segments, the names each carries on, and the service written again.
@@ -718,7 +853,10 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
   // One fiber: the service written again, read and checked as any.
   // (by its absolute path, `..` resolved: the checker reads the code written again there, not the file on disk)
   const one = extractEffect(out, {...opts, check: {...opts.check, lawCrossCheck: false}, file: normalize(placed(file)), entry, effect: E, fibers: false})
-  if (!one.ok || !one.rule) return {...one, notes: [`read as one fiber's steps (${split.map(mt => `${mt.name}: ${mt.units.length}`).join(', ')}), the service written again:`, out, ...one.notes]}
+  if (!one.ok || !one.rule) {
+    if (canFallback) return {nonAtomicReason: nonAtomicReason!}
+    return {...one, notes: [`read as one fiber's steps (${split.map(mt => `${mt.name}: ${mt.units.length}`).join(', ')}), the service written again:`, out, ...one.notes]}
+  }
   const m0 = one.rule.machine, model = one.model!
   // (an integer is two naturals, x and x$neg)
   const local = (n0: string) => { const n = n0.replace(/\$neg$/, ''); return made.has(n) || !!opts.perFiber?.includes(n) || model.outputs.some(o => n === o || n.startsWith(`${o}_`)) || n === 'failed' }
@@ -732,14 +870,23 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
   const one2 = one.rule as never as {kindsOfState: () => [string, dsl.Kind<unknown>][], kindsOfCells: () => [string, dsl.Kind<unknown>][]}
   const ints = [...one2.kindsOfState().filter(([n]) => shared.includes(n) && shared.includes(`${n}$neg`)), ...one2.kindsOfCells().filter(([n, k]) => k.vars(n).every(p => !local(p)))]
   const rule = asRule({...lifted, name: `${m0.name}, every fiber`}, Object.fromEntries([...parts.params, ...parts.inputs].filter(whole).concat(ints)))
-  // Lifting is not transparent native replay: retain provenance, not the old journal.
+  // Lifting is not transparent native replay: retain provenance and the explicit non-atomic reason, never the old journal.
   inheritSource(one.rule, rule)
   const names = (one.names ?? []).filter(n => !(n.role === 'state' && local(n.rule)) && n.role !== 'result' && !made.has(n.code))
   const inv = (one.invariants ?? []).filter(l => ![...JSON.stringify(l.holds).matchAll(/"name":"([^"]*)"/g)].some(m => local(m[1]!)))
+  if (nonAtomicReason) {
+    const token = {}
+    rememberNative(token, {enabled: false, complete: false, scope: 'sampled', reason: nonAtomicReason, observations: []})
+    attachSource(rule, token, inv)
+  }
   const steps = split.map((mt, mi) => ({name: mt.name, steps: mt.units.length, base: (mi + 1) * 100}))
   return {...one, rule, names: [...names, {code: 'fiber', rule: 'fiber', role: 'input'}], invariants: inv, fibers: steps, replay: undefined,
     notes: [`calls from many fibers at once: ${split.map(mt => `${mt.name} is ${mt.units.length} steps`).join(', ')} (each transaction or Ref operation one), the fibers interleaving them: the rule is every fiber's (lift: each fiber's place and what it carries a map keyed by the input fiber, the service's Refs (${shared.filter(n => !n.endsWith('$neg')).join(', ')}) shared); each other method is one step. A request is one fiber's next step: a fiber in the middle of a call takes its next step whatever method the request names. A failure in a later step ends the call as a return does. A law reads the service's Refs`, ...one.notes],
     source: out}
+  } catch (e) {
+    if (canFallback && e instanceof Refusal) return {nonAtomicReason: nonAtomicReason!}
+    throw e
+  }
 }
 
 // A run of every fiber's rule as what each fiber does: starts a call (with its arguments), or takes the next step of the
