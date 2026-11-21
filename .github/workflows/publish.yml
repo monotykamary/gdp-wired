@@ -14,8 +14,8 @@ name: Publish
 # Auth is npm Trusted Publishing (OIDC): npm trusts this file, so no npm token
 # is stored anywhere. Only the publish job gets an OIDC token (id-token: write),
 # and it runs on GitHub's own runner: npm's trusted publishing and provenance
-# support cloud-hosted runners only, not self-hosted ones such as boat's. The
-# checks (test.yml's jobs) run on boat VMs. Registered once with
+# support GitHub's cloud-hosted runners only, not instabox's. The checks
+# (test.yml's jobs) run on instabox boxes. Registered once with
 #   npm trust github gdp-wired --repo monotykamary/gdp-wired --file publish.yml --allow-publish
 # gdp-wired-cli's first version is published by hand (a new name has nothing to
 # trust yet: npm publish with an OTP), then registered once the same way:
@@ -48,7 +48,7 @@ concurrency:
 
 jobs:
   release:
-    # (this repository only: in a fork, test.yml's boat checks are skipped, so nothing past here may run there)
+    # (this repository only: in a fork, test.yml's instabox checks are skipped, so nothing past here may run there)
     if: github.repository == 'monotykamary/gdp-wired'
     # (ubuntu-24.04, not ubuntu-latest: -latest moves to Ubuntu 26.04 in November 2026, which changes the clang and the
     # JDK the C, C++, Java and Kotlin cases run on; 24.04's are clang 18.1.3 and JDK 17)
@@ -93,7 +93,7 @@ jobs:
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
 
   # The checks of test.yml (types and lint, the quick tests in parallel shards, the package on Node 20 and 24), as
-  # jobs of this run: nothing is packed or published unless every one passes. (Its boat jobs carry their own guard:
+  # jobs of this run: nothing is packed or published unless every one passes. (Its instabox jobs carry their own guard:
   # this repository only; a push to main or a dispatch here passes it.)
   check:
     needs: release

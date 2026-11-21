@@ -3,19 +3,20 @@ name: Test
 # The fast gate on every push and pull request: types and lint over the whole tree, the quick tests (builders,
 # conformance of the two runtimes, kernel tamper/refusals/step laws, the nine example domains, the README snippets),
 # and the npm package as a user installs it, on the oldest and newest Node it supports. The long runs (the kernel's
-# 32-seed soundness fuzz, histories, the Lean twin, mutation testing) run on Boat from supercomputer/suite.json.
+# 32-seed soundness fuzz, histories, the Lean twin, mutation testing) run through supercomputer from supercomputer/suite.json.
 #
 # The quick tests (`bun run test`, scripts/test-shards.ts) run as parallel shards, balanced on the seconds each unit
 # took (scripts/test-shards.json), in two sets that together are exactly `bun run test`: the units that run a native
 # toolchain (`--set native`: python3, Ruby, a JDK, kotlinc, Go, Rust, Swift, clang) on GitHub's ubuntu-24.04 image,
-# whose toolchains they are checked against, and every other unit (`--set portable`) on boat VMs (the boat CI app's
-# `runs-on: boat*` labels), where none of those toolchains is installed: each boat shard puts a stub of each first on
-# the PATH and fails if a unit called one. Each set's shard count is its matrix's length.
+# whose toolchains they are checked against, and every other unit (`--set portable`) on instabox boxes (the instabox
+# GitHub App's `runs-on: instabox-*` labels: a fresh box of GitHub's Ubuntu 24.04 runner image per job, deleted when the
+# job ends), where those toolchains are not relied on: each instabox shard puts a stub of each first on the PATH and
+# fails if a unit called one. Each set's shard count is its matrix's length.
 # publish.yml requires these checks plus the separately reviewed full canonical gate and receipt.
 #
-# Boat jobs run only in this repository, for pushes, dispatches and pull requests from its own branches (the `if:` on
-# each), so a fork's pull request never reaches a boat VM (and boat itself runs only monotykamary's runs here); such a
-# pull request still gets the native shards, on GitHub's runners.
+# instabox jobs run only in this repository, for pushes, dispatches and pull requests from its own branches (the `if:`
+# on each), so a fork's pull request never reaches an instabox box (the App runs this repository's jobs on
+# monotykamary's workspace and plan); such a pull request still gets the native shards, on GitHub's runners.
 
 on:
   push:
@@ -32,8 +33,8 @@ jobs:
   check:
     name: Types and lint
     if: github.repository == 'monotykamary/gdp-wired' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-    # (boat-large: 8 vCPUs and 16 GB, the memory of GitHub's runner for public repositories)
-    runs-on: boat-large
+    # (instabox-large: 8 vCPUs and 16 GiB, the memory of GitHub's runner for public repositories)
+    runs-on: instabox-large
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
@@ -47,7 +48,7 @@ jobs:
   test:
     name: Quick tests ${{ matrix.shard }}
     if: github.repository == 'monotykamary/gdp-wired' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: boat-large
+    runs-on: instabox-large
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -104,7 +105,8 @@ jobs:
   package:
     name: package (${{ matrix.node }})
     if: github.repository == 'monotykamary/gdp-wired' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: boat
+    # (instabox-medium: 4 vCPUs and 8 GiB)
+    runs-on: instabox-medium
     timeout-minutes: 15
     strategy:
       matrix:
@@ -116,7 +118,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      # (the smoke's Python case runs on the VM's python3: Ubuntu 24.04's, as on ubuntu-24.04)
+      # (the smoke's Python case runs on the box's python3: Ubuntu 24.04's, as on ubuntu-24.04)
       - name: Toolchain versions
         run: node --version && npm --version && python3 --version && grep PRETTY_NAME /etc/os-release
       - name: Pack and install as a user would, then run and type-check against it
