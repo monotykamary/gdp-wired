@@ -203,20 +203,23 @@ path list of every included user file (`userFilesSha256`/`userFiles`) and every 
 non-aliasing receiver and scalar out-parameters, no concurrency, and no external mutation from other translation units;
 (3) mechanically checked translation-unit closure across all non-system files classified strictly by resolved path
 under Clang's built-in search directories (never linemarker flag `3`, requiring both spelling and expansion locations to
-be system files; **macOS caveat**: headers under Clang's default search list, such as `/opt/homebrew/include`, are
-trusted as system headers; every non-system user file and include is resolved component-wise (without collapsing `..`
-before symlinks), verified via `O_NONBLOCK`/`O_NOFOLLOW` `fstat` as a regular file under the project root or a listed
-`-I` directory (refusing case-insensitive `/proc`/`/dev`/`/sys`, non-regular files/FIFOs, absolute user includes, and
-includes outside the root/`-I` boundary) before the first Clang pass, snapshotted once into a private temp tree that
-every timed Clang pass reads exclusively, digested from those snapshot bytes, and re-hashed on disk at the end to refuse
-concurrent writers; user-defined or `-D` macros expanded inside system headers are refused; user files are
-audited directly via Clang's own lexer and preprocessor `-Xclang -dump-raw-tokens` (byte-contiguous from byte 0/BOM to
+be system files; **caveat**: headers under Clang's default search list — including `/usr/local/include` on Linux and
+Homebrew directories such as `/opt/homebrew/include` on macOS — are trusted as system headers, with every included
+system header's path and snapshot SHA-256 reported in `macroConfig`; the full include closure of both user files and
+system headers is discovered by Clang `-E -H` on the original tree, resolved component-wise without collapsing `..`
+before symlinks, verified via `O_NONBLOCK`/`O_NOFOLLOW` `fstat` as regular files — refusing case-insensitive
+`/proc`/`/dev`/`/sys`, non-regular files/FIFOs, `-I` directories overlapping system directories, user-visible includes
+resolving into system directories, absolute includes, and user includes outside the root/`-I` boundary — snapshotted
+once read-only into a private temp tree with `-nostdinc` and mapped `-I`/`-isystem` dirs, cross-checked via Clang
+`-E -H` for exact include-list and order equality, digested from those snapshot bytes for both user and system files,
+and re-hashed on disk at the end to refuse concurrent writers; user-defined or `-D` macros expanded inside system
+headers are refused; user files are audited from Clang's `-Xclang -dump-raw-tokens` (byte-contiguous from byte 0/BOM to
 EOF with raw NUL bytes refused), `-Xclang -dump-tokens`, and `-E -H -dD`, refusing all 9 trigraphs and non-C23 digit-quote sequences outright,
 allowing only user-defined or `-D` macros in `#if`/`#ifdef`/`#ifndef`/`#elif`/`defined()` and only `#pragma once`,
 refusing predefined or undefined-elsewhere macros, `__has_*`, `_Pragma`, token pasting `##`, `<scratch space>`
 expansions, invocation-dependent macros `__FILE__`/`__BASE_FILE__`/`__FILE_NAME__`/`__TIMESTAMP__`/`__DATE__`/`__TIME__`/
 `__COUNTER__`/`__LINE__`/`__INCLUDE_LEVEL__`, `SourceLocExpr`/`PredefinedExpr`, and any `__builtin_*` identifier,
-backed by lexer-independent differential checks
+backed by differential checks
 comparing both preprocessed tokens and folded AST facts (array sizes, constants, types) across alternate path/filename
 length, file mtime, `SOURCE_DATE_EPOCH` days, distinct empty working directories with `stdin=/dev/null`, and `NDEBUG`/`-O0`/`-O2`/`-Os`/`-fsanitize=address,undefined`/`DEBUG`; every non-system
 function body must be a selected method or inlined file-local `static` helper, or is refused as `unchecked` and named;

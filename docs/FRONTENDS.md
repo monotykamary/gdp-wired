@@ -398,21 +398,24 @@ Every `CSafetyResult` carries the four stated assumptions and checked-scope prem
    their C initialization) with non-aliasing receiver and scalar out-parameters, no concurrency,
    and no external mutation from other translation units.
 3. **Checked TU closure & failure paths (checked)**: System headers are classified strictly by
-   resolved path under Clang's built-in search directories (never linemarker flag `3`; **macOS /
-   package-manager caveat**: headers under Clang's default search list, such as
-   `/opt/homebrew/include` on macOS, are trusted as system headers), and an AST node is system only
-   if both its spelling and expansion locations are system files. Every non-system user file and
-   include is resolved component-wise (without collapsing `..` before symlinks), verified via
-   `O_NONBLOCK`/`O_NOFOLLOW` `fstat` as a regular file under the project root or a listed `-I`
-   directory (refusing case-insensitive `/proc`, `/dev`, `/sys`, non-regular files/FIFOs, absolute
-   user includes, and includes outside the root/`-I` boundary) BEFORE the first Clang pass,
-   snapshotted once into a private temp tree that every timed Clang pass reads exclusively, digested
-   from those snapshot bytes, and re-hashed on disk at the end to refuse concurrent writers. Any
-   user-defined or `-D` macro
-   expanded inside a system header is refused. User files are audited directly from Clang's own
-   lexer and preprocessor (`-Xclang -dump-raw-tokens` verified byte-contiguously from byte 0/BOM
-   to EOF with raw NUL bytes refused, `-Xclang -dump-tokens`, and `-E -H -dD`; never re-lexed in
-   TypeScript): all 9 trigraph
+   resolved path under Clang's built-in search directories (never linemarker flag `3`; **caveat**:
+   system headers under Clang's default search list — including `/usr/local/include` on Linux and
+   Homebrew directories such as `/opt/homebrew/include` on macOS — are trusted as system headers,
+   with every included system header's resolved path and snapshot SHA-256 pinned in `macroConfig`),
+   and an AST node is system only if both its spelling and expansion locations are system files.
+   The complete include closure (both user files and system headers) is discovered by Clang
+   (`-E -H`) on the original tree, resolved component-wise (without collapsing `..` before
+   symlinks), verified via `O_NONBLOCK`/`O_NOFOLLOW` `fstat` as regular files (refusing
+   case-insensitive `/proc`, `/dev`, `/sys`, non-regular files/FIFOs, `-I` directories overlapping
+   system directories, user-visible includes resolving into system directories, absolute includes,
+   and user includes outside the root/`-I` boundary), snapshotted once read-only (`0o400`) into a
+   private temp tree with `-nostdinc` and mapped `-I`/`-isystem` search dirs, cross-checked via
+   `clang -E -H` on the snapshot for exact include-list and order equality, digested from those
+   snapshot bytes for both user files and system headers, and re-hashed on disk at the end to
+   refuse concurrent writers. Any user-defined or `-D` macro expanded inside a system header is
+   refused. User files are audited from Clang's own raw/expanded token streams and preprocessor
+   (`-Xclang -dump-raw-tokens` verified byte-contiguously from byte 0/BOM to EOF with raw NUL bytes
+   refused, `-Xclang -dump-tokens`, and `-E -H -dD`): all 9 trigraph
    sequences (`??=` `??/` `??'` `??(` `??)` `??!` `??<` `??>` `??-`) and non-C23 digit-quote
    sequences are refused outright; only literal `#include`, `#define`, `#undef`,
    `#if`/`#elif`/`#ifdef`/`#ifndef`/`#elifdef`/`#elifndef`/`#else`/`#endif`, `#pragma once`, and
@@ -422,7 +425,7 @@ Every `CSafetyResult` carries the four stated assumptions and checked-scope prem
    `<scratch space>` expansion, invocation-dependent macro
    `__FILE__`/`__BASE_FILE__`/`__FILE_NAME__`/`__TIMESTAMP__`/`__DATE__`/`__TIME__`/`__COUNTER__`/
    `__LINE__`/`__INCLUDE_LEVEL__`, `SourceLocExpr`/`PredefinedExpr`, or any `__builtin_*`
-   identifier is refused with its name and line), backed by lexer-independent differential checks comparing both preprocessed tokens
+   identifier is refused with its name and line), backed by differential checks comparing both preprocessed tokens
    and folded AST facts (array sizes, constants, types) across alternate path/filename length, file
    mtime, `SOURCE_DATE_EPOCH` days, distinct empty working directories with `stdin=/dev/null`, and
    `NDEBUG`/`-O0`/`-O2`/`-Os`/`-fsanitize=address,undefined`/`DEBUG`.

@@ -2070,8 +2070,10 @@ withClang('Review Probe 17: atomic user-file snapshot & concurrent-writer refusa
     expect(() => dumped.target.safetyMeta?.verifySnapshotUnchanged?.()).toThrow(Refusal)
 
     // (b) Live concurrent-writer race on Linux via inotify IN_CLOSE_NOWRITE (probe13/watch.py):
-    //     swapping n.h from LIM 7 -> LIM 8 on close 1 or close 2 MUST exit 2 (never proven with
-    //     the LIM 8 digest!).
+    //     swapping n.h from LIM 7 -> LIM 8 at ANY close (1: after discovery -E -H, 2: after
+    //     snapshot read, 3: after clangDump re-hash, 4: after analysis) must NEVER report
+    //     proven exit 0 with the LIM 8 digest (close 1 -> broken exit 1, closes 2 & 3 ->
+    //     unchecked exit 2 naming concurrent modification, close 4 -> proven with LIM 7 digest).
     if (process.platform === 'linux') {
       const pyCheck = spawnSync('python3', ['-c', 'import ctypes'], {stdio: 'ignore'})
       if (pyCheck.status === 0) {
@@ -2097,7 +2099,7 @@ while True:
         open(log, 'a').write(f'swapped:{cnt}\\n')
         sys.exit(0)
 `)
-        for (const closeN of [1, 2]) {
+        for (const closeN of [1, 2, 3, 4]) {
           const rDir = join(dir, `race_${closeN}`)
           mkdirSync(rDir, {recursive: true})
           const rHdr = join(rDir, 'n.h')
@@ -2113,11 +2115,21 @@ while True:
               await new Promise(r => setTimeout(r, 10))
             }
             const p = spawnSync(process.execPath, [cliPath, 'check', '--no-propose', '--json', rSrc], {cwd: rDir, encoding: 'utf8'})
-            expect(p.status, `live race at close ${closeN} must exit 2`).toBe(2)
-            const j = JSON.parse(p.stdout) as {rules: {safety?: {status: string, macroConfig?: {userFiles?: {sha256: string}[]}}, refusals: {what: string}[]}[]}
-            expect(j.rules[0]?.safety?.status).toBe('unchecked')
-            expect(j.rules[0]?.safety?.macroConfig?.userFiles?.some(u => u.sha256 === lim8Sha)).not.toBe(true)
-            expect(j.rules[0]?.refusals.map(r => r.what).join('; ')).toContain('changed on disk during analysis')
+            const j = JSON.parse(p.stdout) as {rules: {safety?: {status: string, macroConfig?: {userFiles?: {path: string, sha256: string}[]}}, refusals: {what: string}[]}[]}
+            if (closeN === 1) {
+              expect(p.status, 'live race at close 1 must never exit 0').not.toBe(0)
+              expect(j.rules[0]?.safety?.status).not.toBe('proven')
+            } else if (closeN === 2 || closeN === 3) {
+              expect(p.status, `live race at close ${closeN} must exit 2`).toBe(2)
+              expect(j.rules[0]?.safety?.status).toBe('unchecked')
+              expect(j.rules[0]?.refusals.map(r => r.what).join('; ')).toContain('changed on disk during analysis')
+            } else {
+              expect(p.status, 'post-analysis close 4 proves snapshot LIM 7').toBe(0)
+              expect(j.rules[0]?.safety?.status).toBe('proven')
+              const nHash = j.rules[0]?.safety?.macroConfig?.userFiles?.find(u => u.path.endsWith('/n.h'))?.sha256
+              expect(nHash).toBe(lim7Sha)
+              expect(nHash).not.toBe(lim8Sha)
+            }
           } finally {
             watcher.kill('SIGKILL')
           }
@@ -2185,6 +2197,89 @@ while True:
     const mcE1 = (rE1.rules[0]?.safety as {macroConfig?: {userFiles?: {path: string, sha256: string}[]}})?.macroConfig
     expect(mcE1?.userFiles?.some(u => u.path.endsWith('/n.h ') && u.sha256 === lim7Sha)).toBe(true)
     expect(mcE1?.userFiles?.some(u => u.path.endsWith('/n.h'))).toBe(false)
+  } finally {
+    rmSync(dir, {recursive: true, force: true})
+  }
+}, 180_000)
+
+withClang('Review Probe 18: Clang-discovered full user+system -nostdinc snapshot & exact -E -H cross-check (probe14 s1/s2/s3/s4, n1/n2), stdlib -O2 alternate, and system header snapshot/assumptions', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-probe18-'))
+  try {
+    const body = '#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r, int32_t i) { if (i >= 0 && i < 8) return r->a[i]; return 0; }\n'
+    const evilStddef = '#define if(c) if (1)\n'
+    const evilSha = createHash('sha256').update(evilStddef).digest('hex')
+
+    // (1) s1 (".//stddef.h"), s2 (fake-comment string macros around #include), s3 (form feed after #):
+    //     Clang -E -H discovers the local stddef.h and snapshots it with -nostdinc (never falling
+    //     back to system <stddef.h>) -> MUST NOT exit 0 / proven, and stddef.h is recorded in userFiles.
+    for (const [label, prefix] of [
+      ['s1', '// gdp: safety\n#include ".//stddef.h"\n'],
+      ['s2', '// gdp: safety\n#define S "/*"\n#include "stddef.h"\n#define T "*/"\n'],
+      ['s3', '// gdp: safety\n#\x0cinclude "stddef.h"\n'],
+    ] as const) {
+      const d = join(dir, label)
+      mkdirSync(d, {recursive: true})
+      writeFileSync(join(d, 'stddef.h'), evilStddef)
+      const f = join(d, 'ring.c')
+      writeFileSync(f, prefix + body)
+      const res = await check([f], {propose: false})
+      expect(res.exit, `${label} must never prove (exit 0)`).not.toBe(0)
+      expect(res.rules[0]?.safety?.status, `${label} must not be proven`).not.toBe('proven')
+      const mc = (res.rules[0]?.safety as {macroConfig?: {userFiles?: {path: string, sha256: string}[]}})?.macroConfig
+      expect(mc?.userFiles?.some(u => u.path.endsWith('/stddef.h') && u.sha256 === evilSha), `${label} must include local stddef.h in snapshot`).toBe(true)
+    }
+
+    // (2) s4 (<inc//stddef.h> with -I<s4>): refused (exit 2), never proven.
+    const s4Dir = join(dir, 's4')
+    mkdirSync(join(s4Dir, 'inc'), {recursive: true})
+    writeFileSync(join(s4Dir, 'inc', 'stddef.h'), evilStddef)
+    const s4Src = join(s4Dir, 'ring.c')
+    writeFileSync(s4Src, '// gdp: safety\n#include <inc//stddef.h>\n' + body)
+    const rS4 = await check([s4Src], {flags: [`-I${s4Dir}`], propose: false})
+    expect(rS4.exit).toBe(2)
+    expect(rS4.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+
+    // (3) n1 (-I into a system directory, e.g. /usr/include/linux or /usr/include): refused (exit 2).
+    const n1Dir = join(dir, 'n1')
+    mkdirSync(n1Dir, {recursive: true})
+    const n1Src = join(n1Dir, 'ring.c')
+    writeFileSync(n1Src, '// gdp: safety\n#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r, int32_t i) { if (i >= 0 && i < 8) return r->a[i]; return 0; }\n')
+    const sysIncTarget = process.platform === 'linux' ? '/usr/include/linux' : '/usr/include'
+    const rN1 = await check([n1Src], {flags: [`-I${sysIncTarget}`], propose: false})
+    expect(rN1.exit, 'n1 -I into system dir must exit 2').toBe(2)
+    expect(rN1.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+    expect(rN1.rules[0]?.refusals.map(r => r.what).join('; ')).toContain('system header directory')
+
+    // (4) n2 (user-visible symlink resolving into a system header directory): refused (exit 2).
+    const probeDump = clangDump(n1Src, [], 'clang', false, undefined, true, n1Dir)
+    const stdintSysPath = probeDump.target.safetyMeta?.macroConfig.systemHeaders?.find(h => h.path.endsWith('/stdint.h'))?.path
+    expect(stdintSysPath).toBeTruthy()
+    const n2Dir = join(dir, 'n2')
+    mkdirSync(n2Dir, {recursive: true})
+    symlinkSync(stdintSysPath!, join(n2Dir, 'my_sys.h'))
+    const n2Src = join(n2Dir, 'ring.c')
+    writeFileSync(n2Src, '// gdp: safety\n#include "my_sys.h"\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r, int32_t i) { if (i >= 0 && i < 8) return r->a[i]; return 0; }\n')
+    const rN2 = await check([n2Src], {propose: false})
+    expect(rN2.exit, 'n2 user symlink into system dir must exit 2').toBe(2)
+    expect(rN2.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+    expect(rN2.rules[0]?.refusals.map(r => r.what).join('; ')).toContain('system header directory')
+
+    // (5) Positive controls: <stdlib.h> proves cleanly across -nostdinc & -O2 build-mode alternate,
+    //     system header snapshot hashes match disk, and assumptions name /usr/local/include & Homebrew.
+    const stdlibSrc = join(dir, 'stdlib_ok.c')
+    writeFileSync(stdlibSrc, '// gdp: safety\n#include <stdint.h>\n#include <stdlib.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r, int32_t i) { if (i >= 0 && i < 8) return r->a[i]; return 0; }\n')
+    const rStdlib = await check([stdlibSrc], {propose: false})
+    expect(rStdlib.exit, 'clean file including <stdlib.h> must prove (exit 0)').toBe(0)
+    expect(rStdlib.rules[0]?.safety).toMatchObject({status: 'proven', coveredFunctions: ['get']})
+    const assumpText = (rStdlib.rules[0]?.safety as {assumptions?: readonly string[]})?.assumptions?.join(' ') ?? ''
+    expect(assumpText).toContain('/usr/local/include')
+    expect(assumpText).toContain('/opt/homebrew/include')
+    const mcStd = (rStdlib.rules[0]?.safety as {macroConfig?: {systemHeaders?: {path: string, sha256: string}[]}})?.macroConfig
+    expect(mcStd?.systemHeaders?.length).toBeGreaterThan(0)
+    for (const sh of mcStd!.systemHeaders!.slice(0, 5)) {
+      const diskSha = createHash('sha256').update(readFileSync(sh.path)).digest('hex')
+      expect(sh.sha256).toBe(diskSha)
+    }
   } finally {
     rmSync(dir, {recursive: true, force: true})
   }
