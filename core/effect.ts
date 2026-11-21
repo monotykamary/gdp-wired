@@ -145,16 +145,24 @@ function factoryOf(s: Setup, entry: string, tracker?: AtomTracker): FactoryOf {
     if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) if (ts.isIdentifier(d.name) && d.name.text === name) decl = d
   }
   if (!decl) return refuse(s.sf.statements[0] ?? s.sf, `no ${name} in the file`)
-  const spans: DeclSpan[] = [declSpanOf(s.sf, decl)]
-  const addSpan = (n: ts.Node) => { const sp = declSpanOf(s.sf, n); if (!spans.some(x => x.file === sp.file && x.start === sp.start && x.end === sp.end)) spans.push(sp) }
+  const spans: DeclSpan[] = []
+  const pushSpan = (sp: DeclSpan) => { if (!spans.some(x => x.file === sp.file && x.start === sp.start && x.end === sp.end)) spans.push(sp) }
+  const addSpan = (n: ts.Node) => pushSpan(declSpanOf(s.sf, n))
   // The make effect as written (a class's option or static member, a variable's value), through Layer.effect and names.
   let e: ts.Expression | undefined, at: ts.Node = decl
   if (ts.isClassDeclaration(decl)) {
     const opts = member ? undefined : decl.heritageClauses?.[0]?.types[0]?.expression, o = opts && ts.isCallExpression(opts) && opts.arguments[1] ? strip(opts.arguments[1]) : undefined
-    const prop = member ? decl.members.find(x => ts.isPropertyDeclaration(x) && memberName(x.name) === member) : o && ts.isObjectLiteralExpression(o) ? o.properties.find(p => ts.isPropertyAssignment(p) && ['make', 'effect', 'scoped'].includes(memberName(p.name))) : undefined
+    const prop = member ? decl.members.find(x => (ts.isPropertyDeclaration(x) || ts.isMethodDeclaration(x)) && memberName(x.name) === member) : o && ts.isObjectLiteralExpression(o) ? o.properties.find(p => ts.isPropertyAssignment(p) && ['make', 'effect', 'scoped'].includes(memberName(p.name))) : undefined
+    if (member) {
+      if (prop) pushSpan({file: s.sf.fileName, start: prop.getStart(s.sf), end: prop.end})
+    } else addSpan(decl)
+    if (prop && ts.isMethodDeclaration(prop)) return fromFunction(prop)
     e = (prop as ts.PropertyDeclaration | ts.PropertyAssignment | undefined)?.initializer
-  } else if (ts.isVariableDeclaration(decl)) e = decl.initializer
-  else if (ts.isFunctionDeclaration(decl)) return fromFunction(decl)
+  } else {
+    addSpan(decl)
+    if (ts.isVariableDeclaration(decl)) e = decl.initializer
+    else if (ts.isFunctionDeclaration(decl)) return fromFunction(decl)
+  }
   for (let i = 0; e && i < 8; i++) {
     e = strip(e)
     const api = callOf(s, e), d = ts.isIdentifier(e) ? s.checker.getSymbolAtLocation(e)?.valueDeclaration : undefined

@@ -1063,16 +1063,18 @@ export const make = Effect.gen(function* () {
     expect(onlyMake.rules.flatMap(r => r.laws)[0]).toMatchObject({name: 'tokens never go negative', verdict: 'not read'})
   })
 
-  // Unextractable second declarator and inline block comment between declarators never leak to `make`
+  // Unextractable second declarator never leaks to `make`
   const b5Unextractable = `import {Effect, Ref} from 'effect'
 
 export const make = Effect.gen(function* () {
   const tokens = yield* Ref.make(1)
   const take = Effect.fn('take')(function* () { return yield* Ref.modify(tokens, t => t >= 1 ? [true, t - 1] as const : [false, t] as const) })
   return {take}
-}), /* gdp: law tokens never go negative: tokens >= 0 */ other = { take() { return -1 } }
+}),
+  // gdp: law tokens never go negative: tokens >= 0
+  other = { take() { return -1 } }
 `
-  await withTempEffectFile(4, 'b5-inline-unextractable.ts', b5Unextractable, async file => {
+  await withTempEffectFile(4, 'b5-unextractable.ts', b5Unextractable, async file => {
     const res = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
     expect(res.exit).toBe(2)
     expect(res.rules.find(r => r.entry === 'make')!.laws).toEqual([])
@@ -1146,4 +1148,93 @@ export const make = Effect.gen(function* () {
       expect(onlyGood.rules.flatMap(r => r.laws)[0]).toMatchObject({name: 'never negative', verdict: 'not read'})
     })
   }
+}, 180_000)
+
+test('trailing laws after code on the same line are unbound not read (q12, q13, q14, q15, p17) and Class.member entries bind strictly per member span (q10b)', async () => {
+  const trailingWhy = 'write the law on its own line above the declaration it is about'
+  const q12 = `export class Bad {
+  tokens = 1
+  take(n: number) { if (n < 0) throw new Error('no'); this.tokens -= n }
+} // gdp: law trailing brace: tokens >= 0
+export class Good { tokens = 1; take(n: number) { if (n < 0 || n > this.tokens) throw new Error('no'); this.tokens -= n } }
+`
+  const q13 = `export const good = () => {
+  let tokens = 1
+  return { take(n: number) { if (n < 0 || n > tokens) throw new Error('no'); tokens -= n } }
+},
+  bad = () => { let tokens = 1; return { take(n: number) { if (n < 0) throw new Error('no'); tokens -= n } } } // gdp: law trailing bad: tokens >= 0
+export const good2 = () => {
+  let tokens = 1
+  return { take(n: number) { if (n < 0 || n > tokens) throw new Error('no'); tokens -= n } }
+}
+`
+  const q14 = `export const good = () => { let tokens = 1; return { take(n: number) { if (n < 0 || n > tokens) throw new Error('no'); tokens -= n }, peek() { return tokens } } }, bad = () => { let tokens = 1; return { take(n: number) { if (n < 0) throw new Error('no'); tokens -= n }, peek() { return tokens } } } // gdp: law trailing: tokens >= 0\n`
+  const q15 = `export class Bad {
+  tokens = 1
+  /** @param {number} n */
+  take(n) { if (n < 0) throw new Error('no'); this.tokens -= n }
+} // gdp: law trailing brace: tokens >= 0
+export class Good {
+  tokens = 1
+  /** @param {number} n */
+  take(n) { if (n < 0 || n > this.tokens) throw new Error('no'); this.tokens -= n }
+}
+`
+  const p17 = `export const good = () => { let tokens = 1; return { take(n: number) { if (n < 0 || n > tokens) throw new Error('no'); tokens -= n } } }, bad = () => { let tokens = 1; return { take(n: number) { if (n < 0) throw new Error('no'); tokens -= n } } } // gdp: law trailing: tokens >= 0\n`
+
+  for (const [name, code, lawName] of [
+    ['q12-trailing-brace.ts', q12, 'trailing brace'],
+    ['q13-trailing-multiline.ts', q13, 'trailing bad'],
+    ['q14-sameline-peek.ts', q14, 'trailing'],
+    ['q15-js-sameline.js', q15, 'trailing brace'],
+    ['p17-sameline.ts', p17, 'trailing'],
+  ] as const) {
+    await withTempEffectFile(4, name, code, async file => {
+      const res = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+      expect([name, res.exit]).toEqual([name, 2])
+      for (const r of res.rules.filter(x => x.ok)) expect([name, r.entry, r.laws]).toEqual([name, r.entry, []])
+      const allLaws = res.rules.flatMap(r => r.laws)
+      expect(allLaws.length).toBe(1)
+      expect(allLaws[0]).toMatchObject({name: lawName, verdict: 'not read', why: trailingWhy})
+    })
+  }
+
+  // q10b-static: `--entry Svc.make` binds only to `static make`'s own PropertyDeclaration span, never to `static other`'s law.
+  const q10b = `import {Effect, Ref} from 'effect'
+export class Svc {
+  static make = Effect.gen(function* () {
+    const tokens = yield* Ref.make(1)
+    const take = Effect.fn('take')(function* () { return yield* Ref.modify(tokens, t => t >= 1 ? [true, t - 1] as const : [false, t] as const) })
+    const count = Effect.fn('count')(function* () { return yield* Ref.get(tokens) })
+    return {take, count}
+  })
+  // gdp: law tokens never go negative: tokens >= 0
+  static other = Effect.gen(function* () {
+    const tokens = yield* Ref.make(1)
+    const take = Effect.fn('take')(function* () { yield* Ref.update(tokens, t => t - 1) })
+    const count = Effect.fn('count')(function* () { return yield* Ref.get(tokens) })
+    return {take, count}
+  })
+}
+`
+  for (const major of [4, 3] as const) {
+    await withTempEffectFile(major, 'q10b-static.ts', q10b, async file => {
+      const makeOnly = await check([file], {entry: 'Svc.make', ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+      expect([major, makeOnly.exit]).toEqual([major, 2])
+      expect(makeOnly.rules.find(r => r.entry === 'Svc.make')!.laws).toEqual([])
+      expect(makeOnly.rules.flatMap(r => r.laws)[0]).toMatchObject({name: 'tokens never go negative', verdict: 'not read'})
+
+      const otherOnly = await check([file], {entry: 'Svc.other', ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+      expect([major, otherOnly.exit]).toEqual([major, 1])
+      expect(otherOnly.rules.find(r => r.entry === 'Svc.other')!.laws[0]).toMatchObject({name: 'tokens never go negative', verdict: 'broken', translation: 'sampled'})
+    })
+  }
+
+  // Positive control: a law directly above `static make` DOES prove under `--entry Svc.make`.
+  const q10bGood = q10b.replace('  static make =', '  // gdp: law make tokens nonneg: tokens >= 0\n  static make =').replace('  // gdp: law tokens never go negative: tokens >= 0\n', '')
+  await withTempEffectFile(4, 'q10b-static-good.ts', q10bGood, async file => {
+    const res = await check([file], {entry: 'Svc.make', ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+    expect(res.exit).toBe(0)
+    expect(res.rules[0]!.laws[0]).toMatchObject({name: 'make tokens nonneg', verdict: 'proven', translation: 'sampled'})
+  })
 }, 180_000)

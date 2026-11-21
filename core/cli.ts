@@ -463,14 +463,14 @@ function* rulesOf0(t: Target, o: Opts, laws: Scoped[]): Pipeline<ReadRule[]> {
 
 // A law with where it sits in the code: the class (or struct, module) it is in, the function after it,
 // and (for TS/JS) the exact AST declaration owner span it belongs to.
-type LawOwner = {file: string, start: number, end: number, kind: 'class' | 'anon-class' | 'function' | 'var' | 'file', name?: string}
-type Scoped = LawText & {cls?: string, fn?: string, owner?: LawOwner, inBody?: boolean}
+type LawOwner = {file: string, start: number, end: number, kind: 'class' | 'anon-class' | 'function' | 'var' | 'member' | 'file', name?: string}
+type Scoped = LawText & {cls?: string, fn?: string, owner?: LawOwner, memberOwner?: {file: string, start: number, end: number}, inBody?: boolean, why?: string}
 const sameSpan = (a: {file: string, start: number, end: number}, b: {file: string, start: number, end: number}): boolean =>
   a.start >= 0 && path.resolve(a.file) === path.resolve(b.file) && a.start === b.start && a.end === b.end
 const ownsLaw = (l: Scoped, r: ReadRule): boolean => {
   if (!l.owner) return false
   const spans = r.x.declSpans
-  if (spans?.length) return spans.some(sp => sameSpan(l.owner!, sp))
+  if (spans?.length) return spans.some(sp => sameSpan(l.owner!, sp) || (!!l.memberOwner && sameSpan(l.memberOwner, sp)))
   if (!r.x.ok && l.owner.kind !== 'anon-class' && l.owner.kind !== 'file' && l.owner.name) {
     return (r.entry ?? r.x.model?.name) === l.owner.name
   }
@@ -561,10 +561,19 @@ function scopedTS(file: string, text: string, laws: LawText[]): Scoped[] {
   return laws.map(l => {
     const lineIdx = Math.max(0, (l.line ?? 1) - 1), rawLine = lines[lineIdx] ?? ''
     const indent = /^\s*/.exec(rawLine)![0].length
-    const commentAt = rawLine.search(/(?:\/\/+|\/\*+)\s*gdp:\s*law\b/i)
+    const standalone = /^\s*(?:(?:\/\/+|\/\*+|\*)\s*gdp:\s*law\b|@(?:GdpLaw|gdp\.law|gdp_law)\b)/i.test(rawLine)
+      && !/^\s*\/\*.*\*\/\s*\S/.test(rawLine)
+    if (!standalone) {
+      return {
+        ...l,
+        owner: {file, start: -1, end: -1, kind: 'file'},
+        inBody: false,
+        why: 'write the law on its own line above the declaration it is about',
+      }
+    }
     const lineStart = sf.getPositionOfLineAndCharacter(lineIdx, 0)
     const lineEnd = lineIdx + 1 < lines.length ? sf.getPositionOfLineAndCharacter(lineIdx + 1, 0) : text.length
-    const pos = Math.min(text.length, lineStart + (commentAt >= 0 ? commentAt : indent))
+    const pos = Math.min(text.length, lineStart + indent)
     // Collect the exact chain of AST nodes whose real token span [getStart(sf), end) covers `pos`.
     const chain: import('typescript').Node[] = [sf]
     const descend = (n: import('typescript').Node): void => {
@@ -640,8 +649,20 @@ function scopedTS(file: string, text: string, laws: LawText[]): Scoped[] {
           }
         }
       }
+      const clsIdx = chain.indexOf(clsNode)
+      const enclosingMember = clsNode.members.find(m => clsIdx >= 0 && chain[clsIdx + 1] === m)
+      const targetMember = enclosingMember ?? (clsNode.members.pos <= pos ? clsNode.members.find(m => m.getStart(sf) >= pos) : undefined)
+      const isStaticMember = !!(targetMember && ts.canHaveModifiers(targetMember) && ts.getModifiers(targetMember)?.some(m => m.kind === ts.SyntaxKind.StaticKeyword))
+      if (targetMember && isStaticMember) {
+        const mName = 'name' in targetMember ? propName(targetMember.name as import('typescript').PropertyName | undefined) : undefined
+        const fullName = cls && mName ? `${cls}.${mName}` : mName
+        const mOwner: LawOwner = {...spanOf(targetMember), kind: 'member', ...(fullName ? {name: fullName} : {})}
+        const memberFn = enclosingMember ? memberTarget(enclosingMember) : undefined
+        return {...l, ...(memberFn ? {fn: memberFn, inBody: true} : {inBody: false}), owner: mOwner}
+      }
+      const memberOwner = targetMember ? spanOf(targetMember) : undefined
       const fn = memberTarget(clsNode)
-      return {...l, ...(cls ? {cls} : {}), ...(fn ? {fn} : {}), owner, inBody: true}
+      return {...l, ...(cls ? {cls} : {}), ...(fn ? {fn} : {}), owner, ...(memberOwner ? {memberOwner} : {}), inBody: true}
     }
     // Inside a top-level VariableStatement: bind to the specific VariableDeclaration covering `pos`,
     // or (between comma-separated declarators) to the next VariableDeclaration in that list.
@@ -892,11 +913,13 @@ function* checkPipeline(t: Target, o: Opts): Pipeline<RuleOut[]> {
   const told = new Set(outs.flatMap(r => r.laws.map(l => l.where)))
   const lost = laws.filter(l => !told.has(l.where))
   if (lost.length) {
-    const lostEntry = (l: Scoped) => l.cls ?? (l.owner?.kind === 'anon-class' ? `(${l.owner.name ?? 'anonymous class'})` : l.owner?.name ?? l.fn ?? '(the file)')
-    const lostTarget = (l: Scoped) => l.cls ? `class ${l.cls}` : l.owner?.kind === 'anon-class' ? `anonymous ${l.owner.name ?? 'class'}` : l.owner?.kind === 'function' && l.owner.name ? `function ${l.owner.name}` : l.fn ? `function ${l.fn}` : 'the file'
+    const lostEntry = (l: Scoped) => l.owner?.kind === 'member' && l.owner.name ? l.owner.name
+      : l.cls ?? (l.owner?.kind === 'anon-class' ? `(${l.owner.name ?? 'anonymous class'})` : l.owner?.name ?? l.fn ?? '(the file)')
+    const lostTarget = (l: Scoped) => l.owner?.kind === 'member' && l.owner.name ? `member ${l.owner.name}`
+      : l.cls ? `class ${l.cls}` : l.owner?.kind === 'anon-class' ? `anonymous ${l.owner.name ?? 'class'}` : l.owner?.kind === 'function' && l.owner.name ? `function ${l.owner.name}` : l.fn ? `function ${l.fn}` : 'the file'
     outs.push({file: path.relative(proc.cwd(), t.at) || '.', lang: LANG_NAME[t.lang], entry: [...new Set(lost.map(lostEntry))].join(', '), ok: false,
       refusals: [{where: t.at, what: 'laws no rule read'}], notes: [], names: [], proposed: [],
-      laws: lost.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read' as const, why: `no rule read for it (${lostTarget(l)}): name its entry (--entry, or [rules.<entry>] in gdp.toml)`, ms: 0}))})
+      laws: lost.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read' as const, why: l.why ?? `no rule read for it (${lostTarget(l)}): name its entry (--entry, or [rules.<entry>] in gdp.toml)`, ms: 0}))})
   }
   // (a citation of no law stated in the target: refused, as a law not read is)
   const named = new Set(laws.map(l => l.name))
