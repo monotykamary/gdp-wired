@@ -28,7 +28,7 @@ import * as dsl from './dsl.ts'
 import {compileFunction, seeded} from './machine.ts'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
-import {type DeclSpan, Exec, type Model, type Path, Refusal, type Setup, type Shape, type Sort, type Source, type Term, type V, type Var, beside, memberName, normalize, placed, program, refuse, scriptKind, shapeOf, sourceOf, where} from './extract-read.ts'
+import {type DeclSpan, Exec, type Model, type Path, Refusal, type Setup, type Shape, type Sort, type Source, type Term, type V, type Var, beside, declSpanOf, memberName, normalize, placed, program, refuse, scriptKind, shapeOf, sourceOf, where} from './extract-read.ts'
 import type {Law} from './machine.ts'
 import type {Name} from './extract.ts'
 import type {Rule} from './dsl.ts'
@@ -96,16 +96,16 @@ function readXState(code: string, opts: XStateOptions & {file: string, entry: st
     const extra = Object.fromEntries(Object.entries(opts.files ?? {}).map(([p, c]) => [normalize(`${root}${p}`), c]))
     const {sf, checker} = program(code, at, extra)
     // The entry: a machine (setup(...).createMachine(...), createMachine(...)) or a function that returns one.
-    let init: ts.Expression | undefined, factory: ts.FunctionLikeDeclaration | undefined, declStmt: ts.Statement | undefined
+    let init: ts.Expression | undefined, factory: ts.FunctionLikeDeclaration | undefined, declNode: ts.Node | undefined
     for (const st of sf.statements) {
       if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) if (ts.isIdentifier(d.name) && d.name.text === opts.entry && d.initializer) {
         const x = strip(d.initializer)
         if (isFn(x)) factory = x; else init = d.initializer
-        declStmt = st
+        declNode = d
       }
-      if (ts.isFunctionDeclaration(st) && st.name?.text === opts.entry) { factory = st; declStmt = st }
+      if (ts.isFunctionDeclaration(st) && st.name?.text === opts.entry) { factory = st; declNode = st }
     }
-    const declSpans: DeclSpan[] = declStmt ? [{file: sf.fileName, start: declStmt.getStart(sf), end: declStmt.end}] : []
+    const declSpans: DeclSpan[] = declNode ? [declSpanOf(sf, declNode)] : []
     if (factory) {
       const body = factory.body ?? refuse(factory, `${opts.entry} has no body`)
       if (!ts.isBlock(body)) init = body as ts.Expression

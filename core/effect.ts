@@ -22,7 +22,7 @@ import {allowed} from './watch.ts'
 import {BudgetExpired, checkWorkEndpoint} from './wall.ts'
 import {WatchdogExpired} from './search-watchdog.ts'
 import * as I from './extract-ir.ts'
-import {type DeclSpan, type EffectAtom, type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, impure, initEffectAtom, memberName, mergeEffectAtom, normalize, placed, refuse, shapeOf, sourceOf, text, where} from './extract-read.ts'
+import {type DeclSpan, type EffectAtom, type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, declSpanOf, impure, initEffectAtom, memberName, mergeEffectAtom, normalize, placed, refuse, shapeOf, sourceOf, text, where} from './extract-read.ts'
 import {type FactoryOf, readFactory, setupOf} from './extract-shapes.ts'
 import {type ExtractOptions, type Extraction, fromModel, namesOf} from './extract.ts'
 import {check, sandbox} from './extract-check.ts'
@@ -126,8 +126,6 @@ type AtomTracker = {
   syncSeq: number
 }
 const makeAtomTracker = (): AtomTracker => ({pass: 'first', mutableClosure: new Map(), methods: new Map(), failAtoms: new Map(), syncSeq: 0})
-const topStmtOf = (sf: ts.SourceFile, n: ts.Node): ts.Node => { let cur: ts.Node = n; while (cur.parent && cur.parent !== sf) cur = cur.parent; return cur }
-const spanOf = (sf: ts.SourceFile, n: ts.Node): DeclSpan => { const st = topStmtOf(sf, n); return {file: sf.fileName, start: st.getStart(sf), end: st.end} }
 const addUniqueStr = (xs: string[], x: string): string[] => (xs.includes(x) ? xs : [...xs, x])
 const addUniqueNode = (xs: ts.Node[], x: ts.Node): ts.Node[] => (xs.includes(x) ? xs : [...xs, x])
 const bumpTopScope = (scopeOps: number[]): number[] => {
@@ -147,8 +145,8 @@ function factoryOf(s: Setup, entry: string, tracker?: AtomTracker): FactoryOf {
     if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) if (ts.isIdentifier(d.name) && d.name.text === name) decl = d
   }
   if (!decl) return refuse(s.sf.statements[0] ?? s.sf, `no ${name} in the file`)
-  const spans: DeclSpan[] = [spanOf(s.sf, decl)]
-  const addSpan = (n: ts.Node) => { const sp = spanOf(s.sf, n); if (!spans.some(x => x.file === sp.file && x.start === sp.start && x.end === sp.end)) spans.push(sp) }
+  const spans: DeclSpan[] = [declSpanOf(s.sf, decl)]
+  const addSpan = (n: ts.Node) => { const sp = declSpanOf(s.sf, n); if (!spans.some(x => x.file === sp.file && x.start === sp.start && x.end === sp.end)) spans.push(sp) }
   // The make effect as written (a class's option or static member, a variable's value), through Layer.effect and names.
   let e: ts.Expression | undefined, at: ts.Node = decl
   if (ts.isClassDeclaration(decl)) {
@@ -1124,14 +1122,14 @@ function scheduleEntry(code: string, file: string, opts: EffectOptions): SchedEn
   if (!/\bSchedule\b/.test(code)) return undefined
   const s = setupOf(code, placed(file), {}, opts.files), found: SchedEntry[] = []
   for (const st of s.sf.statements) {
-    const decls = ts.isVariableStatement(st) ? st.declarationList.declarations.filter(d => ts.isIdentifier(d.name) && d.initializer).map(d => [(d.name as ts.Identifier).text, d.initializer!] as const)
-      : ts.isFunctionDeclaration(st) && st.name ? [[st.name.text, st] as const] : []
-    for (const [name, init] of decls) {
+    const decls = ts.isVariableStatement(st) ? st.declarationList.declarations.filter(d => ts.isIdentifier(d.name) && d.initializer).map(d => [(d.name as ts.Identifier).text, d.initializer!, d] as const)
+      : ts.isFunctionDeclaration(st) && st.name ? [[st.name.text, st, st] as const] : []
+    for (const [name, init, declNode] of decls) {
       if (opts.entry && opts.entry !== name) continue
       const f = ts.isFunctionDeclaration(init) ? init : ts.isArrowFunction(strip(init as ts.Expression)) || ts.isFunctionExpression(strip(init as ts.Expression)) ? strip(init as ts.Expression) as ts.FunctionLikeDeclaration : undefined
       const body = f ? lastReturn(f.body) : init as ts.Expression
       if (!body || !isSchedule(s, body) || (f && ts.isBlock(f.body!) && f.body.statements.length > 1)) continue
-      found.push({name, expr: body, params: (f?.parameters ?? []).map(p => (ts.isIdentifier(p.name) ? p.name.text : refuse(p, `${text(p)}: a parameter other than a name`))), s, declSpan: spanOf(s.sf, st)})
+      found.push({name, expr: body, params: (f?.parameters ?? []).map(p => (ts.isIdentifier(p.name) ? p.name.text : refuse(p, `${text(p)}: a parameter other than a name`))), s, declSpan: declSpanOf(s.sf, declNode)})
     }
   }
   if (opts.entry) return found[0]

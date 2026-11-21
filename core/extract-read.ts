@@ -58,6 +58,20 @@ export type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: '
 export type ListWrite = ({op: 'push', x: Term, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: Term, when: B})[]
 // Source declaration span of an extracted rule (used to bind source laws strictly to their own AST declaration).
 export type DeclSpan = {file: string, start: number, end: number}
+// Canonical enclosing declaration node: for `const a = ..., b = ...` the specific VariableDeclaration,
+// otherwise the top-level statement (ClassDeclaration, FunctionDeclaration, ExportAssignment, etc.).
+export function declNodeOf(sf: ts.SourceFile, n: ts.Node): ts.Node {
+  let cur: ts.Node = n, varDecl: ts.VariableDeclaration | undefined
+  while (cur.parent && cur.parent !== sf) {
+    if (ts.isVariableDeclaration(cur) && cur.parent.parent?.parent === sf) varDecl = cur
+    cur = cur.parent
+  }
+  return ts.isVariableStatement(cur) ? varDecl ?? cur : cur
+}
+export function declSpanOf(sf: ts.SourceFile, n: ts.Node): DeclSpan {
+  const d = declNodeOf(sf, n)
+  return {file: sf.fileName, start: d.getStart(sf), end: d.end}
+}
 // Per-path atomicity trace collected while reading an Effect service's methods (no separate AST walk).
 export type EffectAtom = {
   txDepth: number

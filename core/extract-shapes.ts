@@ -7,7 +7,7 @@ import ts from 'typescript'
 import {standaloneClosure} from './extract-standalone.ts'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
-import {type Arg, type DeclSpan, type EffectAtom, type Event, Exec, type Heap, type Layout, type LazyRoot, type ListObj, type ListOp, type ListWrite, type MapDecl, type MapObj, type Model, type Path, type Rec, Retype, type Setup, type Shape, type Sort, type Term, type V, type Var, lazyKey, memberName, mergeOps, normalize, program, refuse, shapeOf, unparen} from './extract-read.ts'
+import {type Arg, type DeclSpan, type EffectAtom, type Event, Exec, type Heap, type Layout, type LazyRoot, type ListObj, type ListOp, type ListWrite, type MapDecl, type MapObj, type Model, type Path, type Rec, Retype, type Setup, type Shape, type Sort, type Term, type V, type Var, declSpanOf, lazyKey, memberName, mergeOps, normalize, program, refuse, shapeOf, unparen} from './extract-read.ts'
 
 export type ReadOptions = {
   entry: string,
@@ -25,15 +25,6 @@ export type ReadOptions = {
   init?: unknown,
 }
 const at0 = (sf: ts.SourceFile): ts.Node => sf.statements[0] ?? sf
-const topStmtOf = (sf: ts.SourceFile, n: ts.Node): ts.Node => {
-  let cur: ts.Node = n
-  while (cur.parent && cur.parent !== sf) cur = cur.parent
-  return cur
-}
-const declSpanOf = (sf: ts.SourceFile, n: ts.Node): DeclSpan => {
-  const st = topStmtOf(sf, n)
-  return {file: sf.fileName, start: st.getStart(sf), end: st.end}
-}
 
 export function setupOf(code: string, file: string, typed: Record<string, Sort> = {}, files: Record<string, string> = {}): Setup {
   const root = file.slice(0, file.length - (file.split('/').pop()!.length)), extra = Object.fromEntries(Object.entries(files).map(([p, c]) => [normalize(`${root}${p}`), c]))

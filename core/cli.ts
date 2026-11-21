@@ -432,11 +432,13 @@ function* rulesOf0(t: Target, o: Opts, laws: Scoped[]): Pipeline<ReadRule[]> {
   const given = o.entry ?? (cfg.all.entry as string | undefined)
   if (given) return [yield* one(given)]
   if (t.lang === 'ts' || t.lang === 'cpp') {
-    const code = t.files.map(f => fs.readFileSync(f, 'utf8')).join('\n')
-    const re = t.lang === 'cpp' ? /^\s*(?:class|struct)\s+(\w+)\s*(?::[^{]*)?\{/gm : /export\s+(?:default\s+)?(?:abstract\s+)?class\s+(\w+)|export\s+(?:const|function)\s+(\w+)/g
-    // (C++: a class its source file defines methods of, `Alarm::detected(...) {`, declared in its header)
-    const defs = t.lang === 'cpp' ? [...code.matchAll(/^[\w:<>*&\s]*?\b(\w+)::~?\w+\s*\([^;]*?\)\s*(?:const\s*)?(?::[^{;]*)?\{/gm)].map(m => m[1]!) : []
-    const cands = [...new Set([...[...code.matchAll(re)].map(m => m[1] ?? m[2]!), ...defs])]
+    const cands = t.lang === 'ts' ? tsExports(t.files) : (() => {
+      const code = t.files.map(f => fs.readFileSync(f, 'utf8')).join('\n')
+      const re = /^\s*(?:class|struct)\s+(\w+)\s*(?::[^{]*)?\{/gm
+      // (C++: a class its source file defines methods of, `Alarm::detected(...) {`, declared in its header)
+      const defs = [...code.matchAll(/^[\w:<>*&\s]*?\b(\w+)::~?\w+\s*\([^;]*?\)\s*(?:const\s*)?(?::[^{;]*)?\{/gm)].map(m => m[1]!)
+      return [...new Set([...[...code.matchAll(re)].map(m => m[1]!), ...defs])]
+    })()
     const all = yield* manyOf(cands)
     const good = all.filter(r => r.x.ok)
     return good.length ? good : all.length ? all : [{x: {ok: false, refusals: [{where: t.at, what: 'no class or exported function to read: name the entry (--entry)'}], notes: []}}]
@@ -498,6 +500,21 @@ function loadTS(): TSMod {
   cachedTS = createRequire(import.meta.url)('typescript') as TSMod
   return cachedTS
 }
+function tsExports(files: string[]): string[] {
+  const ts = loadTS(), out: string[] = []
+  const hasExport = (st: import('typescript').Statement) => !!(ts.canHaveModifiers(st) && ts.getModifiers(st)?.some(m => m.kind === ts.SyntaxKind.ExportKeyword))
+  for (const f of files) {
+    const text = fs.readFileSync(f, 'utf8'), ext = path.extname(f).toLowerCase()
+    const kind = ext === '.tsx' ? ts.ScriptKind.TSX : ext === '.jsx' ? ts.ScriptKind.JSX : ext === '.js' || ext === '.mjs' || ext === '.cjs' ? ts.ScriptKind.JS : ts.ScriptKind.TS
+    const sf = ts.createSourceFile(f, text, ts.ScriptTarget.ES2022, true, kind)
+    for (const st of sf.statements) {
+      if (!hasExport(st)) continue
+      if ((ts.isClassDeclaration(st) || ts.isFunctionDeclaration(st)) && st.name) out.push(st.name.text)
+      else if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) if (ts.isIdentifier(d.name)) out.push(d.name.text)
+    }
+  }
+  return [...new Set(out)]
+}
 function scopedTS(file: string, text: string, laws: LawText[]): Scoped[] {
   if (!laws.length) return []
   const ts = loadTS(), ext = path.extname(file).toLowerCase()
@@ -522,17 +539,18 @@ function scopedTS(file: string, text: string, laws: LawText[]): Scoped[] {
     }
     return false
   }
-  const topStmtOf = (n: import('typescript').Node): import('typescript').Node => {
-    let cur = n
-    while (cur.parent && cur.parent !== sf) cur = cur.parent
-    return cur
-  }
   const spanOf = (n: import('typescript').Node) => ({file, start: n.getStart(sf), end: n.end})
   const declNameOf = (st: import('typescript').Node): string | undefined => {
     if (ts.isClassDeclaration(st) || ts.isFunctionDeclaration(st)) return st.name?.text
-    if (ts.isVariableStatement(st)) { const d = st.declarationList.declarations[0]; return d && ts.isIdentifier(d.name) ? d.name.text : undefined }
+    if (ts.isVariableDeclaration(st)) return ts.isIdentifier(st.name) ? st.name.text : undefined
     if (ts.isExportAssignment(st)) return 'default'
     return undefined
+  }
+  const varDeclOwner = (d: import('typescript').VariableDeclaration): {cls?: string, fn?: string, owner: LawOwner} => {
+    const vName = ts.isIdentifier(d.name) ? d.name.text : undefined
+    const isCls = !!(d.initializer && ts.isClassExpression(unwrap(d.initializer)))
+    const owner: LawOwner = {...spanOf(d), kind: isCls ? 'class' : 'var', ...(vName ? {name: vName} : {})}
+    return {...(isCls && vName ? {cls: vName} : vName ? {fn: vName} : {}), owner}
   }
   const listOf = (n: import('typescript').Node): readonly import('typescript').Node[] | undefined => {
     if (ts.isSourceFile(n) || ts.isBlock(n) || ts.isModuleBlock(n) || ts.isCaseClause(n) || ts.isDefaultClause(n)) return n.statements
@@ -543,9 +561,10 @@ function scopedTS(file: string, text: string, laws: LawText[]): Scoped[] {
   return laws.map(l => {
     const lineIdx = Math.max(0, (l.line ?? 1) - 1), rawLine = lines[lineIdx] ?? ''
     const indent = /^\s*/.exec(rawLine)![0].length
+    const commentAt = rawLine.search(/(?:\/\/+|\/\*+)\s*gdp:\s*law\b/i)
     const lineStart = sf.getPositionOfLineAndCharacter(lineIdx, 0)
     const lineEnd = lineIdx + 1 < lines.length ? sf.getPositionOfLineAndCharacter(lineIdx + 1, 0) : text.length
-    const pos = Math.min(text.length, lineStart + indent)
+    const pos = Math.min(text.length, lineStart + (commentAt >= 0 ? commentAt : indent))
     // Collect the exact chain of AST nodes whose real token span [getStart(sf), end) covers `pos`.
     const chain: import('typescript').Node[] = [sf]
     const descend = (n: import('typescript').Node): void => {
@@ -599,11 +618,15 @@ function scopedTS(file: string, text: string, laws: LawText[]): Scoped[] {
       if (ts.isClassDeclaration(clsNode) && clsNode.name) {
         cls = clsNode.name.text
         owner = {...spanOf(clsNode), kind: 'class', name: cls}
-      } else if (ts.isClassExpression(clsNode) && clsNode.parent && ts.isVariableDeclaration(clsNode.parent) && ts.isIdentifier(clsNode.parent.name) && topStmtOf(clsNode) === clsNode.parent.parent?.parent) {
-        cls = clsNode.parent.name.text
-        owner = {...spanOf(topStmtOf(clsNode)), kind: 'class', name: cls}
       } else {
-        owner = {...spanOf(clsNode), kind: 'anon-class', name: clsNode.name?.text ?? (ts.isClassDeclaration(clsNode) ? 'default class' : 'anonymous class')}
+        let p: import('typescript').Node | undefined = clsNode.parent
+        while (p && (ts.isParenthesizedExpression(p) || ts.isAsExpression(p) || ts.isSatisfiesExpression(p))) p = p.parent
+        if (ts.isClassExpression(clsNode) && p && ts.isVariableDeclaration(p) && ts.isIdentifier(p.name) && p.parent.parent?.parent === sf) {
+          cls = p.name.text
+          owner = {...spanOf(p), kind: 'class', name: cls}
+        } else {
+          owner = {...spanOf(clsNode), kind: 'anon-class', name: clsNode.name?.text ?? (ts.isClassDeclaration(clsNode) ? 'default class' : 'anonymous class')}
+        }
       }
       const inDecorator = chain.some(n => ts.isDecorator(n))
       if (inDecorator) {
@@ -620,15 +643,31 @@ function scopedTS(file: string, text: string, laws: LawText[]): Scoped[] {
       const fn = memberTarget(clsNode)
       return {...l, ...(cls ? {cls} : {}), ...(fn ? {fn} : {}), owner, inBody: true}
     }
-    // Inside a top-level non-class statement (e.g. a step law inside `export const make = Effect.gen(...)`).
+    // Inside a top-level VariableStatement: bind to the specific VariableDeclaration covering `pos`,
+    // or (between comma-separated declarators) to the next VariableDeclaration in that list.
+    if (chain.length >= 2 && ts.isVariableStatement(chain[1]!)) {
+      const topStmt = chain[1]!
+      const varDecl = chain.find((n): n is import('typescript').VariableDeclaration => ts.isVariableDeclaration(n) && n.parent.parent === topStmt)
+      if (varDecl) {
+        const {owner} = varDeclOwner(varDecl), vName = declNameOf(varDecl)
+        const memberFn = memberTarget(varDecl)
+        return {...l, ...(memberFn ? {fn: memberFn, inBody: true} : vName ? {fn: vName, inBody: false} : {inBody: false}), owner}
+      }
+      const decls = topStmt.declarationList.declarations
+      const nextDecl = decls.find(d => { const s = d.getStart(sf); return s >= pos && s < lineEnd })
+        ?? decls.find(d => d.getStart(sf) >= pos)
+      if (!nextDecl) return {...l, owner: {file, start: -1, end: -1, kind: 'file'}, inBody: false}
+      return {...l, ...varDeclOwner(nextDecl), inBody: false}
+    }
+    // Inside another top-level non-class statement (e.g. a FunctionDeclaration or ExportAssignment).
     if (chain.length >= 2) {
       const topStmt = chain[1]!
       const tName = declNameOf(topStmt)
-      const owner: LawOwner = {...spanOf(topStmt), kind: ts.isFunctionDeclaration(topStmt) ? 'function' : 'var', ...(tName ? {name: tName} : {})}
+      const owner: LawOwner = {...spanOf(topStmt), kind: ts.isFunctionDeclaration(topStmt) ? 'function' : ts.isExportAssignment(topStmt) ? 'var' : 'file', ...(tName ? {name: tName} : {})}
       const memberFn = memberTarget(topStmt)
       return {...l, ...(memberFn ? {fn: memberFn, inBody: true} : tName ? {fn: tName, inBody: false} : {inBody: false}), owner}
     }
-    // At top level of SourceFile: bind strictly to the next top-level declaration statement.
+    // At top level of SourceFile: bind strictly to the next top-level declaration node.
     const items = sf.statements.filter(st => !ts.isEmptyStatement(st))
     const next = items.find(it => { const s = it.getStart(sf); return s >= lineStart && s < lineEnd })
       ?? items.find(it => it.getStart(sf) >= pos)
@@ -645,9 +684,8 @@ function scopedTS(file: string, text: string, laws: LawText[]): Scoped[] {
     }
     if (ts.isVariableStatement(next)) {
       const d = next.declarationList.declarations[0]
-      const vName = d && ts.isIdentifier(d.name) ? d.name.text : undefined
-      const owner: LawOwner = {...spanOf(next), kind: 'var', ...(vName ? {name: vName} : {})}
-      return {...l, ...(vName ? {fn: vName} : {}), owner, inBody: false}
+      if (!d) return {...l, owner: {file, start: -1, end: -1, kind: 'file'}, inBody: false}
+      return {...l, ...varDeclOwner(d), inBody: false}
     }
     if (ts.isExportAssignment(next)) {
       return {...l, fn: 'default', owner: {...spanOf(next), kind: 'var', name: 'default'}, inBody: false}

@@ -1033,3 +1033,117 @@ export const make = (capacity: number) => Effect.gen(function* () {
     })
   }
 }, 180_000)
+
+test('multi-declarator export const a = ..., b = ... binds laws per VariableDeclaration span, never per statement (b5b, g1, g2)', async () => {
+  // b5b-multidecl: Effect services in one `export const make = ..., other = ...` statement
+  const b5b = `import {Effect, Ref} from 'effect'
+
+export const make = Effect.gen(function* () {
+  const tokens = yield* Ref.make(1)
+  const take = Effect.fn('take')(function* () { return yield* Ref.modify(tokens, t => t >= 1 ? [true, t - 1] as const : [false, t] as const) })
+  return {take}
+}),
+  // gdp: law tokens never go negative: tokens >= 0
+  other = Effect.gen(function* () {
+    const tokens = yield* Ref.make(1)
+    const take = Effect.fn('take')(function* () { yield* Ref.update(tokens, t => t - 1) })
+    const count = Effect.fn('count')(function* () { return yield* Ref.get(tokens) })
+    return {take, count}
+  })
+`
+  await withTempEffectFile(4, 'b5b-multidecl.ts', b5b, async file => {
+    const def = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+    expect(def.exit).toBe(1)
+    expect(def.rules.find(r => r.entry === 'make')!.laws).toEqual([])
+    expect(def.rules.find(r => r.entry === 'other')!.laws[0]).toMatchObject({name: 'tokens never go negative', verdict: 'broken', translation: 'sampled'})
+
+    const onlyMake = await check([file], {entry: 'make', ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+    expect(onlyMake.exit).toBe(2)
+    expect(onlyMake.rules.find(r => r.entry === 'make')!.laws).toEqual([])
+    expect(onlyMake.rules.flatMap(r => r.laws)[0]).toMatchObject({name: 'tokens never go negative', verdict: 'not read'})
+  })
+
+  // Unextractable second declarator and inline block comment between declarators never leak to `make`
+  const b5Unextractable = `import {Effect, Ref} from 'effect'
+
+export const make = Effect.gen(function* () {
+  const tokens = yield* Ref.make(1)
+  const take = Effect.fn('take')(function* () { return yield* Ref.modify(tokens, t => t >= 1 ? [true, t - 1] as const : [false, t] as const) })
+  return {take}
+}), /* gdp: law tokens never go negative: tokens >= 0 */ other = { take() { return -1 } }
+`
+  await withTempEffectFile(4, 'b5-inline-unextractable.ts', b5Unextractable, async file => {
+    const res = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+    expect(res.exit).toBe(2)
+    expect(res.rules.find(r => r.entry === 'make')!.laws).toEqual([])
+    expect(res.rules.flatMap(r => r.laws)[0]).toMatchObject({name: 'tokens never go negative', verdict: 'not read'})
+  })
+
+  // g1-classexpr: class expressions in `export const Good = class {...}, Bad = class {...}`
+  const g1 = `export const Good = class {
+  tokens = 1
+  take(n: number) { if (n < 0 || n > this.tokens) throw new Error('no'); this.tokens -= n }
+}, Bad = class {
+  tokens = 1
+  // gdp: law never negative: tokens >= 0
+  take(n: number) { if (n < 0) throw new Error('no'); this.tokens -= n }
+}
+`
+  const g1Above = `export const Good = class {
+  tokens = 1
+  take(n: number) { if (n < 0 || n > this.tokens) throw new Error('no'); this.tokens -= n }
+},
+  // gdp: law never negative: tokens >= 0
+  Bad = class {
+    tokens = 1
+    take(n: number) { if (n < 0) throw new Error('no'); this.tokens -= n }
+  }
+`
+  for (const [name, code] of [['g1-classexpr.ts', g1], ['g1-classexpr-above.ts', g1Above]] as const) {
+    await withTempEffectFile(4, name, code, async file => {
+      const def = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+      expect([name, def.exit]).toEqual([name, 1])
+      expect(def.rules.find(r => r.entry === 'Good')!.laws).toEqual([])
+      expect(def.rules.find(r => r.entry === 'Bad')!.laws[0]).toMatchObject({name: 'never negative', verdict: 'broken', translation: 'sampled'})
+
+      const onlyGood = await check([file], {entry: 'Good', ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+      expect([name, onlyGood.exit]).toEqual([name, 2])
+      expect(onlyGood.rules.find(r => r.entry === 'Good')!.laws).toEqual([])
+      expect(onlyGood.rules.flatMap(r => r.laws)[0]).toMatchObject({name: 'never negative', verdict: 'not read'})
+    })
+  }
+
+  // g2-fnfactory: function factories in `export const good = () => {...}, bad = () => {...}`
+  const g2 = `export const good = () => {
+  let tokens = 1
+  return { take(n: number) { if (n < 0 || n > tokens) throw new Error('no'); tokens -= n } }
+},
+  // gdp: law never negative: tokens >= 0
+  bad = () => {
+    let tokens = 1
+    return { take(n: number) { if (n < 0) throw new Error('no'); tokens -= n } }
+  }
+`
+  const g2Inside = `export const good = () => {
+  let tokens = 1
+  return { take(n: number) { if (n < 0 || n > tokens) throw new Error('no'); tokens -= n } }
+}, bad = () => {
+  let tokens = 1
+  // gdp: law never negative: tokens >= 0
+  return { take(n: number) { if (n < 0) throw new Error('no'); tokens -= n } }
+}
+`
+  for (const [name, code] of [['g2-fnfactory.ts', g2], ['g2-fnfactory-inside.ts', g2Inside]] as const) {
+    await withTempEffectFile(4, name, code, async file => {
+      const def = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+      expect([name, def.exit]).toEqual([name, 1])
+      expect(def.rules.find(r => r.entry === 'good')!.laws).toEqual([])
+      expect(def.rules.find(r => r.entry === 'bad')!.laws[0]).toMatchObject({name: 'never negative', verdict: 'broken', translation: 'sampled'})
+
+      const onlyGood = await check([file], {entry: 'good', ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+      expect([name, onlyGood.exit]).toEqual([name, 2])
+      expect(onlyGood.rules.find(r => r.entry === 'good')!.laws).toEqual([])
+      expect(onlyGood.rules.flatMap(r => r.laws)[0]).toMatchObject({name: 'never negative', verdict: 'not read'})
+    })
+  }
+}, 180_000)
