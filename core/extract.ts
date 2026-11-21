@@ -44,7 +44,7 @@ import type {Rule} from './dsl.ts'
 import type {Law} from './machine.ts'
 import * as I from './extract-ir.ts'
 import {type B, type K, type N, PASS} from './extract-ir.ts'
-import {type Arg, type Layout, type MapDecl, type MapWrite, type Model, Refusal, type Source, type Term, type Var, placed, sourceOf, syntaxError, tooDeep} from './extract-read.ts'
+import {type Arg, type DeclSpan, type Layout, type MapDecl, type MapWrite, type Model, Refusal, type Source, type Term, type Var, placed, sourceOf, syntaxError, tooDeep} from './extract-read.ts'
 import {type ReadOptions, isFactory, isSlice, readClass, readFactory, readFunctions, readSlice, readStandalone} from './extract-shapes.ts'
 import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, nonneg, pb, pidx, pk, pnum, pterm, sortsOf} from './extract-print.ts'
 import {type CheckOptions, type Evidence, check} from './extract-check.ts'
@@ -106,6 +106,8 @@ export type Extraction = {
   schedule?: unknown, schedules?: unknown[], fibers?: {name: string, steps: number, base: number}[],
   // The module's constants bound to literals (a law reads them as the code does: `n <= LIMIT`).
   consts?: Record<string, number | string | boolean>,
+  // Exact AST declaration span(s) in the source file that this rule was read from.
+  declSpans?: DeclSpan[],
 }
 // A variable of the rule by the code's own path to it: a field (`cfg.limit`), a constructor's or a request's argument
 // (`team_object.max_budget`, an object's field the caller gives), a call of other code answered by the request (its
@@ -208,7 +210,7 @@ export function fromModel(model: Model, file: string, domains: Record<string, 'n
   if (evidence.harness) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `${HARNESS_FAILED}${evidence.harness}`}], notes}
   if (evidence.mismatch) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `the rule and the code differ: ${evidence.mismatch}`}], notes}
   attachSource(rule, evidence, invariants)
-  return {ok: true, rule, ...(invariants.length ? {invariants} : {}), source, model, sorts, evidence, refusals: [], notes}
+  return {ok: true, rule, ...(invariants.length ? {invariants} : {}), source, model, sorts, evidence, refusals: [], notes, ...(model.declSpans ? {declSpans: model.declSpans} : {})}
 }
 // Internal builder for the C safety first-fault monitor machine: evaluates the
 // monitored model and its invariants without marking the monitor rule as an

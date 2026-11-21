@@ -4,6 +4,7 @@
 // Schedules, rewritten Queue/Semaphore models, and lifted multi-fiber models fail closed as unchecked with clear
 // reasons; AST-based TS/JS law scoping (scope.ts) prevents template literals/comments from detaching class laws.
 import {expect, test} from 'bun:test'
+import {spawnSync} from 'node:child_process'
 import {mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
@@ -684,4 +685,351 @@ export const make = Effect.gen(function* () {
     expect(rules[0]!.laws[0]).toMatchObject({verdict: 'unknown', translation: 'unchecked', kernelProven: true})
     expect(rules[0]!.laws[0]!.why).toContain('rewritten model')
   })
+}, 180_000)
+
+test('reader-driven atomicity regressions: p1b (fn decl helper), p7a (fn decl method), p7e (method syntax), p14 (unlocked method-syntax drain), p12/p13 (mixed tx), p3 (clock across sleep)', async () => {
+  // p1b: FunctionDeclaration helper doing Ref.get, sleep, Ref.update.
+  const p1b = `import {Effect, Ref} from 'effect'
+// gdp: law only one grant: granted <= 1
+export const make = Effect.gen(function* () {
+  const granted = yield* Ref.make(0)
+  function grantOnce() {
+    return Effect.gen(function* () {
+      const g = yield* Ref.get(granted)
+      if (g !== 0) return
+      yield* Effect.sleep('10 millis')
+      yield* Ref.update(granted, n => n + 1)
+    })
+  }
+  const claim = Effect.fn('claim')(function* () { yield* grantOnce() })
+  const count = Effect.fn('count')(function* () { return yield* Ref.get(granted) })
+  return {claim, count}
+})`
+
+  // p7a: FunctionDeclaration method returned via shorthand.
+  const p7a = `import {Effect, Ref} from 'effect'
+// gdp: law only one grant: granted <= 1
+export const make = Effect.gen(function* () {
+  const granted = yield* Ref.make(0)
+  function claim() {
+    return Effect.gen(function* () {
+      const g = yield* Ref.get(granted)
+      if (g !== 0) return
+      yield* Effect.sleep('10 millis')
+      yield* Ref.update(granted, n => n + 1)
+    })
+  }
+  const count = Effect.fn('count')(function* () { return yield* Ref.get(granted) })
+  return {claim, count}
+})`
+
+  // p7e: Object-method syntax inside returned object literal.
+  const p7e = `import {Effect, Ref} from 'effect'
+// gdp: law only one grant: granted <= 1
+export const make = Effect.gen(function* () {
+  const granted = yield* Ref.make(0)
+  return {
+    claim() {
+      return Effect.gen(function* () {
+        const g = yield* Ref.get(granted)
+        if (g !== 0) return
+        yield* Effect.sleep('10 millis')
+        yield* Ref.update(granted, n => n + 1)
+      })
+    },
+    count() { return Ref.get(granted) },
+  }
+})`
+
+  // p12 & p13: TxRef read outside tx then tx/update across suspension (and via fn decl helper).
+  const p12 = `import {Effect, TxRef} from 'effect'
+// gdp: law only one grant: granted <= 1
+export const make = Effect.gen(function* () {
+  const granted = yield* TxRef.make(0)
+  const claim = Effect.fn('claim')(function* () {
+    const g = yield* TxRef.get(granted)
+    if (g !== 0) return
+    yield* Effect.sleep('10 millis')
+    yield* Effect.tx(TxRef.update(granted, n => n + 1))
+  })
+  const count = Effect.fn('count')(function* () { return yield* TxRef.get(granted) })
+  return {claim, count}
+})`
+
+  const p13 = `import {Effect, TxRef} from 'effect'
+// gdp: law only one grant: granted <= 1
+export const make = Effect.gen(function* () {
+  const granted = yield* TxRef.make(0)
+  function checkOnce() { return TxRef.get(granted) }
+  const claim = Effect.fn('claim')(function* () {
+    const g = yield* checkOnce()
+    if (g !== 0) return
+    yield* Effect.sleep('10 millis')
+    yield* TxRef.update(granted, n => n + 1)
+  })
+  const count = Effect.fn('count')(function* () { return yield* TxRef.get(granted) })
+  return {claim, count}
+})`
+
+  for (const [name, code] of [['p1b.ts', p1b], ['p7a.ts', p7a], ['p7e.ts', p7e], ['p12.ts', p12], ['p13.ts', p13]] as const) {
+    await withTempEffectFile(4, name, code, async file => {
+      const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+      expect([name, exit]).toEqual([name, 2])
+      const law = rules[0]!.laws[0]!
+      expect(law).toMatchObject({name: 'only one grant', verdict: 'unknown', translation: 'unchecked'})
+      expect(law.why).toContain('claim')
+      expect(law.why).toContain('granted')
+      expect(law.why).toContain('Ref.modify')
+    })
+  }
+
+  // p14: locked take + unlocked method-syntax drain() and count() -> real concurrency drives tokens to -1.
+  const p14 = `import {Effect, Ref, Semaphore} from 'effect'
+// gdp: law tokens never go negative: tokens >= 0
+export const make = Effect.gen(function* () {
+  const tokens = yield* Ref.make(1)
+  const lock = yield* Semaphore.make(1)
+  const take = Effect.fn('take')(function* () {
+    return yield* lock.withPermits(1)(Effect.gen(function* () {
+      const t = yield* Ref.get(tokens)
+      if (t < 1) return false
+      yield* Effect.sleep('10 millis')
+      yield* Ref.update(tokens, x => x - 1)
+      return true
+    }))
+  })
+  return {
+    take,
+    drain() { return Ref.set(tokens, 0) },
+    count() { return Ref.get(tokens) },
+  }
+})`
+  await withTempEffectFile(4, 'p14-lockgap.ts', p14, async file => {
+    const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+    expect(exit).toBe(2)
+    const law = rules[0]!.laws[0]!
+    expect(law).toMatchObject({name: 'tokens never go negative', verdict: 'unknown', translation: 'unchecked'})
+    expect(law.why).toContain('drain')
+    expect(law.why).toContain('outside the Semaphore(1) lock held by take')
+  })
+
+  // p3: Clock read before sleep followed by Ref write -> stale clock across suspension is unchecked.
+  const p3 = `import {Clock, Effect, Ref} from 'effect'
+// gdp: law last never goes down: last >= old(last)
+export const make = Effect.gen(function* () {
+  const last = yield* Ref.make(0)
+  const stamp = Effect.fn('stamp')(function* () {
+    const now = yield* Clock.currentTimeMillis
+    yield* Effect.sleep('10 millis')
+    yield* Ref.set(last, now)
+  })
+  const read = Effect.fn('read')(function* () { return yield* Ref.get(last) })
+  return {stamp, read}
+})`
+  await withTempEffectFile(4, 'p3-clock.ts', p3, async file => {
+    const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+    expect(exit).toBe(2)
+    expect(rules[0]!.laws[0]).toMatchObject({verdict: 'unknown', translation: 'unchecked'})
+    expect(rules[0]!.laws[0]!.why).toContain('reads the clock')
+  })
+}, 180_000)
+
+test('closure let state (p8): refused unless provably confined to one atomic step; single-Effect.sync control accepted; tx-mixed let refused', async () => {
+  // p8: closure `let granted = 0` touched across two Effect.sync calls with sleep between -> refused (exit 2).
+  const p8 = `import {Effect} from 'effect'
+// gdp: law only one grant: granted <= 1
+export const make = Effect.gen(function* () {
+  let granted = 0
+  const claim = Effect.fn('claim')(function* () {
+    const g = yield* Effect.sync(() => granted)
+    if (g !== 0) return
+    yield* Effect.sleep('10 millis')
+    yield* Effect.sync(() => { granted = granted + 1 })
+  })
+  const count = Effect.fn('count')(function* () { return yield* Effect.sync(() => granted) })
+  return {claim, count}
+})`
+  await withTempEffectFile(4, 'p8-letsync.ts', p8, async file => {
+    const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+    expect(exit).toBe(2)
+    expect(rules[0]!.ok).toBe(false)
+    expect(rules[0]!.refusals[0]!.what).toContain('closure state granted')
+    expect(rules[0]!.laws[0]).toMatchObject({name: 'only one grant', verdict: 'not read'})
+  })
+
+  // Same without sleep: two separate Effect.sync yields can still interleave -> refused (exit 2).
+  await withTempEffectFile(4, 'p8-nosleep.ts', p8.replace("yield* Effect.sleep('10 millis')\n", ''), async file => {
+    const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+    expect(exit).toBe(2)
+    expect(rules[0]!.ok).toBe(false)
+    expect(rules[0]!.refusals[0]!.what).toContain('closure state granted')
+  })
+
+  // Closure `let` inside Effect.tx does not roll back -> refused (exit 2).
+  const letInTx = `import {Effect, TxRef} from 'effect'
+// gdp: law only one grant: granted <= 1
+export const make = Effect.gen(function* () {
+  let granted = 0
+  const flag = yield* TxRef.make(0)
+  const claim = Effect.fn('claim')(function* () {
+    yield* Effect.tx(Effect.gen(function* () {
+      const f = yield* TxRef.get(flag)
+      if (f !== 0) return
+      yield* TxRef.set(flag, 1)
+      yield* Effect.sync(() => { granted = granted + 1 })
+    }))
+  })
+  return {claim}
+})`
+  await withTempEffectFile(4, 'p8-tx.ts', letInTx, async file => {
+    const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+    expect(exit).toBe(2)
+    expect(rules[0]!.ok).toBe(false)
+    expect(rules[0]!.refusals[0]!.what).toContain('closure state cannot be used inside a transaction')
+  })
+
+  // Positive control: closure `let` provably touched only inside one synchronous Effect.sync per method -> proven natively (exit 0).
+  const atomicLet = `import {Effect} from 'effect'
+// gdp: law only one grant: granted <= 1
+export const make = Effect.gen(function* () {
+  let granted = 0
+  const claim = () => Effect.sync(() => {
+    if (granted !== 0) return false
+    granted = granted + 1
+    return true
+  })
+  const count = () => Effect.sync(() => granted)
+  return {claim, count}
+})`
+  await withTempEffectFile(4, 'p8-atomic.ts', atomicLet, async file => {
+    const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+    expect(exit).toBe(0)
+    expect(rules[0]!.laws[0]).toMatchObject({name: 'only one grant', verdict: 'proven', translation: 'sampled'})
+  })
+}, 180_000)
+
+test('AST declaration-span law attribution (s1, s2, s3, s4): anonymous default class, wrapped class, named class, and module fn never bind to Effect make; CLI text output lists every law', async () => {
+  const makePart = `export const make = Effect.gen(function* () {
+  const bal = yield* Ref.make(10)
+  const take = Effect.fn('take')(function* (k: number) {
+    return yield* Ref.modify(bal, b => (k >= 0 && k <= b ? [true, b - k] as const : [false, b] as const))
+  })
+  return {take}
+})`
+
+  // s1: anonymous `export default class`
+  const s1 = `import {Effect, Ref} from 'effect'\n\nexport default class {\n  bal = 10\n  // gdp: law never negative: bal >= 0\n  take(k: number) { this.bal -= k }\n}\n\n${makePart}\n`
+  // s2: `wrap(class { ... })`
+  const s2 = `import {Effect, Ref} from 'effect'\n\nconst wrap = <T,>(c: T) => c\nexport const Ledger = wrap(class {\n  bal = 10\n  // gdp: law never negative: bal >= 0\n  take(k: number) { this.bal -= k }\n})\n\n${makePart}\n`
+  // s3: named `export class Ledger`
+  const s3 = `import {Effect, Ref} from 'effect'\n\nexport class Ledger {\n  bal = 10\n  // gdp: law never negative: bal >= 0\n  take(k: number) { this.bal -= k }\n}\n\n${makePart}\n`
+  // s4: module-level `export function take`
+  const s4 = `import {Effect, Ref} from 'effect'\n\nlet bal = 10\n// gdp: law never negative: bal >= 0\nexport function take(k: number) { bal -= k }\n\n${makePart}\n`
+
+  const cliPath = join(import.meta.dir, 'cli.ts')
+  for (const [name, code] of [['s1-anon.ts', s1], ['s2-wrapped.ts', s2], ['s3-named.ts', s3], ['s4-fnlaw.ts', s4]] as const) {
+    await withTempEffectFile(4, name, code, async file => {
+      const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+      expect([name, exit]).toEqual([name, 2])
+      const makeRule = rules.find(r => r.entry === 'make')!
+      expect(makeRule.ok).toBe(true)
+      expect(makeRule.laws).toEqual([])
+      const allLaws = rules.flatMap(r => r.laws)
+      expect(allLaws.length).toBe(1)
+      expect(allLaws[0]).toMatchObject({name: 'never negative', verdict: 'not read'})
+
+      // Verify explicit `--entry make` STILL refuses to bind another declaration's law to `make`.
+      const explicit = await check([file], {entry: 'make', ms: 10_000, propose: false, check: {runs: 25, depth: 5, states: 30}})
+      expect(explicit.exit).toBe(2)
+      expect(explicit.rules.find(r => r.entry === 'make')!.laws).toEqual([])
+      expect(explicit.rules.flatMap(r => r.laws).find(l => l.name === 'never negative')?.verdict).toBe('not read')
+
+      // Verify plain text CLI output (without --json) is non-empty, exits 2, and lists the law explicitly.
+      const proc = spawnSync('bun', [cliPath, 'check', file, '--no-propose'], {encoding: 'utf8', timeout: 60_000})
+      expect([name, proc.status]).toEqual([name, 2])
+      expect(proc.stdout.length).toBeGreaterThan(0)
+      expect(proc.stdout).toContain('never negative')
+      expect(proc.stdout).toContain('not read')
+      expect(proc.stdout).toContain('0 of 1 stated laws proven, 0 broken, 0 unknown, 1 not read')
+    })
+  }
+}, 180_000)
+
+test('film limiters g-atomic and g-lock stay proven (2/2, exit 0) and all four broken twins stay broken (exit 1)', async () => {
+  const gAtomic = `import {Effect, Ref, Schema} from 'effect'
+
+export class RateLimited extends Schema.TaggedError<RateLimited>()('RateLimited', {n: Schema.Number}) {}
+
+// gdp: law tokens stay within the capacity: tokens <= capacity
+// gdp: law tokens never go negative: capacity < 0 or tokens >= 0
+export const make = (capacity: number) => Effect.gen(function* () {
+  const tokens = yield* Ref.make(capacity)
+
+  const take = Effect.fn('take')(function* (n: number) {
+    const left = yield* Ref.modify(tokens, (t) =>
+      n < 0 || n > t ? [undefined, t] as const : [t - n, t - n] as const)
+    if (left === undefined) return yield* new RateLimited({n})
+    return left
+  })
+
+  const refill = (n: number) =>
+    Ref.update(tokens, (t) => Math.min(capacity, t + Math.max(0, n)))
+
+  return {take, refill}
+})
+`
+  const gLock = `import {Effect, Ref, Schema, Semaphore} from 'effect'
+
+export class RateLimited extends Schema.TaggedError<RateLimited>()('RateLimited', {n: Schema.Number}) {}
+
+// gdp: law tokens stay within the capacity: tokens <= capacity
+// gdp: law tokens never go negative: capacity < 0 or tokens >= 0
+export const make = (capacity: number) => Effect.gen(function* () {
+  const tokens = yield* Ref.make(capacity)
+  const lock = yield* Semaphore.make(1)
+
+  const take = Effect.fn('take')(function* (n: number) {
+    return yield* lock.withPermits(1)(Effect.gen(function* () {
+      const t = yield* Ref.get(tokens)
+      if (n < 0 || n > t) return yield* new RateLimited({n})
+      yield* Ref.set(tokens, t - n)
+      return t - n
+    }))
+  })
+
+  const refill = (n: number) =>
+    lock.withPermits(1)(Ref.update(tokens, (t) => Math.min(capacity, t + Math.max(0, n))))
+
+  return {take, refill}
+})
+`
+  // Two good limiters: both 2/2 proven natively (exit 0).
+  for (const [name, code] of [['g-atomic.ts', gAtomic], ['g-lock.ts', gLock]] as const) {
+    await withTempEffectFile(4, name, code, async file => {
+      const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 40, depth: 6, states: 60}})
+      expect([name, exit]).toEqual([name, 0])
+      expect(rules[0]!.laws.map(l => [l.name, l.verdict, l.translation])).toEqual([
+        ['tokens stay within the capacity', 'proven', 'sampled'],
+        ['tokens never go negative', 'proven', 'sampled'],
+      ])
+    })
+  }
+
+  // Four broken twins: (1) g-atomic without `n > t`, (2) g-lock without `n > t`,
+  // (3) g-atomic without Math.min cap in refill, (4) g-lock without Math.min cap in refill.
+  const twins: [string, string, string][] = [
+    ['g-atomic-no-t.ts', gAtomic.replace('n < 0 || n > t', 'n < 0'), 'tokens never go negative'],
+    ['g-lock-no-t.ts', gLock.replace('n < 0 || n > t', 'n < 0'), 'tokens never go negative'],
+    ['g-atomic-no-min.ts', gAtomic.replace('Math.min(capacity, t + Math.max(0, n))', 't + Math.max(0, n)'), 'tokens stay within the capacity'],
+    ['g-lock-no-min.ts', gLock.replace('Math.min(capacity, t + Math.max(0, n))', 't + Math.max(0, n)'), 'tokens stay within the capacity'],
+  ]
+  for (const [name, code, brokenLaw] of twins) {
+    await withTempEffectFile(4, name, code, async file => {
+      const {rules, exit} = await check([file], {ms: 10_000, propose: false, check: {runs: 40, depth: 6, states: 60}})
+      expect([name, exit]).toEqual([name, 1])
+      const broken = rules[0]!.laws.find(l => l.name === brokenLaw)!
+      expect(broken).toMatchObject({verdict: 'broken', translation: 'sampled'})
+      expect(broken.run!.length).toBeGreaterThan(0)
+    })
+  }
 }, 180_000)

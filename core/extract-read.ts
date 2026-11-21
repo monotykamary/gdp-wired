@@ -56,8 +56,69 @@ export type MapWrite = {key: K, has: B, vals: Record<string, Term>, pre?: MapWri
 // A list's write in a step (at most one, by cases): an item pushed, the last popped, or the item at i set (i within it).
 export type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: V, when: B}
 export type ListWrite = ({op: 'push', x: Term, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: Term, when: B})[]
+// Source declaration span of an extracted rule (used to bind source laws strictly to their own AST declaration).
+export type DeclSpan = {file: string, start: number, end: number}
+// Per-path atomicity trace collected while reading an Effect service's methods (no separate AST walk).
+export type EffectAtom = {
+  txDepth: number
+  locks: ts.Node[]
+  syncDepth: number
+  yieldEpoch: number
+  syncId: number
+  units: number
+  rawStateOps: number
+  unlockedStateOps: number
+  sawClock: boolean
+  sleptAfterClock: boolean
+  stateAfterSleptClock: boolean
+  locksUsed: ts.Node[]
+  multiOpLocks: ts.Node[]
+  touchedState: string[]
+  closureStateTouched: string[]
+  lastClosureEpoch?: string
+  closureMultiStep: boolean
+  scopeOps: number[]
+}
+export const initEffectAtom = (): EffectAtom => ({
+  txDepth: 0, locks: [], syncDepth: 0, yieldEpoch: 0, syncId: 0,
+  units: 0, rawStateOps: 0, unlockedStateOps: 0,
+  sawClock: false, sleptAfterClock: false, stateAfterSleptClock: false,
+  locksUsed: [], multiOpLocks: [], touchedState: [], closureStateTouched: [],
+  closureMultiStep: false, scopeOps: [],
+})
+export const mergeEffectAtom = (a?: EffectAtom, b?: EffectAtom): EffectAtom | undefined => {
+  if (!a) return b
+  if (!b) return a
+  const maxScope = Math.max(a.scopeOps.length, b.scopeOps.length)
+  const scopeOps: number[] = []
+  for (let i = 0; i < maxScope; i++) scopeOps.push(Math.max(a.scopeOps[i] ?? 0, b.scopeOps[i] ?? 0))
+  const lastClosureEpoch = a.lastClosureEpoch && b.lastClosureEpoch
+    ? (a.lastClosureEpoch === b.lastClosureEpoch ? a.lastClosureEpoch : 'mixed')
+    : (a.lastClosureEpoch ?? b.lastClosureEpoch)
+  return {
+    txDepth: Math.max(a.txDepth, b.txDepth),
+    locks: a.locks.length >= b.locks.length ? a.locks : b.locks,
+    syncDepth: Math.max(a.syncDepth, b.syncDepth),
+    yieldEpoch: Math.max(a.yieldEpoch, b.yieldEpoch),
+    syncId: Math.max(a.syncId, b.syncId),
+    units: Math.max(a.units, b.units),
+    rawStateOps: Math.max(a.rawStateOps, b.rawStateOps),
+    unlockedStateOps: Math.max(a.unlockedStateOps, b.unlockedStateOps),
+    sawClock: a.sawClock || b.sawClock,
+    sleptAfterClock: a.sleptAfterClock || b.sleptAfterClock,
+    stateAfterSleptClock: a.stateAfterSleptClock || b.stateAfterSleptClock,
+    locksUsed: [...new Set([...a.locksUsed, ...b.locksUsed])],
+    multiOpLocks: [...new Set([...a.multiOpLocks, ...b.multiOpLocks])],
+    touchedState: [...new Set([...a.touchedState, ...b.touchedState])],
+    closureStateTouched: [...new Set([...a.closureStateTouched, ...b.closureStateTouched])],
+    ...(lastClosureEpoch !== undefined ? {lastClosureEpoch} : {}),
+    closureMultiStep: a.closureMultiStep || b.closureMultiStep,
+    scopeOps,
+  }
+}
 export type Model = {
   name: string, shape: 'reducer' | 'functions' | 'class', file: string, entry: string,
+  declSpans?: DeclSpan[],
   standalone?: true,
   // The opt-in reader preserves numeric literal unions as request-domain restrictions.
   standaloneDomains?: Record<string, number[]>,
@@ -125,7 +186,7 @@ type MapObj = {k: 'map', base: string, decl: MapDecl, w?: {key: K, has: B, vals:
 type ListObj = {k: 'list', base: string, decl: MapDecl, ops: ListOp[], origin: 'fresh' | 'input' | 'this' | 'shared'}
 type Obj = Rec | MapObj | ListObj | {k: 'alias', to: V}
 type Heap = Map<string, Obj>
-type Path = {pc: B[], locals: Map<string, V>, heap: Heap, wrote: string[], nows: number, outs?: string[]}
+type Path = {pc: B[], locals: Map<string, V>, heap: Heap, wrote: string[], nows: number, outs?: string[], atom?: EffectAtom}
 type Flow = {live?: Path, rets: [Path, V][], breaks: Path[]}
 export const unparen = (x: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(x) ? unparen(x.expression) : x)
 // An expression without its parentheses, casts and `!` (what it is, as the front ends read it).
@@ -310,9 +371,13 @@ export type Setup = {
   // the object alone.
   // (mods: the modules whose functions the class calls, each call at the boundary: the check stubs them by name)
   fnFields?: {outside: Map<string, {path: string, sort: Sort}>, names: Set<string>, mods?: Set<string>},
+  // Source declaration span(s) the rule was read from (used by CLI law attribution).
+  declSpans?: DeclSpan[],
   // A front end's expressions read before the subset's (core/effect.ts: yield*, Effect's and Ref's calls): a value and
   // the path after, or undefined where the expression is the subset's.
   effect?: (ex: Exec, e: ts.Expression, p: Path) => [V, Path] | undefined,
+  // Hook invoked whenever a method reads or writes closed-over factory state (outside constructor/make initialization).
+  onStateAccess?: (name: string, kind: 'read' | 'write', p: Path, at: ts.Node) => Path,
 }
 
 export class Exec {
@@ -390,7 +455,8 @@ export class Exec {
       heap.set(id, !oa ? ob! : !ob ? oa : this.mergeObj(c, oa, ob, a, b, heap, pairs, at))
     }
     const outs = [...new Set([...(a.outs ?? []), ...(b.outs ?? [])])]
-    return {pc, locals, heap, wrote: [...new Set([...a.wrote, ...b.wrote])], nows: Math.max(a.nows, b.nows), ...(outs.length ? {outs} : {})}
+    const atom = mergeEffectAtom(a.atom, b.atom)
+    return {pc, locals, heap, wrote: [...new Set([...a.wrote, ...b.wrote])], nows: Math.max(a.nows, b.nows), ...(outs.length ? {outs} : {}), ...(atom ? {atom} : {})}
   }
   private deref(p: Path, v: V): V {
     while (v.t === 'ref') { const o = p.heap.get(v.id); if (o?.k !== 'alias') return v; v = o.to }
@@ -715,7 +781,10 @@ export class Exec {
     const sym = this.resolved(e)
     const decl = sym?.valueDeclaration ?? sym?.declarations?.[0]
     // A factory's own variable (or argument), closed over by the object it returns: a field of that object's state.
-    if (decl && this.s.closure?.has(decl)) return this.field({t: 'ref', id: 'this'}, e.text, e, p)
+    if (decl && this.s.closure?.has(decl)) {
+      const q = !this.s.ctor && this.s.onStateAccess ? this.s.onStateAccess(e.text, 'read', p, e) : p
+      return this.field({t: 'ref', id: 'this'}, e.text, e, q)
+    }
     if (decl && ts.isVariableDeclaration(decl) && decl.initializer && this.s.ours(decl.getSourceFile()) && ts.isVariableStatement(decl.parent.parent) && ts.isSourceFile(decl.parent.parent.parent)) {
       if (!(decl.parent.flags & ts.NodeFlags.Const)) return refuse(e, `${e.text}: a module-level let (state outside the step)`)
       if (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer)) return refuse(e, `${e.text}: a function used as a value`)
@@ -1080,7 +1149,8 @@ export class Exec {
       const cd = !p.locals.has(target.text) ? this.s.checker.getSymbolAtLocation(target)?.valueDeclaration : undefined
       if (cd && this.s.closure?.has(cd)) {
         if (ts.isVariableDeclaration(cd) && cd.parent.flags & ts.NodeFlags.Const) return refuse(target, `${target.text} is a const`)
-        return this.writeField({t: 'ref', id: 'this'}, target.text, v, p, target)
+        const q = !this.s.ctor && this.s.onStateAccess ? this.s.onStateAccess(target.text, 'write', p, target) : p
+        return this.writeField({t: 'ref', id: 'this'}, target.text, v, q, target)
       }
       if (!p.locals.has(target.text)) return refuse(target, `${target.text}: an assignment to a name outside the step`)
       const sym = this.s.checker.getSymbolAtLocation(target), decl = sym?.valueDeclaration

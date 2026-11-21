@@ -7,7 +7,7 @@ import ts from 'typescript'
 import {standaloneClosure} from './extract-standalone.ts'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
-import {type Arg, type Event, Exec, type Heap, type Layout, type LazyRoot, type ListObj, type ListOp, type ListWrite, type MapDecl, type MapObj, type Model, type Path, type Rec, Retype, type Setup, type Shape, type Sort, type Term, type V, type Var, lazyKey, memberName, mergeOps, normalize, program, refuse, shapeOf, unparen} from './extract-read.ts'
+import {type Arg, type DeclSpan, type EffectAtom, type Event, Exec, type Heap, type Layout, type LazyRoot, type ListObj, type ListOp, type ListWrite, type MapDecl, type MapObj, type Model, type Path, type Rec, Retype, type Setup, type Shape, type Sort, type Term, type V, type Var, lazyKey, memberName, mergeOps, normalize, program, refuse, shapeOf, unparen} from './extract-read.ts'
 
 export type ReadOptions = {
   entry: string,
@@ -25,6 +25,15 @@ export type ReadOptions = {
   init?: unknown,
 }
 const at0 = (sf: ts.SourceFile): ts.Node => sf.statements[0] ?? sf
+const topStmtOf = (sf: ts.SourceFile, n: ts.Node): ts.Node => {
+  let cur: ts.Node = n
+  while (cur.parent && cur.parent !== sf) cur = cur.parent
+  return cur
+}
+const declSpanOf = (sf: ts.SourceFile, n: ts.Node): DeclSpan => {
+  const st = topStmtOf(sf, n)
+  return {file: sf.fileName, start: st.getStart(sf), end: st.end}
+}
 
 export function setupOf(code: string, file: string, typed: Record<string, Sort> = {}, files: Record<string, string> = {}): Setup {
   const root = file.slice(0, file.length - (file.split('/').pop()!.length)), extra = Object.fromEntries(Object.entries(files).map(([p, c]) => [normalize(`${root}${p}`), c]))
@@ -355,6 +364,7 @@ const sortOf = (sh: Shape, lits: string[]): Sort => (sh.k === 'str' && lits.leng
 // Experimental opt-in: a pure, standalone scalar function. No third-party call or state is synthesized.
 export function readStandalone(code: string, file: string, opts: ReadOptions): Model {
   const s = setupOf(code, file, opts.typed, opts.files), fn = findFunction(s.sf, opts.entry)
+  s.declSpans = [declSpanOf(s.sf, fn)]
   if (opts.entry === 'undefined' || opts.entry === '__cov') refuse(fn, 'standalone: reserved entry name')
   const bindings = standaloneClosure(s, fn)
   s.spans = [[fn.getStart(), fn.end]]
@@ -480,6 +490,7 @@ export function readFunctions(code: string, file: string, opts: ReadOptions): Mo
 }
 function readFunctionsOnce(code: string, file: string, opts: ReadOptions): Model {
   const s = setupOf(code, file, opts.typed, opts.files), names = opts.functions ?? [opts.entry], fns = names.map(n => findFunction(s.sf, n))
+  s.declSpans = fns.map(f => declSpanOf(s.sf, f))
   const first = fns[0]!, sp = first.parameters[0] ?? refuse(first, 'a step function takes the state first')
   // The initial state: given, a default parameter, useReducer's second argument, or `initialState`.
   let raw: unknown = opts.init, initSource: string | undefined, initExpr: ts.Expression | undefined
@@ -573,7 +584,7 @@ function finish(s: Setup, m: {name: string, shape: Model['shape'], file: string,
   for (const [n, ops] of m.final.lists ?? []) if (ops.length) listWrites[n] = ops.map(o => (o.op === 'pop' ? o : {...o, x: termOf(o.x)}))
   return {name: m.name, shape: m.shape, file: m.file, entry: m.entry, params: vars.filter(v => v.role === 'param'), inputs: vars.filter(v => v.role === 'input'), state: vars.filter(v => v.role === 'state'),
     maps: [...s.maps.values()], ...(s.lists?.size ? {lists: [...s.lists.values()], listWrites} : {}), init: m.init, writes, mapWrites, outputs: m.outputs, refuse: m.refuse, pre: m.pre, layout: m.layout, events: m.events, notes: [...s.notes], hints: s.hints,
-    ...(m.event ? {event: m.event} : {}), ...(m.ctorArgs ? {ctorArgs: m.ctorArgs} : {}), ...(s.lazy.size ? {lazy: s.lazy} : {}), ...(m.initSource ? {initSource: m.initSource} : {}), ...(s.spans ? {spans: s.spans} : {}),
+    ...(m.event ? {event: m.event} : {}), ...(m.ctorArgs ? {ctorArgs: m.ctorArgs} : {}), ...(s.lazy.size ? {lazy: s.lazy} : {}), ...(m.initSource ? {initSource: m.initSource} : {}), ...(s.spans ? {spans: s.spans} : {}), ...(s.declSpans?.length ? {declSpans: s.declSpans} : {}),
     ...(s.fnFields?.names.size ? {fnFields: [...s.fnFields.names]} : {}), ...(s.fnFields?.outside.size ? {answers: Object.fromEntries([...s.fnFields.outside].map(([n, o]) => [n, o.path.replace(/^this\./, '')]))} : {}), ...(s.fnFields?.mods?.size ? {imports: [...s.fnFields.mods]} : {})}
 }
 
@@ -655,6 +666,7 @@ export type Result = {k: 'scalar', name: string} | {k: 'rec', fields: [string, s
 function attempt(code: string, file: string, opts: ReadOptions, written: Set<string>): {model: Model, written: Set<string>} {
   const s = setupOf(code, file, {}, opts.files), cls = findClass(s.sf, opts.entry), first = written.size === 0
   s.cls = cls
+  s.declSpans = [declSpanOf(s.sf, cls)]
   // `implements` is a type's only (nothing at run time); `extends` brings another class's fields and methods: each
   // member resolved statically, from the entry class up (this.m() the entry's own or the nearest inherited; super.m()
   // the nearest above the class it is written in).
@@ -988,6 +1000,11 @@ export type FactoryOf = {
   calls: string, extra?: [number, string][],
   // Objects every method's path starts with beside the state (core/effect.ts: what the step has changed so far).
   start?: [string, Heap extends Map<string, infer O> ? O : never][],
+  declSpans?: DeclSpan[],
+  initAtom?: () => EffectAtom,
+  onFields?: (fields: {name: string, param?: boolean, isConst?: boolean, node: ts.Node}[], written: Set<string>, first: boolean) => void,
+  beginMethod?: (name: string) => void,
+  endMethod?: (name: string, atoms: (EffectAtom | undefined)[]) => void,
 }
 export function readFactory(code: string, file: string, opts: ReadOptions, fx?: (s: Setup) => FactoryOf): Model {
   const written = factoryAttempt(code, file, opts, new Set(), fx).written
@@ -995,6 +1012,7 @@ export function readFactory(code: string, file: string, opts: ReadOptions, fx?: 
 }
 function factoryAttempt(code: string, file: string, opts: ReadOptions, written: Set<string>, fxOf?: (s: Setup) => FactoryOf): {model: Model, written: Set<string>} {
   const s = setupOf(code, file, {}, opts.files), fx = fxOf?.(s), fn = fx?.fn ?? findFunction(s.sf, opts.entry), first = written.size === 0
+  s.declSpans = fx?.declSpans ?? [declSpanOf(s.sf, fn)]
   if (!fx && (fn.modifiers?.some(m => m.kind === ts.SyntaxKind.AsyncKeyword) || fn.asteriskToken)) refuse(fn, 'an async or generator factory')
   const obj = fx?.obj ?? returnedObject(fn) ?? refuse(fn, `${opts.entry} returns no object of functions`)
   const stmts = fn.body && ts.isBlock(fn.body) ? fn.body.statements.slice(0, -1) : []
@@ -1022,6 +1040,7 @@ function factoryAttempt(code: string, file: string, opts: ReadOptions, written: 
     }
   }
   s.closure = closure
+  fx?.onFields?.(fields, written, first)
   s.notes.add(`${opts.entry} makes an object of functions: its state is what they close over (${fields.map(f => f.name).join(', ') || 'nothing'}), its arguments the params`)
   const ex0 = new Exec(s)
   const constant = (f: Field) => !first && !written.has(f.name) && f.shape.k !== 'map' && f.shape.k !== 'list'
@@ -1110,8 +1129,9 @@ function factoryAttempt(code: string, file: string, opts: ReadOptions, written: 
   for (const f of fns) if (f.decl.getSourceFile() === s.sf) (s.spans ??= []).push([f.decl.getStart(), f.decl.end])
   for (const st of stmts) if (st.getSourceFile() === s.sf) (s.spans ??= []).push([st.getStart(), st.end])
   for (const f of fns) {
+    fx?.beginMethod?.(f.name)
     const ex = new Exec(s), sel = I.is(evL, f.name)
-    let p: Path = {pc: [sel], locals: new Map(), heap: new Map(stateHeap), wrote: [], nows: 0}
+    let p: Path = {pc: [sel], locals: new Map(), heap: new Map(stateHeap), wrote: [], nows: 0, ...(fx?.initAtom ? {atom: fx.initAtom()} : {})}
     const args: Arg[] = []
     for (const [ordinal, param] of f.decl.parameters.entries()) {
       if (param.dotDotDotToken || !ts.isIdentifier(param.name)) refuse(param, 'a rest or destructured argument')
@@ -1125,7 +1145,9 @@ function factoryAttempt(code: string, file: string, opts: ReadOptions, written: 
     let ends: [Path, V][] = ts.isBlock(body) ? (() => { const flow = ex.block(body.statements, p); return [...flow.rets, ...(flow.live ? [[flow.live, {t: 'undef'} as V] as [Path, V]] : [])] })() : [(([v, q]) => [q, v] as [Path, V])(ex.ev(body as ts.Expression, p))]
     // A method that returns an effect: the effect run (a generator's body is run as it is read).
     if (fx && !f.decl.asteriskToken) ends = ends.map(([q, v]) => { const [v2, q2] = fx.run(ex, v, f.decl, q); return [q2, v2] })
-    const outs: [Path, StateVal][] = ends.filter(([q]) => ex.feasible(q)).map(([rp, rv]) => {
+    const liveEnds = ends.filter(([q]) => ex.feasible(q))
+    fx?.endMethod?.(f.name, liveEnds.map(([q]) => q.atom))
+    const outs: [Path, StateVal][] = liveEnds.map(([rp, rv]) => {
       const self = rp.heap.get('this') as Rec, sv: StateVal = {leaves: new Map(), maps: new Map()}
       for (const [fl, lay] of stateLayout) materialize(ex, self.fields.get(fl)!, lay, rp, f.decl, sv)
       for (const [mn, x] of outVars) sv.leaves.set(x.name, mn === f.name ? (rv.t === 'undef' ? refuse(f.decl, `${f.name} returns nothing on some path`) : outValue(ex, rv, x, rp, f.decl)) : Exec.defaultOf(x.sort))
@@ -1189,6 +1211,7 @@ export function readSlice(code: string, file: string, opts: ReadOptions): Model 
 }
 function readSliceOnce(code: string, file: string, opts: ReadOptions): Model {
   const s = setupOf(code, file, opts.typed, opts.files), cfg = sliceOf(s.sf, opts.entry) ?? refuse(at0(s.sf), `no createSlice ${opts.entry} in the file`)
+  s.declSpans = [declSpanOf(s.sf, cfg)]
   const prop = (k: string) => cfg.properties.find((p): p is ts.PropertyAssignment | ts.ShorthandPropertyAssignment => (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) && p.name.getText() === k)
   // A shorthand entry's value: the variable it names (its initializer, for a const).
   const valueOf = (p: ts.PropertyAssignment | ts.ShorthandPropertyAssignment): ts.Expression => {

@@ -382,7 +382,16 @@ function* rulesOf(t: Target, o: Opts, laws: Scoped[]): Pipeline<ReadRule[]> {
   // (a function that is a request of a rule read, a C file's globals', is read with it)
   const evs = (x: Extraction) => { const s = (x.model as {inputs?: {name: string, sort: {k: string, values?: string[]}}[]} | undefined)?.inputs?.find(v => v.name === (x.names ?? []).find(n => n.role === 'method')?.rule)?.sort; return s?.k === 'choice' ? s.values ?? [] : [] }
   const have = new Set(got.flatMap(r => [r.entry, r.x.model?.name, r.x.initializers?.name, ...(r.x.ok ? [...(r.x.names ?? []).map(n => n.method), ...evs(r.x)] : [])].filter((n): n is string => !!n)))
-  const more = [...new Set(laws.map(l => l.cls ?? l.fn).filter((n): n is string => !!n && !have.has(n)))]
+  const triedEntries = new Set(got.map(r => r.entry ?? r.x.model?.name).filter((n): n is string => !!n))
+  const more = [...new Set(laws.flatMap(l => {
+    if (l.owner) {
+      if (got.some(r => ownsLaw(l, r))) return []
+      if (l.owner.kind === 'anon-class' || l.owner.kind === 'file' || !l.owner.name) return []
+      return triedEntries.has(l.owner.name) ? [] : [l.owner.name]
+    }
+    const n = l.cls ?? l.fn
+    return n && !have.has(n) ? [n] : []
+  }))]
   if (!more.length) return yield* expandInitializers(t, o, laws, got)
   const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, env: _e, ...flags} = o
   void _j; void _m; void _p; void _c; void _t; void _fr
@@ -450,8 +459,21 @@ function* rulesOf0(t: Target, o: Opts, laws: Scoped[]): Pipeline<ReadRule[]> {
   return several.length || fns.length ? yield* manyOf([...several, ...fns]) : [first]
 }
 
-// A law with where it sits in the code: the class (or struct, module) it is in and the function after it.
-type Scoped = LawText & {cls?: string, fn?: string}
+// A law with where it sits in the code: the class (or struct, module) it is in, the function after it,
+// and (for TS/JS) the exact AST declaration owner span it belongs to.
+type LawOwner = {file: string, start: number, end: number, kind: 'class' | 'anon-class' | 'function' | 'var' | 'file', name?: string}
+type Scoped = LawText & {cls?: string, fn?: string, owner?: LawOwner, inBody?: boolean}
+const sameSpan = (a: {file: string, start: number, end: number}, b: {file: string, start: number, end: number}): boolean =>
+  a.start >= 0 && path.resolve(a.file) === path.resolve(b.file) && a.start === b.start && a.end === b.end
+const ownsLaw = (l: Scoped, r: ReadRule): boolean => {
+  if (!l.owner) return false
+  const spans = r.x.declSpans
+  if (spans?.length) return spans.some(sp => sameSpan(l.owner!, sp))
+  if (!r.x.ok && l.owner.kind !== 'anon-class' && l.owner.kind !== 'file' && l.owner.name) {
+    return (r.entry ?? r.x.model?.name) === l.owner.name
+  }
+  return false
+}
 // (a class statement's name: its keyword at the start of a line, after modifiers; never a word in a comment)
 const classAt = (line: string) => {
   const m = /^\s*(?:(?:export|default|public|private|protected|internal|abstract|final|sealed|open|data|static|partial|pub(?:\([^)]*\))?|unsafe)\s+)*(?:class|struct|actor|defmodule|module|object|impl(?:<[^>]*>)?|record|interface|contract)\s+([\w.:]+)|^\s*type\s+(\w+)\s+struct\b/.exec(line.replace(/(#|\/\/).*$/, ''))
@@ -500,13 +522,16 @@ function scopedTS(file: string, text: string, laws: LawText[]): Scoped[] {
     }
     return false
   }
-  const classNameOf = (n: import('typescript').Node): string | undefined => {
-    if (ts.isClassDeclaration(n)) return n.name?.text
-    if (ts.isClassExpression(n)) {
-      if (n.name) return n.name.text
-      const p = n.parent
-      if (p && (ts.isVariableDeclaration(p) || ts.isPropertyAssignment(p))) return propName(p.name as import('typescript').PropertyName)
-    }
+  const topStmtOf = (n: import('typescript').Node): import('typescript').Node => {
+    let cur = n
+    while (cur.parent && cur.parent !== sf) cur = cur.parent
+    return cur
+  }
+  const spanOf = (n: import('typescript').Node) => ({file, start: n.getStart(sf), end: n.end})
+  const declNameOf = (st: import('typescript').Node): string | undefined => {
+    if (ts.isClassDeclaration(st) || ts.isFunctionDeclaration(st)) return st.name?.text
+    if (ts.isVariableStatement(st)) { const d = st.declarationList.declarations[0]; return d && ts.isIdentifier(d.name) ? d.name.text : undefined }
+    if (ts.isExportAssignment(st)) return 'default'
     return undefined
   }
   const listOf = (n: import('typescript').Node): readonly import('typescript').Node[] | undefined => {
@@ -530,61 +555,104 @@ function scopedTS(file: string, text: string, laws: LawText[]): Scoped[] {
       })
     }
     descend(sf)
-    // Innermost enclosing class (real AST span, never fooled by strings, template literals, comments, or closed classes).
-    let cls: string | undefined
-    for (let i = chain.length - 1; i >= 0; i--) {
-      const c = classNameOf(chain[i]!)
-      if (c) { cls = c; break }
-    }
-    // If the law itself is a decorator on a class (before the class's body `{`), it belongs to the class as a whole.
-    const inDecorator = chain.some(n => ts.isDecorator(n))
-    if (inDecorator) {
-      if (chain.some(n => ts.isDecorator(n) && (ts.isClassDeclaration(n.parent) || ts.isClassExpression(n.parent))) && cls) return {...l, cls}
-      for (let i = chain.length - 1; i >= 0; i--) {
-        const n = chain[i]!
-        if (ts.isMethodDeclaration(n) || ts.isGetAccessorDeclaration(n) || ts.isSetAccessorDeclaration(n)) {
-          const fn = propName(n.name)
-          return {...l, ...(cls ? {cls} : {}), ...(fn ? {fn} : {})}
-        }
-      }
-    }
-    // Find the innermost list container (SourceFile, Class, Block, ObjectLiteral) enclosing `pos`,
-    // and inspect the next sibling declaration inside THAT container only (never crossing out of a closed class/block).
-    let container: import('typescript').Node = sf
+    // Innermost enclosing class (named OR anonymous `export default class` / `wrap(class {...})`).
+    let clsNode: import('typescript').ClassDeclaration | import('typescript').ClassExpression | undefined
     for (let i = chain.length - 1; i >= 0; i--) {
       const n = chain[i]!
-      if (listOf(n)) {
-        // For a class, only treat `n.members` as the sibling list if `pos` is inside its `{ ... }` body (not in heritage/extends).
-        if ((ts.isClassDeclaration(n) || ts.isClassExpression(n)) && n.members.pos > pos) continue
-        container = n
-        break
-      }
+      if (ts.isClassDeclaration(n) || ts.isClassExpression(n)) { clsNode = n; break }
     }
-    const items = listOf(container) ?? []
-    // Prefer a node starting on the same line (inline trailing comment), else the first sibling starting at/after `pos`.
-    const next = items.find(it => { const s = it.getStart(sf); return s >= lineStart && s < lineEnd })
-      ?? items.find(it => it.getStart(sf) >= pos)
-    let fn: string | undefined
-    if (next) {
-      if (ts.isClassDeclaration(next) && next.name) return {...l, cls: next.name.text}
-      if (ts.isMethodDeclaration(next) || ts.isGetAccessorDeclaration(next) || ts.isSetAccessorDeclaration(next)) fn = propName(next.name)
-      else if (ts.isFunctionDeclaration(next) && next.name) fn = next.name.text
-      else if (ts.isPropertyDeclaration(next) && isCallableInit(next.initializer)) fn = propName(next.name)
-      else if (ts.isPropertyAssignment(next) || ts.isShorthandPropertyAssignment(next)) fn = propName(next.name)
-      else if (ts.isVariableStatement(next)) {
-        const d = next.declarationList.declarations[0]
-        if (d && ts.isIdentifier(d.name) && (container === sf || isCallableInit(d.initializer))) fn = d.name.text
-      }
-    }
-    if (!fn) {
+    const memberTarget = (stopAt: import('typescript').Node): string | undefined => {
+      let container: import('typescript').Node = stopAt
       for (let i = chain.length - 1; i >= 0; i--) {
         const n = chain[i]!
-        if (ts.isMethodDeclaration(n) || ts.isGetAccessorDeclaration(n) || ts.isSetAccessorDeclaration(n)) { fn = propName(n.name); break }
-        if (ts.isFunctionDeclaration(n) && n.name) { fn = n.name.text; break }
-        if (!cls && ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.parent?.parent?.parent === sf) { fn = n.name.text; break }
+        if (listOf(n)) {
+          if ((ts.isClassDeclaration(n) || ts.isClassExpression(n)) && n.members.pos > pos) continue
+          container = n
+          break
+        }
+        if (n === stopAt) break
       }
+      const items = listOf(container) ?? []
+      const next = items.find(it => { const s = it.getStart(sf); return s >= lineStart && s < lineEnd })
+        ?? items.find(it => it.getStart(sf) >= pos)
+      if (next) {
+        if (ts.isMethodDeclaration(next) || ts.isGetAccessorDeclaration(next) || ts.isSetAccessorDeclaration(next)) return propName(next.name)
+        if (ts.isFunctionDeclaration(next) && next.name) return next.name.text
+        if (ts.isPropertyDeclaration(next) && isCallableInit(next.initializer)) return propName(next.name)
+        if (ts.isPropertyAssignment(next) || ts.isShorthandPropertyAssignment(next)) return propName(next.name)
+        if (ts.isVariableStatement(next)) {
+          const d = next.declarationList.declarations[0]
+          if (d && ts.isIdentifier(d.name) && isCallableInit(d.initializer)) return d.name.text
+        }
+      }
+      for (let i = chain.length - 1; i >= 0; i--) {
+        const n = chain[i]!
+        if (n === stopAt) break
+        if (ts.isMethodDeclaration(n) || ts.isGetAccessorDeclaration(n) || ts.isSetAccessorDeclaration(n)) return propName(n.name)
+        if (ts.isFunctionDeclaration(n) && n.name) return n.name.text
+      }
+      return undefined
     }
-    return {...l, ...(cls ? {cls} : {}), ...(fn ? {fn} : {})}
+    if (clsNode) {
+      let cls: string | undefined
+      let owner: LawOwner
+      if (ts.isClassDeclaration(clsNode) && clsNode.name) {
+        cls = clsNode.name.text
+        owner = {...spanOf(clsNode), kind: 'class', name: cls}
+      } else if (ts.isClassExpression(clsNode) && clsNode.parent && ts.isVariableDeclaration(clsNode.parent) && ts.isIdentifier(clsNode.parent.name) && topStmtOf(clsNode) === clsNode.parent.parent?.parent) {
+        cls = clsNode.parent.name.text
+        owner = {...spanOf(topStmtOf(clsNode)), kind: 'class', name: cls}
+      } else {
+        owner = {...spanOf(clsNode), kind: 'anon-class', name: clsNode.name?.text ?? (ts.isClassDeclaration(clsNode) ? 'default class' : 'anonymous class')}
+      }
+      const inDecorator = chain.some(n => ts.isDecorator(n))
+      if (inDecorator) {
+        if (chain.some(n => ts.isDecorator(n) && n.parent === clsNode)) return {...l, ...(cls ? {cls} : {}), owner, inBody: false}
+        for (let i = chain.length - 1; i >= 0; i--) {
+          const n = chain[i]!
+          if (n === clsNode) break
+          if (ts.isMethodDeclaration(n) || ts.isGetAccessorDeclaration(n) || ts.isSetAccessorDeclaration(n)) {
+            const fn = propName(n.name)
+            return {...l, ...(cls ? {cls} : {}), ...(fn ? {fn} : {}), owner, inBody: true}
+          }
+        }
+      }
+      const fn = memberTarget(clsNode)
+      return {...l, ...(cls ? {cls} : {}), ...(fn ? {fn} : {}), owner, inBody: true}
+    }
+    // Inside a top-level non-class statement (e.g. a step law inside `export const make = Effect.gen(...)`).
+    if (chain.length >= 2) {
+      const topStmt = chain[1]!
+      const tName = declNameOf(topStmt)
+      const owner: LawOwner = {...spanOf(topStmt), kind: ts.isFunctionDeclaration(topStmt) ? 'function' : 'var', ...(tName ? {name: tName} : {})}
+      const memberFn = memberTarget(topStmt)
+      return {...l, ...(memberFn ? {fn: memberFn, inBody: true} : tName ? {fn: tName, inBody: false} : {inBody: false}), owner}
+    }
+    // At top level of SourceFile: bind strictly to the next top-level declaration statement.
+    const items = sf.statements.filter(st => !ts.isEmptyStatement(st))
+    const next = items.find(it => { const s = it.getStart(sf); return s >= lineStart && s < lineEnd })
+      ?? items.find(it => it.getStart(sf) >= pos)
+    if (!next) return {...l, owner: {file, start: -1, end: -1, kind: 'file'}, inBody: false}
+    if (ts.isClassDeclaration(next)) {
+      const cls = next.name?.text
+      const owner: LawOwner = {...spanOf(next), kind: cls ? 'class' : 'anon-class', name: cls ?? 'default class'}
+      return {...l, ...(cls ? {cls} : {}), owner, inBody: false}
+    }
+    if (ts.isFunctionDeclaration(next)) {
+      const fn = next.name?.text
+      const owner: LawOwner = {...spanOf(next), kind: 'function', name: fn ?? 'default function'}
+      return {...l, ...(fn ? {fn} : {}), owner, inBody: false}
+    }
+    if (ts.isVariableStatement(next)) {
+      const d = next.declarationList.declarations[0]
+      const vName = d && ts.isIdentifier(d.name) ? d.name.text : undefined
+      const owner: LawOwner = {...spanOf(next), kind: 'var', ...(vName ? {name: vName} : {})}
+      return {...l, ...(vName ? {fn: vName} : {}), owner, inBody: false}
+    }
+    if (ts.isExportAssignment(next)) {
+      return {...l, fn: 'default', owner: {...spanOf(next), kind: 'var', name: 'default'}, inBody: false}
+    }
+    return {...l, owner: {...spanOf(next), kind: 'file'}, inBody: false}
   })
 }
 export function scoped(file: string): Scoped[] {
@@ -705,7 +773,10 @@ function* checkPipeline(t: Target, o: Opts): Pipeline<RuleOut[]> {
     // (a law on a function outside any class is that function's, where the file has a rule of its name, never a method
     // of another rule that shares the name)
     const fnRules = new Set(rules.map(r => r.entry ?? r.x.model?.name).filter(Boolean))
-    const mine = rules.length === 1 ? laws.filter(l => !name || (l.cls ? l.cls === name : !l.fn || l.fn === name || ms0.has(l.fn))) : laws.filter(l => (!l.cls && !l.fn) || (l.cls ? l.cls === name : l.fn === name || (ms0.has(l.fn) && !fnRules.has(l.fn))))
+    const mine = laws.filter(l => l.owner
+      ? ownsLaw(l, {entry, ctor, x: x0})
+      : rules.length === 1 ? (!name || (l.cls ? l.cls === name : !l.fn || l.fn === name || ms0.has(l.fn)))
+      : ((!l.cls && !l.fn) || (l.cls ? l.cls === name : l.fn === name || (ms0.has(l.fn) && !fnRules.has(l.fn)))))
     if (!x.ok || !x.rule) { r.laws = mine.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read', why: 'the rule was refused', ms: 0})); continue }
     // (an Effect service's primitives: the lemmas of their use proven first, each proven one beside every law)
     if ((x as {lemmas?: unknown[]}).lemmas?.length) x = yield {lemmas: x, ms: Math.max(o.ms, 30_000), work: o.work, watchdogMs: o.watchdogMs, output: r}
@@ -714,7 +785,7 @@ function* checkPipeline(t: Target, o: Opts): Pipeline<RuleOut[]> {
     // (the rule's methods: the choice of method where it has several, else the one each name says)
     const evSort = x.model?.inputs.find(v => v.name === x.model?.event)?.sort
     const methods = new Set([...(x.names ?? []).filter(n => n.method).map(n => n.method!), ...(evSort?.k === 'choice' ? evSort.values : [])])
-    const stated = mine.map(l => ({...l, ...(l.fn && methods.has(l.fn) ? {method: l.fn} : {})}))
+    const stated = mine.map(l => ({...l, ...(l.fn && methods.has(l.fn) && (!l.owner || l.inBody) ? {method: l.fn} : {})}))
     const proven: unknown[] = []
     // (the environment the code runs in: --env, gdp.toml's env for the rule or every rule, or a `gdp: env` comment in
     // its class: every call at once at its isolation level, keys that expire, retries; its laws lifted to it)
@@ -782,9 +853,13 @@ function* checkPipeline(t: Target, o: Opts): Pipeline<RuleOut[]> {
   // (every law stated is accounted for: one that no rule took is reported not read, with why, never dropped)
   const told = new Set(outs.flatMap(r => r.laws.map(l => l.where)))
   const lost = laws.filter(l => !told.has(l.where))
-  if (lost.length) outs.push({file: path.relative(proc.cwd(), t.at) || '.', lang: LANG_NAME[t.lang], entry: [...new Set(lost.map(l => l.cls ?? l.fn ?? '(the file)'))].join(', '), ok: false,
-    refusals: [{where: t.at, what: 'laws no rule read'}], notes: [], names: [], proposed: [],
-    laws: lost.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read' as const, why: `no rule read for it (${l.cls ? `class ${l.cls}` : l.fn ? `function ${l.fn}` : 'the file'}): name its entry (--entry, or [rules.<entry>] in gdp.toml)`, ms: 0}))})
+  if (lost.length) {
+    const lostEntry = (l: Scoped) => l.cls ?? (l.owner?.kind === 'anon-class' ? `(${l.owner.name ?? 'anonymous class'})` : l.owner?.name ?? l.fn ?? '(the file)')
+    const lostTarget = (l: Scoped) => l.cls ? `class ${l.cls}` : l.owner?.kind === 'anon-class' ? `anonymous ${l.owner.name ?? 'class'}` : l.owner?.kind === 'function' && l.owner.name ? `function ${l.owner.name}` : l.fn ? `function ${l.fn}` : 'the file'
+    outs.push({file: path.relative(proc.cwd(), t.at) || '.', lang: LANG_NAME[t.lang], entry: [...new Set(lost.map(lostEntry))].join(', '), ok: false,
+      refusals: [{where: t.at, what: 'laws no rule read'}], notes: [], names: [], proposed: [],
+      laws: lost.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read' as const, why: `no rule read for it (${lostTarget(l)}): name its entry (--entry, or [rules.<entry>] in gdp.toml)`, ms: 0}))})
+  }
   // (a citation of no law stated in the target: refused, as a law not read is)
   const named = new Set(laws.map(l => l.name))
   for (const c of cites.filter(c => !named.has(c.law))) outs[0]?.laws.push({name: c.law, expr: '', where: c.where, verdict: 'not read', why: `a citation of no law stated here (gdp: cite <law name>: <clause>): ${c.text}`, ms: 0})

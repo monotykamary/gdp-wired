@@ -22,7 +22,7 @@ import {allowed} from './watch.ts'
 import {BudgetExpired, checkWorkEndpoint} from './wall.ts'
 import {WatchdogExpired} from './search-watchdog.ts'
 import * as I from './extract-ir.ts'
-import {type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, impure, memberName, normalize, placed, refuse, shapeOf, sourceOf, text, where} from './extract-read.ts'
+import {type DeclSpan, type EffectAtom, type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, impure, initEffectAtom, memberName, mergeEffectAtom, normalize, placed, refuse, shapeOf, sourceOf, text, where} from './extract-read.ts'
 import {type FactoryOf, readFactory, setupOf} from './extract-shapes.ts'
 import {type ExtractOptions, type Extraction, fromModel, namesOf} from './extract.ts'
 import {check, sandbox} from './extract-check.ts'
@@ -116,9 +116,30 @@ const genOf = (s: Setup, e: ts.Expression, which = 'Effect.gen'): ts.FunctionExp
 const argOf = (s: Setup, t: ts.Type, i: number): ts.Type | undefined => (t.aliasTypeArguments ?? (t.flags & ts.TypeFlags.Object ? s.checker.getTypeArguments(t as ts.TypeReference) : undefined))?.[i]
 const lastReturn = (b: ts.Node | undefined) => { const st = b && ts.isBlock(b) ? b.statements.at(-1) : undefined; return st && ts.isReturnStatement(st) ? st.expression : b && !ts.isBlock(b) ? b as ts.Expression : undefined }
 
+// Per-extraction atomicity tracker populated directly by the reader as each method is symbolically executed.
+type AtomTracker = {
+  pass: 'first' | 'final'
+  mutableClosure: Map<string, ts.Node>
+  methods: Map<string, EffectAtom>
+  failAtoms: Map<string, EffectAtom>
+  currentMethod?: string
+  syncSeq: number
+}
+const makeAtomTracker = (): AtomTracker => ({pass: 'first', mutableClosure: new Map(), methods: new Map(), failAtoms: new Map(), syncSeq: 0})
+const topStmtOf = (sf: ts.SourceFile, n: ts.Node): ts.Node => { let cur: ts.Node = n; while (cur.parent && cur.parent !== sf) cur = cur.parent; return cur }
+const spanOf = (sf: ts.SourceFile, n: ts.Node): DeclSpan => { const st = topStmtOf(sf, n); return {file: sf.fileName, start: st.getStart(sf), end: st.end} }
+const addUniqueStr = (xs: string[], x: string): string[] => (xs.includes(x) ? xs : [...xs, x])
+const addUniqueNode = (xs: ts.Node[], x: ts.Node): ts.Node[] => (xs.includes(x) ? xs : [...xs, x])
+const bumpTopScope = (scopeOps: number[]): number[] => {
+  if (!scopeOps.length) return scopeOps
+  const next = [...scopeOps]
+  next[next.length - 1] = next[next.length - 1]! + 1
+  return next
+}
+
 // The service's make: the generator whose statements make the Refs and return the object, its params, and how the check
 // makes the service (by calling the entry, or the effect captured where it is written).
-function factoryOf(s: Setup, entry: string): FactoryOf {
+function factoryOf(s: Setup, entry: string, tracker?: AtomTracker): FactoryOf {
   const [name, member] = entry.split('.'), NO = 'no make effect (an Effect.gen, a function returning one, Effect.fn, or Layer.effect of one)'
   let decl: ts.Node | undefined
   for (const st of s.sf.statements) {
@@ -126,6 +147,8 @@ function factoryOf(s: Setup, entry: string): FactoryOf {
     if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) if (ts.isIdentifier(d.name) && d.name.text === name) decl = d
   }
   if (!decl) return refuse(s.sf.statements[0] ?? s.sf, `no ${name} in the file`)
+  const spans: DeclSpan[] = [spanOf(s.sf, decl)]
+  const addSpan = (n: ts.Node) => { const sp = spanOf(s.sf, n); if (!spans.some(x => x.file === sp.file && x.start === sp.start && x.end === sp.end)) spans.push(sp) }
   // The make effect as written (a class's option or static member, a variable's value), through Layer.effect and names.
   let e: ts.Expression | undefined, at: ts.Node = decl
   if (ts.isClassDeclaration(decl)) {
@@ -138,7 +161,7 @@ function factoryOf(s: Setup, entry: string): FactoryOf {
     e = strip(e)
     const api = callOf(s, e), d = ts.isIdentifier(e) ? s.checker.getSymbolAtLocation(e)?.valueDeclaration : undefined
     if ((api === 'Layer.effect' || api === 'Layer.scoped') && ts.isCallExpression(e)) e = e.arguments[1]
-    else if (d && ts.isVariableDeclaration(d) && d.getSourceFile() === s.sf) { e = d.initializer; at = d } else break
+    else if (d && ts.isVariableDeclaration(d) && d.getSourceFile() === s.sf) { e = d.initializer; at = d; addSpan(d) } else break
   }
   if (!e) return refuse(at, `${entry}: ${NO}`)
   const gen = genOf(s, e), f = gen ? undefined : fnOf(s, e)
@@ -157,11 +180,56 @@ function factoryOf(s: Setup, entry: string): FactoryOf {
     if (o && ts.isCallExpression(o) && ts.isPropertyAccessExpression(o.expression) && memberName(o.expression.name) === 'of' && o.arguments.length === 1) o = strip(o.arguments[0]!)
     if (!o || !ts.isObjectLiteralExpression(o)) return refuse(fn, `${entry}'s make effect returns no object of methods (\`return {...}\` or \`return Tag.of({...})\`)`)
     const refs = new Map<string, string>(), locks = new Set<ts.Node>(), effects = new Map<ts.Node, ts.Expression>()
-    s.effect = hook(s, refs, locks, effects)
+    s.effect = hook(s, refs, locks, effects, tracker)
+    if (tracker) {
+      s.onStateAccess = (fieldName, _kind, p, node) => {
+        if (tracker.pass !== 'final' || !p.atom || !tracker.mutableClosure.has(fieldName)) return p
+        const a = p.atom
+        if (a.txDepth > 0) refuse(node, `${fieldName}: closure state cannot be used inside a transaction (only TxRef and TRef participate in a transaction)`)
+        const epoch = `${a.yieldEpoch}:${a.syncId}`
+        const touchedState = addUniqueStr(a.touchedState, fieldName)
+        const closureStateTouched = addUniqueStr(a.closureStateTouched, fieldName)
+        if (a.lastClosureEpoch === epoch) return {...p, atom: {...a, touchedState, closureStateTouched}}
+        const inAtomic = a.txDepth > 0 || a.locks.length > 0
+        return {
+          ...p,
+          atom: {
+            ...a,
+            units: inAtomic ? a.units : a.units + 1,
+            rawStateOps: a.rawStateOps + 1,
+            unlockedStateOps: inAtomic ? a.unlockedStateOps : a.unlockedStateOps + 1,
+            stateAfterSleptClock: a.stateAfterSleptClock || a.sleptAfterClock,
+            touchedState,
+            closureStateTouched,
+            lastClosureEpoch: epoch,
+            closureMultiStep: a.closureMultiStep || (!inAtomic && a.lastClosureEpoch !== undefined),
+            scopeOps: inAtomic ? bumpTopScope(a.scopeOps) : a.scopeOps,
+          },
+        }
+      }
+    }
     s.notes.add(`${entry} is an Effect service: its state is its Refs, each method an event, a failure the step's refusal; each method is one step, which holds where calls don't interleave (one at a time, or under a Semaphore of 1)`)
     const R = 'require("gdp-wired:effect")', run = (f: string) => `{ const f = ${f}; return __R.run(typeof f === 'function' ? f(...args) : f, __gdp_clock(), __gdp_observe_clock) }`
     return {
-      fn, params, obj: o,
+      fn, params, obj: o, declSpans: spans,
+      ...(tracker ? {
+        initAtom: initEffectAtom,
+        onFields: (fields, written, first) => {
+          tracker.pass = first ? 'first' : 'final'
+          if (!first) {
+            tracker.methods.clear(); tracker.failAtoms.clear(); tracker.mutableClosure.clear(); tracker.currentMethod = undefined
+            for (const fl of fields) if (!refs.has(fl.name) && ((!fl.param && !fl.isConst) || written.has(fl.name))) tracker.mutableClosure.set(fl.name, fl.node)
+          }
+        },
+        beginMethod: mName => { if (tracker.pass === 'final') tracker.currentMethod = mName },
+        endMethod: (mName, atoms) => {
+          if (tracker.pass !== 'final') return
+          let acc = tracker.failAtoms.get(mName)
+          for (const a of atoms) acc = mergeEffectAtom(acc, a)
+          tracker.methods.set(mName, acc ?? initEffectAtom())
+          tracker.currentMethod = undefined
+        },
+      } : {}),
       decl: d => {
         const init = d.initializer && strip(d.initializer), id = (d.name as ts.Identifier).text
         if (!init) return undefined
@@ -203,25 +271,77 @@ const LOGS = new Set(['log', 'logTrace', 'logDebug', 'logInfo', 'logWarning', 'l
 const ANNOTATIONS = new Set(['Effect.withSpan', 'Effect.withLogSpan', 'Effect.annotateLogs', 'Effect.annotateSpans'])
 // What a Ref operation answers: the value before, the value after, or nothing; and whether it takes a value or a function.
 const ANSWERS: Record<string, 'old' | 'new' | 'none'> = {get: 'old', set: 'none', getAndSet: 'old', setAndGet: 'new', update: 'none', updateAndGet: 'new', getAndUpdate: 'old', modify: 'none'}
-function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects: Map<ts.Node, ts.Expression>) {
+function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects: Map<ts.Node, ts.Expression>, tracker?: AtomTracker) {
   const eff = (run: (p: Path) => [V, Path]): V => ({t: 'eff', run}), undef: V = {t: 'undef'}
-  const lockOf = (x: ts.Expression | undefined) => { const d = x && ts.isIdentifier(x) ? s.checker.getSymbolAtLocation(x)?.valueDeclaration : undefined; return !!d && locks.has(d) }
+  const lockOf = (x: ts.Expression | undefined): ts.Node | undefined => { const d = x && ts.isIdentifier(x) ? s.checker.getSymbolAtLocation(x)?.valueDeclaration : undefined; return d && locks.has(d) ? d : undefined }
+  const mapAtom = (p: Path, f: (a: EffectAtom) => EffectAtom): Path => (p.atom ? {...p, atom: f(p.atom)} : p)
+  const recordRefOp = (p: Path, refName: string): Path => mapAtom(p, a => {
+    const inAtomic = a.txDepth > 0 || a.locks.length > 0
+    return {
+      ...a,
+      units: inAtomic ? a.units : a.units + 1,
+      rawStateOps: a.rawStateOps + 1,
+      unlockedStateOps: inAtomic ? a.unlockedStateOps : a.unlockedStateOps + 1,
+      stateAfterSleptClock: a.stateAfterSleptClock || a.sleptAfterClock,
+      touchedState: addUniqueStr(a.touchedState, refName),
+      scopeOps: inAtomic ? bumpTopScope(a.scopeOps) : a.scopeOps,
+    }
+  })
+  const enterTx = (p: Path): Path => mapAtom(p, a => ({
+    ...a,
+    txDepth: a.txDepth + 1,
+    scopeOps: a.txDepth === 0 && a.locks.length === 0 ? [...a.scopeOps, 0] : a.scopeOps,
+  }))
+  const exitTx = (p: Path): Path => mapAtom(p, a => {
+    const txDepth = Math.max(0, a.txDepth - 1)
+    if (txDepth > 0 || a.locks.length > 0) return {...a, txDepth}
+    const innerOps = a.scopeOps.at(-1) ?? 0
+    return {...a, txDepth, scopeOps: a.scopeOps.slice(0, -1), units: innerOps > 0 ? a.units + 1 : a.units}
+  })
+  const enterLock = (p: Path, lock: ts.Node): Path => mapAtom(p, a => ({
+    ...a,
+    locks: [...a.locks, lock],
+    scopeOps: a.txDepth === 0 && a.locks.length === 0 ? [...a.scopeOps, 0] : a.scopeOps,
+  }))
+  const exitLock = (p: Path, lock: ts.Node): Path => mapAtom(p, a => {
+    const nextLocks = a.locks.length ? a.locks.slice(0, -1) : []
+    if (a.txDepth > 0 || nextLocks.length > 0) return {...a, locks: nextLocks}
+    const innerOps = a.scopeOps.at(-1) ?? 0
+    return {
+      ...a,
+      locks: nextLocks,
+      scopeOps: a.scopeOps.slice(0, -1),
+      units: innerOps > 0 ? a.units + 1 : a.units,
+      locksUsed: innerOps > 0 ? addUniqueNode(a.locksUsed, lock) : a.locksUsed,
+      multiOpLocks: innerOps >= 2 ? addUniqueNode(a.multiOpLocks, lock) : a.multiOpLocks,
+    }
+  })
+  const enterSync = (p: Path): Path => mapAtom(p, a => ({...a, syncDepth: a.syncDepth + 1, syncId: tracker ? ++tracker.syncSeq : a.syncId + 1}))
+  const exitSync = (p: Path): Path => mapAtom(p, a => ({...a, syncDepth: Math.max(0, a.syncDepth - 1)}))
+  const bumpYield = (p: Path): Path => mapAtom(p, a => ({...a, yieldEpoch: a.yieldEpoch + 1}))
+  const locked = (lock: ts.Node, inner: V, at: ts.Node): V => (inner.t !== 'eff' ? refuse(at, `${text(at)}: a lock of other than an effect`) : eff(q => {
+    const [v, q2] = inner.run(enterLock(q, lock))
+    return [v, exitLock(q2, lock)]
+  }))
   // An error made of pure values: `new E({...})` of a class (an error class has no effects), or a plain value.
   const effectful = (x: ts.Expression) => (x = strip(x), ts.isNewExpression(x) && ts.isIdentifier(x.expression) ? (x.arguments ?? []).some(impure) : impure(x))
   // A failure: the step refused where it is reached; where a Ref has been changed on the path, the Ref keeps it.
   const fail = (ex: Exec, at: ts.Node, q: Path, when: I.B = I.T): [V, Path] => {
     const kept = q.heap.has(OUTER) ? changedOn(q, OUTER) : changedOn(q), at2 = {...q, pc: [...q.pc, when]}
     if (!ex.known(at2, I.not(kept))) refuse(at, `fails after writing ${q.wrote.join(', ')}${q.heap.has(OUTER) ? ' before the transaction' : ''}: a Ref keeps what was written (a rule's refusal leaves the state as it was)`)
+    if (tracker?.pass === 'final' && tracker.currentMethod && at2.atom && ex.feasible(at2)) {
+      tracker.failAtoms.set(tracker.currentMethod, mergeEffectAtom(tracker.failAtoms.get(tracker.currentMethod), at2.atom)!)
+    }
     ex.throws.push({pc: at2.pc})
     return [undef, {...q, pc: [...q.pc, I.not(when)]}]
   }
   // A transaction: its writes kept where it succeeds, rolled back where it fails or waits (one inside another joins it).
   const tx = (inner: V, at: ts.Node): V => (inner.t !== 'eff' ? refuse(at, `${text(at)}: a transaction of other than an effect`) : eff(q => {
     if (q.heap.has(OUTER)) return inner.run(q)
-    const [v, q2] = inner.run({...q, heap: new Map(q.heap).set(OUTER, flagged(changedOn(q))).set(CHANGED, flagged(I.F))})
+    const [v, q2] = inner.run(enterTx({...q, heap: new Map(q.heap).set(OUTER, flagged(changedOn(q))).set(CHANGED, flagged(I.F))}))
     const heap = new Map(q2.heap).set(CHANGED, flagged(I.or(changedOn(q2, OUTER), changedOn(q2))))
     heap.delete(OUTER)
-    return [v, {...q2, heap}]
+    return [v, exitTx({...q2, heap})]
   }))
   // A transaction that waits (STM.check of false, STM.retry, 4.x's Effect.txRetry): the request isn't taken until a TRef it
   // read changes, a refusal in the rule.
@@ -239,7 +359,9 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
       // A yielded error (Schema.TaggedError, Data.TaggedError): its failure.
       if (ts.isNewExpression(x)) return effectful(x) ? refuse(x, `${text(x)}: an error made with effects`) : fail(ex, x, p)
       const [v, q] = ex.ev(x, p)
-      return v.t === 'eff' ? v.run(q) : refuse(x, `yield* of ${text(x)}, not an effect the reader runs (a ${v.t})`)
+      if (v.t !== 'eff') return refuse(x, `yield* of ${text(x)}, not an effect the reader runs (a ${v.t})`)
+      const [v2, q2] = v.run(q)
+      return [v2, bumpYield(q2)]
     }
     if (ts.isIdentifier(e)) {
       const d = s.checker.getSymbolAtLocation(e)?.valueDeclaration, init = d && effects.get(d)
@@ -251,8 +373,12 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
       const api = apiOf(s, e)
       if (api === 'Effect.void' || api === 'Effect.unit' || api === 'STM.void' || api === 'STM.unit') return [eff(q => [undef, q]), p]
       if (api === 'Effect.txRetry' || api === 'STM.retry') return [eff(q => waits(ex, e, q)), p]
-      if (api === 'Effect.yieldNow') return [eff(q => [undef, q]), p]
-      if (api === 'Clock.currentTimeMillis') return [eff(q => (q.heap.has(SLEPT) ? refuse(e, 'the clock read after a repeat that waits (the time has moved on by its delays)') : ex.now(e, q))), p]
+      if (api === 'Effect.yieldNow') return [eff(q => [undef, mapAtom(q, a => ({...a, sleptAfterClock: a.sleptAfterClock || a.sawClock, yieldEpoch: a.yieldEpoch + 1}))]), p]
+      if (api === 'Clock.currentTimeMillis') return [eff(q => {
+        if (q.heap.has(SLEPT)) refuse(e, 'the clock read after a repeat that waits (the time has moved on by its delays)')
+        const [v, q2] = ex.now(e, q)
+        return [v, mapAtom(q2, a => ({...a, sawClock: true}))]
+      }), p]
       if (api?.startsWith('Clock.')) return refuse(e, `${api} (Clock.currentTimeMillis is read, as an input)`)
       if (!api && ['_tag', 'value'].includes(memberName(e.name)) && /^Option<|^(Some|None)</.test(s.checker.typeToString(s.checker.getTypeAtLocation(e.expression)))) return refuse(e, `${text(e)}: an Option's ${memberName(e.name)} (Option.isSome, isNone, getOrElse and getOrUndefined are read)`)
       if (api && /^(Random|DateTime|Crypto|Console|Config|FileSystem)\./.test(api) && ts.isYieldExpression(e.parent)) return refuse(e, `${api}: an answer from outside the Refs read (Clock.currentTimeMillis is the one read, as an input)`)
@@ -261,11 +387,18 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
     if (!ts.isCallExpression(e)) return undefined
     const callee = strip(e.expression), api = apiOf(s, callee), [m = '', op = ''] = api?.split('.') ?? [], one = e.arguments[0]
     // A lock: sem.withPermit(effect), sem.withPermits(1)(effect), Semaphore.withPermits(sem, 1)(effect).
-    if (ts.isPropertyAccessExpression(callee) && memberName(callee.name) === 'withPermit' && lockOf(callee.expression) && e.arguments.length === 1) return ex.ev(one!, p)
+    if (ts.isPropertyAccessExpression(callee) && memberName(callee.name) === 'withPermit' && e.arguments.length === 1) {
+      const lock = lockOf(callee.expression)
+      if (lock) { const [v, q] = ex.ev(one!, p); return [locked(lock, v, e), q] }
+    }
     if (ts.isCallExpression(callee) && e.arguments.length === 1) {
       const inner = strip(callee.expression), n = callee.arguments.at(-1)
-      const sem = ts.isPropertyAccessExpression(inner) && memberName(inner.name) === 'withPermits' ? (lockOf(inner.expression) ? inner.expression : apiOf(s, inner) === 'Semaphore.withPermits' ? callee.arguments[0] : undefined) : undefined
-      if (lockOf(sem)) return n && ts.isNumericLiteral(n) && n.text === '1' ? ex.ev(one!, p) : refuse(e, 'withPermits of other than 1 (a Semaphore of 1 is a lock; more permits let calls interleave)')
+      const lock = ts.isPropertyAccessExpression(inner) && memberName(inner.name) === 'withPermits' ? (lockOf(inner.expression) ?? (apiOf(s, inner) === 'Semaphore.withPermits' ? lockOf(callee.arguments[0]) : undefined)) : undefined
+      if (lock) {
+        if (!n || !ts.isNumericLiteral(n) || n.text !== '1') return refuse(e, 'withPermits of other than 1 (a Semaphore of 1 is a lock; more permits let calls interleave)')
+        const [v, q] = ex.ev(one!, p)
+        return [locked(lock, v, e), q]
+      }
     }
     // x.pipe(...): only annotations (a span, a log annotation) are read through.
     if (ts.isPropertyAccessExpression(callee) && memberName(callee.name) === 'pipe' && !api) {
@@ -304,11 +437,15 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
     if (m === 'Effect' || m === 'STM') {
       if (op === 'gen') return [body(ex, genOf(s, e)!, e, p.locals), p]
       if (op === 'succeed') { const [v, q] = ex.ev(one ?? refuse(e, 'Effect.succeed()'), p); return [eff(r => [v, r]), q] }
-      if (op === 'sync') return [body(ex, fnOf(s, one ?? refuse(e, 'Effect.sync()')) ?? refuse(e, 'Effect.sync of other than a function written here'), e, p.locals), p]
+      if (op === 'sync') {
+        const fn = fnOf(s, one ?? refuse(e, 'Effect.sync()')) ?? refuse(e, 'Effect.sync of other than a function written here')
+        const syncLocals = p.locals
+        return [eff(q => { const [v, q2] = ex.inline({decl: fn}, [], e, enterSync(q), syncLocals); return [v, exitSync(q2)] }), p]
+      }
       if (FAILS.has(op)) return e.arguments.some(effectful) ? refuse(e, `Effect.${op} of a value that has effects`) : [eff(q => fail(ex, e, q)), p]
       if (op === 'sleep') {
         if (e.arguments.some(impure)) return refuse(e, 'Effect.sleep of a value that has effects')
-        return [eff(q => [undef, {...q, heap: new Map(q.heap).set(SLEPT, flagged(I.T))}]), p]
+        return [eff(q => [undef, mapAtom({...q, heap: new Map(q.heap).set(SLEPT, flagged(I.T))}, a => ({...a, sleptAfterClock: a.sleptAfterClock || a.sawClock, yieldEpoch: a.yieldEpoch + 1}))]), p]
       }
       if (LOGS.has(op)) {
         if (e.arguments.some(impure)) return refuse(e, `Effect.${op} of values that have effects`)
@@ -432,14 +569,14 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
     return [eff(q => {
       if (q.heap.has(OUTER) && m !== 'TxRef' && m !== 'TRef') refuse(e, `${m}.${op} inside a transaction (only TxRef and TRef participate in a transaction)`)
       const [c, q1] = ex.field(self, name, r, q)
-      if (base === 'get') return [c, q1]
+      if (base === 'get') return [c, recordRefOp(q1, name)]
       let [v, q2]: [V, Path] = given ? [given, q1] : ex.inline({decl: fn!}, [c], f!, q1, ts.isIdentifier(f!) ? new Map() : locals)
       if (/Effect$/.test(op)) [v, q2] = v.t === 'eff' ? v.run(q2) : refuse(f!, `${m}.${op}'s function returns other than an effect`)
       if (base === 'modify') {
         if (v.t !== 'tuple' || v.xs.length !== 2) return refuse(f!, `${m}.${op}'s function returns other than [result, value]`)
-        return [v.xs[0]!, put(v.xs[1]!, q2)]
+        return [v.xs[0]!, recordRefOp(put(v.xs[1]!, q2), name)]
       }
-      return [answer === 'old' ? c : answer === 'new' ? v : undef, put(v, q2)]
+      return [answer === 'old' ? c : answer === 'new' ? v : undef, recordRefOp(put(v, q2), name)]
     }), q0]
   }
 }
@@ -490,8 +627,79 @@ export function runner(E: Mod): Runner {
   return {run, exit, get: (mod, ref) => run(E[mod].get(ref)), set: (mod, ref, v) => run(E[mod].set(ref, v))}
 }
 
+// Decide single-step atomicity exclusively from what the reader actually read and inlined per method (no parallel AST walk).
+function analyzeAtomicity(model: {events: {call: string}[]}, tracker: AtomTracker, file: string): {multiMethods: string[], nonAtomicReason?: string, refusal?: {where: string, what: string}} {
+  const methodNames = [...new Set(model.events.map(e => e.call))]
+  const unclassified = methodNames.filter(n => !tracker.methods.has(n))
+  const multiMethods: string[] = [], sleptClockMethods: string[] = []
+  const multiLocks = new Set<ts.Node>(), lockedMultiMethods: string[] = []
+  for (const name of methodNames) {
+    const a = tracker.methods.get(name)
+    if (!a) continue
+    if (a.units >= 2) multiMethods.push(name)
+    if (a.stateAfterSleptClock) sleptClockMethods.push(name)
+    if (a.multiOpLocks.length) { lockedMultiMethods.push(name); a.multiOpLocks.forEach(l => multiLocks.add(l)) }
+  }
+  const lockGapMethods: string[] = []
+  if (multiLocks.size) {
+    const soleLock = multiLocks.size === 1 ? [...multiLocks][0]! : undefined
+    for (const name of methodNames) {
+      const a = tracker.methods.get(name)
+      if (!a || a.rawStateOps === 0) continue
+      if (a.unlockedStateOps > 0 || !soleLock || a.locksUsed.length !== 1 || a.locksUsed[0] !== soleLock) lockGapMethods.push(name)
+    }
+  }
+  // Closure `let`/mutable state in Effect services is refused unless provably touched only inside one atomic step.
+  const unsafeClosureMethods = methodNames.filter(name => {
+    const a = tracker.methods.get(name)
+    return !!a && a.closureStateTouched.length > 0 && (a.closureMultiStep || a.units >= 2 || a.stateAfterSleptClock || lockGapMethods.includes(name))
+  })
+  if (unsafeClosureMethods.length || (tracker.mutableClosure.size > 0 && (multiMethods.length || sleptClockMethods.length || lockGapMethods.length || unclassified.length))) {
+    const touchedNames = [...new Set(methodNames.flatMap(n => tracker.methods.get(n)?.closureStateTouched ?? []))]
+    const names = touchedNames.length ? touchedNames : [...tracker.mutableClosure.keys()]
+    const firstNode = tracker.mutableClosure.get(names[0]!)
+    const at = firstNode ? where(firstNode) : file
+    const whereMethods = unsafeClosureMethods.length ? unsafeClosureMethods : [...new Set([...multiMethods, ...sleptClockMethods, ...lockGapMethods, ...unclassified])]
+    return {
+      multiMethods,
+      refusal: {
+        where: at,
+        what: `closure state ${names.join(', ')} is not provably confined to one atomic step (${whereMethods.join(', ')}): concurrent calls can interleave; use Ref / Ref.modify, a Semaphore(1) lock across all stateful methods, or one synchronous Effect.sync step`,
+      },
+    }
+  }
+  if (unclassified.length) {
+    return {multiMethods, nonAtomicReason: `${unclassified.join(', ')} could not be classified as a single atomic step`}
+  }
+  if (multiMethods.length) {
+    const refNames = [...new Set(multiMethods.flatMap(n => tracker.methods.get(n)?.touchedState ?? []))]
+    const verb = multiMethods.length === 1 ? 'reads and writes' : 'read and write'
+    const pron = multiMethods.length === 1 ? 'it' : 'them'
+    return {
+      multiMethods,
+      nonAtomicReason: `${multiMethods.join(', ')} ${verb} ${refNames.length ? refNames.join(', ') : 'state'} in separate steps; concurrent calls can interleave: make ${pron} atomic with Ref.modify, a Semaphore(1) lock or a transaction`,
+    }
+  }
+  if (sleptClockMethods.length) {
+    const refNames = [...new Set(sleptClockMethods.flatMap(n => tracker.methods.get(n)?.touchedState ?? []))]
+    return {
+      multiMethods: sleptClockMethods,
+      nonAtomicReason: `${sleptClockMethods.join(', ')} reads the clock and updates ${refNames.length ? refNames.join(', ') : 'state'} across a suspension; concurrent calls can interleave: remove the suspension or guard all stateful methods with a Semaphore(1) lock`,
+    }
+  }
+  if (lockGapMethods.length) {
+    const verb = lockGapMethods.length === 1 ? 'accesses' : 'access'
+    return {
+      multiMethods,
+      nonAtomicReason: `${lockGapMethods.join(', ')} ${verb} state outside the Semaphore(1) lock held by ${lockedMultiMethods.join(', ')}; concurrent calls can interleave: guard all stateful methods with the same Semaphore(1) lock, or use Ref.modify or a transaction`,
+    }
+  }
+  return {multiMethods: []}
+}
+
 export function extractEffect(at: Source, opts: EffectOptions = {}): Extraction {
   let m, code: string, file: string, E: Mod | undefined, nonAtomicReason: string | undefined
+  const tracker = makeAtomTracker()
   try {
     ;({code, file} = sourceOf(at, opts.file, 'input.ts'))
     E = opts.effect ?? beside<Mod>(file, 'effect')
@@ -502,11 +710,20 @@ export function extractEffect(at: Source, opts: EffectOptions = {}): Extraction 
     const entry = opts.entry ?? serviceOf(code, file, opts)
     const pr = modelled(code, file, entry, E, opts)
     if (pr) return pr
-    const fl = fibered(code, file, entry, E, opts)
-    if (fl && 'ok' in fl) return fl
-    if (fl) nonAtomicReason = fl.nonAtomicReason
-    m = readFactory(code, placed(file), {...opts, entry}, s => factoryOf(s, entry)); m.file = file
+    // Explicit fibers: true or multi-transaction STM/TxRef services use the multi-fiber lifter directly (preserving STM lifting and refusals).
+    if (opts.fibers === true || (opts.fibers !== false && TX.test(code))) {
+      const fl = fibered(code, file, entry, E, opts)
+      if (fl && 'ok' in fl) return fl
+    }
+    m = readFactory(code, placed(file), {...opts, entry}, s => factoryOf(s, entry, tracker)); m.file = file
     if (!opts.entry) m.notes.unshift(`the entry inferred: ${entry}, the file's one make effect`)
+    const analysis = analyzeAtomicity(m, tracker, file)
+    if (analysis.refusal) return {ok: false, refusals: [analysis.refusal], notes: []}
+    nonAtomicReason = analysis.nonAtomicReason
+    if (analysis.multiMethods.length && opts.fibers !== false) {
+      const fl = fibered(code, file, entry, E, opts, nonAtomicReason, m.declSpans)
+      if (fl && 'ok' in fl) return fl
+    }
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
     throw e
@@ -530,7 +747,7 @@ export function extractEffect(at: Source, opts: EffectOptions = {}): Extraction 
 export type Primitive = Prim & {invariants: Law[], laws: Law[], lemmas?: Law[]}
 function modelled(code: string, file: string, entry: string, E: Mod, opts: EffectOptions): Extraction | undefined {
   if (!/\b(Queue|Semaphore|makeSemaphore|unsafeMakeSemaphore)\b/.test(code)) return undefined
-  const s = setupOf(code, placed(file), {}, opts.files), w = rewritePrims(s, factoryOf(s, entry), x => apiOf(s, x), V4, {params: !!opts.capacityParam})
+  const s = setupOf(code, placed(file), {}, opts.files), f0 = factoryOf(s, entry), w = rewritePrims(s, f0, x => apiOf(s, x), V4, {params: !!opts.capacityParam})
   if (!w) return undefined
   const x = extractEffect(w.code, {...opts, check: {...opts.check, lawCrossCheck: false}, capacityParam: false, file: normalize(placed(file)), entry, effect: E, perFiber: w.prims.flatMap(p => (p.kind === 'semaphore' ? [`${p.name}_held`] : []))})
   if (!x.ok || !x.rule) return {...x, notes: [...w.notes, ...x.notes]}
@@ -562,7 +779,7 @@ function modelled(code: string, file: string, entry: string, E: Mod, opts: Effec
     rememberNative(x.evidence, {enabled: false, complete: false, scope: 'sampled', reason: 'Effect Queue/Semaphore primitives are checked through a rewritten model, not native source replay', observations: []})
     attachSource(x.rule, x.evidence, invariants)
   }
-  return {...x, invariants, notes: [...w.notes, ...x.notes], primitives: prims, ...(lemmas.length ? {lemmas} : {})} as Extraction
+  return {...x, invariants, notes: [...w.notes, ...x.notes], primitives: prims, ...(lemmas.length ? {lemmas} : {}), ...(f0.declSpans ? {declSpans: f0.declSpans} : {})} as Extraction
 }
 // The extraction with its lemmas (laws that hold where the code uses its primitives as they are meant to be, a
 // semaphore's permits given back by the fiber that took them) proven first, each with the invariants and those proven
@@ -607,8 +824,9 @@ export function withLemmas(x: Extraction, opts: {ms?: number, work?: number, wat
 // input), the service's own Refs shared, and each request one fiber's next step.
 const QUIET = new Set(['Effect.fail', 'Effect.failSync', 'Effect.die', 'Effect.dieMessage', 'Effect.void', 'Effect.unit', 'Effect.succeed', 'Effect.sync', 'Effect.sleep', 'Effect.yieldNow', 'Effect.txRetry', 'Clock.currentTimeMillis', 'STM.fail', 'STM.failSync', 'STM.die', 'STM.dieMessage', 'STM.void', 'STM.unit', 'STM.succeed', 'STM.sync', 'STM.retry', 'STM.check', ...[...LOGS].map(l => `Effect.${l}`)])
 const TX = /\b(TRef|TxRef|STM)\.|Effect\.tx\b/, WAITS = new Set(['Effect.txRetry', 'STM.retry'])
-function fibered(code: string, file: string, entry: string, E: Mod, opts: EffectOptions): Extraction | {nonAtomicReason: string} | undefined {
+function fibered(code: string, file: string, entry: string, E: Mod, opts: EffectOptions, reasonOverride?: string, origDeclSpans?: DeclSpan[]): Extraction | {nonAtomicReason: string} | undefined {
   const s = setupOf(code, placed(file), {}, opts.files), f = factoryOf(s, entry)
+  const declSpans = origDeclSpans ?? f.declSpans
   const failing = (y: ts.YieldExpression) => { const x = y.expression && strip(y.expression); return !!x && (ts.isNewExpression(x) || /^(Effect|STM)\.(fail|failSync|die|dieMessage)$/.test((ts.isCallExpression(x) ? callOf(s, x) : '') ?? '')) }
   // Collect the service's declared Refs and Semaphore(1) locks from make's body.
   const serviceRefs = new Set<string>(), serviceLocks = new Set<ts.Node>()
@@ -774,22 +992,22 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
       if (mt.unlockedOps > 0 || !soleLock || !mt.locks.has(soleLock) || mt.locks.size > 1) lockGapMethods.push(mt.name)
     }
   }
-  let nonAtomicReason: string | undefined
-  if (multiNames.length) {
+  let nonAtomicReason: string | undefined = reasonOverride
+  if (!nonAtomicReason && multiNames.length) {
     const refNames = [...new Set(multiNames.flatMap(n => [...(metas.find(mt => mt.name === n)?.refs ?? [])]))]
     const verb = multiNames.length === 1 ? 'reads and writes' : 'read and write'
     const pron = multiNames.length === 1 ? 'it' : 'them'
     nonAtomicReason = `${multiNames.join(', ')} ${verb} ${refNames.length ? refNames.join(', ') : 'state'} in separate steps; concurrent calls can interleave: make ${pron} atomic with Ref.modify, a Semaphore(1) lock or a transaction`
-  } else if (lockGapMethods.length) {
+  } else if (!nonAtomicReason && lockGapMethods.length) {
     const verb = lockGapMethods.length === 1 ? 'accesses' : 'access'
     nonAtomicReason = `${lockGapMethods.join(', ')} ${verb} state outside the Semaphore(1) lock held by ${lockedMultiMethods.join(', ')}; concurrent calls can interleave: guard all stateful methods with the same Semaphore(1) lock, or use Ref.modify or a transaction`
   }
   if (!multiNames.length) return nonAtomicReason ? {nonAtomicReason} : undefined
   if (opts.fibers === false) return {nonAtomicReason: nonAtomicReason!}
-  // For plain-Ref services without explicit fibers: true, try lifting to the interleaving model; if lifting refuses
-  // (e.g. a non-scalar carried local or multi-op retry expression), fall back to the sequential model with native
-  // source confirmation explicitly disabled and the clear non-atomic reason attached.
-  const canFallback = opts.fibers === undefined && !TX.test(code)
+  // For plain-Ref services (or when called after reader-driven atomicity detection), if lifting refuses
+  // (e.g. non-scalar carried local, FunctionDeclaration helper, or multi-op expression), fall back cleanly so the
+  // caller retains the sequential model with native confirmation explicitly disabled and nonAtomicReason attached.
+  const canFallback = opts.fibers === undefined && (!!reasonOverride || !TX.test(code))
   try {
   // (each step of a method read for many fibers is one statement of its body, with one effect on the state at most)
   for (const [name, at, n] of several) refuse(at, `${name}: ${text(at)} runs ${n} effects on the state one after another${ts.isStatement(at) ? ' in one statement' : ''}, and another fiber's step may come between them: write the method as Effect.fn('${name}')(function* ...) with each in a statement of its own (each a step), or in one transaction`)
@@ -880,7 +1098,7 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
     attachSource(rule, token, inv)
   }
   const steps = split.map((mt, mi) => ({name: mt.name, steps: mt.units.length, base: (mi + 1) * 100}))
-  return {...one, rule, names: [...names, {code: 'fiber', rule: 'fiber', role: 'input'}], invariants: inv, fibers: steps, replay: undefined,
+  return {...one, rule, names: [...names, {code: 'fiber', rule: 'fiber', role: 'input'}], invariants: inv, fibers: steps, replay: undefined, ...(declSpans ? {declSpans} : {}),
     notes: [`calls from many fibers at once: ${split.map(mt => `${mt.name} is ${mt.units.length} steps`).join(', ')} (each transaction or Ref operation one), the fibers interleaving them: the rule is every fiber's (lift: each fiber's place and what it carries a map keyed by the input fiber, the service's Refs (${shared.filter(n => !n.endsWith('$neg')).join(', ')}) shared); each other method is one step. A request is one fiber's next step: a fiber in the middle of a call takes its next step whatever method the request names. A failure in a later step ends the call as a return does. A law reads the service's Refs`, ...one.notes],
     source: out}
   } catch (e) {
@@ -896,7 +1114,7 @@ export {fiberRun} from './fiber-run.ts'
 // --- a schedule as the entry ------------------------------------------------------------------------------------------
 // A declaration whose value is a Schedule (or a function returning one, its parameters the rule's params): the named
 // entry, else the file's one schedule where it has no service.
-type SchedEntry = {name: string, expr: ts.Expression, params: string[], s: Setup}
+type SchedEntry = {name: string, expr: ts.Expression, params: string[], s: Setup, declSpan: DeclSpan}
 const isSchedule = (s: Setup, e: ts.Expression): boolean => {
   e = strip(e)
   if (ts.isCallExpression(e) && ts.isPropertyAccessExpression(e.expression) && memberName(e.expression.name) === 'pipe' && !apiOf(s, e.expression)) return isSchedule(s, e.expression.expression)
@@ -913,7 +1131,7 @@ function scheduleEntry(code: string, file: string, opts: EffectOptions): SchedEn
       const f = ts.isFunctionDeclaration(init) ? init : ts.isArrowFunction(strip(init as ts.Expression)) || ts.isFunctionExpression(strip(init as ts.Expression)) ? strip(init as ts.Expression) as ts.FunctionLikeDeclaration : undefined
       const body = f ? lastReturn(f.body) : init as ts.Expression
       if (!body || !isSchedule(s, body) || (f && ts.isBlock(f.body!) && f.body.statements.length > 1)) continue
-      found.push({name, expr: body, params: (f?.parameters ?? []).map(p => (ts.isIdentifier(p.name) ? p.name.text : refuse(p, `${text(p)}: a parameter other than a name`))), s})
+      found.push({name, expr: body, params: (f?.parameters ?? []).map(p => (ts.isIdentifier(p.name) ? p.name.text : refuse(p, `${text(p)}: a parameter other than a name`))), s, declSpan: spanOf(s.sf, st)})
     }
   }
   if (opts.entry) return found[0]
@@ -948,7 +1166,7 @@ function fromScheduleEntry(code: string, file: string, e: SchedEntry, E: Mod, op
   // Schedule conformance checks transitions, not native source-law semantics.
   attachSource(sr.rule, evidence, [])
   if (c.failure) return {ok: false, rule: sr.rule, source, refusals: [{where: file, what: `the rule and Effect's own schedule part: ${c.failure}`}], notes, names: sr.names, evidence}
-  return {ok: true, rule: sr.rule, source, refusals: [], notes, names: sr.names, evidence, schedule: sr, replay: run => replaySchedule(sr, make(run.params), E, run)} as Extraction
+  return {ok: true, rule: sr.rule, source, refusals: [], notes, names: sr.names, evidence, schedule: sr, declSpans: [e.declSpan], replay: run => replaySchedule(sr, make(run.params), E, run)} as Extraction
 }
 // A schedule written as source (an expression over Schedule and Duration, with `params` its free names) read into its
 // rule and checked against the schedule Effect makes of it: fromSchedule('Schedule.exponential("10 millis").pipe(Schedule.upTo({times: 5}))', {effect}).

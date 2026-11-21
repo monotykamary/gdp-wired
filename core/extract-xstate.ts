@@ -28,7 +28,7 @@ import * as dsl from './dsl.ts'
 import {compileFunction, seeded} from './machine.ts'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
-import {Exec, type Model, type Path, Refusal, type Setup, type Shape, type Sort, type Source, type Term, type V, type Var, beside, memberName, normalize, placed, program, refuse, scriptKind, shapeOf, sourceOf, where} from './extract-read.ts'
+import {type DeclSpan, Exec, type Model, type Path, Refusal, type Setup, type Shape, type Sort, type Source, type Term, type V, type Var, beside, memberName, normalize, placed, program, refuse, scriptKind, shapeOf, sourceOf, where} from './extract-read.ts'
 import type {Law} from './machine.ts'
 import type {Name} from './extract.ts'
 import type {Rule} from './dsl.ts'
@@ -52,6 +52,7 @@ export type XStateExtraction = {
   // (`value` the state, the context's fields, `event` and `event.<field>`), as every front end's.
   rule?: Rule, invariants?: Law[], names?: Name[],
   evidence?: {runs: number, events: number, coverage: Coverage, ms: number, mismatch?: string},
+  declSpans?: DeclSpan[],
 }
 const strip = (e: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e) ? strip(e.expression) : e)
 const isFn = (e: ts.Node): e is ts.ArrowFunction | ts.FunctionExpression => ts.isArrowFunction(e) || ts.isFunctionExpression(e)
@@ -95,14 +96,16 @@ function readXState(code: string, opts: XStateOptions & {file: string, entry: st
     const extra = Object.fromEntries(Object.entries(opts.files ?? {}).map(([p, c]) => [normalize(`${root}${p}`), c]))
     const {sf, checker} = program(code, at, extra)
     // The entry: a machine (setup(...).createMachine(...), createMachine(...)) or a function that returns one.
-    let init: ts.Expression | undefined, factory: ts.FunctionLikeDeclaration | undefined
+    let init: ts.Expression | undefined, factory: ts.FunctionLikeDeclaration | undefined, declStmt: ts.Statement | undefined
     for (const st of sf.statements) {
       if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) if (ts.isIdentifier(d.name) && d.name.text === opts.entry && d.initializer) {
         const x = strip(d.initializer)
         if (isFn(x)) factory = x; else init = d.initializer
+        declStmt = st
       }
-      if (ts.isFunctionDeclaration(st) && st.name?.text === opts.entry) factory = st
+      if (ts.isFunctionDeclaration(st) && st.name?.text === opts.entry) { factory = st; declStmt = st }
     }
+    const declSpans: DeclSpan[] = declStmt ? [{file: sf.fileName, start: declStmt.getStart(sf), end: declStmt.end}] : []
     if (factory) {
       const body = factory.body ?? refuse(factory, `${opts.entry} has no body`)
       if (!ts.isBlock(body)) init = body as ts.Expression
@@ -656,7 +659,7 @@ function readXState(code: string, opts: XStateOptions & {file: string, entry: st
     const names0: Name[] = [...Object.keys(chart.rule.machine.state).filter(k => !k.includes('.last') && !keptKeys.some(c => k === c || k.startsWith(`${c}$`) || k.startsWith(`${c}.`))).map(k => ({code: k === 'state' ? 'value' : `value.${k}`, rule: k, role: 'state' as const})),
       ...fields.filter(f => !f.dropped && f.var).map(f => ({code: f.k, rule: f.k, role: 'state' as const})), ...params.map(x => ({code: x.name, rule: x.name, role: 'param' as const})),
       ...inputs.map(x => (outside.has(x.name) ? {code: outside.get(x.name)!.path, rule: x.name, role: 'answer' as const} : {code: `event.${field(x.name)}`, rule: x.name, role: 'input' as const})), {code: 'event', rule: 'event', role: 'method'}]
-    return {ok: true, source, chart, rule: chart.rule as unknown as Rule, invariants: chart.chartLaws(), names: names0, evidence, notes, refusals: []}
+    return {ok: true, source, chart, rule: chart.rule as unknown as Rule, invariants: chart.chartLaws(), names: names0, evidence, notes, refusals: [], ...(declSpans.length ? {declSpans} : {})}
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
     throw e
