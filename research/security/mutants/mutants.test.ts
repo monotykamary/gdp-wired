@@ -165,15 +165,27 @@ test('the complete saved corpus replays without asking the prover again', async 
 }, 120_000)
 
 test('fresh native mutants retain source detection; model-only frontends never fabricate findings', async () => {
-  const modelOnly = new Set(['compare-set', 'lock', 'transaction', 'race', 'read-isolation'])
+  // Multi-fiber Effect baselines (compare-set), env-lifted Python (race), and two-run noninterference (read-isolation)
+  // are unchecked on both sides; single-step atomic Effect baselines (lock, transaction) prove natively while their
+  // broken multi-fiber mutants stay unchecked without fabricating findings.
+  const modelOnlyBaseline = new Set(['compare-set', 'race', 'read-isolation'])
+  const modelOnlyMutants = new Set(['compare-set', 'lock', 'transaction', 'race', 'read-isolation'])
   let count = 0, uncheckedMutants = 0
   for (const fixture of fixtures) {
     const row = await measure(fixture)
     expect(row.baseline.fullyRead).toBe(true) // extraction replay, not a source-law proof
     expect(row.baseline.claims.length).toBeGreaterThan(0)
-    if (modelOnly.has(fixture)) {
-      expect(row.baseline.exit).toBe(2)
-      for (const law of row.baseline.claims) expect(law).toMatchObject({kernelProven: true, verdict: 'unknown', translation: 'unchecked'})
+    if (modelOnlyMutants.has(fixture)) {
+      if (modelOnlyBaseline.has(fixture)) {
+        expect(row.baseline.exit).toBe(2)
+        for (const law of row.baseline.claims) expect(law).toMatchObject({kernelProven: true, verdict: 'unknown', translation: 'unchecked'})
+      } else {
+        expect(row.baseline.exit).toBe(0)
+        for (const law of row.baseline.claims) {
+          expect(law).toMatchObject({verdict: 'proven', translation: 'sampled'})
+          expect(law.translationChecks).toBeGreaterThan(0)
+        }
+      }
       for (const m of row.mutants) {
         expect(m.side.fullyRead).toBe(true)
         expect(m.side.exit).toBe(2)
@@ -182,7 +194,7 @@ test('fresh native mutants retain source detection; model-only frontends never f
         expect(m.detected).toBe(false)
         expect(m.replays).toEqual([])
       }
-      for (const side of [row.baseline, ...row.mutants.map(m => m.side)]) for (const law of side.claims) {
+      for (const side of [...(modelOnlyBaseline.has(fixture) ? [row.baseline] : []), ...row.mutants.map(m => m.side)]) for (const law of side.claims) {
         expect(law.run).toBeUndefined()
         expect(law.replayed).toBeUndefined()
         expect(law.cert).toBeUndefined()
