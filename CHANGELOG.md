@@ -3,6 +3,79 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.57.0
+
+### Added
+
+- **Native source-law confirmation for atomic Effect services (`gdp-wired/effect`,
+  Effect 3.x and 4.x):** Effect service laws checked by `gdp-wired-cli check`
+  (and `extractEffect()`) are proven or broken again when confirmed on the real
+  service. The check captures real method parameters (including `Effect.fn` and
+  `Effect.fnUntraced` generators) and real `Clock.currentTimeMillis` reads
+  (ignoring `Effect.fn` nanosecond tracing spans and failing closed on
+  conflicting clock reads), evaluating laws on the service's actual `Ref`
+  states rather than a model-only replay.
+
+### Fixed
+
+- **Strict single-step atomicity from the reader's own execution trace:** an
+  Effect method counts as one atomic step only when it performs at most one
+  state operation (for example a single `Ref.modify` or `Ref.update`), wraps
+  all of its state operations in one whole-method `Semaphore(1)` `withPermit` /
+  `withPermits(1)` lock shared across every stateful method, or runs them
+  inside one transaction (`Effect.tx`, `STM.gen`, or `STM.commit` over `TxRef`
+  or `TRef` only). Atomicity is computed directly from what the reader executes
+  and inlines per method (no separate AST walk); any method that reads and
+  writes state in separate steps, updates state across a suspension after
+  reading the clock, leaves a stateful sibling outside the shared `Semaphore(1)`
+  lock, or cannot be classified is analyzed with interleavings and reported
+  `unchecked` (exit `2`) naming the method and fix (`Ref.modify`, a
+  `Semaphore(1)` lock, or a transaction). Mutable closure `let` state in Effect
+  services is refused inside transactions and refused unless provably confined
+  to a single atomic step. Multi-fiber interleaving models, rewritten
+  `Queue`/`Semaphore` models, and `Schedule` conformance checks remain
+  `unchecked`.
+- **Declaration-scoped TypeScript/JavaScript law attribution (`core/cli.ts`):**
+  laws in TS/JS files are scoped from the TypeScript AST and bind strictly to
+  the declaration node they are written over (each individual
+  `VariableDeclaration` in comma-separated `export const a = ..., b = ...`
+  statements, `ClassDeclaration`, `FunctionDeclaration`, `ExportAssignment`, or
+  the specific `PropertyDeclaration`/`MethodDeclaration` for `--entry
+  Class.member`), never by method-name fallback. Anonymous classes, wrapped
+  class expressions, and unrelated declarations never bind to another rule;
+  unbound laws are reported `not read` (exit `2`) in both `--json` and
+  plain-text output.
+- **Trailing same-line laws reported `not read`:** laws written after code on
+  the same line (such as `} // gdp: law ...` or
+  `export const a = ..., b = ... // gdp: law ...`) are no longer bound to a
+  neighbouring declaration (in versions up to `0.56.1`, a trailing law on the
+  same line could bind to an adjacent declaration). They are now reported
+  `not read` (exit `2`) with `write the law on its own line above the
+  declaration it is about`.
+- **Reserved sandbox harness names refused:** TypeScript and JavaScript sources
+  (including relative imports) that mention `__gdp_tick`, `__cov`, or `__now`
+  are explicitly refused before instrumentation or sandbox execution across
+  `extract()`, `extractEffect()`, `extractXState()`, standalone extraction, and
+  `sandbox()`.
+
+### Scope
+
+- **XState status:** XState machines (`extractXState`) remain model-checked /
+  source-law `unchecked` in this release. XState extraction checks conformance
+  through `fromXState`/`conforms` rather than the native parameter-capture and
+  state-journal path; genuine native source-law confirmation for XState will
+  require a live-actor native journal, outside-stub observation capture, and
+  nested event/payload law evaluation.
+- Untrusted frontend, CLI, and test files only (`core/effect.ts`,
+  `core/cli.ts`, `core/extract.ts`, `core/extract-check.ts`,
+  `core/extract-read.ts`, `core/extract-shapes.ts`,
+  `core/extract-standalone.ts`, `core/extract-xstate.ts`,
+  `core/native-domain.ts`, `core/effect-native.test.ts`,
+  `core/cli-failsafe.test.ts`, `core/cli.test.ts`, `core/effect.test.ts`,
+  `core/effect-stm.test.ts`, `research/security/mutants/mutants.test.ts`,
+  `scripts/test-shards.ts`); trusted kernel files (`kernel/`,
+  `lean-kernel/*.lean`) and `bend2/bend.ts` are unchanged.
+
 ## 0.56.1
 
 ### Fixed
