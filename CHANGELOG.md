@@ -3,6 +3,72 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.56.0
+
+### Added
+
+- **Opt-in Stage 1 C memory and undefined-behavior safety (`// gdp: safety` or
+  `extractC(file, {safety: true})`):** checks C state machines over the covered
+  fixed-width subset (8-bit `char`, 16-bit `short`, 32-bit `int`, two's-complement
+  signed arithmetic, fixed arrays of known extent, `const` lookup tables
+  including partial and designated `array_filler` initializers, and either a
+  struct receiver or single-declaration file-local `static` globals) for absence
+  of a first array/table-bounds, signed-overflow, or division/remainder fault
+  across every reachable execution.
+- **Kernel-verified proofs and ASan/UBSan replay:** every `proven` obligation is
+  re-verified by the trusted kernel (`verifyCSafetyProof` via `checkLaws` or
+  `checkKInduction`, with Stage 1 proofs replayed in Lean 4.34.0 under
+  `research/c-safety/`); every `broken` obligation is replayed natively under
+  Clang ASan/UBSan and requires site-matched diagnostics (`matchedSite`, CLI
+  exit `1`); anything outside the covered subset, unproven, or failing replay
+  reports `unproven` or `unchecked` with CLI exit `2` (never `0`).
+- **Stated configuration and closed-world translation-unit audit:** every
+  verdict reports the exact covered functions and inlined file-local `static`
+  helpers (`coveredFunctions`, `coveredHelpers`) together with `macroConfig`
+  (target triple, compiler version and verified absolute `compilerPath`, `libc`
+  version, SHA-256 digests and resolved path lists of every included user file
+  `userFilesSha256`/`userFiles` and system header
+  `systemHeadersSha256`/`systemHeaders`, effective C standard and
+  `__STDC_VERSION__`, scrubbed allowlisted environment status, `-I`/`-D` flags,
+  and `NDEBUG`/`__OPTIMIZE__`/`DEBUG` state). Every user file and include is
+  resolved component-wise (refusing `/proc`, `/dev`, `/sys` case-insensitively,
+  non-regular files/FIFOs, absolute user includes, and includes outside the
+  project root or listed `-I` directories) before the first Clang pass,
+  snapshotted once into a private temporary tree read exclusively by timed Clang
+  passes, audited directly from Clang's own lexer and preprocessor
+  (`-Xclang -dump-raw-tokens`, `-Xclang -dump-tokens`, `-E -H -dD`) against
+  closed-world directive, macro, and builtin allowlists plus
+  path/cwd/stdin/mtime/`SOURCE_DATE_EPOCH`/build-mode differentials, digested
+  from the snapshot bytes, and re-hashed on disk at the end to refuse concurrent
+  writers.
+
+### Scope
+
+- **Documented limits** (returned verbatim in `result.assumptions` and
+  documented in `README.md`, `docs/FRONTENDS.md`, and
+  `research/c-safety/STAGE1.md`): opt-in only; C++ is refused; only sequential
+  execution on one live zero-initialized receiver (or single-declaration
+  file-local `static` globals) with non-aliasing receiver and scalar
+  out-parameters, no concurrency, and no external mutation from other
+  translation units is modeled; system headers are classified strictly by
+  resolved path under Clang's built-in search directories (caveat: on macOS or
+  setups where package-manager directories such as `/opt/homebrew/include`
+  appear in Clang's default search list, headers under those directories are
+  trusted as system); only the first tracked bounds, signed-overflow, or
+  division/remainder fault is checked, and abstract stutter on fault is a
+  monitor convention rather than native rollback; uncovered TU function bodies,
+  symbol aliases/weak/file-scope `__asm__`/attributed or post-definition
+  redeclarations, pointer/function-pointer globals or function-referencing
+  initializers, bodyless prototypes taking the entry type or pointers, custom
+  compilers/flags, and configured `fails` returns after state writes are refused
+  as `unchecked`.
+- Untrusted frontend, CLI, tests, and docs only (`core/c/reader.ts`,
+  `core/c/safety.ts`, `core/extract-c.ts`, `core/extract-go.ts`,
+  `core/extract-step.ts`, `core/cli.ts`, `core/extract-c-safety.test.ts`,
+  `docs/FRONTENDS.md`, `README.md`, `research/c-safety/`); trusted kernel files
+  (`kernel/`, `lean-kernel/*.lean`) and `bend2/bend.ts` are unchanged. Default
+  (non-safety) C/C++ extraction, Lean export, and other frontends are unchanged.
+
 ## 0.55.1
 
 ### Added
