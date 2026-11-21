@@ -92,6 +92,63 @@ export function instrument(code: string, file: string, tail = '', extra: [number
   const js = ts.transpileModule(out, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, jsx: ts.JsxEmit.React}, fileName: file.replace(/\.js$/, '.ts').replace(/\.jsx$/, '.tsx')}).outputText
   return {js, arms}
 }
+// Cooperative deadline instrumentation for Bun, where node:vm's `timeout` option leaks a watchdog timer that can kill
+// later host JavaScript on affected versions (e.g. Bun 1.3.14). Node keeps node:vm's native timeout unchanged.
+const isBun = typeof (globalThis as {Bun?: unknown}).Bun !== 'undefined'
+class SandboxTimeout extends Error {
+  code = 'ERR_SCRIPT_EXECUTION_TIMEOUT'
+  constructor(ms: number) { super(`Script execution timed out after ${ms}ms`) }
+}
+function instrumentTicks(js: string, file: string): string {
+  const sf = ts.createSourceFile(file, js, ts.ScriptTarget.ES2022, true, ts.ScriptKind.JS)
+  const edits: [number, string][] = []
+  const isLoop = (n: ts.Node): n is ts.IterationStatement =>
+    ts.isForStatement(n) || ts.isForInStatement(n) || ts.isForOfStatement(n) || ts.isWhileStatement(n) || ts.isDoStatement(n)
+  const isFn = (n: ts.Node): n is ts.FunctionLikeDeclaration =>
+    ts.isFunctionDeclaration(n) || ts.isFunctionExpression(n) || ts.isMethodDeclaration(n) ||
+    ts.isGetAccessorDeclaration(n) || ts.isSetAccessorDeclaration(n) || ts.isConstructorDeclaration(n) || ts.isArrowFunction(n)
+  const blockInsert = (b: ts.Block): [number, string] => {
+    const start = b.getStart(sf) + 1
+    let pos = start
+    for (const st of b.statements) {
+      if (ts.isExpressionStatement(st) && ts.isStringLiteral(st.expression)) pos = st.end
+      else break
+    }
+    return [pos, pos > start ? ';__gdp_tick();' : '__gdp_tick();']
+  }
+  const visit = (n: ts.Node) => {
+    if (isLoop(n)) {
+      const body = n.statement
+      if (ts.isBlock(body)) {
+        edits.push([body.getStart(sf) + 1, '__gdp_tick();'])
+        ts.forEachChild(n, visit)
+      } else {
+        edits.push([body.getStart(sf), '{__gdp_tick();'])
+        ts.forEachChild(n, visit)
+        edits.push([body.end, '}'])
+      }
+      return
+    }
+    if (isFn(n) && n.body) {
+      if (ts.isBlock(n.body)) {
+        edits.push(blockInsert(n.body))
+        ts.forEachChild(n, visit)
+      } else {
+        edits.push([n.body.getStart(sf), '(__gdp_tick(), ('])
+        ts.forEachChild(n, visit)
+        edits.push([n.body.end, '))'])
+      }
+      return
+    }
+    ts.forEachChild(n, visit)
+  }
+  visit(sf)
+  if (!edits.length) return js
+  const order = edits.map((e, i) => [...e, i] as const).sort((a, b) => b[0] - a[0] || b[2] - a[2])
+  let out = js
+  for (const [pos, txt] of order) out = out.slice(0, pos) + txt + out.slice(pos)
+  return out
+}
 export type Sandbox = {ctx: Context, counts: number[], call: (f: string, self: unknown, args: unknown[], housekeeping?: boolean) => {ok: true, value: unknown} | {ok: false, error: string}, setNow: (n: number) => void, get: (name: string) => unknown, bindings: (method: string) => Record<string, unknown> | undefined, observations: () => NativeExecutionObservation}
 export function sandbox(code: string, file: string, expose: string[], modules: Record<string, unknown> = {}, init?: string, files: Record<string, string> = {}, extra: [number, string][] = [], nativeMethods: string[] = []): Sandbox & {arms: Arm[]} {
   const vm = vmOf()
@@ -101,6 +158,17 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
   const captured = new Map<string, Record<string, unknown>>(), captureErrors = new Map<string, string>()
   const counts = arms.map(() => 0)
   let now = 0, invocation = 0, observedClock: number | undefined, observing = false
+  let ticks = 0, deadline = Infinity, limitMs = 0, timedOut = false
+  const startBudget = (ms: number) => { ticks = 0; limitMs = ms; timedOut = false; deadline = performance.now() + ms }
+  const stopBudget = () => { deadline = Infinity; timedOut = false }
+  const tick = () => {
+    if (timedOut) throw new SandboxTimeout(limitMs)
+    if (deadline === Infinity) return
+    if ((++ticks & 15) === 0 && performance.now() >= deadline) {
+      timedOut = true
+      throw new SandboxTimeout(limitMs)
+    }
+  }
   const stub = (name: string) => new Proxy({}, {
     get: (_, k) => { if (k === '__esModule' || typeof k === 'symbol') return undefined; throw new Error(`the check loads no module ${name} (its ${String(k)} was read)`) },
     ownKeys: () => [],
@@ -118,6 +186,7 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
     require: (name: string) => (name in modules ? modules[name] : name.startsWith('.') && Object.keys(files).length ? load(ENTRY, name) : stub(name)),
     console: {log() {}, warn() {}, error() {}, info() {}, debug() {}},
   })
+  if (isBun) Object.defineProperty(ctx, '__gdp_tick', {value: tick, writable: false, configurable: false, enumerable: false})
   // The files given, by their place beside the entry's; each loaded once.
   const ENTRY = `/v/${file.split('/').pop()}`, abs = Object.fromEntries(Object.entries(files).map(([p, c]) => [normalize(`/v/${p}`), c])), loaded = new Map<string, unknown>()
   const load = (from: string, spec: string): unknown => {
@@ -132,15 +201,25 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
     // A file that doesn't load here (it reads import.meta, a browser's globals): a stub that throws when read, so a step
     // that reads it fails the check rather than running without it.
     try {
-      const f = vm.runInContext(`(function (module, exports, require) {${js}\n})`, ctx) as (m: unknown, e: unknown, r: unknown) => void
+      const body = isBun ? instrumentTicks(js, at) : js
+      const f = vm.runInContext(`(function (module, exports, require) {${body}\n})`, ctx) as (m: unknown, e: unknown, r: unknown) => void
       f(m, m.exports, (s2: string) => (s2 in modules ? modules[s2] : s2.startsWith('.') ? load(at, s2) : stub(s2)))
-    } catch (e) { const st = stub(`${spec} (${(e as Error).message})`); loaded.set(at, st); return st }
+    } catch (e) { if (timedOut) throw e; const st = stub(`${spec} (${(e as Error).message})`); loaded.set(at, st); return st }
     loaded.set(at, m.exports)
     return m.exports
   }
   // The clock is the request's: Date.now() and new Date() read it.
   vm.runInContext('globalThis.Date = new Proxy(Date, {construct: (D, a) => (a.length ? new D(...a) : new D(__now())), get: (D, k) => (k === "now" ? () => __now() : D[k])}); Math.random = () => { throw new Error("Math.random in a step") }', ctx)
-  vm.runInContext(`${js}\n;globalThis.__gdp = {${expose.map(n => { if (n === 'default') return 'default: module.exports.default'; const [h, ...rest] = n.split('.'); return `${JSON.stringify(n)}: (typeof ${h} !== 'undefined' ? ${h} : module.exports.${h})${rest.map(x => `.${x}`).join('')}` }).join(', ')}};`, ctx, {timeout: 2000, filename: file})
+  const loadCode = `${isBun ? instrumentTicks(js, file) : js}\n;globalThis.__gdp = {${expose.map(n => { if (n === 'default') return 'default: module.exports.default'; const [h, ...rest] = n.split('.'); return `${JSON.stringify(n)}: (typeof ${h} !== 'undefined' ? ${h} : module.exports.${h})${rest.map(x => `.${x}`).join('')}` }).join(', ')}};`
+  if (isBun) {
+    startBudget(2000)
+    try {
+      vm.runInContext(loadCode, ctx, {filename: file})
+      if (timedOut) throw new SandboxTimeout(2000)
+    } finally { stopBudget() }
+  } else {
+    vm.runInContext(loadCode, ctx, {timeout: 2000, filename: file})
+  }
   const script = new vm.Script('globalThis.__r = (() => { try { return {ok: true, value: __gdp[__f].apply(__self, __args)} } catch (e) { return {ok: false, error: String(e && e.message || e)} } })()')
   const call = (f: string, self: unknown, args: unknown[], housekeeping = false) => {
     // Reading/restoring a factory's closure is harness work, not a new request.
@@ -148,10 +227,21 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
     if (request) { captured.clear(); captureErrors.clear(); invocation++; observedClock = undefined }
     observing = request
     Object.assign(ctx, {__f: f, __self: self, __args: args})
-    try { script.runInContext(ctx, {timeout: 1000}) } catch (e) {
-      if ((e as {code?: string}).code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') throw new HarnessFailure(`a request ran past the check's 1000 ms (${(e as Error).message})`)
-      throw e
-    } finally { observing = false }
+    if (isBun) {
+      startBudget(1000)
+      try {
+        script.runInContext(ctx)
+        if (timedOut) throw new SandboxTimeout(1000)
+      } catch (e) {
+        if (timedOut || (e as {code?: string}).code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') throw new HarnessFailure(`a request ran past the check's 1000 ms (${(e as Error).message})`)
+        throw e
+      } finally { stopBudget(); observing = false }
+    } else {
+      try { script.runInContext(ctx, {timeout: 1000}) } catch (e) {
+        if ((e as {code?: string}).code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') throw new HarnessFailure(`a request ran past the check's 1000 ms (${(e as Error).message})`)
+        throw e
+      } finally { observing = false }
+    }
     return ctx.__r as {ok: true, value: unknown} | {ok: false, error: string}
   }
   return {ctx, counts, arms, call, observations: () => validateNativeObservations({invocation, calls: {}, ...(observedClock === undefined ? {} : {clock: observedClock})}, new Set()), setNow: n => { now = n }, get: name => vm.runInContext(`__gdp[${JSON.stringify(name)}]`, ctx),

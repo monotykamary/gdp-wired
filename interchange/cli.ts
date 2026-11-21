@@ -13,13 +13,24 @@ import {type Report, checkDocument, decidedBy, goalsOf} from './check.ts'
 import {fromInterchange, toInterchange} from './format.ts'
 
 type FS = {readFileSync: (p: string | number, e: string) => string, writeFileSync: (p: string, s: string) => void}
-const proc = (globalThis as unknown as {process: {argv: string[], exit: (c: number) => never, stdout: {write: (s: string) => void}, stderr: {write: (s: string) => void}, getBuiltinModule: (id: string) => unknown}}).process
+const proc = (globalThis as unknown as {process: {argv: string[], exitCode?: number, exit: (c: number) => never, on?: (ev: string, fn: () => void) => void, stdout: {write: (s: string) => void}, stderr: {write: (s: string) => void}, getBuiltinModule: (id: string) => unknown}}).process
 const fs = proc.getBuiltinModule('node:fs') as FS
+proc.exitCode = 2
+let completed = false, reported = false
+const onUnsettled = (ev: string) => {
+  if (completed || reported) return
+  reported = true
+  proc.exitCode = 2
+  proc.stderr.write(`gdp-wired: the check did not complete (${ev})\n`)
+}
+proc.on?.('beforeExit', () => onUnsettled('beforeExit'))
+proc.on?.('exit', () => onUnsettled('exit'))
 
 const args = proc.argv.slice(2), json = args.includes('--json'), gi = args.indexOf('--goals'), goalsOut = gi >= 0 ? args[gi + 1] : undefined
 const files = args.filter((a, i) => !a.startsWith('--') && (gi < 0 || i !== gi + 1))
 if (!files.length || (gi >= 0 && !goalsOut)) {
   proc.stderr.write('usage: gdp-wired-check [--json] [--goals <out.json>] <file.json>... (- reads standard input)\n')
+  completed = true
   proc.exit(2)
 }
 const read = (f: string): unknown => JSON.parse(f === '-' ? fs.readFileSync(0, 'utf8') : fs.readFileSync(f, 'utf8'))
@@ -36,4 +47,5 @@ else for (const {file, report} of out) {
   say(`${file}: ${report.accepted ? 'accepted' : 'refused'}${report.kind ? ` (${report.kind}, by ${decidedBy[report.kind as keyof typeof decidedBy] ?? 'the kernel'})` : ''}${report.malformed ? `: ${report.malformed}` : ''}`)
   for (const c of report.claims) say(`  ${c.accepted ? 'accepted' : 'refused '}  ${c.name}${c.why ? `: ${c.why}` : ''}`)
 }
+completed = true
 proc.exit(out.every(o => o.report.accepted) ? 0 : 1)

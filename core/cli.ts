@@ -37,9 +37,10 @@ import {type InEnv, contend, envOf, inEnv, shrinkRun} from './system.ts'
 type FS = {existsSync: (p: string) => boolean, readFileSync: (p: string, e: string) => string, readdirSync: (p: string) => string[], statSync: (p: string) => {isDirectory: () => boolean},
   mkdirSync: (p: string, o: {recursive: boolean}) => unknown, writeFileSync: (p: string, s: string) => void}
 type Path = {resolve: (...p: string[]) => string, dirname: (p: string) => string, join: (...p: string[]) => string, basename: (p: string) => string, extname: (p: string) => string, relative: (a: string, b: string) => string}
-const proc = (globalThis as unknown as {process: {argv: string[], exitCode?: number, cwd: () => string, env: Record<string, string | undefined>, stdout: {write: (s: string) => void, isTTY?: boolean}, getBuiltinModule: (id: string) => unknown, on?: (ev: string, fn: () => void) => void, exit?: (code?: number) => never}}).process
+const proc = (globalThis as unknown as {process: {argv: string[], exitCode?: number, cwd: () => string, env: Record<string, string | undefined>, stdout: {write: (s: string) => void, isTTY?: boolean}, stderr?: {write: (s: string) => void}, getBuiltinModule: (id: string) => unknown, on?: (ev: string, fn: () => void) => void, exit?: (code?: number) => never}}).process
 const fs = proc.getBuiltinModule('node:fs') as FS, path = proc.getBuiltinModule('node:path') as Path
 const out = (s = '') => proc.stdout.write(`${s}\n`)
+const err = (s: string) => (proc.stderr ?? proc.stdout).write(`${s}\n`)
 // Color, plain ANSI: only on a terminal, never with --json, NO_COLOR (any value) or TERM=dumb; FORCE_COLOR turns it on.
 // Uncolored, the text is the same byte for byte.
 export const colors = (env: Record<string, string | undefined>, tty: boolean, json = false): boolean =>
@@ -1114,7 +1115,7 @@ export async function check(targets: string[], given: Partial<Opts> = {}, each?:
   const safetyLookalike = all.some(r => r.notes.some(n => SAFETY_LOOKALIKE_NOTE_RE.test(n)))
   const uncheckedSafety = safetyLookalike || all.some(r => r.safety && ('why' in r.safety || r.safety.status === 'unchecked' || r.safety.status === 'unproven'))
   const brokenSafety = all.some(r => r.safety && !('why' in r.safety) && r.safety.status === 'broken')
-  return {rules: all, exit: uncheckedSafety || stated.some(l => l.verdict === 'unknown' || l.translation === 'unchecked' || l.translation === 'error') ? 2 : brokenSafety || stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') || o.security && all.some(r => !r.ok) ? 2 : 0}
+  return {rules: all, exit: uncheckedSafety || stated.some(l => l.verdict === 'unknown' || l.translation === 'unchecked' || l.translation === 'error') ? 2 : brokenSafety || stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read' || l.verdict !== 'proven') || o.security && all.some(r => !r.ok) ? 2 : 0}
 }
 // --- draft: laws from a clause, for a person to review ----------------------------------------------------------------
 // gdp-wired draft <file> --clause <text> | --clause-file <f> --cite <ref> [--llm <command> | --answer <file>] [--by <who>]:
@@ -1173,8 +1174,17 @@ export async function main(argv: string[]): Promise<number> {
   return code
 }
 
-if (import.meta.url === `file://${proc.argv[1]}` || /\/(cli\.(ts|js)|gdp-wired)$/.test(proc.argv[1] ?? '')) {
-  let sigExiting = false
+export function runCli(argv: string[] = proc.argv.slice(2), opts: {label?: string, run?: (argv: string[]) => Promise<number>} = {}): void {
+  const label = opts.label ?? 'gdp-wired', run = opts.run ?? main
+  let settled = false, reported = false, sigExiting = false
+  // Fail-safe: never exit 0 unless main() resolves and authorizes the final code.
+  proc.exitCode = 2
+  const onUnsettled = (why: string) => {
+    if (settled || sigExiting || reported) return
+    reported = true
+    proc.exitCode = 2
+    err(`gdp-wired: the check did not complete (${why})`)
+  }
   const onSignal = (code: number) => () => {
     if (sigExiting) return
     sigExiting = true
@@ -1183,6 +1193,30 @@ if (import.meta.url === `file://${proc.argv[1]}` || /\/(cli\.(ts|js)|gdp-wired)$
   }
   proc.on?.('SIGINT', onSignal(130))
   proc.on?.('SIGTERM', onSignal(143))
-  proc.on?.('exit', () => { cleanupCSafetySnapshots() })
-  main(proc.argv.slice(2)).then(c => { proc.exitCode = c }, e => { out(`gdp-wired: ${(e as Error).message}`); proc.exitCode = 2 })
+  proc.on?.('beforeExit', () => { onUnsettled('main did not settle before process exit') })
+  proc.on?.('exit', () => { cleanupCSafetySnapshots(); onUnsettled('process exited before main settled') })
+  let pending: Promise<number>
+  try {
+    pending = run(argv)
+  } catch (e) {
+    settled = true
+    out(`${label}: ${e instanceof Error ? e.message : String(e)}`)
+    proc.exitCode = 2
+    return
+  }
+  pending.then(
+    c => {
+      settled = true
+      proc.exitCode = typeof c === 'number' && Number.isInteger(c) ? c : 2
+    },
+    e => {
+      settled = true
+      out(`${label}: ${e instanceof Error ? e.message : String(e)}`)
+      proc.exitCode = 2
+    },
+  )
+}
+
+if (import.meta.url === `file://${proc.argv[1]}` || /\/(cli\.(ts|js)|gdp-wired)$/.test(proc.argv[1] ?? '')) {
+  runCli(proc.argv.slice(2))
 }
