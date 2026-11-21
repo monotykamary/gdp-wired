@@ -198,7 +198,8 @@ environment (`PATH`, `LC_ALL=C`, `TMPDIR` only) with 8/16/32-bit two's-complemen
 types, and the reported target triple, compiler & absolute path, `libc` version (e.g. `glibc 2.39`), SHA-256 digest and
 path list of every included user file (`userFilesSha256`/`userFiles`) and every included system header
 (`systemHeadersSha256`/`systemHeaders`), C standard (`__STDC_VERSION__`/`std`),
-`-I`/`-D` flags, and `NDEBUG`/`__OPTIMIZE__`/`DEBUG` status;
+`-I`/`-D` flags, and `NDEBUG`/`__OPTIMIZE__`/`DEBUG` status (same-UID concurrent processes are trusted and outside the
+threat model, as a same-UID attacker could equally modify `gdp-wired` or Clang directly);
 (2) sequential execution on one live zero-initialized receiver (or single-declaration file-local `static` globals) with
 non-aliasing receiver and scalar out-parameters, no concurrency, and no external mutation from other translation units;
 (3) mechanically checked translation-unit closure across all non-system files classified strictly by resolved path
@@ -210,9 +211,13 @@ system headers is discovered by Clang `-E -H` on the original tree, resolved com
 before symlinks, verified via `O_NONBLOCK`/`O_NOFOLLOW` `fstat` as regular files — refusing case-insensitive
 `/proc`/`/dev`/`/sys`, non-regular files/FIFOs, `-I` directories overlapping system directories, user-visible includes
 resolving into system directories, absolute includes, and user includes outside the root/`-I` boundary — snapshotted
-once read-only into a private temp tree with `-nostdinc` and mapped `-I`/`-isystem` dirs, cross-checked via Clang
-`-E -H` for exact include-list and order equality, digested from those snapshot bytes for both user and system files,
-and re-hashed on disk at the end to refuse concurrent writers; user-defined or `-D` macros expanded inside system
+once into a private temp tree locked read-only (`0500` dirs, `0400` files) with `-nostdinc` and mapped `-I`/`-isystem`
+dirs, cross-checked via Clang `-H` on every snapshot pass — preprocessor, AST, expanded tokens, alt-path/cwd/mtime/`SOURCE_DATE_EPOCH`
+differentials, and build-mode alternates (which snapshot any extra variant system headers under `-nostdinc` and never
+fall back to live system dirs) — for exact include-list and order equality, walked at the end to refuse any modified,
+removed, or added files/dirs in the snapshot, digested from those snapshot bytes for both user and system files, and
+re-hashed on disk at the end to refuse concurrent writers (modified or added files in the snapshot plus modified
+original user/system files; same-UID concurrent processes remain outside the threat model); user-defined or `-D` macros expanded inside system
 headers are refused; user files are audited from Clang's `-Xclang -dump-raw-tokens` (byte-contiguous from byte 0/BOM to
 EOF with raw NUL bytes refused), `-Xclang -dump-tokens`, and `-E -H -dD`, refusing all 9 trigraphs and non-C23 digit-quote sequences outright,
 allowing only user-defined or `-D` macros in `#if`/`#ifdef`/`#ifndef`/`#elif`/`defined()` and only `#pragma once`,

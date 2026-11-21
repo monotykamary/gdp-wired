@@ -2285,6 +2285,158 @@ withClang('Review Probe 18: Clang-discovered full user+system -nostdinc snapshot
   }
 }, 180_000)
 
+withClang('Review Probe 19: locked snapshot dirs (0500/0400), -H on every snapshot pass, end tree walk (probe15 inject.py), pure -nostdinc variant snapshots, and same-UID trust boundary docs', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-probe19-'))
+  try {
+    const cliPath = join(import.meta.dir, 'cli.ts')
+    // (1) Pure -nostdinc build-mode alternates: <stdlib.h> (-O2/-Os pulling bits/stdlib-bsearch.h)
+    //     and <assert.h> (-DNDEBUG=1 skipping sub-headers) both prove cleanly with zero leaked
+    //     read-only temp snapshot dirs, and assumptions state the 0500/0400, all-pass -H, tree
+    //     walk, and same-UID trust boundary.
+    const stdlibSrc = join(dir, 'stdlib_assert_ok.c')
+    writeFileSync(
+      stdlibSrc,
+      '// gdp: safety\n#include <stdint.h>\n#include <stdlib.h>\n#include <assert.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r, int32_t i) { if (i >= 0 && i < 8) return r->a[i]; return 0; }\n',
+    )
+    const rOk = await check([stdlibSrc], {propose: false})
+    expect(rOk.exit, '<stdlib.h> + <assert.h> under pure -nostdinc variant snapshots must prove').toBe(0)
+    expect(rOk.rules[0]?.safety).toMatchObject({status: 'proven', coveredFunctions: ['get']})
+    const assump = (rOk.rules[0]?.safety as {assumptions?: readonly string[]})?.assumptions?.join(' ') ?? ''
+    expect(assump).toContain('0500')
+    expect(assump).toContain('0400')
+    expect(assump).toContain('every snapshot pass')
+    expect(assump).toContain('never fall back to live system directories')
+    expect(assump).toContain('modified or added files in the snapshot')
+    expect(assump).toContain('Same-UID concurrent processes are trusted')
+
+    // (2) probe15/inject.py live race regression tests on Linux:
+    //     a1/ring.c uses INT8_MAX (127 natively -> broken exit 1), while evil_stdint.h defines
+    //     INT8_MAX=7 (would falsely prove exit 0 if injected into <snap>/u/usr/local/include/stdint.h).
+    if (process.platform === 'linux') {
+      const pyCheck = spawnSync('python3', ['--version'], {stdio: 'ignore'})
+      const probeV = spawnSync('clang', ['-x', 'c', '-E', '-v', '-o', '/dev/null', '/dev/null'], {encoding: 'utf8'})
+      const hasUsrLocalInc = (probeV.stderr ?? '').includes('/usr/local/include')
+      if (pyCheck.status === 0 && hasUsrLocalInc) {
+        const a1Dir = join(dir, 'a1')
+        mkdirSync(a1Dir, {recursive: true})
+        const a1Src = join(a1Dir, 'ring.c')
+        writeFileSync(
+          a1Src,
+          '// gdp: safety\n#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r, int32_t i) { if (i >= 0 && i <= INT8_MAX) return r->a[i]; return 0; }\n',
+        )
+        const evilPath = join(dir, 'evil_stdint.h')
+        writeFileSync(evilPath, 'typedef int int32_t;\n#define INT8_MAX 7\n')
+        const injScript = join(dir, 'inject.py')
+        writeFileSync(
+          injScript,
+          [
+            'import ctypes, glob, os, struct, sys, time',
+            'mode, main_path, evil_path, log_path, target_close = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[5])',
+            'evil = open(evil_path, "rb").read()',
+            'L = open(log_path, "w"); L.write("ready\\n"); L.flush()',
+            'pat = os.path.join(os.environ.get("TMPDIR", "/tmp"), "gdp-c-safety-snap-*", "u", main_path.lstrip("/"))',
+            't0 = time.time(); target = None',
+            'while time.time() - t0 < 60:',
+            '    g = glob.glob(pat)',
+            '    if g: target = g[0]; break',
+            '    time.sleep(0.0005)',
+            'if not target: L.write("no_snap\\n"); sys.exit(1)',
+            'root = target[:target.index("/u/") + 3]',
+            'libc = ctypes.CDLL(None, use_errno=True)',
+            'fd = libc.inotify_init(); libc.inotify_add_watch(fd, target.encode(), 0x10)',
+            'cnt = 0',
+            'injected_path = None',
+            'while True:',
+            '    buf = os.read(fd, 4096); i = 0',
+            '    while i < len(buf):',
+            '        _w, mask, _c, ln = struct.unpack_from("iIII", buf, i); i += 16 + ln',
+            '        if mask & 0x10:',
+            '            cnt += 1',
+            '            L.write(f"close {cnt}\\n"); L.flush()',
+            '            if cnt == target_close:',
+            '                if mode == "plain":',
+            '                    d = os.path.join(root, "usr/local/include")',
+            '                    try:',
+            '                        open(os.path.join(d, "stdint.h"), "wb").write(evil)',
+            '                        L.write("injected_plain\\n"); L.flush()',
+            '                    except PermissionError:',
+            '                        L.write("eacces\\n"); L.flush()',
+            '                    sys.exit(0)',
+            '                elif mode in ("chmod_inject", "chmod_transient"):',
+            '                    d = os.path.join(root, "usr/local/include")',
+            '                    os.chmod(d, 0o700)',
+            '                    injected_path = os.path.join(d, "stdint.h")',
+            '                    open(injected_path, "wb").write(evil)',
+            '                    L.write("injected_chmod\\n"); L.flush()',
+            '                    if mode == "chmod_inject": sys.exit(0)',
+            '                elif mode == "chmod_decoy":',
+            '                    os.chmod(root.rstrip("/"), 0o700)',
+            '                    open(os.path.join(root, "decoy_unused.h"), "wb").write(b"/* decoy */\\n")',
+            '                    L.write("injected_decoy\\n"); L.flush()',
+            '                    sys.exit(0)',
+            '            elif cnt == target_close + 2 and mode == "chmod_transient" and injected_path:',
+            '                try: os.unlink(injected_path)',
+            '                except OSError: pass',
+            '                L.write("unlinked\\n"); L.flush()',
+            '                sys.exit(0)',
+            '',
+          ].join('\n'),
+        )
+        const waitReady = (logPath: string) => {
+          const deadline = Date.now() + 5000
+          while (Date.now() < deadline) {
+            try { if (readFileSync(logPath, 'utf8').includes('ready')) return } catch { /* wait */ }
+            spawnSync('sleep', ['0.02'])
+          }
+        }
+        const runInjectCase = (mode: 'plain' | 'chmod_inject' | 'chmod_transient' | 'chmod_decoy', targetClose: number) => {
+          const logPath = join(dir, `inj_${mode}_${targetClose}.log`)
+          const watcher = spawn('python3', [injScript, mode, a1Src, evilPath, logPath, String(targetClose)], {stdio: 'ignore'})
+          try {
+            waitReady(logPath)
+            const r = spawnSync(process.execPath, [cliPath, 'check', '--no-propose', '--json', a1Src], {
+              cwd: a1Dir, encoding: 'utf8', timeout: 60_000,
+            })
+            const log = readFileSync(logPath, 'utf8')
+            return {status: r.status, stdout: r.stdout, log}
+          } finally {
+            watcher.kill('SIGKILL')
+          }
+        }
+
+        // Mode A: plain inject.py (no chmod) at close 1 & close 2 is blocked by 0500 dir permission (EACCES) -> stays broken (exit 1).
+        for (const tc of [1, 2]) {
+          const rPlain = runInjectCase('plain', tc)
+          expect(rPlain.status, `plain inject.py@${tc} must never prove (log=${rPlain.log})`).toBe(1)
+          expect(rPlain.log).toContain('eacces')
+        }
+
+        // Mode B: same-UID chmod 0700 + inject evil_stdint.h after close 2 & close 3 -> caught by -H cross-check / tree walk (exit 2).
+        for (const tc of [2, 3]) {
+          const rChmod = runInjectCase('chmod_inject', tc)
+          expect(rChmod.status, `chmod+inject@${tc} must exit 2 unchecked (log=${rChmod.log})`).toBe(2)
+          expect(rChmod.log).toContain('injected_chmod')
+          expect(rChmod.stdout).toContain('unchecked')
+        }
+
+        // Mode C: same-UID chmod 0700 + inject after close 2 + unlink after close 4 -> caught during AST/token -H (never exit 0).
+        const rTrans = runInjectCase('chmod_transient', 2)
+        expect(rTrans.status, `transient inject must never prove (log=${rTrans.log})`).toBe(2)
+        expect(rTrans.log).toContain('injected_chmod')
+        expect(rTrans.stdout).toContain('unchecked')
+
+        // Mode D: same-UID chmod 0700 + inject unused decoy file after close 2 -> caught by end snapshot tree walk (exit 2).
+        const rDecoy = runInjectCase('chmod_decoy', 2)
+        expect(rDecoy.status, `unused decoy injection must exit 2 unchecked (log=${rDecoy.log})`).toBe(2)
+        expect(rDecoy.log).toContain('injected_decoy')
+        expect(rDecoy.stdout).toContain('unexpected file')
+      }
+    }
+  } finally {
+    rmSync(dir, {recursive: true, force: true})
+  }
+}, 180_000)
+
 test('removing an abstract bounds guard does not prove absence of alarms', () => {
   const checkAbs = (guarded: boolean) => {
     const r = rule('abstract access guard').inputs({request: bool, inBounds: bool}).state({alarm: bool.from(false)})

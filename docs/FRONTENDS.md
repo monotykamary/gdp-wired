@@ -392,7 +392,9 @@ Every `CSafetyResult` carries the four stated assumptions and checked-scope prem
    and path list of every included user file (`userFilesSha256`/`userFiles`) and every included system
    header (`systemHeadersSha256`/`systemHeaders`), C standard (`__STDC_VERSION__`/`std`), `-I`/`-D`
    flags, and macro configuration (`macroConfig`; only covered scalar types up to 32 bits, constant
-   lookup tables, and fixed arrays of known extent are modeled).
+   lookup tables, and fixed arrays of known extent are modeled). Same-UID concurrent processes on
+   the analysis host are trusted (outside the threat model, as a same-UID attacker could equally
+   modify `gdp-wired` or Clang directly).
 2. **Ownership, zeroed start & aliasing (assumption)**: Selected methods execute sequentially on
    one live, zero-initialized receiver (or single-declaration file-local `static` globals from
    their C initialization) with non-aliasing receiver and scalar out-parameters, no concurrency,
@@ -408,11 +410,16 @@ Every `CSafetyResult` carries the four stated assumptions and checked-scope prem
    symlinks), verified via `O_NONBLOCK`/`O_NOFOLLOW` `fstat` as regular files (refusing
    case-insensitive `/proc`, `/dev`, `/sys`, non-regular files/FIFOs, `-I` directories overlapping
    system directories, user-visible includes resolving into system directories, absolute includes,
-   and user includes outside the root/`-I` boundary), snapshotted once read-only (`0o400`) into a
-   private temp tree with `-nostdinc` and mapped `-I`/`-isystem` search dirs, cross-checked via
-   `clang -E -H` on the snapshot for exact include-list and order equality, digested from those
-   snapshot bytes for both user files and system headers, and re-hashed on disk at the end to
-   refuse concurrent writers. Any user-defined or `-D` macro expanded inside a system header is
+   and user includes outside the root/`-I` boundary), snapshotted once into a private temp tree
+   locked read-only (`0500` dirs, `0400` files) with `-nostdinc` and mapped `-I`/`-isystem` search
+   dirs, cross-checked via Clang `-H` on every snapshot pass (preprocessor, AST, expanded tokens,
+   alt-path/cwd/mtime/`SOURCE_DATE_EPOCH` differentials, and build-mode alternates, which snapshot
+   any extra variant system headers under `-nostdinc` and never fall back to live system dirs) for
+   exact include-list and order equality, walked at the end to refuse any modified, removed, or
+   added files/directories in the snapshot, digested from those snapshot bytes for both user files
+   and system headers, and re-hashed on disk at the end to refuse concurrent writers (modified or
+   added files in the snapshot plus modified original user/system files; same-UID concurrent
+   processes remain outside the threat model). Any user-defined or `-D` macro expanded inside a system header is
    refused. User files are audited from Clang's own raw/expanded token streams and preprocessor
    (`-Xclang -dump-raw-tokens` verified byte-contiguously from byte 0/BOM to EOF with raw NUL bytes
    refused, `-Xclang -dump-tokens`, and `-E -H -dD`): all 9 trigraph
