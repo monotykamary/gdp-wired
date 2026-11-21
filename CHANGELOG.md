@@ -3,6 +3,39 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.56.1
+
+### Fixed
+
+- **CLI silent exit-0 hotfix — upgrade if you run the CLI under Bun (affects
+  `0.46.0` through `0.56.0`).** On some Bun versions (reproduced on Bun 1.3.14),
+  the `node:vm` timeout timer used by the TypeScript/Effect/XState extraction
+  sandbox (`core/extract-check.ts`) could fire after the sandboxed call had
+  already returned and terminate later host JavaScript. When that happened
+  during `gdp-wired check` (or `gdp-wired-cli check`), `finally` blocks did not
+  run, `main()` never settled, `process.exitCode` remained unset, and the
+  process exited `0` without printing any verdict — even with `--json` — so a
+  CI check could pass without checking.
+- **Fail-safe exit codes:** `gdp-wired`, `gdp-wired-cli`, `gdp-wired-check`,
+  and `gdp-wired-agent-consult` (plus its worker) now set a non-zero exit code
+  (`2`) at startup, update it only when completion resolves (with every stated
+  law proven for exit `0`), and on `beforeExit`/`exit` with an unsettled main
+  print `gdp-wired: the check did not complete (...)` to `stderr` and exit `2`.
+- **No leaked Bun VM timers:** on Bun, `core/extract-check.ts` no longer passes
+  `node:vm`'s `timeout` option; instead it enforces the 2000 ms load and
+  1000 ms call deadlines cooperatively via loop/function tick instrumentation
+  on transpiled JS (still throwing `HarnessFailure` on overrun, including when
+  user `try`/`catch` swallows exceptions). Node keeps `node:vm`'s native
+  `timeout` behavior unchanged.
+
+### Scope
+
+- Untrusted CLI, extraction check, and tests only (`core/cli.ts`,
+  `core/extract-check.ts`, `packages/cli/bin.js`, `core/agent-consult/cli.ts`,
+  `core/agent-consult/worker.ts`, `interchange/cli.ts`,
+  `core/cli-failsafe.test.ts`, `scripts/test-shards.ts`); trusted kernel files
+  (`kernel/`, `lean-kernel/*.lean`) and `bend2/bend.ts` are unchanged.
+
 ## 0.56.0
 
 ### Added
