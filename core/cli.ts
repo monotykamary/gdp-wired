@@ -11,6 +11,7 @@
 // answers, skip, stores) from the flags or from gdp.toml (configFor, below). Exit code: 0 when no law stated in
 // the code is broken, 1 when one is, 2 when one couldn't be checked (the rule refused, or the law not read).
 import type {Extraction, Name} from './extract.ts'
+import {cleanupCSafetySnapshots} from './c/reader.ts'
 import type {CSafetyResult} from './c/safety.ts'
 import {fiberRun} from './fiber-run.ts'
 import {type SecurityCandidate, securityTemplates} from './security.ts'
@@ -36,7 +37,7 @@ import {type InEnv, contend, envOf, inEnv, shrinkRun} from './system.ts'
 type FS = {existsSync: (p: string) => boolean, readFileSync: (p: string, e: string) => string, readdirSync: (p: string) => string[], statSync: (p: string) => {isDirectory: () => boolean},
   mkdirSync: (p: string, o: {recursive: boolean}) => unknown, writeFileSync: (p: string, s: string) => void}
 type Path = {resolve: (...p: string[]) => string, dirname: (p: string) => string, join: (...p: string[]) => string, basename: (p: string) => string, extname: (p: string) => string, relative: (a: string, b: string) => string}
-const proc = (globalThis as unknown as {process: {argv: string[], exitCode?: number, cwd: () => string, env: Record<string, string | undefined>, stdout: {write: (s: string) => void, isTTY?: boolean}, getBuiltinModule: (id: string) => unknown}}).process
+const proc = (globalThis as unknown as {process: {argv: string[], exitCode?: number, cwd: () => string, env: Record<string, string | undefined>, stdout: {write: (s: string) => void, isTTY?: boolean}, getBuiltinModule: (id: string) => unknown, on?: (ev: string, fn: () => void) => void, exit?: (code?: number) => never}}).process
 const fs = proc.getBuiltinModule('node:fs') as FS, path = proc.getBuiltinModule('node:path') as Path
 const out = (s = '') => proc.stdout.write(`${s}\n`)
 // Color, plain ANSI: only on a terminal, never with --json, NO_COLOR (any value) or TERM=dumb; FORCE_COLOR turns it on.
@@ -1173,5 +1174,15 @@ export async function main(argv: string[]): Promise<number> {
 }
 
 if (import.meta.url === `file://${proc.argv[1]}` || /\/(cli\.(ts|js)|gdp-wired)$/.test(proc.argv[1] ?? '')) {
+  let sigExiting = false
+  const onSignal = (code: number) => () => {
+    if (sigExiting) return
+    sigExiting = true
+    cleanupCSafetySnapshots()
+    proc.exit?.(code)
+  }
+  proc.on?.('SIGINT', onSignal(130))
+  proc.on?.('SIGTERM', onSignal(143))
+  proc.on?.('exit', () => { cleanupCSafetySnapshots() })
   main(proc.argv.slice(2)).then(c => { proc.exitCode = c }, e => { out(`gdp-wired: ${(e as Error).message}`); proc.exitCode = 2 })
 }

@@ -3,7 +3,7 @@
 import {expect, test} from 'bun:test'
 import {execFileSync, spawn, spawnSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
-import {chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs'
+import {chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {proveLaws} from '../kernel/prove.ts'
@@ -2432,6 +2432,44 @@ withClang('Review Probe 19: locked snapshot dirs (0500/0400), -H on every snapsh
         expect(rDecoy.stdout).toContain('unexpected file')
       }
     }
+
+    // (3) CLI SIGINT/SIGTERM cleanup: interrupting CLI while a locked 0500/0400 snapshot exists
+    //     must unlock (chmod u+w) and remove every gdp-c-safety-* directory before exiting.
+    for (const sig of ['SIGINT', 'SIGTERM'] as const) {
+      const sigTmp = join(dir, `sigtmp_${sig}`)
+      mkdirSync(sigTmp, {recursive: true})
+      const child = spawn(process.execPath, [cliPath, 'check', '--no-propose', stdlibSrc], {
+        cwd: dir,
+        env: {...process.env, TMPDIR: sigTmp},
+        stdio: 'ignore',
+      })
+      const waitDone = new Promise<number | null>(resolve => {
+        child.on('exit', code => resolve(code))
+      })
+      const deadline = Date.now() + 15_000
+      let sawSnap = false
+      while (Date.now() < deadline && child.exitCode === null) {
+        let entries: string[] = []
+        try { entries = readdirSync(sigTmp).filter(e => e.startsWith('gdp-c-safety-')) } catch { /* wait */ }
+        if (entries.length > 0) {
+          let locked = false
+          try { locked = (statSync(join(sigTmp, entries[0]!)).mode & 0o777) === 0o500 } catch { /* wait */ }
+          if (locked) {
+            sawSnap = true
+            child.kill(sig)
+            break
+          }
+        }
+        await new Promise(r => setTimeout(r, 1))
+      }
+      if (!sawSnap && child.exitCode === null) child.kill(sig)
+      await waitDone
+      const leftovers = readdirSync(sigTmp).filter(e => e.startsWith('gdp-c-safety-'))
+      expect(leftovers, `${sig} must unlock and remove all snapshot dirs (sawSnap=${sawSnap})`).toEqual([])
+    }
+
+    // (4) Known limit: <string.h> is documented in assumptions and refused (never falsely proven).
+    expect(assump).toContain('<string.h>')
   } finally {
     rmSync(dir, {recursive: true, force: true})
   }

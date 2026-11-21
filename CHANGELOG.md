@@ -37,16 +37,22 @@ noted), each with the command that reproduces it.
   non-regular files/FIFOs, absolute user includes, non-system includes outside
   the project root or listed `-I` directories, `-I` directories overlapping
   system directories, and user-visible includes resolving into system
-  directories), snapshotted once read-only into a private temporary tree, and
-  analysed under `-nostdinc` with mapped `-I` and `-isystem` directories by
-  timed Clang passes. A second Clang `-E -H` pass on the snapshot requires exact
+  directories), snapshotted once into a private temporary tree locked read-only
+  (`0500` directories, `0400` files, unlocked and removed on exit as well as CLI
+  `SIGINT`/`SIGTERM`), and analysed under `-nostdinc` with mapped `-I` and
+  `-isystem` directories by timed Clang passes. Every snapshot Clang pass (preprocessor cross-check, AST dump, expanded
+  tokens, alt-path/cwd/mtime/`SOURCE_DATE_EPOCH` differentials, and build-mode
+  alternates — which snapshot any extra variant system headers under `-nostdinc`
+  and never fall back to live system directories) passes `-H` and requires exact
   include-list, depth, and order equality with the original tree; preprocessor
   directives, macros, and builtins are audited from Clang's own lexer and
   preprocessor (`-Xclang -dump-raw-tokens`, `-Xclang -dump-tokens`,
-  `-E -H -dD`) against closed-world allowlists plus
-  path/cwd/stdin/mtime/`SOURCE_DATE_EPOCH`/build-mode differentials; both user
-  files and system headers are digested from the snapshot bytes and re-hashed on
-  disk at the end to refuse concurrent writers.
+  `-E -H -dD`) against closed-world allowlists; at the end of analysis the
+  snapshot tree is walked to refuse any modified, removed, or added
+  files/directories, both user files and system headers are digested from the
+  snapshot bytes, and all original user and system files are re-hashed on disk
+  to refuse concurrent writers (modified or added files in the snapshot plus
+  modified original files).
 
 ### Scope
 
@@ -60,13 +66,17 @@ noted), each with the command that reproduces it.
   resolved path under Clang's default search directories, so headers under
   writable default search directories such as `/usr/local/include` on Linux or
   Homebrew directories (e.g., `/opt/homebrew/include`) on macOS are trusted as
-  system headers; only the first tracked bounds, signed-overflow, or
+  system headers; same-UID concurrent processes on the analysis host are trusted
+  (outside the threat model, as a same-UID attacker could equally modify
+  `gdp-wired` or Clang directly); only the first tracked bounds, signed-overflow, or
   division/remainder fault is checked, and abstract stutter on fault is a
   monitor convention rather than native rollback; uncovered TU function bodies,
   symbol aliases/weak/file-scope `__asm__`/attributed or post-definition
   redeclarations, pointer/function-pointer globals or function-referencing
   initializers, bodyless prototypes taking the entry type or pointers, custom
-  compilers/flags, and configured `fails` returns after state writes are refused
+  compilers/flags, files including `<string.h>` in this release (due to glibc
+  `__REDIRECT_NTH` macro expansion triggering the closed-world system-header
+  macro check), and configured `fails` returns after state writes are refused
   as `unchecked`.
 - Untrusted frontend, CLI, tests, and docs only (`core/c/reader.ts`,
   `core/c/safety.ts`, `core/extract-c.ts`, `core/extract-go.ts`,

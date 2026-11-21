@@ -441,7 +441,9 @@ Every `CSafetyResult` carries the four stated assumptions and checked-scope prem
    named. Symbol aliases/weak/file-scope `__asm__`/attributed or post-definition function
    declarations, non-system globals with pointers/fn-ptrs (including struct/array fields) or
    function-referencing initializers, bodyless prototypes taking the entry type or pointers, and
-   configured failure returns (`fails`) after state writes are also refused.
+   configured failure returns (`fails`) after state writes are also refused. Known limit: C safety
+   refuses files including `<string.h>` in this release (glibc `__REDIRECT_NTH` macro expansion
+   triggers the closed-world system-header macro check, reporting `unchecked` with exit `2`).
 4. **First-fault & replay scope**: Only the first tracked array/table-bounds, signed-overflow, or
    division/remainder fault is checked. Broken obligations require site-matched ASan/UBSan replay
    (`matchedSite`); unproven sites are never claimed proven or broken. Abstract stutter on fault

@@ -959,6 +959,41 @@ function auditUserPreprocessor(o: {
   }
 }
 
+const activeSnapshotRoots = new Set<string>()
+
+function unlockAndRemoveSnapshotRoot(rootDir: string): void {
+  const fs = node<{
+    chmodSync: (p: string, mode: number) => void,
+    readdirSync: (p: string) => string[],
+    lstatSync: (p: string) => {isSymbolicLink: () => boolean, isDirectory: () => boolean},
+    rmSync: (p: string, o?: unknown) => void,
+  }>('node:fs')
+  const path = node<{join: (...p: string[]) => string}>('node:path')
+  const walk = (dir: string) => {
+    try { fs.chmodSync(dir, 0o700) } catch { /* gone */ }
+    let names: string[]
+    try { names = fs.readdirSync(dir) } catch { return }
+    for (const name of names) {
+      const full = path.join(dir, name)
+      let lst: {isSymbolicLink: () => boolean, isDirectory: () => boolean}
+      try { lst = fs.lstatSync(full) } catch { continue }
+      if (lst.isSymbolicLink()) continue
+      if (lst.isDirectory()) walk(full)
+      else try { fs.chmodSync(full, 0o600) } catch { /* gone */ }
+    }
+  }
+  walk(rootDir)
+  try { fs.rmSync(rootDir, {recursive: true, force: true}) } catch { /* gone */ }
+}
+
+// Unlock (chmod u+w) and remove every active read-only C safety snapshot tree (e.g. on SIGINT/SIGTERM).
+export function cleanupCSafetySnapshots(): void {
+  for (const rootDir of [...activeSnapshotRoots]) {
+    activeSnapshotRoots.delete(rootDir)
+    unlockAndRemoveSnapshotRoot(rootDir)
+  }
+}
+
 // --- running clang ------------------------------------------------------------------------------------------------------
 // (C++: only the declarations named after the class, `-ast-dump-filter`: its standard headers' are hundreds of MB;
 // clang writes them one after another, its locations' state going on from one to the next)
@@ -1182,8 +1217,7 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
   }
 
   // Snapshot tree helpers: track every created directory/file, lock dirs 0o500 & files 0o400
-  // immediately after construction, walk and verify expected sets + SHA-256 hashes at the end,
-  // and restore writable permissions top-down before cleanup.
+  // immediately after construction, and walk/verify expected sets + SHA-256 hashes at the end.
   const trackDir = (targetDir: string, rootDir: string, trackedDirs: Set<string>) => {
     fsFull.mkdirSync(targetDir, {recursive: true})
     let cur = targetDir
@@ -1194,22 +1228,6 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       if (parent === cur) break
       cur = parent
     }
-  }
-  const unlockTreeWritable = (rootDir: string) => {
-    const walk = (dir: string) => {
-      try { fsFull.chmodSync(dir, 0o700) } catch { /* gone */ }
-      let names: string[]
-      try { names = fsFull.readdirSync(dir) } catch { return }
-      for (const name of names) {
-        const full = pathFull.join(dir, name)
-        let lst: {isSymbolicLink: () => boolean, isDirectory: () => boolean}
-        try { lst = fsFull.lstatSync(full) } catch { continue }
-        if (lst.isSymbolicLink()) continue
-        if (lst.isDirectory()) walk(full)
-        else try { fsFull.chmodSync(full, 0o600) } catch { /* gone */ }
-      }
-    }
-    walk(rootDir)
   }
   const walkAndVerifyTree = (
     rootDir: string,
@@ -1353,6 +1371,7 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
 
   type SnapEntry = {origReal: string, snapPath: string, bytes: Uint8Array, sha256: string, isSystem: boolean}
   const snapRootRaw = fsFull.mkdtempSync(pathFull.join(osMod.tmpdir(), 'gdp-c-safety-snap-'))
+  activeSnapshotRoots.add(snapRootRaw)
   const snapRoot = realPath(snapRootRaw)
   const snapBase = pathFull.join(snapRoot, 'u')
   const snapOf = (absPath: string): string => pathFull.join(snapBase, absPath.replace(/^\/+/, ''))
@@ -1644,6 +1663,7 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
     // across alternate path/basename length, two empty cwds with stdin=/dev/null, two mtimes, and
     // two SOURCE_DATE_EPOCH days — every pass checks `-H` equality and walks the tree at the end.
     const altRootRaw = fsFull.mkdtempSync(pathFull.join(osMod.tmpdir(), 'gdp-c-safety-diff-path-check-'))
+    activeSnapshotRoots.add(altRootRaw)
     const altRoot = realPath(altRootRaw)
     try {
       const mirrorOf = (rp: string) => pathFull.join(altRoot, 'p_extra_len_dir', rp.replace(/^\/+/, ''))
@@ -1756,8 +1776,8 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       if (altFacts1 !== baseAstFacts || altFacts2 !== baseAstFacts || altFacts1 !== altFacts2)
         throw new Refusal(file, 'folded AST facts (types, array extents, or constants) depend on invocation path, cwd, stdin, or date/time (differs under alternate path, cwd, mtime, or SOURCE_DATE_EPOCH; outside the C safety subset)')
     } finally {
-      unlockTreeWritable(altRootRaw)
-      try { fsFull.rmSync(altRootRaw, {recursive: true, force: true}) } catch { /* gone */ }
+      activeSnapshotRoots.delete(altRootRaw)
+      unlockAndRemoveSnapshotRoot(altRootRaw)
     }
 
     // Step 9: Build-mode differential alternates strictly under `-nostdinc` (NEVER falling back to
@@ -1808,6 +1828,7 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
         return baseAltTok
       }
       const varRootRaw = fsFull.mkdtempSync(pathFull.join(osMod.tmpdir(), 'gdp-c-safety-alt-snap-'))
+      activeSnapshotRoots.add(varRootRaw)
       const varRoot = realPath(varRootRaw)
       const varBase = pathFull.join(varRoot, 'u')
       const varOf = (absPath: string): string => pathFull.join(varBase, absPath.replace(/^\/+/, ''))
@@ -1908,8 +1929,8 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
         walkAndVerifyTree(varRoot, varExpectedDirs, varExpectedFiles, false, `build-mode ${alt.label} variant snapshot`)
         return tok
       } finally {
-        unlockTreeWritable(varRootRaw)
-        try { fsFull.rmSync(varRootRaw, {recursive: true, force: true}) } catch { /* gone */ }
+        activeSnapshotRoots.delete(varRootRaw)
+        unlockAndRemoveSnapshotRoot(varRootRaw)
       }
     }
     for (const alt of alternates) {
@@ -2008,8 +2029,8 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
     const safetyMeta: CSafetyClangMeta = {systemFiles, userFiles, macroConfig, snapshotBytes, verifySnapshotUnchanged}
     return {tu, target: {int: def('__SIZEOF_INT__') * 8, long: def('__SIZEOF_LONG__') * 8, short: def('__SIZEOF_SHORT__') * 8, llong: def('__SIZEOF_LONG_LONG__') * 8, charBits: def('__CHAR_BIT__'), charUnsigned: /#define __CHAR_UNSIGNED__/.test(defs), safetyMeta}}
   } finally {
-    unlockTreeWritable(snapRootRaw)
-    try { fsFull.rmSync(snapRootRaw, {recursive: true, force: true}) } catch { /* gone */ }
+    activeSnapshotRoots.delete(snapRootRaw)
+    unlockAndRemoveSnapshotRoot(snapRootRaw)
   }
 }
 // The values of names a law reads that the code defines as integer constants (a macro, an enum constant, a constexpr
