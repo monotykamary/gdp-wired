@@ -3,7 +3,7 @@ import ts from 'typescript'
 import {type Setup, refuse, unparen} from './extract-read.ts'
 
 type Binding = {decl: ts.FunctionDeclaration | ts.VariableDeclaration, order: number}
-const reserved = (name: string) => ['undefined', '__cov', '$join', 'this'].includes(name) || name.startsWith('__gdp')
+const reserved = (name: string) => ['undefined', '__cov', '__now', '$join', 'this'].includes(name) || name.startsWith('__gdp')
 
 export function standaloneClosure(s: Setup, entry: ts.FunctionLikeDeclaration): string[] {
   const bindings = new Map<ts.Symbol, Binding>(), active = new Set<ts.Node>(), done = new Set<ts.Node>(), reached = new Set<string>()

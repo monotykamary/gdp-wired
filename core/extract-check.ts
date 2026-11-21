@@ -22,7 +22,7 @@ const vmOf = (): VM => { const m = proc?.getBuiltinModule?.('node:vm'); if (!m) 
 import {Int, Term, bool, int, intern, interned, nat, no, oneOf, str, type Kind, type Rule, type StepLaw, proveSteps} from './dsl.ts'
 import {type Rand, type Request, type State, seeded, walk} from './machine.ts'
 import {allowed} from './watch.ts'
-import {type Arg, type Layout, type MapDecl, type Model, type Var, normalize, resolveIn, sameLazyRoot, scriptKind} from './extract-read.ts'
+import {type Arg, type Layout, type MapDecl, type Model, type Var, assertNoReservedHarness, normalize, resolveIn, sameLazyRoot, scriptKind} from './extract-read.ts'
 import * as I from './extract-ir.ts'
 import type {B, N} from './extract-ir.ts'
 import type {Sorts} from './extract-print.ts'
@@ -151,6 +151,7 @@ function instrumentTicks(js: string, file: string): string {
 }
 export type Sandbox = {ctx: Context, counts: number[], call: (f: string, self: unknown, args: unknown[], housekeeping?: boolean) => {ok: true, value: unknown} | {ok: false, error: string}, setNow: (n: number) => void, get: (name: string) => unknown, bindings: (method: string) => Record<string, unknown> | undefined, observations: () => NativeExecutionObservation}
 export function sandbox(code: string, file: string, expose: string[], modules: Record<string, unknown> = {}, init?: string, files: Record<string, string> = {}, extra: [number, string][] = [], nativeMethods: string[] = []): Sandbox & {arms: Arm[]} {
+  assertNoReservedHarness(code, file, files)
   const vm = vmOf()
   // A final arrow can end exactly where a factory appends fields. Its capture
   // must close first; instrument preserves the order of equal-position edits.

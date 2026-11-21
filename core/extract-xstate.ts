@@ -28,7 +28,7 @@ import * as dsl from './dsl.ts'
 import {compileFunction, seeded} from './machine.ts'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
-import {type DeclSpan, Exec, type Model, type Path, Refusal, type Setup, type Shape, type Sort, type Source, type Term, type V, type Var, beside, declSpanOf, memberName, normalize, placed, program, refuse, scriptKind, shapeOf, sourceOf, where} from './extract-read.ts'
+import {type DeclSpan, Exec, type Model, type Path, Refusal, type Setup, type Shape, type Sort, type Source, type Term, type V, type Var, assertNoReservedHarness, beside, declSpanOf, memberName, normalize, placed, program, refuse, scriptKind, shapeOf, sourceOf, where} from './extract-read.ts'
 import type {Law} from './machine.ts'
 import type {Name} from './extract.ts'
 import type {Rule} from './dsl.ts'
@@ -92,6 +92,7 @@ function machineOf(code: string, file: string): string {
 function readXState(code: string, opts: XStateOptions & {file: string, entry: string}): XStateExtraction {
   const file = opts.file, t0 = performance.now(), notes: string[] = []
   try {
+    assertNoReservedHarness(code, file, opts.files)
     const at = placed(file), root = at.slice(0, at.length - file.split('/').pop()!.length)
     const extra = Object.fromEntries(Object.entries(opts.files ?? {}).map(([p, c]) => [normalize(`${root}${p}`), c]))
     const {sf, checker} = program(code, at, extra)

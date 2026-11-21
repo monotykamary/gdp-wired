@@ -356,7 +356,7 @@ const sortOf = (sh: Shape, lits: string[]): Sort => (sh.k === 'str' && lits.leng
 export function readStandalone(code: string, file: string, opts: ReadOptions): Model {
   const s = setupOf(code, file, opts.typed, opts.files), fn = findFunction(s.sf, opts.entry)
   s.declSpans = [declSpanOf(s.sf, fn)]
-  if (opts.entry === 'undefined' || opts.entry === '__cov') refuse(fn, 'standalone: reserved entry name')
+  if (opts.entry === 'undefined' || opts.entry === '__cov' || opts.entry === '__now' || opts.entry === '__gdp_tick') refuse(fn, 'standalone: reserved entry name')
   const bindings = standaloneClosure(s, fn)
   s.spans = [[fn.getStart(), fn.end]]
   const ex = new Exec(s, true), heap: Heap = new Map(), args: Arg[] = []

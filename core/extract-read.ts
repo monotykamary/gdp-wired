@@ -72,6 +72,18 @@ export function declSpanOf(sf: ts.SourceFile, n: ts.Node): DeclSpan {
   const d = declNodeOf(sf, n)
   return {file: sf.fileName, start: d.getStart(sf), end: d.end}
 }
+const RESERVED_HARNESS_RE = /\b(__gdp_tick|__cov|__now)\b/
+export function assertNoReservedHarness(code: string, file: string, files?: Record<string, string>): void {
+  const checkOne = (src: string, at: string) => {
+    const m = RESERVED_HARNESS_RE.exec(src)
+    if (!m) return
+    const before = src.slice(0, m.index).split('\n')
+    const line = before.length, col = before.at(-1)!.length + 1
+    throw new Refusal(`${at}:${line}:${col}`, `${m[1]}: reserved harness name (the check's sandbox uses __gdp_tick, __cov and __now)`)
+  }
+  checkOne(code, file)
+  if (files) for (const [p, src] of Object.entries(files)) checkOne(src, p)
+}
 // Per-path atomicity trace collected while reading an Effect service's methods (no separate AST walk).
 export type EffectAtom = {
   txDepth: number

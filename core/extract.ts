@@ -44,7 +44,7 @@ import type {Rule} from './dsl.ts'
 import type {Law} from './machine.ts'
 import * as I from './extract-ir.ts'
 import {type B, type K, type N, PASS} from './extract-ir.ts'
-import {type Arg, type DeclSpan, type Layout, type MapDecl, type MapWrite, type Model, Refusal, type Source, type Term, type Var, placed, sourceOf, syntaxError, tooDeep} from './extract-read.ts'
+import {type Arg, type DeclSpan, type Layout, type MapDecl, type MapWrite, type Model, Refusal, type Source, type Term, type Var, assertNoReservedHarness, placed, sourceOf, syntaxError, tooDeep} from './extract-read.ts'
 import {type ReadOptions, isFactory, isSlice, readClass, readFactory, readFunctions, readSlice, readStandalone} from './extract-shapes.ts'
 import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, nonneg, pb, pidx, pk, pnum, pterm, sortsOf} from './extract-print.ts'
 import {type CheckOptions, type Evidence, check} from './extract-check.ts'
@@ -162,7 +162,11 @@ export function extract(at: Source, opts: ExtractOptions = {}): Extraction {
     if (opts.mode === 'standalone') {
       if (!o.entry || Array.isArray(opts.entry) || opts.functions || opts.shape || opts.orm) throw new Refusal(file, 'standalone mode needs exactly one named function and no other shape')
       model = readStandalone(code, placed(file), o)
-    } else model = o.entry ? readModel(code, file, o, opts.shape) : inferred(code, file, o, opts.shape)
+      assertNoReservedHarness(code, file, opts.files)
+    } else {
+      assertNoReservedHarness(code, file, opts.files)
+      model = o.entry ? readModel(code, file, o, opts.shape) : inferred(code, file, o, opts.shape)
+    }
     model.file = file
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}

@@ -22,7 +22,7 @@ import {allowed} from './watch.ts'
 import {BudgetExpired, checkWorkEndpoint} from './wall.ts'
 import {WatchdogExpired} from './search-watchdog.ts'
 import * as I from './extract-ir.ts'
-import {type DeclSpan, type EffectAtom, type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, declSpanOf, impure, initEffectAtom, memberName, mergeEffectAtom, normalize, placed, refuse, shapeOf, sourceOf, text, where} from './extract-read.ts'
+import {type DeclSpan, type EffectAtom, type Exec, type Path, Refusal, type Setup, type Source, type V, assertNoReservedHarness, bare as strip, beside, declSpanOf, impure, initEffectAtom, memberName, mergeEffectAtom, normalize, placed, refuse, shapeOf, sourceOf, text, where} from './extract-read.ts'
 import {type FactoryOf, readFactory, setupOf} from './extract-shapes.ts'
 import {type ExtractOptions, type Extraction, fromModel, namesOf} from './extract.ts'
 import {check, sandbox} from './extract-check.ts'
@@ -708,6 +708,7 @@ export function extractEffect(at: Source, opts: EffectOptions = {}): Extraction 
   const tracker = makeAtomTracker()
   try {
     ;({code, file} = sourceOf(at, opts.file, 'input.ts'))
+    assertNoReservedHarness(code, file, opts.files)
     E = opts.effect ?? beside<Mod>(file, 'effect')
     if (!E) throw new Refusal(file, 'no effect package resolves from the file (install it in its project, or give it: {effect: await import(\'effect\')})')
     V4 = 'TxRef' in E; found = []

@@ -4,6 +4,11 @@ import {existsSync, mkdtempSync, rmSync, symlinkSync, writeFileSync} from 'node:
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {HarnessFailure, sandbox} from './extract-check.ts'
+import {extract} from './extract.ts'
+import {extractEffect} from './effect.ts'
+import {extractXState} from './extract-xstate.ts'
+import * as effect from 'effect'
+import * as xstate from 'xstate'
 
 setDefaultTimeout(120_000)
 
@@ -182,4 +187,41 @@ test('sandbox enforces deadlines without leaking timers into later host JavaScri
 
   // Top-level infinite loop during module load still times out cleanly.
   expect(() => sandbox('for (;;) {} export const x = 1', 'load-spin.ts', ['x'])).toThrow(/timed out/i)
+})
+
+test('sources mentioning reserved harness names (__gdp_tick, __cov, __now) are explicitly refused', () => {
+  for (const name of ['__gdp_tick', '__cov', '__now'] as const) {
+    // Plain TS class (identifier, local, computed string mention)
+    const cls = extract(`export class Counter { n = 0; hit(${name}: number) { this.n += ${name} } }`, {file: 'counter.ts'})
+    expect(cls.ok).toBe(false)
+    expect(cls.evidence).toBeUndefined()
+    expect(cls.refusals[0]?.what).toContain(`${name}: reserved harness name`)
+
+    const strMention = extract(`export class Counter { n = 0; hit() { const k = '${name}'; if (k.length) this.n += 1 } }`, {file: 'str.ts'})
+    expect(strMention.ok).toBe(false)
+    expect(strMention.refusals[0]?.what).toContain(`${name}: reserved harness name`)
+
+    // Relative imported helper file mentioning reserved harness name
+    const imported = extract(`import {step} from './helper'\nexport class Counter { n = 0; hit() { this.n = step(this.n) } }`, {
+      file: 'main.ts',
+      files: {'helper.ts': `export function step(x: number) { const ${name} = 1; return x + ${name} }`},
+    })
+    expect(imported.ok).toBe(false)
+    expect(imported.refusals[0]?.what).toContain(`${name}: reserved harness name`)
+
+    // Effect service
+    const fx = extractEffect(`import {Effect, Ref} from 'effect'\nexport const make = Effect.gen(function* () { const n = yield* Ref.make(0); const hit = (${name}: number) => Ref.update(n, x => x + ${name}); return {hit} })`, {file: 'svc.ts', effect})
+    expect(fx.ok).toBe(false)
+    expect(fx.evidence).toBeUndefined()
+    expect(fx.refusals[0]?.what).toContain(`${name}: reserved harness name`)
+
+    // XState machine
+    const xs = extractXState(`import {setup} from 'xstate'\nexport const machine = setup({types: {context: {} as {${name}: number}}}).createMachine({id: 'm', initial: 'a', context: {${name}: 0}, states: {a: {}}})`, {file: 'm.ts', xstate})
+    expect(xs.ok).toBe(false)
+    expect(xs.evidence).toBeUndefined()
+    expect(xs.refusals[0]?.what).toContain(`${name}: reserved harness name`)
+
+    // Defense-in-depth directly on sandbox()
+    expect(() => sandbox(`export function f() { return typeof ${name} }`, 'sb.ts', ['f'])).toThrow(/reserved harness name/)
+  }
 })
