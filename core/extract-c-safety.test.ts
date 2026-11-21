@@ -2224,7 +2224,7 @@ withClang('Review Probe 18: Clang-discovered full user+system -nostdinc snapshot
       writeFileSync(f, prefix + body)
       const res = await check([f], {propose: false})
       expect(res.exit, `${label} must never prove (exit 0)`).not.toBe(0)
-      expect(res.rules[0]?.safety?.status, `${label} must not be proven`).not.toBe('proven')
+      expect((res.rules[0]?.safety as {status?: string} | undefined)?.status, `${label} must not be proven`).not.toBe('proven')
       const mc = (res.rules[0]?.safety as {macroConfig?: {userFiles?: {path: string, sha256: string}[]}})?.macroConfig
       expect(mc?.userFiles?.some(u => u.path.endsWith('/stddef.h') && u.sha256 === evilSha), `${label} must include local stddef.h in snapshot`).toBe(true)
     }
