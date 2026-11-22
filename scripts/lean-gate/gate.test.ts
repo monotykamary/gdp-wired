@@ -1,5 +1,6 @@
-// The axiom gate (gate.ts) on lean's own words, and every Lean job going through it: supercomputer/suite.json's, the
-// interchange's (interchange/lean-jobs.ts) and the bar's (gates/bar.ts).
+// The axiom gate (gate.ts) on lean's own words, and every Lean job going through it: supercomputer/suite.json's and the
+// interchange's (interchange/lean-jobs.ts). (The bar's Lean sample was retired with its ITS runner: gates/bar.ts runs
+// no Lean of its own.)
 import {expect, test} from 'bun:test'
 import {existsSync, readFileSync} from 'node:fs'
 import {join} from 'node:path'
@@ -24,7 +25,7 @@ test('the standard axioms pass; another axiom, sorry or an unanswered #print fai
 
 type Job = {name: string, cmd: string, cwd?: string}
 const gated = (j: Job) => /export PATH=\$PWD(\/\.\.)?\/scripts\/lean-gate:\$PATH; /.test(j.cmd) || /scripts\/lean-gate\/gate\.ts lake\.out/.test(j.cmd)
-// (in this checkout: supercomputer/ is left out of the trees boat runs)
+// (in this checkout: supercomputer/ is left out of the trees the boxes run)
 const local = existsSync(join(root, 'supercomputer', 'suite.json')) ? test : test.skip
 local('every job that runs lean or lake goes through the gate', () => {
   const suite = JSON.parse(readFileSync(join(root, 'supercomputer', 'suite.json'), 'utf8')) as Job[]
@@ -34,5 +35,5 @@ local('every job that runs lean or lake goes through the gate', () => {
   // (the prefix names the directory from the job's own cwd)
   for (const j of lean.filter(x => x.cmd.startsWith('export PATH='))) expect(j.cmd.startsWith(j.cwd === 'lean-kernel' ? 'export PATH=$PWD/..' : 'export PATH=$PWD/scripts')).toBe(true)
   expect(readFileSync(join(root, 'interchange', 'lean-jobs.ts'), 'utf8')).toContain("'export PATH=$PWD/scripts/lean-gate:$PATH; cd lean-kernel")
-  expect(readFileSync(join(root, 'gates', 'bar.ts'), 'utf8')).toContain("const pre = 'export PATH=$PWD/../scripts/lean-gate:$PATH; ")
+  expect(readFileSync(join(root, 'gates', 'bar.ts'), 'utf8')).not.toMatch(/\blean -o\b|\blake build\b/)
 })

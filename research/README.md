@@ -22,9 +22,9 @@ regression suite (`../supercomputer/suite.json`) runs the parts below that it li
 
 Each entry point runs from its own folder, e.g. `cd research/audit && bun check.ts 200 200 20 5`.
 
-The GPU runners `hw/run_gpu.py`, `hw/run_synth_gpu.py` and `modal-gpu/run_gpu.py` take `--backend auto|runpod|modal`
-(`../supercomputer/README.md`): `python3 research/hw/run_gpu.py --backend auto --out ... --args=--hand` runs on a RunPod pod,
-and on Modal (its `--gpu`) when RunPod has none of the GPU types in the list or the pod fails; where it ran is in
-`<out>.backend.json`. The search `--hand` and synthesis's bucket cases (`--both --only bucket`) gave the same results,
+The GPU runners (`hw/run_gpu.py`, `hw/run_synth_gpu.py`, `modal-gpu/run_gpu.py`, `synth/run_gpu.py`,
+`table/run_gpu.py`, `perf/enum_gpu.py`) ran on RunPod pods and Modal GPUs; they were retired with Modal, boat and RunPod
+(in git history), and the GPU results below are their runs'. A GPU job now is a `supercomputer run` job with `"gpu"`
+(`../supercomputer/README.md`), which needs Dawn and NVIDIA's Vulkan driver set up by the job. The search `--hand` and synthesis's bucket cases (`--both --only bucket`) gave the same results,
 times aside, on a RunPod RTX 4090 as on a Modal L4 (`runs/backends/gpu/`, `runs/modal/backends/gpu/`);
 `run_synth_gpu.py --both` stops at its fourth case on both ("synthesis kernels read no maps", `research/hw/synth.ts`).

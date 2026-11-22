@@ -1,11 +1,10 @@
-"""gdp-wired's hooks for the supercomputer (~/.local/share/supercomputer; its config is ../supercomputer.toml): the
-boat image's layers. Everything else this repo needs (its tree's ignore patterns, the Lean library's build cache, the
-runner image's PATH on boat, the GPU pods' setup) is plain config there.
-"""
-import pathlib
+#!/usr/bin/env bash
+# gdp-wired's instabox image: `supercomputer image build` runs this on a fresh box of [instabox] template (instabox's
+# `ci`: Ubuntu 24.04 with GitHub's runner image, whose clang, JDK and Swift the native CI shards are checked against)
+# and saves the snapshot supercomputer.toml names. What the boat image's layers installed, in one script.
+set -euo pipefail
 
-# bun and Lean 4.34.0 by elan, as run.py's Modal image has them
-TOOLS = r"""
+# bun and Lean 4.34.0 by elan
 sudo apt-get update -y -q
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q curl unzip git ca-certificates xz-utils zstd bzip2 coreutils python3-pip
 # as modal/run.py's image: bun (the version that image has) and Lean 4.34.0 by elan
@@ -13,15 +12,28 @@ curl -fsSL https://bun.sh/install | bash -s bun-v1.4.3
 curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain leanprover/lean4:v4.34.0
 ~/.elan/bin/lean --version
 ~/.bun/bin/bun --version
-sudo mkdir -p /work /src/gdp-wired /bench /smt /vamp /sv /opt/gdpw
-sudo chown "$(id -un)" /smt /vamp /sv /opt/gdpw
-"""
-# The toolchains the lanes' jobs install at their start on Modal (as root, which a boat item isn't): the language
-# sweep's (research/langs/*/*-setup.sh: Ruby and Prism, Elixir, clang 19, a JDK 21 and kotlinc 2.4.21, Swift, Rust),
-# LiteLLM's Python (uv, its pinned dependencies, a site directory the user installs into), Solidity's solc and anvil
-# (research/sol), and the runner image's own (supercomputer/run.py's runner_image: clang 18, GCC 14's libstdc++, Temurin 17), so
-# "image": "runner" jobs run on boat too. Each setup script then finds its tool and installs nothing.
-LANGS = r"""
+
+# Node.js 24.22.1 in /opt/node, first on the PATH
+NODE_VER="v24.22.1"
+TARBALL="node-${NODE_VER}-linux-x64.tar.xz"
+curl -fsSL --retry 6 --retry-all-errors --retry-delay 5 -o "/tmp/${TARBALL}" "https://nodejs.org/dist/${NODE_VER}/${TARBALL}"
+curl -fsSL --retry 6 --retry-all-errors --retry-delay 5 -o /tmp/SHASUMS256.txt "https://nodejs.org/dist/${NODE_VER}/SHASUMS256.txt"
+(cd /tmp && awk -v f="${TARBALL}" '$2 == f {found=1; print} END {exit !found}' SHASUMS256.txt | sha256sum -c -)
+sudo rm -rf /opt/node && sudo mkdir -p /opt/node
+sudo tar -xJf "/tmp/${TARBALL}" -C /opt/node --strip-components=1
+sudo chown -R root:root /opt/node
+rm -f "/tmp/${TARBALL}" /tmp/SHASUMS256.txt
+for b in node npm npx corepack; do
+  if [ -x "/opt/node/bin/$b" ]; then
+    sudo ln -sf "/opt/node/bin/$b" "/usr/local/bin/$b"
+  fi
+done
+test "$(/opt/node/bin/node --version)" = "${NODE_VER}"
+env -i HOME=/tmp PATH=/opt/node/bin:/usr/local/bin:/usr/bin:/bin node --version | grep -qx "${NODE_VER}"
+
+# The language sweep's toolchains (research/langs/*/*-setup.sh: Ruby and Prism, Elixir, clang 19, a JDK 21 and
+# kotlinc 2.4.21, Swift, Rust), Solidity's solc and anvil (research/sol), LiteLLM's Python, and the runner image's own
+# (clang 18, GCC 14's libstdc++, Temurin 17) for "image": "runner" jobs.
 export DEBIAN_FRONTEND=noninteractive
 get() { curl -fsSL --retry 6 --retry-all-errors --retry-delay 5 -o "$2" "$1"; }  # (a large download whole, or again)
 sudo apt-get update -y -q
@@ -53,7 +65,7 @@ get "https://download.swift.org/swift-6.3.3-release/ubuntu2404/swift-6.3.3-RELEA
 sudo mkdir -p /opt/rustup /opt/cargo && sudo chown "$(id -un)" /opt/rustup /opt/cargo
 curl -sSf https://sh.rustup.rs | RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable
 for b in cargo rustc rustdoc; do sudo ln -sf "$(ls -d /opt/rustup/toolchains/stable-*/bin)/$b" /usr/local/bin/$b; done
-rm -rf ~/.cargo ~/.rustup
+# (~/.cargo and ~/.rustup are the ci image's own Rust: left as they are)
 env -i HOME=/tmp PATH=/usr/local/bin:/usr/bin:/bin cargo --version | grep '^cargo '
 # solc 0.8.28 and anvil 1.5.1 (research/sol/sol-setup.sh's, pinned as research/sol/DESIGN.md measured them on Modal), so
 # core/extract-sol.test.ts, core/sol/harness.py and the Solidity measure jobs run on boat
@@ -66,55 +78,3 @@ sudo pip install --break-system-packages -q uv
 for d in $(python3 -c 'import site; print(" ".join(site.getsitepackages()))') /usr/local/bin; do sudo mkdir -p "$d"; sudo chown -R "$(id -un)" "$d"; done
 uv pip install --system --break-system-packages -q 'litellm[proxy]==1.106.6'
 python3 -c 'import litellm.proxy.auth.auth_checks; print("litellm deps ok")'
-"""
-# Pinned Node.js 24.22.1 in /opt/node (first on boat's PATH) so every boot resolves one Node independent of
-# ~/.nvm or the base image's /usr/bin/node (v20.20.2) and dangling /usr/local/bin/node symlink.
-NODE = r"""
-set -euo pipefail
-NODE_VER="v24.22.1"
-TARBALL="node-${NODE_VER}-linux-x64.tar.xz"
-curl -fsSL --retry 6 --retry-all-errors --retry-delay 5 -o "/tmp/${TARBALL}" "https://nodejs.org/dist/${NODE_VER}/${TARBALL}"
-curl -fsSL --retry 6 --retry-all-errors --retry-delay 5 -o /tmp/SHASUMS256.txt "https://nodejs.org/dist/${NODE_VER}/SHASUMS256.txt"
-(cd /tmp && awk -v f="${TARBALL}" '$2 == f {found=1; print} END {exit !found}' SHASUMS256.txt | sha256sum -c -)
-sudo rm -rf /opt/node && sudo mkdir -p /opt/node
-sudo tar -xJf "/tmp/${TARBALL}" -C /opt/node --strip-components=1
-sudo chown -R root:root /opt/node
-rm -f "/tmp/${TARBALL}" /tmp/SHASUMS256.txt
-for b in node npm npx corepack; do
-  if [ -x "/opt/node/bin/$b" ]; then
-    sudo ln -sf "/opt/node/bin/$b" "/usr/local/bin/$b"
-  fi
-done
-test "$(/opt/node/bin/node --version)" = "${NODE_VER}"
-env -i HOME=/tmp PATH=/opt/node/bin:/usr/local/bin:/usr/bin:/bin node --version | grep -qx "${NODE_VER}"
-"""
-# the compare runners' solvers, a layer each (their BOAT_SETUP, next to their Modal image), the slowest to build first
-RUNNERS = ["compare/tip/modal_tip.py", "compare/chc/modal_chc.py", "compare/term/modal_term.py", "compare/term/modal_sv.py"]
-
-
-def runner_boat(root: pathlib.Path, path: str) -> dict:
-    """A compare runner's boat setting (its BOAT_SETUP and BOAT), read under the Modal stub (the real client, if this
-    process has it, is put back after)."""
-    import sys
-    from supercomputer import agent
-    had = sys.modules.get("modal")
-    sys.modules["modal"] = agent.modal_stub()
-    try:
-        mod = agent.import_runner(str(root / path))
-    finally:
-        if had is not None:
-            sys.modules["modal"] = had
-        else:
-            sys.modules.pop("modal", None)
-    return {"setup": getattr(mod, "BOAT_SETUP", ""), **getattr(mod, "BOAT", {})}
-
-
-def layers(root: pathlib.Path) -> list[tuple[str, str]]:
-    """The image's layers, bottom first: the tools, each compare runner's solvers and benchmarks (its BOAT_SETUP, the
-    slowest to build first), the languages, and pinned Node 24.22.1 stacked atop sc-f0d8daeee6c3."""
-    return [
-        ("tools", TOOLS),
-        *[(pathlib.Path(r).stem.removeprefix("modal_"), runner_boat(root, r)["setup"]) for r in RUNNERS],
-        ("langs", LANGS),
-        ("node", NODE),
-    ]

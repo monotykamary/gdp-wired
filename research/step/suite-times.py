@@ -1,5 +1,5 @@
-"""Suite job times side by side: `python3 research/step/suite-times.py <run dir> <run dir> [...]` (each a supercomputer/run.py
-output: summary.tsv with name, exit code, seconds, backend). Prints each run's failures and total job seconds over the
+"""Suite job times side by side: `python3 research/step/suite-times.py <run dir> <run dir> [...]` (each a run's
+output: summary.tsv with name, exit code, seconds, where). Prints each run's failures and total job seconds over the
 jobs every run has, then the jobs whose time moved most between the first two."""
 import pathlib
 import sys
@@ -9,7 +9,7 @@ for d in sys.argv[1:]:
     rows = {}
     for line in (pathlib.Path(d) / "summary.tsv").read_text().splitlines():
         parts = line.split("\t")
-        if len(parts) >= 3:
+        if len(parts) >= 3 and parts[1].lstrip("-").isdigit():  # (not the header, nor a lost job)
             rows[parts[0]] = (int(parts[1]), float(parts[2]), parts[3] if len(parts) > 3 else "")
     runs.append((d, rows))
 common = set.intersection(*[set(r) for _, r in runs])

@@ -7,7 +7,7 @@
 //                                                    the others (each set sharded alone; the two sets together are all)
 // A unit is a test file or script, with explicit per-file process configuration where required. Consecutive compatible
 // test files share one `bun test`; isolated/profile-specific units never share its module cache. The shards
-// are balanced on test-shards.json's seconds (measured on boat, each unit alone: --measure), longest first onto the
+// are balanced on test-shards.json's seconds (measured each unit alone: --measure), longest first onto the
 // least loaded shard; a unit not measured yet goes round-robin. Every unit is in exactly one shard (checked each run).
 import {spawnSync} from 'node:child_process'
 import {readFileSync, writeFileSync} from 'node:fs'
@@ -91,7 +91,6 @@ const units: Unit[] = [
   ...tests('research/c-safety', 'first-fault.test.ts'),
   // These controls enforce the full canonical release gate, not just this quick roster.
   ...tests('.', 'scripts/release-ci/full-gate-contract.test.ts scripts/release-ci/full-gate-runner.test.ts scripts/release-ci/full-gate-worker.test.ts scripts/release-ci/full-gate-native.test.ts scripts/release-ci/verify-publish-gate.test.ts scripts/release-ci/known-failures.test.ts'),
-  ...tests('research/query', 'goal-pack.test.ts'),
   ...tests('research/translation-fuzz', 'model.test.ts'),
   ...runs('research/translation-fuzz/smoke.ts'),
   ...tests('research/protocols/ic3syn', 'mldr.test.ts'),
@@ -185,13 +184,13 @@ for (const [name, patterns] of Object.entries(parts)) {
 
 // The units that run a native toolchain (python3, Ruby, a JDK, kotlinc, Go, Rust, Swift, clang, zstd, solc, anvil):
 // CI runs them on GitHub's ubuntu-24.04 image, the toolchains they are checked against (clang 18.1.3, JDK 17), and every
-// other unit, the portable set, on boat, where none is installed: a boat shard puts a stub of each such tool first on the
+// other unit, the portable set, on instabox boxes, where none is relied on: an instabox shard puts a stub of each such tool first on the
 // PATH and fails if any unit called one (a unit that needs a toolchain belongs here, not skipped there).
 const native = new Set([
   'core/agent-consult/workspace.test.ts',
   'core/cli.test.ts', 'core/exports.test.ts', 'core/relational.test.ts', 'core/calendar.test.ts',
   'core/extract-py.test.ts', 'core/extract-py-mro.test.ts', 'core/extract-py-hasattr.test.ts', 'core/extract-py-orm.test.ts',
-  'core/extract-c-safety.test.ts', 'core/extract-sol.test.ts', 'core/sol-concrete.test.ts', 'research/security/score.test.ts', 'research/query/goal-pack.test.ts',
+  'core/extract-c-safety.test.ts', 'core/extract-sol.test.ts', 'core/sol-concrete.test.ts', 'research/security/score.test.ts',
   'gates/bar.test.ts', 'research/security/surface-lowering.test.ts', 'research/security/mutants/mutants.test.ts',
   'research/security/mutants-upstream/upstream.test.ts', 'core/cli-deadline.test.ts', 'core/extract-step-native.test.ts', 'core/extract-py-decorator.test.ts',
 ])

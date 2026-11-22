@@ -44,7 +44,7 @@ gdp-wired's own searches find (the frontier corpus). It is a measurement: nothin
 | `frontier.ts` | research/frontier's cycle and lemma items, the existing search beside the table |
 | `gpu.ts` | The GPU passes as Handwired loop programs (u32 word stages): columns (Q2 bounds and Q4 fingerprints of sparse linear columns), implies (Q5 on 0/1 columns as bitsets), box (guard filtering) |
 | `summary.ts`, `gpu-summary.ts`, `term-tasks.ts`, `jobs.ts` | The tables below; the termination tasks with failures.ts's classes; the job files |
-| `modal_table.py`, `run_gpu.py` | Modal runners: one container per job (2 vCPU, 4 GB; GPU: L4), all at once (Modal-only and historical) |
+| `modal_table.py`, `run_gpu.py` (retired) | Modal runners: one container per job (2 vCPU, 4 GB; GPU: L4), all at once (retired with Modal, in git history; the runs here are theirs) |
 
 The check is Z3, not gdp-wired's kernel. "Recovered" is stated two ways: **on the samples** (L_k ⇒ Spacer's invariant;
 L_k holds of every sample, but may hold of no invariant) and **inductive** (the relations Houdini keeps, an inductive
@@ -332,8 +332,8 @@ table can't help with. GPU: keep the passes CPU-side (section 5) until a domain 
 | `gpu-term3`, `cpu-term3` | the termination box again (relevant positions only, the deadline), GPU and CPU twin |
 | `*-smoke*`, `*-stopped` | smoke runs, and runs stopped for a bug (the box without a deadline), kept for the record |
 
-    bun research/table/jobs.ts chc && modal run research/table/modal_table.py --jobs research/table/jobs/chc.json --out runs/modal/table/chc1
+    bun research/table/jobs.ts chc && modal run research/table/modal_table.py --jobs research/table/jobs/chc.json --out runs/modal/table/chc1   # (retired with Modal: the record of the run)
     bun research/table/summary.ts chc runs/modal/table/chc1
     bun research/table/summary.ts term runs/modal/table/term2 runs/modal/table/term2-redo
-    modal run research/table/run_gpu.py --jobs research/table/jobs/gpu-all.json --out runs/modal/table/gpu-l4
+    modal run research/table/run_gpu.py --jobs research/table/jobs/gpu-all.json --out runs/modal/table/gpu-l4   # (retired with Modal: the record of the run)
     bun research/table/gpu-summary.ts runs/modal/table/gpu-l4 runs/modal/table/cpu-twin

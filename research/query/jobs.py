@@ -1,4 +1,5 @@
-"""The jobs files of research/query/modal_query.py: `python3 research/query/jobs.py <kind> [--base] [--prof] > jobs.json`.
+"""The jobs files of research/query/modal_query.py (retired with Modal and boat, in git history; its /chc, /its and
+/goals mounts have no runner now): `python3 research/query/jobs.py <kind> [--base] [--prof] > jobs.json`.
 
   (--base: each job also on main's tree, its own container; --pair: both in one container, one after the other)
   reps    the representative queries: CHC sat (the join on Lustre's wide steps, solve.ts with no second CPU), CHC

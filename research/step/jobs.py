@@ -1,5 +1,5 @@
 """The jobs files of research/step: `python3 research/step/jobs.py <kind> [--ms 55000] [--env K=V ...] > <jobs.json>`,
-run by research/step/modal_step.py (one container a job).
+run by research/step/modal_step.py (one container a job; retired with Modal, in git history).
 
   goals332   goal.ts on each of research/dag's 332 dumped step goals (/goals/<task>/goal.json)
   goals223   goal.ts on each table step goal dumped by `table` (/goals223/<task>/goal.json)

@@ -1,4 +1,4 @@
-"""The jobs files research/dag/modal_dag.py runs: `python3 research/dag/jobs.py <kind> > <jobs.json>`.
+"""The jobs files research/dag/modal_dag.py ran (retired with Modal, in git history): `python3 research/dag/jobs.py <kind> > <jobs.json>`.
 
   dump      given-dump.ts on each of the 332 step-goal tasks (step332-tasks.json), the same 55 s as given.ts had
   solvers   z3 and cvc5 on each dumped goal.smt2 (runs/modal/dag/goals/<task>/), 60 s, one (solver, task) a container

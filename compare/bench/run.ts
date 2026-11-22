@@ -1,7 +1,7 @@
 // Runs the rules: for one rule, build the Bend and Lean benches to native code, then time each tool's whole command
 // at each N (median of RUNS runs) and check that the three print the same checksum. N = 0 is each tool's startup
 // floor. A command that runs past LIMIT seconds is stopped, and that tool is not run at larger N. Runs where bun,
-// clang 14+, Lean 4.34.0 and the Bend repo are (compare/modal_compare.py with compare/bench/jobs.json on Modal):
+// clang 14+, Lean 4.34.0 and the Bend repo are (compare/modal_compare.py ran compare/bench/jobs.json on Modal, since retired):
 //
 //   BEND=/path/to/bend bun compare/bench/run.ts budget|caps|window
 //

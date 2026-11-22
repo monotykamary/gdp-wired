@@ -9,7 +9,8 @@ sourced from the IC3PO repository" (pyv-paxos-epr).
     models.ts   the ports (each with its correspondence, a broken variant, its instance and TLC cfg)
     common.ts   what they share: majority() by counting, the check's types
     check.ts    a port's reachable states on a small instance, by BFS, as the spec's variables
-    tlc.py      TLC on the Endive spec beside check.ts's BFS, per protocol (boat, Modal on request)
+    tlc.py      TLC on the Endive spec beside check.ts's BFS, per protocol (boat or Modal; retired with them, in git history:
+                tlc_native.py runs the same cross-check as a plain `supercomputer run` job, research/bapa/native-tlc.jobs.json)
     run.ts      the search with nothing written, per protocol (jobs.ts: its Modal jobs)
     probe.ts    a port's law through proveRule with the search off, within a wall
 

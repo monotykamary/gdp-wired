@@ -692,7 +692,7 @@ Proving and checking: a law over 64 steps proves in about 5 s, and Lean checks i
 | `docs/` | [ARCHITECTURE.md](docs/ARCHITECTURE.md) (the trust boundaries and what guards each), [FRONTENDS.md](docs/FRONTENDS.md) (how a language's reader plugs in), [minimize.md](docs/minimize.md) (shrinking refuting runs with `minimizeRun`), [interchange.md](docs/interchange.md) (certificates as JSON, for checkers in other languages), the comparison with Bend and Lean |
 | `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
 | `research/` | Everything around the library ([`research/README.md`](research/README.md)): the GPU searches (`search/`, `hw/`, `modal-gpu/`), invariant and rank synthesis (`synth/`), relational laws and guard synthesis (`next/`), bit-vector laws (`sat/`), the enumeration and benchmarks (`enum/`, `gpu/`, `perf/`), the first Lean checker (`lean/`) and the first prototype, the audit path (`audit/`) |
-| `supercomputer/` | Everything above as jobs on boat (a warm pool), Modal and RunPod: `suite.json` is the regression suite (`modal/` links here until every lane has merged the rename) |
+| `supercomputer/` | Everything above as jobs on instabox boxes through [supercomputer](https://github.com/monotykamary/supercomputer): `suite.json` is the regression suite, `setup.sh` the boxes' image |
 | `scripts/` | The package build, the smoke test of the packed tarball, the Lean library generator, the diagram |
 | `vendor/handwired` | [monotykamary/handwired](https://github.com/monotykamary/handwired), branch `u32-words`: Cheng Lou's Handwired with exact u32 word circuits and word stages in loop programs |
 | `vendor/gdp-ts` | [rauchg/gdp-ts](https://github.com/rauchg/gdp-ts) |
@@ -721,10 +721,11 @@ bun test core/compile.test.ts core/runtime.test.ts kernel/history.test.ts
 cd kernel && bun run-kernel.ts && bun test kernel.test.ts
 ```
 
-The whole suite (163 jobs, about 10 minutes of wall time and 46 minutes of job time) runs on [Modal](https://modal.com):
+The whole suite runs on instabox boxes through [supercomputer](https://github.com/monotykamary/supercomputer)
+([`supercomputer/README.md`](supercomputer/README.md)):
 
 ```sh
-modal run supercomputer/run.py --jobs supercomputer/suite.json --out runs/modal/suite && sh supercomputer/reap.sh
+supercomputer run --jobs supercomputer/suite.json --out runs/sc/suite
 ```
 
 Each directory's README has its own runs and results.

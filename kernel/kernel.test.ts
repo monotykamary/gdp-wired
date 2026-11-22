@@ -78,7 +78,7 @@ test('the kernel never accepts a refutation of something with a model', () => {
   covered('refutations accepted', accepted, 50 * scale + 1)
   covered('goals with a candidate model', stuck)
   expect(noSmall.filter(why => why === 'unknown')).toEqual([]) // every linear goal left open has an integer witness
-}, 1200000) // the slowest shards take up to ~860 s on a busy Modal machine
+}, 1200000) // the slowest shards took up to ~860 s on a busy Modal machine
 
 // Higher degrees: monotone polynomials up to degree three (a·v + b·v·w + c·v·v·w, w another natural), true and false
 // variants, through the prover and through leaves given random products, including products of earlier product rows.

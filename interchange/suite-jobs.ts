@@ -3,7 +3,7 @@
 // Javy and Wasmtime), runs its command with interchange/capture.ts preloaded into every bun it starts, then
 // interchange/verify.ts over what it took (tampered twins, the compiled executable, the npm package's bin, the
 // WebAssembly module, the second checker), printing the summary after SUMMARY-JSON. interchange/aggregate.ts sums the logs.
-//   bun interchange/suite-jobs.ts [<name regex>] > jobs.json && python3 supercomputer/run.py --jobs jobs.json --out <runs dir> [--usual]
+//   bun interchange/suite-jobs.ts [<name regex>] > jobs.json && supercomputer run --jobs jobs.json --out <runs dir> [--env GDP_CERT=usual]
 //   bun interchange/suite-jobs.ts --corpus > jobs.json   (one job: lean.ts write's conformance documents, checked the same way)
 import {readFileSync} from 'node:fs'
 import {join} from 'node:path'

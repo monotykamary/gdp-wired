@@ -5,9 +5,9 @@
 | `suite.ts` | The search suite on whatever `navigator.gpu` gives, with Handwired's `host.ts` (`requestBatchDevice`, `createKernelRunner`) and `search/compile.ts`'s shaders. Spaces past 2^31 candidates run in slices: the low digits are the dispatch index, the high digits (the last steps' requests) come from `tables[2]` (one injected line in the shader). Every counterexample is replayed by the interpreter |
 | `dawn-run.ts` | The suite without a browser: Dawn's node bindings (`webgpu@0.6.2`) as `navigator.gpu`, Vulkan on Linux, Metal on a Mac |
 | `gpu-page.ts`, `gpu-page.html`, `driver.ts` | The same suite in headless Chrome, with a Linux driver instead of Handwired's macOS-only `runPage` |
-| `run_gpu.py` | Modal: debian + NVIDIA Vulkan loader libs (libvulkan1, libxext6, libx11-6, libglvnd0, libegl1) + Chrome + bun + `webgpu`; `--gpu L4/A10G/H100`, `--mode dawn/chrome`; 15-minute timeout; the call is cancelled if the client stops |
+| `run_gpu.py` (retired) | Retired with Modal (in git history). Modal: debian + NVIDIA Vulkan loader libs (libvulkan1, libxext6, libx11-6, libglvnd0, libegl1) + Chrome + bun + `webgpu`; `--gpu L4/A10G/H100`, `--mode dawn/chrome`; 15-minute timeout; the call is cancelled if the client stops |
 | `suite.json`, `suite-big.json` | The searches of `search/models.ts`, depth 9, and larger spaces (depth 10–12, bound 3) |
-| `probe.py`, `probe2.py`, `probe-chrome.ts`, `probe-dawn.ts` | How the setup was found: Vulkan on the container, Chrome flag sets, Dawn (the probes Modal-only and historical) |
+| `probe-chrome.ts`, `probe-dawn.ts` | How the setup was found: Vulkan on the container, Chrome flag sets, Dawn (with `probe.py` and `probe2.py`, Modal's, retired and in git history) |
 
 Findings: Modal mounts NVIDIA's Vulkan ICD (`/etc/vulkan/icd.d/nvidia_icd.json`), which needs libXext to load. Dawn then
 gets the real GPU. Chrome 155 on the same container only ever offers SwiftShader (7 flag sets tried), so Dawn is the path.
@@ -28,9 +28,8 @@ Results (`../runs/modal/gpu-search/`, gpuMs after a warm-up for the first five r
 | in-flight b+5, depth 12 | 847B | — | 16.1 s |
 
 ```sh
-cd gdp-wired && modal run research/modal-gpu/run_gpu.py --config research/modal-gpu/suite.json --out ../runs/modal/gpu-search/l4.json --gpu L4
+cd gdp-wired && modal run research/modal-gpu/run_gpu.py --config research/modal-gpu/suite.json --out ../runs/modal/gpu-search/l4.json --gpu L4   # (retired with Modal: the record of the run)
 # locally, on the Mac's GPU through Dawn (webgpu installed under ../runs/dawn-local):
 cd research/modal-gpu && DAWN_MODULE=$PWD/../../runs/dawn-local/node_modules/webgpu/index.js bun dawn-run.ts --config "$(cat suite.json)" --out local.json
 ```
-The apps are named `hw-gpu-*`. (`supercomputer/reap.sh` now stops only runs whose client died, so it is safe either way; it
-doesn't know about GPU runs.) After a run: `modal app list`, and `modal app stop -y <id>` for anything left.
+The apps were named `hw-gpu-*`; after a run, `modal app list` and `modal app stop -y <id>` stopped anything left.

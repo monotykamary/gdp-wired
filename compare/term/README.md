@@ -26,11 +26,14 @@ wall-clock limit for every tool:
 | `solve.ts` | One task (facts.ts's rewrite a search's second look, every answer on the task's own loop; `--no-facts` without): lassos from the loop's runs (2 s), a recurrent set (core/nonterm.ts, 4 s), `findRank` with all but 9 s of the limit, the kernel's check again on the loop as translated (the answer printed then, and again with the certificate once made), a recurrent set again (3/5 of what is left) and lassos with the rest; `--scc` for the second translation |
 | `recur-lean.ts` | The recurrent sets of a run's answers (each printed in its `recur`) as Lean theorems `NeverEnds <task>_loop` by Kern.never_ends_of; `--shard i/n` |
 | `c2ari.py` | An SV-COMP C program as an ARI system (pycparser): main and the functions it calls inlined, C's integer types and conversions on the task's data model, arrays, pointers to a fixed set of objects, undefined behaviour ending the run, recursion as two translations (one per answer); the subset in its header; refusals with their reason |
-| `modal_term.py` | The ITS track on Modal: gdp-wired (`gdp`, `gdp-scc`), LoAT, LoAT with `--engine abmc`, KoAT2; `koat2-proof` and `loat-proof`, the same runs with their proofs kept |
-| `modal_sv.py` | The SV-COMP tasks on Modal: gdp-wired on its translation, Ultimate Automizer on the C program, LoAT and KoAT2 on gdp-wired's translation |
+| `modal_term.py` (retired) | Retired with Modal and boat (in git history). The ITS track on Modal: gdp-wired (`gdp`, `gdp-scc`), LoAT, LoAT with `--engine abmc`, KoAT2; `koat2-proof` and `loat-proof`, the same runs with their proofs kept |
+| `modal_sv.py` (retired) | Retired with Modal and boat (in git history). The SV-COMP tasks on Modal: gdp-wired on its translation, Ultimate Automizer on the C program, LoAT and KoAT2 on gdp-wired's translation |
 | `summary.ts` | The tables below from run directories (later rows replacing earlier ones) |
 | `failures.ts` | The tasks another tool answered and gdp-wired didn't, by where gdp-wired stopped and what KoAT2's proof used |
-| `probes.ts`, `probes.json` | Two of the failure classes on loops written by hand (`modal run supercomputer/run.py --jobs compare/term/probes.json`) |
+| `probes.ts`, `probes.json` | Two of the failure classes on loops written by hand (`supercomputer run --jobs compare/term/probes.json --out <dir>`) |
+
+(The Modal runners named here were retired with Modal and boat, so nothing here runs them now; they are in git
+history, the results below are their runs', and the summary scripts still read them.)
 
     modal run compare/term/modal_term.py --out runs/modal/term/<name> [--tools gdp,gdp-scc,loat,loat-abmc,koat2] [--limit 60] [--tasks-file <names>]
     modal run compare/term/modal_sv.py --out runs/modal/term/<name> [--tools gdp,gdp-scc,uautomizer,loat-abmc,koat2]

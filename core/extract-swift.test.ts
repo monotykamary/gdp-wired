@@ -3,7 +3,7 @@
 // The cases: a UInt8 that traps past its range and one that wraps (&+), an Optional, an enum's raw value, a throw and a
 // precondition; injected protocols (a store by a key, an answer over a declared result) with the entry inferred; an
 // actor; the refusals; the adversarial round's Swift shapes. Skipped where swift isn't installed
-// (research/langs/swift/modal_swift.py runs them with Swift 6.3.3 on boat, or in the official Linux image).
+// (the suite's extract-swift job runs them with the box image's Swift, supercomputer/setup.sh).
 import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
 import {mkdtempSync, writeFileSync} from 'node:fs'
