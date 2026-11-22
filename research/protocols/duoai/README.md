@@ -4,11 +4,12 @@ The protocols track (`../README.md`) compared gdp-wired with DuoAI's published T
 figures from a paper. This directory runs DuoAI itself, in gdp-wired's harness: the same Modal container shape, the
 same two limits (60 s and 10 s), three runs of every protocol and limit for both tools, so the gap is measured.
 
-(`duoai.py` is Modal-only and historical: DuoAI's Ubuntu 20.04 and Python 3.8 image, a measurement of 2026-10-29.)
+(`duoai.py` was Modal's: DuoAI's Ubuntu 20.04 and Python 3.8 image, a measurement of 2026-10-29; it was retired with Modal and is in git
+history, so the commands below are the record of how the run was made. `table.py` still reads its output.)
 
-    modal run research/protocols/duoai/duoai.py --out runs/duoai/main            # DuoAI, run.py's shape (cpu=2.0)
-    modal run research/protocols/duoai/duoai.py --out runs/duoai/hard --hard     # DuoAI, a hard cap of 2 CPUs
-    modal run supercomputer/run.py --jobs research/protocols/duoai/gdp-jobs.json --out runs/duoai/gdp     # gdp-wired
+    modal run research/protocols/duoai/duoai.py --out runs/duoai/main            # DuoAI, run.py's shape (cpu=2.0); retired with Modal, the record of the run
+    modal run research/protocols/duoai/duoai.py --out runs/duoai/hard --hard     # DuoAI, a hard cap of 2 CPUs; retired with Modal, the record of the run
+    modal run supercomputer/run.py --jobs research/protocols/duoai/gdp-jobs.json --out runs/duoai/gdp     # gdp-wired; retired with Modal, the record of the run
     python3 research/protocols/duoai/table.py runs/duoai/main runs/duoai/gdp runs/duoai/hard
 
 Every figure below comes from `runs/duoai/` in this worktree (gitignored).

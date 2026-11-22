@@ -21,7 +21,7 @@ JSON, so a checker in another language can check it with no gdp-wired at all.
 Each boundary has a trusted side, an untrusted side, and the way a bug on the untrusted side can show. Each has its own
 guard in the code, and a regime that keeps testing that guard.
 
-| Boundary | A bug on the untrusted side would | Guard in the code | Regime: the suite jobs and the treadmill |
+| Boundary | A bug on the untrusted side would | Guard in the code | Regime: the suite jobs and the bar |
 | --- | --- | --- | --- |
 | **Search vs kernel.** The search (`kernel/prove.ts`, `cdcl.ts`, `reader.ts`, `simplex.ts`, `qprove.ts`; `core/discover.ts`, `infer.ts`, `covering.ts`, `unguard-seeds.ts`, `cyclic.ts`, `data.ts`, `nonterm.ts`, `accel.ts`, `relation.ts`, `bmc.ts`, `minimize.ts`) is untrusted. The kernel (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`, and `core/solver.ts`'s `add`, `sub`, `scale`, `k`, `v`) is trusted. | leave a law unproven, or run slowly. It can't make the kernel accept a false law. | The kernel builds every goal from the rule (`obligations`, `stepLawObligations`, `loopObligations`, …) and only reads the certificate's trees. It refuses anything outside its language before a goal is made (`scope`, the reserved names). | The brute-force soundness fuzz `kernel/kernel.test.ts`: a refutation the kernel accepts must have no model over a finite domain, else `UNSOUND`. It runs as `fuzz-12345` and `fuzz-1` to `fuzz-31`. `kernel/cdcl.test.ts` with `GDP_CDCL_VERIFY=1` compares the CDCL reader's rows with kernel.ts's at every node (`cdcl-fuzz-1` to `cdcl-fuzz-4`). `tamper.test.ts` and `refusals.test.ts` (`tamper-refusals`). The mutants of kernel.ts, check.ts and cyclic.ts (`kernel/mutants.ts`, [MUTANTS.md](../kernel/MUTANTS.md)): 959 of kernel.ts and check.ts, 876 killed, and 43 of cyclic.ts, 41 killed; every survivor listed with the reason it is equivalent. The treadmill's `sound` chain (`supercomputer/treadmill.py`) runs fresh seeds every day and reruns the mutants whenever the trusted files change. It files a failure as soundness, coverage or infrastructure (`fuzz_class`), and only soundness alerts. |
 | **TypeScript kernel vs Lean twin.** Lean (`lean-kernel/*.lean`) is the referee, on the axioms `propext`, `Classical.choice` and `Quot.sound`. | accept a certificate that Lean refuses. | Each check is defined in Lean and proven sound: `sound`, `machine_sound`, `kind_sound`, `never_ends_of`, `cyclic_sound`, `leads_sound`, `loop_halts_of`, `fold_sound`. kernel.ts changes only after its Lean proof exists. | `core/conformance.ts` generates cases, each with tampered twins, and records kernel.ts's answer. `lean-kernel/conformance.ts` writes each case as `example : check… = b := by decide +kernel` (`lean-rationals`, `lean-nonterm`, `lean-kind`, `lean-sums`, `lean-rings`). Every example rule's certificate is exported and checked by Lean, and its tampered twins must compute to false (`lean-examples-*`, `lean-sets`, `lean-exists`). Through the interchange, `interchange/lean-jobs.ts` sends the conformance cases and a sample of the suites' own certificates with their twins. Every Lean job runs `lean` through the axiom gate (`scripts/lean-gate`): a theorem on an axiom past the three, a `sorry`, or a `#print axioms` left unanswered fails the job. |
@@ -89,8 +89,9 @@ A new kind of certificate is a new trusted rule, so the order is fixed:
 
 - **The benchmarks** (`compare/chc`, `compare/tip`, `compare/term`) are problems gdp-wired didn't write, read by a
   translator with its own evaluator.
-  - Every task runs in its own container (a boat VM or Modal, 2 vCPU, 4 GB) under one wall-clock limit for every
-    tool (60 s), with the rivals as installed in `compare/*`.
+  - Every task ran in its own container (a boat VM or Modal, 2 vCPU, 4 GB) under one wall-clock limit for every
+    tool (60 s), with the rivals as installed in `compare/*`. Those runners were retired with Modal and boat; the
+    results they made stay in `compare/*`.
   - Each answer is checked as the harness checks it. A proof counts only if the kernel accepted it. An unsat or a
     counterexample counts only if the problem's own evaluator confirms the run (`checkDerivation`, TIP's evaluator,
     `checkLasso`).
@@ -98,8 +99,8 @@ A new kind of certificate is a new trusted rule, so the order is fixed:
 - **The corpora**: `research/frontier/` and `research/frontier2/` hold laws that need a statement nobody wrote, each
   item with broken variants that must be refused. `research/realworld/` holds rules written from open-source code. A
   change keeps each verdict unchanged or better, and every broken variant refused (`gates/bar.ts`).
-- **The suites** (`supercomputer/suite.json`, 243 jobs) run by default and then with `--usual` (the usual trees as
-  every certificate, rather than cyclic proofs), one mode after the other.
+- **The suites** (`supercomputer/suite.json`, on instabox through `supercomputer run`) run by default and then with
+  `GDP_CERT=usual` (the usual trees as every certificate, rather than cyclic proofs), one mode after the other.
 - **The interchange** has three runs:
   - `interchange/suite-jobs.ts` reruns the suites with every certificate captured and checked by every build of the
     checker, with three tampered twins of each;

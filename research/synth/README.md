@@ -11,7 +11,7 @@ Nothing before the kernel is trusted.
 | `synth.ts` | Templates (up to 3 terms, coefficients and constants per case), the GPU and CPU evaluators (dispatches sized by work, under the macOS GPU watchdog), Houdini rounds, `support` (the few survivors the goal needs: add the one ruling out the most counterexamples to induction until none is left), and the kernel loop (when the kernel gets stuck, its witness is a counterexample to induction: add the survivor that rules it out). `usedHyps` reads which laws a kernel tree's leaves use |
 | `models.ts` | in-flight requests (needs s + 50p ≤ b + 150), a token bucket (needs tokens + spent − 3·ticks ≤ 10), a leaky bucket with its capacity a param (needs admitted ≤ level + 2·ticks), a meter billing by the started block through `divBy(10)` (needs billed ≤ 10·used, from the function's facts, and units + used ≤ 50); loops: carry (rank 4a + b), gcd (a + b), race (n + y − x + 1) |
 | `run.ts` | End to end: `--gpu` (Dawn's navigator.gpu: Metal on a Mac, Vulkan on Linux) or `--cpu` (the JS twin), `--small` boxes, `--only` |
-| `run_gpu.py` | The same on a Modal GPU (L4 or H100; Modal-only and historical: `../hw/run_synth_gpu.py` runs on RunPod first), app `hw-gpu-synth`, 15-minute timeout, cancelled if the client stops; `--script run-more.ts` for the cases below |
+| `run_gpu.py` (retired) | The same on a Modal GPU (L4 or H100; retired with Modal, in git history, as `../hw/run_synth_gpu.py`), app `hw-gpu-synth`, 15-minute timeout, cancelled if the client stops; `--script run-more.ts` for the cases below |
 | `compile-more.ts` | More kernels, beside compile.ts's (unchanged): `nonincreasing` (ranks that never go up), `rankPair` (pairs compared in order), and for machines with maps `mapRegion` / `mapKill`. A map machine's box point tracks two cells per map, M at an arbitrary key k and M at the key the step writes, equal when the keys are; reads must be at the written key or at k; a candidate about a map must hold at both cells to be in the region, and dies when the step breaks it at k |
 | `more.ts`, `models-more.ts`, `run-more.ts` | Rank pairs: first the ranks that never go up (one round), then every such r1 with every r2 (one round), the kernel's `loopObligations(l, laws, [r1, r2])` simplest first. Map invariants: templates about one map's cell at k (plus a scalar or param), the start (every cell holds the map's initial value), Houdini over tracked cells, then the kernel proves the strongest survivors as laws for every k, dropping any it can't |
 
@@ -35,9 +35,9 @@ the leaky bucket on the H100; bit masks per block of candidates, and the region 
 ```sh
 DAWN_MODULE=<webgpu>/index.js bun run.ts --gpu        # the Mac's GPU
 bun run.ts --cpu --small                               # the JS twin
-cd ../.. && modal run research/synth/run_gpu.py --out ../runs/modal/synth/h100.json --gpu H100
+cd ../.. && modal run research/synth/run_gpu.py --out ../runs/modal/synth/h100.json --gpu H100   # (retired with Modal: the record of the run)
 DAWN_MODULE=<webgpu>/index.js bun run-more.ts --gpu   # rank pairs and map invariants (--cpu --small: the JS twin)
-cd ../.. && modal run research/synth/run_gpu.py --out ../runs/modal/synth/more-h100.json --gpu H100 --script run-more.ts
+cd ../.. && modal run research/synth/run_gpu.py --out ../runs/modal/synth/more-h100.json --gpu H100 --script run-more.ts   # (retired with Modal: the record of the run)
 ```
 
 Rank pairs and map invariants (`run-more.ts`; H100 / L4 filter times, from `runs/modal/synth/more-*.json`). No single linear rank survives any of the three loops; the pair is the first the kernel tries:

@@ -8,8 +8,11 @@ it. Golem reads no datatypes.
 | --- | --- |
 | `horn.ts` | The task read: compare/chc's clause reader (`parseHorn`) and TIP's datatypes (tip.ts). Then the model guessed, each clause made a TIP goal over it (`lawOf`), and a derivation found and checked (`deriveQuery`, `checkDerivation`) |
 | `solve.ts` | One task: every law through compare/tip/translate.ts and proveData; answers sat, unsat, unknown or unsupported |
-| `modal_adt.py` | The track on Modal: each task in its own container (2 vCPU, 4 GB), each tool under the same 60 s limit, as compare/chc/modal_chc.py does (Modal-only and historical, the pilot's; the bar group below would port it) |
+| `modal_adt.py` (retired) | Retired with Modal and boat (in git history). The track on Modal: each task in its own container (2 vCPU, 4 GB), each tool under the same 60 s limit, as compare/chc/modal_chc.py did (the pilot's) |
 | `pilot.json` | The fixed pilot: 48 tasks, stratified by family and verdict, drawn by the SHA-1 of the task's path from the tasks some CHC-COMP'26 entrant decided |
+
+(The Modal runners named here were retired with Modal and boat, so nothing here runs them now; they are in git
+history, the results below are their runs', and the summary scripts still read them.)
 
     modal run compare/chc-adt/modal_adt.py --out runs/adt/<name> [--tools gdp,z3,eldarica] [--tasks pilot|all]
     bun compare/chc/summary.ts runs/adt/<name>
@@ -91,9 +94,9 @@ Choco Catalia, a catamorphism-based abstraction, was the winner.
 
 ## What the full track would take in the bar
 
-1. A `adt` group in gates/bar.ts launching `python3 compare/chc-adt/modal_adt.py`. That needs `run(ex, …)` and
-   `fanout.cli` as modal_chc.py has them (its shard and run could take the set and the command instead of being
-   copied).
+1. An `adt` group in gates/bar.ts: a jobs list (each task a `supercomputer run` job of `solve.ts`), with the
+   CHC-COMP'26 ADT-LIA benchmarks in the box image or fetched by the jobs (the Modal runner, `modal_adt.py`, and
+   the bar's Modal groups were retired).
 2. A dev set of about 120 tasks, from a baseline of three runs.
 3. The rivals once per benchmark commit (cached).
 

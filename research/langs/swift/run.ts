@@ -6,7 +6,7 @@
 // extracted with gdp-wired's Swift front end (the check builds the package with `swift build` beside the generated
 // harness and runs it request by request), and each law proven of the rule: proven, refuted (with the request that
 // breaks it) or unknown. `--write` keeps the rules as printed (research/langs/swift/rules/), which the corpus scores.
-// A Swift toolchain (5.9 or later) is needed; research/langs/swift/modal_swift.py runs this with Swift 6.3.3 (boat, Modal on request).
+// A Swift toolchain (5.9 or later) is needed; the box image has one (supercomputer/setup.sh), so this runs as a `supercomputer run` job.
 import {execFileSync} from 'node:child_process'
 import {existsSync, mkdirSync, writeFileSync} from 'node:fs'
 import {join, resolve} from 'node:path'

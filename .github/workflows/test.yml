@@ -3,7 +3,8 @@ name: Test
 # The fast gate on every push and pull request: types and lint over the whole tree, the quick tests (builders,
 # conformance of the two runtimes, kernel tamper/refusals/step laws, the nine example domains, the README snippets),
 # and the npm package as a user installs it, on the oldest and newest Node it supports. The long runs (the kernel's
-# 32-seed soundness fuzz, histories, the Lean twin, mutation testing) run through supercomputer from supercomputer/suite.json.
+# 32-seed soundness fuzz, histories, the Lean twin, mutation testing) run on instabox boxes through supercomputer
+# (github.com/monotykamary/supercomputer: `supercomputer run --jobs supercomputer/suite.json --out <dir>`).
 #
 # The quick tests (`bun run test`, scripts/test-shards.ts) run as parallel shards, balanced on the seconds each unit
 # took (scripts/test-shards.json), in two sets that together are exactly `bun run test`: the units that run a native

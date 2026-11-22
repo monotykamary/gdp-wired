@@ -22,7 +22,7 @@ bun research/translation-fuzz/run.ts --api /tmp/historical-tree --controls --no-
 # add --replay, and add --dist for a published package's dist/core entry points.
 ```
 
-The canonical suite runs the period/generator tests and a bounded 13-family default-replay smoke job. The treadmill runs 26 cases per seed and fingerprints the reader, law translator, native checker and generator. `python3 research/translation-fuzz/treadmill_test.py` checks this registration without contacting the scheduler.
+The canonical suite runs the period/generator tests and a bounded 13-family default-replay smoke job. The treadmill (retired with the Python supercomputer tool, with its registration test) ran 26 cases per seed and fingerprinted the reader, law translator, native checker and generator.
 
 `FINDING` means an actual source-proof verdict was natively false. `BLOCKED_FINDING` is a bad model proof refused by default protection; `MODEL_FINDING` is its explicit no-replay counterpart. Neither is silently counted as a source proof. `FALSE_REJECTION` means the native checker disagreed with the independent finite oracle, and `UNSAFE_VERDICT` violates the checked/unchecked contract; both fail the run. Summaries separately count all these, worker errors, timeouts and nontrivial proved-law coverage. A zero `findings` count does not mean no bad model translations remain.
 

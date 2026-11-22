@@ -13,9 +13,6 @@ __pycache__/
 *.ilean
 .lake/
 core/generated/
-supercomputer/.live/
-supercomputer/.live
-modal/.live
 
 # Bend builds of the enumeration: Mach-O binaries and Metal libraries (rebuilt by `bend kK.bend`)
 /research/enum/base

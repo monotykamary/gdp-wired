@@ -2,7 +2,7 @@
 // lines of rule code, of law statements and of proof (non-blank, non-comment lines between `--- rule`, `--- laws`,
 // `--- proofs` markers; Bend's `--- evidence` is rule code too, the comparison evidence its proofs case on), the wall
 // time to check (median of RUNS runs), whether it checked, a broken variant per rule that each tool must reject, and
-// what each one emits to run. Runs where bun, Lean 4.34.0 and the Bend repo are (compare/modal_compare.py on Modal):
+// what each one emits to run. Runs where bun, Lean 4.34.0 and the Bend repo are (compare/modal_compare.py ran it on Modal, since retired):
 //
 //   BEND=/path/to/bend bun compare/run.ts
 import {mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync, rmSync} from 'node:fs'

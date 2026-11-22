@@ -399,7 +399,6 @@
     "research/mldr-incl/pack-production.test.ts": 0,
     "research/mldr-incl/range-regression-input.test.ts": 0,
     "research/protocols/ic3syn/mldr.test.ts": 0.1,
-    "research/query/goal-pack.test.ts": 0.4,
     "research/security/fixed-reader.test.ts": 0.2,
     "research/security/mutants-upstream/upstream.test.ts": 5.7,
     "research/security/mutants/mutants.test.ts": 43.7,

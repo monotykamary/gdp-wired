@@ -1,59 +1,69 @@
 # gdp-wired gates: the bar
 
-One command measures a candidate against a base on every benchmark and writes one report. It launches the runners
-the tracks ran by hand (compare/chc/modal_chc.py, compare/term/modal_term.py and modal_sv.py, compare/tip/modal_tip.py,
-supercomputer/run.py with research/frontier*/, research/realworld/ and supercomputer/suite.json, research/query/modal_query.py), each in
-its side's own tree, reads their output as their summary scripts do, reruns what differs and compares.
+One command measures a candidate against a base on every benchmark it can launch and writes one report. Each pass is
+one `supercomputer run --jobs <pass>.jobs.json --out <pass>` ([supercomputer](https://github.com/monotykamary/supercomputer),
+on instabox) in its side's own tree, with research/frontier*/'s, research/realworld/'s and supercomputer/suite.json's
+jobs; the bar reads each pass's `summary.tsv` and its jobs' logs as their summary scripts do, reruns what differs and
+compares.
 
 | File | What |
 | --- | --- |
-| `bar.ts` | The command: trees, launches, the shared baseline, pilots, reruns, the report, the spend |
+| `bar.ts` | The command: trees, launches, the shared baseline, pilots, reruns, the report, the job seconds |
 | `bar-lib.ts` | Each benchmark's reading of a run directory (one verdict per task, as compare/*/summary.ts and research/*/score.ts count it), the comparison, the dev sets |
 | `bar-dev.json` | The quick mode's dev sets (`bun gates/bar.ts devset --write`) |
 | `bar-calibrate.ts` | Every past pair of runs in runs/ launched together: does the dev set's delta predict the full delta? |
 
 ```sh
-bun bar                                   # this checkout against main, every benchmark, the base from the shared baseline
+bun bar                                   # this checkout against main, every group, the base from the shared baseline
 bun bar --quick                           # the dev sets: a few minutes, predicted full deltas
-bun bar --cand gen/x --base main --only chc,its
+bun bar --cand gen/x --base main --only f1,rw
 bun bar --together                        # the base launched beside the candidate instead of the cache
 bun gates/bar.ts baseline --base main     # the shared baseline alone (made on first use otherwise)
+bun gates/bar.ts compare --group chc --cand <dir> --base <dir>,<dir>   # run directories made elsewhere, compared
 ```
 
-Groups (`--only`): `chc`; `its` (the task's statement and per component); `sv` (both); `tip` (`--rivals`: cvc5 and
-Vampire too); `f1`, `f2` (the frontier corpora, broken variants counted when refused); `rw` (the real-world corpus,
-law by law); `g332` (research/dag's 332 step goals: the same search, and the search time's ratio); `suite`,
-`suite-usual` (one mode after the other); `onecpu` (ten 1-vCPU jobs a side of core/data.test.ts and core/infer.test.ts,
-the medians and maxima of the slowest tests); `lean` (recurrent sets of the candidate's ITS run checked by Lean
-4.34.0: 48, the 0.28.0 release's sample, gained ones and the s1 family first; 6 in quick mode).
+Groups (`--only`): `f1`, `f2` (the frontier corpora, broken variants counted when refused); `rw` (the real-world
+corpus, law by law); `suite`, `suite-usual` (supercomputer/suite.json by default and with `GDP_CERT=usual`, one mode
+after the other); `onecpu` (ten jobs a side of core/data.test.ts and core/infer.test.ts, each alone on a box of its
+own (`--timing`) and on one vCPU by `taskset`: the medians and maxima of the slowest tests).
+
+**Retired groups.** `chc`, `its`, `sv`, `tip` (and `--rivals`), `g332` and `lean` ran on the Modal runners
+(compare/chc/modal_chc.py, compare/term/modal_term.py and modal_sv.py, compare/tip/modal_tip.py,
+research/query/modal_query.py) with the benchmarks mounted (/bench, /smt, /vamp, /sv) or baked into their images; `lean`
+sampled the ITS run's recurrent sets. Those runners were retired with Modal and boat, so `--only` refuses these groups.
+Their run directories still read: `bun gates/bar.ts compare --group chc ...` and `bun gates/bar.ts report <dir>` compare
+and report them as before, and gates/bar-dev.json keeps their dev sets. A group comes back as a jobs list
+(`<dir>/jobs.ts` printing `supercomputer run` jobs) once its benchmarks are in the box image or fetched by its jobs.
 
 **How it compares.** The candidate is a commit (a worktree under `<main>/runs/bar/trees/`), or a directory: one with
-uncommitted changes is copied first, so editing it during the run changes nothing. The base comes from the shared
-baseline `<main>/runs/bar/base/<sha>-<backend>-r<version>/`: N full runs (`--runs`, 3), one after the other, made once
-per base commit and reused by every candidate (a lock makes two bars wait for one baseline). A task differs when the
-candidate's first pass solves it and the base's majority doesn't, or the reverse, or the two decide it opposite ways.
-Each differing task runs `--reruns` (3) times more on each side, together; its verdict is gained or lost when the
-majorities differ, solid when every candidate run against no base run (or the reverse), a flip at the time limit when
-some run answered it only in the last quarter of the limit. The noise band is the tasks whose base runs disagree or
-answered late; the report counts the first-pass flips outside it. onecpu and g332 time the two sides, so their base
-always runs beside the candidate. A task the backend failed (a lost VM or container, a mount error, a missing row or
-job) runs once more on Modal and its row replaces the failed one; the report lists them.
+uncommitted changes is copied first, so editing it during the run changes nothing. A tree from before the move to
+instabox gets this checkout's supercomputer.toml (`supercomputer run` refuses the old tool's), so both sides run on one
+image. The base comes from the shared baseline `<main>/runs/bar/base/<sha>-instabox-r<version>/`: N full runs
+(`--runs`, 3), one after the other, made once per base commit and reused by every candidate (a lock makes two bars wait
+for one baseline); a run is kept only when every job was answered. A task differs when the candidate's first pass
+solves it and the base's majority doesn't, or the reverse, or the two decide it opposite ways. Each differing task runs
+`--reruns` (3) times more on each side, together; its verdict is gained or lost when the majorities differ, solid when
+every candidate run against no base run (or the reverse), a flip at the time limit when some run answered it only in
+the last quarter of the limit. The noise band is the tasks whose base runs disagree or answered late; the report counts
+the first-pass flips outside it. onecpu times the two sides, so its base always runs beside the candidate. A job whose
+box went away is tried again by `supercomputer run` itself (up to 3 attempts); one still unanswered (`lost` in
+`summary.tsv`, or no row) is listed in the report, and `bun gates/bar.ts failed <pass>` lists a pass's.
 
-**Cost hygiene.** Every launch is its runner's own command (scaledown_window=2, its own timeouts), under a wall cap,
-stopped by its exact pid (SIGINT, SIGTERM, SIGKILL); any exit of the bar stops every launch and runs supercomputer/reap.sh in
-every tree it used. Each tree's first launch of a group is a pilot of one or two tasks, read before the fan-out.
-`--budget` ($25 full, $6 quick) is checked between phases and every five minutes against an estimate from the task
-seconds (Modal bills an hour once it is over); the report gives the bill for the bar's own apps from
-`modal billing report`, and `bun gates/bar.ts spend <run dir>` reads it again later. The default backend is Modal
-(`--backend boat` or `auto` are keyed apart in the cache: boat's vCPUs are faster and move answers across the limit).
+**Hygiene.** Every launch is a local `supercomputer run` client under a wall cap, stopped by its exact pid (SIGINT,
+SIGTERM, SIGKILL); any exit of the bar stops every client it started. A stopped client's jobs finish on their boxes
+within their own timeouts and the boxes pause themselves; `supercomputer batch fetch <pass>` picks a pass up again, and
+every `supercomputer run` reaps paused boxes past their keep (`supercomputer status`, `supercomputer reap`). Each tree's
+first launch of a group is a pilot of one or two tasks, read before the fan-out. `--max-boxes N` is passed to every
+pass. instabox bills its boxes by the second and the bar has no bill to read, so `--budget` and `spend` are gone: the
+report gives the job seconds.
 
 ## Laptop admission and drivers
 
-Quick bars (`--quick`, including quick baselines) acquire one of **two laptop-wide slots** before copying trees,
-announcing demand, or launching a pilot/pass. Slots live in `~/.local/share/gdp-wired/bar-slots`, independent of
-worktree and `GDPW_BAR_DIR`. A waiting bar prints its wait and retries every 120 seconds. Read-only commands and
-standalone `supercomputer run --jobs ...` clients do not acquire a slot. Full bars are not covered by this quick-bar
-limit. Each bar also defaults to six simultaneous local pass drivers (`--procs` overrides this).
+Quick bars (`--quick`, including quick baselines) acquire one of **two laptop-wide slots** before copying trees or
+launching a pilot/pass. Slots live in `~/.local/share/gdp-wired/bar-slots`, independent of worktree and
+`GDPW_BAR_DIR`. A waiting bar prints its wait and retries every 120 seconds. Read-only commands and standalone
+`supercomputer run --jobs ...` clients do not acquire a slot. Full bars are not covered by this quick-bar limit. Each
+bar also defaults to six simultaneous local pass clients (`--procs` overrides this).
 
 `bar-slots.ts` uses the OS `flock` primitive through Bun FFI (macOS/Linux). The kernel releases ownership on exit,
 including SIGKILL. PID metadata left by a crashed process is cleared on the next acquisition; a reused PID cannot
@@ -61,15 +71,10 @@ strand a slot. The two lock files are never unlinked, avoiding stale-cleaner rac
 Do not delete the slot directory while bars are running. Normal/error/signal cleanup releases the slot after the
 bar stops its children. Tests: `bun run test:bar` (also registered in the seven-shard suite).
 
-SV, TIP and CHC already submit **one starmap batch per pass**, not one local Python driver per shard. `BoatEx`
-turns that list into one scheduler submission; per-shard Python workers run remotely. For explicit boat passes,
-`boat-pass.py` supplies the existing lightweight Modal stub and suppresses only that process's unnecessary Modal
-interpreter re-exec. Arguments, shard batching and result handling are unchanged. Auto/Modal passes (including the
-bar's fallback after three boat failures) retain the ordinary runner and real Modal client.
-
 ## Measured
 
-Every figure from the run directory named, under the main checkout's `runs/bar/`; Modal's bill from `modal billing
+(On Modal, before the bar moved to instabox; most of these groups are retired, and the dollar figures were Modal's
+bills.) Every figure from the run directory named, under the main checkout's `runs/bar/`; Modal's bill from `modal billing
 report` where the hour was over, else the bar's estimate from task seconds (which came within 0.3% of the bill on
 `repro-chc7-cache`, $2.34 against $2.343, and `repro-chc7-quick`, $1.31 against $1.3159).
 
@@ -87,7 +92,7 @@ report` where the hour was over, else the bar's estimate from task seconds (whic
 run, both answered past 45 s, 4 noise); ITS 1,151 against a mean of 1,152.33 (2 differ, both in the band, noise);
 per component 2 differ, noise; SV-COMP, TIP, both frontier corpora and the real-world corpus with no task differing;
 the 332 goals the same search on all 332; Lean 48 of 48; `--usual` 224 of 224 (the default suite's client hung on a
-call Modal lost, 0 tasks running for 20 minutes: supercomputer/run.py now bounds each wait). Two past merges, the candidate
+call Modal lost, 0 tasks running for 20 minutes: the Python supercomputer/run.py, since retired, then bounded each wait). Two past merges, the candidate
 against a baseline of its base made at another time:
 
 | | Launched together (the track's runs) | Against the cached baseline (`runs/repro-*-cache`) |

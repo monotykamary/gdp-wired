@@ -3,6 +3,44 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+### Changed
+
+- **The jobs run on instabox through the TypeScript
+  [supercomputer](https://github.com/monotykamary/supercomputer)** (`supercomputer run --jobs <file> --out <dir>`,
+  `supercomputer batch fetch <dir>`): `supercomputer.toml` names the box image (`supercomputer/setup.sh`, on
+  instabox's `ci` template), the `runner` image and the Lean library's cache. Nothing runs on Modal, boat or RunPod.
+  The job lists (`supercomputer/suite.json`, `fuzz.json`, `one.json`, `scale.json`, `smoke.json`) are unchanged, and
+  the CI shards still read `suite.json`. The old `run.py`'s `--native`, `--cyclic` and `--usual` are `--env
+  GDP_LEAN_NATIVE=1`, `--env GDP_CYCLIC=1` and `--env GDP_CERT=usual`.
+- **The bar (`bun bar`, gates/bar.ts) runs each pass as one `supercomputer run`** and reads its `summary.tsv` (now
+  headed `name exit seconds where`; `lost` for a job no box answered) and its jobs' logs. Its groups are `f1`, `f2`,
+  `rw`, `suite`, `suite-usual` (`GDP_CERT=usual` in each job's env) and `onecpu` (`--timing`, each job on one vCPU by
+  `taskset`). The shared baseline is keyed `<sha>-instabox-r1`. `--backend`, `--budget`, `--rivals` and the `spend`
+  command are gone (the report gives the job seconds; instabox's bill isn't read), and so are the bar's
+  boat-then-Modal retries (`supercomputer run` tries a lost job again itself, up to 3 attempts). A tree from before
+  this change gets this checkout's `supercomputer.toml`. `compare` and `report` still read the retired groups' run
+  directories.
+
+### Removed
+
+- The Python supercomputer side: `supercomputer/run.py` (the Modal app), `hooks.py` (the boat image's layers),
+  `treadmill.py`, `treadmill_cost.py`, `treadmill_test.py`, `boat.py`, `fanout.py`, `agent.py`, `runpod.py`, `store.py`
+  and `reap.sh`; the `modal` link to `supercomputer/`; `gates/boat-pass.py`.
+- The bar's `chc`, `its`, `sv`, `tip`, `g332` and `lean` groups, with the Modal runners they launched and the other
+  Modal, boat and RunPod harnesses: compare/chc/modal_chc.py, compare/chc/prof/modal_prof.py and spacer_models.py,
+  compare/chc-adt/modal_adt.py, compare/term/modal_term.py and modal_sv.py, compare/tip/modal_tip.py,
+  compare/modal_compare.py, compare/bench/modal_gpu.py, research/query/modal_query.py (and its goal-pack test),
+  research/dag/modal_dag.py, research/step/modal_step.py, research/table/modal_table.py and run_gpu.py,
+  research/hw/run_gpu.py and run_synth_gpu.py, research/modal-gpu/run_gpu.py, probe.py and probe2.py,
+  research/synth/run_gpu.py, research/perf/enum_gpu.py, research/langs/swift/modal_swift.py,
+  research/distributed/envcheck_modal.py, research/protocols/ic3syn/tlc.py, research/protocols/duoai/duoai.py,
+  research/protocols/enum/duoai_checks.py; the old scheduler's clients (research/mldr-incl/collect-batch.py,
+  research/mldr-rows/recover-batch.py, research/track-m/lane-f-resume-watch.ts), the treadmill's registry test
+  (research/translation-fuzz/treadmill_test.py) and boat's start-limit probes (research/boat-starts/fallback.sh,
+  fakeboat.py, watch_limits.py). Their results, data and READMEs stay; the READMEs say which runner was retired.
+
 ## 0.57.0
 
 ### Added

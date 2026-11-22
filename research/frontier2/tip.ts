@@ -7,9 +7,9 @@
 // library refuses to take its functions, and the verdict is not proven with the refusal as `why`.
 // Each has a broken variant, the same problem with its goal made false (`.broken.smt2`, the change in its first line),
 // which must be refused. groups_tip.py counts the groups. Outside the library: each problem through the benchmark's own
-// runner, Vampire and cvc5 with conjecture generation at 600 s (`modal run compare/tip/modal_tip.py --out
+// runner, Vampire and cvc5 with conjecture generation at 600 s (the retired Modal runner's `modal run compare/tip/modal_tip.py --out
 // runs/corpus2/truth-tip-tools --tools vampire,cvc5cg --limit 600 --only <the 15 problems>`), and truth-tip.json's jobs
-// (`python3 supercomputer/run.py --jobs research/frontier2/truth-tip.json --out runs/corpus2/truth-tip-eval`): TIP's evaluator
+// (`supercomputer run --jobs research/frontier2/truth-tip.json --out runs/corpus2/truth-tip-eval`): TIP's evaluator
 // at random values on every problem and variant (tipeval.ts), and compare/tip/solve.ts on each broken variant.
 import {readFileSync} from 'node:fs'
 import type {Verdict} from '../../core/dsl.ts'

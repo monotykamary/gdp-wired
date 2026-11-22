@@ -1,4 +1,4 @@
-// A job list for supercomputer/run.py from the suite's, each job's command under environment settings and its name prefixed:
+// A job list for `supercomputer run` from the suite's, each job's command under environment settings and its name prefixed:
 // `bun research/cyclic/jobs.ts <out.json> [--env 'GDP_CYCLIC_ROUTE=both GDP_CYCLIC_LAX=1'] [--prefix x-] [--only a,b]`.
 import {readFileSync, writeFileSync} from 'node:fs'
 const arg = (flag: string) => (process.argv.includes(flag) ? process.argv[process.argv.indexOf(flag) + 1]! : undefined)

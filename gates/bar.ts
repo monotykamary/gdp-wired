@@ -1,34 +1,39 @@
-// The bar: a candidate against a base on every benchmark, in one command, and one report.
+// The bar: a candidate against a base on every benchmark it can launch, in one command, and one report.
 //
-//   bun gates/bar.ts [--cand <rev | dir>] [--base <rev>] [--only chc,its,...] [--quick] [--together]
-//                    [--runs 3] [--reruns 3] [--backend boat|modal|auto (default boat: its baseline is boat's)] [--rivals] [--budget <$>] [--name <out>]
+//   bun gates/bar.ts [--cand <rev | dir>] [--base <rev>] [--only f1,rw,...] [--quick] [--together]
+//                    [--runs 3] [--reruns 3] [--procs 6] [--max-boxes N] [--name <out>]
 //   bun gates/bar.ts baseline --base <rev> [--runs 3] [--only ...]     the shared baseline alone
 //   bun gates/bar.ts devset [--from <base key>] [--write]             the quick mode's dev sets from a baseline
 //   bun gates/bar.ts read <view> <run dir>...                         a run directory's headline, as the bar reads it
+//   bun gates/bar.ts report <bar run dir>                             the report again from its report.json
+//   bun gates/bar.ts compare --group g --cand d --base d1,d2 [...]    run directories made elsewhere, compared
+//   bun gates/bar.ts failed <pass dir>...                             a pass's jobs that no box answered (lost or missing)
 //
-// Groups (`--only`): chc, its (the task's statement and per component), sv (both), tip (`--rivals`: cvc5 and Vampire
-// too), f1 and f2 (the frontier corpora), rw (the real-world corpus), g332 (research/dag's step goals), suite and
-// suite-usual (supercomputer/suite.json, by default and --usual, one mode after the other), onecpu (the 5 s-limited tests on
-// 1 vCPU, ten jobs a side), lean (a sample of the ITS run's recurrent sets checked by Lean: 48 in full mode, 6 in quick).
+// Groups (`--only`): f1 and f2 (the frontier corpora), rw (the real-world corpus), suite and suite-usual
+// (supercomputer/suite.json, by default and with GDP_CERT=usual, one mode after the other), onecpu (the 5 s-limited
+// tests on one vCPU, ten jobs a side, each alone on a box of its own). The groups whose runners were Modal's (chc, its,
+// sv, tip, g332, and lean, which samples the ITS run) were retired with those runners: `compare` and `report` still
+// read their run directories, and `--only` refuses them.
 //
 // The candidate is a commit (a worktree is made for it under <main>/runs/bar/trees/) or a directory, run as it is
-// (default: this checkout). The base (default: main) comes from the shared baseline, <main>/runs/bar/base/<sha>-<backend>-r<v>/:
+// (default: this checkout). The base (default: main) comes from the shared baseline, <main>/runs/bar/base/<sha>-instabox-r<v>/:
 // N full runs of it (--runs, 3), made once and reused by every candidate; `--together` launches the base beside the
 // candidate instead. Tasks whose first-pass verdict differs from the base's (its majority over its runs) are run
-// --reruns times more on each side, together. onecpu and g332 time the two sides, so their base always runs beside
-// the candidate. `--quick` runs each benchmark's dev set (gates/bar-dev.json: stratified by family and by how main
-// did) and predicts the full delta from it. Every launch is a runner's own command in its side's tree (python3
-// compare/chc/modal_chc.py ..., python3 supercomputer/run.py ...), so a figure here is that runner's.
+// --reruns times more on each side, together. onecpu times the two sides, so its base always runs beside the candidate.
+// `--quick` runs each benchmark's dev set (gates/bar-dev.json: stratified by family and by how main did) and predicts
+// the full delta from it. Every pass is one `supercomputer run --jobs <pass>.jobs.json --out <pass>` in its side's tree
+// (github.com/monotykamary/supercomputer, on instabox), read from <pass>/summary.tsv and the jobs' logs.
 //
-// Cost hygiene: the runners' functions have scaledown_window=2 and their own timeouts; each launch here has a wall
-// cap and is stopped (SIGINT, then SIGTERM, then SIGKILL, by its exact pid) at it; on any exit the bar stops every
-// launch it started and runs supercomputer/reap.sh in every tree it used. Each tree's first launch of a group is a pilot of
-// one or two tasks, read before the fan-out. `--budget <$>` (none by default: spend is information) is checked against the real spend
-// of the bar's own apps (`modal billing report`) between phases and every five minutes.
-import {closeSync, cpSync, existsSync, mkdirSync, lstatSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync} from 'node:fs'
+// Hygiene: each launch is a local `supercomputer run` client under a wall cap, stopped (SIGINT, then SIGTERM, then
+// SIGKILL, by its exact pid) at it; on any exit the bar stops every client it started. A stopped client's jobs finish
+// on their boxes within their own timeouts and the boxes pause themselves (`supercomputer batch fetch <pass>` picks a
+// pass up again; every run reaps the paused boxes past their keep). Each tree's first launch of a group is a pilot of
+// one or two tasks, read before the fan-out. instabox bills its boxes by the second and the bar has no bill to read:
+// the report gives the job seconds.
+import {closeSync, cpSync, existsSync, mkdirSync, lstatSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync} from 'node:fs'
 import {dirname, join, resolve} from 'node:path'
 import {acquireBarSlot, type BarSlot} from './bar-slots.ts'
-import {type Dev, type Obs, type Rows, type TaskCmp, VIEWS, compareTasks, differing, goalSig, goals, hash, inBand, keyOfCmd, predict, testTimes, devSet} from './bar-lib.ts'
+import {type Dev, type Obs, type Rows, type TaskCmp, VIEWS, compareTasks, differing, goalSig, goals, inBand, keyOfCmd, predict, summaryLines, testTimes, devSet} from './bar-lib.ts'
 
 const VERSION = 1
 const argv = process.argv.slice(2)
@@ -36,10 +41,17 @@ const sub = argv[0] && !argv[0].startsWith('--') ? argv.shift()! : 'run'
 const opt = (k: string, d = '') => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1] ?? d }
 const flag = (k: string) => argv.includes(`--${k}`)
 // --smoke: the bar itself end to end on each group's pilot tasks, the base launched together (nothing cached)
-const smoke = flag('smoke'), quick = flag('quick'), together = flag('together') || smoke, rivals = flag('rivals'), backend = opt('backend', 'boat')
-const nRuns = Number(opt('runs', '3')), nReruns = Number(opt('reruns', '3')), maxProcs = Number(opt('procs', '6'))
-const budget = Number(opt('budget', 'Infinity'))  // (no cap unless asked: spend is reported, never a stop)
-if (!['modal', 'boat', 'auto'].includes(backend)) throw new Error('--backend modal | boat | auto')
+const smoke = flag('smoke'), quick = flag('quick'), together = flag('together') || smoke
+const nRuns = Number(opt('runs', '3')), nReruns = Number(opt('reruns', '3')), maxProcs = Number(opt('procs', '6')), maxBoxes = opt('max-boxes')
+// (the jobs' tool: `supercomputer` on the PATH, or the one SUPERCOMPUTER_BIN names)
+const SC = process.env.SUPERCOMPUTER_BIN ?? 'supercomputer'
+const SUBS = ['run', 'baseline', 'devset', 'read', 'report', 'failed', 'compare']
+// What the bar no longer takes: the backend (instabox only), the Modal-billed budget, TIP's rivals (Modal's runner)
+const GONE: Record<string, string> = {
+  backend: 'every pass runs on instabox through `supercomputer run`',
+  budget: "instabox's spend isn't reported to the bar (the report gives the job seconds)",
+  rivals: "TIP's runner was Modal's and was retired",
+}
 
 // ------------------------------------------------------------------------------------------------------- the shell
 const out0 = (args: string[], cwd?: string, trim = true) => {
@@ -55,27 +67,23 @@ const mkdir = (d: string) => mkdirSync(d, {recursive: true})
 const readJson = <T>(f: string): T => JSON.parse(readFileSync(f, 'utf8')) as T
 const writeJson = (f: string, x: unknown) => { mkdir(dirname(f)); writeFileSync(f, JSON.stringify(x, null, 1) + '\n') }
 
-let stopping = false, workStarted = false
-let barSlot: BarSlot | undefined, heartbeat: ReturnType<typeof setInterval> | undefined
-// a tree's runners' directory: supercomputer/, or modal/ in a tree from before the rename
-const sc = (tree: string) => existsSync(join(tree, 'supercomputer', 'run.py')) ? 'supercomputer' : 'modal'
+let stopping = false
+let barSlot: BarSlot | undefined
 type Child = {pid: number, kill: (s: NodeJS.Signals) => void, what: string, cwd: string}
 const live = new Map<number, Child>()
-const treesUsed = new Set<string>()
 let slots = maxProcs
 const waiting: (() => void)[] = []
 const acquire = async () => { while (slots <= 0) await new Promise<void>(r => waiting.push(r)); slots-- }
 const release = () => { slots++; waiting.shift()?.() }
 
-// One launch: argv (no shell, so the pid is the runner's own), its output to a log, stopped at its wall cap.
+// One launch: argv (no shell, so the pid is the client's own), its output to a log, stopped at its wall cap.
 async function run(args: string[], o: {cwd: string, log: string, stdout?: string, env?: Record<string, string>, cap: number}): Promise<number> {
   await acquire()
   if (stopping) { release(); return 130 }  // nothing new once the bar is stopping
   mkdir(dirname(o.log))
   const fd = openSync(o.log, 'a'), sfd = o.stdout ? openSync(o.stdout, 'w') : fd
-  treesUsed.add(o.cwd)
   try {
-    const p = Bun.spawn(args, {cwd: o.cwd, stdout: sfd, stderr: fd, env: {...process.env, GDPW_BOAT_CLIENT: CLIENT, ...SC_CONFIG, ...o.env}})
+    const p = Bun.spawn(args, {cwd: o.cwd, stdout: sfd, stderr: fd, env: {...process.env, ...o.env}})
     const c: Child = {pid: p.pid, kill: s => p.kill(s), what: args.slice(0, 3).join(' '), cwd: o.cwd}
     live.set(p.pid, c)
     const timer = setTimeout(() => { log(`cap of ${o.cap} s reached: stopping ${c.what} (pid ${c.pid})`); void stop(c) }, o.cap * 1000)
@@ -89,7 +97,7 @@ async function run(args: string[], o: {cwd: string, log: string, stdout?: string
     release()
   }
 }
-// SIGINT is the runners' Ctrl-C (every call they spawned cancelled), SIGTERM their other path to it, SIGKILL last.
+// SIGINT first (a client's Ctrl-C), SIGTERM, SIGKILL last; a stopped client's jobs finish where they run.
 async function stop(c: Child) {
   for (const [s, wait] of [['SIGINT', 45], ['SIGTERM', 45], ['SIGKILL', 5]] as const) {
     if (!live.has(c.pid)) return
@@ -102,56 +110,20 @@ async function stopAll(why: string) {
   stopping = true
   log(`stopping ${live.size} launch(es): ${why}`)
   await Promise.all([...live.values()].map(stop))
-  if (workStarted) reap()
-}
-function reap() {
-  for (const t of new Set([...treesUsed, HERE + '/..'])) {
-    if (!existsSync(join(t, sc(t), 'reap.sh'))) continue
-    const p = Bun.spawnSync(['sh', join(t, sc(t), 'reap.sh')], {cwd: t, stdout: 'pipe', stderr: 'pipe'})
-    const said = p.stdout.toString().split('\n').filter(l => l.startsWith('stopped orphan')).join('; ')
-    if (said) log(`reap ${t}: ${said}`)
-  }
 }
 for (const s of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) process.on(s, () => { void stopAll(s).then(() => process.exit(130)) })
-function finishAdmission() {
-  if (heartbeat) clearInterval(heartbeat)
-  try { declare(true) } finally { barSlot?.release(); barSlot = undefined; workStarted = false }
-}
+function finishAdmission() { barSlot?.release(); barSlot = undefined }
 process.on('exit', () => {
   for (const c of live.values()) try { c.kill('SIGINT') } catch { /* gone */ }
   finishAdmission()
 })
-// On boat, the bar declares the work it still has to launch (the supercomputer's demand): while it runs, the VMs its
-// launches release stay up for its next group (at most as many as it held at once lately, 10 minutes at most), and they
-// stop a minute after it ends. A tree whose supercomputer/boat.py isn't yet the door to the supercomputer tool gets this
-// checkout's boat.py, fanout.py and agent.py (they ship the tree and run its jobs, which never read them: modal/ isn't
-// uploaded), and every launch reads this checkout's supercomputer.toml (SUPERCOMPUTER_CONFIG), so every launch spends
-// starts under one policy, reaches warm VMs by their agents, and is in the ledger.
-const CLIENT = `bar-${process.pid}`
-// Default to gate priority, but honor an explicit class so shared experiments can request fair submission slots.
-const SC_CONFIG: Record<string, string> = {SUPERCOMPUTER_CLASS: process.env.SUPERCOMPUTER_CLASS || 'gate', ...(existsSync(join(HERE, '..', 'supercomputer.toml')) ? {SUPERCOMPUTER_CONFIG: resolve(HERE, '..', 'supercomputer.toml')} : {})}
-function declare(done = false) {
-  if (!workStarted || backend === 'modal') return
-  Bun.spawnSync(['python3', join(HERE, '..', 'supercomputer', 'boat.py'), 'demand', CLIENT, ...(done ? ['--done'] : ['--for', '300', '--pid', String(process.pid)])], {stdout: 'ignore', stderr: 'ignore', env: {...process.env, ...SC_CONFIG}})
-}
-// Demand and its heartbeat start only after quick-bar admission in main().
-const overlaid = new Set<string>()
-const backendOf = (p: Pass) => {
-  const b = p.backend ?? backend, d = join(p.tree.path, 'modal')
-  if (b !== 'modal' && !overlaid.has(d) && resolve(d) !== resolve(HERE, '..', 'modal')) {
-    if (!readFileSync(join(d, 'boat.py'), 'utf8').includes('from supercomputer import') || existsSync(join(d, '.bar-orchestration')))
-      for (const f of ['boat.py', 'fanout.py', 'agent.py']) if (readFileSync(join(HERE, '..', 'modal', f), 'utf8') !== readFileSync(join(d, f), 'utf8')) { cpSync(join(HERE, '..', 'modal', f), join(d, f)); writeFileSync(join(d, '.bar-orchestration'), '') }
-    overlaid.add(d)
-  }
-  return b
-}
 
 // ------------------------------------------------------------------------------------------------------- the trees
 type Tree = {path: string, sha: string, key: string, clean: boolean, label: string}
 // A directory with no uncommitted changes is its commit's tree; one with changes is copied (what git sees, untracked
 // files too, without node_modules, runs/ and .git) to <bar>/trees/<sha>+<hash of the changes>, so editing it while
-// the runners upload it changes nothing, and the same changes are the same tree.
-// A detached worktree keeps both the upload root and research/query's shared-fixture root correct.
+// a pass packs it changes nothing, and the same changes are the same tree.
+// A detached worktree keeps the tree `supercomputer run` packs (its git root's tracked and unignored files) correct.
 function snapshotRoot(path: string, src: string): boolean {
   if (!existsSync(join(path, '.git'))) return false
   try {
@@ -160,7 +132,7 @@ function snapshotRoot(path: string, src: string): boolean {
   } catch { return false }
 }
 // Flatten the source's Git-visible files into the snapshot's private index. rsync excludes submodule .git files,
-// so leaving gitlinks in that index would silently omit their contents from the uploader's git ls-files walk.
+// so leaving gitlinks in that index would silently omit their contents from the packer's git ls-files walk.
 // Force-add preserves tracked-but-ignored files; later generated untracked assets must remain visible too.
 function snapshotFiles(src: string, dst: string, prefix = ''): string[] {
   const files: string[] = []
@@ -192,7 +164,7 @@ function treeOf(rev: string): Tree {
         mkdir(dirname(path))
         out0(['git', 'worktree', 'add', '--force', '--detach', '--no-checkout', path, sha], src)
       }
-      out0(['rsync', '-a', '--delete', '--exclude', 'node_modules/', '--exclude', '/runs/', '--exclude', '.git', '--exclude', '*.olean', '--exclude', '*.ilean', '--exclude', '.lake/', '--exclude', 'supercomputer/.live/', '--exclude', 'modal/.live/', '--exclude', '.bar-lean/', `${src}/`, `${path}/`])
+      out0(['rsync', '-a', '--delete', '--exclude', 'node_modules/', '--exclude', '/runs/', '--exclude', '.git', '--exclude', '*.olean', '--exclude', '*.ilean', '--exclude', '.lake/', '--exclude', '.bar-lean/', `${src}/`, `${path}/`])
       const manifest = join(out0(['git', 'rev-parse', '--absolute-git-dir'], path), 'bar-files')
       writeFileSync(manifest, snapshotFiles(src, path).join('\0') + '\0')
       out0(['git', 'read-tree', '--empty'], path)
@@ -205,8 +177,6 @@ function treeOf(rev: string): Tree {
   const sha = out0(['git', 'rev-parse', '--verify', `${rev}^{commit}`], MAIN)
   const path = join(BAR, 'trees', sha.slice(0, 12))
   mkdir(join(BAR, 'trees'))
-  // research/query reads the main checkout's dumped goals as <tree>/../gdp-wired (its MAIN)
-  if (!existsSync(join(BAR, 'trees', 'gdp-wired'))) symlinkSync(MAIN, join(BAR, 'trees', 'gdp-wired'))
   if (!existsSync(join(path, '.bar-ready'))) {
     log(`making the tree of ${sha.slice(0, 12)} at ${path}`)
     if (!existsSync(path)) out0(['git', 'worktree', 'add', '--detach', path, sha], MAIN)
@@ -216,28 +186,36 @@ function treeOf(rev: string): Tree {
   }
   return {path, sha, clean: true, key: sha.slice(0, 12), label: `${rev} (${sha.slice(0, 12)})`}
 }
+// A tree from before the move to instabox has the old tool's supercomputer.toml ([boat], [modal]), which `supercomputer
+// run` refuses: it gets this checkout's (what its boxes need), so both sides run on one image. The trees are the bar's.
+const OWN_CONFIG = join(HERE, '..', 'supercomputer.toml')
+function configure(tree: string) {
+  const f = join(tree, 'supercomputer.toml')
+  if (!existsSync(OWN_CONFIG) || resolve(f) === resolve(OWN_CONFIG)) return
+  const t = existsSync(f) ? readFileSync(f, 'utf8') : ''
+  if (!/^\[instabox\]/m.test(t) || /^\[(boat|modal|treadmill|gpu|runpod)\]/m.test(t)) cpSync(OWN_CONFIG, f)
+}
 
 // -------------------------------------------------------------------------------------------------------- the groups
 type Side = 'cand' | 'base'
-type Pass = {group: string, side: Side, tree: Tree, dir: string, tasks?: string[], quickSize?: boolean, backend?: string}
-// (timing: alone on its VM while it runs, the supercomputer scheduler's placement for a job whose seconds are compared)
-type Job = {name: string, cmd: string, cwd?: string, cpu?: number, memory?: number, timeout?: number, timing?: boolean}
-type Group = {key: string, views: string[], cap: number, launch: (p: Pass) => Promise<number>, pairAlways?: boolean, noRerun?: boolean, candOnly?: boolean, after?: string, inQuick: boolean}
+type Pass = {group: string, side: Side, tree: Tree, dir: string, tasks?: string[], quickSize?: boolean}
+// A job of a `supercomputer run` jobs file (suite.json's extra fields pass through: the tool reads only its own)
+type Job = {name: string, cmd: string, cwd?: string, cpu?: number, memory?: number, timeout?: number, env?: Record<string, string>, image?: string, vm_type?: string}
+// (launch: none for a group retired with its Modal runner: compare and report still read its run directories)
+type Group = {key: string, views: string[], cap: number, launch?: (p: Pass) => Promise<number>, pairAlways?: boolean, noRerun?: boolean, candOnly?: boolean, after?: string, inQuick: boolean}
 
-const py = (p: Pass, script: string, args: string[], cap: number, env?: Record<string, string>) => {
-  const b = backendOf(p)
-  // One driver per pass; each runner submits all of its shards in one starmap.
-  // Explicit boat does not need the Modal client's imports or interpreter re-exec.
-  const driver = b === 'boat' ? ['python3', join(HERE, 'boat-pass.py'), p.tree.path, join(p.tree.path, script)] : ['python3', script]
-  return run([...driver, '--backend', b, '--out', p.dir, ...args], {cwd: p.tree.path, log: `${p.dir}.log`, cap, env})
-}
-const listFile = (p: Pass, sep: string) => { const f = `${p.dir}.tasks`; writeFileSync(f, p.tasks!.join(sep)); return f }
-async function jobsPass(p: Pass, jobs: Job[], keyOf: (j: Job) => string, cap: number, extra: string[] = []) {
+// One pass: its jobs (those it was given) as <pass>.jobs.json, their keys as <pass>.keys.json, one `supercomputer run`.
+// The tool exits 3 when a job failed (a failing test is data) or was lost (no box answered it within its attempts:
+// the pass's meta lists them); once it has written summary.tsv that is a pass that ran, 0 here.
+async function jobsPass(p: Pass, jobs: Job[], keyOf: (j: Job) => string, cap: number, o: {timing?: boolean} = {}) {
   const keep = p.tasks ? new Set(p.tasks) : undefined, js = keep ? jobs.filter(j => keep.has(keyOf(j))) : jobs
   writeJson(`${p.dir}.jobs.json`, js)
   writeJson(`${p.dir}.keys.json`, Object.fromEntries(js.map(j => [j.name, keyOf(j)])))
   if (!js.length) { mkdir(p.dir); return 0 }
-  return run(['python3', `${sc(p.tree.path)}/run.py`, '--backend', backendOf(p), '--jobs', `${p.dir}.jobs.json`, '--out', p.dir, ...extra], {cwd: p.tree.path, log: `${p.dir}.log`, cap})
+  configure(p.tree.path)
+  const code = await run([SC, 'run', '--jobs', `${p.dir}.jobs.json`, '--out', p.dir, ...(maxBoxes ? ['--max-boxes', maxBoxes] : []), ...(o.timing ? ['--timing'] : [])],
+    {cwd: p.tree.path, log: `${p.dir}.log`, cap})
+  return code === 3 && existsSync(join(p.dir, 'summary.tsv')) ? 0 : code
 }
 async function jobsOf(p: Pass, args: string[]): Promise<Job[]> {
   const f = `${p.dir}.all-jobs.json`
@@ -254,85 +232,40 @@ const corpusPass = (corpus: string) => async (p: Pass) => {
     {cwd: p.tree.path, log: `${p.dir}.log`, stdout: `${p.dir}/broken.json`, cap: 300})
   return jobsPass(p, jobs, j => keyOfCmd(j.cmd) ?? j.name, 1800)
 }
+const suiteJobs = (p: Pass) => readJson<Job[]>(join(p.tree.path, 'supercomputer', 'suite.json'))
 const GROUPS: Group[] = [
-  {key: 'chc', views: ['chc'], cap: 2400, inQuick: true, launch: p => py(p, 'compare/chc/modal_chc.py', ['--tools', 'gdp', ...(p.tasks ? ['--tasks-json', listJson(p)] : [])], 2400)},
-  {key: 'its', views: ['its', 'its-scc'], cap: 2400, inQuick: true, launch: p => py(p, 'compare/term/modal_term.py', ['--tools', 'gdp,gdp-scc', ...(p.tasks ? ['--tasks-file', listFile(p, '\n')] : [])], 2400)},
-  {key: 'sv', views: ['sv', 'sv-scc'], cap: 1800, inQuick: true, launch: p => py(p, 'compare/term/modal_sv.py', ['--tools', 'gdp,gdp-scc', ...(p.tasks ? ['--only', p.tasks.join('|')] : [])], 1800)},
-  {key: 'tip', views: rivals ? ['tip', 'tip-cvc5', 'tip-cvc5cg', 'tip-vampire'] : ['tip'], cap: 1800, inQuick: true,
-    launch: p => py(p, 'compare/tip/modal_tip.py', ['--tools', rivals && p.side === 'cand' && !p.tasks ? 'gdp,cvc5,cvc5cg,vampire' : 'gdp', ...(p.tasks ? ['--only', p.tasks.join('|')] : [])], 1800)},
   {key: 'f1', views: ['f1'], cap: 1800, inQuick: true, launch: corpusPass('frontier')},
   {key: 'f2', views: ['f2'], cap: 1800, inQuick: true, launch: corpusPass('frontier2')},
   {key: 'rw', views: ['rw'], cap: 1800, inQuick: true, launch: async p => jobsPass(p, await jobsOf(p, ['bun', 'research/realworld/jobs.ts']), j => keyOfCmd(j.cmd) ?? j.name, 1800)},
-  // research/query's runner on the bar's backend (boat: research/dag's goals from the store, the benchmarks from the
-  // image's layers), a gate's batch; GDP_QUERY_BASE pointed at nothing, so no second tree is mounted. A tree whose runner
-  // is Modal's only (before gen/laneQ) gets this checkout's, which only launches the jobs: they run in that tree.
-  {key: 'g332', views: ['g332'], cap: 1200, inQuick: true, pairAlways: true, noRerun: true, launch: async p => {
-    const jobs = (await jobsOf(p, ['python3', 'research/query/jobs.py', 'g332'])).filter(j => !p.tasks || p.tasks.includes(j.name))
-    writeJson(`${p.dir}.jobs.json`, jobs)
-    writeJson(`${p.dir}.keys.json`, Object.fromEntries(jobs.map(j => [j.name, j.name])))
-    const runner = join(p.tree.path, 'research/query/modal_query.py'), mine = join(HERE, '..', 'research/query/modal_query.py')
-    if (!readFileSync(runner, 'utf8').includes('fanout.cli') && resolve(runner) !== resolve(mine)) cpSync(mine, runner)
-    return py(p, 'research/query/modal_query.py', ['--jobs', `${p.dir}.jobs.json`], 1200,
-      {GDP_QUERY_BASE: join(BAR, 'none')})
-  }},
-  {key: 'suite', views: ['suite'], cap: 2400, inQuick: false, launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, sc(p.tree.path), 'suite.json')), j => j.name, 2400)},
-  {key: 'suite-usual', views: ['suite-usual'], cap: 2400, inQuick: false, after: 'suite', launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, sc(p.tree.path), 'suite.json')), j => j.name, 2400, ['--usual'])},
+  {key: 'suite', views: ['suite'], cap: 2400, inQuick: false, launch: p => jobsPass(p, suiteJobs(p), j => j.name, 2400)},
+  // (--usual: each proof's certificate the usual trees, and the Lean export reading those: core/cyclic.ts's certOn)
+  {key: 'suite-usual', views: ['suite-usual'], cap: 2400, inQuick: false, after: 'suite',
+    launch: p => jobsPass(p, suiteJobs(p).map(j => ({...j, env: {...j.env, GDP_CERT: 'usual'}})), j => j.name, 2400)},
+  // (each job alone on a box of its own, `--timing`, and on one of its vCPUs by taskset)
   {key: 'onecpu', views: [], cap: 1500, inQuick: true, pairAlways: true, noRerun: true, launch: p => {
     const n = smoke ? 1 : p.quickSize ? 3 : 10, jobs: Job[] = []
-    for (let i = 0; i < n; i++) for (const t of ['data', 'infer']) jobs.push({name: `${p.side}-${t}-${i}`, cmd: `bun install --frozen-lockfile >/dev/null 2>&1; bun test core/${t}.test.ts 2>&1`, cpu: 1.0, timeout: 600, timing: true})
-    return jobsPass(p, jobs, j => j.name, 1500)
+    for (let i = 0; i < n; i++) for (const t of ['data', 'infer']) jobs.push({name: `${p.side}-${t}-${i}`, cmd: `bun install --frozen-lockfile >/dev/null 2>&1; taskset -c 0 bun test core/${t}.test.ts 2>&1`, cpu: 1.0, timeout: 600})
+    return jobsPass(p, jobs, j => j.name, 1500, {timing: true})
   }},
-  {key: 'lean', views: ['lean'], cap: 3600, inQuick: true, candOnly: true, noRerun: true, after: 'its', launch: leanPass},
 ]
-function listJson(p: Pass) { const f = `${p.dir}.tasks.json`; writeJson(f, p.tasks); return f }
-
-// The Lean sample: nonterminating answers by a recurrent set in the candidate's ITS run, each a theorem `NeverEnds
-// <task>_loop` by compare/term/recur-lean.ts and Lean 4.34.0 (the 0.28.0 release's: the gained ones first, the s1
-// family, the sets closed by cases, then drawn by the commit; 48, or 6 in quick mode).
-const leanInputs = new Map<string, {rows: {task: string, stages: {by?: string, recur?: object}[]}[], gained: Set<string>}>()
-async function leanPass(p: Pass): Promise<number> {
-  const inp = leanInputs.get(p.side)
-  if (!inp) { mkdir(p.dir); return 0 }
-  const term = readFileSync(join(p.tree.path, 'compare/term/modal_term.py'), 'utf8'), ari = /ARI_COMMIT = "(\w+)"/.exec(term)?.[1]
-  if (!ari) throw new Error('no ARI_COMMIT in compare/term/modal_term.py')
-  const bench = join(BAR, 'bench', `tpdb-${ari}`)
-  if (!existsSync(join(bench, '.done'))) {
-    mkdir(bench)
-    const code = await run(['bash', '-c', `curl -fsSL https://codeload.github.com/TermCOMP/TPDB-ARI/tar.gz/${ari} | tar xz -C '${bench}' --strip-components 1 TPDB-ARI-${ari}/Integer_Transition_Systems`], {cwd: bench, log: `${p.dir}.log`, cap: 600})
-    if (code !== 0) throw new Error('TPDB-ARI download failed')
-    writeFileSync(join(bench, '.done'), ari)
-  }
-  const n = smoke ? 1 : p.quickSize ? 6 : 48, rows = inp.rows.filter(r => r.stages.at(-1)?.by === 'recurrent set' && r.stages.at(-1)?.recur)
-  const rank = (r: {task: string, stages: {recur?: object}[]}) => [inp.gained.has(r.task) ? 0 : 1, /\/s1[.-]/.test(r.task) ? 0 : 1, 'cases' in (r.stages.at(-1)!.recur!) ? 0 : 1, hash(p.tree.sha + r.task)]
-  const byRank = (a: number[], b: number[]) => { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i]! - b[i]!; return 0 }
-  // (quick mode: drawn among the certificates under 200 KB, so the sample checks in a minute or two, not the 8 a
-  // 17 MB file takes)
-  const pool = p.quickSize ? rows.filter(r => JSON.stringify(r.stages.at(-1)!.recur).length < 200_000) : rows
-  const pick = [...pool].sort((a, b) => p.quickSize ? hash(p.tree.sha + a.task) - hash(p.tree.sha + b.task) : byRank(rank(a), rank(b))).slice(0, n)
-  const id = `.bar-lean/${p.dir.split('/').slice(-3).join('-')}`, here = join(p.tree.path, id)
-  rmSync(here, {recursive: true, force: true})
-  mkdir(here)
-  const pre = 'export PATH=$PWD/../scripts/lean-gate:$PATH; export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets History Live NonTerm; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; '
-  const jobs: Job[] = pick.map((r, k) => {
-    writeFileSync(join(here, `${k}.jsonl`), JSON.stringify(r) + '\n')
-    mkdir(dirname(join(here, 'bench', r.task)))
-    cpSync(join(bench, r.task), join(here, 'bench', r.task))
-    const q = `'${r.task.replace(/'/g, `'\\''`)}'`
-    return {name: `lean-${k}`, cwd: 'lean-kernel', cpu: 4.0, memory: 16384, timeout: 2100,
-      cmd: `${pre}echo ${q}; (cd .. && bun install --frozen-lockfile > /dev/null 2>&1; time bun compare/term/recur-lean.ts ${id}/${k}.jsonl ${id}/bench /tmp/its.lean) && ls -la /tmp/its.lean && (time timeout -s KILL 1800 lean /tmp/its.lean) > lean.out 2>&1; s=$?; tail -8 lean.out; grep -c '^theorem' /tmp/its.lean; echo lean-exit $s; exit $s`}
-  })
-  try { return await jobsPass(p, jobs, j => j.name, 3600) } finally { rmSync(here, {recursive: true, force: true}) }
-}
+// Retired with their Modal runners (compare/chc/modal_chc.py, compare/term/modal_term.py and modal_sv.py,
+// compare/tip/modal_tip.py, research/query/modal_query.py; lean sampled the ITS run): read, never launched.
+const RETIRED: Group[] = [
+  {key: 'chc', views: ['chc'], cap: 0, inQuick: false},
+  {key: 'its', views: ['its', 'its-scc'], cap: 0, inQuick: false},
+  {key: 'sv', views: ['sv', 'sv-scc'], cap: 0, inQuick: false},
+  {key: 'tip', views: ['tip', 'tip-cvc5', 'tip-cvc5cg', 'tip-vampire'], cap: 0, inQuick: false},
+  {key: 'g332', views: ['g332'], cap: 0, inQuick: false, pairAlways: true, noRerun: true},
+  {key: 'lean', views: ['lean'], cap: 0, inQuick: false, candOnly: true, noRerun: true},
+]
+const groupOf = (k: string) => [...GROUPS, ...RETIRED].find(g => g.key === k)
 
 // ------------------------------------------------------------------------------------------------------ the dev set
 const DEV_FILE = join(HERE, 'bar-dev.json')
-// A group's pilot when the dev file names none: the fastest solved tasks of main's runs (runs/chc7/, main a269124).
+// A group's pilot when the dev file names none: two fast solved tasks of main's runs.
 const PILOT: Record<string, string[]> = {
-  chc: ['hcai-bench/svcomp/O3/O3_terminator_01_false-unreach-call_true-termination_000.yml', 'eldarica-misc/LIA/llreve/nested-while_unsafe.c-1_000.yml'],
-  its: ['Integer_Transition_Systems/From_AProVE_2014/Continue.jar-obl-8.ari', 'Integer_Transition_Systems/From_AProVE_2014/Velroyen08-fib.jar-obl-8.ari'],
-  sv: ['termination-restricted-15/Ex05.yml', 'termination-restricted-15/Ex07.yml'], tip: ['tip2015/nat_boring_max_min_abs.smt2', 'tip2015/nat_lt_ne.smt2'],
   f1: ['nonlinear/cauchy-schwarz', 'nonlinear/cubes'], f2: ['term/Continue1.jar-obl-8', 'chc/H/durationThm_1_e1_197'],
-  rw: ['feature flag/growthbook/forceRuleRollout#6', 'feature flag/growthbook/forceRuleRollout#4'], g332: ['g332__eldarica-misc__LIA__HOLA__06.c_000'],
+  rw: ['feature flag/growthbook/forceRuleRollout#6', 'feature flag/growthbook/forceRuleRollout#4'],
   suite: ['run-proofs'], 'suite-usual': ['run-proofs'],
 }
 type DevFile = {made: string, views: Record<string, Dev>, pilot: Record<string, string[]>}
@@ -347,90 +280,52 @@ const groupDev = (g: Group): string[] | undefined => {
 // -------------------------------------------------------------------------------------------------- the passes run
 const views = (g: Group) => g.views.map(v => VIEWS[v]!)
 const parse = (g: Group, dir: string, tree: Tree) => new Map(views(g).map(v => [v.key, v.parse(dir, tree.path)]))
-type Meta = {group: string, side: Side, tree: string, sha: string, backend: string, started: string, wall_s: number, code: number, apps: string[], tasks: number | 'all', where?: unknown, retried?: string[]}
-const appsIn = (f: string) => existsSync(f) ? [...new Set(readFileSync(f, 'utf8').match(/\bap-[A-Za-z0-9]{20,}\b/g) ?? [])] : []
+// (batch: the pass's `supercomputer` batch id, boxes: how many boxes its jobs ran on, lost: the jobs no box answered)
+type Meta = {group: string, side: Side, tree: string, sha: string, started: string, wall_s: number, code: number, tasks: number | 'all', batch?: string, boxes?: number, lost?: string[]}
 
 async function pass(g: Group, p: Pass): Promise<Meta> {
   const t0 = Date.now(), started = new Date().toISOString()
   mkdir(dirname(p.dir))
   if (p.tasks) writeJson(`${p.dir}.given.json`, p.tasks)
   let code: number
-  try { code = await g.launch(p) } catch (e) { writeFileSync(`${p.dir}.log`, `\n${String(e)}\n`, {flag: 'a'}); code = -1 }
-  // A task the backend failed (a VM or container lost, a mount error, a call that raised, a row or a job missing) is
-  // not the prover's answer: it runs again on boat until boat has failed it 3 times (this launch counts when it ran on
-  // boat), then once on Modal; each retry's rows replace the failed ones.
-  let retried: string[] | undefined
-  const onBoat = (p.backend ?? backend) !== 'modal'
-  for (let attempt = onBoat ? 2 : 4; attempt <= 4 && code !== 130 && !stopping; attempt++) {  // a Modal launch retries on Modal only
-    const failed = backendFailed(p.dir)
-    if (!failed.length || failed.length > 400) break
-    const via = onBoat && attempt <= 3 ? 'boat' : 'modal'
-    log(`${g.key} ${p.side} ${p.dir.split('/').at(-1)}: ${failed.length} task(s) failed on the backend; again on ${via} (attempt ${attempt})`)
-    const r: Pass = {...p, dir: `${p.dir}-retry${attempt}`, tasks: failed, backend: via}
-    try { await g.launch(r) } catch (e) { writeFileSync(`${r.dir}.log`, `\n${String(e)}\n`, {flag: 'a'}) }
-    mergeRetry(p.dir, r.dir)
-    retried = [...new Set([...(retried ?? []), ...failed])]
-  }
-  const where = existsSync(join(p.dir, 'backends.json')) ? readJson<{where?: unknown}>(join(p.dir, 'backends.json')).where : undefined
-  const m: Meta = {group: g.key, side: p.side, tree: p.tree.label, sha: p.tree.sha, backend, started, wall_s: Math.round((Date.now() - t0) / 100) / 10, code, apps: appsIn(`${p.dir}.log`), tasks: p.tasks?.length ?? 'all', where, retried}
-  if (retried) for (const k of [2, 3, 4]) if (existsSync(`${p.dir}-retry${k}.log`)) m.apps.push(...appsIn(`${p.dir}-retry${k}.log`))
+  try { code = await g.launch!(p) } catch (e) { writeFileSync(`${p.dir}.log`, `\n${String(e)}\n`, {flag: 'a'}); code = -1 }
+  const lost = lostJobs(p.dir)
+  const batch = existsSync(join(p.dir, 'batch.json')) ? readJson<{id?: string}>(join(p.dir, 'batch.json')).id : undefined
+  const boxes = new Set(summaryLines(p.dir).map(r => r.where).filter(Boolean)).size
+  const m: Meta = {group: g.key, side: p.side, tree: p.tree.label, sha: p.tree.sha, started, wall_s: Math.round((Date.now() - t0) / 100) / 10, code, tasks: p.tasks?.length ?? 'all',
+    batch, boxes, lost: lost.length ? lost : undefined}
   writeJson(`${p.dir}.meta.json`, m)
-  log(`${g.key} ${p.side} ${p.dir.split('/').at(-1)}: exit ${code}, ${m.wall_s} s${m.apps.length ? `, ${m.apps.join(' ')}` : ''}`)
+  log(`${g.key} ${p.side} ${p.dir.split('/').at(-1)}: exit ${code}, ${m.wall_s} s${batch ? `, batch ${batch} on ${boxes} box(es)` : ''}${lost.length ? `, ${lost.length} job(s) lost (supercomputer batch fetch ${p.dir})` : ''}`)
   return m
 }
 
-const INFRA = /\bmount(ed|ing)?\b|\bboat\b|\bVM\b|preempt|never ran|ConflictError|ExecutionError|ConnectionError|RemoteError|InternalFailure|FunctionTimeoutError|InputCancellation|Container .*(terminated|died|lost)|lost under/i
-function backendFailed(dir: string): string[] {
-  const out = new Set<string>()
-  if (existsSync(join(dir, 'results.jsonl'))) {
-    // a compare runner: its tasks (all, or those it was given) against its rows
-    const rows = readFileSync(join(dir, 'results.jsonl'), 'utf8').split('\n').filter(Boolean).flatMap(l => { try { return [JSON.parse(l) as {tool: string, task: string, answer: string, err?: string}] } catch { return [] } })
-    const given = existsSync(`${dir}.given.json`) ? readJson<string[]>(`${dir}.given.json`) : undefined
-    const all = given ?? (existsSync(join(dir, 'tasks.json')) ? ((t: unknown) => (Array.isArray(t) ? t as {task: string}[] : (t as {tasks: string[]}).tasks.map(task => ({task}))).map(x => x.task))(readJson<unknown>(join(dir, 'tasks.json'))) : [])
-    const tools = [...new Set(rows.map(r => r.tool).filter(t => t !== '?'))]
-    const last = new Map<string, {tool: string, task: string, answer: string, err?: string}>()  // a retry's row replaces the one before it
-    for (const r of rows) last.set(`${r.tool}\u0000${r.task}`, r)
-    for (const r of last.values()) if (r.tool !== '?' && r.answer === 'error' && INFRA.test(r.err ?? '')) out.add(r.task)
-    for (const tool of tools) { const has = new Set(rows.filter(r => r.tool === tool).map(r => r.task)); for (const t of all) if (!has.has(t)) out.add(t) }
-    if (!tools.length && rows.some(r => r.tool === '?')) for (const t of all) out.add(t)
-  } else if (existsSync(`${dir}.keys.json`)) {
-    // a job list: a job with no row, exit -1 (never ran, or its container died), or a log that says the backend failed
-    const keys = readJson<Record<string, string>>(`${dir}.keys.json`), rows = summaryRowsOf(dir)
-    for (const [job, key] of Object.entries(keys)) {
-      const r = rows.get(job), logf = join(dir, `${job}.log`)
-      if (!r || r.code === '-1' || (r.code !== '0' && existsSync(logf) && INFRA.test(readFileSync(logf, 'utf8').split('--- stderr ---')[1] ?? ''))) out.add(key)
-    }
-  }
-  return [...out]
-}
-const summaryRowsOf = (dir: string) => new Map((existsSync(join(dir, 'summary.tsv')) ? readFileSync(join(dir, 'summary.tsv'), 'utf8').split('\n').filter(Boolean) : []).map(l => { const [n, code, secs, where] = l.split('\t'); return [n!, {code: code!, line: l, secs, where}] }))
-function mergeRetry(dir: string, retry: string) {
-  if (!existsSync(retry)) return
-  if (existsSync(join(retry, 'results.jsonl'))) { writeFileSync(join(dir, 'results.jsonl'), readFileSync(join(retry, 'results.jsonl'), 'utf8'), {flag: 'a'}); return }
-  const rows = summaryRowsOf(dir), again = summaryRowsOf(retry)
-  mkdir(dir)
-  for (const [n, r] of again) { rows.set(n, r); if (existsSync(join(retry, `${n}.log`))) cpSync(join(retry, `${n}.log`), join(dir, `${n}.log`)) }
-  writeFileSync(join(dir, 'summary.tsv'), [...rows.values()].map(r => r.line + '\n').join(''))
+// A pass's jobs no box answered: a summary row `lost` (its attempts spent on boxes that went away) or no row at all
+// (the client stopped before the batch ended: `supercomputer batch fetch <pass>` picks it up).
+function lostJobs(dir: string): string[] {
+  if (!existsSync(`${dir}.keys.json`)) return []
+  const keys = readJson<Record<string, string>>(`${dir}.keys.json`), rows = new Map(summaryLines(dir).map(r => [r.name, r]))
+  return Object.entries(keys).filter(([job]) => !rows.has(job) || rows.get(job)!.code === 'lost').map(([, key]) => key)
 }
 
 // The pilot: one or two tasks of the group in this tree, end to end, read before its fan-out (once per tree).
 async function pilot(g: Group, tree: Tree, side: Side, outDir: string): Promise<string | undefined> {
   if (g.noRerun || g.candOnly || smoke) return undefined
-  const ok = join(BAR, 'pilots', `${tree.key}-${backend}-${g.key}-r${VERSION}.ok`)
+  const ok = join(BAR, 'pilots', `${tree.key}-instabox-${g.key}-r${VERSION}.ok`)
   if (existsSync(ok)) return undefined
   const tasks = devFile()?.pilot[g.key] ?? PILOT[g.key]
   const p: Pass = {group: g.key, side, tree, dir: join(outDir, g.key, `pilot-${side}`), tasks}
   const m = await pass(g, p)
   const rows = [...parse(g, p.dir, tree).values()][0] ?? new Map()
-  const good = [...rows.values()].filter(o => o.answer !== 'error' && o.answer !== 'missing' && !o.answer.startsWith('exit -'))
+  const good = [...rows.values()].filter(o => o.answer !== 'error' && o.answer !== 'missing' && o.answer !== 'exit lost' && !o.answer.startsWith('exit -'))
   if (m.code !== 0 && !rows.size) return `the pilot exited ${m.code} with no rows (${p.dir}.log)`
   if (!good.length) return `the pilot's ${rows.size} rows are all errors (${p.dir})`
   writeJson(ok, {at: new Date().toISOString(), dir: p.dir, rows: [...rows].map(([t, o]) => `${t}: ${o.answer} ${o.secs}`)})
   return undefined
 }
 
-// The shared baseline: N full runs of the base per group, under a lock, each kept once it ends (`.done`).
-const cacheDir = (tree: Tree) => join(BAR, 'base', `${tree.key}-${backend}-r${VERSION}`)
+// The shared baseline: N full runs of the base per group, under a lock, each kept once it ends (`.done`) with every
+// job answered.
+const cacheDir = (tree: Tree) => join(BAR, 'base', `${tree.key}-instabox-r${VERSION}`)
 async function baseline(g: Group, tree: Tree, n: number, outDir: string): Promise<string[]> {
   if (!tree.clean) throw new Error(`the base ${tree.label} has uncommitted changes: use --together`)
   const gdir = join(cacheDir(tree), g.key), lock = join(gdir, '.lock')
@@ -463,36 +358,30 @@ async function baseline(g: Group, tree: Tree, n: number, outDir: string): Promis
       if (stopping) break
       rmSync(d, {recursive: true, force: true})
       const m = await pass(g, {group: g.key, side: 'base', tree, dir: d})
-      if (m.code === 0 && [...parse(g, d, tree).values()].some(r => r.size)) writeJson(`${d}/.done`, m)
-      else log(`${g.key}: the baseline run ${d} exited ${m.code}: not kept`)
+      if (m.code === 0 && !m.lost && [...parse(g, d, tree).values()].some(r => r.size)) writeJson(`${d}/.done`, m)
+      else log(`${g.key}: the baseline run ${d} exited ${m.code}${m.lost ? ` with ${m.lost.length} job(s) lost` : ''}: not kept`)
     }
     return done()
   } finally { rmSync(lock, {recursive: true, force: true}) }
 }
 
 type Result = {group: string, cand?: string, base: string[], reruns: {cand: string[], base: string[]}, differing: string[], quick?: string[], error?: string, metas: Meta[]}
-// Each group's first pass, a side at a time and both, as gates the groups that follow one wait on (suite-usual after
-// suite, side by side; lean after both of ITS's first passes).
+// Each group's first pass, a side at a time, as gates the groups that follow one wait on (suite-usual after suite,
+// side by side).
 type Gate = {p: Promise<unknown>, open: (x?: unknown) => void}
 const gates = new Map<string, Gate>()
 const gate = (k: string): Gate => {
   if (!gates.has(k)) { let open: (x?: unknown) => void = () => {}; const p = new Promise<unknown>(r => { open = r }); gates.set(k, {p, open}) }
   return gates.get(k)!
 }
-async function groupFlow(g: Group, cand: Tree, base: Tree, outDir: string, guard: () => boolean, inRun: Set<string>): Promise<Result> {
+async function groupFlow(g: Group, cand: Tree, base: Tree, outDir: string, inRun: Set<string>): Promise<Result> {
   const res: Result = {group: g.key, base: [], reruns: {cand: [], base: []}, differing: [], metas: []}
-  const tasks = g.key === 'onecpu' || g.key === 'lean' ? undefined : smoke ? devFile()?.pilot[g.key] ?? PILOT[g.key] : quick ? groupDev(g) : undefined
+  const tasks = g.key === 'onecpu' ? undefined : smoke ? devFile()?.pilot[g.key] ?? PILOT[g.key] : quick ? groupDev(g) : undefined
   res.quick = tasks
   const gd = join(outDir, g.key)
   const after = g.after && inRun.has(g.after) ? g.after : undefined
   const sidePass = async (side: Side, tree: Tree): Promise<string> => {
     if (after) await gate(`${after}/${side}`).p
-    if (g.key === 'lean') {
-      const its = await gate('its/both').p as Result | undefined
-      if (!its?.cand) throw new Error('no ITS run to sample')
-      leanInputs.set(side, {rows: readFileSync(join(its.cand, 'results.jsonl'), 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l) as {tool: string, task: string, answer: string, stages: []}).filter(r => r.tool === 'gdp' && r.answer === 'nonterminating'),
-        gained: new Set(its.base.length ? differing(VIEWS.its!.parse(its.cand, cand.path), its.base.map(b => VIEWS.its!.parse(b, base.path))) : [])})
-    }
     const why = await pilot(g, tree, side, outDir)
     if (why) throw new Error(`${side} pilot: ${why}`)
     const p: Pass = {group: g.key, side, tree, dir: join(gd, `${side}-1`), tasks, quickSize: quick}
@@ -513,8 +402,6 @@ async function groupFlow(g: Group, cand: Tree, base: Tree, outDir: string, guard
   } catch (e) {
     res.error = String(e)
     return res
-  } finally {
-    gate(`${g.key}/both`).open(res)
   }
   if (g.noRerun || !res.base.length) return res
   const keep = tasks ? new Set(tasks) : undefined
@@ -527,7 +414,7 @@ async function groupFlow(g: Group, cand: Tree, base: Tree, outDir: string, guard
   res.differing = [...D].sort()
   if (!D.size || nReruns <= 0) return res
   if (D.size > 400) { res.error = `${D.size} tasks differ: not rerun (a broken candidate?)`; return res }
-  if (!guard()) { res.error = 'the budget is spent: no reruns'; return res }
+  if (stopping) { res.error = 'the bar is stopping: no reruns'; return res }
   log(`${g.key}: ${D.size} task(s) differ; ${nReruns} rerun(s) a side`)
   const reruns = (side: Side, tree: Tree) => Array.from({length: nReruns}, async (_, i) => {
     const p: Pass = {group: g.key, side, tree, dir: join(gd, `${side}-r${i + 1}`), tasks: res.differing}
@@ -538,40 +425,20 @@ async function groupFlow(g: Group, cand: Tree, base: Tree, outDir: string, guard
   return res
 }
 
-// --------------------------------------------------------------------------------------------------------- spend
-type Bill = {object_id: string, interval_start: string, cost: string}
-function billing(since: Date): Bill[] {
-  try { return JSON.parse(out0(['modal', 'billing', 'report', '--start', since.toISOString().slice(0, 10), '--resolution', 'h', '--json'])) as Bill[] } catch { return [] }
-}
-const spentBy = (apps: Set<string>, bills: Bill[]) => Math.round(bills.filter(b => apps.has(b.object_id)).reduce((s, b) => s + Number(b.cost), 0) * 1e4) / 1e4
-function appsOf(outDir: string): Set<string> {
-  const s = new Set<string>()
-  const walk = (d: string) => { for (const f of readdirSync(d, {withFileTypes: true})) { if (f.isDirectory()) { if (!f.name.startsWith('run') && f.name !== 'pilots') walk(join(d, f.name)) } else if (f.name.endsWith('.meta.json')) for (const a of readJson<Meta>(join(d, f.name)).apps) s.add(a) } }
-  if (existsSync(outDir)) walk(outDir)
-  return s
-}
-
-// Modal reports an hour only once it is over, so between phases the guard reads an estimate: the task seconds the
-// runners record, at $5.1e-5 a task-second for 2 vCPU and 4 GB (what Modal billed runs/chc7's CHC runs: $1.761 for
-// 34,662 task-seconds, $1.5645 for 30,045), scaled by a job's cpu and memory.
-function estimate(dir: string): number {
-  let usd = 0
+// ------------------------------------------------------------------------------------------------------ job seconds
+// The seconds every job of a directory's passes took (each pass's summary.tsv), lost jobs apart.
+function jobSeconds(dir: string): number {
+  let s = 0
   const walk = (d: string) => {
     for (const f of readdirSync(d, {withFileTypes: true})) {
-      const p = join(d, f.name)
       if (!f.isDirectory()) continue
-      if (existsSync(join(p, 'results.jsonl'))) for (const l of readFileSync(join(p, 'results.jsonl'), 'utf8').split('\n').filter(Boolean)) { try { usd += Number((JSON.parse(l) as {seconds?: number}).seconds ?? 0) * 5.1e-5 } catch { /* a cut line */ } }
-      else if (existsSync(join(p, 'summary.tsv'))) {
-        const jobs = existsSync(`${p}.jobs.json`) ? new Map(readJson<Job[]>(`${p}.jobs.json`).map(j => [j.name, j])) : new Map<string, Job>()
-        for (const l of readFileSync(join(p, 'summary.tsv'), 'utf8').split('\n').filter(Boolean)) {
-          const [name, , secs] = l.split('\t'), j = jobs.get(name!)
-          usd += Math.max(0, Number(secs)) * 5.1e-5 * (0.75 * (j?.cpu ?? 2) / 2 + 0.25 * (j?.memory ?? 4096) / 4096)
-        }
-      } else walk(p)
+      const p = join(d, f.name)
+      if (existsSync(join(p, 'summary.tsv'))) for (const r of summaryLines(p)) s += r.code === 'lost' ? 0 : Math.max(0, Number(r.secs) || 0)
+      else walk(p)
     }
   }
   if (existsSync(dir)) walk(dir)
-  return Math.round(usd * 1e4) / 1e4
+  return Math.round(s * 10) / 10
 }
 
 // ------------------------------------------------------------------------------------------------------- the size
@@ -598,13 +465,13 @@ function report(results: Result[], cand: Tree, base: Tree, outDir: string, t0: n
   const p = (s = '') => L.push(s)
   p(`# The bar: ${cand.label} against ${base.label}`)
   p()
-  p(`${quick ? 'Quick mode (each benchmark\'s dev set, gates/bar-dev.json)' : 'Full mode'}; backend ${backend}; the base ${together ? 'launched together' : `from the shared baseline (${nRuns} runs, ${cacheDir(base)})`}, except onecpu and g332 (always together); ${nReruns} rerun(s) a side of every task that differs. Started ${since.toISOString()}.`)
+  p(`${quick ? 'Quick mode (each benchmark\'s dev set, gates/bar-dev.json)' : 'Full mode'}; on instabox (\`supercomputer run\`); the base ${together ? 'launched together' : `from the shared baseline (${nRuns} runs, ${cacheDir(base)})`}, except onecpu (always together); ${nReruns} rerun(s) a side of every task that differs. Started ${since.toISOString()}.`)
   p()
   const dev = devFile()
   for (const r of results) {
-    const g = GROUPS.find(x => x.key === r.group)!
+    const g = groupOf(r.group)!
     if (r.error) p(`**${g.key}: ${r.error}**\n`)
-    for (const m of r.metas.filter(x => x.retried?.length)) p(`- ${g.key}, a ${m.side} launch: ${m.retried!.length} task(s) failed on the backend and ran again, boat then Modal (${m.retried!.slice(0, 5).join(', ')}${m.retried!.length > 5 ? ', ...' : ''}).\n`)
+    for (const m of r.metas.filter(x => x.lost?.length)) p(`- ${g.key}, a ${m.side} launch: ${m.lost!.length} job(s) no box answered (${m.lost!.slice(0, 5).join(', ')}${m.lost!.length > 5 ? ', ...' : ''}); \`supercomputer batch fetch\` on its directory picks it up.\n`)
     for (const m of r.metas.filter(x => x.code !== 0)) p(`**${g.key}: a ${m.side} launch exited ${m.code} after ${m.wall_s} s (${m.tasks === 'all' ? 'every task' : `${m.tasks} tasks`}); its log is beside its directory.**\n`)
     if (!r.cand) continue
     if (g.key === 'onecpu') { onecpu(r, p); continue }
@@ -666,26 +533,18 @@ function report(results: Result[], cand: Tree, base: Tree, outDir: string, t0: n
   p()
   p(`core/ and kernel/ (.ts, tests excluded): ${fmt(sc.bytes)} bytes and ${fmt(sc.lines)} lines, against ${fmt(sb.bytes)} and ${fmt(sb.lines)} (${sign(sc.bytes - sb.bytes)} bytes, ${sign(sc.lines - sb.lines)} lines).`)
   p()
-  const apps = appsOf(outDir), bills = billing(since)
-  const own = spentBy(apps, bills)
-  const madeNow = new Set<string>()
-  for (const r of results) for (const d of r.base) if (d.startsWith(join(BAR, 'base')) && existsSync(`${d}.meta.json`) && new Date(readJson<Meta>(`${d}.meta.json`).started) >= since) for (const a of readJson<Meta>(`${d}.meta.json`).apps) madeNow.add(a)
-  const baseDirs = results.flatMap(r => r.base.filter(d => madeNow.size && d.startsWith(join(BAR, 'base'))))
-  const est = estimate(outDir) + baseDirs.filter(d => existsSync(`${d}.meta.json`) && new Date(readJson<Meta>(`${d}.meta.json`).started) >= since).reduce((s, d) => s + estimate(dirname(d)) / Math.max(1, readdirSync(dirname(d)).filter(x => /^run\d+$/.test(x)).length), 0)
-  const lastHour = bills.map(b => b.interval_start).sort().at(-1) ?? 'none'
-  const wall = Math.round((Date.now() - t0) / 1000)
-  p('## Wall time and spend')
+  const wall = Math.round((Date.now() - t0) / 1000), secs = jobSeconds(outDir)
+  const metas = results.flatMap(r => r.metas), batches = metas.filter(m => m.batch).length
+  p('## Wall time')
   p()
   p(`- Wall: ${fmt(wall)} s.`)
-  p(`- Modal, billed for this bar's own ${apps.size} apps${madeNow.size ? ` and the ${madeNow.size} of the baseline runs it made` : ''}: $${fmt(own + spentBy(madeNow, bills))} (\`modal billing report --start ${since.toISOString().slice(0, 10)} --resolution h --json\`, complete hours only: the last reported starts ${lastHour}Z); estimated from the task seconds: $${fmt(Math.round(est * 100) / 100)}. \`bun gates/bar.ts spend ${outDir}\` reads the bill again once the hours are over.`)
-  const metas = results.flatMap(r => r.metas), where = metas.map(m => JSON.stringify(m.where ?? null)).filter(w => w !== 'null')
-  if (where.length) p(`- Where the jobs ran (each launch's backends.json): ${[...new Set(where)].join('; ')}.`)
+  p(`- Job time: ${fmt(secs)} s summed over this bar's ${fmt(batches)} batch(es)${together ? '' : ' (the shared baseline\'s runs apart)'}, on instabox, which bills its boxes by the second; the bar has no bill to read.`)
   p()
   J.size = {cand: sc, base: sb}
   J.trees = {cand, base}
   J.started = since.toISOString()
   J.wall_s = wall
-  J.spend = {own, apps: [...apps], baselineApps: [...madeNow], baselineMadeNow: spentBy(madeNow, bills), estimate: est, lastHour}
+  J.jobSeconds = secs
   J.results = results
   J.coverageErrors = coverageErrors
   writeJson(join(outDir, 'report.json'), J)
@@ -707,6 +566,7 @@ function onecpu(r: Result, p: (s?: string) => void) {
   for (const k of keys.slice(0, 10)) { const x = c.tests.get(k) ?? [], y = b.tests.get(k) ?? []; p(`| ${k} | ${fmt(med(x))} | ${fmt(Math.max(...x))} | ${fmt(med(y))} | ${fmt(Math.max(...y))} | ${x.length} / ${y.length} |`) }
   p()
 }
+// (research/dag's step goals, a retired group's: read by `compare` and `report` from its run directories)
 function g332(r: Result, cand: Tree, base: Tree, p: (s?: string) => void) {
   const a = goals(r.cand!), b = goals(r.base[0]!)
   let same = 0
@@ -721,15 +581,17 @@ function g332(r: Result, cand: Tree, base: Tree, p: (s?: string) => void) {
 
 // ------------------------------------------------------------------------------------------------------ commands
 async function main() {
+  if (!SUBS.includes(sub)) throw new Error(`no command ${sub}: ${SUBS.join(', ')}`)
+  for (const [k, why] of Object.entries(GONE)) if (flag(k)) throw new Error(`--${k} is gone: ${why}`)
   if (sub === 'read') {
     const [v, ...dirs] = argv.filter((a, i) => !a.startsWith('--') && argv[i - 1] !== '--tree')
-    // (--tasks: each task's observation, {task: {answer, solved, wrong?, secs}}, one line a directory: supercomputer/treadmill.py reads it)
+    // (--tasks: each task's observation, {task: {answer, solved, wrong?, secs}}, one line a directory)
     for (const d of dirs) { const rows = VIEWS[v!]!.parse(d, opt('tree', MAIN)); console.log(d, JSON.stringify(flag('tasks') ? Object.fromEntries(rows) : VIEWS[v!]!.headline(rows))) }
     return
   }
   if (sub === 'devset') return devsetCmd()
   if (sub === 'report') {
-    // the report again from a run directory's report.json (after a fix, or once the bill is in)
+    // the report again from a run directory's report.json (after a fix)
     const dir = argv.find(a => !a.startsWith('--'))!, j = readJson<{results: Result[], trees?: {cand: Tree, base: Tree}, started?: string, wall_s: number}>(join(dir, 'report.json'))
     const shaOf = (side: Side) => j.results.flatMap(r => r.metas).find(m => m.side === side)?.sha ?? ''
     const t = (side: Side): Tree => j.trees?.[side] ?? {path: join(BAR, 'trees', shaOf(side).slice(0, 12)), sha: shaOf(side), key: shaOf(side).slice(0, 12), clean: true, label: shaOf(side).slice(0, 12)}
@@ -737,11 +599,13 @@ async function main() {
     console.log(report(j.results, t('cand'), t('base'), dir, Date.now() - j.wall_s * 1000, since))
     return
   }
-  if (sub === 'failed') { for (const d of argv.filter(a => !a.startsWith('--'))) console.log(d, backendFailed(d).length, backendFailed(d).slice(0, 3)); return }
+  if (sub === 'failed') { for (const d of argv.filter(a => !a.startsWith('--'))) console.log(d, lostJobs(d).length, lostJobs(d).slice(0, 3)); return }
   if (sub === 'compare') {
     // Run directories made elsewhere, compared as the bar compares its own: --group chc --cand d --base d1,d2
     // [--cand-reruns d,..] [--base-reruns d,..] [--cand-tree t] [--base-tree t] [--out dir]
-    const g = GROUPS.find(x => x.key === opt('group'))!, list = (k: string) => opt(k) ? opt(k).split(',') : []
+    const g = groupOf(opt('group'))
+    if (!g) throw new Error(`no group ${opt('group')}: ${[...GROUPS, ...RETIRED].map(x => x.key).join(', ')}`)
+    const list = (k: string) => opt(k) ? opt(k).split(',') : []
     const ct = {path: opt('cand-tree', MAIN), sha: '', key: 'cand', clean: true, label: opt('cand')}, bt = {path: opt('base-tree', MAIN), sha: '', key: 'base', clean: true, label: list('base').join(', ')}
     const r: Result = {group: g.key, cand: opt('cand'), base: list('base'), reruns: {cand: list('cand-reruns'), base: list('base-reruns')}, differing: [], metas: []}
     for (const v of views(g)) for (const t of differing(v.parse(r.cand!, ct.path), r.base.map(b => v.parse(b, bt.path)))) if (!r.differing.includes(t)) r.differing.push(t)
@@ -750,61 +614,38 @@ async function main() {
     console.log(report([r], ct, bt, outDir, Date.now(), new Date()))
     return
   }
-  if (sub === 'spend') {
-    const dir = argv.find(a => !a.startsWith('--'))!, j = readJson<{spend: {apps: string[], baselineApps?: string[]}}>(join(dir, 'report.json'))
-    const t = readdirSync(dir).map(f => statSync(join(dir, f)).birthtime).sort((a, b) => +a - +b)[0] ?? new Date()
-    const bills = billing(new Date(t.getTime() - 86_400_000))
-    console.log(`${dir}: billed $${spentBy(new Set(j.spend.apps), bills)} for its ${j.spend.apps.length} apps, $${spentBy(new Set(j.spend.baselineApps ?? []), bills)} for the baseline runs it made; the last hour reported starts ${bills.map(b => b.interval_start).sort().at(-1) ?? 'none'}Z`)
-    return
-  }
-  // No tree copy, demand process, pilot or pass may launch before admission.
+  // No tree copy, pilot or pass may launch before admission.
   // Read-only commands above and standalone supercomputer clients do not wait.
   if (quick) barSlot = await acquireBarSlot({log})
-  workStarted = true
-  declare()
-  if (backend !== 'modal') heartbeat = setInterval(declare, 120_000).unref()
   const only = opt('only', '') ? opt('only').split(',') : undefined
-  for (const k of only ?? []) if (!GROUPS.some(g => g.key === k)) throw new Error(`no group ${k}: ${GROUPS.map(g => g.key).join(', ')}`)
+  for (const k of only ?? []) {
+    if (RETIRED.some(g => g.key === k)) throw new Error(`group ${k} was retired with its Modal runner (gates/README.md): ${GROUPS.map(g => g.key).join(', ')}`)
+    if (!GROUPS.some(g => g.key === k)) throw new Error(`no group ${k}: ${GROUPS.map(g => g.key).join(', ')}`)
+  }
   const base = treeOf(opt('base', 'main'))
   const t0 = Date.now(), since = new Date()
   if (sub === 'baseline') {
     const gs = GROUPS.filter(g => !g.candOnly && !g.pairAlways && (only ? only.includes(g.key) : true))
-    const outDir = join(BAR, 'base', `${base.key}-${backend}-r${VERSION}`, 'pilots')
+    const outDir = join(cacheDir(base), 'pilots')
     const done = new Map<string, Promise<string[]>>()
     for (const g of gs) done.set(g.key, (g.after && done.get(g.after) ? done.get(g.after)! : Promise.resolve([])).then(() => baseline(g, base, nRuns, outDir)))
     const rs = await Promise.allSettled([...done.values()])
     rs.forEach((r, i) => log(`${gs[i]!.key}: ${r.status === 'fulfilled' ? `${r.value.length} run(s)` : String(r.reason)}`))
-    const bills = billing(since), apps = new Set<string>()
-    for (const g of gs) for (const d of readdirSync(join(cacheDir(base), g.key)).filter(x => x.startsWith('run'))) if (existsSync(join(cacheDir(base), g.key, `${d}.meta.json`))) for (const a of readJson<Meta>(join(cacheDir(base), g.key, `${d}.meta.json`)).apps) apps.add(a)
-    log(`baseline ${cacheDir(base)}: ${Math.round((Date.now() - t0) / 1000)} s wall, $${spentBy(apps, bills)} on Modal for its ${apps.size} apps (modal billing report)`)
-    reap()
+    log(`baseline ${cacheDir(base)}: ${Math.round((Date.now() - t0) / 1000)} s wall, ${fmt(jobSeconds(cacheDir(base)))} job seconds`)
     return
   }
   const cand = treeOf(opt('cand', resolve(HERE, '..')))
   const name = opt('name', `${cand.key}-vs-${base.key}-${quick ? 'quick' : 'full'}-${since.toISOString().slice(0, 16).replace(/[:T]/g, '')}`)
   const outDir = join(BAR, 'runs', name)
   mkdir(outDir)
-  const gs = GROUPS.filter(g => only ? only.includes(g.key) : quick ? g.inQuick : true).filter(g => g.key !== 'lean' || !only || only.includes('its') || only.includes('lean'))
+  const gs = GROUPS.filter(g => only ? only.includes(g.key) : quick ? g.inQuick : true)
   log(`${cand.label} against ${base.label}: ${gs.map(g => g.key).join(', ')} -> ${outDir}`)
-  let over = false
-  const guard = () => {
-    if (over) return false
-    const s = Math.max(estimate(outDir), spentBy(appsOf(outDir), billing(since)))
-    if (s > budget) { over = true; log(`spend $${s} (estimate, or billed where larger) is past the budget $${budget}`) }
-    return !over
-  }
-  const watch = setInterval(() => { if (!guard()) void stopAll(`the budget $${budget} is spent`) }, 300_000)
   try {
-    if (gs.some(g => g.key === 'lean') && !gs.some(g => g.key === 'its')) gs.unshift(GROUPS.find(g => g.key === 'its')!)
     const inRun = new Set(gs.map(g => g.key))
-    const results = await Promise.all(gs.map(g => groupFlow(g, cand, base, outDir, guard, inRun)))
-    clearInterval(watch)
-    await Bun.sleep(5000)
-    reap()
+    const results = await Promise.all(gs.map(g => groupFlow(g, cand, base, outDir, inRun)))
     console.log(report(results, cand, base, outDir, t0, since))
     log(`report: ${join(outDir, 'REPORT.md')}`)
   } finally {
-    clearInterval(watch)
     if (live.size) await stopAll('the bar is ending')
   }
 }
@@ -815,15 +656,17 @@ function devsetCmd() {
   const key = opt('from', '') || readdirSync(join(BAR, 'base')).sort().at(-1)!
   const root = join(BAR, 'base', key), sha = key.split('-')[0]!
   const tree = existsSync(join(BAR, 'trees', sha)) ? join(BAR, 'trees', sha) : MAIN
-  // (the sizes from gates/bar-calibrate.ts on every past pair: CHC's prediction error 7.9 tasks at 257, 2.5 at 700)
-  const SIZES: Record<string, number> = {chc: 700, its: 400, 'its-scc': 120, sv: 140, 'sv-scc': 40, tip: 250, f1: 50, f2: 40, rw: 90}
-  const d: DevFile = {made: `from runs/bar/base/${key} (${new Date().toISOString().slice(0, 10)})`, views: {}, pilot: {}}
+  // (the sizes from gates/bar-calibrate.ts on every past pair)
+  const SIZES: Record<string, number> = {f1: 50, f2: 40, rw: 90}
+  const old = devFile()
+  // (the retired groups' dev sets are kept as they were: nothing makes them again)
+  const d: DevFile = {made: `from runs/bar/base/${key} (${new Date().toISOString().slice(0, 10)})`, views: {...old?.views}, pilot: {...old?.pilot}}
   for (const g of GROUPS) for (const v of views(g)) {
     if (!SIZES[v.key] || !existsSync(join(root, g.key, 'run1'))) continue
     const ref = v.parse(join(root, g.key, 'run1'), tree)
     const dev = devSet(v, ref, SIZES[v.key]!, `${key}/${g.key}/run1`)
     d.views[v.key] = dev
-    if (!d.pilot[g.key]) d.pilot[g.key] = [...ref].filter(([, o]) => o.solved).sort((a, b) => a[1].secs - b[1].secs).slice(0, g.key === 'g332' ? 1 : 2).map(([t]) => t)
+    d.pilot[g.key] = [...ref].filter(([, o]) => o.solved).sort((a, b) => a[1].secs - b[1].secs).slice(0, 2).map(([t]) => t)
     log(`${v.key}: ${dev.size} of ${dev.of} (${Object.keys(dev.strata).length} strata)`)
   }
   for (const s of ['suite']) if (existsSync(join(root, s, 'run1'))) d.pilot[s] = d.pilot['suite-usual'] = [...VIEWS.suite!.parse(join(root, s, 'run1'), tree)].filter(([, o]) => o.solved).sort((a, b) => a[1].secs - b[1].secs).slice(0, 1).map(([t]) => t)

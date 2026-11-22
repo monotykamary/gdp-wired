@@ -3,7 +3,7 @@
 // CPU binary of compare/bench/run.ts and the GPU binary with its GPU off (`--gpu off`: the ! call on the CPU lanes). A
 // rule's run is a fold over the requests, each step needing the state the one before left, so there is no parallel
 // work to hand out: this measures what the GPU path costs such a program, nothing it could speed up. Runs where bun,
-// clang 19+, CUDA 12 or 13 at $CUDA_HOME and the Bend repo are (compare/bench/modal_gpu.py on Modal):
+// clang 19+, CUDA 12 or 13 at $CUDA_HOME and the Bend repo are (compare/bench/modal_gpu.py ran it on Modal, since retired):
 //
 //   BEND=/path/to/bend bun compare/bench/gpu.ts
 import {existsSync, mkdtempSync, readFileSync, writeFileSync} from 'node:fs'

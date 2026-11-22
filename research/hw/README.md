@@ -11,7 +11,7 @@ early. Handwired's own loop runner runs it on the CPU, and its WGSL writer (`loo
 | `compile.ts` | A machine and a law as one looped word stage. A document covers `chunk` candidates (params, then each step's request, as digits); registers carry the step, the candidate, its digits, params, state, map cells and the least failure so far; a candidate that fails, sends a disallowed request or passes its last step hands over to the next at once, and `stop` ends the loop after the document's last candidate. Spaces past 2^32 candidates run in slices: the later steps' requests come from a shared word |
 | `check-cpu.ts` | Handwired's CPU loop runner (`executor` and `generated`) against search/'s per-candidate answers, on sampled documents of every search |
 | `run.ts` | The suite on a GPU through Dawn (Metal on a Mac, Vulkan on Linux); `--hand` also runs search/compile.ts's hand-written shader on the same device; `--big`, `--huge` for depths 10–12; `--low n` forces slices, to test them on a small space |
-| `run_gpu.py` | The same on a Modal GPU (H100, L4), app `hw-gpu-words`, 15-minute timeout, cancelled if the client stops |
+| `run_gpu.py` (retired) | The same on a Modal GPU (H100, L4), app `hw-gpu-words`: retired with Modal (in git history); the GPU figures here are its runs' |
 
 | `step-searches.ts` | Step-law and k-step-law searches: the examples' own laws and broken variants (release lifecycle, auction) and the composition examples (the countdown refinement, the interleaved counters), each with whether a run must break it |
 | `check-steps.ts` | Those searches on Handwired's CPU runner against `../../core/watch.ts` reading every candidate's run on the interpreter (no code shared with the compiled program), whole spaces; then a fuzz of random machines and random 1-, 2- and 3-step laws where Handwired, the watcher and the kernel must agree: a law the kernel proves has no breaking run |
@@ -81,7 +81,7 @@ would partly undo.
 ```sh
 bun check-cpu.ts
 DAWN_MODULE=<webgpu>/index.js bun run.ts --hand
-cd ../.. && modal run research/hw/run_gpu.py --out ../runs/modal/hw/h100.json --gpu H100 --args "--hand --big --chunk 256"
+cd ../.. && modal run research/hw/run_gpu.py --out ../runs/modal/hw/h100.json --gpu H100 --args "--hand --big --chunk 256"   # (retired with Modal: the record of the run)
 ```
 
 ## The ReBAC audit and the predicate enumeration
@@ -128,7 +128,7 @@ ms) is Handwired's program runner against the kernel runner, and only shows on t
 ```sh
 bun check-more.ts
 DAWN_MODULE=<webgpu>/index.js bun run-more.ts --hand
-cd ../.. && modal run research/hw/run_gpu.py --out ../runs/modal/hw/more-h100.json --gpu H100 --script run-more.ts --args "--hand"
+cd ../.. && modal run research/hw/run_gpu.py --out ../runs/modal/hw/more-h100.json --gpu H100 --script run-more.ts --args "--hand"   # (retired with Modal: the record of the run)
 ```
 
 Functions (`fn`, `divBy`, `modBy`) are tabulated: a read at a key the circuit's range analysis bounds below 1,024 is a

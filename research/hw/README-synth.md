@@ -9,7 +9,7 @@ synth/'s `Evaluator`, so its templates, Houdini rounds, `support` and kernel loo
 | `synth.ts` | `compileKernel` (history, region, kill) and `hwEvaluator` (CPU: Handwired's loop runner; GPU: `createProgramRunner`). Candidates' coefficients (two's complement i32 bits) and alive bits are shared word tables; signed comparison flips the sign bit. history: document = 64 histories × a block of 24 candidates, positions walk (history, step), a history that ends moves on (`stop` after the last). region: document = 24 points, positions walk (point, alive candidate) through a next-alive table, stopping a point at its first broken candidate; the point's digits are registers (decoded once per document, then counted up), and every read is provably in range (`assumeAtMost` on the next-alive cells and the `j` register, one zero coefficient row for j = K), so none has a bounds check. kill: document = 64 points × a block of 8 candidates (invariants: from a shared list of region points; ranks: over the box, or over a once-built list of the points where the loop runs when the box has more than 2M points; a rank kill with points × candidates over 10^9 takes 24 a block). History and kill read their block's coefficients from registers a `once` stage fills, not from tables at every position |
 | `check-synth.ts` | Every round's kill set against synth/compile.ts's JS twin, from the same alive sets, on the small boxes: `bun check-synth.ts` (Handwired's CPU runner), `--gpu` (Dawn) |
 | `run-synth.ts` | synth/run.ts on these kernels; `--both` also runs synth/'s hand-written kernels on the same device and checks that every case ends the same way |
-| `run_synth_gpu.py` | The same on Modal (`--gpu H100` or `L4`, app `hw-gpu-synth-words`, 15-minute timeout, cancelled with its client) |
+| `run_synth_gpu.py` (retired) | The same on Modal (`--gpu H100` or `L4`, app `hw-gpu-synth-words`): retired with Modal (in git history); the GPU figures here are its runs' |
 
 Correctness: on the small boxes every round agrees with the JS twin, on the CPU loop runner and on the M2's GPU, for all
 three invariant cases (history, then region + kill rounds to the fixpoint) and all three rank cases. On the full boxes
@@ -81,11 +81,11 @@ Pair setup is now shader compile only.
 ```sh
 bun check-synth-more.ts && DAWN_MODULE=<webgpu>/index.js bun check-synth-more.ts --gpu
 DAWN_MODULE=<webgpu>/index.js bun run-synth-more.ts --both
-cd ../.. && modal run research/hw/run_synth_gpu.py --out ../runs/modal/hw/synth-more-h100.json --gpu H100 --script run-synth-more.ts --args "--both"
+cd ../.. && modal run research/hw/run_synth_gpu.py --out ../runs/modal/hw/synth-more-h100.json --gpu H100 --script run-synth-more.ts --args "--both"   # (retired with Modal: the record of the run)
 ```
 
 ```sh
 bun check-synth.ts && DAWN_MODULE=<webgpu>/index.js bun check-synth.ts --gpu
 DAWN_MODULE=<webgpu>/index.js bun run-synth.ts --both
-cd ../.. && modal run research/hw/run_synth_gpu.py --out ../runs/modal/hw/synth-h100.json --gpu H100 --args "--both"
+cd ../.. && modal run research/hw/run_synth_gpu.py --out ../runs/modal/hw/synth-h100.json --gpu H100 --args "--both"   # (retired with Modal: the record of the run)
 ```

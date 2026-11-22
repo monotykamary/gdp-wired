@@ -57,8 +57,9 @@ const tipRows = (tool: string) => (dir: string): Rows => {
 const tipHead = (rows: Rows) => ({proven: count(rows, o => o.solved), refuted: count(rows, o => o.answer === 'refuted'), wrong: count(rows, o => !!o.wrong), unknown: count(rows, o => o.answer === 'unknown'),
   timeout: count(rows, o => o.answer === 'timeout'), unsupported: count(rows, o => o.answer === 'unsupported'), error: count(rows, o => o.answer === 'error'), tasks: rows.size})
 
-// ------------------------------------------------------------------------------------------- supercomputer/run.py job lists
+// ---------------------------------------------------------------------------------- `supercomputer run`'s job lists
 // A job's log: research/*/jobs.ts echo the key first, the verdict JSON is the last line (score.ts --from's reading).
+// (`supercomputer run` writes a job's stdout and stderr to one log; logs of older runs keep stderr after `--- stderr ---`.)
 export function jobLogs(dir: string): {job: string, key: string, last: string, text: string}[] {
   if (!existsSync(dir)) return []
   return readdirSync(dir).filter(f => f.endsWith('.log')).map(f => {
@@ -128,13 +129,16 @@ const g332Rows = (dir: string): Rows => {
   return out
 }
 
-// supercomputer/run.py's summary.tsv: a job passes on exit 0.
+// A run's summary.tsv, one row a job: its name, exit (`lost`: no box answered it within its attempts), seconds and
+// where it ran. `supercomputer run` heads it with `name exit seconds where`; older runs' have no header.
+export function summaryLines(dir: string): {name: string, code: string, secs: string, where?: string, line: string}[] {
+  return lines(`${dir}/summary.tsv`).map(line => { const [name, code, secs, where] = line.split('\t'); return {name: name!, code: code ?? '', secs: secs ?? '', where, line} })
+    .filter((r, i) => !(i === 0 && r.name === 'name' && r.code === 'exit'))
+}
+// A job passes on exit 0.
 export function summaryRows(dir: string): Rows {
   const out: Rows = new Map()
-  for (const l of lines(`${dir}/summary.tsv`)) {
-    const [name, code, secs] = l.split('\t')
-    out.set(name!, {answer: `exit ${code}`, solved: code === '0', secs: Number(secs)})
-  }
+  for (const r of summaryLines(dir)) out.set(r.name, {answer: `exit ${r.code}`, solved: r.code === '0', secs: Number(r.secs)})
   return out
 }
 const suiteHead = (rows: Rows) => ({passed: count(rows, o => o.solved), failed: count(rows, o => !o.solved), jobs: rows.size, job_s: Math.round([...rows.values()].reduce((s, o) => s + Math.max(0, o.secs), 0) * 10) / 10})

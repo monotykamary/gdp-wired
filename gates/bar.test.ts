@@ -6,7 +6,7 @@ import {acquireBarSlot, BAR_SLOT_COUNT, tryBarSlot} from './bar-slots.ts'
 const scratch = resolve(import.meta.dir, '../runs/bar-test-tmp')
 const temp = () => { mkdirSync(scratch, {recursive: true}); return mkdtempSync(join(scratch, 'case-')) }
 const modulePath = join(import.meta.dir, 'bar-slots.ts')
-const bar = join(import.meta.dir, 'bar.ts'), driver = join(import.meta.dir, 'boat-pass.py')
+const bar = join(import.meta.dir, 'bar.ts')
 const start = (cmd: string[], cwd: string, env: Record<string, string | undefined> = process.env) => Bun.spawn(cmd, {cwd, env, stdin: 'ignore', stdout: 'pipe', stderr: 'pipe'})
 type Child = ReturnType<typeof start>
 const result = async (p: Child) => { const [code, out, err] = await Promise.all([p.exited, new Response(p.stdout).text(), new Response(p.stderr).text()]); return {code, out, err} }
@@ -96,38 +96,34 @@ test('SIGKILL releases the kernel lock and the next owner clears stale PID metad
   } finally { await stop(child); a.release(); rmSync(dir, {recursive: true, force: true}) }
 }, 30_000)
 
-test('quick-bar CLI waits before demand, read-only CLI bypasses slots, and exits release ownership', async () => {
-  const home = temp(), dir = join(home, '.local/share/gdp-wired/bar-slots'), bin = join(home, 'bin'), calls = join(home, 'drivers')
+test('quick-bar CLI waits for a slot before any launch, read-only CLI bypasses slots, and exits release ownership', async () => {
+  const home = temp(), dir = join(home, '.local/share/gdp-wired/bar-slots'), bin = join(home, 'bin'), calls = join(home, 'launches')
   mkdirSync(bin)
   writeFileSync(join(bin, 'git'), `#!/bin/sh\nprintf '%s\\n' '${home}/repo/.git'\n`, {mode: 0o755})
-  writeFileSync(join(bin, 'python3'), `#!/bin/sh\nprintf '%s\\n' "$SUPERCOMPUTER_CLASS" >> '${calls}'\n`, {mode: 0o755})
-  writeFileSync(join(bin, 'sh'), '#!/bin/sh\nexit 0\n', {mode: 0o755}) // never run real pool cleanup in this test
-  const env = {...process.env, HOME: home, PATH: `${bin}:${process.env.PATH}`, GDPW_BAR_DIR: join(home, 'bar'), SUPERCOMPUTER_CLASS: 'submission'}
+  writeFileSync(join(bin, 'supercomputer'), `#!/bin/sh\nprintf '%s\\n' "$*" >> '${calls}'\n`, {mode: 0o755}) // never launch real boxes in this test
+  const env = {...process.env, HOME: home, PATH: `${bin}:${process.env.PATH}`, GDPW_BAR_DIR: join(home, 'bar')}
   const a = tryBarSlot(dir)!, b = tryBarSlot(dir)!, children: Child[] = []
   try {
     const read = start([process.execPath, bar, 'failed', join(home, 'absent')], home, env); children.push(read)
     expect(await result(read)).toMatchObject({code: 0})
-    expect(existsSync(calls)).toBe(false)
     const waiting = start([process.execPath, bar, '--quick', '--only', 'not-a-group'], home, env); children.push(waiting)
     await until(waiting, 'waiting for one of 2')
-    expect(waiting.exitCode).toBeNull(); expect(existsSync(calls)).toBe(false)
+    expect(waiting.exitCode).toBeNull()
     waiting.kill('SIGTERM'); expect(await waiting.exited).toBe(130)
     expect(tryBarSlot(dir)).toBeUndefined()
     a.release()
     const invalid = start([process.execPath, bar, '--quick', '--only', 'not-a-group'], home, env); children.push(invalid)
-    expect(await result(invalid)).toMatchObject({code: 1})
-    expect(existsSync(calls)).toBe(true)
-    expect(readFileSync(calls, 'utf8').trim().split('\n').every(c => c === 'submission')).toBe(true)
+    const bad = await result(invalid)
+    expect(bad.code).toBe(1); expect(bad.err).toContain('no group not-a-group')
+    const retired = start([process.execPath, bar, '--quick', '--only', 'chc'], home, env); children.push(retired)
+    const old = await result(retired)
+    expect(old.code).toBe(1); expect(old.err).toContain('retired with its Modal runner')
     const freed = tryBarSlot(dir)!
     expect(freed.slot).toBe(0); freed.release()
-    writeFileSync(calls, '')
-    const defaultEnv: Record<string, string | undefined> = {...env}
-    delete defaultEnv.SUPERCOMPUTER_CLASS
-    const defaultClass = start([process.execPath, bar, '--quick', '--only', 'not-a-group'], home, defaultEnv); children.push(defaultClass)
-    expect(await result(defaultClass)).toMatchObject({code: 1})
-    const defaults = readFileSync(calls, 'utf8').trim().split('\n')
-    expect(defaults.length).toBeGreaterThan(0)
-    expect(defaults.every(c => c === 'gate')).toBe(true)
+    const gone = start([process.execPath, bar, '--backend', 'boat', '--only', 'suite'], home, env); children.push(gone)
+    const flagGone = await result(gone)
+    expect(flagGone.code).toBe(1); expect(flagGone.err).toContain('--backend is gone')
+    expect(existsSync(calls)).toBe(false)
   } finally { await Promise.all(children.map(stop)); a.release(); b.release(); rmSync(home, {recursive: true, force: true}) }
 }, 30_000)
 
@@ -143,31 +139,32 @@ test('dirty candidate pilots resolve a real snapshot root without changing its c
   }
   const put = (p: string, text: string) => writeFileSync(p, text)
   try {
-    for (const p of [src, bin, join(src, 'gates'), join(src, 'compare/chc'), join(src, 'supercomputer'), join(src, 'modal')]) mkdirSync(p, {recursive: true})
+    for (const p of [src, bin, join(src, 'gates'), join(src, 'supercomputer')]) mkdirSync(p, {recursive: true})
     writeFileSync(join(bin, 'bun'), `#!/bin/sh\nif [ "$1" = install ]; then exit 0; fi\nexec '${process.execPath}' "$@"\n`, {mode: 0o755})
-    writeFileSync(join(bin, 'modal'), "#!/bin/sh\nprintf '[]\\n'\n", {mode: 0o755})
-    for (const f of ['bar.ts', 'bar-lib.ts', 'bar-slots.ts', 'boat-pass.py']) cpSync(join(import.meta.dir, f), join(src, 'gates', f))
+    // `supercomputer run` as a pass sees it: the tree it would pack (its cwd's git root) as a receipt, every job answered 0
+    const fake = join(dir, 'supercomputer.ts')
+    put(fake, `import {mkdirSync, readFileSync, writeFileSync} from 'node:fs'
+import {join} from 'node:path'
+const a = process.argv.slice(2), at = (k: string) => a[a.indexOf(k) + 1]!
+if (a[0] !== 'run') process.exit(2)
+const git = (...args: string[]) => { const p = Bun.spawnSync(['git', ...args], {stdout: 'pipe', stderr: 'pipe'}); if (p.exitCode) throw Error(p.stderr.toString()); return p.stdout.toString() }
+const out = at('--out'); mkdirSync(out, {recursive: true})
+const root = git('rev-parse', '--show-toplevel').trim(), common = git('rev-parse', '--path-format=absolute', '--git-common-dir').trim()
+const files = [...git('ls-files', '-z', '--recurse-submodules').split('\\0'), ...git('ls-files', '-z', '--others', '--exclude-standard').split('\\0')].filter(Boolean)
+if (root !== process.cwd()) throw Error('wrong snapshot root: ' + root + ' from ' + process.cwd())
+writeFileSync(join(out, 'root.json'), JSON.stringify({root, common, files}))
+const jobs = JSON.parse(readFileSync(at('--jobs'), 'utf8')) as {name: string}[]
+for (const j of jobs) writeFileSync(join(out, j.name + '.log'), 'ok\\n')
+writeFileSync(join(out, 'batch.json'), JSON.stringify({id: 'fixture'}))
+writeFileSync(join(out, 'summary.tsv'), ['name\\texit\\tseconds\\twhere', ...jobs.map(j => j.name + '\\t0\\t0.1\\tbox-1')].join('\\n') + '\\n')
+`)
+    writeFileSync(join(bin, 'supercomputer'), `#!/bin/sh\nexec '${process.execPath}' '${fake}' "$@"\n`, {mode: 0o755})
+    for (const f of ['bar.ts', 'bar-lib.ts', 'bar-slots.ts']) cpSync(join(import.meta.dir, f), join(src, 'gates', f))
     put(join(src, 'package.json'), '{}\n')
     put(join(src, '.gitignore'), 'ignored.txt\n*.tmp\nnode_modules/\n')
     put(join(src, 'ignored.txt'), 'tracked despite ignore\n')
     put(join(src, 'payload.txt'), 'base\n')
-    put(join(src, 'supercomputer/boat.py'), '# no demand in this fixture\n')
-    put(join(src, 'supercomputer/run.py'), '# fixture\n')
-    put(join(src, 'supercomputer/agent.py'), "import types\ndef modal_stub(): return types.ModuleType('modal')\n")
-    put(join(src, 'supercomputer/fanout.py'), '# fixture\n')
-    put(join(src, 'modal/boat.py'), '# from supercomputer import: no overlay needed\n')
-    put(join(src, 'compare/chc/modal_chc.py'), `import json,pathlib,subprocess,sys
-root=pathlib.Path(subprocess.check_output(['git','rev-parse','--show-toplevel'],text=True).strip())
-common=subprocess.check_output(['git','rev-parse','--path-format=absolute','--git-common-dir'],text=True).strip()
-out=pathlib.Path(sys.argv[sys.argv.index('--out')+1]);out.mkdir(parents=True,exist_ok=True)
-module=str(pathlib.Path(__file__).resolve().relative_to(root))
-files=subprocess.check_output(['git','ls-files','-z','-co','--exclude-standard'],text=True).split('\\0')
-(out/'root.json').write_text(json.dumps(dict(root=str(root),common=common,module=module,files=files)))
-assert root==pathlib.Path.cwd(), 'wrong snapshot root'
-assert module=='compare/chc/modal_chc.py', module
-names=json.loads(pathlib.Path(sys.argv[sys.argv.index('--tasks-json')+1]).read_text()) if '--tasks-json' in sys.argv else ['fixture']
-(out/'results.jsonl').write_text(''.join(json.dumps(dict(tool='gdp',task=t,answer='unsat',seconds=0.01))+'\\n' for t in names))
-`)
+    put(join(src, 'supercomputer/suite.json'), JSON.stringify([{name: 'run-proofs', cmd: 'true'}, {name: 'other', cmd: 'true'}]) + '\n')
     const library = join(dir, 'library'); mkdirSync(library)
     git(library, 'init', '-q')
     put(join(library, '.gitignore'), 'kept.dat\n*.tmp\n'); put(join(library, 'kept.dat'), 'vendored tracked ignored file\n')
@@ -190,14 +187,16 @@ names=json.loads(pathlib.Path(sys.argv[sys.argv.index('--tasks-json')+1]).read_t
         const old = join(store, 'trees', key()); mkdirSync(old, {recursive: true}); put(join(old, '.bar-ready'), key() + '\n'); put(join(old, 'stale.tmp'), 'old cache\n')
       }
       const expectedKey = key(), snapshot = join(store, 'trees', expectedKey)
-      const p = start([process.execPath, join(src, 'gates/bar.ts'), '--base', sha, '--cand', src, '--only', 'chc', '--together', '--reruns', '0', '--name', name], src, env)
+      const p = start([process.execPath, join(src, 'gates/bar.ts'), '--base', sha, '--cand', src, '--only', 'suite', '--together', '--reruns', '0', '--name', name], src, env)
       children.push(p); const r = await result(p); expect(r.code, r.err).toBe(0)
       const report = JSON.parse(readFileSync(join(store, 'runs', name, 'report.json'), 'utf8'))
       expect(report.trees.cand.key).toBe(expectedKey)
       expect(report.results[0].error).toBeUndefined()
       const pilotDir = name === 'reuse' ? 'fresh' : name
-      const receipt = JSON.parse(readFileSync(join(store, 'runs', pilotDir, 'chc/pilot-cand/root.json'), 'utf8'))
-      expect(receipt.root).toBe(snapshot); expect(receipt.common).toBe(common); expect(receipt.module).toBe('compare/chc/modal_chc.py')
+      const receipt = JSON.parse(readFileSync(join(store, 'runs', pilotDir, 'suite/pilot-cand/root.json'), 'utf8'))
+      expect(receipt.root).toBe(snapshot); expect(receipt.common).toBe(common)
+      expect(JSON.parse(readFileSync(join(store, 'runs', pilotDir, 'suite/pilot-cand.jobs.json'), 'utf8')).map((j: {name: string}) => j.name)).toEqual(['run-proofs'])
+      expect(report.suite.candidate).toMatchObject({passed: 2, failed: 0, jobs: 2})
       for (const f of ['ignored.txt', 'vendor/lib/kept.dat', 'new file.txt']) expect(receipt.files).toContain(f)
       expect(receipt.files).not.toContain('ignored.tmp')
       expect(readFileSync(join(snapshot, 'payload.txt'), 'utf8')).toBe(readFileSync(join(src, 'payload.txt'), 'utf8'))
@@ -214,7 +213,6 @@ test('report CLI rejects zero candidate coverage per view and preserves the fail
   const dir = temp(), bin = join(dir, 'bin'), children: Child[] = []
   mkdirSync(bin)
   writeFileSync(join(bin, 'git'), `#!/bin/sh\nprintf '%s\\n' '${dir}/repo/.git'\n`, {mode: 0o755})
-  writeFileSync(join(bin, 'modal'), "#!/bin/sh\nprintf '[]\\n'\n", {mode: 0o755})
   const env = {...process.env, PATH: `${bin}:${process.env.PATH}`, GDPW_BAR_DIR: join(dir, 'bar')}
   const empty = join(dir, 'empty'), solved = join(dir, 'solved'), unsolved = join(dir, 'unsolved')
   const candIts = join(dir, 'cand-its'), baseIts = join(dir, 'base-its')
@@ -253,24 +251,3 @@ test('report CLI rejects zero candidate coverage per view and preserves the fail
     }
   } finally { await Promise.all(children.map(stop)); rmSync(dir, {recursive: true, force: true}) }
 }, 30_000)
-
-test('one explicit-boat driver preserves arguments without importing or re-execing Modal', async () => {
-  const dir = temp(), door = join(dir, 'supercomputer'), runners = join(dir, 'compare')
-  mkdirSync(door); mkdirSync(runners)
-  writeFileSync(join(door, 'agent.py'), "import types\ndef modal_stub():\n    m=types.ModuleType('modal')\n    m.stub=True\n    return m\n")
-  writeFileSync(join(door, 'fanout.py'), "def reexec_with_modal():\n    raise AssertionError('must not re-exec')\ndef cli(run):\n    reexec_with_modal()\n    run()\n")
-  writeFileSync(join(runners, 'modal.py'), "raise AssertionError('must not import the real client')\n")
-  const runner = join(runners, 'run.py')
-  writeFileSync(runner, "import modal, fanout, json, sys, os\nassert modal.stub\ndef run():\n    print(json.dumps({'args':sys.argv[1:],'pid':os.getpid()}))\nfanout.cli(run)\n")
-  const children: Child[] = []
-  try {
-    const args = ['--backend', 'boat', '--only', 'a|b', '--out', 'a path']
-    const p = start(['python3', driver, dir, runner, ...args], dir); children.push(p)
-    const r = await result(p)
-    expect(r, r.err).toMatchObject({code: 0})
-    expect(JSON.parse(r.out)).toEqual({args, pid: p.pid})
-    const invalid = start(['python3', driver, dir, runner, '--backend', 'auto'], dir); children.push(invalid)
-    const bad = await result(invalid)
-    expect(bad.code).toBe(1); expect(bad.err).toContain('explicit --backend boat')
-  } finally { await Promise.all(children.map(stop)); rmSync(dir, {recursive: true, force: true}) }
-})

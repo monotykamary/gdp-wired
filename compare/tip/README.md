@@ -14,9 +14,12 @@ and apart, `benchmarks/false` (68 false properties), to test refutations.
 | `translate.ts` | A TIP problem as a `proveData` law: each datatype at the instances the problem uses (mutual where their fields reach each other), Peano naturals as naturals, each polymorphic function at its instances, a higher-order function specialised at the lambdas it is passed, the goal's sort variables and TIP's uninterpreted sorts as abstract sorts, an uninterpreted constant or function and a function variable of the goal as unknown functions (`fnParam` where it is one of a natural). Every refusal has a reason, and every change to the statement is recorded (below) |
 | `witness.ts` | Structural first-position witness proposals for existential indices (Int or Peano), based on datatype shape rather than names; capture-avoiding simultaneous substitution into the original goal. Each proposal is an ordinary definition, not an axiom |
 | `solve.ts` | One task: translate, check the translation against TIP's evaluator on random values (the goal at 200 values, each function at 100), then `proveData` with the run's budget. Answers proven (the kernel checked the cyclic proof), refuted (a counterexample TIP's evaluator confirms breaks the goal as TIP states it), unknown, unsupported, or error. Its diagnostic flags are below |
-| `modal_tip.py` | The run on Modal: every task and tool in its own container (2 vCPU, 4 GB), each tool under the same 60 s wall-clock limit, all at once. The image builds the TIP tools (`tip-org/tools` at `ca4c414`, with Stack) and makes cvc5's and Vampire's files once |
+| `modal_tip.py` (retired) | Retired with Modal and boat (in git history). The run on Modal: every task and tool in its own container (2 vCPU, 4 GB), each tool under the same 60 s wall-clock limit, all at once. The image builds the TIP tools (`tip-org/tools` at `ca4c414`, with Stack) and makes cvc5's and Vampire's files once |
 | `summary.ts` | The tables below from a run's `results.jsonl` |
 | `lemmas-sample30.json` | The lemmas given by hand to a sample of failures (the classification below) |
+
+(The Modal runners named here were retired with Modal and boat, so nothing here runs them now; they are in git
+history, the results below are their runs', and the summary scripts still read them.)
 
     modal run compare/tip/modal_tip.py --out runs/modal/tip/<name> [--tools gdp,cvc5,cvc5cg,vampire] [--limit 60]
                                        [--sets isaplanner,prod,tip2015,grammars,false] [--only a|b] [--gdp-args '--inline']

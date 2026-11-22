@@ -7,7 +7,7 @@
 //   bun mutants.ts ids <a,b,...>        runs the battery on those mutants
 //   bun mutants.ts baseline             the battery on the unmutated code, which must pass
 //   bun mutants.ts equivalent           the mutants MUTANTS.md lists as equivalent, and its entries that match none
-// supercomputer/mutants.json fans the run out on Modal, one container per batch.
+// A jobs file of `bun mutants.ts ids <a,b,...>` jobs fans the run out (`supercomputer run --jobs <file> --out <dir>`).
 import {readFileSync, writeFileSync} from 'node:fs'
 import {resolve} from 'node:path'
 
