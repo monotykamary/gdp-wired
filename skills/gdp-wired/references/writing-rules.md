@@ -370,7 +370,7 @@ c.check(); c.prove([c.law('retries within 2', ({retries}) => retries.atMost(2))]
 - `conforms` is what ties the two: a guard or an action given wrongly shows up as the run where XState and the chart part.
   Payloads come from `payload: (event, rand) => ({amount: rand(10)})`, with `inputs: {amount: nat}` in `fromXState`.
 
-Or let the extractor write the bridge: `extractXState` reads the machine's file (its guards and actions from their
+When the user asks for extraction, the extractor writes the bridge: `extractXState` reads the machine's file (its guards and actions from their
 source), runs the chart beside XState's actor (the xstate of the file's own project), and returns the rule like every
 front end's. In the file, `// gdp: law` comments read its context's fields, `value` (the state) and `event`
 (`npx gdp-wired check machine.ts`):
@@ -385,7 +385,8 @@ proveRule(x.rule!, [...x.invariants!, x.rule!.law('retries within 2', ({retries}
 ## Effect services
 
 A service written in [Effect](https://effect.website) (`effect` 3.x or 4.x) keeps its state in Refs its make effect
-creates; `extractEffect` reads it into a rule, checked by running the real code on Effect's runtime beside the rule
+creates. By default write its rule with `rule()` and have the service run the proven rule; when the user asks for
+extraction, `extractEffect` reads the service into a rule, checked by running the real code on Effect's runtime beside the rule
 (the `effect` the file's own project has, 3.x or 4.x):
 
 ```ts
@@ -399,7 +400,7 @@ if (!x.ok) console.log(x.refusals)        // where and why
 proveRule(x.rule!, [...x.invariants ?? [], x.rule!.law('within the limit', ({usage, limit}) => forall(k => usage.at(k).used.atMost(limit)))])
 ```
 
-Or with nothing written but a comment above the make effect, `// gdp: law within the limit: forall k in usage:
+When the user asks for law comments: one above the make effect, `// gdp: law within the limit: forall k in usage:
 usage[k].used <= limit`, and `npx gdp-wired check quota.ts`. Code in memory is read as `{code, file}`; `{entry, effect}`
 name the service and give the module where the file has several or none.
 
@@ -514,8 +515,8 @@ proveSteps(r, [cap, r.law('the last delay is at most the next backoff', e => e.d
 
 A law about a jittered delay is broken where the jitter sits at the edge of its range, which a random draw rarely finds:
 `jitterRun(x.schedule, law)` runs the rule with each jitter at its top (then its bottom) and gives the run, for
-`x.replay`. `fromSchedule(source, {effect, params})` reads a schedule written as source. In a file, `// gdp: law` comments
-right above the schedule's `const` are its laws (`npx gdp-wired-cli check policy.ts`).
+`x.replay`. `fromSchedule(source, {effect, params})` reads a schedule written as source. When the user asks for law comments,
+`// gdp: law` comments right above the schedule's `const` are its laws (`npx gdp-wired-cli check policy.ts`).
 
 **Retry and repeat in a method.** `eff.pipe(Effect.retry(policy))`, `Effect.retry(eff, policy)` (a schedule, or `{times,
 schedule, while, until}`) around an effect the reader reads is part of the method's step: each attempt fails as the first

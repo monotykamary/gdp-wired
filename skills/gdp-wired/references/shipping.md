@@ -1,13 +1,7 @@
-# Prove in CI, ship plain code
+# Ship the rule you proved
 
-Install the prover as a dev dependency. For supported decisions, annotate the plain source and run
-`gdp-wired-cli check policy.ts --mode standalone`; no duplicate runtime model is needed. For unsupported source,
-keep a model in tests, prove its laws, and compare the production code with it. Protocol models still describe flows,
-not arbitrary application code. See `docs/ci-only.md` in the repository.
-
-The proof is about the rule's machine. Shipping that machine is an explicit alternative, not the default deployment pattern.
-
-## Optional runtime use
+In TypeScript the proven rule is what runs: `npm install gdp-wired`, prove its laws in tests, and run the same rule at
+runtime, so there is no hand-written copy of its decisions to drift from what was proven.
 
 ```ts
 const shipped = budget.compiled()                 // generated JavaScript; maps and the log updated in place
@@ -17,17 +11,31 @@ for (const c of [50, 40, 70, 20]) st = shipped.step(params, st, budget.encodeInp
 budget.decode(st)                                 // {s: 110}
 ```
 
-- `rule.interpreter()`: the persistent reference evaluator (states are copied; searches branch from it). Library-built
-  arithmetic and source-free recurrence helpers need no opt-in. User JavaScript helper source, including callbacks
-  and transitive dependencies, needs explicit `rule.interpreter({compileHelpers: true})` or `rule.compiled()`.
+- `rule.interpreter()`: the reference evaluator (states are copied; searches branch from it). `rule.compiled()`: the
+  same machine as generated JavaScript, for the hot path.
+- State the app reloads (from a database, a host, a cache) didn't come from the start: prove the step laws with
+  `{from: 'any'}` and require `proven && checked && !assumes`.
 - `encodeParams` / `encodeInput` turn runtime values (strings, decimals, choices, sets) into the naturals the machine
   reads; `decode` reads a state back. Both runtimes refuse inputs that aren't naturals below 2^53.
-- `fun(...).run(values, params)` interprets a pure function's terms without generating JavaScript.
-- `fun(...).compiled()` explicitly creates a cached callable with the same arguments and result. Declared helper
-  source (`.fns(...)`, including serialized callbacks) requires this opt-in; arithmetic term methods do not.
-- Comparison/proof tooling and low-level machine helpers may still compile code; do not claim that every API is CSP-safe.
+- A decision: `fun(...).run(values, params)` interprets its terms; `fun(...).compiled()` is a cached callable with the
+  same arguments and result.
+- User JavaScript in `.fns(...)` (strings or callbacks, and what they call) runs only through `compiled()` or
+  `rule.interpreter({compileHelpers: true})`; library `divBy`/`modBy`, `recur` equations and arithmetic terms need no
+  opt-in. Don't claim the prover or the machine helpers are CSP-safe.
 
-## Hold existing code to the rule
+## Test the builders against themselves
+
+```ts
+budget.crossCheck([bounded]) // {checked: 1700}
+```
+
+`crossCheck(laws, stepLaws?)` replays every law, flag and update on concrete runs, comparing each callback's own
+arithmetic with what the interpreter makes of the expression that was proven. Put it in the test suite next to the
+proof. For decisions: `crossCheckDecision(decision)`.
+
+## Code that already exists
+
+Until it is replaced by the rule, hold hand-written code to it:
 
 ```ts
 budget.compare({
@@ -36,19 +44,12 @@ budget.compare({
 }) // {checked, exhaustive: false}, or a failure with the first disagreeing input/trace
 ```
 
-`compare` runs the rule and reference side by side. Finite input domains are enumerated (up to `maxCases`);
-unbounded domains use drawn and edge inputs. `fun.compare` reports per-input coverage; `rule.compare` enumerates
-finite parameter/request combinations in bounded sequences, not every history or reachable state. `checked` counts
-input cases, not fields. Require no failure and `exhaustive: true` when you need full finite input coverage.
-An exhaustive comparison remains a test, never a kernel proof.
+`compare` runs the rule and the reference side by side: finite input domains enumerated (up to `maxCases`), unbounded
+ones drawn with their edges, in bounded sequences. It is a test, never a proof; require no failure and
+`exhaustive: true` when you need full finite input coverage.
 
-## Test the builders against themselves
+## Law comments
 
-```ts
-budget.crossCheck([bounded]) // {checked: 1700}
-```
-
-`crossCheck(laws, stepLaws?)` replays every law, flag and update on concrete
-runs, comparing each callback's own arithmetic with what the interpreter makes
-of the expression that was proven. Put it in the test suite next to the proof.
-For decisions: `crossCheckDecision(decision)`.
+`// gdp: law` comments checked with `npx gdp-wired-cli check` (gdp-wired then a dev dependency; the repository's
+`docs/ci-only.md`) are for code in another language, or when the user asks for them. Exit 1 is a broken law, 2 one
+not checked: neither is a pass.

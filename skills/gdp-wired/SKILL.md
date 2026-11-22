@@ -1,22 +1,18 @@
 ---
 name: gdp-wired
-description: "Prove the laws of stateful rules in TypeScript, or in Python, Ruby, Elixir, Java, Kotlin, Swift, Go, Rust, C or C++ code read as it ships (`npx gdp-wired-cli check`, laws as `gdp: law` comments), with gdp-wired, an automatic prover (no proof to write, every proof checkable again in Lean). Use when adding, changing or reviewing a budget, cap, quota, rate limit, sliding window, workflow, ledger, access policy or any state machine whose invariants matter; when code imports from 'gdp-wired'; when an XState machine or an Effect service (Refs updated in Effect.gen, STM transactions) or an Effect retry Schedule holds such a rule; when a gdp-ts trusted module's check (an authorization or entitlement policy) should be proven, not just trusted; when a law comes back refuted or unproven; or when deciding whether a claim belongs to gdp-wired, Lean or Bend."
+description: "Prove the laws of stateful rules in TypeScript with gdp-wired's native API (the proven rule runs in production), or in Python, Ruby, Elixir, Java, Kotlin, Swift, Go, Rust, C or C++ code read as it ships (`npx gdp-wired-cli check`, laws as `gdp: law` comments), with gdp-wired, an automatic prover (no proof to write, every proof checkable again in Lean). Use when adding, changing or reviewing a budget, cap, quota, rate limit, sliding window, workflow, ledger, access policy or any state machine whose invariants matter; when code imports from 'gdp-wired'; when an XState machine or an Effect service (Refs updated in Effect.gen, STM transactions) or an Effect retry Schedule holds such a rule; when a gdp-ts trusted module's check (an authorization or entitlement policy) should be proven, not just trusted; when a law comes back refuted or unproven; or when deciding whether a claim belongs to gdp-wired, Lean or Bend."
 ---
 
 # gdp-wired
 
-**Default: install as a dev dependency, prove in tests/CI, and ship plain code.** Use
-`npm install --save-dev gdp-wired typescript`. Supported plain functions can carry `// gdp: law`
-comments and be checked with `npx gdp-wired-cli check policy.ts --mode standalone --entry decide`;
-no duplicate model is needed for their per-input laws. A stateful protocol model remains a separate test.
-For unsupported source, keep a tests-only model and compare against the real implementation.
-Finite input-domain comparison is a test, not a kernel proof or exhaustive state-history exploration.
-For deliberate runtime use, `fun.run()` interprets terms; `fun.compiled()` returns an explicitly compiled callable.
-User-supplied `.fns(...)` JavaScript (strings or callbacks, including transitive dependencies) requires the compiled opt-in.
-Library `divBy`/`modBy`, source-free `recur` equations and native arithmetic terms interpret without opt-in.
-`rule.interpreter()` refuses user JavaScript source unless `{compileHelpers: true}` is explicitly passed.
-Do not claim that the prover, comparison tooling or low-level machine helpers are CSP-safe.
-See the repository's `docs/ci-only.md` and [shipping](references/shipping.md).
+**In TypeScript the native API is the default, and the proven rule is what ships.** `npm install gdp-wired`;
+write the rule with `rule()`, `fun()` or `chart()` and the kinds; state its laws with `.law`, `.stepLaw`,
+`.stepsLaw`, `.leadsTo` and `.decide`; prove them with `proveRule`, `proveSteps` and `proveLeadsTo` (with
+`{from: 'any'}` wherever state is reloaded, requiring `proven && checked && !assumes`); keep each broken variant and
+assert that search refutes it; and run the proven rule itself at runtime (`rule.interpreter()` or `rule.compiled()`,
+`fun.run()` or `fun.compiled()`), so no hand-written copy of its decisions can drift ([shipping](references/shipping.md)).
+`// gdp: law` comments, `gdp-wired-cli check` and extraction are for code in another language, or when the user asks
+for them.
 
 A rule is a state machine: params, a request's inputs, state, and one step.
 A law is a claim about every run of it. `proveRule(rule, [law])` either
@@ -76,11 +72,10 @@ When adding or changing a rule whose invariants matter:
    (`assumes`). If the code steps the rule from states it is handed (a
    host's, a stored one), prove with `{from: 'any'}` and require
    `proven && checked && !assumes`.
-5. **Keep the prover in CI; ship plain code by default.** Check supported source directly with law comments;
-   otherwise hold hand-written code to a tests-only model with `fun.compare(reference)` or
-   `rule.compare(reference)`. Exhaustive input comparison is a test, not a proof of the implementation
-   or all state histories. Run `rule.crossCheck(laws)` in tests
-   ([shipping](references/shipping.md)). With gdp-ts, mint its proofs from
+5. **Ship the rule you proved.** Run it with `rule.interpreter()` or `rule.compiled()` (`fun.run()` or
+   `fun.compiled()` for a decision), never a hand-written copy, and run `rule.crossCheck(laws)` in tests
+   ([shipping](references/shipping.md)). Code that already exists and can't be replaced yet is held to the rule
+   with `rule.compare(reference)` until it is: a test, not a proof. With gdp-ts, mint its proofs from
    the proven check (`guard`, `gate` from `gdp-wired/gdp`) so every call site
    is held to it ([with gdp-ts](references/gdp-ts.md)).
 6. **Keep the broken variant.** Next to each proven rule, keep the bug it
@@ -99,10 +94,11 @@ When adding or changing a rule whose invariants matter:
    ([Lean handoff](references/lean-handoff.md)). Don't approximate a
    recursive claim with a bounded one and call it proven.
 
-## Code in another language (or code that already ships)
+## Code in another language (or law comments, when asked)
 
 `npx gdp-wired-cli check <file|dir>` (gdp-wired with TypeScript beside it) reads the rule from Python, Ruby, Elixir,
-Java, Kotlin, Go, Rust, Swift, C, C++, TypeScript, Effect or XState with nothing configured, checks it against the code, prints its names in the
+Java, Kotlin, Go, Rust, Swift, C or C++ (and from TypeScript, Effect or XState when the user asks for law comments)
+with nothing configured, checks it against the code, prints its names in the
 code's terms and proposes laws (each proven, broken with a run, or unknown, with the comment that states it). State a
 law with one comment in the code's language, over the code's names: `# gdp: law <name>: <expr>` (`//` in the
 C-family, Go, Rust, JVM and TypeScript; `@GdpLaw("...")`, `@gdp_law(...)`, `#[doc = "gdp: law ..."]` too). On the
