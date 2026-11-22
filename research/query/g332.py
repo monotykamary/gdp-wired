@@ -1,4 +1,4 @@
-"""The 332 step goals beside main in one run (jobs.py g332 --base): `python3 research/query/g332.py <run dir>`. Per goal
+"""The 332 step goals beside main in one run (the retired jobs.py g332 --base): `python3 research/query/g332.py <run dir>`. Per goal
 the outcome, the tree's leaves and splits, CDCL's decisions, conflicts and nodes on both sides (the same search when all
 match), and the search's ms; the sums, the ratio's quantiles, and every goal whose search or outcome differs."""
 import json

@@ -1,4 +1,4 @@
-"""The representative queries, both sides of a paired run (jobs.py reps --pair or --envs): `python3 research/query/reps.py
+"""The representative queries, both sides of a paired run (the retired jobs.py reps --pair or --envs): `python3 research/query/reps.py
 <run dir>`. Per job: the answer each side printed; for the bounded runs and k-induction (unsat__), the depths each
 reached and the wall ms of the depths both refuted; for the false step goals (pairs__) the CDCL nodes each searched in
 the same time; for every job the root queries each logged (count, summed ms, CDCL nodes)."""
