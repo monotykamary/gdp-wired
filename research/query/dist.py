@@ -1,4 +1,4 @@
-"""The root queries' times, each side of a paired run (jobs.py --pair): `python3 research/query/dist.py <run dir>
+"""The root queries' times, each side of a paired run (the retired jobs.py --pair): `python3 research/query/dist.py <run dir>
 [prefix]`. Per job group: queries, summed ms, the ms quantiles (p10, p50, p90, p99, max), CDCL nodes a second."""
 import collections
 import json

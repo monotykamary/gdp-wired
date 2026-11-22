@@ -241,15 +241,15 @@ clause refutes the goal.
 | `vars.ts` | a goal's variables by class, and what fixing the yes/no and finite ones leaves |
 | `bmc.ts` | BMC over a CHC task's rule: the prototype, z3 as a reference, runs checked by checkDerivation |
 | `items.ts` | the tree against the DAG on the examples' own goals |
-| `jobs.py` | the jobs files of the Modal runner `modal_dag.py` (retired with Modal, in git history: the dump g332 reads was made with it; not run since) |
+| `jobs.ts` | the jobs files, for `supercomputer run` (the dump g332 reads was made by the retired Modal runner `modal_dag.py`, in git history; its `/bench` and `/goals` were Modal volumes, which no box has yet) |
 | `summarize.py` | every figure here, from runs/modal/dag/ |
 | `step332-tasks.json`, `bmc-tasks.json` | the 332 step-goal tasks; the 273 unsat Lustre tasks with Golem's derivation length |
 
-(The first command is the retired Modal runner's, kept as the record of how the dump was made.)
+(The dump was made by the retired Modal runner; this is the same run with `supercomputer`, once a box has `/bench`.)
 
 ```sh
 # compare/chc/prof/given-models.json (gitignored): {smt2 path: Spacer's model} of the 332, from runs/modal/chc2/spacer-models-sat
-python3 research/dag/jobs.py dump > /tmp/dump.json && modal run research/dag/modal_dag.py --jobs /tmp/dump.json --out runs/modal/dag/dump
-# copy each dump/<task>/goal.{json,smt2} to runs/modal/dag/goals/<task>/, then: solvers, profile, dag [--no-learn], cdcl [--lazy], vars, items, bmc
+bun research/dag/jobs.ts dump > /tmp/dump.json && supercomputer run --jobs /tmp/dump.json --out runs/dag/dump
+# each job's goal.{json,smt2} is in runs/dag/dump/<task>.files/; with them at --goals <dir>/<task>/: solvers, profile, dag [--no-learn], cdcl [--lazy], vars, items, bmc
 python3 research/dag/summarize.py
 ```
