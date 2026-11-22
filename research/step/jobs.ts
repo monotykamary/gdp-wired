@@ -22,7 +22,7 @@ const pre = env ? `export ${env}; ` : ''
 const tasks332 = () => json<string[]>(join(gdp, 'research/dag/step332-tasks.json'))
 const goals223 = () => { const d = join(gdp, 'runs/step/goals223'); return readdirSync(d).sort().map(n => ({name: n, dir: join(d, n)})) }
 
-type Job = {name: string; cmd: string; timeout: number}
+type Job = {name: string; cmd: string; timeout: number; image?: string}
 const jobs: Job[] = []
 if (kind === 'goals332') {
   for (const t of tasks332())
@@ -58,4 +58,5 @@ if (kind === 'goals332') {
   console.error('usage: bun research/step/jobs.ts goals332|goals223|table|given223|given332 [--ms 55000] [--env K=V ...]')
   process.exit(2)
 }
+for (const j of jobs) j.image = 'chc' // (the goals, the benchmarks and Spacer's models are the chc image's)
 console.log(JSON.stringify(jobs, null, 0).replaceAll('},{', '},\n{'))

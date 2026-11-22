@@ -22,7 +22,7 @@ const out = '"$SUPERCOMPUTER_OUTPUT_DIR"'
 const goals = opt('--goals', '/goals')
 const names: string[] = args.includes('--sample') ? json(opt('--sample', '')) : json(join(here, 'step332-tasks.json'))
 
-type Job = {name: string; cmd: string; timeout: number}
+type Job = {name: string; cmd: string; timeout: number; image?: string}
 const jobs: Job[] = []
 if (kind === 'dump') {
   const byTask = new Map(json<{task: string; smt2: string}[]>(join(here, '../../runs/modal/chc2/given-spacer3/tasks.json')).map(t => [t.task, t]))
@@ -52,4 +52,6 @@ if (kind === 'dump') {
   console.error('usage: bun research/dag/jobs.ts dump|solvers|profile|dag|cdcl|vars|items|bmc [--sample names.json] [--goals dir] [--ms n] [--no-...]')
   process.exit(2)
 }
+// (every job but items' reads the chc image's benchmarks or goals)
+for (const j of jobs) if (kind !== 'items') j.image = 'chc'
 console.log(JSON.stringify(jobs, null, 0).replaceAll('},{', '},\n{'))

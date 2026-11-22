@@ -11,7 +11,7 @@ const opt = (k: string, d: string) => { const i = args.indexOf(k); return i < 0 
 const only = opt('--only', ''), name = opt('--name', kind), extra = opt('--args', '')
 const pick = (xs: string[]) => (only ? xs.filter(x => only.split('|').some(o => x.includes(o))) : xs)
 const sh = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`
-let jobs: {name: string, cmd: string, timeout?: number}[] = []
+let jobs: {name: string, cmd: string, timeout?: number, image?: string}[] = []
 if (kind === 'chc') {
   const gap = JSON.parse(readFileSync('runs/modal/chc2/gap-v020.json', 'utf8')) as Record<string, {kind: string}>
   const tasks = pick(Object.keys(gap).filter(t => gap[t]!.kind === 'sat'))
@@ -23,6 +23,8 @@ if (kind === 'chc') {
   const lem = JSON.parse(readFileSync('compare/tip/lemmas-sample30.json', 'utf8')) as Record<string, string[]>
   jobs = pick(Object.keys(lem)).map(t => ({name: t, timeout: 900, cmd: `bun research/table/tip.ts /tip/benchmarks/${sh(t)} --lemmas compare/tip/lemmas-sample30.json --task ${sh(t)} ${extra}`}))
 } else throw new Error(`kind ${kind}`)
+if (kind === 'chc') for (const j of jobs) j.image = 'chc' // (/chc and /data/spacer-models.jsonl)
+if (kind === 'term') for (const j of jobs) j.image = 'term'
 mkdirSync('research/table/jobs', {recursive: true})
 writeFileSync(`research/table/jobs/${name}.json`, JSON.stringify(jobs, null, 1) + '\n')
 console.log(`${jobs.length} jobs → research/table/jobs/${name}.json`)
