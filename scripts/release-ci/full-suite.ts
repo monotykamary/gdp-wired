@@ -92,7 +92,7 @@ function checkSource(): string {
 // The selected real `lean`, recorded before the canonical command's own tail/grep cuts its output (a known failure's
 // signature is over complete Lean reports). The repo's scripts/lean-gate wrapper keeps working unchanged: its
 // downstream compiler is this transparent recorder, which calls the original executable by absolute path.
-function diagnosticEnvironment(root: string, cwd: string, env: NodeJS.ProcessEnv): {env: NodeJS.ProcessEnv; readLogs: () => string[]} {
+export function diagnosticEnvironment(root: string, cwd: string, env: NodeJS.ProcessEnv): {env: NodeJS.ProcessEnv; readLogs: () => string[]} {
   const directory = join(root, 'lean-diagnostics'), bin = join(root, 'diagnostic-bin')
   mkdirSync(directory); mkdirSync(bin)
   const selected = spawnSync('bash', ['-c', 'type -P lean'], {cwd, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']})

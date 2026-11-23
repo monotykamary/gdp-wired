@@ -4,7 +4,7 @@ import {spawnSync} from 'node:child_process'
 import {closeSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join, resolve} from 'node:path'
-import {diagnosticEnvironment} from '../../scripts/release-ci/full-gate-worker.ts'
+import {diagnosticEnvironment} from '../../scripts/release-ci/full-suite.ts'
 
 type Job = {name: string, cmd: string, cwd?: string, timeout?: number}
 const [input, name] = process.argv.slice(2)
