@@ -28,13 +28,13 @@ env = { JAVA_HOME = "/usr/lib/jvm/temurin-17" }
 # jobs' inputs (`supercomputer image build chc`; the data is the main checkout's runs/, restored from the runs archive)
 [instabox.images.chc]
 setup = "supercomputer/chc.sh"
-snapshot = "sc-gdp-wired-chc-12131a30f8c1"
+snapshot = "sc-gdp-wired-chc-0ae36e4aac50"
 data = { "/goals" = "runs/modal/dag/goals", "/goals223" = "runs/step/goals223", "/data/spacer-models.jsonl" = "runs/modal/chc2/spacer-models-sat/models.jsonl" }
 
 # "image": "term": TermComp's integer transition systems at /its and /bench, LoAT and KoAT2 (`supercomputer image build term`)
 [instabox.images.term]
 setup = "supercomputer/term.sh"
-snapshot = "sc-gdp-wired-term-5185630355a1"
+snapshot = "sc-gdp-wired-term-4c882c608d2f"
 
 # The Lean twin's library, compiled once per version of its sources (the key hashes the toolchain and every source)
 [[cache]]
