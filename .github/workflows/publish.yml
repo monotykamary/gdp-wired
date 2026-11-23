@@ -121,8 +121,10 @@ jobs:
         with:
           node-version: 24
 
-      - name: The checkout is this commit, every submodule at its gitlink, nothing changed
-        run: bun scripts/release-ci/full-suite.ts source
+      - name: The checkout is this commit, every submodule at its gitlink, nothing changed; its identity for the tree
+        run: |
+          bun scripts/release-ci/full-suite.ts source
+          bun scripts/release-ci/full-suite.ts identity
 
       - name: supercomputer 1.0 and instabox's CLI
         id: tools
