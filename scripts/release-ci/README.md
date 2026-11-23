@@ -1,8 +1,8 @@
 # Release CI
 
 - [FULL-GATE.md](./FULL-GATE.md): the release's full gate, every job of `supercomputer/suite.json` run once at the
-  release commit inside `publish.yml` on instabox CI boxes (`full-suite.ts`), and the failures it accepts
-  (`known-failures.json`, `known-failures.ts`, bound to each job's definition by `job-hash.ts`).
+  release commit as one strict-once supercomputer batch on instabox, from `publish.yml` (`full-suite.ts`), and the
+  failures it accepts (`known-failures.json`, `known-failures.ts`, bound to each job's definition by `job-hash.ts`).
 - `KEYED-SECTION-EVIDENCE.md`, `known-failures-keyed-evidence.json`: the evidence behind the keyed Lean known failure.
 - `python-litellm-regression.sh`, `agent-consult-packed.sh` (with `agent-consult-packed-fixture.mjs`): suite jobs' own
   scripts.
