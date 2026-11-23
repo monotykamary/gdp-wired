@@ -1,33 +1,41 @@
-// The release's full gate, inside GitHub Actions (publish.yml): every job of supercomputer/suite.json run once, on a
-// fresh instabox box, at the exact commit being published, and a release only when each passed or failed exactly as
-// known-failures.json records (the same job definition, exit code and failure signature).
+// The release's full gate (publish.yml, FULL-GATE.md): every job of supercomputer/suite.json run once, at the exact
+// commit being published, as one supercomputer batch on instabox (strict-once: one attempt, no retry), and a release
+// only when each job answered 0 or failed exactly as known-failures.json records (the same job definition, exit
+// code and failure signature).
 //
-//   bun scripts/release-ci/full-suite.ts matrix          the GitHub matrix: one entry per suite job, with its runs-on
-//   bun scripts/release-ci/full-suite.ts run NAME OUT    one job, as supercomputer runs it; OUT gets RESULT.json, its
-//                                                        logs, its Lean diagnostics and files/ ($SUPERCOMPUTER_OUTPUT_DIR)
-//   bun scripts/release-ci/full-suite.ts gate DIR        every job's RESULT.json (DIR/<name>/RESULT.json): the verdict
+//   bun scripts/release-ci/full-suite.ts source               the checkout is the run's commit, every submodule at its
+//                                                             gitlink, nothing changed (refused otherwise)
+//   bun scripts/release-ci/full-suite.ts jobs FILE            the batch's jobs file: each suite job, run through `box`
+//   bun scripts/release-ci/full-suite.ts tree SUPERCOMPUTER   the hash supercomputer gives this checkout's tree
+//   bun scripts/release-ci/full-suite.ts box NAME             (on its box) one suite job: the pinned dependencies, then
+//                                                             its command, its complete Lean diagnostics and RESULT.json
+//                                                             in $SUPERCOMPUTER_OUTPUT_DIR/.gate
+//   bun scripts/release-ci/full-suite.ts verdict OUT SUPERCOMPUTER TREE
+//                                                             the batch in OUT (batch.json's log replayed through
+//                                                             supercomputer's batch rule) and every job's result: the verdict
 //
-// A job runs as supercomputer would run it on its box: `bash -c "<[run] pre><cmd>"` in its cwd, under its timeout
-// (default 3600 s), with its image's PATH entries first and its image's and its own env. Its box is the instabox CI
-// box `instabox-large-snapshot-<snapshot>`: the snapshot its image names in supercomputer.toml (an image with no
-// setup of its own, like `runner`, is the repo's snapshot with its own PATH and env). The olean [[cache]] is not kept
-// between CI boxes: each Lean job builds what it needs.
+// On its box a job runs as supercomputer runs it (`[run] pre`, its image's PATH and env, its env), inside `box`, which
+// first installs the pinned dependencies at the tree's root (bun install --frozen-lockfile), as the release gate
+// always has, then runs the job's command in its cwd under its timeout and records the selected `lean`'s complete
+// output. SUPERCOMPUTER is the installed supercomputer (the folder holding its src/).
 
 import {spawnSync} from 'node:child_process'
 import {closeSync, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, writeFileSync} from 'node:fs'
-import {homedir, tmpdir} from 'node:os'
+import {tmpdir} from 'node:os'
 import {delimiter, isAbsolute, join, resolve} from 'node:path'
+import {pathToFileURL} from 'node:url'
 import {canonicalJobHash, type CanonicalJob} from './job-hash'
 import {extractFailureSignature, matchKnownFailure, validateKnownFailuresPolicy, type FailureSignature} from './known-failures'
 
 const ROOT = resolve(import.meta.dir, '../..')
 const fail = (message: string): never => { throw new Error(`full-suite: ${message}`) }
+// (a job's batch timeout: its own, plus the dependency install before it)
+const INSTALL_SECONDS = 600
 
-type Job = CanonicalJob & {cwd?: string; timeout?: number; env?: Record<string, string>; image?: string}
-type Image = {snapshot?: string; path: string[]; env: Record<string, string>; setup?: string}
+type Job = CanonicalJob & {cwd?: string; timeout?: number; env?: Record<string, string>; image?: string; cpu?: number; memory?: number}
 export type Result = {
-  schema: 'gdp-full-suite-result/v1'; name: string; definitionSha256: string; commit: string
-  runId: string; runAttempt: string; code: number; signal: string | null; seconds: number
+  schema: 'gdp-full-suite-result/v1'; name: string; definitionSha256: string; batch: string
+  code: number; signal: string | null; seconds: number; installed: boolean
   signature?: FailureSignature; signatureError?: string
 }
 
@@ -42,33 +50,12 @@ export function suite(root = ROOT): Job[] {
   return jobs
 }
 
-// supercomputer.toml's images, as supercomputer reads them (src/jobs.ts): a named image adds its PATH entries before
-// the repo's and its env over the repo's; one with no setup of its own runs on the repo's snapshot.
-export function images(root = ROOT): {pre: string; base: Image; named: Record<string, Image>} {
-  const t = Bun.TOML.parse(readFileSync(join(root, 'supercomputer.toml'), 'utf8')) as Record<string, any>
-  const ib = t.instabox ?? {}
-  const base: Image = {snapshot: ib.snapshot, path: ib.path ?? [], env: ib.env ?? {}}
-  const named: Record<string, Image> = {}
-  for (const [k, v] of Object.entries((ib.images ?? {}) as Record<string, any>))
-    named[k] = {snapshot: v.snapshot ?? (v.setup ? undefined : base.snapshot), path: [...(v.path ?? []), ...base.path], env: {...base.env, ...(v.env ?? {})}, setup: v.setup}
-  return {pre: t.run?.pre ?? '', base, named}
-}
-
-const imageOf = (job: Job, im: ReturnType<typeof images>): Image => {
-  if (!job.image) return im.base
-  return im.named[job.image] ?? fail(`${job.name}: no image ${job.image} in supercomputer.toml`)
-}
-
-export function matrix(root = ROOT): {include: {name: string; runsOn: string}[]} {
-  const im = images(root)
-  const include = suite(root).map(job => {
-    const img = imageOf(job, im)
-    if (!img.snapshot) fail(`${job.name}: its image has no snapshot (supercomputer image build${job.image ? ` ${job.image}` : ''})`)
-    return {name: job.name, runsOn: `instabox-large-snapshot-${img.snapshot}`}
-  })
-  // (GitHub runs at most 256 jobs of one matrix)
-  if (include.length > 256) fail(`${include.length} suite jobs: more than one matrix (256) holds`)
-  return {include}
+// The batch's job for a suite job: the same resources, image and env, its command run through `box`.
+export const boxCommand = (name: string) => `bun scripts/release-ci/full-suite.ts box ${name}`
+export function wrapped(job: Job): Record<string, unknown> {
+  const w: Record<string, unknown> = {name: job.name, cmd: boxCommand(job.name), cwd: '.', timeout: Number(job.timeout ?? 3600) + INSTALL_SECONDS}
+  for (const k of ['cpu', 'memory', 'image', 'env'] as const) if (job[k] !== undefined) w[k] = job[k]
+  return w
 }
 
 const git = (args: string[]) => {
@@ -78,14 +65,13 @@ const git = (args: string[]) => {
 }
 
 // The checkout is the commit being released, with every submodule at its gitlink, and nothing changed in it.
-function checkSource(): string {
+export function checkSource(): string {
   const commit = git(['rev-parse', 'HEAD'])
   if (process.env.GITHUB_SHA && process.env.GITHUB_SHA !== commit) fail(`checkout is ${commit}, not the run's commit ${process.env.GITHUB_SHA}`)
-  const subs = git(['submodule', 'status', '--recursive']).split('\n').filter(Boolean)
-  const off = subs.filter(l => /^[-+U]/.test(l))
+  const off = git(['submodule', 'status', '--recursive']).split('\n').filter(l => /^[-+U]/.test(l))
   if (off.length) fail(`submodules not at their gitlinks: ${off.join('; ')}`)
-  const dirty = git(['status', '--porcelain=v1', '--untracked-files=no', '--ignore-submodules=none'])
-  if (dirty) fail(`the checkout has changes: ${dirty.split('\n').slice(0, 5).join('; ')}`)
+  const dirty = git(['status', '--porcelain=v1', '--untracked-files=all', '--ignore-submodules=none'])
+  if (dirty) fail(`the checkout has changes or untracked files: ${dirty.split('\n').slice(0, 5).join('; ')}`)
   return commit
 }
 
@@ -127,35 +113,47 @@ function keyedSources(jobName: string, cwd: string, started: number): {file: str
   return stat.mtimeMs >= started ? [{file: 'Keyed.lean', source: readFileSync(path, 'utf8')}] : []
 }
 
-export function run(name: string, out: string): number {
+// One suite job on its box. supercomputer already set its image's PATH and env, `[run] pre` and the batch's
+// $SUPERCOMPUTER_OUTPUT_DIR for this wrapper; the job's own command runs in its cwd under its own timeout.
+export function box(name: string): number {
   const matches = suite().filter(j => j.name === name)
   if (matches.length !== 1) fail(`no single suite job named ${name}`)
   const job = matches[0]!
-  const commit = checkSource()
-  const im = images(), img = imageOf(job, im)
+  const output = process.env.SUPERCOMPUTER_OUTPUT_DIR ?? ''
+  if (!isAbsolute(output)) fail('no $SUPERCOMPUTER_OUTPUT_DIR')
+  const gate = join(output, '.gate')
+  mkdirSync(gate)
   const cwd = resolve(ROOT, job.cwd ?? '.')
-  if (!cwd.startsWith(ROOT)) fail(`${name}: cwd escapes the checkout`)
+  if (!cwd.startsWith(ROOT)) fail(`${name}: cwd escapes the tree`)
   const timeout = Number(job.timeout ?? 3600)
   if (!Number.isFinite(timeout) || timeout <= 0) fail(`${name}: invalid timeout`)
-  mkdirSync(out, {recursive: true})
-  const files = join(out, 'files')
-  mkdirSync(files)
-  const home = process.env.HOME ?? homedir()
-  const path = img.path.map(p => p.replace(/^~(?=\/|$)/, home)).join(delimiter)
-  const env: NodeJS.ProcessEnv = {
-    ...process.env, ...img.env, ...(job.env ?? {}),
-    PATH: path ? path + delimiter + (process.env.PATH ?? '') : process.env.PATH,
-    SUPERCOMPUTER_OUTPUT_DIR: files, SUPERCOMPUTER_JOB: name, SUPERCOMPUTER_BATCH: `gh-${process.env.GITHUB_RUN_ID ?? 'local'}`,
+  const result: Result = {
+    schema: 'gdp-full-suite-result/v1', name, definitionSha256: canonicalJobHash(job), batch: process.env.SUPERCOMPUTER_BATCH ?? '',
+    code: 125, signal: null, seconds: 0, installed: false,
+  }
+  const finish = () => writeFileSync(join(gate, 'RESULT.json'), JSON.stringify(result, null, 1) + '\n')
+  // The pinned dependencies, at the tree's root, before the job (its command may install again)
+  const installLog = openSync(join(gate, 'dependency-install.log'), 'wx')
+  try {
+    const install = spawnSync('bun', ['install', '--frozen-lockfile'], {cwd: ROOT, env: process.env, stdio: ['ignore', installLog, installLog], timeout: INSTALL_SECONDS * 1000})
+    result.installed = install.status === 0 && !install.signal && !install.error
+  } finally { closeSync(installLog) }
+  if (!result.installed) {
+    console.error(`${name}: the pinned dependencies did not install (.gate/dependency-install.log)`)
+    finish()
+    return 125
   }
   const scratch = mkdtempSync(join(tmpdir(), 'full-suite-'))
-  const diagnostics = diagnosticEnvironment(scratch, cwd, env)
-  const stdout = openSync(join(out, 'stdout.log'), 'wx'), stderr = openSync(join(out, 'stderr.log'), 'wx')
+  const diagnostics = diagnosticEnvironment(scratch, cwd, process.env)
+  const stdout = openSync(join(gate, 'stdout.log'), 'wx'), stderr = openSync(join(gate, 'stderr.log'), 'wx')
   const started = Date.now()
   let r: ReturnType<typeof spawnSync>
   try {
-    r = spawnSync('timeout', ['--signal=KILL', `${timeout}s`, 'bash', '-c', im.pre + job.cmd], {cwd, env: diagnostics.env, stdio: ['ignore', stdout, stderr]})
+    r = spawnSync('timeout', ['--signal=KILL', `${timeout}s`, 'bash', '-c', job.cmd], {cwd, env: diagnostics.env, stdio: ['ignore', stdout, stderr]})
   } finally { closeSync(stdout); closeSync(stderr) }
-  const code = r.status ?? 128
+  result.code = r.status ?? 128
+  result.signal = r.signal ?? null
+  result.seconds = Math.round((Date.now() - started) / 1000)
   const logs = diagnostics.readLogs()
   for (const p of SUPPLEMENTARY[name] ?? []) {
     if (!existsSync(p)) continue
@@ -164,66 +162,93 @@ export function run(name: string, out: string): number {
     if (stat.mtimeMs >= started) logs.push(readFileSync(p, 'utf8'))
   }
   const sources = keyedSources(name, cwd, started)
-  writeFileSync(join(out, 'LEAN-DIAGNOSTICS.json'), JSON.stringify({schema: 'gdp-lean-diagnostics/v1', logs, ...(sources.length ? {sources} : {})}) + '\n')
-  const result: Result = {
-    schema: 'gdp-full-suite-result/v1', name, definitionSha256: canonicalJobHash(job), commit,
-    runId: process.env.GITHUB_RUN_ID ?? 'local', runAttempt: process.env.GITHUB_RUN_ATTEMPT ?? '1',
-    code, signal: r.signal ?? null, seconds: Math.round((Date.now() - started) / 1000),
-  }
-  if (code !== 0) {
-    try { result.signature = extractFailureSignature(readFileSync(join(out, 'stdout.log'), 'utf8'), readFileSync(join(out, 'stderr.log'), 'utf8'), logs, sources) }
+  writeFileSync(join(gate, 'LEAN-DIAGNOSTICS.json'), JSON.stringify({schema: 'gdp-lean-diagnostics/v1', logs, ...(sources.length ? {sources} : {})}) + '\n')
+  const out = readFileSync(join(gate, 'stdout.log'), 'utf8'), err = readFileSync(join(gate, 'stderr.log'), 'utf8')
+  if (result.code !== 0) {
+    try { result.signature = extractFailureSignature(out, err, logs, sources) }
     catch (e) { result.signatureError = e instanceof Error ? e.message : String(e) }
   }
-  writeFileSync(join(out, 'RESULT.json'), JSON.stringify(result, null, 1) + '\n')
-  // (the end of its output in the job's log; all of it is in the artifact)
-  for (const f of ['stdout.log', 'stderr.log']) {
-    const lines = readFileSync(join(out, f), 'utf8').split('\n')
-    console.log(`--- ${f} (last ${Math.min(lines.length, 150)} of ${lines.length} lines)`)
-    console.log(lines.slice(-150).join('\n'))
-  }
-  console.log(`${name}: exit ${code}${r.signal ? ` (${r.signal})` : ''} in ${result.seconds} s`)
-  return code
+  finish()
+  // (the job's whole output in its supercomputer log too)
+  process.stdout.write(out)
+  process.stderr.write(err)
+  return result.code
 }
 
+// A batch's state for one job, from batch.json's log replayed through supercomputer's batch rule.
+export type JobState = {st: string; exit: number; attempts: number}
+export type Batch = {id: string; tree: string; limits: {strictOnce: boolean; maxAttempts: number}; jobs: Record<string, unknown>[]}
 export type Verdict = {passed: string[]; known: string[]; failed: {name: string; why: string}[]}
 
-// Every suite job's result, at this commit, from this run's first attempt: passed, failed as known, or failed.
-export function gate(dir: string, commit = process.env.GITHUB_SHA ?? git(['rev-parse', 'HEAD']), attempt = process.env.GITHUB_RUN_ATTEMPT ?? '1', root = ROOT): Verdict {
-  const jobs = suite(root)
-  const policy = validateKnownFailuresPolicy(JSON.parse(readFileSync(join(root, 'scripts/release-ci/known-failures.json'), 'utf8')), jobs)
+// Every suite job of this batch: passed, failed as known, or failed. `states` are the rule's, by the batch's job
+// index; `results` reads a job's .gate/RESULT.json (undefined: none fetched).
+export function judge(o: {jobs: Job[]; batch: Batch; tree: string; attempt: string; states: (i: number) => JobState | undefined; results: (name: string) => Result | undefined; policy: unknown}): Verdict {
   const v: Verdict = {passed: [], known: [], failed: []}
+  const refuse = (why: string): Verdict => ({...v, failed: [{name: '(the batch)', why}]})
   // (a run attempt after the first could have re-run a failed job into a pass: never a release)
-  if (attempt !== '1') return {...v, failed: [{name: '(the run)', why: `attempt ${attempt}: the full gate counts only a run's first attempt`}]}
-  for (const job of jobs) {
-    // (each job's artifact, full-suite-<name>, as download-artifact lays them out; or a plain <name> folder)
-    const file = [join(dir, `full-suite-${job.name}`, 'RESULT.json'), join(dir, job.name, 'RESULT.json')].find(f => existsSync(f)) ?? ''
-    if (!file) { v.failed.push({name: job.name, why: 'no result (its job did not finish)'}); continue }
-    const r = JSON.parse(readFileSync(file, 'utf8')) as Result
+  if (o.attempt !== '1') return refuse(`attempt ${o.attempt}: the full gate counts only a run's first attempt`)
+  if (o.batch.tree !== o.tree) return refuse(`the batch ran tree ${o.batch.tree}, not this checkout's ${o.tree}`)
+  if (o.batch.limits.strictOnce !== true || o.batch.limits.maxAttempts !== 1) return refuse('the batch was not strict-once (one attempt, no retry)')
+  const policy = validateKnownFailuresPolicy(o.policy, o.jobs)
+  if (o.batch.jobs.length !== o.jobs.length) return refuse(`the batch has ${o.batch.jobs.length} jobs, the suite ${o.jobs.length}`)
+  for (const [i, job] of o.jobs.entries()) {
+    const ran = o.batch.jobs[i]!, want = wrapped(job)
+    // (the batch's job i is this suite job through `box`, with its cwd, timeout and image; supercomputer fills
+    // defaults for the rest)
+    if ((['name', 'cmd', 'cwd', 'timeout', 'image'] as const).some(k => JSON.stringify(ran[k]) !== JSON.stringify(want[k]))) { v.failed.push({name: job.name, why: 'the batch ran another job in its place'}); continue }
+    const s = o.states(i)
+    if (!s) { v.failed.push({name: job.name, why: 'not in the batch'}); continue }
+    if (s.attempts > 1) { v.failed.push({name: job.name, why: `${s.attempts} attempts (strict-once is one)`}); continue }
+    if (s.st !== 'done') { v.failed.push({name: job.name, why: s.st === 'lost' ? 'lost with its box (strict-once: not tried again)' : `not answered (${s.st})`}); continue }
+    const r = o.results(job.name)
+    if (!r) { v.failed.push({name: job.name, why: `exit ${s.exit}, and no result of its own`}); continue }
     const why = r.schema !== 'gdp-full-suite-result/v1' ? 'not a full-suite result'
       : r.name !== job.name ? `the result of ${r.name}`
-      : r.commit !== commit ? `run at ${r.commit}, not ${commit}`
-      : r.runAttempt !== '1' ? `from attempt ${r.runAttempt}`
-      : r.definitionSha256 !== canonicalJobHash(job) ? 'run from another definition of the job' : ''
+      : r.batch !== o.batch.id ? `from batch ${r.batch}`
+      : r.definitionSha256 !== canonicalJobHash(job) ? 'run from another definition of the job'
+      : r.code !== s.exit ? `its result says ${r.code}, the batch ${s.exit}` : ''
     if (why) { v.failed.push({name: job.name, why}); continue }
-    if (r.code === 0) { v.passed.push(job.name); continue }
-    if (!r.signature) { v.failed.push({name: job.name, why: `exit ${r.code}${r.signatureError ? `; its failure has no signature: ${r.signatureError}` : ''}`}); continue }
+    if (s.exit === 0) { v.passed.push(job.name); continue }
+    if (!r.installed) { v.failed.push({name: job.name, why: 'its pinned dependencies did not install'}); continue }
+    if (!r.signature) { v.failed.push({name: job.name, why: `exit ${s.exit}${r.signatureError ? `; its failure has no signature: ${r.signatureError}` : ''}`}); continue }
     try {
-      matchKnownFailure(policy, job.name, r.definitionSha256, r.code, r.signature)
+      matchKnownFailure(policy, job.name, r.definitionSha256, s.exit, r.signature)
       v.known.push(job.name)
     } catch (e) {
-      v.failed.push({name: job.name, why: `exit ${r.code}: ${e instanceof Error ? e.message : String(e)}`})
+      v.failed.push({name: job.name, why: `exit ${s.exit}: ${e instanceof Error ? e.message : String(e)}`})
     }
   }
   return v
 }
 
+// The verdict over a batch in OUT: batch.json's log replayed through the installed supercomputer's batch rule.
+export async function verdict(out: string, supercomputer: string, tree: string, attempt = process.env.GITHUB_RUN_ATTEMPT ?? '1'): Promise<Verdict> {
+  const batch = JSON.parse(readFileSync(join(out, 'batch.json'), 'utf8')) as Batch & {log: unknown[]}
+  const {Engine} = await import(pathToFileURL(join(supercomputer, 'src/engine.ts')).href) as {Engine: new (limits: unknown, log: unknown[]) => {job: (i: number) => JobState | undefined}}
+  const engine = new Engine(batch.limits, batch.log) // (refuses a log the rule would not take)
+  const results = (name: string) => {
+    const f = join(out, `${name}.files`, '.gate', 'RESULT.json')
+    return existsSync(f) ? (JSON.parse(readFileSync(f, 'utf8')) as Result) : undefined
+  }
+  return judge({jobs: suite(), batch, tree, attempt, states: i => engine.job(i), results, policy: JSON.parse(readFileSync(join(ROOT, 'scripts/release-ci/known-failures.json'), 'utf8'))})
+}
+
+// The tree hash supercomputer gives this checkout (what batch.json's `tree` must be).
+export async function treeHash(supercomputer: string): Promise<string> {
+  const {pack} = await import(pathToFileURL(join(supercomputer, 'src/tree.ts')).href) as {pack: (root: string, ignore: string[]) => Promise<{hash: string}>}
+  const {readConfig} = await import(pathToFileURL(join(supercomputer, 'src/jobs.ts')).href) as {readConfig: (root: string) => {ignore: string[]}}
+  return (await pack(ROOT, readConfig(ROOT).ignore)).hash
+}
+
 if (import.meta.main) {
-  const [mode, a, b] = process.argv.slice(2)
-  try {
-    if (mode === 'matrix') console.log(JSON.stringify(matrix()))
-    else if (mode === 'run' && a && b) process.exitCode = run(a, resolve(b))
-    else if (mode === 'gate' && a) {
-      const v = gate(resolve(a))
+  const [mode, a, b, c] = process.argv.slice(2)
+  const main = async (): Promise<number> => {
+    if (mode === 'source') { console.log(checkSource()); return 0 }
+    if (mode === 'jobs' && a) { writeFileSync(a, JSON.stringify(suite().map(wrapped), null, 1) + '\n'); console.log(`${suite().length} jobs: ${a}`); return 0 }
+    if (mode === 'tree' && a) { console.log(await treeHash(resolve(a))); return 0 }
+    if (mode === 'box' && a) return box(a)
+    if (mode === 'verdict' && a && b && c) {
+      const v = await verdict(resolve(a), resolve(b), c)
       const lines = [
         `## Full gate: ${v.failed.length ? 'refused' : 'passed'}`,
         `${v.passed.length} passed, ${v.known.length} known failures, ${v.failed.length} failed, of ${suite().length} suite jobs`,
@@ -232,11 +257,10 @@ if (import.meta.main) {
       ]
       console.log(lines.join('\n'))
       if (process.env.GITHUB_STEP_SUMMARY) writeFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n', {flag: 'a'})
-      process.exitCode = v.failed.length ? 1 : 0
-    } else {
-      console.error('usage: full-suite.ts matrix | run NAME OUT | gate DIR'); process.exitCode = 2
+      return v.failed.length ? 1 : 0
     }
-  } catch (e) {
-    console.error(e instanceof Error ? e.message : e); process.exitCode = 1
+    console.error('usage: full-suite.ts source | jobs FILE | tree SUPERCOMPUTER | box NAME | verdict OUT SUPERCOMPUTER TREE')
+    return 2
   }
+  main().then(code => { process.exitCode = code }, (e: unknown) => { console.error(e instanceof Error ? e.message : String(e)); process.exitCode = 1 })
 }
