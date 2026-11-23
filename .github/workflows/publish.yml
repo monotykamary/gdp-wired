@@ -129,7 +129,7 @@ jobs:
       - name: supercomputer 1.0 and instabox's CLI
         id: tools
         run: |
-          git clone --quiet --depth 1 --branch v1.0.1 https://github.com/monotykamary/supercomputer "$RUNNER_TEMP/supercomputer"
+          git clone --quiet --depth 1 --branch v1.0.2 https://github.com/monotykamary/supercomputer "$RUNNER_TEMP/supercomputer"
           (cd "$RUNNER_TEMP/supercomputer" && ./install.sh)
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "home=$(sed -n "s|^exec bun '*\([^' ]*\)/src/cli.ts.*|\1|p" "$HOME/.local/bin/supercomputer")" >> "$GITHUB_OUTPUT"
