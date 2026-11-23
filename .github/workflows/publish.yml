@@ -101,72 +101,76 @@ jobs:
     if: needs.release.outputs.mode != 'skip'
     uses: ./.github/workflows/test.yml
 
-  # The full gate (scripts/release-ci/FULL-GATE.md): every job of supercomputer/suite.json, once, at this commit, on a
-  # fresh instabox box of its image's snapshot; then a verdict over all of them. Nothing is published unless every
-  # job passed, or failed exactly as scripts/release-ci/known-failures.json records, in this run's first attempt.
-  suite-matrix:
+  # The full gate (scripts/release-ci/FULL-GATE.md): every job of supercomputer/suite.json, once, at this commit, as one
+  # strict-once supercomputer batch on instabox boxes of gdp-wired's snapshot; this job is only the batch's client.
+  # Nothing is published unless every job answered 0, or failed exactly as scripts/release-ci/known-failures.json
+  # records, in this run's first attempt. INSTABOX_API_KEY (a repository secret) is given only to the steps that call
+  # instabox; this workflow runs only for pushes to main and dispatches here, never for a pull request.
+  full-gate:
     needs: release
-    if: needs.release.outputs.mode != 'skip'
+    if: needs.release.outputs.mode != 'skip' && github.repository == 'monotykamary/gdp-wired' && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    outputs:
-      matrix: ${{ steps.matrix.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: oven-sh/setup-bun@v2
-      - name: One entry per suite job
-        id: matrix
-        run: echo "matrix=$(bun scripts/release-ci/full-suite.ts matrix)" >> "$GITHUB_OUTPUT"
-
-  full-suite:
-    name: Suite ${{ matrix.name }}
-    needs: [release, suite-matrix]
-    if: needs.release.outputs.mode != 'skip'
-    runs-on: ${{ matrix.runsOn }}
-    # (the longest suite job's timeout is an hour; the checkout and install around it)
-    timeout-minutes: 80
-    strategy:
-      fail-fast: false
-      max-parallel: 64
-      matrix: ${{ fromJSON(needs.suite-matrix.outputs.matrix) }}
+    # (the suite on up to 48 boxes, its Lean jobs building their library cold on each new box, its longest job an hour)
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v5
         with:
           submodules: recursive
-      - name: The box
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: The checkout is this commit, every submodule at its gitlink, nothing changed
+        run: bun scripts/release-ci/full-suite.ts source
+
+      - name: supercomputer 1.0 and instabox's CLI
+        id: tools
         run: |
-          echo "user $(id -un), HOME $HOME"; grep -m1 'model name' /proc/cpuinfo; nproc; free -g | head -2
-          for t in bun node lean lake java swift clang; do printf '%s: %s\n' "$t" "$(PATH="$HOME/.bun/bin:$HOME/.elan/bin:/opt/node/bin:/opt/swift/usr/bin:$PATH" command -v $t || echo missing)"; done
-      - name: Install dependencies
-        run: PATH="$HOME/.bun/bin:$PATH" bun install --frozen-lockfile
-      - name: ${{ matrix.name }}
+          git clone --quiet --depth 1 --branch v1.0.0 https://github.com/monotykamary/supercomputer "$RUNNER_TEMP/supercomputer"
+          (cd "$RUNNER_TEMP/supercomputer" && ./install.sh)
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "home=$(sed -n "s|^exec bun '*\([^' ]*\)/src/cli.ts.*|\1|p" "$HOME/.local/bin/supercomputer")" >> "$GITHUB_OUTPUT"
+          npm install --global --silent instabox@0.8.362
+
+      - name: The batch's jobs (each suite job through full-suite.ts box) and this tree's hash
+        id: tree
+        run: |
+          bun scripts/release-ci/full-suite.ts jobs "$RUNNER_TEMP/suite.jobs.json"
+          echo "hash=$(bun scripts/release-ci/full-suite.ts tree "${{ steps.tools.outputs.home }}")" >> "$GITHUB_OUTPUT"
+
+      - name: The suite, on instabox
+        timeout-minutes: 330
         env:
-          NAME: ${{ matrix.name }}
-        run: PATH="$HOME/.bun/bin:$PATH" bun scripts/release-ci/full-suite.ts run "$NAME" "$RUNNER_TEMP/out/$NAME"
-      - name: Its result, logs and files
+          INSTABOX_API_KEY: ${{ secrets.INSTABOX_API_KEY }}
+          INSTABOX_NO_UPDATE_CHECK: '1'
+        run: |
+          set +e
+          supercomputer run --jobs "$RUNNER_TEMP/suite.jobs.json" --out "$RUNNER_TEMP/suite" --strict-once --max-boxes 48 --poll 15s
+          echo "supercomputer exited $? (3: some job failed or was lost; the verdict below decides)"
+
+      - name: Every box of this run deleted (cancelled or not)
+        if: always() && steps.tools.outcome == 'success'
+        env:
+          INSTABOX_API_KEY: ${{ secrets.INSTABOX_API_KEY }}
+          INSTABOX_NO_UPDATE_CHECK: '1'
+        run: |
+          owner=$(supercomputer status | sed -n 's/^client \([0-9a-f]*\):.*/\1/p')
+          [ -n "$owner" ] || { echo "no client id"; exit 1; }
+          for id in $(instabox ls --meta "sc_owner=$owner" --json | jq -r '.[].id'); do instabox rm --yes "$id" >/dev/null && echo "deleted $id"; done
+
+      - name: The verdict over every suite job
+        run: bun scripts/release-ci/full-suite.ts verdict "$RUNNER_TEMP/suite" "${{ steps.tools.outputs.home }}" "${{ steps.tree.outputs.hash }}"
+
+      - name: The batch (batch.json, summary.tsv, every job's log, result and files)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: full-suite-${{ matrix.name }}
-          path: ${{ runner.temp }}/out/${{ matrix.name }}
+          name: full-suite
+          path: ${{ runner.temp }}/suite
           include-hidden-files: true
           retention-days: 30
           if-no-files-found: ignore
-
-  full-gate:
-    needs: [release, full-suite]
-    if: always() && needs.release.outputs.mode != 'skip'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: oven-sh/setup-bun@v2
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: full-suite-*
-          path: ${{ runner.temp }}/results
-      - name: The verdict over every suite job
-        run: bun scripts/release-ci/full-suite.ts gate "$RUNNER_TEMP/results"
 
   publish:
     needs: [release, check, full-gate]
