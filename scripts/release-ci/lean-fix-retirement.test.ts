@@ -1,6 +1,6 @@
 import {expect, test} from 'bun:test'
 import {readFileSync} from 'node:fs'
-import {canonicalJobHash} from './full-gate-contract'
+import {canonicalJobHash} from './job-hash'
 import {validateKnownFailuresPolicy} from './known-failures'
 
 const retired = ['lean-package-0', 'lean-package-1', 'lean-package-2', 'lean-package-3', 'lean-cyclic', 'lean-cycles', 'lean-cycles-loops', 'lean-protocols-sync', 'lean-jev-fabric', 'lean-ksteps', 'lean-keyed']
