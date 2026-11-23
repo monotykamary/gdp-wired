@@ -412,12 +412,8 @@
     "scripts/action.test.ts": 2.8,
     "scripts/gen-lean-library.ts --check": 0,
     "scripts/lean-gate/gate.test.ts": 0,
-    "scripts/release-ci/full-gate-contract.test.ts": 0,
-    "scripts/release-ci/full-gate-native.test.ts": 0.1,
-    "scripts/release-ci/full-gate-runner.test.ts": 0.1,
-    "scripts/release-ci/full-gate-worker.test.ts": 0.3,
+    "scripts/release-ci/full-suite.test.ts": 0.6,
     "scripts/release-ci/known-failures.test.ts": 0,
-    "scripts/release-ci/verify-publish-gate.test.ts": 0,
     "scripts/test-roster.test.ts": 0
   }
 }
