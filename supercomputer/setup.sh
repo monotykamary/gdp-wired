@@ -33,11 +33,11 @@ env -i HOME=/tmp PATH=/opt/node/bin:/usr/local/bin:/usr/bin:/bin node --version 
 
 # The language sweep's toolchains (research/langs/*/*-setup.sh: Ruby and Prism, Elixir, clang 19, a JDK 21 and
 # kotlinc 2.4.21, Swift, Rust), Solidity's solc and anvil (research/sol), LiteLLM's Python, and the runner image's own
-# (clang 18, GCC 14's libstdc++, Temurin 17) for "image": "runner" jobs.
+# (clang 18 with its sanitizer runtime, which C Safety's ASan/UBSan replays link, GCC 14's libstdc++, Temurin 17) for "image": "runner" jobs.
 export DEBIAN_FRONTEND=noninteractive
 get() { curl -fsSL --retry 6 --retry-all-errors --retry-delay 5 -o "$2" "$1"; }  # (a large download whole, or again)
 sudo apt-get update -y -q
-sudo -E apt-get install -y -q ruby ruby-dev build-essential elixir clang-18 clang g++-14 libstdc++-14-dev libc6-dev unzip pkg-config binutils \
+sudo -E apt-get install -y -q ruby ruby-dev build-essential elixir clang-18 libclang-rt-18-dev clang g++-14 libstdc++-14-dev libc6-dev unzip pkg-config binutils \
   libcurl4-openssl-dev libedit2 libncurses-dev libpython3-dev libsqlite3-0 libxml2-dev libz3-dev zlib1g-dev tzdata python3-venv
 sudo gem install -q --no-document prism
 ruby -e 'require "prism"; puts Prism::VERSION'
