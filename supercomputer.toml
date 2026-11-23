@@ -10,7 +10,7 @@ pre = "export GDP_CYCLIC_LOG=1; "
 # the boat image had: bun, Lean, Node 24.22.1, clang 19, JDK 21 and Temurin 17, kotlinc, Swift, Rust, solc, anvil)
 template = "ci"
 setup = "supercomputer/setup.sh"
-snapshot = "sc-gdp-wired-d8f6b3e6f661"
+snapshot = "sc-gdp-wired-46e39e5b8316"
 size = "large"
 # (the image's toolchains first: pinned Node 24.22.1, Temurin 17 before the system's JDK, solc and anvil, swift)
 path = ["/opt/node/bin", "~/.bun/bin", "~/.elan/bin", "/usr/lib/jvm/temurin-17/bin", "/opt/sol", "/opt/foundry", "/opt/swift/usr/bin"]
