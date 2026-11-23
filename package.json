@@ -226,8 +226,7 @@
     "bar": "bun gates/bar.ts",
     "test:bar": "bun test ./gates/bar.test.ts",
     "test": "bun scripts/test-shards.ts",
-    "release:full-gate": "bun scripts/release-ci/full-gate-runner.ts",
-    "release:verify-gate": "bun scripts/release-ci/verify-publish-gate.ts"
+    "release:full-suite": "bun scripts/release-ci/full-suite.ts"
   },
   "devDependencies": {
     "@gdp-ts/core": "0.1.0",
