@@ -13,7 +13,7 @@ name: Test
 # GitHub App's `runs-on: instabox-*` labels: a fresh box of GitHub's Ubuntu 24.04 runner image per job, deleted when the
 # job ends), where those toolchains are not relied on: each instabox shard puts a stub of each first on the PATH and
 # fails if a unit called one. Each set's shard count is its matrix's length.
-# publish.yml requires these checks plus the separately reviewed full canonical gate and receipt.
+# publish.yml requires these checks plus the full gate: every suite job run at the release commit on instabox (scripts/release-ci/FULL-GATE.md).
 #
 # instabox jobs run only in this repository, for pushes, dispatches and pull requests from its own branches (the `if:`
 # on each), so a fork's pull request never reaches an instabox box (the App runs this repository's jobs on
