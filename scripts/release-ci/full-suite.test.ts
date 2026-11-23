@@ -45,7 +45,7 @@ test('a known failure, exactly as recorded, is let through; the same job failing
 })
 
 test('a missing result, another commit, a retried attempt or a changed job definition: refused', () => {
-  const [a, b, c, d] = jobs.map(j => j.name)
+  const [a, b, c, d] = jobs.map(j => j.name) as [string, string, string, string]
   const v = gate(results((n, r) => (n === a ? undefined : n === b ? {...r, commit: 'b'.repeat(40)} : n === c ? {...r, runAttempt: '2'} : n === d ? {...r, definitionSha256: '0'.repeat(64)} : r)), COMMIT, '1')
   expect(v.failed.map(f => f.name).sort()).toEqual([a, b, c, d].sort())
   expect(gate(results(), COMMIT, '2').failed[0]!.why).toMatch(/first attempt/)
