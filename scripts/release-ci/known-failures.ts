@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto'
-import { canonicalJobHash } from './full-gate-contract'
+import { canonicalJobHash } from './job-hash'
 
 export type LeanSourceEvidence = {file: string; source: string}
 

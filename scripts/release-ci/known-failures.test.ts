@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import {readFileSync} from 'node:fs'
 import {createHash} from 'node:crypto'
-import { canonicalJobHash } from './full-gate-contract'
+import { canonicalJobHash } from './job-hash'
 import { extractFailureSignature, matchKnownFailure, validateKnownFailuresPolicy } from './known-failures'
 
 const jobs = [{name: 'exists', cmd: 'bun test exists'}, {name: 'test', cmd: 'bun test a'}]
