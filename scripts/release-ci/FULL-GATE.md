@@ -11,7 +11,7 @@ GitHub's runner; the suite runs as one supercomputer batch on instabox boxes of 
 1. `full-suite.ts source` refuses a checkout that is not the run's commit, has a submodule off its gitlink, or has
    any change or untracked file; `identity` then writes `VALIDATION-SOURCE.json` (that commit) at the root, which the
    tree carries in place of `.git` (supercomputer ships no Git administration files).
-2. supercomputer 1.0 (`v1.0.0` of github.com/monotykamary/supercomputer, `./install.sh`) and instabox's CLI.
+2. supercomputer 1.0 (`v1.0.1` of github.com/monotykamary/supercomputer, `./install.sh`) and instabox's CLI.
 3. `full-suite.ts jobs` writes the batch's jobs file: each suite job with its resources, image and env, its command
    run through `full-suite.ts box NAME`, which on the box installs the pinned dependencies
    (`bun install --frozen-lockfile`, as the release gate always has), runs the job's own command in its cwd under its
