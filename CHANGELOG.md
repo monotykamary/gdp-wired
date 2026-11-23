@@ -3,10 +3,27 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.58.0
 
 ### Changed
 
+- **The release gate runs inside the publish workflow** (scripts/release-ci/FULL-GATE.md): its `full-gate` job runs
+  every job of `supercomputer/suite.json` once, as one strict-once `supercomputer run` (supercomputer 1.0.1) on instabox
+  boxes of the repo's image, at the exact commit being published (a dirty checkout, or a submodule off its gitlink,
+  is refused), and `publish` needs it. Its verdict replays the batch's log through supercomputer's own batch rule and
+  passes only when the batch ran this tree, strict-once, as the run's first attempt, with exactly the suite's jobs,
+  each answered 0 or matching its entry in `known-failures.json`. The batch's logs and outputs are the run's artifact,
+  and its boxes are deleted whatever the result. The external receipt it replaces (made on boat and verified from the
+  `release-receipts` branch) is gone, with the runner, worker, native finalizer, contract and verifier.
+- **The repo's instabox image has clang 18's sanitizer runtime** (`libclang-rt-18-dev`, `supercomputer/setup.sh`):
+  C Safety's UBSan harness, built with the system clang, failed 19 tests without it; `extract-c` passes 63 of 63.
+  The `chc` and `term` research images (`[instabox.images.chc]`, `[instabox.images.term]`) are rebuilt on it.
+- **The suite's `check` and `lean-bridge-sweep` ask for 15360 MiB** (was 16384), so they fit the image's 8 vCPU /
+  16 GiB boxes.
+- **research/dag/jobs.ts, research/step/jobs.ts and research/step/suite-times.ts** replace their Python versions
+  (the same jobs, kind by kind, as supercomputer jobs); research/query/jobs.py is removed.
+- **The skill** (`skills/gdp-wired`) is TypeScript first: a rule written with the native API, proven, and the proven
+  rule what runs; law comments and the extractors are for other languages, or when asked for.
 - **The jobs run on instabox through the TypeScript
   [supercomputer](https://github.com/monotykamary/supercomputer)** (`supercomputer run --jobs <file> --out <dir>`,
   `supercomputer batch fetch <dir>`): `supercomputer.toml` names the box image (`supercomputer/setup.sh`, on
