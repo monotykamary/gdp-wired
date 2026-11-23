@@ -211,7 +211,7 @@ export function gate(dir: string, commit = process.env.GITHUB_SHA ?? git(['rev-p
       matchKnownFailure(policy, job.name, r.definitionSha256, r.code, r.signature)
       v.known.push(job.name)
     } catch (e) {
-      v.failed.push({name: job.name, why: `exit ${r.code}: ${e instanceof Error ? e.message : e}`})
+      v.failed.push({name: job.name, why: `exit ${r.code}: ${e instanceof Error ? e.message : String(e)}`})
     }
   }
   return v
