@@ -542,7 +542,7 @@
 "cmd": "if [ -n \"${SUPERCOMPUTER_OUTPUT_DIR:-}\" ]; then out=\"$SUPERCOMPUTER_OUTPUT_DIR\"; mkdir -p \"$out\" || exit $?; else out=$(mktemp -d) || exit $?; trap 'rm -rf \"$out\"' EXIT; fi; run() { local log=\"$1\"; shift; \"$@\" 2>&1 | tee \"$log\"; local p=(\"${PIPESTATUS[@]}\"); [ \"${p[0]}\" -ne 0 ] && return \"${p[0]}\"; return \"${p[1]}\"; }; echo INSTALL; run \"$out/check-install.log\" bun install; i=$?; echo TSC; run \"$out/check-tsc.log\" bunx tsc -p .; t=$?; echo BUILD; run \"$out/check-build.log\" bunx tsc -p tsconfig.build.json --noEmit; b=$?; echo LINT; run \"$out/check-lint.log\" bunx oxlint --type-aware --deny-warnings --disable-nested-config; l=$?; echo \"install=$i tsc=$t build=$b lint=$l\"; for rc in \"$i\" \"$t\" \"$b\" \"$l\"; do [ \"$rc\" = 0 ] || exit \"$rc\"; done; bun test scripts/release-ci/*.test.ts",
 "cwd": ".",
 "cpu": 4.0,
-"memory": 16384,
+"memory": 15360,
 "timeout": 600
 },
 {
@@ -1607,7 +1607,7 @@
 "cmd": "export PATH=$PWD/scripts/lean-gate:$PATH; bun scripts/gen-lean-library.ts --check && cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean && for f in Cert Kernel Cyclic Progress StepLaw Steps Sets Bridge; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done && cd .. && bun research/cyclic/bridge.ts /tmp/sweep --lean 2>&1",
 "cwd": ".",
 "cpu": 8.0,
-"memory": 16384,
+"memory": 15360,
 "timeout": 1800
 },
 {
