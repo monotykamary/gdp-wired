@@ -5,6 +5,7 @@
 //
 //   bun scripts/release-ci/full-suite.ts source               the checkout is the run's commit, every submodule at its
 //                                                             gitlink, nothing changed (refused otherwise)
+//   bun scripts/release-ci/full-suite.ts identity             (after `source`) VALIDATION-SOURCE.json: the commit, for the tree
 //   bun scripts/release-ci/full-suite.ts jobs FILE            the batch's jobs file: each suite job, run through `box`
 //   bun scripts/release-ci/full-suite.ts tree SUPERCOMPUTER   the hash supercomputer gives this checkout's tree
 //   bun scripts/release-ci/full-suite.ts box NAME             (on its box) one suite job: the pinned dependencies, then
@@ -73,6 +74,15 @@ export function checkSource(): string {
   const dirty = git(['status', '--porcelain=v1', '--untracked-files=all', '--ignore-submodules=none'])
   if (dirty) fail(`the checkout has changes or untracked files: ${dirty.split('\n').slice(0, 5).join('; ')}`)
   return commit
+}
+
+// The source's identity for a tree without Git administration files (supercomputer ships the tree without .git):
+// VALIDATION-SOURCE.json at the root, the verified checkout's commit, which agent-consult-packed.sh records. Written
+// after `source`'s checks, before the tree is packed, so it travels in the batch's tree (and its hash).
+export function writeIdentity(): string {
+  const sourceCommit = checkSource()
+  writeFileSync(join(ROOT, 'VALIDATION-SOURCE.json'), JSON.stringify({sourceCommit}) + '\n')
+  return sourceCommit
 }
 
 // The selected real `lean`, recorded before the canonical command's own tail/grep cuts its output (a known failure's
@@ -244,6 +254,7 @@ if (import.meta.main) {
   const [mode, a, b, c] = process.argv.slice(2)
   const main = async (): Promise<number> => {
     if (mode === 'source') { console.log(checkSource()); return 0 }
+    if (mode === 'identity') { console.log(writeIdentity()); return 0 }
     if (mode === 'jobs' && a) { writeFileSync(a, JSON.stringify(suite().map(wrapped), null, 1) + '\n'); console.log(`${suite().length} jobs: ${a}`); return 0 }
     if (mode === 'tree' && a) { console.log(await treeHash(resolve(a))); return 0 }
     if (mode === 'box' && a) return box(a)
@@ -259,7 +270,7 @@ if (import.meta.main) {
       if (process.env.GITHUB_STEP_SUMMARY) writeFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n', {flag: 'a'})
       return v.failed.length ? 1 : 0
     }
-    console.error('usage: full-suite.ts source | jobs FILE | tree SUPERCOMPUTER | box NAME | verdict OUT SUPERCOMPUTER TREE')
+    console.error('usage: full-suite.ts source | identity | jobs FILE | tree SUPERCOMPUTER | box NAME | verdict OUT SUPERCOMPUTER TREE')
     return 2
   }
   main().then(code => { process.exitCode = code }, (e: unknown) => { console.error(e instanceof Error ? e.message : String(e)); process.exitCode = 1 })
