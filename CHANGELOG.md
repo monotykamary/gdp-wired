@@ -3,6 +3,35 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.59.0
+
+### Added
+
+- **Model-based testing with `@xstate/graph` (`gdp-wired/xstate`):**
+  - `toLogic(ruleOrChart, {params?, events?, maxValue?})` presents any proven `rule()` or `chart()` as an XState v5
+    `ActorLogic` (`getInitialSnapshot`, `transition`, `getPersistedSnapshot`, `restoreSnapshot`) ready for
+    `@xstate/graph`'s `TestModel`, `getShortestPaths`, `getSimplePaths`, `getPathsFromEvents`, and `getAdjacencyMap`.
+    Every transition steps through `rule.interpreter()` on copied states (never mutating in place), leaves the snapshot
+    unchanged on refused requests, provides canonical `serializeState` (maps and logs included, key-order independent),
+    and supplies a default bounded `events(snapshot)` generator over `oneOf`, booleans, and small edge values for
+    numbers (`0`, `1`, values read from state and params, `maxValue`).
+  - `runToEvents(ruleOrChart, run)` turns a `proveRule()` counterexample or `search()` run into XState event objects
+    (for a chart built with `fromXState`, the machine's own events with payloads) for `getPathsFromEvents(events)`,
+    turning a counterexample into a replayable regression test path against the real application or XState actor.
+  - `serializeState(snapshot)` exports the canonical state serializer directly.
+  - `examples/xstate-mbt.ts` (and `core/xstate-mbt.test.ts`): runnable credit-wallet example pairing a proven rule with
+    `@xstate/graph` path and transition testing and counterexample replay.
+  - `xstate` and `@xstate/graph` stay out of runtime `dependencies` (structural types only in `gdp-wired/xstate` and
+    its published `.d.ts`).
+
+### Changed
+
+- **XState documentation (`docs/xstate.md`, `README.md`, `skills/gdp-wired`):** added `docs/xstate.md` (shipped in the
+  package) and updated `README.md` and `skills/gdp-wired` to cover writing rules/charts with `rule()` and `chart()`
+  first, working with existing XState machines (`fromXState`, `conforms`, `extractXState` when asked, and CLI
+  model-only `unchecked` exit `2`), model-based testing with `@xstate/graph` (`toLogic`, `runToEvents`), and the
+  division of labour between formal proof and model-based testing.
+
 ## 0.58.0
 
 ### Changed
