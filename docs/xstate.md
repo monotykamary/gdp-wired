@@ -81,10 +81,11 @@ for (const path of model.getShortestPaths()) {
 
 ### Counterexamples as regression paths (`runToEvents`)
 
-`getShortestPaths()` covers every reachable state (and catches bugs on state-changing transitions). To also exercise
-rejected/ignored self-loops (such as an over-budget `reserve` that the proven rule leaves unchanged), extend each
-shortest path with its outgoing transitions from `model.getAdjacencyMap()`, or turn a broken twin's counterexample
-directly into a regression path with `runToEvents`.
+`getShortestPaths()` covers every state reachable with the enumerated events (naturals bounded by `maxValue`, or the
+`events` you pass) — not every reachable state of the rule; the proof covers the rest. To also exercise
+rejected/ignored self-loops within that graph (such as an over-budget `reserve` that the proven rule leaves unchanged),
+extend each shortest path with its outgoing transitions from `model.getAdjacencyMap()`, or turn a broken twin's
+counterexample directly into a regression path with `runToEvents`.
 
 `runToEvents(ruleOrChart, run)` turns a refuting run from `proveRule`, `proveSteps`, `chart.prove`, `minimizeRun`, or
 `search` into the XState event objects `{type, ...payload}` ready for `getPathsFromEvents`:
