@@ -178,6 +178,8 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
   // The rule the chart compiles to: its state is each region's state (`state`, or the region's name), each compound's
   // last child where it keeps its history, and the context; its inputs the event and the payload.
   get rule(): Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj> { return this.build().rule }
+  // Each region's name and state variable in the compiled rule (a single-region chart has one, named 'state').
+  regionFields(): {name: string, field: string}[] { return this.build().regions.map(r => ({name: r.name, field: r.field})) }
   // Whether a region is in a state (a compound: any state within it), for laws: chart.in(env, 'active').
   in(env: Obj, path: string): Cond {
     const {regions} = this.build(), single = regions.length === 1 && regions[0]!.name === 'state'

@@ -33,9 +33,10 @@
 // An XState v4 machine reads the same, its `cond` the guard v5 calls `guard` (a name, or {type, ...params}); v4's
 // `in`, `strict`, `activities` and eventless `''` are refused with the rest. Each XState ignores the other's guard key,
 // so a v5 machine with `cond` or a v4 one with `guard` is refused (a plain config is read by the key it uses).
-import {type Kind, Choice, Cond, Maybe, Str, Term, all, bool, int, lit, no, yes} from './dsl.ts'
-import {type Chart, type StateNode, chart} from './chart.ts'
-import {seeded} from './machine.ts'
+import {type Kind, type Raw, Bool, Choice, Cond, Decimal, FixedWord, Int, Maybe, Rule, Str, Term, Variant, all, bool, int, lit, no, yes} from './dsl.ts'
+import {type StateNode, Chart, chart} from './chart.ts'
+import {type Machine, type Request, type State, evalC, seeded} from './machine.ts'
+import {allowed} from './watch.ts'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Obj = Record<string, any>
@@ -486,4 +487,610 @@ export function conforms(c: Chart<Obj, Obj, Obj>, machine: MachineLike, createAc
     actor.stop?.()
   }
   return {checked}
+}
+
+// --- model-based testing with @xstate/graph -------------------------------------------------------------------------
+// Any proven rule or chart presented as XState v5 ActorLogic (getInitialSnapshot, transition, getPersistedSnapshot,
+// restoreSnapshot) so @xstate/graph generates test paths from the proven rule and drives the real app along them, and
+// counterexample runs (Verdict.run or search()) turned into XState event sequences for getPathsFromEvents.
+// Typed structurally without importing xstate or @xstate/graph, keeping both out of the package's runtime dependencies.
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type RuleOrChart = Rule<any, any, any, any, any, any, any, any> | Chart<any, any, any>
+export type RuleEvent = {readonly type: string, readonly [k: string]: unknown}
+export type RuleSnapshot<C extends Record<string, unknown> = Record<string, unknown>> = {
+  readonly status: 'active'
+  readonly output: undefined
+  readonly error: undefined
+  readonly context: C
+  readonly value?: unknown
+  readonly defaults?: Readonly<Record<string, number>>
+  readonly history?: readonly Record<string, number>[]
+  readonly last?: number
+}
+export type RulePersistedSnapshot = {
+  readonly status: 'active'
+  readonly output: undefined
+  readonly error: undefined
+  readonly context: Record<string, unknown>
+  readonly value?: unknown
+  readonly defaults?: Readonly<Record<string, number>>
+  readonly history?: readonly Record<string, number>[]
+  readonly last?: number
+  readonly state: {
+    readonly scalars: Record<string, number>
+    readonly maps: Record<string, [number, number][]>
+    readonly defaults?: Record<string, number>
+    readonly history?: Record<string, number>[]
+    readonly last?: number
+  }
+  readonly params: Record<string, number>
+}
+export type ToLogicOptions<S extends RuleSnapshot = RuleSnapshot, E extends RuleEvent = RuleEvent> = {
+  params?: Record<string, Raw>
+  events?: readonly E[] | ((snapshot: S) => readonly E[])
+  maxValue?: number
+  eventField?: string
+  eventType?: string
+  compileHelpers?: boolean
+}
+export type RuleLogic<S extends RuleSnapshot = RuleSnapshot, E extends RuleEvent = RuleEvent> = {
+  readonly config: {readonly name: string}
+  readonly getInitialSnapshot: (actorScope?: unknown, input?: unknown) => S
+  readonly transition: (snapshot: S, event: E, actorScope?: unknown) => S
+  readonly getPersistedSnapshot: (snapshot: S, options?: unknown) => RulePersistedSnapshot
+  readonly restoreSnapshot: (persistedState: {readonly status: string, readonly output?: unknown, readonly error?: unknown, readonly [k: string]: unknown}, actorScope?: unknown) => S
+  readonly events: (snapshot: S) => E[]
+  readonly serializeState: (snapshot: S) => string
+  readonly stateMatcher: (snapshot: S, stateKey: string) => boolean
+  readonly options: {
+    readonly events: (snapshot: S) => E[]
+    readonly serializeState: (snapshot: S) => string
+    readonly stateMatcher: (snapshot: S, stateKey: string) => boolean
+  }
+}
+export type RuleRun = {readonly params?: Record<string, number>, readonly trace: readonly Record<string, unknown>[]}
+export type RunToEventsOptions = {eventField?: string, eventType?: string}
+
+type AnyRule = Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>
+type InternalState = {
+  rule: AnyRule
+  machine: Machine
+  state: State
+  params: Record<string, number>
+  rawParams: Record<string, Raw>
+}
+const snapshotInternals = new WeakMap<object, InternalState>()
+
+const sortKeys = <T extends Record<string, unknown>>(o: T): T =>
+  Object.fromEntries(Object.keys(o).sort().map(k => [k, o[k]])) as T
+
+const canonicalValue = (v: unknown): string => {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v)
+  if (v instanceof Map) {
+    const entries = [...v.entries()].map(([k, val]) => [canonicalValue(k), canonicalValue(val)] as const)
+      .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+    return `{"$map":[${entries.map(([k, val]) => `[${k},${val}]`).join(',')}]}`
+  }
+  if (v instanceof Set) {
+    const items = [...v].map(canonicalValue).sort()
+    return `{"$set":[${items.join(',')}]}`
+  }
+  if (Array.isArray(v)) return `[${v.map(canonicalValue).join(',')}]`
+  const o = v as Record<string, unknown>
+  const keys = Object.keys(o).filter(k => o[k] !== undefined).sort()
+  return `{${keys.map(k => `${JSON.stringify(k)}:${canonicalValue(o[k])}`).join(',')}}`
+}
+
+// Canonical, key-order-independent serialization of a snapshot (scalars, maps with defaults, and logs included).
+export function serializeState(snapshot: unknown): string {
+  if (snapshot && typeof snapshot === 'object') {
+    const internal = snapshotInternals.get(snapshot)
+    if (internal) {
+      const {machine: m, state: st} = internal
+      const scalars = sortKeys(st.scalars)
+      const maps: Record<string, {default: number, entries: [number, number][]}> = {}
+      for (const name of Object.keys(st.maps).sort()) {
+        const dflt = st.defaults && Object.hasOwn(st.defaults, name) ? st.defaults[name]! : m.maps?.[name] ?? 0
+        const entries = [...st.maps[name]!.entries()].filter(([, v]) => v !== dflt).sort((a, b) => a[0] - b[0])
+        maps[name] = {default: dflt, entries}
+      }
+      const payload: Record<string, unknown> = {scalars, maps}
+      if (st.history !== undefined) payload.history = st.history.map(rec => sortKeys(rec))
+      if (st.last !== undefined) payload.last = st.last
+      return canonicalValue(payload)
+    }
+  }
+  return canonicalValue(snapshot)
+}
+
+const isPlainObject = (x: unknown): x is Record<string, unknown> =>
+  typeof x === 'object' && x !== null && Object.getPrototypeOf(x) === Object.prototype
+
+const isChoiceKind = (name: string, kind: Kind<unknown>): Choice<string> | undefined => {
+  const val = kind.value(name)
+  return val instanceof Choice ? val : undefined
+}
+
+function resolveEventField(r: AnyRule, isChart: boolean, explicit?: string): {field?: string, choices?: readonly string[]} {
+  const inputs = r.parts.inputs
+  if (explicit !== undefined) {
+    const found = inputs.find(([n]) => n === explicit)
+    if (!found) throw new Error(`${r.name}: eventField ${explicit} is not an input`)
+    const ch = isChoiceKind(found[0], found[1])
+    if (!ch) throw new Error(`${r.name}: eventField ${explicit} must be a oneOf input`)
+    return {field: explicit, choices: ch.values}
+  }
+  const prefer = isChart ? ['event'] : ['event', 'op']
+  for (const cand of prefer) {
+    const found = inputs.find(([n]) => n === cand)
+    const ch = found ? isChoiceKind(found[0], found[1]) : undefined
+    if (ch) return {field: found![0], choices: ch.values}
+  }
+  for (const [n, k] of inputs) {
+    const ch = isChoiceKind(n, k)
+    if (ch) return {field: n, choices: ch.values}
+  }
+  return {}
+}
+
+// Strip default-valued entries and copy every mutable container so states reached by different paths match canonically.
+function normalizeState(m: Machine, st: State): State {
+  const maps: Record<string, Map<number, number>> = {}
+  for (const name of Object.keys(st.maps)) {
+    const dflt = st.defaults && Object.hasOwn(st.defaults, name) ? st.defaults[name]! : m.maps?.[name] ?? 0
+    const clean = new Map<number, number>()
+    for (const [k, v] of [...st.maps[name]!.entries()].sort((a, b) => a[0] - b[0])) {
+      if (v !== dflt) clean.set(k, v)
+    }
+    maps[name] = clean
+  }
+  const defaults: Record<string, number> = {}
+  for (const [name, d] of Object.entries(st.defaults ?? {})) {
+    if (d !== (m.maps?.[name] ?? 0)) defaults[name] = d
+  }
+  return {
+    scalars: {...st.scalars},
+    maps,
+    ...(Object.keys(defaults).length ? {defaults} : {}),
+    ...(st.history ? {history: st.history.map(rec => ({...rec}))} : {}),
+    ...(st.last !== undefined ? {last: st.last} : {}),
+  }
+}
+
+// Scalar variable names that encode finite/categorical/tagged kinds (not unbounded counters).
+function boundedScalarNames(r: AnyRule): Set<string> {
+  const out = new Set<string>()
+  const walk = (name: string, val: unknown): void => {
+    if (val instanceof Choice || val instanceof Bool) { out.add(name); return }
+    if (val instanceof Str) { out.add(name); out.add(`${name}$len`); val.patterns.forEach((_, i) => out.add(`${name}$like${i}`)); return }
+    if (val instanceof Maybe) { out.add(`${name}$some`); walk(name, val.inner); return }
+    if (val instanceof Variant) {
+      out.add(name)
+      for (const c of val.kind.names) {
+        const fields = val.cases[c] as Record<string, unknown>
+        for (const [f, fv] of Object.entries(fields)) walk(`${name}.${c}.${f}`, fv)
+      }
+      return
+    }
+    if (val instanceof FixedWord) { for (const limb of val.limbs) if (limb.e.op === 'var') out.add(limb.e.name); return }
+    if (isPlainObject(val)) for (const [f, fv] of Object.entries(val)) walk(`${name}.${f}`, fv)
+  }
+  for (const [n, k] of r.kindsOfState()) walk(n, k.value(n))
+  return out
+}
+
+// Upper bound declared on an upTo(k) kind, if any.
+function upToBound(name: string, kind: Kind<unknown>): number | undefined {
+  for (const cond of kind.assume(name)) {
+    const c = cond.c
+    if (c.op === '<=' && c.a.op === 'var' && c.a.name === name && c.b.op === 'const') return c.b.value
+    if (c.op === '<' && c.a.op === 'var' && c.a.name === name && c.b.op === 'const') return c.b.value - 1
+  }
+  return undefined
+}
+
+function collectNumbers(v: unknown, out: number[]): void {
+  if (typeof v === 'number' && Number.isSafeInteger(v)) { out.push(v); return }
+  if (Array.isArray(v)) { for (const x of v) collectNumbers(x, out); return }
+  if (isPlainObject(v)) for (const x of Object.values(v)) collectNumbers(x, out)
+}
+
+function collectStrings(v: unknown, out: Set<string>): void {
+  if (typeof v === 'string') { out.add(v); return }
+  if (Array.isArray(v)) { for (const x of v) collectStrings(x, out); return }
+  if (isPlainObject(v)) for (const x of Object.values(v)) collectStrings(x, out)
+}
+
+function stateNumerics(st: State, bounded: Set<string>, plainMaps: Set<string>): number[] {
+  const out: number[] = []
+  for (const [k, v] of Object.entries(st.scalars)) if (!bounded.has(k)) out.push(v)
+  for (const name of plainMaps) {
+    const cells = st.maps[name]
+    if (!cells) continue
+    for (const [k, v] of cells) { out.push(k); out.push(v) }
+  }
+  return out
+}
+
+function decodedStateOf(r: AnyRule, m: Machine, st: State, chartRef?: Chart<Obj, Obj, Obj>): {context: Record<string, unknown>, value?: unknown, plainMaps: Set<string>} {
+  const decoded = r.decode(st) as Record<string, unknown>
+  const owned = new Set<string>()
+  for (const [n, k] of r.kindsOfCells()) for (const part of k.vars(n)) owned.add(part)
+  for (const [n, val] of Object.entries(decoded)) {
+    if (!Array.isArray(val)) continue
+    for (const mp of Object.keys(m.maps ?? {})) {
+      if (mp === n || mp.startsWith(`${n}.`) || mp.startsWith(`${n}^`) || mp.startsWith(`${n}$`)) owned.add(mp)
+    }
+  }
+  const plainMaps = new Set<string>()
+  for (const name of Object.keys(m.maps ?? {}).sort()) {
+    if (owned.has(name)) continue
+    plainMaps.add(name)
+    const entries = [...(st.maps[name]?.entries() ?? [])].sort((a, b) => a[0] - b[0])
+    decoded[name] = Object.fromEntries(entries.map(([k, v]) => [String(k), v]))
+  }
+  let value: unknown
+  if (chartRef) {
+    const regions = chartRef.regionFields()
+    const nest = (path: string): unknown => path.split('.').reduceRight<unknown>((acc, seg) => (acc === undefined ? seg : {[seg]: acc}), undefined)
+    if (regions.length === 1 && regions[0]!.name === 'state') {
+      const s = String(decoded[regions[0]!.field])
+      value = s === STATELESS ? {} : nest(s)
+    } else {
+      value = Object.fromEntries(regions.map(reg => [reg.name, nest(String(decoded[reg.field]))]))
+    }
+  }
+  return {context: sortKeys(decoded), value, plainMaps}
+}
+
+function emptyOfVal(val: unknown): Raw {
+  if (val instanceof Choice) return val.values[0]!
+  if (val instanceof Bool) return false
+  if (val instanceof Maybe) return null
+  if (val instanceof Str) return ''
+  if (val instanceof Variant) {
+    const k = val.kind.names[0]!, fields = val.cases[k] as Record<string, unknown>
+    return {[val.kind.tagKey]: k, ...Object.fromEntries(Object.entries(fields).map(([f, fv]) => [f, emptyOfVal(fv)]))}
+  }
+  if (isPlainObject(val)) return Object.fromEntries(Object.entries(val).map(([f, fv]) => [f, emptyOfVal(fv)]))
+  return 0
+}
+
+function enumerateVal(name: string, val: unknown, kind: Kind<unknown> | undefined, natEdges: number[], intEdges: number[], strings: string[], maxValue: number, ceiling: number): Raw[] {
+  if (val instanceof Choice) return [...val.values]
+  if (val instanceof Bool) return [false, true]
+  if (val instanceof Term) {
+    const cap = kind ? upToBound(name, kind) : undefined
+    if (cap === undefined) return natEdges
+    const out = new Set<number>()
+    for (const x of natEdges) if (x <= cap) out.add(x)
+    if (cap <= 4) for (let i = 0; i <= cap; i++) out.add(i)
+    else if (cap <= ceiling) out.add(cap)
+    return [...out].sort((a, b) => a - b)
+  }
+  if (val instanceof Int) return intEdges
+  if (val instanceof Decimal) {
+    const unit = 1 / 10 ** val.places
+    const out = new Set<number>([0, unit, 1, maxValue].filter(x => x <= ceiling))
+    return [...out].sort((a, b) => a - b)
+  }
+  if (val instanceof Maybe) return [null, ...enumerateVal(name, val.inner, undefined, natEdges, intEdges, strings, maxValue, ceiling)]
+  if (val instanceof Str) {
+    const pool = new Set<string>(['', ...strings])
+    for (const p of val.patterns) { pool.add(p.replaceAll('*', '')); pool.add(p.replaceAll('*', 'a')) }
+    if (pool.size === 1) pool.add('a')
+    return [...pool]
+  }
+  if (val instanceof Variant) {
+    const out: Raw[] = []
+    for (const c of val.kind.names) {
+      const fields = Object.entries(val.cases[c] as Record<string, unknown>)
+      const combos = cartesian(fields.map(([f, fv]) => [f, enumerateVal(`${name}.${c}.${f}`, fv, undefined, natEdges, intEdges, strings, maxValue, ceiling)]))
+      for (const combo of combos) out.push({[val.kind.tagKey]: c, ...combo})
+    }
+    return out
+  }
+  if (val instanceof FixedWord) {
+    const out = new Set<number>([0, 1, maxValue])
+    return [...out].sort((a, b) => a - b)
+  }
+  if (isPlainObject(val)) {
+    const fields = Object.entries(val)
+    return cartesian(fields.map(([f, fv]) => [f, enumerateVal(`${name}.${f}`, fv, undefined, natEdges, intEdges, strings, maxValue, ceiling)]))
+  }
+  return [emptyOfVal(val)]
+}
+
+function cartesian(fields: [string, Raw[]][]): Record<string, Raw>[] {
+  let acc: Record<string, Raw>[] = [{}]
+  for (const [k, vs] of fields) {
+    const next: Record<string, Raw>[] = []
+    for (const row of acc) for (const v of vs) next.push({...row, [k]: v})
+    acc = next
+  }
+  return acc
+}
+
+// Present any proven gdp-wired rule or chart as XState v5 ActorLogic for @xstate/graph model-based testing.
+// Steps through rule.interpreter() (never the in-place compiled runtime), so graph traversal branches safely.
+export function toLogic<S extends RuleSnapshot = RuleSnapshot, E extends RuleEvent = RuleEvent>(
+  ruleOrChart: RuleOrChart,
+  opts: ToLogicOptions<S, E> = {},
+): RuleLogic<S, E> {
+  const isChart = ruleOrChart instanceof Chart
+  const chartRef = isChart ? ruleOrChart as Chart<Obj, Obj, Obj> : undefined
+  const r: AnyRule = isChart ? chartRef!.rule : ruleOrChart as AnyRule
+  const m = r.machine
+  const maxValue = opts.maxValue ?? 2
+  if (!Number.isSafeInteger(maxValue) || maxValue < 0) throw new RangeError(`${r.name}: maxValue must be a natural, not ${String(maxValue)}`)
+  const interp = r.interpreter({compileHelpers: opts.compileHelpers})
+  const {field: eventField, choices: eventChoices} = resolveEventField(r, isChart, opts.eventField)
+  const eventType = opts.eventType ?? 'step'
+  const bounded = boundedScalarNames(r)
+  const listNames = new Set(r.parts.lists.map(([n]) => n))
+  const listLenNames = new Set([...listNames].map(n => `${n}_len`))
+  const listCarriedMaps = new Set(r.parts.lists.flatMap(([n, k, fs]) => [...k.vars(n), ...Object.keys(fs).map(f => `${n}$${f}`)]))
+  const plainCarriedMaps = (m.inputMaps ?? []).filter(mp => !listCarriedMaps.has(mp))
+  const userInputs = r.parts.inputs.filter(([n]) => !listLenNames.has(n))
+  const choicesSet = eventChoices ? new Set(eventChoices) : undefined
+
+  const resolveParams = (given?: Record<string, Raw>): {ps: Record<string, number>, rawParams: Record<string, Raw>} => {
+    const rawParams = given ?? opts.params ?? (r.parts.params.length === 0 ? {} : undefined)
+    if (!rawParams) throw new Error(`${r.name}: give params ({params: {...}}) for a rule with params`)
+    const ps = r.encodeParams(rawParams as never)
+    if (m.pre && !evalC(m.pre, ps, {scalars: {}, maps: {}}, m)) throw new RangeError(`${r.name}: params fail the rule's precondition`)
+    return {ps, rawParams}
+  }
+
+  const makeSnap = (st: State, ps: Record<string, number>, rawParams: Record<string, Raw>): S => {
+    const clean = normalizeState(m, st)
+    const {context, value} = decodedStateOf(r, m, clean, chartRef)
+    const snap: RuleSnapshot = {
+      status: 'active',
+      output: undefined,
+      error: undefined,
+      context,
+      ...(value !== undefined ? {value} : {}),
+      ...(clean.defaults && Object.keys(clean.defaults).length ? {defaults: sortKeys(clean.defaults)} : {}),
+      ...(clean.history !== undefined ? {history: clean.history.map(rec => sortKeys(rec))} : {}),
+      ...(clean.last !== undefined ? {last: clean.last} : {}),
+    }
+    snapshotInternals.set(snap, {rule: r, machine: m, state: clean, params: ps, rawParams})
+    return snap as S
+  }
+
+  const getInitialSnapshot = (_actorScope?: unknown, input?: unknown): S => {
+    const override = isPlainObject(input) ? input as Record<string, Raw> : undefined
+    const {ps, rawParams} = resolveParams(override)
+    return makeSnap(interp.init(ps), ps, rawParams)
+  }
+
+  const transition = (snapshot: S, event: E): S => {
+    const internal = snapshotInternals.get(snapshot)
+    if (!internal) throw new Error(`${r.name}: snapshot was not created by this logic (restore it with restoreSnapshot)`)
+    if (!event || typeof event !== 'object' || typeof event.type !== 'string' || event.type === 'xstate.init') return snapshot
+    if (eventField) {
+      if (!choicesSet!.has(event.type)) return snapshot
+    } else if (event.type !== eventType) {
+      return snapshot
+    }
+    const rawInput: Record<string, unknown> = {}
+    for (const [n, k] of userInputs) {
+      if (n === eventField) { rawInput[n] = event.type; continue }
+      rawInput[n] = event[n] !== undefined ? event[n] : k.empty()
+    }
+    for (const [n] of r.parts.lists) rawInput[n] = event[n] !== undefined ? event[n] : []
+    for (const mp of plainCarriedMaps) {
+      const v = event[mp]
+      if (v === undefined) rawInput[mp] = new Map<number, number>()
+      else if (v instanceof Map || v instanceof Set || Array.isArray(v)) rawInput[mp] = v
+      else if (isPlainObject(v)) rawInput[mp] = new Map(Object.entries(v).map(([k, x]) => [Number(k), Number(x)]))
+      else return snapshot
+    }
+    let encoded: Request
+    try { encoded = r.encodeInput(rawInput as never, r.parts.params.length ? internal.rawParams as never : undefined) }
+    catch { return snapshot }
+    try {
+      if (!allowed(m, interp, internal.params, internal.state, encoded)) return snapshot
+      const next = interp.step(internal.params, internal.state, encoded)
+      return makeSnap(next, internal.params, internal.rawParams)
+    } catch (e) {
+      if (e instanceof RangeError) return snapshot
+      throw e
+    }
+  }
+
+  const getPersistedSnapshot = (snapshot: S): RulePersistedSnapshot => {
+    const internal = snapshotInternals.get(snapshot)
+    if (!internal) throw new Error(`${r.name}: snapshot was not created by this logic`)
+    const st = internal.state
+    return {
+      status: 'active',
+      output: undefined,
+      error: undefined,
+      context: snapshot.context,
+      ...(snapshot.value !== undefined ? {value: snapshot.value} : {}),
+      ...(snapshot.defaults !== undefined ? {defaults: snapshot.defaults} : {}),
+      ...(snapshot.history !== undefined ? {history: snapshot.history} : {}),
+      ...(snapshot.last !== undefined ? {last: snapshot.last} : {}),
+      state: {
+        scalars: {...st.scalars},
+        maps: Object.fromEntries(Object.entries(st.maps).map(([n, cells]) => [n, [...cells.entries()].sort((a, b) => a[0] - b[0])])),
+        ...(st.defaults && Object.keys(st.defaults).length ? {defaults: {...st.defaults}} : {}),
+        ...(st.history !== undefined ? {history: st.history.map(rec => ({...rec}))} : {}),
+        ...(st.last !== undefined ? {last: st.last} : {}),
+      },
+      params: {...internal.params},
+    }
+  }
+
+  const restoreSnapshot = (persisted: {readonly status: string, readonly output?: unknown, readonly error?: unknown, readonly [k: string]: unknown}): S => {
+    const existing = snapshotInternals.get(persisted)
+    if (existing) return makeSnap(existing.state, existing.params, existing.rawParams)
+    const rawState = persisted.state as RulePersistedSnapshot['state'] | undefined
+    if (!rawState || typeof rawState !== 'object' || !rawState.scalars || !rawState.maps) {
+      throw new Error(`${r.name}: persisted snapshot is missing raw state (produce it with getPersistedSnapshot)`)
+    }
+    const ps = (persisted.params ?? {}) as Record<string, number>
+    const rawParams = Object.fromEntries(r.parts.params.map(([n, k]) => [n, k.decode(n, ps)]))
+    const st: State = {
+      scalars: {...rawState.scalars},
+      maps: Object.fromEntries(Object.entries(rawState.maps).map(([n, entries]) => [n, new Map(entries)])),
+      ...(rawState.defaults ? {defaults: {...rawState.defaults}} : {}),
+      ...(rawState.history ? {history: rawState.history.map(rec => ({...rec}))} : {}),
+      ...(rawState.last !== undefined ? {last: rawState.last} : {}),
+    }
+    return makeSnap(st, {...ps}, rawParams)
+  }
+
+  // Default event enumerator: all oneOf choices and booleans; for naturals, the small edge set (0, 1, state/param
+  // values, maxValue). Stops expanding states whose unbounded numeric values or log length exceed the ceiling so
+  // graph traversal on unbounded rules terminates cleanly.
+  const defaultEvents = (snapshot: S): E[] => {
+    const internal = snapshotInternals.get(snapshot)
+    if (!internal) return []
+    const {state: st, params: ps, rawParams} = internal
+    const {plainMaps} = decodedStateOf(r, m, st, chartRef)
+    const initSt = normalizeState(m, interp.init(ps))
+    const paramNums: number[] = []
+    collectNumbers(rawParams, paramNums)
+    const initStateNums = stateNumerics(initSt, bounded, plainMaps)
+    const stateCeiling = Math.max(maxValue, ...initStateNums.map(x => Math.abs(x)))
+    const curNums = stateNumerics(st, bounded, plainMaps)
+    if (curNums.some(x => Math.abs(x) > stateCeiling)) return []
+    if (st.history !== undefined && st.history.length >= Math.max(1, maxValue)) return []
+
+    const ceiling = Math.max(stateCeiling, ...paramNums.map(x => Math.abs(x)))
+    const natSet = new Set<number>([0])
+    if (maxValue >= 1) natSet.add(1)
+    natSet.add(maxValue)
+    const decodedNums: number[] = [...paramNums]
+    collectNumbers(snapshot.context, decodedNums)
+    for (const x of [...curNums, ...decodedNums]) if (x >= 0 && x <= ceiling) natSet.add(x)
+    const natEdges = [...natSet].sort((a, b) => a - b)
+
+    const intSet = new Set<number>([0, maxValue, -maxValue])
+    if (maxValue >= 1) { intSet.add(1); intSet.add(-1) }
+    for (const x of decodedNums) if (Math.abs(x) <= ceiling) intSet.add(x)
+    const intEdges = [...intSet].sort((a, b) => a - b)
+
+    const strSet = new Set<string>()
+    collectStrings(rawParams, strSet)
+    collectStrings(snapshot.context, strSet)
+    const strings = [...strSet].sort()
+
+    const fieldDomains: [string, Raw[]][] = userInputs.map(([n, k]) => [
+      n,
+      enumerateVal(n, k.value(n), k, natEdges, intEdges, strings, maxValue, ceiling),
+    ])
+    for (const [n, k] of r.parts.lists) {
+      const sampleItem = enumerateVal(n, k.value(n), k, natEdges, intEdges, strings, maxValue, ceiling)[0] ?? k.empty()
+      fieldDomains.push([n, [[], [sampleItem]]])
+    }
+    for (const mp of plainCarriedMaps) fieldDomains.push([mp, [[], [0]]])
+
+    return cartesian(fieldDomains).map(combo => {
+      if (eventField) {
+        const {[eventField]: t, ...rest} = combo
+        return {type: typeof t === 'string' ? t : '', ...rest} as E
+      }
+      return {type: eventType, ...combo} as E
+    })
+  }
+
+  const events = (snapshot: S): E[] => {
+    if (opts.events === undefined) return defaultEvents(snapshot)
+    return typeof opts.events === 'function' ? [...opts.events(snapshot)] : [...opts.events]
+  }
+
+  const stateMatcher = (snapshot: S, stateKey: string): boolean => {
+    if (stateKey === '*') return true
+    if (!chartRef) return false
+    const regions = chartRef.regionFields()
+    if (regions.length === 1 && regions[0]!.name === 'state') {
+      const raw = snapshot.context[regions[0]!.field]
+      const cur = typeof raw === 'string' ? raw : ''
+      return cur === stateKey || cur.startsWith(`${stateKey}.`)
+    }
+    return regions.some(reg => {
+      const raw = snapshot.context[reg.field]
+      const cur = `${reg.name}.${typeof raw === 'string' ? raw : ''}`
+      return cur === stateKey || cur.startsWith(`${stateKey}.`)
+    })
+  }
+
+  const options = {events, serializeState: (s: S) => serializeState(s), stateMatcher}
+  return {
+    config: {name: r.name},
+    getInitialSnapshot,
+    transition,
+    getPersistedSnapshot,
+    restoreSnapshot,
+    events,
+    serializeState: options.serializeState,
+    stateMatcher,
+    options,
+  }
+}
+
+// Convert a verdict's or search()'s counterexample run into XState event objects ready for model.getPathsFromEvents(events).
+export function runToEvents(
+  ruleOrChart: RuleOrChart,
+  run: RuleRun | readonly Record<string, unknown>[],
+  opts: RunToEventsOptions = {},
+): RuleEvent[] {
+  const isChart = ruleOrChart instanceof Chart
+  const r: AnyRule = isChart ? ruleOrChart.rule : ruleOrChart as AnyRule
+  const m = r.machine
+  const trace = Array.isArray(run) ? (run as readonly Record<string, unknown>[]) : (run as RuleRun | undefined)?.trace
+  if (!Array.isArray(trace)) throw new Error(`${r.name}: runToEvents expects a verdict/search run ({trace: [...]}) or a trace array`)
+  const {field: eventField} = resolveEventField(r, isChart, opts.eventField)
+  const eventType = opts.eventType ?? 'step'
+  const listNames = new Set(r.parts.lists.map(([n]) => n))
+  const listLenNames = new Set([...listNames].map(n => `${n}_len`))
+  const listCarriedMaps = new Set(r.parts.lists.flatMap(([n, k, fs]) => [...k.vars(n), ...Object.keys(fs).map(f => `${n}$${f}`)]))
+  const plainCarriedMaps = (m.inputMaps ?? []).filter(mp => !listCarriedMaps.has(mp))
+  const userInputs = r.parts.inputs.filter(([n]) => !listLenNames.has(n))
+
+  const readCell = (rawMap: unknown, key: number): number => {
+    if (rawMap instanceof Map) return Number(rawMap.get(key) ?? 0)
+    if (rawMap && typeof rawMap === 'object') return Number((rawMap as Record<string, unknown>)[String(key)] ?? 0)
+    return 0
+  }
+
+  return trace.map(step => {
+    const vars: Record<string, number> = {}
+    for (const [k, v] of Object.entries(step)) if (typeof v === 'number') vars[k] = v
+    const decoded: Record<string, unknown> = {}
+    for (const [n, k] of userInputs) {
+      const val = k.value(n)
+      if (val instanceof Choice && typeof step[n] === 'string') { decoded[n] = step[n]; continue }
+      if (val instanceof Str && typeof step[n] === 'string') { decoded[n] = step[n]; continue }
+      for (const part of k.vars(n)) if (vars[part] === undefined) vars[part] = 0
+      try { decoded[n] = k.decode(n, vars) }
+      catch (e) {
+        if (val instanceof Str) decoded[n] = `s${vars[n] ?? 0}`
+        else throw e
+      }
+    }
+    for (const [n, k] of r.parts.lists) {
+      const len = Number(step[`${n}_len`] ?? 0)
+      const parts = k.vars(n)
+      decoded[n] = Array.from({length: len}, (_, i) => k.decode(n, Object.fromEntries(parts.map(p => [p, readCell(step[p], i)]))))
+    }
+    for (const mp of plainCarriedMaps) {
+      const rawMap = step[mp]
+      if (rawMap instanceof Map) {
+        decoded[mp] = Object.fromEntries([...rawMap.entries()].sort((a, b) => Number(a[0]) - Number(b[0])).map(([k, v]) => [String(k), Number(v)]))
+      } else if (rawMap && typeof rawMap === 'object') {
+        decoded[mp] = Object.fromEntries(Object.entries(rawMap as Record<string, unknown>).sort((a, b) => Number(a[0]) - Number(b[0])).map(([k, v]) => [k, Number(v)]))
+      }
+    }
+    if (eventField) {
+      const {[eventField]: t, ...rest} = decoded
+      return {type: String(t), ...rest}
+    }
+    return {type: eventType, ...decoded}
+  })
 }

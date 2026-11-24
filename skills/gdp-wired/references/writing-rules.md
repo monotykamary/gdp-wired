@@ -372,8 +372,8 @@ c.check(); c.prove([c.law('retries within 2', ({retries}) => retries.atMost(2))]
 
 When the user asks for extraction, the extractor writes the bridge: `extractXState` reads the machine's file (its guards and actions from their
 source), runs the chart beside XState's actor (the xstate of the file's own project), and returns the rule like every
-front end's. In the file, `// gdp: law` comments read its context's fields, `value` (the state) and `event`
-(`npx gdp-wired check machine.ts`):
+front end's. Note: `npx gdp-wired-cli check` reports XState `// gdp: law` comments as model-only `unknown`/`unchecked`
+(exit 2); prefer `fromXState` + `prove` + `conforms` or a native `chart()`/`rule()`.
 
 ```ts
 import {extractXState, proveRule} from 'gdp-wired/extract'
@@ -381,6 +381,15 @@ import {extractXState, proveRule} from 'gdp-wired/extract'
 const x = extractXState('./order.ts')            // a path or a URL; the machine inferred ({entry} names one)
 proveRule(x.rule!, [...x.invariants!, x.rule!.law('retries within 2', ({retries}) => retries.atMost(2))])
 ```
+
+**Model-based testing with `@xstate/graph` (`toLogic`, `runToEvents`, `serializeState`).** Present any proven `rule()`
+or `chart()` (with or without XState in the app) as XState v5 `ActorLogic` backed by `rule.interpreter()` (copied
+states, never the in-place compiled runtime), canonical key-order-independent `serializeState` (maps and logs included),
+and small-edge default `events(snapshot)` (`0`, `1`, state/param values, `maxValue`). Pass `logic` and `logic.options`
+to `@xstate/graph`'s `new TestModel(logic, logic.options)` for `getShortestPaths` / `testPath` against the real app (UI,
+DB, service), and convert prover or `search()` counterexamples with `runToEvents(ruleOrChart, run)` for
+`getPathsFromEvents` regression paths on either `TestModel` or a real XState `StateMachine` (`docs/xstate.md`,
+`examples/xstate-mbt.ts`). The proof covers the logic; model-based tests cover the app around it.
 
 ## Effect services
 

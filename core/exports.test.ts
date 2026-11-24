@@ -104,6 +104,18 @@ test('Effect Schema: public typed frontend stays on the existing optional Effect
   }
 })
 
+test('xstate: public subpath exports MBT helpers without xstate type imports', async () => {
+  const e = pkg.exports['./xstate']!
+  expect(e.types).toBe('./dist/core/xstate.d.ts')
+  expect(build.files).toContain('core/xstate.ts')
+  const mod = await import(built ? `${pkg.name}/xstate` : `${root}core/xstate.ts`) as Record<string, unknown>
+  for (const fn of ['fromXState', 'conforms', 'eventsOf', 'toLogic', 'runToEvents', 'serializeState']) expect(typeof mod[fn]).toBe('function')
+  if (built) {
+    const declarations = readFileSync(`${root}dist/core/xstate.d.ts`, 'utf8')
+    expect(declarations).not.toMatch(/from ['"](?:xstate|@xstate\/graph)(?:\/[^'"]*)?['"]/)
+  }
+})
+
 test('security templates: public subpath, declarations and both builders', async () => {
   const e = pkg.exports['./security']!
   expect(e.types).toBe('./dist/core/security.d.ts')
@@ -167,7 +179,7 @@ test('the packed tarball holds every export, the bin and every runtime asset the
   const {leanLibraries} = await import('../lean-kernel/lean-aggregate/assets.ts')
   const leanFiles = [...new Set(Object.values(leanLibraries).flat())].map(f =>
     f.startsWith('../') ? `dist/lean-kernel/${f.slice(3)}` : `dist/lean-kernel/lean-aggregate/${f.slice(2)}`)
-  expect(missing(['docs/lean-aggregate.md', 'docs/minimize.md', 'dist/lean-kernel/lean-aggregate/worker.js', ...leanFiles])).toEqual([])
+  expect(missing(['docs/lean-aggregate.md', 'docs/minimize.md', 'docs/xstate.md', 'dist/lean-kernel/lean-aggregate/worker.js', ...leanFiles])).toEqual([])
   const assets = runtimeAssets()
   for (const dir of ['py', 'rb', 'ex', 'jvm', 'rs', 'go', 'swift', 'sol']) expect(assets.some(f => f.startsWith(`${dir}/`))).toBe(true)
   expect(missing(assets.map(f => `dist/core/${f}`))).toEqual([])

@@ -198,6 +198,7 @@
     "docs/agent-consult.md",
     "docs/lean-aggregate.md",
     "docs/minimize.md",
+    "docs/xstate.md",
     "docs/agent-consult-workspace-check.md",
     "examples/agent-consult.json"
   ],
@@ -233,6 +234,7 @@
     "@reduxjs/toolkit": "2.13.0",
     "@types/bun": "1.3.1",
     "@webgpu/types": "0.1.66",
+    "@xstate/graph": "3.0.4",
     "effect": "4.0.7",
     "effect3": "npm:effect@3.22.4",
     "oxlint": "1.88.0",

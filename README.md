@@ -261,14 +261,15 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   `check()` shows every state reached by a run (or proves it unreachable), no state stuck and no event ambiguous, and its
   laws prove like any rule's (`examples/charts.ts`). Not yet: parallel regions inside a state (XState's entry and exit
   actions, eventless and delayed transitions are read by `fromXState`, below).
-- **XState machines** (`gdp-wired/xstate`): `fromXState(machine, {guards, actions})` builds the chart an XState v5
-  machine runs as, with each guard and action it names given again in gdp-wired's terms, and `conforms(chart, machine,
-  createActor)` drives XState's own actor and the compiled rule with the same random events, comparing every state and
-  context; what a chart can't run the same way, and any key it doesn't read, is refused when built, with the reason
-  (`examples/xstate.ts`). A v4 machine's `cond` is read as its guard. An invoked actor's done and error and a timer
-  firing are events from outside, taken only where they can come (each once a visit; one timer at a time), and
-  eventless transitions and entry and exit actions that write the context are read into each transition as XState's
-  macrostep.
+- **With XState and `@xstate/graph`** (`gdp-wired/xstate`, [`docs/xstate.md`](docs/xstate.md)): prove a rule or chart
+  and present it as XState v5 `ActorLogic` with `toLogic(ruleOrChart, {params, maxValue})` (copied states via
+  `rule.interpreter()`, canonical `serializeState` over maps and logs, small-edge default `events`) so `@xstate/graph`'s
+  `TestModel` generates shortest paths against your real app, and `runToEvents(ruleOrChart, run)` turns prover
+  counterexamples into `getPathsFromEvents` regression paths (`examples/xstate-mbt.ts`). For an existing XState v5/v4
+  machine, `fromXState(machine, {guards, actions})` translates it into a provable chart (nesting, parallel roots, deep
+  history, `invoke`/`after`, `always` and `entry`/`exit` macrosteps; unsupported keys refused) and `conforms(chart,
+  machine, createActor)` checks it against XState's own actor (`examples/xstate.ts`). The proof covers the logic;
+  model-based tests cover the app around it.
 - **Rules read from the code** (`gdp-wired/extract`): `extract('./bucket.ts')` reads a reducer, `useReducer`'s, functions
   over one record, a class whose methods write its fields (with the classes it extends), or the object of functions a
   factory returns, and returns the rule that steps the same way, as a builder value and as source to keep
@@ -689,7 +690,7 @@ Proving and checking: a law over 64 steps proves in about 5 s, and Lean checks i
 | `kernel/` | The trusted kernel and the untrusted prover, with soundness fuzz (`kernel.test.ts`, `history.test.ts`) |
 | `lean-kernel/` | The kernel's Lean twin, its soundness proofs, and the exported trees |
 | `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `guide.ts` (the guide's code), `groups.ts` (two groups decided at every pair), `budget.ts`, `gdp.ts` (gdp-ts's example, its checks proven), `exists.ts` (laws with "there exists"), `datatypes.ts` (records and variants), `lemmas.ts` (recurrences and their lemmas), `invoices.ts` (lists a request carries), `folds.ts` (folds over trees), `trees.ts` (trees and lists of lists in the state), `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `arith.ts` (division and remainder by a constant, integers in rules and datatypes), `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 64 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
-| `docs/` | [ARCHITECTURE.md](docs/ARCHITECTURE.md) (the trust boundaries and what guards each), [FRONTENDS.md](docs/FRONTENDS.md) (how a language's reader plugs in), [minimize.md](docs/minimize.md) (shrinking refuting runs with `minimizeRun`), [interchange.md](docs/interchange.md) (certificates as JSON, for checkers in other languages), the comparison with Bend and Lean |
+| `docs/` | [ARCHITECTURE.md](docs/ARCHITECTURE.md) (the trust boundaries and what guards each), [FRONTENDS.md](docs/FRONTENDS.md) (how a language's reader plugs in), [xstate.md](docs/xstate.md) (XState machines and model-based testing with `@xstate/graph`), [minimize.md](docs/minimize.md) (shrinking refuting runs with `minimizeRun`), [interchange.md](docs/interchange.md) (certificates as JSON, for checkers in other languages), the comparison with Bend and Lean |
 | `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
 | `research/` | Everything around the library ([`research/README.md`](research/README.md)): the GPU searches (`search/`, `hw/`, `modal-gpu/`), invariant and rank synthesis (`synth/`), relational laws and guard synthesis (`next/`), bit-vector laws (`sat/`), the enumeration and benchmarks (`enum/`, `gpu/`, `perf/`), the first Lean checker (`lean/`) and the first prototype, the audit path (`audit/`) |
 | `supercomputer/` | Everything above as jobs on instabox boxes through [supercomputer](https://github.com/monotykamary/supercomputer): `suite.json` is the regression suite, `setup.sh` the boxes' image |
@@ -703,7 +704,7 @@ The npm package is built from `core/`, `kernel/` and `lean-kernel/` alone; nothi
 
 The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-wired/machine`), refutation run
 minimization (`gdp-wired/minimize`, also exported from `gdp-wired` and every frontend subpath), composition
-(`gdp-wired/compose`), XState machines as charts (`gdp-wired/xstate`), rules read from the code (`gdp-wired/extract`, with
+(`gdp-wired/compose`), XState machines and `@xstate/graph` model-based testing (`gdp-wired/xstate`, [`docs/xstate.md`](docs/xstate.md)), rules read from the code (`gdp-wired/extract`, with
 `typescript` installed), Effect services (`gdp-wired/effect`, with `typescript` and `effect`), lemmas nobody stated (`gdp-wired/discover`), invariant
 inference (`gdp-wired/infer`), the
 Lean export (`gdp-wired/lean`), the kernel (`gdp-wired/kernel`), the prover (`gdp-wired/prove`), the derivation checker

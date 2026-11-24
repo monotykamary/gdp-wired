@@ -162,6 +162,7 @@ import {product} from 'gdp-wired/compose'
 import {type Mint, guard} from 'gdp-wired/gdp'
 import {defineProof} from '@gdp-ts/core'
 import {type EffectOptions, type Service, extractEffect} from 'gdp-wired/effect'
+import {type RuleLogic, runToEvents, serializeState, toLogic} from 'gdp-wired/xstate'
 import {type PyOptions, extractPython} from 'gdp-wired/extract-py'
 import {type GoOptions, extractGo} from 'gdp-wired/extract-go'
 const goRead: (dir: string, o: GoOptions) => boolean = (dir, o) => extractGo(dir, o).ok
@@ -184,7 +185,10 @@ const ok: boolean = pay.run({p: {tag: 'card', amount: 3}, who: {limit: 5}}).ok
 const steps = recur('steps', {zero: 0, next: (_, y) => y.plus(1)}, {'at most x': (x, y) => y.atMost(x)})
 const minOpts: MinimizeOptions = {ms: 1000}
 const minDetail: Minimized<{params: Record<string, number>, trace: Record<string, unknown>[]}> = minimizeRunDetailed(caps, caps.law('at most one a day', ({Day}) => forall(k => Day.at(k).atMost(1))), {params: {d: 1}, trace: []}, minOpts)
-export {v, s, m, check, text, mint, ok, steps, effectRead, service, pyRead, goRead, liftAPI, minimizeRun, minimizeSubpath, minDetail}
+const capsLogic: RuleLogic = toLogic(caps, {params: {d: 2}})
+const capsEvents = runToEvents(caps, {params: {d: 2}, trace: [{day: 0}]})
+const capsKey: string = serializeState(capsLogic.getInitialSnapshot())
+export {v, s, m, check, text, mint, ok, steps, effectRead, service, pyRead, goRead, liftAPI, minimizeRun, minimizeSubpath, minDetail, capsLogic, capsEvents, capsKey}
 TS
 printf '{"compilerOptions":{"strict":true,"noEmit":true,"module":"nodenext","moduleResolution":"nodenext","target":"es2022","lib":["es2022"],"types":[],"skipLibCheck":false},"files":["consumer.ts"]}\n' > tsconfig.json
 npx tsc -p tsconfig.json
