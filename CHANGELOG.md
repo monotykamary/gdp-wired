@@ -3,6 +3,50 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.60.0
+
+### Changed
+
+- **Early-stop replay-verified refutations during small-instance search (`core/dsl.ts`, `core/exists.ts`, `core/infer.ts`, `core/counts.ts`, `core/early-stop-replay.test.ts`):**
+  `smallOfChecked`, `searchCounted`, and `inferLaws` now check caller safety laws incrementally on each newly reached
+  state during small-instance BFS/walks (plus a bounded tiny-parameter probe) and halt early once an independent
+  `replayRefutation` on the original rule confirms a concrete counterexample trace, without caching partial BFS samples
+  or trusting search-side state. Action-selector active-input pruning (`selectorReads` / `dedupeBySelector`), stateless
+  assumption pre-filtering in `smallRequests`, cached assume-derived carried-map key bounds in `Rule.randomInput`, and
+  radix-key uninterpreted-function sort association keep small-instance exploration compact.
+  - Measured on Node `v24.22.1` across all 545 real-world, DuoAI, and IC3Syn intact and mutant laws (zero verdict losses,
+    zero false refutations): **15 newly refuted protocol mutants** (`ic3syn-mutant` `11 -> 25` of `29`, `duoai-mutant`
+    `9 -> 10` of `10` with `ring_leader_election`), cutting wall time across those 15 mutants **6.4x**
+    (`220.0 s -> 34.3 s`, `-185.7 s`), including `ic3syn-mutant/paxos_epr` **42.4x** (`59.8 s -> 1.4 s`;
+    `bun research/protocols/ic3syn/run.ts --only paxos_epr --skip search --ms 60000`), `consensus_forall` **13.9x**
+    (`18.7 s -> 1.4 s`), `consensus_wo_decide` **10.0x** (`10.0 s -> 1.0 s`), `consensus_epr` **8.3x**
+    (`13.5 s -> 1.6 s`), and `learning_switch_i4` **8.3x** (`58.6 s -> 7.1 s`).
+- **Incremental open-cell tracking and integer-indexed propagation in CDCL (`kernel/cdcl.ts`, `kernel/reader.ts`, `kernel/cdcl-cells.test.ts`, `kernel/cdcl-root.test.ts`):**
+  `growCdcl` replaces full per-decision scans of open map cells with an incremental cell index and trail delta log
+  (`MapCells`, `PairRec`, `cellOp`) alongside integer-indexed literal/clause propagation in `Reader`, preserving the
+  exact decision candidate stream and counted work of `0.59.1` (verified bit-identical across 17.4M decision candidates
+  on non-DAG benchmarks, with `check()` in the unchanged kernel).
+  - Measured on Node `v24.22.1`: `ic3syn/twophase` flips from `unknown` to **proven** within the 60 s budget
+    (`60.6 s unknown -> 53.0 s proven`, `45.6 s` / `43.4 s` in clean alternating pairs;
+    `bun research/protocols/ic3syn/run.ts --only twophase --skip broken --ms 60000`), `ic3syn/consensus_wo_decide`
+    **1.37x** faster (`24.0 s -> 17.5 s`), `ic3syn/consensus_forall` **1.11x** faster (`45.2 s -> 40.7 s`), and all 8
+    TigerBeetle transfer laws **1.13x** faster (`178.7 s -> 157.8 s`, `-20.9 s`;
+    `bun research/realworld/score.ts --item ledger/tigerbeetle/transfers --ms 60000`). Across all 545 laws combined,
+    total wall time drops `-254.9 s` (`2,591.1 s -> 2,336.1 s`, `-9.8%`) with 16 verdict gains and 0 losses.
+- **DAG-safe hashing, open traversal, and per-action step pre-splitting (`kernel/dag-split.ts`, `kernel/prove.ts`, `kernel/reader.ts`, `kernel/dag-split.test.ts`):**
+  untrusted prover paths now handle deeply shared multi-action step ASTs without exponential unrolling or
+  `JSON.stringify` blowup via memoized structural DAG interning (`dagInterner`), O(distinct nodes) DAG open traversal
+  (`openHDag`), and bounded per-action `oneOf` selector pre-splitting (`preSplitBySelector`, assembling a standard
+  kernel-checked split tree). Plain goals below the `16,384`-node blowup floor (`maxHyp`-gated) keep the zero-overhead
+  fast path with bit-identical non-DAG search behavior.
+  - Measured on Node `v24.22.1` (default 4 GiB heap) on multi-action DAG step goals: eliminates 4 GiB heap OOMs on CCF
+    `law1` (`57.9 s OOM -> 14.6 s sat`, `952 MB` peak RSS), CCF `law12` (`61.1 s OOM -> 22.4 s sat`, `1.31 GiB` peak
+    RSS), and WiredTiger `mtxn` (`50.6 s OOM -> 31.2 s unknown`, `1.46 GiB` peak RSS); turns Kafka transactions `TypeOK`
+    from `>90 s` timeout to `10.5 s sat` (`>=8.6x`, `0.71 GiB` peak RSS); reduces WiredTiger `mlog` expanded open atoms
+    **37x** (`1,070,490 -> 28,903`, **4.1x** faster, `409 MB` peak RSS); speeds up CCF `law6` **1.16x**
+    (`2.85 s -> 2.36 s`) and `law4` **1.13x** (`33.4 s -> 29.6 s`); and speeds up synthetic depth-18 shared-DAG goals
+    **59.8x** (`758 ms -> 12 ms`, `97 MB` peak RSS).
+
 ## 0.59.1
 
 ### Changed
