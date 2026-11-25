@@ -152,23 +152,386 @@ export function retainedSamplePath(state:State,visit:()=>void):Request[]|undefin
 }
 export function retainedSamples(m:Machine):readonly {p:Env,sts:readonly State[]}[]{return smalls.get(m)??[]}
 
-export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000, walks = 0): State[] {
-  return withReachabilityWork(() => smallWithin(m, p, b, cap, work, walks))
+export type SmallViolation = {law: Law, params: Env, state: State, before?: State, trace: Request[]}
+export type SmallCheck = {laws: Law[], machine?: Machine, accept?: (v: SmallViolation) => boolean}
+
+function checkSmallState(evalM: Machine, check: SmallCheck, p: Env, st: State, b: number): {violation?: SmallViolation, sawFailure: boolean} {
+  let sawFailure = false
+  for (const law of check.laws) {
+    if (law.some?.length) continue
+    let ok: boolean
+    try { ok = holdsAt(evalM, law, p, st, b) } catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; sawFailure = true; continue }
+    if (ok) continue
+    sawFailure = true
+    const trace = retainedSamplePath(st, () => {})
+    if (!trace) continue
+    const before = pathTo.get(st)?.[0]
+    const v: SmallViolation = {law, params: p, state: st, ...(before ? {before} : {}), trace}
+    if (!check.accept || check.accept(v)) return {violation: v, sawFailure: true}
+  }
+  return {sawFailure}
 }
-function smallWithin(m: Machine, p: Env, b: number, cap: number, work: number, walks: number): State[] {
+
+// Top-level conjuncts of a condition (never descends into disjunctions or negations).
+const topConjuncts = (c: C | undefined): C[] => (!c ? [] : c.op === 'and' ? c.xs.flatMap(topConjuncts) : [c])
+// Whether a term/condition depends only on params, request inputs/inputMaps, and stateless counts/flags (never state/maps).
+function isStateless(m: Machine, node: E | C, seenCounts = new Set<string>(), seenFlags = new Set<string>()): boolean {
+  if (m.history || m.leasts) return false
+  let ok = true
+  walk(node, o => {
+    if (!ok) return
+    if (o.op === 'flag') {
+      const name = o.name as string, fc = m.step.flags && Object.hasOwn(m.step.flags, name) ? m.step.flags[name] : undefined
+      if (!fc) { ok = false; return }
+      if (!seenFlags.has(name)) {
+        seenFlags.add(name)
+        if (!isStateless(m, fc, seenCounts, seenFlags)) ok = false
+      }
+      return
+    }
+    if (o.op === 'var' && (Object.hasOwn(m.state, o.name as string) || (m.sums && Object.hasOwn(m.sums, o.name as string)))) { ok = false; return }
+    if (o.op === 'get') {
+      const mp = o.map as string
+      if (m.maps && Object.hasOwn(m.maps, mp)) { ok = false; return }
+      const cnt = m.counts && Object.hasOwn(m.counts, mp) ? m.counts[mp] : undefined
+      if (cnt && !seenCounts.has(mp)) {
+        seenCounts.add(mp)
+        if (!isStateless(m, cnt.below, seenCounts, seenFlags) || !isStateless(m, cnt.body, seenCounts, seenFlags)) ok = false
+      }
+    }
+  })
+  return ok
+}
+// Per-selector active input reads: when an input `op` selects actions via `op = c` guards, simplify each update and
+// assumption under `op = v`, ignoring no-op scalar/map writes (including 0/1 map `when(false, 1, M[k] = 1)` no-ops).
+// Returns which inputs/inputMaps can affect either the transition or any included assumption conjunct for `op = v`.
+export function selectorReads(m: Machine, assumeConjuncts: readonly C[] = topConjuncts(m.assume)): {selector: string, readsFor: (val: number) => Set<string>} | undefined {
+  if (m.history || m.leasts || m.primitiveFailure) return undefined
+  const inputs = new Set(m.inputs), inputMaps = new Set(m.inputMaps ?? []), flags = m.step.flags ?? {}
+  const tags = new Map<string, Set<number>>()
+  walk(m.step, o => {
+    if (o.op !== '=') return
+    const a = o.a as E, b = o.b as E, vr = a.op === 'var' ? a : b, kc = a.op === 'var' ? b : a
+    if (vr.op === 'var' && kc.op === 'const' && inputs.has(vr.name) && Number.isSafeInteger(kc.value)) {
+      let vs = tags.get(vr.name)
+      if (!vs) tags.set(vr.name, (vs = new Set()))
+      vs.add(kc.value)
+    }
+  })
+  const selector = [...tags].filter(([, vs]) => vs.size > 1).sort((a, b) => b[1].size - a[1].size || m.inputs.indexOf(a[0]) - m.inputs.indexOf(b[0]))[0]?.[0]
+  if (!selector) return undefined
+  // A map whose initial value is 0 or 1 and whose step writes only 0, 1, or its own cells is a 0/1 map, so
+  // `if (M[k] = 1) then 1 else 0` and `if (1 <= M[k]) then 1 else 0` are exact no-ops.
+  const isBitVal = (mp: string, e: E): boolean =>
+    e.op === 'const' ? (e.value === 0 || e.value === 1)
+      : e.op === 'get' ? e.map === mp
+      : e.op === 'if' ? isBitVal(mp, e.then) && isBitVal(mp, e.else)
+      : false
+  const bitMaps = new Set(Object.entries(m.step.maps ?? {}).filter(([mp, w]) => {
+    const init = m.maps?.[mp]
+    return (init === 0 || init === 1) && isBitVal(mp, w.value)
+  }).map(([mp]) => mp))
+  const cache = new Map<number, Set<string>>()
+  const readsFor = (val: number): Set<string> => {
+    const hit = cache.get(val)
+    if (hit) return hit
+    const emptyBound = new Set<string>()
+    const staticE = (e: E, bound: Set<string>): number | undefined => {
+      switch (e.op) {
+        case 'const': return e.value
+        case 'var': return !bound.has(e.name) && e.name === selector ? val : undefined
+        case 'if': { const c = staticC(e.c, bound, new Set()); return c === undefined ? undefined : staticE(c ? e.then : e.else, bound) }
+        case 'mul': { const a = staticE(e.a, bound); const r = a === undefined ? undefined : e.k * a; return r !== undefined && Number.isSafeInteger(r) && r >= 0 ? r : undefined }
+        case 'add': case 'sub': case 'min': case 'max': case 'prod': {
+          const a = staticE(e.a, bound), b = staticE(e.b, bound)
+          if (a === undefined || b === undefined) return undefined
+          const r = e.op === 'add' ? a + b : e.op === 'sub' ? Math.max(0, a - b) : e.op === 'min' ? Math.min(a, b) : e.op === 'max' ? Math.max(a, b) : a * b
+          return Number.isSafeInteger(r) && r >= 0 ? r : undefined
+        }
+        case 'get': case 'proj': case 'tup': return undefined
+      }
+    }
+    const staticC = (c: C, bound: Set<string>, visiting: Set<string>): boolean | undefined => {
+      switch (c.op) {
+        case 'flag': {
+          const fc = flags[c.name]
+          if (!fc || visiting.has(c.name)) return undefined
+          const next = new Set(visiting); next.add(c.name)
+          return staticC(fc, emptyBound, next)
+        }
+        case 'all': return undefined
+        case 'not': { const a = staticC(c.x, bound, visiting); return a === undefined ? undefined : !a }
+        case 'and': case 'or': {
+          let unk = false
+          for (const x of c.xs) {
+            const a = staticC(x, bound, visiting)
+            if (a === (c.op === 'or')) return a
+            if (a === undefined) unk = true
+          }
+          return unk ? undefined : c.op === 'and'
+        }
+        case '=': case '<': case '<=': {
+          const a = staticE(c.a, bound), b = staticE(c.b, bound)
+          return a === undefined || b === undefined ? undefined : c.op === '=' ? a === b : c.op === '<' ? a < b : a <= b
+        }
+      }
+    }
+    const simpC = (c: C, bound: Set<string>, visiting: Set<string>): C | boolean => {
+      const s = staticC(c, bound, visiting)
+      if (s !== undefined) return s
+      switch (c.op) {
+        case 'not': { const x = simpC(c.x, bound, visiting); return typeof x === 'boolean' ? !x : {op: 'not', x} }
+        case 'and': {
+          const xs: C[] = []
+          for (const y of c.xs) { const sy = simpC(y, bound, visiting); if (sy === false) return false; if (sy !== true) xs.push(sy) }
+          return xs.length === 0 ? true : xs.length === 1 ? xs[0]! : {op: 'and', xs}
+        }
+        case 'or': {
+          const xs: C[] = []
+          for (const y of c.xs) { const sy = simpC(y, bound, visiting); if (sy === true) return true; if (sy !== false) xs.push(sy) }
+          return xs.length === 0 ? false : xs.length === 1 ? xs[0]! : {op: 'or', xs}
+        }
+        case '<': case '<=': case '=': case 'all': case 'flag': return c
+      }
+    }
+    const simpE = (e: E, bound: Set<string>): E => {
+      if (e.op !== 'if') return e
+      const sc = simpC(e.c, bound, new Set())
+      if (sc === true) return simpE(e.then, bound)
+      if (sc === false) return simpE(e.else, bound)
+      return {op: 'if', c: sc, then: simpE(e.then, bound), else: simpE(e.else, bound)}
+    }
+    const isSelfRead = (e: E, mp: string, keyJson: string): boolean => e.op === 'get' && e.map === mp && JSON.stringify(e.key) === keyJson
+    const isSelfBitCond = (c: C, mp: string, keyJson: string): boolean =>
+      (c.op === '=' && ((isSelfRead(c.a, mp, keyJson) && c.b.op === 'const' && c.b.value === 1) || (isSelfRead(c.b, mp, keyJson) && c.a.op === 'const' && c.a.value === 1)))
+      || (c.op === '<=' && c.a.op === 'const' && c.a.value === 1 && isSelfRead(c.b, mp, keyJson))
+      || (c.op === '<' && c.a.op === 'const' && c.a.value === 0 && isSelfRead(c.b, mp, keyJson))
+    const isNoopMap = (mp: string, keyJson: string, e: E): boolean =>
+      isSelfRead(e, mp, keyJson) || (bitMaps.has(mp) && e.op === 'if' && e.then.op === 'const' && e.then.value === 1 && e.else.op === 'const' && e.else.value === 0 && isSelfBitCond(e.c, mp, keyJson))
+
+    const out = new Set<string>([selector])
+    const seenFlags = new Set<string>(), seenCounts = new Set<string>()
+    const collectE = (e: E, bound: Set<string>): void => {
+      switch (e.op) {
+        case 'const': return
+        case 'var': if (!bound.has(e.name) && inputs.has(e.name)) out.add(e.name); return
+        case 'if': {
+          const sc = simpC(e.c, bound, new Set())
+          if (sc === true) { collectE(e.then, bound); return }
+          if (sc === false) { collectE(e.else, bound); return }
+          collectC(sc, bound); collectE(e.then, bound); collectE(e.else, bound); return
+        }
+        case 'get': {
+          collectE(e.key, bound)
+          if (inputMaps.has(e.map)) out.add(e.map)
+          const cnt = m.counts?.[e.map]
+          if (cnt && !seenCounts.has(e.map)) {
+            seenCounts.add(e.map)
+            const outer = new Set([cnt.j, ...(cnt.lo ? [cnt.lo] : [])])
+            collectE(cnt.below, outer)
+            collectE(cnt.body, new Set([...outer, cnt.key]))
+          }
+          return
+        }
+        case 'mul': case 'proj': collectE(e.a, bound); return
+        case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': collectE(e.a, bound); collectE(e.b, bound)
+      }
+    }
+    const collectC = (c: C, bound: Set<string>): void => {
+      const sc = simpC(c, bound, new Set())
+      if (typeof sc === 'boolean') return
+      switch (sc.op) {
+        case 'flag': {
+          const fc = flags[sc.name]
+          if (fc && !seenFlags.has(sc.name)) { seenFlags.add(sc.name); collectC(fc, emptyBound) }
+          return
+        }
+        case 'all': collectC(sc.c, new Set([...bound, sc.key, ...(sc.keys ?? [])])); return
+        case 'not': collectC(sc.x, bound); return
+        case 'and': case 'or': for (const y of sc.xs) collectC(y, bound); return
+        case '=': case '<': case '<=': collectE(sc.a, bound); collectE(sc.b, bound)
+      }
+    }
+    for (const [s, e] of Object.entries(m.step.state ?? {})) {
+      const se = simpE(e, emptyBound)
+      if (se.op === 'var' && se.name === s) continue
+      collectE(se, emptyBound)
+    }
+    for (const [mp, w] of Object.entries(m.step.maps ?? {})) {
+      if ('each' in w) {
+        const bnd = new Set([w.each]), se = simpE(w.value, bnd)
+        if (isNoopMap(mp, JSON.stringify(v(w.each)), se)) continue
+        collectE(se, bnd)
+      } else {
+        const se = simpE(w.value, emptyBound)
+        if (isNoopMap(mp, JSON.stringify(w.key), se)) continue
+        collectE(w.key, emptyBound); collectE(se, emptyBound)
+      }
+    }
+    for (const c of assumeConjuncts) collectC(c, emptyBound)
+    cache.set(val, out)
+    return out
+  }
+  return {selector, readsFor}
+}
+
+// Deduplicate requests that agree on every input/carried-map active for their selector value.
+export function dedupeBySelector(m: Machine, reqs: Request[], assumeConjuncts: readonly C[]): Request[] {
+  if (reqs.length <= 1) return reqs
+  const sr = selectorReads(m, assumeConjuncts)
+  if (!sr) return reqs
+  const seen = new Set<string>(), out: Request[] = []
+  const mapToks = new WeakMap<ReadonlyMap<number, number>, string>()
+  const tok = (x: number | ReadonlyMap<number, number>): string => {
+    if (typeof x === 'number') return String(x)
+    let t = mapToks.get(x)
+    if (t === undefined) { t = JSON.stringify([...x].sort((a, b) => a[0] - b[0])); mapToks.set(x, t) }
+    return t
+  }
+  for (const r of reqs) {
+    const sv = r[sr.selector]
+    if (typeof sv !== 'number') return reqs
+    const live = sr.readsFor(sv)
+    const parts: string[] = [String(sv)]
+    for (const name of m.inputs) if (name !== sr.selector && live.has(name)) parts.push(tok(r[name]!))
+    for (const name of m.inputMaps ?? []) if (live.has(name)) parts.push(tok(r[name]!))
+    const k2 = parts.join('|')
+    if (!seen.has(k2)) { seen.add(k2); out.push(r) }
+  }
+  return out
+}
+
+// Build the finite small-instance request list for fixed params `p`, pruning requests that violate stateless top-level
+// conjuncts of `m.assume` (e.g. `i < size`, `nondet <= 1`, `Q ⊆ 0..size-1`, `majority(Q)`) before BFS/walks start.
+function smallRequests(m: Machine, p: Env, b: number): {reqs: Request[], groups: Request[][]} {
+  const conjs = topConjuncts(m.assume)
+  // Upper-bound tightening from top-level `i < param` / `i <= const` / `i < const` conjuncts.
+  const tightBound = (i: string, base: number): number => {
+    let lim = base
+    for (const c of conjs) {
+      if ((c.op === '<' || c.op === '<=') && c.a.op === 'var' && c.a.name === i) {
+        const rhs = c.b.op === 'const' ? c.b.value : c.b.op === 'var' && Object.hasOwn(p, c.b.name) ? p[c.b.name] : undefined
+        if (rhs !== undefined) lim = Math.min(lim, c.op === '<' ? rhs : rhs + 1)
+      }
+    }
+    return Math.max(0, lim)
+  }
+  // Upper bound for keys of a carried map `mp` from top-level `∀k. (mp[k] >= 1 => k < param|const)`.
+  const mapKeyBound = (mp: string): number => {
+    let lim = b
+    const checkAll = (c: C) => {
+      if (c.op !== 'all' || c.keys?.length) return
+      const k = c.key
+      for (const part of topConjuncts(c.c)) {
+        const ds = part.op === 'or' ? part.xs : []
+        if (ds.length !== 2) continue
+        const hasGuard = ds.some(d => d.op === 'not' && ((d.x.op === '<=' && d.x.a.op === 'const' && d.x.a.value === 1 && d.x.b.op === 'get' && d.x.b.map === mp && d.x.b.key.op === 'var' && d.x.b.key.name === k)
+          || (d.x.op === '<' && d.x.a.op === 'const' && d.x.a.value === 0 && d.x.b.op === 'get' && d.x.b.map === mp && d.x.b.key.op === 'var' && d.x.b.key.name === k)
+          || (d.x.op === '=' && ((d.x.a.op === 'get' && d.x.a.map === mp && d.x.a.key.op === 'var' && d.x.a.key.name === k && d.x.b.op === 'const' && d.x.b.value === 1)
+            || (d.x.b.op === 'get' && d.x.b.map === mp && d.x.b.key.op === 'var' && d.x.b.key.name === k && d.x.a.op === 'const' && d.x.a.value === 1)))))
+        if (!hasGuard) continue
+        for (const d of ds) if ((d.op === '<' || d.op === '<=') && d.a.op === 'var' && d.a.name === k) {
+          const rhs = d.b.op === 'const' ? d.b.value : d.b.op === 'var' && Object.hasOwn(p, d.b.name) ? p[d.b.name] : undefined
+          if (rhs !== undefined) lim = Math.min(lim, d.op === '<' ? rhs : rhs + 1)
+        }
+      }
+    }
+    for (const c of conjs) {
+      checkAll(c)
+      if (c.op === 'flag' && m.step.flags && Object.hasOwn(m.step.flags, c.name)) checkAll(m.step.flags[c.name]!)
+    }
+    return Math.max(0, lim)
+  }
+  const subsetsOf = (n: number) => Array.from({length: 1 << n}, (_, s) => new Map(Array.from({length: n}, (_, i) => i).filter(i => (s >> i) & 1).map(i => [i, 1] as [number, number])))
+  // (an input the assumption keeps below a few values, an action's, over all of them; the rest below b)
+  const below = (i: string) => tightBound(i, Math.max(b, ...(m.assume ? atomsOf2(m.assume) : []).flatMap(c => (c.op === '<' && c.a.op === 'var' && c.a.name === i && c.b.op === 'const' && c.b.value <= 8 ? [c.b.value] : []))))
+  let reqs: Request[] = [{}]
+  for (const i of m.inputs) {
+    const n = below(i)
+    if (n === 0) return {reqs: [], groups: []}
+    reqs = reqs.flatMap(r => Array.from({length: n}, (_, x) => ({...r, [i]: x})))
+  }
+  const srAll = (m.inputMaps?.length ?? 0) > 0 ? selectorReads(m, conjs) : undefined
+  const emptyMap = new Map<number, number>()
+  for (const c of m.inputMaps ?? []) {
+    const subs = subsetsOf(mapKeyBound(c))
+    reqs = reqs.flatMap(r => {
+      if (srAll && typeof r[srAll.selector] === 'number' && !srAll.readsFor(r[srAll.selector] as number).has(c)) return [{...r, [c]: emptyMap}]
+      return subs.map(s => ({...r, [c]: s}))
+    })
+  }
+  const stateless = conjs.filter(c => isStateless(m, c))
+  const stateful = conjs.filter(c => !isStateless(m, c))
+  if (stateless.length) {
+    // Collect only the stateless flags transitively referenced by `stateless`, in declaration order.
+    const neededFlags = new Set<string>()
+    const collectFlags = (node: E | C) => walk(node, o => {
+      if (o.op !== 'flag') return
+      const name = o.name as string
+      if (neededFlags.has(name)) return
+      const fc = m.step.flags && Object.hasOwn(m.step.flags, name) ? m.step.flags[name] : undefined
+      if (fc) { neededFlags.add(name); collectFlags(fc) }
+    })
+    for (const c of stateless) collectFlags(c)
+    const evalFlags = Object.entries(m.step.flags ?? {}).filter(([name]) => neededFlags.has(name))
+    const emptySt: State = {scalars: {}, maps: Object.fromEntries(Object.keys(m.maps ?? {}).map(mp => [mp, new Map()]))}
+    reqs = reqs.filter(r => {
+      try {
+        const env0: Env = {...p}
+        for (const i of m.inputs) if (typeof r[i] === 'number') env0[i] = r[i] as number
+        const view = carriedView(m, emptySt, r, undefined, p)
+        for (const [name, fc] of evalFlags) env0[`?${name}`] = evalC(fc, env0, view, m) ? 1 : 0
+        return stateless.every(c => evalC(c, env0, view, m))
+      } catch { return true }
+    })
+  }
+  // Collapse duplicate requests that differ only on inputs unused by the selected op (and any remaining stateful assume).
+  const srState = selectorReads(m, stateful)
+  reqs = dedupeBySelector(m, reqs, stateful)
+  const groups: Request[][] = []
+  if (srState && reqs.length > 1) {
+    const byVal = new Map<number, Request[]>()
+    for (const r of reqs) {
+      const sv = r[srState.selector]
+      if (typeof sv !== 'number') { byVal.clear(); break }
+      let g = byVal.get(sv)
+      if (!g) byVal.set(sv, (g = []))
+      g.push(r)
+    }
+    if (byVal.size > 1) groups.push(...byVal.values())
+  }
+  return {reqs, groups}
+}
+
+export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000, walks = 0): State[] {
+  return withReachabilityWork(() => smallWithin(m, p, b, cap, work, walks).sts)
+}
+function smallWithin(m: Machine, p: Env, b: number, cap: number, work: number, walks: number, check?: SmallCheck): {sts: State[], violation?: SmallViolation, sawFailure: boolean} {
   reachState()
   // (past a thousand steps, through the generated JavaScript, fastStep: the interpreter's states, as compile.test.ts holds
   // them; a small machine's few steps cost less than its compiling)
   checkWall('sample setup')
   const run = interpret(m), start = run.init(p)
+  const evalM = check?.machine ?? m
+  let preOk = false
+  if (check?.laws.length) {
+    try { preOk = !evalM.pre || evalC(evalM.pre, p, {scalars: {}, maps: {}}, evalM) }
+    catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; preOk = false }
+  }
+  let sawFailure = false
+  const inspect = (st: State): SmallViolation | undefined => {
+    if (!preOk) return undefined
+    const res = checkSmallState(evalM, check!, p, st, 4)
+    if (res.sawFailure) sawFailure = true
+    return res.violation
+  }
   let steps = 0, fast = run.step
   const step = (p2: Env, st: State, r: Request): State => { reachEdge(); if (++steps === 1000) fast = fastStep(m) ?? run.step; return fast(p2, st, r) }
-  const subsets = Array.from({length: 1 << b}, (_, s) => new Map(Array.from({length: b}, (_, i) => i).filter(i => (s >> i) & 1).map(i => [i, 1] as [number, number])))
-  // (an input the assumption keeps below a few values, an action's, over all of them; the rest below b)
-  const below = (i: string) => Math.max(b, ...(m.assume ? atomsOf2(m.assume) : []).flatMap(c => (c.op === '<' && c.a.op === 'var' && c.a.name === i && c.b.op === 'const' && c.b.value <= 8 ? [c.b.value] : [])))
-  let reqs: Request[] = [{}]
-  for (const i of m.inputs) reqs = reqs.flatMap(r => Array.from({length: below(i)}, (_, x) => ({...r, [i]: x})))
-  for (const c of m.inputMaps ?? []) reqs = reqs.flatMap(r => subsets.map(s => ({...r, [c]: s})))
+  const {reqs, groups} = smallRequests(m, p, b)
+  if (!reqs.length) {
+    const v0 = inspect(start)
+    return {sts: [start], ...(v0 ? {violation: v0} : {}), sawFailure}
+  }
   const quotient = env.GDP_REQUEST_QUOTIENT === '1' ? requestQuotient(m, reqs) : undefined
   // (a state once: by a hash of its scalars and nonzero cells, then a cell-by-cell comparison within the hash's bucket;
   // the same classes as a sorted text of the state, without a sort or a text per step)
@@ -190,6 +553,8 @@ function smallWithin(m: Machine, p: Env, b: number, cap: number, work: number, w
   }
   const equal = (a: State, b: State): boolean => scalarNames.every(n => a.scalars[n] === b.scalars[n]) && mapNames.every(n => sameCells(a.maps[n], b.maps[n]))
   const seen = new Map<number, State[]>([[hashOf(start), [start]]]), all: State[] = [start], queue = [start]
+  const v0 = inspect(start)
+  if (v0) return {sts: all, violation: v0, sawFailure: true}
   const reached = (next: State, from: State, r: Request): State => {
     const h = hashOf(next), bucket = seen.get(h)
     if (bucket) { for (const had of bucket) if (equal(had, next)) return had; bucket.push(next) } else seen.set(h, [next])
@@ -207,10 +572,14 @@ function smallWithin(m: Machine, p: Env, b: number, cap: number, work: number, w
       try { next = step(p, st, r) } catch (error) { if (error instanceof BudgetExpired) throw error; continue }
       if (cls !== undefined) covered!.add(cls)
       const n0 = all.length
-      if (reached(next, st, r) && all.length > n0) queue.push(next)
+      if (reached(next, st, r) && all.length > n0) {
+        const v = inspect(next)
+        if (v) return {sts: all, violation: v, sawFailure: true}
+        queue.push(next)
+      }
     }
   }
-  if (!queue.length) return all
+  if (!queue.length) return {sts: all, sawFailure}
   const cell = (s: State, n: string, x: number) => s.maps[n]?.get(x) ?? s.defaults?.[n] ?? 0
   const kindOf = (a: State, c: State) => [...Object.keys(c.scalars).filter(n => a.scalars[n] !== c.scalars[n]),
     ...Object.keys(c.maps).filter(n => a.defaults?.[n] !== c.defaults?.[n] || [...a.maps[n]?.keys() ?? [], ...c.maps[n]!.keys()].some(x => cell(a, n, x) !== cell(c, n, x)))].join()
@@ -222,7 +591,8 @@ function smallWithin(m: Machine, p: Env, b: number, cap: number, work: number, w
       const by = new Map<string, [State, Request][]>()
       for (let i = 0; i < 48; i++, walks--) {
         checkWall('sample walks')
-        const r = reqs[rnd(reqs.length)]!
+        const grp = groups.length > 1 ? groups[rnd(groups.length)]! : reqs
+        const r = grp[rnd(grp.length)]!
         let next: State
         try { next = step(p, st, r) } catch (error) { if (error instanceof BudgetExpired) throw error; continue }
         const kd = kindOf(st, next)
@@ -230,10 +600,15 @@ function smallWithin(m: Machine, p: Env, b: number, cap: number, work: number, w
       }
       if (!by.size) break
       const ks = [...by.values()], at = ks[rnd(ks.length)]!, [next, r] = at[rnd(at.length)]!
+      const n0 = all.length
       st = reached(next, st, r)
+      if (all.length > n0) {
+        const v = inspect(st)
+        if (v) return {sts: all, violation: v, sawFailure: true}
+      }
     }
   }
-  return all
+  return {sts: all, sawFailure}
 }
 // A ghost for a law about no key with one value ∃x. P over maps (PCorrect's "some process not done, or its y is 1"): x a
 // state variable that starts at 0 or a param (or one less) and after each step keeps its value while P still holds there
@@ -262,18 +637,62 @@ const smalls = new WeakMap<Machine, {p: Env, sts: State[]}[]>()
 // Reuse the engine's original samples instead of enumerating that same graph
 // with every speculative count attached to every request. The structural check
 // rejects changed transitions, replaced counts, and shadowed map reads.
+function canReuseSmall(m: Machine, source: Machine): boolean {
+  const fields = new Set([...Object.keys(m), ...Object.keys(source)])
+  const added = new Set(Object.keys(m.counts ?? {}).filter(k => !(k in (source.counts ?? {}))))
+  let safe = [...fields].every(k => k === 'counts' || m[k as keyof Machine] === source[k as keyof Machine]) && Object.entries(source.counts ?? {}).every(([k, d]) => m.counts?.[k] === d) && [...added].every(k => !(k in (source.maps ?? {})) && !(k in (source.fns ?? {})) && !source.inputMaps?.includes(k))
+  if (safe) walk(source, o => { if (o.op === 'get' && added.has(o.map as string)) safe = false })
+  return safe
+}
 export function smallOf(m: Machine, source?: Machine): {p: Env, sts: State[]}[] {
   checkWall('sample cache')
   let out = smalls.get(m)
-  if (!out && source && source !== m) {
-    const fields = new Set([...Object.keys(m), ...Object.keys(source)])
-    const added = new Set(Object.keys(m.counts ?? {}).filter(k => !(k in (source.counts ?? {}))))
-    let safe = [...fields].every(k => k === 'counts' || m[k as keyof Machine] === source[k as keyof Machine]) && Object.entries(source.counts ?? {}).every(([k, d]) => m.counts?.[k] === d) && [...added].every(k => !(k in (source.maps ?? {})) && !(k in (source.fns ?? {})) && !source.inputMaps?.includes(k))
-    walk(source, o => { if (o.op === 'get' && added.has(o.map as string)) safe = false })
-    if (safe) smalls.set(m, (out = smallOf(source)))
-  }
+  if (!out && source && source !== m && canReuseSmall(m, source)) smalls.set(m, (out = smallOf(source)))
   if (!out) smalls.set(m, (out = (m.params.length ? [2, 3] : [2]).map(x => { const p = Object.fromEntries(m.params.map(q => [q, x])); try { return {p, sts: small(m, p, 3, 3000, 300_000, 100_000)} } catch (e) { if (e instanceof WallExpired) throw e; return {p, sts: []} } })))
   return out
+}
+// Like smallOf, checking `check.laws` incrementally on every newly reached state so a broken law stops BFS/walks early
+// and returns its parent-pointer trace without polluting the smalls cache. When no violation is accepted, caches and
+// returns the complete small instances identical to smallOf.
+export function smallOfChecked(m: Machine, check: SmallCheck, source?: Machine): {samples?: {p: Env, sts: State[]}[], violation?: SmallViolation, checkedAll: boolean} {
+  checkWall('sample cache')
+  const evalM = check.machine ?? m
+  const reuse = !!source && source !== m && canReuseSmall(m, source)
+  const cached = smalls.get(m) ?? (reuse ? smalls.get(source!) : undefined)
+  if (cached) {
+    if (!smalls.has(m)) smalls.set(m, cached)
+    let sawFailure = false
+    for (const {p, sts} of cached) {
+      let preOk = false
+      try { preOk = !evalM.pre || evalC(evalM.pre, p, {scalars: {}, maps: {}}, evalM) }
+      catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; preOk = false }
+      if (!preOk) { sawFailure = true; continue }
+      for (const st of sts) {
+        const res = checkSmallState(evalM, check, p, st, 4)
+        if (res.violation) return {violation: res.violation, checkedAll: false}
+        if (res.sawFailure) sawFailure = true
+      }
+    }
+    return {samples: cached, checkedAll: !sawFailure && check.laws.every(l => !l.some?.length)}
+  }
+  const target = reuse ? source! : m
+  const out: {p: Env, sts: State[]}[] = []
+  let sawFailure = false
+  for (const x of target.params.length ? [2, 3] : [2]) {
+    const p = Object.fromEntries(target.params.map(q => [q, x]))
+    try {
+      const res = withReachabilityWork(() => smallWithin(target, p, 3, 3000, 300_000, 100_000, {...check, machine: evalM}))
+      if (res.violation) return {violation: res.violation, checkedAll: false}
+      if (res.sawFailure) sawFailure = true
+      out.push({p, sts: res.sts})
+    } catch (e) {
+      if (e instanceof WallExpired || e instanceof BudgetExpired) throw e
+      out.push({p, sts: []})
+    }
+  }
+  smalls.set(target, out)
+  if (target !== m) smalls.set(m, out)
+  return {samples: out, checkedAll: !sawFailure && check.laws.every(l => !l.some?.length)}
 }
 // Laws true at every small state, at every key below one past their values. With `ghosted`, the machine with ghosts
 // (state no step of m reads), each small state of m with the ghosts' values along the steps it was first reached by:

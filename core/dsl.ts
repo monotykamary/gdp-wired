@@ -32,7 +32,7 @@ import {proveCountedCandidateSeeds} from './counted-candidate-seeds.ts'
 import {stepSeedFamilies, tryStepSeed} from './step-seeds.ts'
 import {type TranslationFields, bindSourceMachine, inheritSource, isSourceBound, translationVerdict} from './source-check.ts'
 import {env as knobs} from './solver.ts'
-import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, exactMapSum, fnCall, hasFinite, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, sourceFreeFn, withArithmetic} from './machine.ts'
+import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, exactMapSum, fnCall, hasFinite, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, sourceFreeFn, walk, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, sideGoals, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
@@ -2598,10 +2598,52 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   private paramValues(ps: Record<string, number>): Record<string, unknown> {
     return Object.fromEntries(this.spec.params.map(([n, k]) => [n, k.build(n, part => new Term({op: 'const', value: ps[part]!}, ps[part]!))]))
   }
+  private carriedBounds?: Map<string, E[]>
+  private carriedKeyLimit(name: string, bound: number, ps?: Record<string, number>): number {
+    if (!ps) return bound + 1
+    if (!this.carriedBounds) {
+      const m = this.machine, limits = new Map<string, E[]>()
+      const add = (mp: string, e: E) => { if (!limits.has(mp)) limits.set(mp, []); limits.get(mp)!.push(e) }
+      const namesInE = (e: E): string[] => { const out: string[] = []; walk(e, o => { if (o.op === 'var') out.push(o.name as string) }); return out }
+      const paramOnly = (e: E) => namesInE(e).every(v2 => m.params.includes(v2))
+      const checkAll = (c: C) => {
+        if (c.op !== 'all' || c.keys?.length) return
+        const k = c.key
+        for (const part of conjuncts(c.c)) {
+          const ds = part.op === 'or' ? part.xs : []
+          if (ds.length !== 2) continue
+          for (const mp of this.spec.carried ?? []) {
+            const hasGuard = ds.some(d => d.op === 'not' && ((d.x.op === '<=' && d.x.a.op === 'const' && d.x.a.value === 1 && d.x.b.op === 'get' && d.x.b.map === mp && d.x.b.key.op === 'var' && d.x.b.key.name === k)
+              || (d.x.op === '<' && d.x.a.op === 'const' && d.x.a.value === 0 && d.x.b.op === 'get' && d.x.b.map === mp && d.x.b.key.op === 'var' && d.x.b.key.name === k)
+              || (d.x.op === '=' && ((d.x.a.op === 'get' && d.x.a.map === mp && d.x.a.key.op === 'var' && d.x.a.key.name === k && d.x.b.op === 'const' && d.x.b.value === 1)
+                || (d.x.b.op === 'get' && d.x.b.map === mp && d.x.b.key.op === 'var' && d.x.b.key.name === k && d.x.a.op === 'const' && d.x.a.value === 1)))))
+            if (!hasGuard) continue
+            for (const d of ds) if ((d.op === '<' || d.op === '<=') && d.a.op === 'var' && d.a.name === k && paramOnly(d.b))
+              add(mp, d.op === '<' ? d.b : {op: 'add', a: d.b, b: {op: 'const', value: 1}})
+          }
+        }
+      }
+      for (const c of conjuncts(m.assume)) {
+        checkAll(c)
+        if (c.op === 'flag' && m.step.flags && Object.hasOwn(m.step.flags, c.name)) checkAll(m.step.flags[c.name]!)
+      }
+      this.carriedBounds = limits
+    }
+    const bs = this.carriedBounds.get(name)
+    if (!bs?.length) return bound + 1
+    let lim = bound + 1
+    for (const e of bs) {
+      try { const v2 = evalE(e, ps, {scalars: {}, maps: {}}, this.machine); if (Number.isSafeInteger(v2) && v2 >= 0) lim = Math.min(lim, v2) } catch { /* ignore */ }
+    }
+    return lim
+  }
   // `ps`: the params (encoded), for folds that read them.
   randomInput(rand: Rand, bound: number, ps?: Record<string, number>): Request {
     const out: Request = Object.assign({}, ...this.spec.inputs.map(([n, k]) => k.random(n, rand, bound)))
-    for (const n of this.spec.carried ?? []) out[n] = new Map(Array.from({length: bound + 1}, (_, key) => [key, rand(2)] as const).filter(([, cell]) => cell === 1))
+    for (const n of this.spec.carried ?? []) {
+      const len = this.carriedKeyLimit(n, bound, ps)
+      out[n] = new Map(Array.from({length: len}, (_, key) => [key, rand(2)] as const).filter(([, cell]) => cell === 1))
+    }
     // A carried list: items drawn by their kind, its length and folds as the encoding computes them.
     for (const [n, k, fs] of this.spec.lists2 ?? []) {
       const l = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), {}, ps && this.paramValues(ps)).encode(Array.from({length: rand(bound + 1)}, () => k.sample(rand, bound)))
@@ -3057,6 +3099,40 @@ export function replayRefutation(
     return false
   }
 }
+// Verify a candidate concrete refutation trace found during BFS/sampling against the original rule:
+// checks facts at `params` and replays every step via `replayRefutation`. Never trusts the search's own state.
+export function factsHoldAt(m: Machine, params: Record<string, number>, bound: number): boolean {
+  const facts = (m.facts ?? []).filter(f => !isArithmetic(f.name.slice(0, f.name.indexOf(':'))))
+  if (!facts.length) return true
+  const holds = (f: Law): boolean => {
+    const names = f.forall ? [f.forall, ...(f.keys ?? [])] : [], top = names.length > 1 ? bound : 2 * bound
+    const at = (env: Record<string, number>, i: number): boolean => {
+      checkWorkEndpoint('refutation fact bindings')
+      return i === names.length ? evalC(f.holds, env, {scalars: {}, maps: {}}, m)
+        : Array.from({length: top + 1}, (_, key) => key).every(key => at({...env, [names[i]!]: key}, i + 1))
+    }
+    try { return at(params, 0) } catch (e) { if (e instanceof WallExpired || e instanceof WatchdogExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); return false }
+  }
+  return facts.every(holds)
+}
+export function replayVerifiedRefutation(
+  originalRule: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>,
+  laws: Law[],
+  stepLaws: StepLaw[],
+  candidate: {law: Law, params: Record<string, number>, state: State, before?: State, trace: Request[]},
+): Verdict | undefined {
+  const bound = Math.max(4, ...Object.values(candidate.params))
+  if (!factsHoldAt(originalRule.machine, candidate.params, bound)) return undefined
+  if (!replayRefutation(originalRule, laws, stepLaws, candidate.params, candidate.trace, bound, candidate.law)) return undefined
+  const at = candidate.trace.length === 0 ? '@start' : '@step'
+  const before = candidate.before ?? candidate.state
+  const lastInput = candidate.trace.at(-1)
+  return refutedVerdict({
+    goal: `${candidate.law.name} ${at}`,
+    witness: {...candidate.params, ...before.scalars, ...(lastInput ? numbersOf(lastInput) : {})},
+    run: {params: candidate.params, trace: candidate.trace.map(shownRequest)},
+  })
+}
 // Model-only negative evidence for inference: never a source-law verdict.
 export function refuteModelByRuns(r: Parameters<typeof refuteByRuns>[0], laws: Law[], stepLaws: StepLaw[] = [], original: Parameters<typeof refuteByRuns>[0] = r): ReturnType<typeof refuteByRuns> {
   return refuteByRuns(r, laws, stepLaws, refuteBudget, original)
@@ -3343,7 +3419,20 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   }
   // A rule with counts: its goals are the counted ones (core/counts.ts searches them; the kernel checks the set).
   if (r.machine.counts && Object.keys(r.machine.counts).length) {
-    const c = searchCounted(r.machine, withKinds(r, laws), typeof opts.search === 'object' ? opts.search.ms ?? 60_000 : 60_000)
+    let earlyVerdict: Verdict | undefined
+    const c = searchCounted(r.machine, withKinds(r, laws), typeof opts.search === 'object' ? opts.search.ms ?? 60_000 : 60_000, {
+      refuteLaws: laws,
+      acceptViolation: v => {
+        const verified = replayVerifiedRefutation(originalRule, laws, [], v)
+        if (verified) { earlyVerdict = verified; return true }
+        return false
+      },
+    })
+    if (earlyVerdict) return earlyVerdict
+    if (c.violation) {
+      const verified = replayVerifiedRefutation(originalRule, laws, [], c.violation)
+      if (verified) return verified
+    }
     return retainCounted({proven: c.proven, checked: c.proven, ...(c.why ? {why: c.why} : {}), found: {laws: c.laws.map(l => ({text: l.name}))}} as unknown as Verdict, c)
   }
   // (with a search budget, the laws as given within it on the wall: a step goal of hundreds of hypotheses has a second
@@ -3683,16 +3772,20 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   }
   let searchStop: SearchTermination | undefined
   const stageStopped = (): undefined => { searchStop = {kind: 'work-exhausted', phase: 'invariant search', scope: 'stage'}; return undefined }
+  const original = searchOriginalRule ?? r
   const inferenceBudget = explicitWork === undefined ? {ms} : {work: explicitWork}
-  const infer = () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {...inferenceBudget, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {join: 0} : {})})
+  const refuteOpts = !sk ? {refuteLaws: laws, refute: (cand: {law: Law, params: Record<string, number>, state: State, before?: State, trace: Request[]}) => replayVerifiedRefutation(original, laws, stepLaws, cand)} : {}
+  const infer = () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {...inferenceBudget, ...refuteOpts, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {join: 0} : {})})
   const inf = explicitWork === undefined ? withStageWall(tailAt(), infer, stageStopped) : infer()
+  if (inf?.run) return inf
   if (!(inf?.proven && inf.checked)) {
     // The sum of each map the step writes (withMapSums): the search again over the rule with them, within half of what
     // is left (at most 20 s), where a law of cells against a total needs one (no ERC20 balance past the supply).
     const summed = target.withMapSums()
     if (summed && until - clock() - tail > 1000) {
-      const infer2 = () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, explicitWork === undefined ? {ms: Math.min(20_000, (until - clock() - tail) / 2)} : {work: explicitWork})
+      const infer2 = () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, {...(explicitWork === undefined ? {ms: Math.min(20_000, (until - clock() - tail) / 2)} : {work: explicitWork}), ...refuteOpts})
       const inf2 = explicitWork === undefined ? withStageWall(tailAt(), infer2, stageStopped) : infer2()
+      if (inf2?.run) return inf2
       searchStop = inf2?.termination ?? searchStop
       if (inf2?.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; const b = back(summed, found); if (!sk || (b.proven && b.checked)) return retainFrom({...(sk ? {} : verdict), ...b, proven: true, checked: true, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}, sk ? [inf2, b] : [inf2]) }
     }

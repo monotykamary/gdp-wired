@@ -48,7 +48,7 @@ import {fixedCountFrameCase,ownCountLawInstance,proveCountFrameGoal} from './cou
 import {independentCountInstances} from './count-focused.ts'
 import {admitMemberWitnesses,instantiateMemberPremises,memberHints,memberPremiseState,type MemberHint} from './count-recovery/member-premises.ts'
 
-import {smallOf, trueSmall} from './exists.ts'
+import {type SmallViolation, smallOf, smallOfChecked, trueSmall} from './exists.ts'
 import {WallExpired, checkWall, searchWall} from './wall.ts'
 import {env} from './solver.ts'
 import {proofOrigins, proposeLemmaCuts} from './lemma-cuts.ts'
@@ -529,7 +529,8 @@ export function supportOrder(set: Law[], caller: Law[], support: Set<Law>, forMo
     ...ordered.filter(l => !countReaders.has(l) && caller.includes(l)),
     ...ordered.filter(l => !countReaders.has(l) && !support.has(l) && !caller.includes(l))]
 }
-export type Counted = {proven: boolean, laws: Law[], m: Machine, proof?: CountFamilyProof, why?: string}
+export type Counted = {proven: boolean, laws: Law[], m: Machine, proof?: CountFamilyProof, why?: string, violation?: SmallViolation}
+export type CountedOptions = {refuteLaws?: Law[], acceptViolation?: (v: SmallViolation) => boolean}
 export type CountedRecipeClosingSnapshot=Readonly<{
  version:'counted-recipe-closing/v1',controller:CountRecipeClosingEntry<ScopedCountProof>,
  m:Machine,set:Law[],caller:Law[],initial:Law[],selected:ReadonlySet<Law>,structured:boolean,
@@ -557,29 +558,34 @@ function structuredFallback(until: number, attempt: (structured: boolean) => Cou
   checkWall('structured fallback completion')
   return structured
 }
-export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted {
+export function searchCounted(m0: Machine, caller: Law[], ms = 60_000, opts?: CountedOptions): Counted {
   const reject=env.GDP_COUNT_REJECTIONS==='1'&&env.GDP_COUNT_TIERS==='1'&&env.GDP_COUNT_STRATEGIES==='1'
   let m = m0,rejecting=false
+  const check = {laws: opts?.refuteLaws ?? caller, accept: opts?.acceptViolation}
   const run = ():Counted => {
    const result=withWall(searchWall(ms), ():Counted|(()=>Counted) => {
     try {
       const start=reject?fullWork()/fullRate:0
       const g = ptime('guards', () => guardLaws(m0))
       m = {...m0, counts: {...m0.counts, ...g.counts}}
-      if(reject&&g.laws.some(law=>quorumCandidates.has(law))){rejecting=true;return withCountedSearchPolicy(true,()=>counted(fullRate,()=>searchCounted0(m0,g,m,caller,ms,remainingCountTierBudget(start,ms,1)),true))}
+      if(reject&&g.laws.some(law=>quorumCandidates.has(law))){rejecting=true;return withCountedSearchPolicy(true,()=>counted(fullRate,()=>searchCounted0(m0,g,m,caller,ms,remainingCountTierBudget(start,ms,1),opts),true))}
       // Leave the native preparation wall before selecting a legacy proxy.
       // Locked rejecting ancestors and ordinary legacy mode keep the old path.
       if(canUseCountedProxy())return ()=>withCountedSearchPolicy(false,()=>withWall(searchWall(ms),()=>{
         try{
-          ptime('small',()=>smallOf(m,m0))
-          return counted(fullRate,()=>searchCounted0(m0,g,m,caller,ms),true)
+          const checked = ptime('small',()=>smallOfChecked(m,check,m0))
+          if (checked.violation) return {proven:false,laws:caller,m,why:'a law fails on the small instances',violation:checked.violation}
+          const preChecked = checked.checkedAll ? new Set(check.laws) : undefined
+          return counted(fullRate,()=>searchCounted0(m0,g,m,caller,ms,undefined,opts,preChecked),true)
         }catch(error){
           if(!(error instanceof WallExpired))throw error
           return {proven:false,laws:caller,m,why:error.message}
         }
       }))
-      ptime('small', () => smallOf(m, m0))
-      return counted(fullRate, () => searchCounted0(m0, g, m, caller, ms), true)
+      const checked = ptime('small', () => smallOfChecked(m, check, m0))
+      if (checked.violation) return {proven: false, laws: caller, m, why: 'a law fails on the small instances', violation: checked.violation}
+      const preChecked = checked.checkedAll ? new Set(check.laws) : undefined
+      return counted(fullRate, () => searchCounted0(m0, g, m, caller, ms, undefined, opts, preChecked), true)
     } catch (e) {
       if (!(e instanceof WallExpired)&&!(rejecting&&e instanceof BudgetExpired)) throw e
       return {proven: false, laws: caller, m, why: e instanceof BudgetExpired?workRefusalWhy(e):e.message}
@@ -593,10 +599,10 @@ export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted 
   console.error(`counts: prof total ${Math.round(countedSearchNow() - t)} ms; ${Object.entries(cprof).map(([k2, x]) => `${k2} ${Math.round(x)}`).join(', ')}; cdcl runs ${cdclStats.runs} conflicts ${cdclStats.conflicts} decisions ${cdclStats.decisions} solveMs ${Math.round(cdclStats.solveMs)} rowsMs ${Math.round(cdclStats.rowsMs)} coreMs ${Math.round(cdclStats.coreMs)} unfoldMs ${Math.round(cdclStats.unfoldMs)} lpMs ${Math.round(cdclStats.lpMs)} boundMs ${Math.round(cdclStats.boundMs)} orderMs ${Math.round(cdclStats.orderMs)} fmCalls ${cdclStats.fmCalls} lpMisses ${cdclStats.lpMisses} lpUnknown ${cdclStats.lpUnknown} missMs ${Math.round(cdclStats.missMs)} fastMs ${Math.round(cdclStats.fastMs)} fmOpenMs ${Math.round(cdclStats.fmOpenMs)} fmLeafMs ${Math.round(cdclStats.fmLeafMs)} nodes ${cdclStats.nodes}`)
   return out
 }
-function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine, caller: Law[], ms: number,tiers?:CountTierBudget): Counted {
-  if(tiers)return searchCountedWithRejection(m0,g,m,caller,ms,tiers)
+function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine, caller: Law[], ms: number,tiers?:CountTierBudget,opts?:CountedOptions,preChecked?:Set<Law>): Counted {
+  if(tiers)return searchCountedWithRejection(m0,g,m,caller,ms,tiers,opts)
   const tierRun: CountTierRun = {start: clock(),source:m0}, until = tierRun.start + ms
-  if (!caller.every(l => clock() < until && trueSmall(m, [l]))) return {proven: false, laws: caller, m, why: clock() < until ? 'a law fails on the small instances' : 'time'}
+  if (!caller.every(l => clock() < until && (preChecked?.has(l) || trueSmall(m, [l])))) return {proven: false, laws: caller, m, why: clock() < until ? 'a law fails on the small instances' : 'time'}
   const t1 = clock()
   // (GDP_COUNTS_GIVEN=1, research's: the callers alone, no candidate: whether a set written whole goes through)
   const support = new Set<Law>()
@@ -613,22 +619,25 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
 
 // Production rejection is a relative size-two pass inside the existing generation
 // tier. Its single ledger and absolute endpoints survive every admission fallback.
-function searchCountedWithRejection(m0:Machine,g:ReturnType<typeof guardLaws>,m:Machine,caller:Law[],ms:number,tiers:CountTierBudget):Counted{
+function searchCountedWithRejection(m0:Machine,g:ReturnType<typeof guardLaws>,m:Machine,caller:Law[],ms:number,tiers:CountTierBudget,opts?:CountedOptions):Counted{
  const plan=countRejectionBudget(tiers,true)
- if(!plan)return searchCounted0(m0,g,m,caller,ms)
+ if(!plan)return searchCounted0(m0,g,m,caller,ms,undefined,opts)
  const until=tiers.until,tierRun:CountTierRun={start:until-tiers.workAllowance,budget:tiers,source:m0},support=new Set<Law>(),originalCounts={...m.counts}
  let partial=[...caller]
+ const check = {laws: opts?.refuteLaws ?? caller, accept: opts?.acceptViolation}
  const generated=countGenerationPhase(plan.captureUntil,()=>{
   for(const law of g.laws){try{scope(m,[law]);partial.push(law)}catch(error){if(error instanceof BudgetExpired)throw error}}
-  ptime('small',()=>smallOf(m,m0))
-  if(!caller.every(law=>clock()<until&&trueSmall(m,[law])))return {valid:false as const,set:[...caller]}
+  const checked=ptime('small',()=>smallOfChecked(m,check,m0))
+  if(checked.violation)return {valid:false as const,set:[...caller],violation:checked.violation}
+  const preChecked=checked.checkedAll?new Set(check.laws):undefined
+  if(!caller.every(law=>clock()<until&&(preChecked?.has(law)||trueSmall(m,[law]))))return {valid:false as const,set:[...caller]}
   const set=env.GDP_COUNTS_GIVEN==='1'?[...caller]:[...caller,...candidates(m0,m,caller,caller,g.laws,ms,plan.captureUntil,support,laws=>{partial=[...caller,...laws]})]
   return {valid:true as const,set}
  })
  if(!generated.complete)m.counts={...originalCounts,...m.counts}
  const bundle=generated.complete?generated.value:{valid:true as const,set:partial}
  countsDump.on?.({phase:'count-generation-result',complete:generated.complete,...plan,workAllowance:tiers.workAllowance})
- if(!bundle.valid)return {proven:false,laws:caller,m,why:'a law fails on the small instances'}
+ if(!bundle.valid)return {proven:false,laws:caller,m,why:'a law fails on the small instances',...(bundle.violation?{violation:bundle.violation}:{})}
  let set=bundle.set
  countsDump.on?.({phase:'candidates',machine:m,laws:set,partial:!generated.complete})
  const allowance=remainingRejectionAllowance(plan,clock())
