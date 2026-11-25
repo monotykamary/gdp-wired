@@ -60,8 +60,10 @@ export type Dag = {nodes: DagNode[], top: number, clausal?: boolean}
 // (the clausal mode's: `id` its index, a pair (x, v) coded 2·id + v; `hp` its place in the heap; `cond` whether a
 // decision may take it)
 type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, quiet?: boolean, id: number, hp?: number, cond?: boolean, val?: boolean | undefined, level: number, reason?: number | undefined, at: number, act: number, phase: boolean,
-  bj?: number[], bjAt?: number, bsig?: number, bver?: number, sj?: (number | undefined)[], sx?: Simplex, pair?: boolean, fs?: number, aq?: number, an?: number}
-type Clause = {lits: Map<string, boolean>, node: number, input?: boolean}
+  bj?: number[], bjAt?: number, bsig?: number, bver?: number, sj?: (number | undefined)[], sx?: Simplex, pair?: boolean, pdirty?: boolean, fs?: number, aq?: number, an?: number}
+type Clause = {lits: Map<string, boolean>, node: number, input?: boolean, vs?: Var[], ps?: boolean[]}
+// Optional observer/verifier for candidate-stream equivalence tests (unset in production).
+export const cdclCandHook: {on?: (cands: string[], openCellsLen: number) => void, verify?: boolean} = {}
 // GDP_CDCL_LP=0: each node solved by elimination alone (no simplex); GDP_CDCL_FILL (8): the simplex's tableau begun
 // again past this many entries a row the node reads (research/step's comparisons).
 const pointLeaf = env.GDP_CDCL_POINT !== '0'
@@ -140,7 +142,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   const heapPop = () => { const top = heap[0]!, end = heap.pop()!; top.hp = -1; if (heap.length) { heap[0] = end; end.hp = 0; heapDown(0) } }
   let sx = useLp ? new Simplex() : undefined
   if (sx && clausal) sx.greedy = lpGreedy
-  const nodes: DagNode[] = [], clauses: Clause[] = [], occ = new Map<string, number[]>()
+  const nodes: DagNode[] = [], clauses: Clause[] = [], occByCode: (number[] | undefined)[] = []
   // (with opts.core: each leaf's hypotheses, by node; the hypothesis each row at this node came from)
   const leafHyps = new Map<number, number[]>(), wantCore = !!(opts.core && opts.model), wantDag = !!(opts.dag && opts.model)
   const hypsOf = (rs: Row[]): number[] => {
@@ -153,7 +155,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     if (!vars.has(key)) {
       const flip = key !== canon(lin), stored = flip ? atomOf(lin, false).lin : lin, terms = Object.entries(stored).filter(([x0]) => x0 !== '1')
       const x: Var = {name: key, lin: stored, terms, col: terms.some(([x0]) => x0.startsWith('⟦')), quiet: undefined, id: byId.length, hp: undefined, cond: undefined, val: undefined, level: -1, reason: undefined, at: -1, act: 0, phase: !flip,
-        bj: undefined, bjAt: undefined, bsig: undefined, bver: undefined, sj: undefined, sx: undefined, pair: undefined, fs: undefined, aq: undefined, an: undefined}
+        bj: undefined, bjAt: undefined, bsig: undefined, bver: undefined, sj: undefined, sx: undefined, pair: undefined, pdirty: undefined, fs: undefined, aq: undefined, an: undefined}
       byId.push(x); vals.push(0); rel.push(-1)
       if (opts.model && terms.length === 1 && (opts.quiet?.(terms[0]![0]) || (clausal && terms[0]![0].startsWith('τ')))) x.quiet = true
       vars.set(key, x)
@@ -163,57 +165,309 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   }
   // Each candidate form's variable (none for a constant form), and the node it was last met at (the candidates told
   // apart by form, as a set of forms would).
-  const recs = new WeakMap<Lin, {x: Var | undefined, seen: number}>()
+  type Rec = {x: Var | undefined, seen: number}
+  const recs = new WeakMap<Lin, Rec>()
   const recOf = (lin: Lin) => { let r = recs.get(lin); if (!r) recs.set(lin, (r = {x: namesOf(lin).length > 0 ? vars.get(ensure(lin)) : undefined, seen: 0})); return r }
-  let candGen = 0, colsOn = 0, pairsChanged = 0
-  // prove.ts's openCells at the trail, from the reader's live cells: each pair of one map whose keys' difference the
-  // trail leaves open (that atom, or its flip where the trail decides it one way); made again only where the live cells
-  // or the decisions about pairs have changed.
-  let cellsAt = [-1, -1], cellsOpen: Lin[] = []
-  // Each pair's two atoms read once a session: their variables and which way each stores its form (the same reading as
-  // recOf and canon at every node, which this list's rebuilds, nearly every node, spent most of a wide goal's time on).
-  type PairRec = {d: Lin, neg: Lin, mono: boolean, xd?: Var, sd?: boolean, xn?: Var, sn?: boolean, read?: boolean}
+  let candGen = 0, colsOn = 0
+  // prove.ts's openCells at the trail, kept incrementally from reader.cells's enter/leave deltas and indexed by each
+  // pair's xd/xn variable ids: cell additions/removals touch O(cells) pairs in exact (map, i, j) order, variable
+  // assignments/undos touch only affected pairs in O(1) each, and each cell row keeps its open candidate recs in order
+  // so no full flat rebuild or fresh Lin[] allocation happens per node.
+  type PairRec = {
+    d: Lin, neg: Lin, mono: boolean,
+    rd?: Rec, rn?: Rec, xd?: Var, sd?: boolean, xn?: Var, sn?: boolean, read?: boolean,
+    active: boolean, isConst: boolean, state: number,
+    rowCell?: CellNode, colCell?: CellNode, rPrev?: PairRec, rNext?: PairRec,
+    inIdx: number, di: number, ni: number, oIdx: number,
+  }
+  type CellNode = {
+    map: MapCells, name: string, live: boolean,
+    prev?: CellNode, next?: CellNode,
+    rowHead?: PairRec, rowTail?: PairRec,
+    inPairs: PairRec[], openRecs: Rec[], openCount: number, openDirty: boolean,
+  }
+  type MapCells = {name: string, head?: CellNode, tail?: CellNode, openCount: number, added: CellNode[]}
   const pairRecs = new Map<string, Map<string, PairRec | PairRec[]>>()
-  let flat: PairRec[] = [], flatAt = -1
+  const maps: MapCells[] = [], mapByName = new Map<string, MapCells>(), cellByName = new Map<string, CellNode>()
+  const pairByVar: (PairRec[] | undefined)[] = [], dirtyPairVars: Var[] = [], dirtyRows: CellNode[] = []
+  let cellsSynced = 0, skipAt = pairedKeys.skip, constOpenCount = 0, nonConstOpenCount = 0
   const valOf = (x: Var | undefined, same: boolean | undefined): boolean | undefined => (x?.val === undefined ? undefined : same ? x.val : !x.val)
-  const openCellsLive = (): Lin[] => {
-    if (cellsAt[0] === reader.cellsChanged && cellsAt[1] === pairsChanged) return cellsOpen
-    // (the pairs in order, made again only where the live cells changed; a decision about a pair reads them again)
-    if (flatAt !== reader.cellsChanged) {
-      flat = []
-      for (const names of reader.cells.values()) {
-        const ns = [...names]
-        for (let i = 0; i < ns.length; i++) {
-          let row = pairRecs.get(ns[i]!)
-          if (!row) pairRecs.set(ns[i]!, (row = new Map()))
-          for (let j = i + 1; j < ns.length; j++) {
-            let r = row.get(ns[j]!)
-            if (!r) {
-              // (two tuple cells: a pair for each part, each split on as a plain key's difference is)
-              const parts = tupleCellPairs(ns[i]!, ns[j]!)
-              if (parts) r = parts.map(([d, neg]) => ({d: d!, neg: neg!, mono: false}))
-              else { const pair = cellPair(ns[i]!, ns[j]!); r = {d: pair.d, neg: pair.neg, mono: Object.keys(pair.d).some(isMonomial)} }
-              row.set(ns[j]!, r)
-            }
-            if (Array.isArray(r)) flat.push(...r); else flat.push(r)
+  const computePairState = (r: PairRec): number => {
+    const a = valOf(r.xd, r.sd)
+    if (a === undefined) return 1
+    if (a === true && valOf(r.xn, r.sn) === undefined) return 2
+    return 0
+  }
+  const readPair = (r: PairRec) => {
+    const rd = recOf(r.d), rn = recOf(r.neg)
+    if (rd.x) rd.x.pair = true
+    if (rn.x) rn.x.pair = true
+    r.rd = rd; r.rn = rn
+    r.xd = rd.x; r.sd = r.xd?.name === canon(r.d)
+    r.xn = rn.x; r.sn = r.xn?.name === canon(r.neg)
+    r.isConst = r.xd === undefined
+    r.read = true
+  }
+  const linkPairVar = (x: Var, r: PairRec, isD: boolean) => {
+    let xs = pairByVar[x.id]
+    if (!xs) pairByVar[x.id] = xs = []
+    const idx = xs.length
+    xs.push(r)
+    if (isD) r.di = idx; else r.ni = idx
+  }
+  const unlinkPairVar = (x: Var, r: PairRec, isD: boolean) => {
+    const xs = pairByVar[x.id]!, idx = isD ? r.di : r.ni, last = xs.pop()!
+    if (idx < xs.length) {
+      xs[idx] = last
+      if (last.xd === x) last.di = idx; else last.ni = idx
+    }
+    if (isD) r.di = -1; else r.ni = -1
+  }
+  const markRowDirty = (u: CellNode) => { if (!u.openDirty) { u.openDirty = true; dirtyRows.push(u) } }
+  const activatePair = (r: PairRec, appended: boolean) => {
+    if (!r.read) readPair(r)
+    r.active = true
+    if (r.isConst) { r.state = 1; constOpenCount++; return }
+    const xd = r.xd!, xn = r.xn
+    linkPairVar(xd, r, true)
+    if (xn && xn !== xd) linkPairVar(xn, r, false)
+    const s = computePairState(r)
+    r.state = s
+    if (s !== 0) {
+      const u = r.rowCell!
+      nonConstOpenCount++; u.openCount++; u.map.openCount++
+      if (appended && !u.openDirty) { r.oIdx = u.openRecs.length; u.openRecs.push(s === 1 ? r.rd! : r.rn!) }
+      else { r.oIdx = -1; markRowDirty(u) }
+    } else r.oIdx = -1
+  }
+  const deactivatePair = (r: PairRec, rowSurvives: boolean) => {
+    if (!r.active) return
+    r.active = false
+    if (r.isConst) { constOpenCount--; r.state = 0; return }
+    const xd = r.xd!, xn = r.xn
+    unlinkPairVar(xd, r, true)
+    if (xn && xn !== xd) unlinkPairVar(xn, r, false)
+    if (r.state !== 0) {
+      const u = r.rowCell!
+      nonConstOpenCount--; u.openCount--; u.map.openCount--
+      if (rowSurvives) markRowDirty(u)
+    }
+    r.state = 0; r.oIdx = -1
+  }
+  const setPairState = (r: PairRec, next: number) => {
+    const prev = r.state, u = r.rowCell!
+    r.state = next
+    if (prev === 0) {
+      nonConstOpenCount++; u.openCount++; u.map.openCount++; r.oIdx = -1; markRowDirty(u)
+    } else if (next === 0) {
+      nonConstOpenCount--; u.openCount--; u.map.openCount--; r.oIdx = -1; markRowDirty(u)
+    } else if (!u.openDirty) {
+      u.openRecs[r.oIdx] = next === 1 ? r.rd! : r.rn!
+    }
+  }
+  const makePairRec = (d: Lin, neg: Lin, mono: boolean): PairRec => ({
+    d, neg, mono, active: false, isConst: false, state: 0, inIdx: -1, di: -1, ni: -1, oIdx: -1,
+  })
+  const getCellPairRecs = (a: string, b: string): PairRec | PairRec[] => {
+    let row = pairRecs.get(a)
+    if (!row) pairRecs.set(a, (row = new Map()))
+    let r = row.get(b)
+    if (!r) {
+      // (two tuple cells: a pair for each part, each split on as a plain key's difference is)
+      const parts = tupleCellPairs(a, b)
+      if (parts) r = parts.map(([d, neg]) => makePairRec(d!, neg!, false))
+      else { const pair = cellPair(a, b); r = makePairRec(pair.d, pair.neg, Object.keys(pair.d).some(isMonomial)) }
+      row.set(b, r)
+    }
+    return r
+  }
+  const attachPairRec = (u: CellNode, w: CellNode, r: PairRec) => {
+    r.rowCell = u; r.colCell = w
+    r.rPrev = u.rowTail; r.rNext = undefined
+    if (u.rowTail) u.rowTail.rNext = r; else u.rowHead = r
+    u.rowTail = r
+    r.inIdx = w.inPairs.length; w.inPairs.push(r)
+    if (!(skipAt && r.mono)) activatePair(r, true)
+  }
+  const addCellPair = (u: CellNode, w: CellNode) => {
+    const rs = getCellPairRecs(u.name, w.name)
+    if (Array.isArray(rs)) { for (let i = 0; i < rs.length; i++) attachPairRec(u, w, rs[i]!) }
+    else attachPairRec(u, w, rs)
+  }
+  const removeCell = (u: CellNode) => {
+    const m = u.map
+    if (u.prev) u.prev.next = u.next; else m.head = u.next
+    if (u.next) u.next.prev = u.prev; else m.tail = u.prev
+    u.prev = u.next = undefined
+    for (let r = u.rowHead; r !== undefined;) {
+      const next = r.rNext
+      deactivatePair(r, false)
+      const ins = r.colCell!.inPairs, idx = r.inIdx, last = ins.pop()!
+      if (idx < ins.length) { ins[idx] = last; last.inIdx = idx }
+      r.inIdx = -1; r.rowCell = r.colCell = r.rPrev = r.rNext = undefined
+      r = next
+    }
+    u.rowHead = u.rowTail = undefined; u.openRecs.length = 0; u.openCount = 0; u.openDirty = false
+    const ins = u.inPairs
+    for (let i = 0; i < ins.length; i++) {
+      const r = ins[i]!, row = r.rowCell!
+      deactivatePair(r, true)
+      if (r.rPrev) r.rPrev.rNext = r.rNext; else row.rowHead = r.rNext
+      if (r.rNext) r.rNext.rPrev = r.rPrev; else row.rowTail = r.rPrev
+      r.rowCell = r.colCell = r.rPrev = r.rNext = undefined; r.inIdx = -1
+    }
+    ins.length = 0; u.live = false
+  }
+  const ensureMap = (name: string): MapCells => {
+    let m = mapByName.get(name)
+    if (!m) { m = {name, openCount: 0, added: []}; mapByName.set(name, m); maps.push(m) }
+    return m
+  }
+  const ensureCell = (m: MapCells, name: string): CellNode => {
+    let c = cellByName.get(name)
+    if (!c) { c = {map: m, name, live: false, inPairs: [], openRecs: [], openCount: 0, openDirty: false}; cellByName.set(name, c) }
+    return c
+  }
+  const lastOp = new Map<string, number>()
+  const syncOpenCells = () => {
+    const opMap = reader.cellOpMap, opName = reader.cellOpName, opOn = reader.cellOpOn, L = opName.length
+    if (L === 1) {
+      const mapName = opMap[0]!, name = opName[0]!, on = opOn[0]!
+      opMap.length = 0; opName.length = 0; opOn.length = 0
+      if (on === 0) {
+        const c = cellByName.get(name)
+        if (c && c.live) removeCell(c)
+      } else {
+        const m = ensureMap(mapName), w = ensureCell(m, name)
+        if (w.live) removeCell(w)
+        const oldTail = m.tail
+        w.live = true; w.prev = oldTail; w.next = undefined
+        if (oldTail) oldTail.next = w; else m.head = w
+        m.tail = w
+        if (oldTail) {
+          for (let u = m.head; u !== undefined; u = u.next) {
+            addCellPair(u, w)
+            if (u === oldTail) break
           }
         }
       }
-      flatAt = reader.cellsChanged
-    }
-    const out: Lin[] = []
-    for (const r of flat) {
-      if (pairedKeys.skip && r.mono) continue
-      if (!r.read) {
-        for (const lin of [r.d, r.neg]) { const x = recOf(lin).x; if (x) x.pair = true }
-        r.xd = recOf(r.d).x; r.sd = r.xd?.name === canon(r.d); r.xn = recOf(r.neg).x; r.sn = r.xn?.name === canon(r.neg); r.read = true
+    } else if (L > 1) {
+      lastOp.clear()
+      for (let k = 0; k < L; k++) {
+        const name = opName[k]!
+        lastOp.set(name, k)
+        if (opOn[k] === 1) ensureMap(opMap[k]!)
       }
-      const a = valOf(r.xd, r.sd), b = valOf(r.xn, r.sn)
-      if (a === undefined) out.push(r.d)
-      else if (a === true && b === undefined) out.push(r.neg)
+      for (const name of lastOp.keys()) {
+        const c = cellByName.get(name)
+        if (c && c.live) removeCell(c)
+      }
+      let anyAdded = false
+      for (let k = 0; k < L; k++) {
+        if (opOn[k] !== 1) continue
+        const name = opName[k]!
+        if (lastOp.get(name) !== k) continue
+        const m = mapByName.get(opMap[k]!)!
+        m.added.push(ensureCell(m, name))
+        anyAdded = true
+      }
+      opMap.length = 0; opName.length = 0; opOn.length = 0
+      if (anyAdded) {
+        // (create and read new pairs in exact (map, i, j) order so ensure() order and initial phases stay identical)
+        for (let mi = 0; mi < maps.length; mi++) {
+          const m = maps[mi]!, added = m.added
+          if (!added.length) continue
+          const oldTail = m.tail
+          for (let b = 0; b < added.length; b++) {
+            const w = added[b]!
+            w.live = true; w.prev = m.tail; w.next = undefined
+            if (m.tail) m.tail.next = w; else m.head = w
+            m.tail = w
+          }
+          if (oldTail) {
+            for (let u = m.head; u !== undefined; u = u.next) {
+              for (let b = 0; b < added.length; b++) addCellPair(u, added[b]!)
+              if (u === oldTail) break
+            }
+          }
+          for (let a = 0; a < added.length; a++) {
+            for (let b = a + 1; b < added.length; b++) addCellPair(added[a]!, added[b]!)
+          }
+          added.length = 0
+        }
+      }
     }
-    cellsAt = [reader.cellsChanged, pairsChanged]
-    return (cellsOpen = out)
+    cellsSynced = reader.cellsChanged
+    if (skipAt !== pairedKeys.skip) {
+      skipAt = pairedKeys.skip
+      for (let mi = 0; mi < maps.length; mi++) {
+        for (let u = maps[mi]!.head; u !== undefined; u = u.next) {
+          for (let r = u.rowHead; r !== undefined; r = r.rNext) {
+            if (!r.mono) continue
+            if (skipAt) { if (r.active) deactivatePair(r, true) }
+            else if (!r.active) activatePair(r, false)
+          }
+        }
+      }
+    }
+    if (dirtyPairVars.length) {
+      for (let i = 0; i < dirtyPairVars.length; i++) {
+        const x = dirtyPairVars[i]!
+        x.pdirty = false
+        const list = pairByVar[x.id]
+        if (!list) continue
+        for (let j = 0; j < list.length; j++) {
+          const r = list[j]!
+          const next = computePairState(r)
+          if (next !== r.state) setPairState(r, next)
+        }
+      }
+      dirtyPairVars.length = 0
+    }
+    if (dirtyRows.length) {
+      for (let i = 0; i < dirtyRows.length; i++) {
+        const u = dirtyRows[i]!
+        u.openDirty = false
+        if (!u.live) { u.openRecs.length = 0; continue }
+        const out = u.openRecs
+        out.length = 0
+        if (u.openCount === 0) continue
+        for (let r = u.rowHead; r !== undefined; r = r.rNext) {
+          if (r.active && !r.isConst && r.state !== 0) {
+            r.oIdx = out.length
+            out.push(r.state === 1 ? r.rd! : r.rn!)
+          }
+        }
+      }
+      dirtyRows.length = 0
+    }
+  }
+  const verifyOpenCells = () => {
+    const refOut: Lin[] = []
+    for (const names of reader.cells.values()) {
+      const ns = [...names]
+      for (let i = 0; i < ns.length; i++) {
+        for (let j = i + 1; j < ns.length; j++) {
+          const rs = getCellPairRecs(ns[i]!, ns[j]!)
+          const arr = Array.isArray(rs) ? rs : [rs]
+          for (const r of arr) {
+            if (pairedKeys.skip && r.mono) continue
+            if (!r.read || !r.active) throw new Error(`openCellsLive state mismatch on ${goal.name}: read=${r.read} active=${r.active}`)
+            const a = valOf(r.xd, r.sd), b = valOf(r.xn, r.sn)
+            if (a === undefined) refOut.push(r.d)
+            else if (a === true && b === undefined) refOut.push(r.neg)
+          }
+        }
+      }
+    }
+    const gotLen = constOpenCount + nonConstOpenCount
+    if (refOut.length !== gotLen) throw new Error(`openCellsLive count mismatch on ${goal.name}: got ${gotLen} (${constOpenCount}+${nonConstOpenCount}), expected ${refOut.length}`)
+    const refNonConst = refOut.map(recOf).filter(r => r.x !== undefined)
+    const gotNonConst: Rec[] = []
+    for (const m of maps) for (let u = m.head; u !== undefined; u = u.next) for (const r of u.openRecs) gotNonConst.push(r)
+    if (gotNonConst.length !== refNonConst.length || gotNonConst.some((r, i) => r !== refNonConst[i])) {
+      throw new Error(`openCellsLive stream mismatch on ${goal.name}: got ${gotNonConst.length} vs expected ${refNonConst.length}`)
+    }
   }
   const listRecs = new WeakMap<Lin[], {x: Var | undefined, seen: number}[]>()
   const bx = new Simplex(true, true), bxIn = new Set<number>(), toAssert = new Set<number>(), toRetract = new Set<number>()
@@ -232,8 +486,17 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     lin: at => { const name = trail[at]!, x = vars.get(name)!; return {name, lin: x.lin, holds: x.val!} },
     ...(clausal || opts.quiet ? {quiet: (at: number) => !!tv[at]!.quiet} : {}),
   })
+  if (!clausal) reader.trackCells = true
   let last = goal.hyps.length - 1
   const near = nearOf(goal)
+  let hypOrder: number[] = [], hypOrderLast = -2
+  const syncHypOrder = () => {
+    hypOrderLast = last
+    hypOrder = []
+    if (last >= 0) hypOrder.push(last)
+    for (let i = 0; i < last; i++) if (near[i]) hypOrder.push(i)
+    for (let i = 0; i < last; i++) if (!near[i]) hypOrder.push(i)
+  }
   const decidedLin = (lin: Lin) => vars.get(keyOf(lin))?.val !== undefined
   const fixed = trail.length
   const level = () => levels.length
@@ -246,7 +509,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     x.reason = reason
     trail.push(name); tv.push(x)
     if (x.col) colsOn++
-    if (x.pair) pairsChanged++
+    if (x.pair && !x.pdirty) { x.pdirty = true; dirtyPairVars.push(x) }
     reader.touch(name)
   }
   const assignClausal = (x: Var, val: boolean, reason?: number) => {
@@ -287,7 +550,8 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     const keep = levels[l] ?? trail.length
     while (trail.length > Math.max(keep, fixed)) {
       const name = trail.pop()!, x = tv.pop()!, q = x.aq
-      x.val = undefined; x.level = -1; x.reason = undefined; if (x.col) colsOn--; if (x.pair) pairsChanged++; reader.touch(name)
+      x.val = undefined; x.level = -1; x.reason = undefined; if (x.col) colsOn--; if (x.pair && !x.pdirty) { x.pdirty = true; dirtyPairVars.push(x) }
+      reader.touch(name)
       if (q !== undefined && q < aq) aq = q
     }
     lowAt = Math.min(lowAt, trail.length)
@@ -310,10 +574,20 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   }
   const undoTo = clausal ? undoClausal : undoKernel
   const addClause = (lits: Map<string, boolean>, node: number): number => {
-    clauses.push({lits, node})
+    const c: Clause = {lits, node}
+    clauses.push(c)
     const i = clauses.length - 1
     if (clausal) { watches(i); return i }
-    for (const [name, pos] of lits) { const key = `${name}=${pos}`; let xs = occ.get(key); if (!xs) occ.set(key, (xs = [])); xs.push(i) }
+    const vs: Var[] = [], ps: boolean[] = []
+    for (const [name, pos] of lits) {
+      const x = vars.get(name)!
+      vs.push(x); ps.push(pos)
+      const code = 2 * x.id + (pos ? 1 : 0)
+      let xs = occByCode[code]
+      if (!xs) occByCode[code] = xs = []
+      xs.push(i)
+    }
+    c.vs = vs; c.ps = ps
     return i
   }
   // The clausal mode's watches: each clause's pairs by code, its first two watched, those that don't hold first, then
@@ -407,18 +681,19 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   // Unit propagation: a clause whose literals all hold is a conflict (its index); all but one, the last is flipped.
   const propagateKernel = (): number | undefined => {
     while (qhead < trail.length) {
-      const name = trail[qhead++]!, x = vars.get(name)!, os = occ.get(`${name}=${x.val}`)
+      const x = tv[qhead++]!, os = occByCode[2 * x.id + (x.val ? 1 : 0)]
       if (!os) continue
-      for (const ci of os) {
-        const c = clauses[ci]!
-        let open: string | undefined, nOpen = 0, dead = false
-        for (const [w, p] of c.lits) {
-          const y = vars.get(w)!
-          if (y.val === undefined) { nOpen++; open = w; if (nOpen > 1) break } else if (y.val !== p) { dead = true; break }
+      for (let oi = 0; oi < os.length; oi++) {
+        const ci = os[oi]!, c = clauses[ci]!, vs = c.vs!, ps = c.ps!
+        let openX: Var | undefined, openP = false, nOpen = 0, dead = false
+        for (let k = 0; k < vs.length; k++) {
+          const y = vs[k]!, v = y.val
+          if (v === undefined) { if (++nOpen > 1) break; openX = y; openP = ps[k]! }
+          else if (v !== ps[k]!) { dead = true; break }
         }
         if (dead || nOpen > 1) continue
         if (nOpen === 0) return ci
-        assign(open!, !c.lits.get(open!)!, ci)
+        assignKernel(openX!, !openP, ci)
       }
     }
     return undefined
@@ -674,25 +949,88 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
           if (clausal) { const x = pickOpen(); return x ? [x] : [] }
           // (each list's forms' variables kept with the list, the same array while it stands)
           const g = ++candGen, keep: Var[] = []
-          const take = (lins: Lin[]) => {
+          const takeLins = (lins: Lin[]) => {
+            const len = lins.length
+            if (!len) return
             let rs = listRecs.get(lins)
-            const use=(r:ReturnType<typeof recOf>)=>{if(r.seen===g)return;r.seen=g;if(r.x&&r.x.val===undefined)keep.push(r.x)}
-            if(!completeWorkProfile.enabled){
-              if(!rs)listRecs.set(lins,(rs=lins.map(recOf)))
-              costs.scan+=rs.length;for(const r of rs)use(r)
-            }else if(rs){
-              for(const r of rs){startWork('scan',1,'cached candidate scan');use(r)}
-            }else{
-              rs=[]
-              for(const lin of lins){startWork('scan',1,'candidate scan');const r=recOf(lin);rs.push(r);use(r)}
-              listRecs.set(lins,rs)
+            if (!completeWorkProfile.enabled) {
+              if (!rs) {
+                rs = new Array<Rec>(len)
+                for (let k = 0; k < len; k++) rs[k] = recOf(lins[k]!)
+                listRecs.set(lins, rs)
+              }
+              costs.scan += len
+              for (let k = 0; k < len; k++) {
+                const r = rs[k]!
+                if (r.seen === g) continue
+                r.seen = g
+                if (r.x && r.x.val === undefined) keep.push(r.x)
+              }
+            } else if (rs) {
+              for (let k = 0; k < len; k++) {
+                startWork('scan', 1, 'cached candidate scan')
+                const r = rs[k]!
+                if (r.seen === g) continue
+                r.seen = g
+                if (r.x && r.x.val === undefined) keep.push(r.x)
+              }
+            } else {
+              rs = new Array<Rec>(len)
+              for (let k = 0; k < len; k++) {
+                startWork('scan', 1, 'candidate scan')
+                const r = recOf(lins[k]!)
+                rs[k] = r
+                if (r.seen === g) continue
+                r.seen = g
+                if (r.x && r.x.val === undefined) keep.push(r.x)
+              }
+              listRecs.set(lins, rs)
             }
           }
-          take(unitAtoms(goal))
-          if (last >= 0) take(reader.openList(last))
-          for (let i = 0; i < last; i++) if (near[i]) take(reader.openList(i))
-          for (let i = 0; i < last; i++) if (!near[i]) take(reader.openList(i))
-          if (reader.hasCells()) take(openCellsLive())
+          takeLins(unitAtoms(goal))
+          if (hypOrderLast !== last) syncHypOrder()
+          for (let hi = 0; hi < hypOrder.length; hi++) {
+            const lins = reader.openList(hypOrder[hi]!)
+            if (lins.length) takeLins(lins)
+          }
+          if (reader.cellsChanged !== cellsSynced || dirtyPairVars.length > 0 || skipAt !== pairedKeys.skip) syncOpenCells()
+          let openCellsCount = 0
+          if (reader.hasCells()) {
+            openCellsCount = constOpenCount + nonConstOpenCount
+            if (!completeWorkProfile.enabled) {
+              costs.scan += openCellsCount
+              for (let mi = 0; mi < maps.length; mi++) {
+                const m = maps[mi]!
+                if (m.openCount === 0) continue
+                for (let u = m.head; u !== undefined; u = u.next) {
+                  if (u.openCount === 0) continue
+                  const rs = u.openRecs
+                  for (let k = 0; k < rs.length; k++) {
+                    const r = rs[k]!
+                    if (r.seen === g) continue
+                    r.seen = g
+                    keep.push(r.x!)
+                  }
+                }
+              }
+            } else {
+              for (let mi = 0; mi < maps.length; mi++) {
+                for (let u = maps[mi]!.head; u !== undefined; u = u.next) {
+                  for (let p = u.rowHead; p !== undefined; p = p.rNext) {
+                    if (!p.active || p.state === 0) continue
+                    startWork('scan', 1, 'candidate scan')
+                    if (p.isConst) continue
+                    const r = p.state === 1 ? p.rd! : p.rn!
+                    if (r.seen === g) continue
+                    r.seen = g
+                    keep.push(r.x!)
+                  }
+                }
+              }
+            }
+          }
+          if (verify || cdclCandHook.verify) verifyOpenCells()
+          if (cdclCandHook.on) cdclCandHook.on(keep.map(x => x.name), openCellsCount)
           return keep
         }, ms => { st.orderMs += ms })
         const open = cands.length > 0

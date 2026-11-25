@@ -45,8 +45,8 @@ const R0: R = {w: none, pos: -1, fin: true}, R1: R = {w: none, pos: -1, fin: fal
 const unfin = (r: R): R => (r.fin ? {w: r.w, pos: r.pos, fin: false} : r)
 const both = (a: R, b: R): R => ({w: join(a.w, b.w), pos: Math.max(a.pos, b.pos), fin: a.fin && b.fin})
 type Kept = {pos: number, stamp: number, node: number}
-type TV = R & Kept & {t: boolean | undefined}
-type LV = R & Kept & {lin: Lin | undefined}
+type TV = R & Kept & {t: boolean | undefined, kid: number}
+type LV = R & Kept & {lin: Lin | undefined, kid: number}
 type FV = Kept & {rows: Row[], fin: boolean}
 export type Row = {lin: Lin, w: W, label: ''}
 
@@ -86,9 +86,10 @@ function same<T>(site: number, owner: object, a: unknown, b: unknown, c: unknown
 export const keepClean = env.GDP_READER_CLEAN !== '0'
 // The key of a part of the live rows (`sync`): a hypothesis' facts (0, its index), a term column's rows (1, the column's
 // name id), a pair of cells' (2, their name ids), a hypothesis' part's facts (3, its index and the part's).
-class Seg { constructor(readonly kind: number, readonly i: number, readonly j = -1) {} }
-type Finding = {key: object}
+class Seg { cached?: Row[]; constructor(readonly kind: number, readonly i: number, readonly j = -1, readonly kid = 0) {} }
+type EdgeSet = number[] | Map<number, number>
 export class Reader {
+  private static readonly emptyLins: Lin[] = []
   private node = 0
   private share = shareTerms()
   private natRows = new Map<string, Row>()
@@ -101,61 +102,110 @@ export class Reader {
   constructor(readonly goal: Goal, readonly trail: Trail) {}
   // A new node: values with an open read are found again, unless nothing they read has changed.
   begin() { this.node++ }
-  // The reads: a value's key (its term, condition, or a hypothesis' facts or open atoms) → the keys of the values that
-  // read it; an atom's name → the keys of the values that read it. A clean key's value stands.
-  private up = new Map<object, Map<object, Finding>>()
-  private byAtom = new Map<string, Map<object, Finding>>()
-  // (each key's latest finding: a read is an edge to a finding, and one to a finding not its key's latest is no read
-  // any more, dropped when a change walks past it)
-  private found = new Map<object, Finding>()
-  private lastUp = new WeakMap<object, Finding>()
-  private clean = new Set<object>()
+  // The reads: a value's integer key id (term, condition, facts, seg, or open list) → the reader ids that read it;
+  // an atom's name → the reader ids that read it. Small edge sets stay flat order-preserving pairs [k, gen, ...],
+  // promoting to Map<number, number> past 16 entries (identical iteration order and costs.edges to Map).
+  private up: (EdgeSet | undefined)[] = []
+  private byAtom = new Map<string, EdgeSet>()
+  // (each key's latest finding generation: a read is an edge to a generation, and one not matching foundGen[k] is stale)
+  private foundGen: number[] = []
+  private lastUpGen: number[] = []
+  private clean: number[] = []
+  private keySeg: (Seg | undefined)[] = []
+  private touchSeen: number[] = []
+  private touchTodo: number[] = []
+  private touchStamp = 0
   private factKeys: Seg[] = []
-  private openKeys: object[] = []
-  private finding: Finding | undefined
-  private read(key: object) {
-    const f = this.finding
-    if (!f || this.lastUp.get(key) === f) return
-    this.lastUp.set(key, f)
-    let s = this.up.get(key)
-    if (!s) this.up.set(key, (s = new Map()))
-    s.set(f.key, f)
+  private openIds: number[] = []
+  private findingKid = -1
+  private findingGen = 0
+  private findingCur = 0
+  private allocKey(seg?: Seg): number {
+    const kid = this.clean.length
+    this.clean.push(0); this.foundGen.push(0); this.lastUpGen.push(0)
+    this.up.push(undefined); this.keySeg.push(seg); this.touchSeen.push(0)
+    return kid
+  }
+  private newSeg(kind: number, i: number, j = -1): Seg {
+    const kid = this.allocKey()
+    const seg = new Seg(kind, i, j, kid)
+    this.keySeg[kid] = seg
+    return seg
+  }
+  private addEdge(u: EdgeSet | undefined, fk: number, fg: number): EdgeSet {
+    if (!u) return [fk, fg]
+    if (Array.isArray(u)) {
+      const len = u.length
+      for (let i = 0; i < len; i += 2) if (u[i] === fk) { u[i + 1] = fg; return u }
+      if (len < 32) { u.push(fk, fg); return u }
+      const m = new Map<number, number>()
+      for (let i = 0; i < len; i += 2) m.set(u[i]!, u[i + 1]!)
+      m.set(fk, fg)
+      return m
+    }
+    u.set(fk, fg)
+    return u
+  }
+  private readId(kid: number) {
+    const fg = this.findingCur
+    if (!fg || this.lastUpGen[kid] === fg) return
+    this.lastUpGen[kid] = fg
+    const u = this.up[kid], next = this.addEdge(u, this.findingKid, fg)
+    if (next !== u) this.up[kid] = next
   }
   private readAtom(name: string) {
-    const f = this.finding
-    if (!f) return
-    let s = this.byAtom.get(name)
-    if (!s) this.byAtom.set(name, (s = new Map()))
-    s.set(f.key, f)
+    const fg = this.findingCur
+    if (!fg) return
+    const u = this.byAtom.get(name), next = this.addEdge(u, this.findingKid, fg)
+    if (next !== u) this.byAtom.set(name, next)
   }
-  private within<T>(key: object, f: () => T): T {
+  private withinId<T>(kid: number, f: () => T): T {
     if (completeWorkProfile.enabled) startWork('values', 1, 'reader value')
-    const was = this.finding, now = {key}
+    const wasKid = this.findingKid, wasCur = this.findingCur, now = ++this.findingGen
     if (!completeWorkProfile.enabled) costs.values++
-    this.found.set(key, now)
-    this.finding = now
-    try { return f() } finally { this.finding = was }
+    this.foundGen[kid] = now
+    this.findingKid = kid; this.findingCur = now
+    try { return f() } finally { this.findingKid = wasKid; this.findingCur = wasCur }
   }
   // The trail changed at this atom (decided, or taken back): every value that read it, and every reader of those, all
   // the way up (a value kept as final reads below it values that are not clean).
   touch(name: string) {
-    const todo: object[] = [], seen = new Set<object>(), found = this.found
-    const walk = (edges: Map<object, Finding> | undefined) => {
-      if (edges) { if (!completeWorkProfile.enabled) costs.edges += edges.size; for (const [k, f] of edges) { if (completeWorkProfile.enabled) startWork('edges', 1, 'reader dependency'); if (found.get(k) === f) todo.push(k); else edges.delete(k) } }
+    const todo = this.touchTodo, seen = this.touchSeen, foundGen = this.foundGen, stamp = ++this.touchStamp
+    todo.length = 0
+    const walk = (edges: EdgeSet | undefined) => {
+      if (!edges) return
+      if (Array.isArray(edges)) {
+        const len = edges.length
+        if (!completeWorkProfile.enabled) costs.edges += len >> 1
+        let w = 0
+        for (let i = 0; i < len; i += 2) {
+          if (completeWorkProfile.enabled) startWork('edges', 1, 'reader dependency')
+          const k = edges[i]!, fg = edges[i + 1]!
+          if (foundGen[k] === fg) { todo.push(k); edges[w++] = k; edges[w++] = fg }
+        }
+        edges.length = w
+      } else {
+        if (!completeWorkProfile.enabled) costs.edges += edges.size
+        for (const [k, fg] of edges) {
+          if (completeWorkProfile.enabled) startWork('edges', 1, 'reader dependency')
+          if (foundGen[k] === fg) todo.push(k); else edges.delete(k)
+        }
+      }
     }
     walk(this.byAtom.get(name))
     while (todo.length) {
-      const key = todo.pop()!
-      if (seen.has(key)) continue
-      seen.add(key)
-      this.clean.delete(key)
-      if (key instanceof Seg && this.syncing) this.dirty.add(key)
-      walk(this.up.get(key))
+      const kid = todo.pop()!
+      if (seen[kid] === stamp) continue
+      seen[kid] = stamp
+      this.clean[kid] = 0
+      const seg = this.keySeg[kid]
+      if (seg && this.syncing) this.dirty.add(seg)
+      walk(this.up[kid])
     }
   }
-  private ok(x: Kept & {fin: boolean}, key: object): boolean {
-    if ((keepClean && this.clean.has(key)) || x.node === this.node) return true
-    if (x.fin && (x.pos < 0 || (x.pos < this.trail.size() && this.trail.stamp(x.pos) === x.stamp))) { this.clean.add(key); return true }
+  private okId(x: Kept & {fin: boolean}, kid: number): boolean {
+    if ((keepClean && this.clean[kid] === 1) || x.node === this.node) return true
+    if (x.fin && (x.pos < 0 || (x.pos < this.trail.size() && this.trail.stamp(x.pos) === x.stamp))) { this.clean[kid] = 1; return true }
     return false
   }
   private units = new Map<string, W>()
@@ -178,13 +228,18 @@ export class Reader {
   }
   linear(e: E): LV {
     if (completeWorkProfile.enabled) checkWorkEndpoint('reader expression')
-    e = this.share(e)
-    this.read(e)
-    const had = this.ls.get(e)
-    if (had && this.ok(had, e)) return had
-    return this.within(e, () => this.linear0(e))
+    let had = this.ls.get(e)
+    if (!had) { e = this.share(e); had = this.ls.get(e) }
+    if (had) {
+      this.readId(had.kid)
+      if (this.okId(had, had.kid)) return had
+      return this.withinId(had.kid, () => this.linear0(e, had.kid))
+    }
+    const kid = this.allocKey()
+    this.readId(kid)
+    return this.withinId(kid, () => this.linear0(e, kid))
   }
-  private linear0(e: E): LV {
+  private linear0(e: E, kid: number): LV {
     let lin: Lin | undefined, r: R = R0
     switch (e.op) {
       case 'var': lin = e.name === '1' || /[*[\],:⟦⟨⟩|]/.test(e.name) ? undefined : same(0, e, 0, 0, 0, () => v(e.name)); break
@@ -227,9 +282,9 @@ export class Reader {
     // even if later arithmetic would cancel it back into the safe range.
     if (lin && !everyLinearCell(lin, (_key, coefficient) => Number.isSafeInteger(coefficient), 'reader linear safety')) lin = undefined
     // (an open value's reason is what its decided parts need: only the column's own value is open)
-    const out: LV = {lin, w: r.w, fin: r.fin, pos: r.pos, stamp: r.pos < 0 ? 0 : this.trail.stamp(r.pos), node: this.node}
+    const out: LV = {lin, w: r.w, fin: r.fin, pos: r.pos, stamp: r.pos < 0 ? 0 : this.trail.stamp(r.pos), node: this.node, kid}
     this.ls.set(e, out)
-    this.clean.add(e)
+    this.clean[kid] = 1
     return out
   }
   // kernel.ts's keyParts: a tuple's parts' forms (proj 1 of one its rest, two or more), with their reason.
@@ -257,13 +312,18 @@ export class Reader {
   }
   truth(c: C): TV {
     if (completeWorkProfile.enabled) checkWorkEndpoint('reader condition')
-    c = this.share(c)
-    this.read(c)
-    const had = this.ts.get(c)
-    if (had && this.ok(had, c)) return had
-    return this.within(c, () => this.truth0(c))
+    let had = this.ts.get(c)
+    if (!had) { c = this.share(c); had = this.ts.get(c) }
+    if (had) {
+      this.readId(had.kid)
+      if (this.okId(had, had.kid)) return had
+      return this.withinId(had.kid, () => this.truth0(c, had.kid))
+    }
+    const kid = this.allocKey()
+    this.readId(kid)
+    return this.withinId(kid, () => this.truth0(c, kid))
   }
-  private truth0(c: C): TV {
+  private truth0(c: C, kid: number): TV {
     let t: boolean | undefined, r: R
     switch (c.op) {
       case 'flag': throw new Error('flags are inlined before the kernel sees them')
@@ -295,9 +355,9 @@ export class Reader {
     }
     // Final: decided, and every term its reason reads final too (a term column's atom on the trail reads differently
     // once the column's choice is decided, so a value through an open term is found again at each node).
-    const out: TV = {t, w: r.w, fin: t !== undefined && r.fin, pos: r.pos, stamp: r.pos < 0 ? 0 : this.trail.stamp(r.pos), node: this.node}
+    const out: TV = {t, w: r.w, fin: t !== undefined && r.fin, pos: r.pos, stamp: r.pos < 0 ? 0 : this.trail.stamp(r.pos), node: this.node, kid}
     this.ts.set(c, out)
-    this.clean.add(c)
+    this.clean[kid] = 1
     return out
   }
   // kernel.ts's facts, each row with its reason; final when nothing it read is open.
@@ -346,47 +406,47 @@ export class Reader {
   // (a hypothesis' facts are its parts': each conjunct's, kept as a value is, so a change finds again only the parts
   // that read it)
   facts(i: number): FV {
-    const key = (this.factKeys[i] ??= new Seg(0, i))
-    this.read(key)
+    const key = (this.factKeys[i] ??= this.newSeg(0, i))
+    this.readId(key.kid)
     const had = this.fs[i]
-    if (had && this.ok(had, key)) return had
-    return this.within(key, () => {
+    if (had && this.okId(had, key.kid)) return had
+    return this.withinId(key.kid, () => {
       const parts = this.parts(i)
       let rows: Row[] = [], pos = -1, fin = true
       if (parts.length === 1) { const f = this.part(parts[0]!); rows = f.rows; pos = f.pos; fin = f.fin }
       else for (const p of parts) { const f = this.part(p); for (const r of f.rows) rows.push(r); if (f.pos > pos) pos = f.pos; fin &&= f.fin }
       const out: FV = {rows, fin, pos, stamp: pos < 0 ? 0 : this.trail.stamp(pos), node: this.node}
       this.fs[i] = out
-      this.clean.add(key)
+      this.clean[key.kid] = 1
       return out
     })
   }
   // Whether a hypothesis' facts are final (each part's).
   private factsFin(i: number): boolean { for (const p of this.parts(i)) if (!this.part(p).fin) return false; return true }
   // A hypothesis' conjuncts (a conjunction's parts, a negated disjunction's, flattened), each with its sign.
-  private partsOf: {c: C, positive: boolean, key: Seg}[][] = []
-  private ps = new Map<Seg, FV>()
-  private parts(i: number): {c: C, positive: boolean, key: Seg}[] {
+  private partsOf: {c: C, positive: boolean, key: Seg, fv?: FV}[][] = []
+  private parts(i: number): {c: C, positive: boolean, key: Seg, fv?: FV}[] {
     let out = this.partsOf[i]
     if (out) return out
-    const mine: {c: C, positive: boolean, key: Seg}[] = []
+    const mine: {c: C, positive: boolean, key: Seg, fv?: FV}[] = []
     const flat = (c: C, positive: boolean): void => {
       if (c.op === 'not') return flat(c.x, !positive)
       if ((c.op === 'and' && positive) || (c.op === 'or' && !positive)) { for (const y of c.xs) flat(y, positive); return }
-      mine.push({c, positive, key: new Seg(3, i, mine.length)})
+      mine.push({c, positive, key: this.newSeg(3, i, mine.length)})
     }
     flat(this.goal.hyps[i]!, true)
     return (this.partsOf[i] = out = mine)
   }
-  private part(p: {c: C, positive: boolean, key: Seg}): FV {
-    this.read(p.key)
-    const had = this.ps.get(p.key)
-    if (had && this.ok(had, p.key)) return had
-    return this.within(p.key, () => {
+  private part(p: {c: C, positive: boolean, key: Seg, fv?: FV}): FV {
+    const kid = p.key.kid
+    this.readId(kid)
+    const had = p.fv
+    if (had && this.okId(had, kid)) return had
+    return this.withinId(kid, () => {
       const rows: Row[] = [], r = this.factsOf(p.c, p.positive, rows)
       const out: FV = {rows, fin: r.fin, pos: r.pos, stamp: r.pos < 0 ? 0 : this.trail.stamp(r.pos), node: this.node}
-      this.ps.set(p.key, out)
-      this.clean.add(p.key)
+      p.fv = out
+      this.clean[kid] = 1
       return out
     })
   }
@@ -529,7 +589,6 @@ export class Reader {
   // The hypothesis a live row came from (undefined for the trail's atoms, the naturals and the term columns' rows).
   srcOf(r: Row): number | undefined { return this.src.get(r) }
   private inSeg = new Map<Seg, Row[]>()
-  private cached = new Map<Seg, Row[]>()
   private termKeys: Seg[] = []
   private pairKeys = new Map<number, Map<number, Seg>>()
   private liveCells = new Map<string, Set<number>>()
@@ -545,6 +604,11 @@ export class Reader {
   // The live cells' names by map (every cell a live row reads), and a count of their changes.
   readonly cells = new Map<string, Set<string>>()
   cellsChanged = 0
+  // Per-cell enter/leave log for kernel/cdcl.ts's incremental openCellsLive (recorded only while trackCells is on).
+  trackCells = false
+  readonly cellOpMap: string[] = []
+  readonly cellOpName: string[] = []
+  readonly cellOpOn: number[] = []
   // (`from`: the trail's first position that may have changed since the last sync, where the caller knows it)
   sync(from = 0): void {
     if (completeWorkProfile.enabled) checkWorkEndpoint('reader sync')
@@ -598,16 +662,16 @@ export class Reader {
   }
   // A part's rows: kept while its key is clean, else found again (its reads noted, as a value's).
   private segRows(key: Seg): Row[] {
-    const had = this.cached.get(key)
-    if (had && this.clean.has(key)) return had
-    const rows = this.within(key, (): Row[] => {
+    const had = key.cached
+    if (had && this.clean[key.kid] === 1) return had
+    const rows = this.withinId(key.kid, (): Row[] => {
       if (key.kind === 1) return this.termRows(this.nameText[key.i]!)
       const p = cellOf(this.nameText[key.i]!), q = cellOf(this.nameText[key.j]!), f = this.pair(p, q), w = this.equal(f)
       if (!w) return []
       return [{lin: f.pq, w, label: ''}, {lin: f.qp, w, label: ''}]
     })
-    this.cached.set(key, rows)
-    this.clean.add(key)
+    key.cached = rows
+    this.clean[key.kid] = 1
     return rows
   }
   // (each pair's forms made once: the same objects at every node, so what is kept per form is found again)
@@ -680,13 +744,19 @@ export class Reader {
       let same = this.cells.get(c.map)
       if (!same) this.cells.set(c.map, (same = new Set()))
       same.add(name)
+      if (this.trackCells) { this.cellOpMap.push(c.map); this.cellOpName.push(name); this.cellOpOn.push(1) }
     }
-    if (this.nameKind[j] === 1) this.segOn((this.termKeys[j] ??= new Seg(1, j)))
+    if (this.nameKind[j] === 1) this.segOn((this.termKeys[j] ??= this.newSeg(1, j)))
   }
   private nameOff(j: number) {
     this.removeCopy(this.inNat[j]!, 0)
     this.inNat[j] = undefined
-    if (this.nameKind[j] === 2) { this.cellsOn--; this.cellsChanged++; this.cells.get(cellOf(this.nameText[j]!).map)!.delete(this.nameText[j]!) }
+    if (this.nameKind[j] === 2) {
+      this.cellsOn--; this.cellsChanged++
+      const name = this.nameText[j]!, map = cellOf(name).map
+      this.cells.get(map)!.delete(name)
+      if (this.trackCells) { this.cellOpMap.push(map); this.cellOpName.push(name); this.cellOpOn.push(0) }
+    }
     if (this.nameKind[j] === 1) this.segOff(this.termKeys[j]!)
   }
   private segOn(key: Seg) {
@@ -704,7 +774,7 @@ export class Reader {
     let m = this.pairKeys.get(p)
     if (!m) this.pairKeys.set(p, (m = new Map()))
     let key = m.get(q)
-    if (!key) m.set(q, (key = new Seg(2, p, q)))
+    if (!key) m.set(q, (key = this.newSeg(2, p, q)))
     return key
   }
   private cellOn(j: number) {
@@ -722,15 +792,18 @@ export class Reader {
   // prove.ts's open atoms of a hypothesis (openH), in its order; none for a hypothesis whose facts are final.
   // (the same array while it stands)
   openList(i: number): Lin[] {
-    const key = (this.openKeys[i] ??= {}), had = this.os[i]
-    if (had && ((keepClean && this.clean.has(key)) || had.node === this.node)) return had.lins
-    const lins = this.within(key, () => {
+    let kid = this.openIds[i]
+    if (kid === undefined) this.openIds[i] = kid = this.allocKey()
+    const had = this.os[i]
+    if (had && ((keepClean && this.clean[kid] === 1) || had.node === this.node)) return had.lins
+    const lins = this.withinId(kid, () => {
+      if (this.factsFin(i)) return Reader.emptyLins
       const mine: Lin[] = []
-      if (!this.factsFin(i)) this.openH(this.goal.hyps[i]!, mine, true)
-      return mine
+      this.openH(this.goal.hyps[i]!, mine, true)
+      return mine.length ? mine : Reader.emptyLins
     })
-    this.os[i] = {lins, node: this.node}
-    this.clean.add(key)
+    if (had) { had.lins = lins; had.node = this.node } else this.os[i] = {lins, node: this.node}
+    this.clean[kid] = 1
     return lins
   }
   private openE(e: E, out: Lin[]): void {
