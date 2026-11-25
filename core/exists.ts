@@ -424,6 +424,7 @@ function smallRequests(m: Machine, p: Env, b: number): {reqs: Request[], groups:
       const k = c.key
       for (const part of topConjuncts(c.c)) {
         const ds = part.op === 'or' ? part.xs : []
+        if (ds.length !== 2) continue
         const hasGuard = ds.some(d => d.op === 'not' && ((d.x.op === '<=' && d.x.a.op === 'const' && d.x.a.value === 1 && d.x.b.op === 'get' && d.x.b.map === mp && d.x.b.key.op === 'var' && d.x.b.key.name === k)
           || (d.x.op === '<' && d.x.a.op === 'const' && d.x.a.value === 0 && d.x.b.op === 'get' && d.x.b.map === mp && d.x.b.key.op === 'var' && d.x.b.key.name === k)
           || (d.x.op === '=' && ((d.x.a.op === 'get' && d.x.a.map === mp && d.x.a.key.op === 'var' && d.x.a.key.name === k && d.x.b.op === 'const' && d.x.b.value === 1)

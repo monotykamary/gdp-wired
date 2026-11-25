@@ -2606,19 +2606,12 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       const add = (mp: string, e: E) => { if (!limits.has(mp)) limits.set(mp, []); limits.get(mp)!.push(e) }
       const namesInE = (e: E): string[] => { const out: string[] = []; walk(e, o => { if (o.op === 'var') out.push(o.name as string) }); return out }
       const paramOnly = (e: E) => namesInE(e).every(v2 => m.params.includes(v2))
-      for (const d of Object.values(m.counts ?? {})) {
-        if (!paramOnly(d.below)) continue
-        for (const mp of this.spec.carried ?? []) {
-          let readsAtKey = false
-          walk(d.body, o => { if (o.op === 'get' && o.map === mp && o.key && (o.key as E).op === 'var' && ((o.key as E) as {name: string}).name === d.key) readsAtKey = true })
-          if (readsAtKey) add(mp, d.below)
-        }
-      }
       const checkAll = (c: C) => {
         if (c.op !== 'all' || c.keys?.length) return
         const k = c.key
         for (const part of conjuncts(c.c)) {
           const ds = part.op === 'or' ? part.xs : []
+          if (ds.length !== 2) continue
           for (const mp of this.spec.carried ?? []) {
             const hasGuard = ds.some(d => d.op === 'not' && ((d.x.op === '<=' && d.x.a.op === 'const' && d.x.a.value === 1 && d.x.b.op === 'get' && d.x.b.map === mp && d.x.b.key.op === 'var' && d.x.b.key.name === k)
               || (d.x.op === '<' && d.x.a.op === 'const' && d.x.a.value === 0 && d.x.b.op === 'get' && d.x.b.map === mp && d.x.b.key.op === 'var' && d.x.b.key.name === k)

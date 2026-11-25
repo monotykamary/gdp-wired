@@ -77,15 +77,46 @@ test('selectorReads collapses inactive inputs and 0/1 map no-op writes', () => {
   expect([...sr!.readsFor(1)].sort()).toEqual(['Q', 'i', 'op'])
 })
 
-test('Rule.randomInput bounds carried map keys by count and assume param limits', () => {
-  const r = majorityRule(false)
+test('Rule.randomInput bounds carried map keys by unconditional assume limits only', () => {
+  const assumed = rule('assumed carried bound')
+    .params({size: nat})
+    .inputs({i: nat}).carries('Q')
+    .assume(({size, Q}) => everyKey(k => Q.at(k).atMost(1).and(Q.has(k).implies(k.lt(size)))))
+    .state({seen: 0})
+    .step(({i, Q, seen}) => ({seen: when(Q.has(i), 1, seen)}))
   const rand = seeded(17)
   for (let t = 0; t < 40; t++) {
-    const req = r.randomInput(rand, 8, {size: 2})
+    const req = assumed.randomInput(rand, 8, {size: 2})
     const q = req.Q as Map<number, number>
     expect(q).toBeInstanceOf(Map)
     for (const key of q.keys()) expect(key).toBeLessThan(2)
   }
+})
+
+test('Rule.randomInput preserves keys >= count.below when carried map is read outside the count', () => {
+  // Count only sums keys < size, while step reads Q at key `idx` (which may be >= size) without an assume cap.
+  const r = rule('carried read outside count')
+    .params({size: nat})
+    .inputs({idx: nat}).carries('Q')
+    .counts({members: ({Q, size}) => ({below: size, body: (_x, k) => Q.has(k)})})
+    .state({hitOutside: 0})
+    .step(({size, idx, Q, members, hitOutside}) => ({
+      hitOutside: when(idx.atLeast(size).and(Q.has(idx), members.at(0).atLeast(0)), 1, hitOutside),
+    }))
+  const rand = seeded(23)
+  let sawHighKey = false
+  for (let t = 0; t < 40; t++) {
+    const req = r.randomInput(rand, 6, {size: 2})
+    const q = req.Q as Map<number, number>
+    for (const key of q.keys()) if (key >= 2) sawHighKey = true
+  }
+  expect(sawHighKey).toBe(true)
+
+  // Public refuteByRuns / proveRule must still catch a bug triggered only by carried-map keys >= count.below.
+  const law = r.law('never hit outside count bound', ({hitOutside}) => hitOutside.eq(0))
+  const v = proveRule(r, [law], {search: {ms: 5000}})
+  expect(v.proven).toBe(false)
+  expect(v.run).toBeDefined()
 })
 
 test('inferLaws early-stop catches radix-key uninterpreted-fn mutant and leaves intact control unrefuted', () => {
