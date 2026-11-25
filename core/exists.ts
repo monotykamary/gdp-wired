@@ -248,7 +248,7 @@ export function selectorReads(m: Machine, assumeConjuncts: readonly C[] = topCon
           const r = e.op === 'add' ? a + b : e.op === 'sub' ? Math.max(0, a - b) : e.op === 'min' ? Math.min(a, b) : e.op === 'max' ? Math.max(a, b) : a * b
           return Number.isSafeInteger(r) && r >= 0 ? r : undefined
         }
-        default: return undefined
+        case 'get': case 'proj': case 'tup': return undefined
       }
     }
     const staticC = (c: C, bound: Set<string>, visiting: Set<string>): boolean | undefined => {
@@ -291,7 +291,7 @@ export function selectorReads(m: Machine, assumeConjuncts: readonly C[] = topCon
           for (const y of c.xs) { const sy = simpC(y, bound, visiting); if (sy === true) return true; if (sy !== false) xs.push(sy) }
           return xs.length === 0 ? false : xs.length === 1 ? xs[0]! : {op: 'or', xs}
         }
-        default: return c
+        case '<': case '<=': case '=': case 'all': case 'flag': return c
       }
     }
     const simpE = (e: E, bound: Set<string>): E => {
