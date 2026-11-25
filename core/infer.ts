@@ -1,5 +1,5 @@
 import {retainFrom} from './proof-output.ts'
-import {searchNow as countedSearchNow, checkWorkEndpoint} from './wall.ts'
+import {searchNow as countedSearchNow, WallExpired, checkWorkEndpoint} from './wall.ts'
 import {inWorkScope} from '../kernel/prove.ts'
 import {type SearchContext, type SearchTermination, completedSearch, completedSourceRefusal, searchContext, stoppedSearch} from './search-termination.ts'
 import {WatchdogExpired, checkWatchdog, withSearchWatchdog} from './search-watchdog.ts'
@@ -43,14 +43,14 @@ import {bitIntersection, bitIntersects} from './bitsets.ts'
 import {samplePredicates, sampleStateText} from './sample-cache.ts'
 import {sampleStep} from './sample-step.ts'
 import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, compileC, compileE, cpair, fastStep, divisorsIn, evalC, evalE, get, hasFinite, interpret, machineTerms, fnValue, modName, n, not, partsOf as tupleOf, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
-import {type StepLaw, type Verdict, type proveRule, bool, refuteModelByRuns, refusedSumCover, verdictOf} from './dsl.ts'
+import {type StepLaw, type Verdict, type proveRule, bool, refuteModelByRuns, refusedSumCover, replayVerifiedRefutation, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
 import {type WorkAmount} from './work-amount.ts'
 import {BudgetExpired, checkBudget, clock, counted, fullWork, searchWork, decideLaw, decideNote, machineKey, memoHits, withBudget, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall, withSearchWork} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, eachParts, obligations, plainOf, stepLawObligations, substC, tuple, tupleParts} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
-import {showC, showE} from './exists.ts'
+import {holdsAt as holdsAtSmall, selectorReads, showC, showE} from './exists.ts'
 import {REFUTED, type Refuted, growCdcl} from '../kernel/cdcl.ts'
 import {eprMeter, withEprCap} from '../kernel/epr.ts'
 
@@ -85,6 +85,8 @@ export type InferOptions = {
   cubes?: number // the engine's minimal ∀ cubes of at most this many literals alone, as found laws, nothing proven (core/counts.ts's)
   rows?: {params: Record<string, number>, st: State}[] // more reachable states the engine's cubes are read off, beside its small instance's (core/counts.ts's)
   wall?: number // the wall stop at this countedSearchNow() in place of `ms` past the start: a caller's own end, so a slow machine reads the same counted budget, later (core/counts.ts's)
+  refuteLaws?: Law[] // caller laws checked during small-instance BFS for replay-verified early refutation
+  refute?: (cand: {law: Law, params: Record<string, number>, state: State, before?: State, trace: Request[]}) => Verdict | undefined
 }
 // What was found: each law as a Law (pass it with the rule's laws), how it reads, and for a rule, the builder call
 // that states it (`r.law(...)`), to paste.
@@ -841,6 +843,9 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     if (!termination && now() >= until) termination = {kind: timed && stopDomain === 'real' ? 'wall-deadline' : 'work-exhausted', phase: 'inference allowance', scope: 'stage'}
     return {samples, candidates, alive, proofs, ms: Math.round(countedSearchNow() - t0), work: Math.max(0, fullWork() - work0), stopped: stopped || termination !== undefined, ...(termination ? {termination} : {})}
   }
+  let earlyRefutation: Verdict | undefined
+  const refuteLaws = (opts.refuteLaws ?? laws).filter(l => !l.some?.length)
+  const tryEarlyRefute = opts.cubes || !refuteLaws.length ? undefined : (opts.refute ?? (baseRule ? cand => replayVerifiedRefutation(baseRule, laws, stepLaws, cand) : undefined))
   // The old public prover's first pass also sampled reachable counterexamples.
   // Keep that negative model evidence without invoking a source finalizer.
   const refuted = !opts.first && !opts.cubes && rule ? refuteModelByRuns(rule, laws, stepLaws, baseRule) : undefined
@@ -2381,6 +2386,42 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
       // (on a rule of relations a key below a param is bounded, not ordered: its sort's size is the param's, below)
       const bounded = (e: E) => !!Object.keys(m.relations ?? {}).length && e.op === 'var' && m.params.includes(e.name)
       walk([m.step, m.assume], o => { const c = o as unknown as C; if (c.op === '<' || c.op === '<=' || c.op === '=') relate(node(c.a), node(c.b), c.op !== '=' && !bounded(c.a) && !bounded(c.b)) })
+      // A function value indexing a map (plain, tuple, or radix key) shares that key slot's sort even when no explicit
+      // comparison equates it (e.g. Pending[pk(idn(n), n)] when a guard comparing idn(n) with m is absent).
+      const radixTerms = (e: E, k: number, out2: {term: E, coef: number}[]): boolean => {
+        if (e.op === 'const') return true
+        if (e.op === 'var' || (e.op === 'get' && !!m.fns?.[e.map])) { out2.push({term: e, coef: k}); return true }
+        if (e.op === 'mul') return radixTerms(e.a, k * e.k, out2)
+        if (e.op === 'add') return radixTerms(e.a, k, out2) && radixTerms(e.b, k, out2)
+        return false
+      }
+      const relateKeyFns = (mp: string, key: E) => {
+        if (key.op === 'get' && m.fns?.[key.map] && ks.plainRead.includes(mp)) { relate(`V:${key.map}`, ks.find(`M:${mp}`)); return }
+        if (key.op === 'tup' && ks.tupled.has(mp)) { tupleParts(key).forEach((p2, i) => { if (p2.op === 'get' && m.fns?.[p2.map]) relate(`V:${p2.map}`, ks.find(`${mp}:${i}`)) }); return }
+        if (pairing?.n) {
+          const ts: {term: E, coef: number}[] = []
+          if (!radixTerms(key, 1, ts) || ts.length < 2) return
+          ts.sort((a, b) => b.coef - a.coef)
+          if (!ts.every((t, i) => t.coef === pairing.n ** (ts.length - 1 - i))) return
+          const ar = ks.arity.get(mp)
+          ts.forEach((t, i) => {
+            if (t.term.op !== 'get' || !m.fns?.[t.term.map]) return
+            const slot = ar === ts.length ? ks.find(`${mp}:${i}`) : ts.length === 2 && ks.composedMaps.includes(mp) ? ks.find(i === 0 ? 'hi' : 'lo') : undefined
+            if (slot) relate(`V:${t.term.map}`, slot)
+          })
+        }
+      }
+      walk([m.step, m.assume], o => { if (o.op === 'get' && o.map && (o.map as string) in (m.maps ?? {})) relateKeyFns(o.map as string, o.key as E) })
+      for (const [mp, w] of Object.entries(m.step.maps ?? {})) {
+        if ('each' in w) walk(w.value, o => {
+          if (o.op === '=') {
+            const [a, b] = [o.a as E, o.b as E]
+            if (a.op === 'var' && a.name === w.each) relateKeyFns(mp, b)
+            else if (b.op === 'var' && b.name === w.each) relateKeyFns(mp, a)
+          }
+        })
+        else relateKeyFns(mp, w.key)
+      }
       // (a param that bounds a sort's keys, k < p, is that sort's size in the small instance; a param a key equals, a write
       // at every key at it (k = first) or a read at it, is an element of that sort, which pins it against renaming)
       const bounding = new Map<string, Set<string>>(), elementOf = new Map<string, string>()
@@ -2506,7 +2547,117 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
         }
         const stepOf = (params: Env, st: State, input: Request) => stepIn(tables[0]!, params, st, input)
         const others: Sample[] = []
+        const parent = tryEarlyRefute ? new WeakMap<State, [State, Request]>() : undefined
+        const pathOf = (st: State): Request[] | undefined => {
+          if (!parent) return undefined
+          const out2: Request[] = [], seenSt = new Set<State>()
+          for (let at = st; ;) {
+            if (seenSt.has(at)) return undefined
+            seenSt.add(at)
+            const from = parent.get(at)
+            if (!from) return out2.reverse()
+            out2.push(from[1]); at = from[0]
+          }
+        }
+        const checkInstanceState = (params: Env, st: State, bCheck: number): boolean => {
+          if (!tryEarlyRefute || earlyRefutation) return !!earlyRefutation
+          for (const law of refuteLaws) {
+            let ok = true
+            try { ok = holdsAtSmall(m, law, params, st, bCheck) } catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired || e instanceof WatchdogExpired) throw e; continue }
+            if (ok) continue
+            const trace = pathOf(st)
+            if (!trace) continue
+            const before = parent!.get(st)?.[0]
+            const verified = tryEarlyRefute({law, params, state: st, ...(before ? {before} : {}), trace})
+            if (verified) { earlyRefutation = verified; halt = true; return true }
+          }
+          return false
+        }
+        // Tiny-param refutation probe (never alters `smallAll` or candidate cubes): explores the smallest pre-valid
+        // param valuations (values in {1, 2}) with a bounded 600-state BFS + walks so small-domain counterexamples
+        // (e.g. 2-node ring or 2-node/1-packet switch) are caught in milliseconds without blowing up the main instance.
+        if (base && tryEarlyRefute && !earlyRefutation && m.params.length && !stop()) {
+          const tinyPvs = new Map<string, Env>()
+          const tinyVals = [2, 1]
+          const enumP = (idx: number, acc: Env) => {
+            if (tinyPvs.size >= 4) return
+            if (idx === m.params.length) {
+              if (pvs.has(JSON.stringify(acc))) return
+              try { if (m.pre && !evalC(m.pre, acc, {scalars: {}, maps: {}}, m)) return } catch { return }
+              tinyPvs.set(JSON.stringify(acc), {...acc})
+              return
+            }
+            const q = m.params[idx]!
+            for (const val of tinyVals) { acc[q] = val; enumP(idx + 1, acc) }
+          }
+          enumP(0, {})
+          const tinyEnd = vnow() + Math.min(250, Math.max(50, (end2 - vnow()) / 8))
+          const sr = selectorReads(m)
+          for (const params of tinyPvs.values()) {
+            if (earlyRefutation || vnow() >= tinyEnd || stop()) break
+            const bCheck = Math.max(4, ...Object.values(params).filter(v2 => v2 <= 8))
+            const boundBy = (i: string) => [...bounding].find(([, v2]) => v2.has(ks.find(i)))?.[0]
+            const tinyDom = (i: string): number[] => {
+              const bParam = boundBy(i)
+              if (bParam !== undefined && (params[bParam] ?? 0) <= 4) return Array.from({length: Math.max(1, params[bParam]!)}, (_, k) => k)
+              const q = ks.find(i)
+              const fnVals = Object.keys(m.fns ?? {}).filter(f => vf(`V:${f}`) === vf(q) && ss.includes(ks.find(`F:${f}`)))
+                .flatMap(f => {
+                  const argSort = ks.find(`F:${f}`), argBound = [...bounding].find(([, v2]) => v2.has(argSort))?.[0]
+                  const n2 = argBound !== undefined ? Math.max(1, Math.min(4, params[argBound] ?? 2)) : 2
+                  return Array.from({length: n2}, (_, k) => { try { return fnValue(m.fns![f]!, k) } catch { return 0 } })
+                })
+              if (fnVals.length) return [...new Set(fnVals)]
+              const drawn2 = new Set<number>()
+              for (let t2 = 0; t2 < 40; t2++) { const inp = randomInput(params, 2, rnd); if (typeof inp[i] === 'number') drawn2.add(inp[i] as number) }
+              return drawn2.size ? [...drawn2].sort((a, b) => a - b) : [0, 1]
+            }
+            const doms2: [string, (number | Map<number, number>)[]][] = m.inputs.map(i => [i, tinyDom(i)])
+            for (const q of m.inputMaps ?? []) { const ks2 = [0, 1]; doms2.push([q, Array.from({length: 4}, (_, b2) => new Map(ks2.filter((_, j) => b2 >> j & 1).map(k => [k, 1] as [number, number])))]) }
+            let combos2: Request[] = [{}]
+            const selIdx2 = sr ? doms2.findIndex(([i]) => i === sr.selector) : -1
+            if (sr && selIdx2 >= 0) {
+              const [selName, selVals] = doms2[selIdx2]!, built: Request[] = []
+              for (const sv of selVals) {
+                if (typeof sv !== 'number') continue
+                const live = sr.readsFor(sv)
+                let part: Request[] = [{[selName]: sv}]
+                for (const [i, d] of doms2) {
+                  if (i === selName) continue
+                  const vals = live.has(i) ? d : d.slice(0, 1)
+                  part = part.flatMap(c => vals.map(v2 => ({...c, [i]: v2})))
+                  if (part.length > 512) part = Array.from({length: 512}, () => part[rnd(part.length)]!)
+                }
+                built.push(...part)
+              }
+              combos2 = built.length ? built : [{}]
+            } else {
+              for (const [i, d] of doms2) combos2 = combos2.flatMap(c => d.map(v2 => ({...c, [i]: v2})))
+            }
+            if (combos2.length > 512) combos2 = Array.from({length: 512}, () => combos2[rnd(combos2.length)]!)
+            let st0: State
+            try { st0 = run.init(params) } catch { continue }
+            const qTiny = [st0], seenTiny = new Set<string>([sampleStateText(params, st0, m.maps ?? {})])
+            if (checkInstanceState(params, st0, bCheck)) break
+            for (let qi2 = 0; !earlyRefutation && qi2 < qTiny.length && qTiny.length < 600 && vnow() < tinyEnd && !stop(); qi2++) {
+              const cur = qTiny[qi2]!
+              for (const input of combos2) {
+                if (vnow() >= tinyEnd) break
+                const next = stepOf(params, cur, input)
+                if (!next) continue
+                const tk2 = sampleStateText(params, next, m.maps ?? {})
+                if (!seenTiny.has(tk2)) {
+                  seenTiny.add(tk2); qTiny.push(next)
+                  if (parent) parent.set(next, [cur, input])
+                  if (checkInstanceState(params, next, bCheck)) break
+                }
+              }
+            }
+          }
+        }
         for (const params of pvs.values()) {
+          if (halt) break
+          const bCheck = Math.max(4, ...Object.values(params).filter(v2 => v2 <= 8), ...ss.map(s => keyDom(s).length))
           const drawn = new Map<string, Set<number>>(m.inputs.map(i => [i, new Set<number>()]))
           for (let t = 0; t < 200; t++) { const inp = randomInput(params, 2, rnd); for (const i of m.inputs) if (typeof inp[i] === 'number') drawn.get(i)!.add(inp[i] as number) }
           // (an input no template sort holds, bounded by a param (n1 < size): every value below it)
@@ -2514,7 +2665,27 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
           const doms: [string, (number | Map<number, number>)[]][] = m.inputs.map(i => [i, !ss.includes(ks.find(i)) && boundBy(i) !== undefined && (params[boundBy(i)!] ?? 0) <= 8 ? Array.from({length: params[boundBy(i)!] ?? 0}, (_, k) => k) : domOf(i, drawn.get(i)!)])
           for (const q of m.inputMaps ?? []) { const ks2 = keyDom(ks.find(`M:${q}`)); doms.push([q, Array.from({length: 2 ** ks2.length}, (_, b) => new Map(ks2.filter((_, j) => b >> j & 1).map(k => [k, 1] as [number, number])))]) }
           let combos: Request[] = [{}]
-          for (const [i, d] of doms) combos = combos.flatMap(c => d.map(v2 => ({...c, [i]: v2})))
+          const sr = selectorReads(m)
+          const selIdx = sr ? doms.findIndex(([i]) => i === sr.selector) : -1
+          if (sr && selIdx >= 0) {
+            const [selName, selVals] = doms[selIdx]!
+            const built: Request[] = []
+            for (const sv of selVals) {
+              if (typeof sv !== 'number') continue
+              const live = sr.readsFor(sv)
+              let part: Request[] = [{[selName]: sv}]
+              for (const [i, d] of doms) {
+                if (i === selName) continue
+                const vals = live.has(i) ? d : d.slice(0, 1)
+                part = part.flatMap(c => vals.map(v2 => ({...c, [i]: v2})))
+                if (part.length > combosMax * 4) part = Array.from({length: combosMax}, () => part[rnd(part.length)]!)
+              }
+              built.push(...part)
+            }
+            combos = built.length ? built : [{}]
+          } else {
+            for (const [i, d] of doms) combos = combos.flatMap(c => d.map(v2 => ({...c, [i]: v2})))
+          }
           if (combos.length > combosMax) combos = Array.from({length: combosMax}, () => combos[rnd(combos.length)]!)
           reqs.push({params, combos})
           if (base) smallReq.push({params, combos})
@@ -2523,6 +2694,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
           try { st0 = run.init(params) } catch { continue }
           const tB = vnow(), queue = [{params, st: st0}], qi = {at: 0}, bfsEnd = vnow() + (end2 - vnow()) * 0.75 / (pvs.size - reqs.length + 1)
           seen.add(keyOf3(queue[0]!)); small.push(queue[0]!)
+          if (checkInstanceState(params, st0, bCheck)) break
           if (visit && !visit(queue[0]!)) halt = true
           // (a BFS that won't finish (a quarter of its share gone, 1 s at least, and its queue still a quarter of what it
           // found): cut there, the walks half a second after; an instance it does finish is what it was)
@@ -2535,13 +2707,19 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
               const next = stepOf(params, q0.st, input)
               if (!next) continue
               const q1 = {params, st: next}, k1 = keyOf3(q1)
-              if (!seen.has(k1)) { seen.add(k1); small.push(q1); queue.push(q1); if (visit && !visit(q1)) { halt = true; break } }
+              if (!seen.has(k1)) {
+                seen.add(k1); small.push(q1); queue.push(q1)
+                if (parent) parent.set(next, [q0.st, input])
+                if (checkInstanceState(params, next, bCheck)) break
+                if (visit && !visit(q1)) { halt = true; break }
+              }
             }
           }
           if (qi.at < queue.length) cut = true
           queue.length = 0
           // (the other tables: a BFS each from the same start, within the same share)
           for (const tb of tables.slice(1)) {
+            if (halt) break
             let s0: State
             try { s0 = tb.run.init(params) } catch { continue }
             const p2 = {...params}, q2 = [{params: p2, st: s0}], q2i = {at: 0}, seen2 = new Set([keyOf3(q2[0]!)]), end3 = Math.min(end2, vnow() + (bfsEnd - tB))
@@ -2558,19 +2736,25 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
         for (let t = 0; !halt && cut && reqs.length && small.length < most && vnow() < end2; t++) {
           const from = small[Math.max(0, small.length - 1 - rnd(Math.min(small.length, 64)))]!, req = reqs.find(q => q.params === from.params)
           if (!req) break
+          const bCheck = Math.max(4, ...Object.values(from.params).filter(v2 => v2 <= 8), ...ss.map(s => keyDom(s).length))
           let at = from.st
-          for (let d = 0; d < 40 && vnow() < end2; d++) {
-            let next: State | undefined
+          for (let d = 0; !halt && d < 40 && vnow() < end2; d++) {
+            let next: State | undefined, usedInput: Request | undefined
             for (let k = 0; k < 16 && !next; k++) {
               const input = req.combos[rnd(req.combos.length)]!
               used.etries++
               const s2 = stepOf(from.params, at, input)
-              if (s2 && keyOf3({params: from.params, st: s2}) !== keyOf3({params: from.params, st: at})) next = s2
+              if (s2 && keyOf3({params: from.params, st: s2}) !== keyOf3({params: from.params, st: at})) { next = s2; usedInput = input }
             }
             if (!next) break
+            const prev = at
             at = next
             const q1 = {params: from.params, st: at}, k1 = keyOf3(q1)
-            if (!seen.has(k1)) { seen.add(k1); small.push(q1) }
+            if (!seen.has(k1)) {
+              seen.add(k1); small.push(q1)
+              if (parent && usedInput) parent.set(at, [prev, usedInput])
+              if (checkInstanceState(from.params, at, bCheck)) break
+            }
           }
         }
         opts.progress?.('join meters', {at: base ? 'small' : 'filter bfs', ...meters()})
@@ -2579,12 +2763,13 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
       }
       {
         let r0 = instance(() => 0, undefined, rand)
+        if (earlyRefutation) return []
         // (a relation no state of the small instance holds a tuple of (a start its states never reach: three nodes can't
         // all be linked in pairs): the instance one element larger in one sort, the first that fills every relation)
         const none = (r: typeof r0) => Object.entries(m.relations ?? {}).some(([mp, srts]) => srts.length > 1 && ![...r.small, ...r.others].some(q => [...(q.st.maps[mp]?.values() ?? [])].some(c => c >= 1)))
         // (the sort with the most places in the relations first)
         const placesOf2 = (q: string) => [...ks.arity.keys()].filter(mp => ks.tupled.has(mp)).reduce((k, mp) => k + Array.from({length: ks.arity.get(mp)!}, (_, i) => ks.find(`${mp}:${i}`)).filter(t => t === q).length, 0)
-        if (none(r0)) for (const s1 of [...ss].sort((a, b) => placesOf2(b) - placesOf2(a))) { if (stop()) break; const g1 = (q: string) => (q === s1 ? 1 : 0), req = smallReq.length; const r1 = instance(g1, undefined, rand); if (!none(r1)) { smallReq.splice(0, req); r0 = r1; grown = g1; break } smallReq.length = req }
+        if (none(r0)) for (const s1 of [...ss].sort((a, b) => placesOf2(b) - placesOf2(a))) { if (stop() || earlyRefutation) break; const g1 = (q: string) => (q === s1 ? 1 : 0), req = smallReq.length; const r1 = instance(g1, undefined, rand); if (earlyRefutation) return []; if (!none(r1)) { smallReq.splice(0, req); r0 = r1; grown = g1; break } smallReq.length = req }
         const own = [...r0.small, ...r0.others], most = new Map<string, number>()
         samples.unshift(...r0.small)
         for (const q of own) for (const [mp, cs] of Object.entries(q.st.maps)) for (const c of cs.values()) most.set(mp, Math.max(most.get(mp) ?? 0, c))
@@ -2847,6 +3032,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
             return read < most5 && (read < (k ? 0 : least5) || still < quiet)
           })
           opts.progress?.('join meters', {at: `filter read ${k}`, read, lastKill, bfs: r.small.length + r.others.length, ...meters()})
+          if (earlyRefutation) return []
           live = live.filter(f => !killed.has(f))
           // (no instance after one that kills nothing; GDP_POOL_STOP=0 runs them all)
           if (env.GDP_POOL_STOP !== '0' && k > 0 && !killed.size) break
@@ -2890,7 +3076,9 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
       const callerMaps = new Set(laws.flatMap(l => [...JSON.stringify(l.holds).matchAll(/"map":"([^"]+)"/g)].map(q => q[1]!)))
       const near = (f: Form) => (f.cube!.some(l => atomsIn(formOf([l])).some(i => callerMaps.has(atoms[i]!.parts[0]![0].split(AT)[2] ?? ''))) ? 0 : 1)
       // (the rounds over the data-filtered pool cut to its minimal cubes)
-      const minPool = env.GDP_POOL !== '0' ? minimal(enumerated()) : {kept: enumerated(), by: new Map<Form, Form[]>()}, made = minPool.kept
+      const enumCubes = enumerated()
+      if (earlyRefutation) return
+      const minPool = env.GDP_POOL !== '0' ? minimal(enumCubes) : {kept: enumCubes, by: new Map<Form, Form[]>()}, made = minPool.kept
       if (opts.cubes) { cubesOut = made; return }
       const tEngine = vnow()
       let cubes: Form[] = []
@@ -3622,6 +3810,10 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   // progress, minimization, trace or statistics observation can stop us. A
   // later actual work refusal still propagates; this is not budget authority.
   const captureCompleted = (): Inferred => observed.completed = retainFrom({...last, found: [...chosen.map(f => { const law = lawFor(f), text = law.name, source = sourceOf(f, text); return {law, text, ...(source ? {source} : {})} }), ...(enumProof ? enumSome : []).map(law => ({law, text: law.name}))], stats: completedStats(samples.length, forms.length, alive.length)}, [last], {kind: 'inference', original: m, laws})
+  if (earlyRefutation) {
+    const completed = observed.completed = retainFrom({...earlyRefutation, found: [], stats: completedStats(samples.length, forms.length, alive.length)}, [earlyRefutation])
+    return retainFrom({...completed, stats: stats(samples.length, forms.length, alive.length)}, [completed])
+  }
   if (enumProof) { last = enumProof; captureCompleted() }
   for (let iter = 0; iter < 300 && !enumProof && now() < until && !stop(); iter++) {
     const began = now(), wall = countedSearchNow()
