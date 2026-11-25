@@ -3,6 +3,22 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.59.1
+
+### Changed
+
+- **Faster invariant search on rules over relations (`core/infer.ts`):** rules declaring `.relations(...)` already skip
+  the convex join rounds in favor of the relational engine, but point-write and counted relational rules still ran the
+  scalar/cell neighbor Houdini pass over Cantor-paired tuple keys and built unused join views, hull spaces, and cube
+  spaces before the relational engine began. `inferLaws` now skips scalar/cell Houdini whenever `m.relations` is
+  present and skips join-only view and space setup whenever join rounds are disabled (`core/infer-relational-houdini.test.ts`).
+  - Measured on Node `v24.22.1` (same-machine alternating 10-run pairs, 5 forward + 5 reverse; zero verdict changes across
+    all 545 real-world, DuoAI, and IC3Syn intact and mutant laws): `ic3syn/lock_server` **6.5x** faster (`19.3 s -> 3.0 s`
+    median wall, `−84.5%`; `bun research/protocols/ic3syn/run.ts --only lock_server --skip broken --ms 60000`),
+    `ic3syn-mutant/firewall` **3.2x** faster (`11.1 s -> 3.5 s`, `−68.6%`), `ic3syn-mutant/client_server_ae` **1.5x**
+    faster (`12.8 s -> 8.5 s`, `−33.4%`), `ic3syn/firewall` **1.4x** faster (`8.7 s -> 6.4 s`, `−26.7%`), and **−7.9%**
+    total wall time across all 32 relational protocol rows (`519.5 s -> 478.7 s`, `−40.9 s`).
+
 ## 0.59.0
 
 ### Added
