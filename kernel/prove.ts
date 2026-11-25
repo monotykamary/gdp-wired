@@ -33,21 +33,25 @@ import {extendFunctionInstances, hasFunctionInstances} from './function-instance
 import {projected, tupleParts} from './kernel.ts'
 import {modelValueTerms} from './model-values.ts'
 import {proverRows} from './prover-rows.ts'
+import {type DagInterner, dagInterner, preSplitBySelector, preSplitOn, preSplitTerms} from './dag-split.ts'
+import {hasDagBlowup, hypAstInfo} from './reader.ts'
 import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, cellParts, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
-function openE(e: E, path: Path, out: Lin[]): void {
+// Linear-size hypotheses run the unmemoized traversal directly; shared DAGs whose unrolled size
+// blows up switch to memoized per-call traversal in O(distinct DAG nodes).
+function openEPlain(e: E, path: Path, out: Lin[]): void {
   if (completeWorkProfile.enabled) checkWorkEndpoint('open expression')
   switch (e.op) {
     case 'var': case 'const': return
-    case 'mul': return openE(e.a, path, out)
-    case 'prod': return (openE(e.a, path, out), openE(e.b, path, out))
-    case 'get': return openE(e.key, path, out)
-    case 'tup': return (openE(e.a, path, out), openE(e.b, path, out))
-    case 'proj': return openE(e.a.op === 'tup' ? (e.k === 0 ? e.a.a : e.a.b) : e.a, path, out)
-    case 'if': { const t = truth(e.c, path); if (t === undefined) openC(e.c, path, out); else openE(t ? e.then : e.else, path, out); return }
+    case 'mul': return openEPlain(e.a, path, out)
+    case 'prod': return (openEPlain(e.a, path, out), openEPlain(e.b, path, out))
+    case 'get': return openEPlain(e.key, path, out)
+    case 'tup': return (openEPlain(e.a, path, out), openEPlain(e.b, path, out))
+    case 'proj': return openEPlain(e.a.op === 'tup' ? (e.k === 0 ? e.a.a : e.a.b) : e.a, path, out)
+    case 'if': { const t = truth(e.c, path); if (t === undefined) openCPlain(e.c, path, out); else openEPlain(t ? e.then : e.else, path, out); return }
     case 'add': case 'sub': case 'min': case 'max': {
-      openE(e.a, path, out), openE(e.b, path, out)
+      openEPlain(e.a, path, out), openEPlain(e.b, path, out)
       const a = linear(e.a, path), b = linear(e.b, path)
       if (a && b && !decided(e, path)) out.push(e.op === 'sub' ? sub(b, a) : sub(a, b))
       return
@@ -55,14 +59,14 @@ function openE(e: E, path: Path, out: Lin[]): void {
     default: return unreachable(e)
   }
 }
-function openC(c: C, path: Path, out: Lin[]): void {
+function openCPlain(c: C, path: Path, out: Lin[]): void {
   if (completeWorkProfile.enabled) checkWorkEndpoint('open condition')
   if (truth(c, path) !== undefined) return
   if (c.op === 'flag' || c.op === 'all') return
-  if (c.op === 'not') return openC(c.x, path, out)
-  if (c.op === 'and' || c.op === 'or') return c.xs.forEach(y => openC(y, path, out))
+  if (c.op === 'not') return openCPlain(c.x, path, out)
+  if (c.op === 'and' || c.op === 'or') return c.xs.forEach(y => openCPlain(y, path, out))
   // (two tuples equal: their parts' equalities, the kernel's reading)
-  if (c.op === '=' && c.a.op === 'tup' && c.b.op === 'tup') return [c.a.a, c.a.b].forEach((x, i) => openC({op: '=', a: x, b: i ? (c.b as {b: E}).b : (c.b as {a: E}).a}, path, out))
+  if (c.op === '=' && c.a.op === 'tup' && c.b.op === 'tup') return [c.a.a, c.a.b].forEach((x, i) => openCPlain({op: '=', a: x, b: i ? (c.b as {b: E}).b : (c.b as {a: E}).a}, path, out))
   const a = linear(c.a, path), b = linear(c.b, path), own: Lin[] = []
   if (a && b) {
     const d = sub(a, b)
@@ -70,31 +74,116 @@ function openC(c: C, path: Path, out: Lin[]): void {
     else if (c.op === '<') own.push(add(d, k(1)))
     else own.push(d, scale(d, -1))
   }
-  openE(c.a, path, out), openE(c.b, path, out)
+  openEPlain(c.a, path, out), openEPlain(c.b, path, out)
   out.push(...own)
 }
-// A hypothesis is settled when it gives facts that are all its content: here, when its truth is decided, or it is a
-// conjunction of settled parts / a linear comparison. A disjunction is settled only once one disjunct is left open and
-// that one is settled: facts from its last disjunct are not all its content while a case inside it is still open.
-function openH(c: C, path: Path, out: Lin[], positive = true): void {
+function openHPlain(c: C, path: Path, out: Lin[], positive = true): void {
   if (completeWorkProfile.enabled) checkWorkEndpoint('open hypothesis')
-  if (c.op === 'not') return openH(c.x, path, out, !positive)
-  if ((c.op === 'and' && positive) || (c.op === 'or' && !positive)) return c.xs.forEach(y => openH(y, path, out, positive))
+  if (c.op === 'not') return openHPlain(c.x, path, out, !positive)
+  if ((c.op === 'and' && positive) || (c.op === 'or' && !positive)) return c.xs.forEach(y => openHPlain(y, path, out, positive))
   if (c.op === 'and' || c.op === 'or') {
     if (truth(c, path) !== undefined) return
     const open = c.xs.filter(y => truth(y, path) !== !positive)
-    if (open.length === 1) openH(open[0]!, path, out, positive)
-    else openC(c, path, out)
+    if (open.length === 1) openHPlain(open[0]!, path, out, positive)
+    else openCPlain(c, path, out)
     return
   }
   if (c.op === 'flag' || c.op === 'all') return
   if (c.op === '=' && c.a.op === 'tup' && c.b.op === 'tup') {
     const parts: C[] = [{op: '=', a: c.a.a, b: c.b.a}, {op: '=', a: c.a.b, b: c.b.b}]
-    return openH(positive ? {op: 'and', xs: parts} : {op: 'or', xs: parts.map((x): C => ({op: 'not', x}))}, path, out, true)
+    return openHPlain(positive ? {op: 'and', xs: parts} : {op: 'or', xs: parts.map((x): C => ({op: 'not', x}))}, path, out, true)
   }
   const before = out.length
-  openE(c.a, path, out), openE(c.b, path, out)
-  if (out.length === before && !positive && c.op === '=' && truth(c, path) === undefined) openC(c, path, out)
+  openEPlain(c.a, path, out), openEPlain(c.b, path, out)
+  if (out.length === before && !positive && c.op === '=' && truth(c, path) === undefined) openCPlain(c, path, out)
+}
+type OpenSeen = {p: Set<object>, n: Set<object>, t: Map<object, boolean>}
+const openSeenNew = (): OpenSeen => ({p: new Set(), n: new Set(), t: new Map()})
+function openEDag(e: E, path: Path, out: Lin[], seen: Map<object, boolean>): boolean {
+  if (completeWorkProfile.enabled) checkWorkEndpoint('open expression')
+  if (e.op === 'var' || e.op === 'const') return false
+  const hit = seen.get(e)
+  if (hit !== undefined) return hit
+  seen.set(e, false)
+  const before = out.length
+  let had = false
+  switch (e.op) {
+    case 'mul': had = openEDag(e.a, path, out, seen); break
+    case 'prod': case 'tup': { const a = openEDag(e.a, path, out, seen), b = openEDag(e.b, path, out, seen); had = a || b; break }
+    case 'get': had = openEDag(e.key, path, out, seen); break
+    case 'proj': had = openEDag(e.a.op === 'tup' ? (e.k === 0 ? e.a.a : e.a.b) : e.a, path, out, seen); break
+    case 'if': { const t = truth(e.c, path); had = t === undefined ? openCDag(e.c, path, out, seen) : openEDag(t ? e.then : e.else, path, out, seen); break }
+    case 'add': case 'sub': case 'min': case 'max': {
+      const ea = openEDag(e.a, path, out, seen), eb = openEDag(e.b, path, out, seen)
+      const a = linear(e.a, path), b = linear(e.b, path)
+      if (a && b && !decided(e, path)) out.push(e.op === 'sub' ? sub(b, a) : sub(a, b))
+      had = ea || eb || out.length > before
+      break
+    }
+    default: return unreachable(e)
+  }
+  had = had || out.length > before
+  seen.set(e, had)
+  return had
+}
+function openCDag(c: C, path: Path, out: Lin[], seen: Map<object, boolean>): boolean {
+  if (completeWorkProfile.enabled) checkWorkEndpoint('open condition')
+  if (c.op === 'flag' || c.op === 'all') return false
+  const hit = seen.get(c)
+  if (hit !== undefined) return hit
+  seen.set(c, false)
+  if (truth(c, path) !== undefined) return false
+  const before = out.length
+  let had = false
+  if (c.op === 'not') had = openCDag(c.x, path, out, seen)
+  else if (c.op === 'and' || c.op === 'or') { for (const y of c.xs) if (openCDag(y, path, out, seen)) had = true }
+  // (two tuples equal: their parts' equalities, the kernel's reading)
+  else if (c.op === '=' && c.a.op === 'tup' && c.b.op === 'tup') {
+    for (const [i, x] of [c.a.a, c.a.b].entries()) if (openCDag({op: '=', a: x, b: i ? (c.b as {b: E}).b : (c.b as {a: E}).a}, path, out, seen)) had = true
+  } else {
+    const a = linear(c.a, path), b = linear(c.b, path), own: Lin[] = []
+    if (a && b) {
+      const d = sub(a, b)
+      if (c.op === '<=') own.push(d)
+      else if (c.op === '<') own.push(add(d, k(1)))
+      else own.push(d, scale(d, -1))
+    }
+    const ea = openEDag(c.a, path, out, seen), eb = openEDag(c.b, path, out, seen)
+    out.push(...own)
+    had = ea || eb || out.length > before
+  }
+  had = had || out.length > before
+  seen.set(c, had)
+  return had
+}
+// A hypothesis is settled when it gives facts that are all its content: here, when its truth is decided, or it is a
+// conjunction of settled parts / a linear comparison. A disjunction is settled only once one disjunct is left open and
+// that one is settled: facts from its last disjunct are not all its content while a case inside it is still open.
+function openHDag(c: C, path: Path, out: Lin[], positive: boolean, seen: OpenSeen): void {
+  if (completeWorkProfile.enabled) checkWorkEndpoint('open hypothesis')
+  const bag = positive ? seen.p : seen.n
+  if (bag.has(c)) return
+  bag.add(c)
+  if (c.op === 'not') return openHDag(c.x, path, out, !positive, seen)
+  if ((c.op === 'and' && positive) || (c.op === 'or' && !positive)) return c.xs.forEach(y => openHDag(y, path, out, positive, seen))
+  if (c.op === 'and' || c.op === 'or') {
+    if (truth(c, path) !== undefined) return
+    const open = c.xs.filter(y => truth(y, path) !== !positive)
+    if (open.length === 1) openHDag(open[0]!, path, out, positive, seen)
+    else openCDag(c, path, out, seen.t)
+    return
+  }
+  if (c.op === 'flag' || c.op === 'all') return
+  if (c.op === '=' && c.a.op === 'tup' && c.b.op === 'tup') {
+    const parts: C[] = [{op: '=', a: c.a.a, b: c.b.a}, {op: '=', a: c.a.b, b: c.b.b}]
+    return openHDag(positive ? {op: 'and', xs: parts} : {op: 'or', xs: parts.map((x): C => ({op: 'not', x}))}, path, out, true, seen)
+  }
+  const ea = openEDag(c.a, path, out, seen.t), eb = openEDag(c.b, path, out, seen.t)
+  if (!ea && !eb && !positive && c.op === '=' && truth(c, path) === undefined) openCDag(c, path, out, seen.t)
+}
+function openH(c: C, path: Path, out: Lin[], positive = true): void {
+  if (hasDagBlowup(c)) openHDag(c, path, out, positive, openSeenNew())
+  else openHPlain(c, path, out, positive)
 }
 
 // Pairs of reads of one map whose keys the path doesn't yet compare. With `pairedKeys.skip` (core/data.ts), reads at
@@ -469,17 +558,36 @@ export function grow(goal: Goal, path: Path = new Map(), budget?: {nodes: number
   return growKept(goal, path, budget)
 }
 // Trees of root goals kept by their hypotheses (and the search's modes) while `withTrees` runs: core/infer.ts proves each
-// law of a set alone (proveLaw) and then the set as a whole (proveRule), the same goals twice. At most 2,000 trees, and
-// goals of at most 4 MB written out.
+// law of a set alone (proveLaw) and then the set as a whole (proveRule), the same goals twice. At most 2,000 trees,
+// keyed by structural bottom-up DAG interning (O(distinct DAG nodes), never unrolling shared ASTs via JSON.stringify).
 export const treeReuseStats = {hits: 0, kept: 0}
-const treeCache = {on: 0, trees: new Map<string, Tree>(), keep(key: string, tree: Tree) { treeReuseStats.kept++; if (this.trees.size >= 2000) this.trees.clear(); this.trees.set(key, tree) }}
-const treeKey = (goal: Goal): string | undefined => { const text = JSON.stringify(goal.hyps); return text.length > 4_000_000 ? undefined : `${cellProducts.on ? 1 : 0}${unitsNow ? 1 : 0}${text}` }
+const treeCache = {
+  on: 0,
+  trees: new Map<string, Tree>(),
+  dag: dagInterner(),
+  clear() { this.trees.clear(); this.dag.clear() },
+  keep(key: string, tree: Tree) { treeReuseStats.kept++; if (this.trees.size >= 2000) this.clear(); this.trees.set(key, tree) },
+}
+const treeKey = (goal: Goal): string | undefined => {
+  let dag = false, sum = 0
+  for (let i = 0; i < goal.hyps.length; i++) {
+    const info = hypAstInfo(goal.hyps[i]!)
+    if (info.dag) { dag = true; break }
+    sum += info.nodes
+  }
+  if (!dag && sum < 8_000) {
+    const text = JSON.stringify(goal.hyps)
+    return text.length > 4_000_000 ? undefined : `${cellProducts.on ? 1 : 0}${unitsNow ? 1 : 0}${text}`
+  }
+  const id = treeCache.dag.id(goal.hyps)
+  return id === undefined ? undefined : `${cellProducts.on ? 1 : 0}${unitsNow ? 1 : 0}#${id}`
+}
 // GDP_TREES=0: no tree kept (each goal grown every time it is asked).
 const keepTrees = env.GDP_TREES !== '0'
 export function withTrees<T>(f: () => T): T {
   if (!keepTrees) return f()
   treeCache.on++
-  try { return f() } finally { if (--treeCache.on === 0) treeCache.trees.clear() }
+  try { return f() } finally { if (--treeCache.on === 0) treeCache.clear() }
 }
 // Each root query as it ends, for research's logs (research/query/log.ts sets it; off otherwise): the kind, the goal,
 // its wall time and counted work, its outcome, and how many queries it is inside.
@@ -558,7 +666,14 @@ let wideBusy = false
 export const wideScope: {judge?: (w: Record<string, number>) => boolean} = {}
 export const wideStats = {goals: 0, trees: 0, models: 0, rounds: 0}
 export const wideHook: {on?: (part: Goal, out: Outcome) => void} = {}
-const cellsIn = (c: unknown): Set<string> => { const out = new Set<string>(); walkOnce(c, o => { const x = o as {op?: string, map?: string, key?: unknown}; if (x.op === 'get') out.add(`${x.map}${JSON.stringify(x.key)}`) }); return out }
+const cellsIn = (c: unknown, dag: DagInterner): Set<string> => {
+  const out = new Set<string>()
+  walkOnce(c, o => {
+    const x = o as {op?: string, map?: string, key?: unknown}
+    if (x.op === 'get') { const kid = dag.id(x.key); if (kid !== undefined) out.add(`${x.map}#${kid}`) }
+  })
+  return out
+}
 // (the hypotheses a model breaks among `ids` (all where none are given), the model read as a state, the conclusion first;
 // `first`: the first one broken alone)
 // (`defaults`: a map's cells the model leaves out read at that value, not the map's start)
@@ -600,8 +715,9 @@ export const wideFor = (goal: Goal): boolean => !wideBusy && goal.hyps.length >=
 export function growWide(goal: Goal, budget: {nodes: number, until?: number}, ask = (g: Goal, until: number): Outcome & {core?: number[]} => grow(g, new Map(), {nodes: 0, until}), keep = false): (Outcome & {core?: number[], part?: Goal}) | undefined {
   const hyps = goal.hyps, last = hyps.length - 1, broken = brokenOf(goal), now = clock(), w = searchWork()
   const end = withinDeadline(budget.until ?? Infinity), span = wideShare * (end - now), room = wideShare * (searchWorkCap() - w), until = now + span
-  const part = new Set<number>([last]), near = new Set(cellsIn(hyps[last])), cells = new Map<number, Set<string>>()
-  const cellsAt = (i: number) => { let c = cells.get(i); if (!c) cells.set(i, (c = cellsIn(hyps[i]))); return c }
+  const dag = dagInterner()
+  const part = new Set<number>([last]), near = new Set(cellsIn(hyps[last], dag)), cells = new Map<number, Set<string>>()
+  const cellsAt = (i: number) => { let c = cells.get(i); if (!c) cells.set(i, (c = cellsIn(hyps[i], dag))); return c }
   const take = (i: number) => { part.add(i); for (const x of cellsAt(i)) near.add(x) }
   wideBusy = true
   wideStats.goals++
@@ -644,6 +760,7 @@ const wideEprUnits = Number(env.GDP_WIDE_EPR ?? 2_000_000), wideParts = env.GDP_
 const tupledScope = (): boolean => !!eprScope.patterns && Object.values(eprScope.patterns).some(c => c.length > 1 && c[0] === 0)
 // (a part of a wide goal by the EPR path first, its core widened to the part, else the usual search)
 const eprPart = (gp: Goal, until: number): Outcome => eprFirst(gp, {nodes: 0, until}) ?? grow(gp, new Map(), {nodes: 0, until})
+let preSplitBusy = false
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
   // Finite-model preflight can spend its whole share enumerating 16-bit digit
   // ranges before noticing an immediate linear contradiction. Try the existing
@@ -654,6 +771,39 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
     if (local) return {tree: local, nodes: budget.nodes}
     const quick = growPlain(goal, path, {nodes: 0, until: budget.until, cap: 64})
     if ('tree' in quick) return quick
+  }
+  // Large-DAG @step goals with a bounded action selector: pre-split per action
+  // value, simplify dead actions out of each fresh subgoal/Reader heap, and
+  // stitch the resulting subtrees into one ordinary kernel split tree.
+  if (!path.size && !budget.nodes && preSplitOn && !preSplitBusy && !wideBusy && !goal.wordDivision && Number(/@(\d+) steps/.exec(goal.name)?.[1] ?? 1) <= 1) {
+    let maxHyp = 0
+    for (let i = 0; i < goal.hyps.length; i++) {
+      const n = hypAstInfo(goal.hyps[i]!).nodes
+      if (n > maxHyp) maxHyp = n
+    }
+    if (maxHyp >= preSplitTerms) {
+      const origNodes = termsOf(goal)
+      preSplitBusy = true
+      try {
+        const out = preSplitBySelector(goal, {
+          origNodes,
+          budget,
+          clock,
+          withinDeadline,
+          pastWall,
+          late,
+          searchWork,
+          searchWorkCap,
+          withSearchWork,
+          growSub: (g, until) => grow(g, new Map(), {nodes: 0, until}),
+          growFallback: (g, p) => { const o = grow(g, p, {nodes: 0, until: budget.until}); return 'tree' in o ? o.tree : undefined },
+          brokenOf,
+        })
+        if (out) return out
+      } finally {
+        preSplitBusy = false
+      }
+    }
   }
   const wide = !path.size && !budget.nodes && wideFor(goal), epr = !!eprScope.patterns && !eprScope.busy
   // (a wide goal's parts by the EPR path too, where the goal is EPR-shaped)
@@ -954,6 +1104,20 @@ function squareForms(rows: {lin: Lin}[]): Lin[] {
 // needs the decision.
 // A leaf's rows, by its path's decisions in order (what they are a function of): a lift reads every leaf of a subtree
 // at its own path, found when it was grown, and at the path without the split, which the next lift up reads again.
+const hugeDagTerms = Number(env.GDP_HUGE_DAG_TERMS ?? 16_000)
+const hugeGoalMemo = new WeakMap<Goal, boolean>()
+const isHugeDagGoal = (goal: Goal): boolean => {
+  let hit = hugeGoalMemo.get(goal)
+  if (hit !== undefined) return hit
+  let sum = 0
+  for (let i = 0; i < goal.hyps.length; i++) {
+    sum += hypAstInfo(goal.hyps[i]!).nodes
+    if (sum >= hugeDagTerms) break
+  }
+  hit = sum >= hugeDagTerms && termsOf(goal) >= hugeDagTerms
+  hugeGoalMemo.set(goal, hit)
+  return hit
+}
 const rowsSeen = new WeakMap<Goal, Map<string, ReturnType<typeof leafConstraintsReusing>>>()
 export function rowsAt(goal: Goal, path: Path): ReturnType<typeof leafConstraintsReusing> {
   let byPath = rowsSeen.get(goal)
@@ -961,7 +1125,11 @@ export function rowsAt(goal: Goal, path: Path): ReturnType<typeof leafConstraint
   let id = ''
   for (const [key, a] of path) id += `${a.holds ? '+' : '-'}${key}|`
   let rows = byPath.get(id)
-  if (!rows) { if (byPath.size >= 4096) byPath.clear(); byPath.set(id, (rows = env.GDP_ROWS_SHARED === '0' ? leafConstraintsReusing(goal, path) : proverRows(goal, path))) }
+  if (!rows) {
+    if (byPath.size >= 4096) byPath.clear()
+    const direct = isHugeDagGoal(goal)
+    byPath.set(id, (rows = direct ? leafConstraints(goal, path) : env.GDP_ROWS_SHARED === '0' ? leafConstraintsReusing(goal, path) : proverRows(goal, path)))
+  }
   return rows
 }
 // Untrusted capture may reuse an existing proposal without forcing a cache
@@ -1126,7 +1294,13 @@ export function openAt(goal: Goal, path: Path, rows: {lin: Lin}[]): Lin[] {
   const hyps = goal.hyps, last = hyps.length - 1
   let byHyp = openSeen.get(goal)
   if (!byHyp) openSeen.set(goal, (byHyp = new Map()))
-  const openOf = (h: C) => { let seen = byHyp.get(h); if (!seen) byHyp.set(h, (seen = {})); return reusing(seen, path, p => { const out: Lin[] = []; openH(h, p, out); return out }) }
+  const direct = isHugeDagGoal(goal)
+  const openOf = (h: C) => {
+    if (direct) { const out: Lin[] = []; openH(h, path, out); return out }
+    let seen = byHyp.get(h)
+    if (!seen) byHyp.set(h, (seen = {}))
+    return reusing(seen, path, p => { const out: Lin[] = []; openH(h, p, out); return out })
+  }
   // (pushed one by one: a k-step unrolling's lists outgrow a spread's argument limit)
   const put = (xs: Lin[]) => { for (const x of xs) open.push(x) }
   if (unitFirst && unitsNow) put(unitsOf(goal))
@@ -1261,8 +1435,9 @@ function fractional(point: Record<string, number> | undefined, path: Path): Lin 
 // The keys a proof assumes the every-key laws at: every key the step and the laws read, and the fresh key of the goal.
 // Each map read of a term (inE) or a condition (inC) given to f, outermost first, a quantified flag's body included.
 const eachRead = (f: (e: Extract<E, {op: 'get'}>) => void) => {
-  const inE = (e: E): void => { if (e.op === 'get') { f(e); inE(e.key) } else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul' || e.op === 'proj') inE(e.a); else if ('b' in e) (inE(e.a), inE(e.b)) }
-  const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
+  const seen = new Set<object>()
+  const inE = (e: E): void => { if (seen.has(e)) return; seen.add(e); if (e.op === 'get') { f(e); inE(e.key) } else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul' || e.op === 'proj') inE(e.a); else if ('b' in e) (inE(e.a), inE(e.b)) }
+  const inC = (c: C): void => { if (seen.has(c)) return; seen.add(c); if (c.op === 'flag') return; if (c.op === 'all') inC(c.c); else if (c.op === 'not') inC(c.x); else if (c.op === 'and' || c.op === 'or') c.xs.forEach(inC); else { inE(c.a); inE(c.b) } }
   return {inE, inC}
 }
 // A key bound by a quantified flag or a write at every key isn't one: those reads are at every key already.
