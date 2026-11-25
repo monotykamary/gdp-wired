@@ -569,13 +569,13 @@ const treeCache = {
   keep(key: string, tree: Tree) { treeReuseStats.kept++; if (this.trees.size >= 2000) this.clear(); this.trees.set(key, tree) },
 }
 const treeKey = (goal: Goal): string | undefined => {
-  let dag = false, sum = 0
+  let dag = false, maxHyp = 0
   for (let i = 0; i < goal.hyps.length; i++) {
     const info = hypAstInfo(goal.hyps[i]!)
     if (info.dag) { dag = true; break }
-    sum += info.nodes
+    if (info.nodes > maxHyp) maxHyp = info.nodes
   }
-  if (!dag && sum < 8_000) {
+  if (!dag && maxHyp < 8_000) {
     const text = JSON.stringify(goal.hyps)
     return text.length > 4_000_000 ? undefined : `${cellProducts.on ? 1 : 0}${unitsNow ? 1 : 0}${text}`
   }
@@ -1104,17 +1104,20 @@ function squareForms(rows: {lin: Lin}[]): Lin[] {
 // needs the decision.
 // A leaf's rows, by its path's decisions in order (what they are a function of): a lift reads every leaf of a subtree
 // at its own path, found when it was grown, and at the path without the split, which the next lift up reads again.
+// A single hypothesis past hugeDagTerms (not a wide conjunction of many small
+// hypotheses, where proverRows and reusing caches stay essential).
 const hugeDagTerms = Number(env.GDP_HUGE_DAG_TERMS ?? 16_000)
 const hugeGoalMemo = new WeakMap<Goal, boolean>()
 const isHugeDagGoal = (goal: Goal): boolean => {
   let hit = hugeGoalMemo.get(goal)
   if (hit !== undefined) return hit
-  let sum = 0
+  let maxHyp = 0
   for (let i = 0; i < goal.hyps.length; i++) {
-    sum += hypAstInfo(goal.hyps[i]!).nodes
-    if (sum >= hugeDagTerms) break
+    const n = hypAstInfo(goal.hyps[i]!).nodes
+    if (n > maxHyp) maxHyp = n
+    if (maxHyp >= hugeDagTerms) break
   }
-  hit = sum >= hugeDagTerms && termsOf(goal) >= hugeDagTerms
+  hit = maxHyp >= hugeDagTerms && termsOf(goal) >= hugeDagTerms
   hugeGoalMemo.set(goal, hit)
   return hit
 }
