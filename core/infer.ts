@@ -1496,7 +1496,8 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     for (const f of alive) if (!killed.has(f) && !holdsAt(f, post)) { killed.add(f); broke = true }
     return broke
   }
-  const houdiniUntil = opts.cubes || relStep ? 0 : Math.min(until, now() + Math.max(500, (until - now()) / 4))
+  const hasRelations = !!Object.keys(m.relations ?? {}).length
+  const houdiniUntil = opts.cubes || relStep || hasRelations ? 0 : Math.min(until, now() + Math.max(500, (until - now()) / 4))
   for (let quiet = 0; samples.length && now() < houdiniUntil && !stop() && quiet < 3;) {
     const killed = new Set<Form>()
     for (let tries = 0; tries < 400 && now() < houdiniUntil && !stop(); tries++) {
@@ -1630,7 +1631,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   const pool0 = pool.slice(), ctis0 = ctis.length
   if (joinOn && NS) try {
     // (a rule of relations: no round of the join, whose hulls and bounds state no law of a relation's tuples; the engine's)
-    const noJoin = opts.join === 0 || !!Object.keys(m.relations ?? {}).length
+    const noJoin = opts.join === 0 || hasRelations
     const jT0 = countedSearchNow(), jUntil = Math.min(until, now() + (until - now()) * (noJoin ? 0 : opts.join ?? joinShare))
     // The control state: the choice (loc) and, where they are few, the yes/nos (a program counter in bits), each of its
     // values reached a part of its own.
@@ -1669,7 +1670,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     // Where no key is composed but a caller's law is about several keys (two counted approvals by distinct reviewers, two
     // holders of one lock), the same space over two distinct keys x ≠ y: the cells at x and at y (`n` 0, no third place).
     const pairing = mapNames.length ? pairingOf(m) ?? ([...laws, ...stepLaws].some(l => l.keys?.length) ? {n: 0, c: 0, frame: not(same(x(KEY), x(KEY2)))} : undefined) : undefined
-    const cellLevels = pairing ? levelsOf(cellAtoms.filter(i => !atoms[i]!.int), valsK) : []
+    const cellLevels = !noJoin && pairing ? levelsOf(cellAtoms.filter(i => !atoms[i]!.int), valsK) : []
     // A view's atoms (each map at each place it is read at there) and rows: each assignment of its keys to keys a state
     // holds (by sort: the keys of the maps read at the key's place, the parts of composed keys there, and a fresh one;
     // per key at most `per`), the frame met, each map's cell at each of its places.
@@ -1744,7 +1745,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     const sorts = mapNames.length ? keySorts(m, callerLaws, pairing) : undefined
     // (the maps keyed by tuples are read at their tuples, in the engine's views alone)
     const flat = mapNames.filter(mp => !sorts?.tupled.has(mp))
-    if (pairing && flat.length) {
+    if (!noJoin && pairing && flat.length) {
       const P = pairing, composed = plus(times(P.n, x(KEY)), x(KEY2)), places = P.n ? [x(KEY), x(KEY2), P.c ? plus(composed, n(P.c)) : composed] : [x(KEY), x(KEY2)]
       // (by sort, where the rule composes: a row's maps at x, a column's at y, the composed maps at the composed key)
       const sorted = P.n && sorts ? [sorts.plainMaps(sorts.find('hi')), sorts.plainMaps(sorts.find('lo')), sorts.composedMaps] : undefined
@@ -1761,7 +1762,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     // (keySorts: a sort is the places a key is read at, the rule's keys read alike as one), its places the composed keys
     // its reads name and each map read at a plain key of a key's sort, its frame its own guards on its keys and the keys
     // of one sort distinct.
-    if (sorts) {
+    if (!noJoin && sorts) {
       const seen = new Set<string>()
       for (const l of callerLaws) {
         const bound = l.forall ? [l.forall, ...(l.keys ?? [])] : []
@@ -1988,7 +1989,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
       }
       return {cells, add, forms, refine, deepen, coords, control: () => `${ctl.map(c => nameOf(c.atom)).join(' ')} (${scored.join(' ')})`, groups}
     }
-    const spaces = [space('state'), ...(mapNames.length && cellAtoms.length ? [space('cells')] : []), ...views.flatMap((v, i) => (v.rows.length ? [space(i)] : []))]
+    const spaces = noJoin ? [] : [space('state'), ...(mapNames.length && cellAtoms.length ? [space('cells')] : []), ...views.flatMap((v, i) => (v.rows.length ? [space(i)] : []))]
     const formsNow = (): Form[] => {
       const out: Form[] = [], seenT = new Set<string>()
       const push = (f: Form) => { const t = textOf(f); if (!seenT.has(t) && !names.has(t)) { seenT.add(t); out.push(f) } }
@@ -2099,15 +2100,15 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     // (the rule's own comparisons first, then each value, then pairs: of two directions that leave out as many samples
     // the first is taken, so a bound the runs' depth sets, i0 <= 1 where they went 1 deep, gives way to the relation
     // that holds at every depth, i0 <= i1)
-    const lc = plain.filter(i => !atoms[i]!.param && !ctrl.includes(i)), D0 = directions(lc), own = 2 * lc.length + (lc.length <= joinPairs ? 2 * lc.length * (lc.length - 1) : 0)
+    const lc = plain.filter(i => !atoms[i]!.param && !ctrl.includes(i)), D0 = noJoin ? [] : directions(lc), own = 2 * lc.length + (lc.length <= joinPairs ? 2 * lc.length * (lc.length - 1) : 0)
     const D = [...D0.slice(own), ...D0.slice(0, own)]
     const dot = (t: [number, number][], v: ArrayLike<number>) => { let s2 = 0; for (const [i, c] of t) s2 += c * v[i]!; return s2 }
     const litHolds = (l: Lit, v: ArrayLike<number>) => ('at' in l ? v[l.at.atom] === l.at.value : dot(l.lin.coef, v) <= l.lin.d)
     const inCube = (c: Lit[], v: ArrayLike<number>) => c.every(l => litHolds(l, v))
     const vecKey = (v: ArrayLike<number>) => v instanceof Float64Array ? v.join(',') : Array.from(v).join(',')
-    const S: Float64Array[] = rowsS.map(r => valuesOf(r)), sampled = new Set(S.map(vecKey))
+    const S: Float64Array[] = noJoin ? [] : rowsS.map(r => valuesOf(r)), sampled = new Set(S.map(vecKey))
     let initVec: Float64Array | undefined
-    try { if (!m.params.length) initVec = valuesOf(pointOf({}, run.init({})).scalar) } catch { initVec = undefined }
+    try { if (!noJoin && !m.params.length) initVec = valuesOf(pointOf({}, run.init({})).scalar) } catch { initVec = undefined }
     if (initVec && !sampled.has(vecKey(initVec))) { S.push(initVec); sampled.add(vecKey(initVec)) }
     const addSample = (v: Float64Array) => { const k2 = vecKey(v); if (!sampled.has(k2)) { sampled.add(k2); S.push(v) } }
     // a state from a point's values: an integer's two naturals normalized (the kernel's model may leave both above 0)
@@ -2122,7 +2123,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     // predecessors take it back to the samples; the comparisons are what a predecessor's guards say, as Spacer's
     // projections read them), then the direction that leaves out the most samples still in, its bound as weak as
     // leaves them out, until none is in (undefined: none leaves out the rest).
-    const ruleLits: Lit[] = joinAtoms ? comparisons(m, laws, atoms, lc).map(lin => ({lin})) : []
+    const ruleLits: Lit[] = !noJoin && joinAtoms ? comparisons(m, laws, atoms, lc).map(lin => ({lin})) : []
     const cubeOf = (v: Float64Array): Lit[] | undefined => {
       const lits: Lit[] = ctrl.map(i => ({at: {atom: i, value: v[i]!}}))
       for (const l of ruleLits) if (litHolds(l, v)) lits.push(l)
@@ -2257,7 +2258,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     // bounds that leave the samples' rows out), blocked as the state's cubes are (its negation proven relative to the
     // set, the literals it doesn't need taken out): a law at every tuple of the view's keys. The disjunctions a hull
     // can't say (two waiting threads' tickets differ) are such cubes.
-    const viewSpaces = views.map(v => {
+    const viewSpaces = noJoin ? [] : views.map(v => {
       const R = v.rows.slice(0, 3000).map(valuesOf), seen = new Set(R.map(vecKey)), mapOf = (i: number) => atoms[i]!.parts[0]![0].slice(2, atoms[i]!.parts[0]![0].lastIndexOf(AT))
       const own = v.atoms.filter(i => !atoms[i]!.int), few = own.filter(i => new Set(R.map(r => r[i])).size <= 3)
       const eqs: Lit[] = own.flatMap((i, a2) => own.slice(a2 + 1).filter(j => mapOf(i) === mapOf(j) && !few.includes(i)).flatMap(j => [{lin: {coef: [[i, 1], [j, -1]] as [number, number][], d: 0}}, {lin: {coef: [[j, 1], [i, -1]] as [number, number][], d: 0}}]))
