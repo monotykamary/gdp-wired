@@ -374,10 +374,11 @@ export function findSelector(goal: Goal, origNodes: number): {sel: string, hi: n
   const cands = [...tested.entries()]
     .filter(([name, s]) => s.size >= 2 && bounds.get(name)! <= 63)
     .sort((a, b) => (b[1].size - a[1].size) || ((hits.get(b[0]) ?? 0) - (hits.get(a[0]) ?? 0)) || (bounds.get(a[0])! - bounds.get(b[0])!))
-  for (const [sel, vals] of cands.slice(0, 3)) {
+  for (const [sel] of cands.slice(0, 3)) {
     const hi = bounds.get(sel)!
-    const sorted = [...vals].sort((a, b) => a - b)
-    const sample = [...new Set([sorted[0]!, sorted[sorted.length >> 1]!, sorted[sorted.length - 1]!])]
+    // Sample across the full 0..hi domain (including implicit else-branch values
+    // like 0 that may not appear as explicit `sel = 0` equalities).
+    const sample = [...new Set([0, hi >> 1, hi])]
     let sum = 0, minNodes = Infinity
     for (const v of sample) {
       const n = specializeGoal(goal, orderPath(sel, hi, v), sel, v).nodes
