@@ -385,7 +385,7 @@ export function findSelector(goal: Goal, origNodes: number): {sel: string, hi: n
       if (n < minNodes) minNodes = n
     }
     const mean = sum / sample.length
-    if (mean * (hi + 1) <= 2.2 * origNodes || minNodes <= 0.25 * origNodes) return {sel, hi}
+    if (mean <= 0.70 * origNodes && (mean * (hi + 1) <= 2.2 * origNodes || minNodes <= 0.25 * origNodes)) return {sel, hi}
   }
   return undefined
 }

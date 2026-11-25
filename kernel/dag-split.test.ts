@@ -233,6 +233,22 @@ test('findSelector skips bounded variables that do not shrink the DAG', () => {
   expect(findSelector(goal, origNodes)).toBeUndefined()
   const spec = specializeGoal(goal, new Map(), 'mode', 0)
   expect(spec.goal.hyps[0]).toEqual(same(x('mode'), n(0)))
+
+  // A 0..1 boolean flag that leaves >=95% of the DAG intact must never pass the
+  // selector shrink check (mean * 2 <= 2.2 alone would trivially pass any boolean).
+  const boolGoal = {
+    name: 'non-shrinking-bool-flag',
+    hyps: [
+      atMost(n(0), x('?all$1')),
+      atMost(x('?all$1'), n(1)),
+      any(same(x('?all$1'), n(0)), same(x('?all$1'), n(1))),
+      ...fillers,
+      not(atMost(n(0), x('u0'))),
+    ],
+  }
+  let boolNodes = 0
+  walkOnce(boolGoal.hyps, () => { boolNodes++ })
+  expect(findSelector(boolGoal, boolNodes)).toBeUndefined()
 })
 
 test('proveRule with pre-split on large oneOf multi-action rule produces kernel-checked proof', () => {

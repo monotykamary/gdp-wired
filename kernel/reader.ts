@@ -721,34 +721,39 @@ export class Reader {
   }
   // prove.ts's open atoms of a hypothesis (openH), in its order; none for a hypothesis whose facts are final.
   // (the same array while it stands)
+  private openStamp = 0
+  private openP = new Map<object, number>()
+  private openN = new Map<object, number>()
+  private openT = new Map<object, number>()
   openList(i: number): Lin[] {
     const key = (this.openKeys[i] ??= {}), had = this.os[i]
     if (had && ((keepClean && this.clean.has(key)) || had.node === this.node)) return had.lins
     const lins = this.within(key, () => {
       const mine: Lin[] = []
-      if (!this.factsFin(i)) this.openH(this.goal.hyps[i]!, mine, true, {p: new WeakSet(), n: new WeakSet(), t: new WeakMap()})
+      if (!this.factsFin(i)) this.openH(this.goal.hyps[i]!, mine, true, ++this.openStamp)
       return mine
     })
     this.os[i] = {lins, node: this.node}
     this.clean.add(key)
     return lins
   }
-  private openE(e: E, out: Lin[], seen: WeakMap<object, boolean>): boolean {
-    const hit = seen.get(e)
-    if (hit !== undefined) return hit
-    seen.set(e, false)
+  private openE(e: E, out: Lin[], stamp: number): boolean {
+    if (e.op === 'var' || e.op === 'const') return false
+    const tag = stamp * 2
+    const hit = this.openT.get(e)
+    if (hit !== undefined && (hit === tag || hit === tag + 1)) return hit === tag + 1
+    this.openT.set(e, tag)
     const before = out.length
     let had = false
     switch (e.op) {
-      case 'var': case 'const': return false
-      case 'mul': had = this.openE(e.a, out, seen); break
-      case 'prod': case 'tup': { const a = this.openE(e.a, out, seen), b = this.openE(e.b, out, seen); had = a || b; break }
-      case 'get': had = this.openE(e.key, out, seen); break
-      case 'proj': had = this.openE(e.a.op === 'tup' ? (e.k === 0 ? e.a.a : e.a.b) : e.a, out, seen); break
-      case 'if': { const t = this.truth(e.c); had = t.t === undefined ? this.openC(e.c, out, seen) : this.openE(t.t ? e.then : e.else, out, seen); break }
+      case 'mul': had = this.openE(e.a, out, stamp); break
+      case 'prod': case 'tup': { const a = this.openE(e.a, out, stamp), b = this.openE(e.b, out, stamp); had = a || b; break }
+      case 'get': had = this.openE(e.key, out, stamp); break
+      case 'proj': had = this.openE(e.a.op === 'tup' ? (e.k === 0 ? e.a.a : e.a.b) : e.a, out, stamp); break
+      case 'if': { const t = this.truth(e.c); had = t.t === undefined ? this.openC(e.c, out, stamp) : this.openE(t.t ? e.then : e.else, out, stamp); break }
       case 'add': case 'sub': case 'min': case 'max': {
         if (this.linear(e).fin) return false
-        const ea = this.openE(e.a, out, seen), eb = this.openE(e.b, out, seen)
+        const ea = this.openE(e.a, out, stamp), eb = this.openE(e.b, out, stamp)
         const a = this.linear(e.a).lin, b = this.linear(e.b).lin
         if (a && b && !this.decided(e)) out.push(same(1, e, a, b, 0, () => (e.op === 'sub' ? sub(b, a) : sub(a, b))))
         had = ea || eb || out.length > before
@@ -756,51 +761,53 @@ export class Reader {
       }
     }
     had = had || out.length > before
-    seen.set(e, had)
+    if (had) this.openT.set(e, tag + 1)
     return had
   }
-  private openC(c: C, out: Lin[], seen: WeakMap<object, boolean>): boolean {
-    const hit = seen.get(c)
-    if (hit !== undefined) return hit
-    seen.set(c, false)
-    if (this.truth(c).t !== undefined || c.op === 'flag' || c.op === 'all') return false
+  private openC(c: C, out: Lin[], stamp: number): boolean {
+    if (c.op === 'flag' || c.op === 'all') return false
+    const tag = stamp * 2
+    const hit = this.openT.get(c)
+    if (hit !== undefined && (hit === tag || hit === tag + 1)) return hit === tag + 1
+    this.openT.set(c, tag)
+    if (this.truth(c).t !== undefined) return false
     const before = out.length
     let had = false
-    if (c.op === 'not') had = this.openC(c.x, out, seen)
-    else if (c.op === 'and' || c.op === 'or') { for (const y of c.xs) if (this.openC(y, out, seen)) had = true }
+    if (c.op === 'not') had = this.openC(c.x, out, stamp)
+    else if (c.op === 'and' || c.op === 'or') { for (const y of c.xs) if (this.openC(y, out, stamp)) had = true }
     else {
       const and = tupleAnd(c)
-      if (and) had = this.openC(and, out, seen)
+      if (and) had = this.openC(and, out, stamp)
       else {
         const a = this.linear(c.a).lin, b = this.linear(c.b).lin
         const own: Lin[] = a && b ? same(7, c, a, b, 0, () => { const d = sub(a, b); return c.op === '<=' ? [d] : c.op === '<' ? [add(d, k(1))] : [d, scale(d, -1)] }) : []
-        const ea = this.openE(c.a, out, seen), eb = this.openE(c.b, out, seen)
+        const ea = this.openE(c.a, out, stamp), eb = this.openE(c.b, out, stamp)
         for (const x of own) out.push(x)
         had = ea || eb || out.length > before
       }
     }
     had = had || out.length > before
-    seen.set(c, had)
+    if (had) this.openT.set(c, tag + 1)
     return had
   }
-  private openH(c: C, out: Lin[], positive: boolean, seen: {p: WeakSet<object>, n: WeakSet<object>, t: WeakMap<object, boolean>}): void {
-    const bag = positive ? seen.p : seen.n
-    if (bag.has(c)) return
-    bag.add(c)
-    if (c.op === 'not') return this.openH(c.x, out, !positive, seen)
-    if ((c.op === 'and' && positive) || (c.op === 'or' && !positive)) return c.xs.forEach(y => this.openH(y, out, positive, seen))
+  private openH(c: C, out: Lin[], positive: boolean, stamp: number): void {
+    const bag = positive ? this.openP : this.openN
+    if (bag.get(c) === stamp) return
+    bag.set(c, stamp)
+    if (c.op === 'not') return this.openH(c.x, out, !positive, stamp)
+    if ((c.op === 'and' && positive) || (c.op === 'or' && !positive)) return c.xs.forEach(y => this.openH(y, out, positive, stamp))
     if (c.op === 'and' || c.op === 'or') {
       if (this.truth(c).t !== undefined) return
       const open = c.xs.filter(y => this.truth(y).t !== !positive)
-      if (open.length === 1) this.openH(open[0]!, out, positive, seen)
-      else this.openC(c, out, seen.t)
+      if (open.length === 1) this.openH(open[0]!, out, positive, stamp)
+      else this.openC(c, out, stamp)
       return
     }
     if (c.op === 'flag' || c.op === 'all') return
     const and = tupleAnd(c)
-    if (and) return this.openH(and, out, positive, seen)
-    const ea = this.openE(c.a, out, seen.t), eb = this.openE(c.b, out, seen.t)
-    if (!ea && !eb && !positive && c.op === '=' && this.truth(c).t === undefined) this.openC(c, out, seen.t)
+    if (and) return this.openH(and, out, positive, stamp)
+    const ea = this.openE(c.a, out, stamp), eb = this.openE(c.b, out, stamp)
+    if (!ea && !eb && !positive && c.op === '=' && this.truth(c).t === undefined) this.openC(c, out, stamp)
   }
 }
 

@@ -38,17 +38,17 @@ import {type Goal, type Instances, type Liveness, type Loop, type Path, type See
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 // Memoized per call so shared DAGs are visited once per distinct node rather than unfolded exponentially.
-type OpenSeen = {p: WeakSet<object>, n: WeakSet<object>, t: WeakMap<object, boolean>}
-const openSeenNew = (): OpenSeen => ({p: new WeakSet(), n: new WeakSet(), t: new WeakMap()})
-function openE(e: E, path: Path, out: Lin[], seen: WeakMap<object, boolean>): boolean {
+type OpenSeen = {p: Set<object>, n: Set<object>, t: Map<object, boolean>}
+const openSeenNew = (): OpenSeen => ({p: new Set(), n: new Set(), t: new Map()})
+function openE(e: E, path: Path, out: Lin[], seen: Map<object, boolean>): boolean {
   if (completeWorkProfile.enabled) checkWorkEndpoint('open expression')
+  if (e.op === 'var' || e.op === 'const') return false
   const hit = seen.get(e)
   if (hit !== undefined) return hit
   seen.set(e, false)
   const before = out.length
   let had = false
   switch (e.op) {
-    case 'var': case 'const': return false
     case 'mul': had = openE(e.a, path, out, seen); break
     case 'prod': case 'tup': { const a = openE(e.a, path, out, seen), b = openE(e.b, path, out, seen); had = a || b; break }
     case 'get': had = openE(e.key, path, out, seen); break
@@ -67,12 +67,13 @@ function openE(e: E, path: Path, out: Lin[], seen: WeakMap<object, boolean>): bo
   seen.set(e, had)
   return had
 }
-function openC(c: C, path: Path, out: Lin[], seen: WeakMap<object, boolean>): boolean {
+function openC(c: C, path: Path, out: Lin[], seen: Map<object, boolean>): boolean {
   if (completeWorkProfile.enabled) checkWorkEndpoint('open condition')
+  if (c.op === 'flag' || c.op === 'all') return false
   const hit = seen.get(c)
   if (hit !== undefined) return hit
   seen.set(c, false)
-  if (truth(c, path) !== undefined || c.op === 'flag' || c.op === 'all') return false
+  if (truth(c, path) !== undefined) return false
   const before = out.length
   let had = false
   if (c.op === 'not') had = openC(c.x, path, out, seen)
@@ -1340,7 +1341,7 @@ function fractional(point: Record<string, number> | undefined, path: Path): Lin 
 // The keys a proof assumes the every-key laws at: every key the step and the laws read, and the fresh key of the goal.
 // Each map read of a term (inE) or a condition (inC) given to f, outermost first, a quantified flag's body included.
 const eachRead = (f: (e: Extract<E, {op: 'get'}>) => void) => {
-  const seen = new WeakSet<object>()
+  const seen = new Set<object>()
   const inE = (e: E): void => { if (seen.has(e)) return; seen.add(e); if (e.op === 'get') { f(e); inE(e.key) } else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul' || e.op === 'proj') inE(e.a); else if ('b' in e) (inE(e.a), inE(e.b)) }
   const inC = (c: C): void => { if (seen.has(c)) return; seen.add(c); if (c.op === 'flag') return; if (c.op === 'all') inC(c.c); else if (c.op === 'not') inC(c.x); else if (c.op === 'and' || c.op === 'or') c.xs.forEach(inC); else { inE(c.a); inE(c.b) } }
   return {inE, inC}
