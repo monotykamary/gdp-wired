@@ -78,10 +78,14 @@ test('selectorReads collapses inactive inputs and 0/1 map no-op writes', () => {
 })
 
 test('Rule.randomInput bounds carried map keys by unconditional assume limits only', () => {
+  let builds = 0
   const assumed = rule('assumed carried bound')
     .params({size: nat})
     .inputs({i: nat}).carries('Q')
-    .assume(({size, Q}) => everyKey(k => Q.at(k).atMost(1).and(Q.has(k).implies(k.lt(size)))))
+    .assume(({size, Q}) => {
+      builds++
+      return everyKey(k => Q.at(k).atMost(1).and(Q.has(k).implies(k.lt(size))))
+    })
     .state({seen: 0})
     .step(({i, Q, seen}) => ({seen: when(Q.has(i), 1, seen)}))
   const rand = seeded(17)
@@ -91,6 +95,7 @@ test('Rule.randomInput bounds carried map keys by unconditional assume limits on
     expect(q).toBeInstanceOf(Map)
     for (const key of q.keys()) expect(key).toBeLessThan(2)
   }
+  expect(builds).toBe(1)
 })
 
 test('Rule.randomInput preserves keys >= count.below when carried map is read outside the count', () => {

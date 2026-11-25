@@ -1995,7 +1995,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     return names.length ? this.with({sumsRead: new Set([...had, ...names])}) : this
   }
   // Divide by these too (inferLaws' candidates): the machine declares div$k and mod$k for each.
-  dividesBy(...ks: number[]): this { for (const k of ks) (this.spec.arith ??= new Set()).add(divisor(k, 'dividesBy')); return this }
+  dividesBy(...ks: number[]): this { for (const k of ks) (this.spec.arith ??= new Set()).add(divisor(k, 'dividesBy')); this.carriedBounds = undefined; return this }
   // The same rule dividing by these too, its own divisors left as they are.
   withDivisors(...ks: number[]): this { return this.with({arith: new Set([...(this.spec.arith ?? []), ...ks.map(k => divisor(k, 'withDivisors'))])}) }
 
@@ -2598,7 +2598,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   private paramValues(ps: Record<string, number>): Record<string, unknown> {
     return Object.fromEntries(this.spec.params.map(([n, k]) => [n, k.build(n, part => new Term({op: 'const', value: ps[part]!}, ps[part]!))]))
   }
-  private carriedBounds?: Map<string, E[]>
+  private carriedBounds?: {machine: Machine, limits: Map<string, E[]>}
   private carriedKeyLimit(name: string, bound: number, ps?: Record<string, number>): number {
     if (!ps) return bound + 1
     if (!this.carriedBounds) {
@@ -2627,13 +2627,15 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
         checkAll(c)
         if (c.op === 'flag' && m.step.flags && Object.hasOwn(m.step.flags, c.name)) checkAll(m.step.flags[c.name]!)
       }
-      this.carriedBounds = limits
+      this.carriedBounds = {machine: m, limits}
     }
-    const bs = this.carriedBounds.get(name)
+    const bs = this.carriedBounds.limits.get(name)
     if (!bs?.length) return bound + 1
     let lim = bound + 1
+    // Reuse the cached machine rather than re-materializing the `machine` getter on every randomInput draw.
+    const m = this.carriedBounds.machine, emptyState: State = {scalars: {}, maps: {}}
     for (const e of bs) {
-      try { const v2 = evalE(e, ps, {scalars: {}, maps: {}}, this.machine); if (Number.isSafeInteger(v2) && v2 >= 0) lim = Math.min(lim, v2) } catch { /* ignore */ }
+      try { const v2 = evalE(e, ps, emptyState, m); if (Number.isSafeInteger(v2) && v2 >= 0) lim = Math.min(lim, v2) } catch { /* ignore */ }
     }
     return lim
   }
