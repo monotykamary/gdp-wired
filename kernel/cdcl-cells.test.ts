@@ -13,11 +13,16 @@ const get = (map: string, key: E): E => ({op: 'get', map, key})
 const ite = (c: C, thenE: E, elseE: E): E => ({op: 'if', c, then: thenE, else: elseE})
 
 const withVerify = <T>(f: () => T): {out: T, nodes: number, openTotals: number} => {
-  const prevVerify = cdclCandHook.verify, prevOn = cdclCandHook.on
-  let nodes = 0, openTotals = 0
+  const prevVerify = cdclCandHook.verify
+  const prevOn = cdclCandHook.on
+  let nodes = 0
+  let openTotals = 0
   try {
     cdclCandHook.verify = true
-    cdclCandHook.on = (_cands, openLen) => { nodes++; openTotals += openLen }
+    cdclCandHook.on = (_cands, openLen) => {
+      nodes++
+      openTotals += openLen
+    }
     return {out: f(), nodes, openTotals}
   } finally {
     cdclCandHook.verify = prevVerify
@@ -125,14 +130,23 @@ test('incremental openCellsLive matches reference scan on random multi-map goals
     if (r === 4 && d > 0) return {op: 'not', x: cmp(d - 1)}
     return {op: (['<', '<=', '='] as const)[rand(3)]!, a: term(d), b: term(d)}
   }
-  let proven = 0, sat = 0, totalNodes = 0
+  let proven = 0
+  let sat = 0
+  let totalNodes = 0
   const prevNodes = cdclStats.nodes
   for (let i = 0; i < 40; i++) {
-    const goal: Goal = {name: `rand-cells-${i}`, hyps: Array.from({length: 5 + rand(4)}, () => cmp(2))}
+    const goal: Goal = {
+      name: `rand-cells-${i}`,
+      hyps: Array.from({length: 5 + rand(4)}, () => cmp(2)),
+    }
     const {out, nodes} = withVerify(() => growCdcl(goal, new Map(), {nodes: 0, until: clock() + 1500}))
     totalNodes += nodes
-    if ('tree' in out) { proven++; expect(check(goal, out.tree)).toBe(true) }
-    else if (out.stuck === 'sat') sat++
+    if ('tree' in out) {
+      proven++
+      expect(check(goal, out.tree)).toBe(true)
+    } else if (out.stuck === 'sat') {
+      sat++
+    }
   }
   expect(proven).toBeGreaterThan(0)
   expect(sat).toBeGreaterThan(0)

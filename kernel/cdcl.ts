@@ -142,6 +142,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   const heapPop = () => { const top = heap[0]!, end = heap.pop()!; top.hp = -1; if (heap.length) { heap[0] = end; end.hp = 0; heapDown(0) } }
   let sx = useLp ? new Simplex() : undefined
   if (sx && clausal) sx.greedy = lpGreedy
+  // (kernel mode's occurrence lists, by literal code 2·id + pos; parallel clause arrays c.vs/c.ps keep addClause order)
   const nodes: DagNode[] = [], clauses: Clause[] = [], occByCode: (number[] | undefined)[] = []
   // (with opts.core: each leaf's hypotheses, by node; the hypothesis each row at this node came from)
   const leafHyps = new Map<number, number[]>(), wantCore = !!(opts.core && opts.model), wantDag = !!(opts.dag && opts.model)
@@ -170,9 +171,15 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   const recOf = (lin: Lin) => { let r = recs.get(lin); if (!r) recs.set(lin, (r = {x: namesOf(lin).length > 0 ? vars.get(ensure(lin)) : undefined, seen: 0})); return r }
   let candGen = 0, colsOn = 0
   // prove.ts's openCells at the trail, kept incrementally from reader.cells's enter/leave deltas and indexed by each
-  // pair's xd/xn variable ids: cell additions/removals touch O(cells) pairs in exact (map, i, j) order, variable
-  // assignments/undos touch only affected pairs in O(1) each, and each cell row keeps its open candidate recs in order
-  // so no full flat rebuild or fresh Lin[] allocation happens per node.
+  // pair's xd/xn variable ids: exact in both candidate stream and costs.scan, verified against a full scan under
+  // GDP_CDCL_VERIFY=1.
+  //
+  // A cell pair (d = key_i − key_j, neg = −d, `mono` whether d reads a monomial for pairedKeys.skip): caches its
+  // variables and orientations (rd/rn, xd/sd, xn/sn; `isConst` when d has no variables, which stays open whenever
+  // active since no trail atom decides a constant form), whether it is live (`active`), its open state (`state`: 1 if
+  // d is open, 2 if d holds and neg is open, 0 otherwise — matching prove.ts's openCells check verbatim), its doubly-
+  // linked slot on `rowCell` (`rPrev`/`rNext`), its swap-remove slot in `colCell.inPairs` (`inIdx`), its swap-remove
+  // slots in `pairByVar` (`di`/`ni`), and its index in `rowCell.openRecs` (`oIdx`).
   type PairRec = {
     d: Lin, neg: Lin, mono: boolean,
     rd?: Rec, rn?: Rec, xd?: Var, sd?: boolean, xn?: Var, sn?: boolean, read?: boolean,
@@ -180,15 +187,26 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     rowCell?: CellNode, colCell?: CellNode, rPrev?: PairRec, rNext?: PairRec,
     inIdx: number, di: number, ni: number, oIdx: number,
   }
+  // A live cell in a map's doubly-linked list (`prev`/`next`, matching reader.cells's Set insertion order): keeps its
+  // outgoing pairs (this, later) in column order (`rowHead`/`rowTail`), its incoming pairs (earlier, this) for O(cells)
+  // removal on leave (`inPairs`), and its row's open non-constant recs in exact row order (`openRecs`, rebuilt via
+  // `openDirty` only when a pair crosses state 0; 1↔2 flips overwrite `openRecs[oIdx]` in place).
   type CellNode = {
     map: MapCells, name: string, live: boolean,
     prev?: CellNode, next?: CellNode,
     rowHead?: PairRec, rowTail?: PairRec,
     inPairs: PairRec[], openRecs: Rec[], openCount: number, openDirty: boolean,
   }
+  // One map's live cells (`head`/`tail` in reader.cells's insertion order), its count of open non-constant pairs
+  // (`openCount`, letting the candidate loop skip quiet maps in O(1)), and a scratch array (`added`) reused by
+  // multi-op syncOpenCells to attach new cells in exact (map, i, j) order.
   type MapCells = {name: string, head?: CellNode, tail?: CellNode, openCount: number, added: CellNode[]}
   const pairRecs = new Map<string, Map<string, PairRec | PairRec[]>>()
   const maps: MapCells[] = [], mapByName = new Map<string, MapCells>(), cellByName = new Map<string, CellNode>()
+  // Active non-constant pairs indexed by xd/xn variable id (`pairByVar`, swap-removed via di/ni): assignKernel and
+  // undoKernel only push a pair variable once (`pdirty`) onto `dirtyPairVars`, so state updates visit only pairs whose
+  // key-difference atoms actually changed on the trail. `constOpenCount + nonConstOpenCount` equals openCells's exact
+  // length (preserving costs.scan even though constant forms emit no variable).
   const pairByVar: (PairRec[] | undefined)[] = [], dirtyPairVars: Var[] = [], dirtyRows: CellNode[] = []
   let cellsSynced = 0, skipAt = pairedKeys.skip, constOpenCount = 0, nonConstOpenCount = 0
   const valOf = (x: Var | undefined, same: boolean | undefined): boolean | undefined => (x?.val === undefined ? undefined : same ? x.val : !x.val)
@@ -329,8 +347,12 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     return c
   }
   const lastOp = new Map<string, number>()
+  // Replays reader's cellOp enter/leave deltas, pairedKeys.skip flips, and dirty pair variables onto the live lists.
   const syncOpenCells = () => {
     const opMap = reader.cellOpMap, opName = reader.cellOpName, opOn = reader.cellOpOn, L = opName.length
+    // Single-op fast path (the common case when one trail step adds or removes a single cell): avoids `lastOp` map
+    // writes and map scans. A leave unlinks the cell directly; an enter appends to its map's tail and pairs with every
+    // earlier live cell head-to-tail, matching reader.cells's Set order and the exact ensure() call sequence.
     if (L === 1) {
       const mapName = opMap[0]!, name = opName[0]!, on = opOn[0]!
       opMap.length = 0; opName.length = 0; opOn.length = 0
@@ -352,6 +374,9 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
         }
       }
     } else if (L > 1) {
+      // Multi-op path: collapses repeated ops on the same cell to its last op (a delete-then-add moves the cell to its
+      // map's tail, matching Set semantics), unlinks every touched cell first, then attaches surviving adds per map in
+      // exact (map, i, j) order.
       lastOp.clear()
       for (let k = 0; k < L; k++) {
         const name = opName[k]!
@@ -489,6 +514,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   if (!clausal) reader.trackCells = true
   let last = goal.hyps.length - 1
   const near = nearOf(goal)
+  // (the hypotheses in growPlain's order: last, then near, then far; rebuilt only when goal.hyps grows)
   let hypOrder: number[] = [], hypOrderLast = -2
   const syncHypOrder = () => {
     hypOrderLast = last

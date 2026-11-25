@@ -102,9 +102,11 @@ export class Reader {
   constructor(readonly goal: Goal, readonly trail: Trail) {}
   // A new node: values with an open read are found again, unless nothing they read has changed.
   begin() { this.node++ }
-  // The reads: a value's integer key id (term, condition, facts, seg, or open list) → the reader ids that read it;
-  // an atom's name → the reader ids that read it. Small edge sets stay flat order-preserving pairs [k, gen, ...],
-  // promoting to Map<number, number> past 16 entries (identical iteration order and costs.edges to Map).
+  // The reads: each tracked value (term, condition, facts, seg, or open list) gets a dense integer key id (`kid`);
+  // `up[kid]` and `byAtom.get(name)` hold its readers as flat `[readerKid, findingGen, ...]` pairs up to 16 entries
+  // and promote to Map<number, number> past 16. Insertion order and live-edge counts match Map verbatim so touch()
+  // visits the same keys and charges the exact same costs.edges; `clean`, `foundGen`, `lastUpGen`, `keySeg`, and
+  // stamped `touchSeen` replace per-key Sets/Maps without changing which values stay clean.
   private up: (EdgeSet | undefined)[] = []
   private byAtom = new Map<string, EdgeSet>()
   // (each key's latest finding generation: a read is an edge to a generation, and one not matching foundGen[k] is stale)
@@ -604,7 +606,9 @@ export class Reader {
   // The live cells' names by map (every cell a live row reads), and a count of their changes.
   readonly cells = new Map<string, Set<string>>()
   cellsChanged = 0
-  // Per-cell enter/leave log for kernel/cdcl.ts's incremental openCellsLive (recorded only while trackCells is on).
+  // Per-cell enter/leave delta log for kernel/cdcl.ts's incremental openCellsLive (opt-in via `trackCells`):
+  // parallel arrays record each Set.add (`1`) in nameOn and Set.delete (`0`) in nameOff in exact mutation order, so
+  // replaying them reproduces `this.cells`'s exact map membership and Set insertion order without rescanning.
   trackCells = false
   readonly cellOpMap: string[] = []
   readonly cellOpName: string[] = []
