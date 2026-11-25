@@ -40,11 +40,13 @@ noted), each with the command that reproduces it.
   kernel-checked split tree). Plain goals below the `16,384`-node blowup floor (`maxHyp`-gated) keep the zero-overhead
   fast path with bit-identical non-DAG search behavior.
   - Measured on Node `v24.22.1` (default 4 GiB heap) on multi-action DAG step goals: eliminates 4 GiB heap OOMs on CCF
-    `law1` (`57.9 s OOM -> 14.6 s sat`, `952 MB` peak RSS), CCF `law12` (`61.1 s OOM -> 22.4 s sat`, `1.31 GiB` peak
+    `law1` (`57.9 s OOM -> 14.6 s`, `952 MB` peak RSS), CCF `law12` (`61.1 s OOM -> 22.4 s`, `1.31 GiB` peak
     RSS), and WiredTiger `mtxn` (`50.6 s OOM -> 31.2 s unknown`, `1.46 GiB` peak RSS); turns Kafka transactions `TypeOK`
-    from `>90 s` timeout to `10.5 s sat` (`>=8.6x`, `0.71 GiB` peak RSS); reduces WiredTiger `mlog` expanded open atoms
+    from `>90 s` timeout to `10.5 s` (`>=8.6x`, `0.71 GiB` peak RSS); reduces WiredTiger `mlog` expanded open atoms
     **37x** (`1,070,490 -> 28,903`, **4.1x** faster, `409 MB` peak RSS); speeds up CCF `law6` **1.16x**
-    (`2.85 s -> 2.36 s`) and `law4` **1.13x** (`33.4 s -> 29.6 s`); and speeds up synthetic depth-18 shared-DAG goals
+    (`2.85 s -> 2.36 s`) and `law4` **1.13x** (`33.4 s -> 29.6 s`). CCF `law1` and `law12` and Kafka `TypeOK` now end
+    with the law shown not inductive on its own (a step from a state the law allows breaks it), where they used to crash
+    or time out; they need an invariant beside them to be proven. It also speeds up synthetic depth-18 shared-DAG goals
     **59.8x** (`758 ms -> 12 ms`, `97 MB` peak RSS).
 
 ## 0.59.1
