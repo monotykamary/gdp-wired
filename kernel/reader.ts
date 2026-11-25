@@ -726,59 +726,81 @@ export class Reader {
     if (had && ((keepClean && this.clean.has(key)) || had.node === this.node)) return had.lins
     const lins = this.within(key, () => {
       const mine: Lin[] = []
-      if (!this.factsFin(i)) this.openH(this.goal.hyps[i]!, mine, true)
+      if (!this.factsFin(i)) this.openH(this.goal.hyps[i]!, mine, true, {p: new WeakSet(), n: new WeakSet(), t: new WeakMap()})
       return mine
     })
     this.os[i] = {lins, node: this.node}
     this.clean.add(key)
     return lins
   }
-  private openE(e: E, out: Lin[]): void {
+  private openE(e: E, out: Lin[], seen: WeakMap<object, boolean>): boolean {
+    const hit = seen.get(e)
+    if (hit !== undefined) return hit
+    seen.set(e, false)
+    const before = out.length
+    let had = false
     switch (e.op) {
-      case 'var': case 'const': return
-      case 'mul': return this.openE(e.a, out)
-      case 'prod': return (this.openE(e.a, out), this.openE(e.b, out))
-      case 'get': return this.openE(e.key, out)
-      case 'tup': return (this.openE(e.a, out), this.openE(e.b, out))
-      case 'proj': return this.openE(e.a.op === 'tup' ? (e.k === 0 ? e.a.a : e.a.b) : e.a, out)
-      case 'if': { const t = this.truth(e.c); if (t.t === undefined) this.openC(e.c, out); else this.openE(t.t ? e.then : e.else, out); return }
+      case 'var': case 'const': return false
+      case 'mul': had = this.openE(e.a, out, seen); break
+      case 'prod': case 'tup': { const a = this.openE(e.a, out, seen), b = this.openE(e.b, out, seen); had = a || b; break }
+      case 'get': had = this.openE(e.key, out, seen); break
+      case 'proj': had = this.openE(e.a.op === 'tup' ? (e.k === 0 ? e.a.a : e.a.b) : e.a, out, seen); break
+      case 'if': { const t = this.truth(e.c); had = t.t === undefined ? this.openC(e.c, out, seen) : this.openE(t.t ? e.then : e.else, out, seen); break }
       case 'add': case 'sub': case 'min': case 'max': {
-        if (this.linear(e).fin) return
-        this.openE(e.a, out), this.openE(e.b, out)
+        if (this.linear(e).fin) return false
+        const ea = this.openE(e.a, out, seen), eb = this.openE(e.b, out, seen)
         const a = this.linear(e.a).lin, b = this.linear(e.b).lin
         if (a && b && !this.decided(e)) out.push(same(1, e, a, b, 0, () => (e.op === 'sub' ? sub(b, a) : sub(a, b))))
-        return
+        had = ea || eb || out.length > before
+        break
       }
     }
+    had = had || out.length > before
+    seen.set(e, had)
+    return had
   }
-  private openC(c: C, out: Lin[]): void {
-    if (this.truth(c).t !== undefined) return
-    if (c.op === 'flag' || c.op === 'all') return
-    if (c.op === 'not') return this.openC(c.x, out)
-    if (c.op === 'and' || c.op === 'or') return c.xs.forEach(y => this.openC(y, out))
-    const and = tupleAnd(c)
-    if (and) return this.openC(and, out)
-    const a = this.linear(c.a).lin, b = this.linear(c.b).lin
-    const own: Lin[] = a && b ? same(7, c, a, b, 0, () => { const d = sub(a, b); return c.op === '<=' ? [d] : c.op === '<' ? [add(d, k(1))] : [d, scale(d, -1)] }) : []
-    this.openE(c.a, out), this.openE(c.b, out)
-    for (const x of own) out.push(x)
+  private openC(c: C, out: Lin[], seen: WeakMap<object, boolean>): boolean {
+    const hit = seen.get(c)
+    if (hit !== undefined) return hit
+    seen.set(c, false)
+    if (this.truth(c).t !== undefined || c.op === 'flag' || c.op === 'all') return false
+    const before = out.length
+    let had = false
+    if (c.op === 'not') had = this.openC(c.x, out, seen)
+    else if (c.op === 'and' || c.op === 'or') { for (const y of c.xs) if (this.openC(y, out, seen)) had = true }
+    else {
+      const and = tupleAnd(c)
+      if (and) had = this.openC(and, out, seen)
+      else {
+        const a = this.linear(c.a).lin, b = this.linear(c.b).lin
+        const own: Lin[] = a && b ? same(7, c, a, b, 0, () => { const d = sub(a, b); return c.op === '<=' ? [d] : c.op === '<' ? [add(d, k(1))] : [d, scale(d, -1)] }) : []
+        const ea = this.openE(c.a, out, seen), eb = this.openE(c.b, out, seen)
+        for (const x of own) out.push(x)
+        had = ea || eb || out.length > before
+      }
+    }
+    had = had || out.length > before
+    seen.set(c, had)
+    return had
   }
-  private openH(c: C, out: Lin[], positive: boolean): void {
-    if (c.op === 'not') return this.openH(c.x, out, !positive)
-    if ((c.op === 'and' && positive) || (c.op === 'or' && !positive)) return c.xs.forEach(y => this.openH(y, out, positive))
+  private openH(c: C, out: Lin[], positive: boolean, seen: {p: WeakSet<object>, n: WeakSet<object>, t: WeakMap<object, boolean>}): void {
+    const bag = positive ? seen.p : seen.n
+    if (bag.has(c)) return
+    bag.add(c)
+    if (c.op === 'not') return this.openH(c.x, out, !positive, seen)
+    if ((c.op === 'and' && positive) || (c.op === 'or' && !positive)) return c.xs.forEach(y => this.openH(y, out, positive, seen))
     if (c.op === 'and' || c.op === 'or') {
       if (this.truth(c).t !== undefined) return
       const open = c.xs.filter(y => this.truth(y).t !== !positive)
-      if (open.length === 1) this.openH(open[0]!, out, positive)
-      else this.openC(c, out)
+      if (open.length === 1) this.openH(open[0]!, out, positive, seen)
+      else this.openC(c, out, seen.t)
       return
     }
     if (c.op === 'flag' || c.op === 'all') return
     const and = tupleAnd(c)
-    if (and) return this.openH(and, out, positive)
-    const before = out.length
-    this.openE(c.a, out), this.openE(c.b, out)
-    if (out.length === before && !positive && c.op === '=' && this.truth(c).t === undefined) this.openC(c, out)
+    if (and) return this.openH(and, out, positive, seen)
+    const ea = this.openE(c.a, out, seen.t), eb = this.openE(c.b, out, seen.t)
+    if (!ea && !eb && !positive && c.op === '=' && this.truth(c).t === undefined) this.openC(c, out, seen.t)
   }
 }
 
