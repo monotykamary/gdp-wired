@@ -99,7 +99,12 @@ test('growWide cellsIn handles depth-24 heavily shared map keys without blowup',
 test('openAt and Reader.openList stay O(distinct DAG nodes) on deeply shared open conditions', () => {
   const deep = sharedOpenCond(22)
   const small = atMost(plus(x('a'), n(1)), x('b'))
+  // Moderately shared protocol-sized condition (~92 nodes, ~293 unrolled) stays on the plain walk.
+  let modest: E = x('v')
+  for (let i = 0; i < 4; i++) modest = ite(atMost(x(`m${i}`), n(1)), plus(modest, n(1)), modest)
+  const modestCond: C = any(atMost(modest, n(0)), atMost(modest, n(1)), atMost(modest, n(2)))
   expect(hasDagBlowup(small)).toBe(false)
+  expect(hasDagBlowup(modestCond)).toBe(false)
   expect(hasDagBlowup(deep)).toBe(true)
   expect(hypAstInfo(deep).nodes).toBeLessThan(200)
   const goal = {name: 'deep-open', hyps: [deep]}

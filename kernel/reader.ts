@@ -949,7 +949,7 @@ const hypAstMemo = new WeakMap<C, HypAstInfo>()
 const UNFOLD_CAP = 1_000_000
 
 // Counts distinct AST nodes in `root` and checks whether unrolling shared
-// subtrees exceeds max(256, 2 * nodes). Cached per `C` so repeated goals in
+// subtrees exceeds max(4096, 2 * nodes). Cached per `C` so repeated goals in
 // invariant search pay O(1) WeakMap hits and linear-size trees keep zero-Map
 // traversal in Reader.openList, prove.ts openH, and treeKey.
 export function hypAstInfo(root: C): HypAstInfo {
@@ -1016,7 +1016,9 @@ export function hypAstInfo(root: C): HypAstInfo {
         sizes.set(n, s > UNFOLD_CAP ? UNFOLD_CAP : s)
       }
     }
-    dag = (sizes.get(root) ?? nodes) > Math.max(256, nodes * 2)
+    // Below 4096, the plain walk is cheap and keeps the exact open list (repeats included) that the search's counted budget reads.
+    const unrolled = sizes.get(root) ?? nodes
+    dag = unrolled >= UNFOLD_CAP || unrolled > Math.max(4096, nodes * 2)
   }
   const info: HypAstInfo = {nodes, dag}
   hypAstMemo.set(root, info)
