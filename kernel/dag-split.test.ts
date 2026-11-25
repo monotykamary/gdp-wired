@@ -1,7 +1,7 @@
 import {expect, test} from 'bun:test'
 import {type C, type E, any, atMost, get, ite, less, min, minus, n, not, plus, same, walkOnce, x} from '../core/machine.ts'
 import {check, checkLaws, leafConstraints, obligations} from './kernel.ts'
-import {Reader} from './reader.ts'
+import {Reader, hasDagBlowup, hypAstInfo} from './reader.ts'
 import {dagInterner, findSelector, preSplitBySelector, preSplitStats, specializeGoal} from './dag-split.ts'
 import {brokenOf, clock, grow, growWide, openAt, proveLaws, treeReuseStats, withTrees} from './prove.ts'
 import {nat, oneOf, proveRule, rule, when} from '../core/dsl.ts'
@@ -98,6 +98,10 @@ test('growWide cellsIn handles depth-24 heavily shared map keys without blowup',
 
 test('openAt and Reader.openList stay O(distinct DAG nodes) on deeply shared open conditions', () => {
   const deep = sharedOpenCond(22)
+  const small = atMost(plus(x('a'), n(1)), x('b'))
+  expect(hasDagBlowup(small)).toBe(false)
+  expect(hasDagBlowup(deep)).toBe(true)
+  expect(hypAstInfo(deep).nodes).toBeLessThan(200)
   const goal = {name: 'deep-open', hyps: [deep]}
   const p = new Map()
   const rows = leafConstraints(goal, p)

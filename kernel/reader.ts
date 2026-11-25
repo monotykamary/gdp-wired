@@ -721,39 +721,97 @@ export class Reader {
   }
   // prove.ts's open atoms of a hypothesis (openH), in its order; none for a hypothesis whose facts are final.
   // (the same array while it stands)
+  private openShared: (boolean | undefined)[] = []
   private openStamp = 0
-  private openP = new Map<object, number>()
-  private openN = new Map<object, number>()
-  private openT = new Map<object, number>()
+  private openP?: Map<object, number>
+  private openN?: Map<object, number>
+  private openT?: Map<object, number>
   openList(i: number): Lin[] {
     const key = (this.openKeys[i] ??= {}), had = this.os[i]
     if (had && ((keepClean && this.clean.has(key)) || had.node === this.node)) return had.lins
     const lins = this.within(key, () => {
       const mine: Lin[] = []
-      if (!this.factsFin(i)) this.openH(this.goal.hyps[i]!, mine, true, ++this.openStamp)
+      if (!this.factsFin(i)) {
+        const h = this.goal.hyps[i]!
+        let dag = this.openShared[i]
+        if (dag === undefined) this.openShared[i] = dag = hasDagBlowup(h)
+        if (dag) {
+          const p = (this.openP ??= new Map()), n = (this.openN ??= new Map()), t = (this.openT ??= new Map())
+          this.openHDag(h, mine, true, ++this.openStamp, p, n, t)
+        } else {
+          this.openHPlain(h, mine, true)
+        }
+      }
       return mine
     })
     this.os[i] = {lins, node: this.node}
     this.clean.add(key)
     return lins
   }
-  private openE(e: E, out: Lin[], stamp: number): boolean {
+  private openEPlain(e: E, out: Lin[]): void {
+    switch (e.op) {
+      case 'var': case 'const': return
+      case 'mul': return this.openEPlain(e.a, out)
+      case 'prod': return (this.openEPlain(e.a, out), this.openEPlain(e.b, out))
+      case 'get': return this.openEPlain(e.key, out)
+      case 'tup': return (this.openEPlain(e.a, out), this.openEPlain(e.b, out))
+      case 'proj': return this.openEPlain(e.a.op === 'tup' ? (e.k === 0 ? e.a.a : e.a.b) : e.a, out)
+      case 'if': { const t = this.truth(e.c); if (t.t === undefined) this.openCPlain(e.c, out); else this.openEPlain(t.t ? e.then : e.else, out); return }
+      case 'add': case 'sub': case 'min': case 'max': {
+        if (this.linear(e).fin) return
+        this.openEPlain(e.a, out), this.openEPlain(e.b, out)
+        const a = this.linear(e.a).lin, b = this.linear(e.b).lin
+        if (a && b && !this.decided(e)) out.push(same(1, e, a, b, 0, () => (e.op === 'sub' ? sub(b, a) : sub(a, b))))
+        return
+      }
+    }
+  }
+  private openCPlain(c: C, out: Lin[]): void {
+    if (this.truth(c).t !== undefined) return
+    if (c.op === 'flag' || c.op === 'all') return
+    if (c.op === 'not') return this.openCPlain(c.x, out)
+    if (c.op === 'and' || c.op === 'or') return c.xs.forEach(y => this.openCPlain(y, out))
+    const and = tupleAnd(c)
+    if (and) return this.openCPlain(and, out)
+    const a = this.linear(c.a).lin, b = this.linear(c.b).lin
+    const own: Lin[] = a && b ? same(7, c, a, b, 0, () => { const d = sub(a, b); return c.op === '<=' ? [d] : c.op === '<' ? [add(d, k(1))] : [d, scale(d, -1)] }) : []
+    this.openEPlain(c.a, out), this.openEPlain(c.b, out)
+    for (const x of own) out.push(x)
+  }
+  private openHPlain(c: C, out: Lin[], positive: boolean): void {
+    if (c.op === 'not') return this.openHPlain(c.x, out, !positive)
+    if ((c.op === 'and' && positive) || (c.op === 'or' && !positive)) return c.xs.forEach(y => this.openHPlain(y, out, positive))
+    if (c.op === 'and' || c.op === 'or') {
+      if (this.truth(c).t !== undefined) return
+      const open = c.xs.filter(y => this.truth(y).t !== !positive)
+      if (open.length === 1) this.openHPlain(open[0]!, out, positive)
+      else this.openCPlain(c, out)
+      return
+    }
+    if (c.op === 'flag' || c.op === 'all') return
+    const and = tupleAnd(c)
+    if (and) return this.openHPlain(and, out, positive)
+    const before = out.length
+    this.openEPlain(c.a, out), this.openEPlain(c.b, out)
+    if (out.length === before && !positive && c.op === '=' && this.truth(c).t === undefined) this.openCPlain(c, out)
+  }
+  private openEDag(e: E, out: Lin[], stamp: number, tMap: Map<object, number>): boolean {
     if (e.op === 'var' || e.op === 'const') return false
     const tag = stamp * 2
-    const hit = this.openT.get(e)
+    const hit = tMap.get(e)
     if (hit !== undefined && (hit === tag || hit === tag + 1)) return hit === tag + 1
-    this.openT.set(e, tag)
+    tMap.set(e, tag)
     const before = out.length
     let had = false
     switch (e.op) {
-      case 'mul': had = this.openE(e.a, out, stamp); break
-      case 'prod': case 'tup': { const a = this.openE(e.a, out, stamp), b = this.openE(e.b, out, stamp); had = a || b; break }
-      case 'get': had = this.openE(e.key, out, stamp); break
-      case 'proj': had = this.openE(e.a.op === 'tup' ? (e.k === 0 ? e.a.a : e.a.b) : e.a, out, stamp); break
-      case 'if': { const t = this.truth(e.c); had = t.t === undefined ? this.openC(e.c, out, stamp) : this.openE(t.t ? e.then : e.else, out, stamp); break }
+      case 'mul': had = this.openEDag(e.a, out, stamp, tMap); break
+      case 'prod': case 'tup': { const a = this.openEDag(e.a, out, stamp, tMap), b = this.openEDag(e.b, out, stamp, tMap); had = a || b; break }
+      case 'get': had = this.openEDag(e.key, out, stamp, tMap); break
+      case 'proj': had = this.openEDag(e.a.op === 'tup' ? (e.k === 0 ? e.a.a : e.a.b) : e.a, out, stamp, tMap); break
+      case 'if': { const t = this.truth(e.c); had = t.t === undefined ? this.openCDag(e.c, out, stamp, tMap) : this.openEDag(t.t ? e.then : e.else, out, stamp, tMap); break }
       case 'add': case 'sub': case 'min': case 'max': {
         if (this.linear(e).fin) return false
-        const ea = this.openE(e.a, out, stamp), eb = this.openE(e.b, out, stamp)
+        const ea = this.openEDag(e.a, out, stamp, tMap), eb = this.openEDag(e.b, out, stamp, tMap)
         const a = this.linear(e.a).lin, b = this.linear(e.b).lin
         if (a && b && !this.decided(e)) out.push(same(1, e, a, b, 0, () => (e.op === 'sub' ? sub(b, a) : sub(a, b))))
         had = ea || eb || out.length > before
@@ -761,55 +819,135 @@ export class Reader {
       }
     }
     had = had || out.length > before
-    if (had) this.openT.set(e, tag + 1)
+    if (had) tMap.set(e, tag + 1)
     return had
   }
-  private openC(c: C, out: Lin[], stamp: number): boolean {
+  private openCDag(c: C, out: Lin[], stamp: number, tMap: Map<object, number>): boolean {
     if (c.op === 'flag' || c.op === 'all') return false
     const tag = stamp * 2
-    const hit = this.openT.get(c)
+    const hit = tMap.get(c)
     if (hit !== undefined && (hit === tag || hit === tag + 1)) return hit === tag + 1
-    this.openT.set(c, tag)
+    tMap.set(c, tag)
     if (this.truth(c).t !== undefined) return false
     const before = out.length
     let had = false
-    if (c.op === 'not') had = this.openC(c.x, out, stamp)
-    else if (c.op === 'and' || c.op === 'or') { for (const y of c.xs) if (this.openC(y, out, stamp)) had = true }
+    if (c.op === 'not') had = this.openCDag(c.x, out, stamp, tMap)
+    else if (c.op === 'and' || c.op === 'or') { for (const y of c.xs) if (this.openCDag(y, out, stamp, tMap)) had = true }
     else {
       const and = tupleAnd(c)
-      if (and) had = this.openC(and, out, stamp)
+      if (and) had = this.openCDag(and, out, stamp, tMap)
       else {
         const a = this.linear(c.a).lin, b = this.linear(c.b).lin
         const own: Lin[] = a && b ? same(7, c, a, b, 0, () => { const d = sub(a, b); return c.op === '<=' ? [d] : c.op === '<' ? [add(d, k(1))] : [d, scale(d, -1)] }) : []
-        const ea = this.openE(c.a, out, stamp), eb = this.openE(c.b, out, stamp)
+        const ea = this.openEDag(c.a, out, stamp, tMap), eb = this.openEDag(c.b, out, stamp, tMap)
         for (const x of own) out.push(x)
         had = ea || eb || out.length > before
       }
     }
     had = had || out.length > before
-    if (had) this.openT.set(c, tag + 1)
+    if (had) tMap.set(c, tag + 1)
     return had
   }
-  private openH(c: C, out: Lin[], positive: boolean, stamp: number): void {
-    const bag = positive ? this.openP : this.openN
+  private openHDag(c: C, out: Lin[], positive: boolean, stamp: number, pMap: Map<object, number>, nMap: Map<object, number>, tMap: Map<object, number>): void {
+    const bag = positive ? pMap : nMap
     if (bag.get(c) === stamp) return
     bag.set(c, stamp)
-    if (c.op === 'not') return this.openH(c.x, out, !positive, stamp)
-    if ((c.op === 'and' && positive) || (c.op === 'or' && !positive)) return c.xs.forEach(y => this.openH(y, out, positive, stamp))
+    if (c.op === 'not') return this.openHDag(c.x, out, !positive, stamp, pMap, nMap, tMap)
+    if ((c.op === 'and' && positive) || (c.op === 'or' && !positive)) return c.xs.forEach(y => this.openHDag(y, out, positive, stamp, pMap, nMap, tMap))
     if (c.op === 'and' || c.op === 'or') {
       if (this.truth(c).t !== undefined) return
       const open = c.xs.filter(y => this.truth(y).t !== !positive)
-      if (open.length === 1) this.openH(open[0]!, out, positive, stamp)
-      else this.openC(c, out, stamp)
+      if (open.length === 1) this.openHDag(open[0]!, out, positive, stamp, pMap, nMap, tMap)
+      else this.openCDag(c, out, stamp, tMap)
       return
     }
     if (c.op === 'flag' || c.op === 'all') return
     const and = tupleAnd(c)
-    if (and) return this.openH(and, out, positive, stamp)
-    const ea = this.openE(c.a, out, stamp), eb = this.openE(c.b, out, stamp)
-    if (!ea && !eb && !positive && c.op === '=' && this.truth(c).t === undefined) this.openC(c, out, stamp)
+    if (and) return this.openHDag(and, out, positive, stamp, pMap, nMap, tMap)
+    const ea = this.openEDag(c.a, out, stamp, tMap), eb = this.openEDag(c.b, out, stamp, tMap)
+    if (!ea && !eb && !positive && c.op === '=' && this.truth(c).t === undefined) this.openCDag(c, out, stamp, tMap)
   }
 }
+
+export type HypAstInfo = {nodes: number, dag: boolean}
+const hypAstMemo = new WeakMap<C, HypAstInfo>()
+const UNFOLD_CAP = 1_000_000
+
+// Counts distinct AST nodes in `root` and checks whether unrolling shared
+// subtrees exceeds max(256, 2 * nodes). Cached per `C` so repeated goals in
+// invariant search pay O(1) WeakMap hits and linear-size trees keep zero-Map
+// traversal in Reader.openList, prove.ts openH, and treeKey.
+export function hypAstInfo(root: C): HypAstInfo {
+  const hit = hypAstMemo.get(root)
+  if (hit !== undefined) return hit
+  const seen = new Set<object>()
+  const stack: (C | E)[] = [root]
+  let shared = false
+  while (stack.length) {
+    const n = stack.pop()!
+    if (seen.has(n)) {
+      if (n.op !== 'var' && n.op !== 'const' && n.op !== 'flag') shared = true
+      continue
+    }
+    seen.add(n)
+    switch (n.op) {
+      case 'var': case 'const': case 'flag': break
+      case 'all': stack.push(n.c); break
+      case 'not': stack.push(n.x); break
+      case 'and': case 'or': for (let i = 0; i < n.xs.length; i++) stack.push(n.xs[i]!); break
+      case 'mul': case 'proj': stack.push(n.a); break
+      case 'get': stack.push(n.key); break
+      case 'if': stack.push(n.c, n.then, n.else); break
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup':
+      case '<': case '<=': case '=': stack.push(n.a, n.b); break
+    }
+  }
+  const nodes = seen.size
+  let dag = false
+  if (shared) {
+    const sizes = new Map<object, number>()
+    const post: (C | E)[] = [root]
+    const expanded = new Set<object>()
+    while (post.length) {
+      const n = post[post.length - 1]!
+      if (sizes.has(n)) { post.pop(); continue }
+      if (!expanded.has(n)) {
+        expanded.add(n)
+        switch (n.op) {
+          case 'var': case 'const': case 'flag': sizes.set(n, 1); post.pop(); break
+          case 'all': post.push(n.c); break
+          case 'not': post.push(n.x); break
+          case 'and': case 'or': for (let i = 0; i < n.xs.length; i++) post.push(n.xs[i]!); break
+          case 'mul': case 'proj': post.push(n.a); break
+          case 'get': post.push(n.key); break
+          case 'if': post.push(n.c, n.then, n.else); break
+          case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup':
+          case '<': case '<=': case '=': post.push(n.a, n.b); break
+        }
+      } else {
+        post.pop()
+        let s = 1
+        switch (n.op) {
+          case 'var': case 'const': case 'flag': break
+          case 'all': s += sizes.get(n.c) ?? 1; break
+          case 'not': s += sizes.get(n.x) ?? 1; break
+          case 'and': case 'or': for (let i = 0; i < n.xs.length; i++) { s += sizes.get(n.xs[i]!) ?? 1; if (s >= UNFOLD_CAP) { s = UNFOLD_CAP; break } } break
+          case 'mul': case 'proj': s += sizes.get(n.a) ?? 1; break
+          case 'get': s += sizes.get(n.key) ?? 1; break
+          case 'if': s += (sizes.get(n.c) ?? 1) + (sizes.get(n.then) ?? 1) + (sizes.get(n.else) ?? 1); break
+          case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup':
+          case '<': case '<=': case '=': s += (sizes.get(n.a) ?? 1) + (sizes.get(n.b) ?? 1); break
+        }
+        sizes.set(n, s > UNFOLD_CAP ? UNFOLD_CAP : s)
+      }
+    }
+    dag = (sizes.get(root) ?? nodes) > Math.max(256, nodes * 2)
+  }
+  const info: HypAstInfo = {nodes, dag}
+  hypAstMemo.set(root, info)
+  return info
+}
+export const hasDagBlowup = (root: C): boolean => hypAstInfo(root).dag
 
 // A form's variables, and a cell's map and key, remembered (read at every node).
 const nameMemo = new WeakMap<Lin, string[]>()
