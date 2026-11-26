@@ -25,7 +25,7 @@
 // a Clock's millis as the request's time. An immutable class's method that returns its next value (a data class's
 // copy, `this`) is a step whose result is the new state.
 //
-// Refused, each where it is with why: other loops, try/catch, lambdas (but Kotlin's scope functions), arrays and other
+// Refused, each where it is with why: other loops, try/catch, Kotlin lambdas (but scope functions), arrays and other
 // collections, instanceof, static fields that aren't constants, inner classes, generic classes and methods, other
 // code's calls not answered or skipped. Not yet: `stores`, branch coverage (the arms aren't counted).
 import {type Extraction} from './extract.ts'

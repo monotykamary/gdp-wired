@@ -2278,6 +2278,7 @@ export class Stepper {
     if (v.t === 'ptr') return this.cases(v.to).objs.some(c => st(c.id))
     if (v.t === 'opt') return this.stateRef(v.v, p)
     if (v.t === 'tuple' || v.t === 'struct') return [...(v.t === 'tuple' ? v.xs : v.f.values())].some(y => this.stateRef(y, p))
+    if (v.t === 'fn' && v.caps && [...v.caps.values()].some(y => this.stateRef(y, p))) return true
     const by = v.t === 'fn' ? v.self : v.t === 'ext' ? v.recv : undefined
     return !!by && this.stateRef(by, p)
   }
@@ -2302,7 +2303,7 @@ export class Stepper {
     const fn = this.mod.funcs[id]
     if (!fn) return true
     const rs = new Set(roots)
-    const mentions = (x: unknown) => deep(x, o => o.e === 'var' && rs.has(String(o.n)))
+    const mentions = (x: unknown) => deep(x, o => (o.e === 'var' && rs.has(String(o.n))) || (o.e === 'closure' && (o.caps as string[] | undefined)?.some(n => rs.has(n))))
     const isVar = (x: unknown) => !!x && typeof x === 'object' && (x as SX).e === 'var'
     const targets = (s: SS): unknown[] => [s.to, ...((s.l as unknown[] | undefined) ?? []), s.pl, (s.at as SX | undefined)?.m, s.s === 'del' ? s.x : undefined].filter(Boolean)
     // (aliases first: a local set from a root's parts is one)
@@ -2801,7 +2802,8 @@ export class Stepper {
         if (r.classCollections?.[f]) return [this.classCollection(r.classCollections[f]!, f), q]
         return [{t: 'ext', q: `${o.rec}.${f}`, text: x.text ?? f, ...(o.patch?.path ? {patch: {...o.patch, path: [...o.patch.path, f]}} : {}), ...(r.rets?.[f] ? {ret: r.rets[f]} : {})}, q]
       }
-      case 'bool': case 'builtin': case 'choice': case 'fmt': case 'fn': case 'lib': case 'lock': case 'num': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': case 'val': return refuse(x, `${x.text}: a field of a ${o.t === 'val' ? o.ty.slice(1) : o.t}`)
+      case 'fn': if (x.sam) return [o, q]; return refuse(x, `${x.text}: a field of a fn`)
+      case 'bool': case 'builtin': case 'choice': case 'fmt': case 'lib': case 'lock': case 'num': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': case 'val': return refuse(x, `${x.text}: a field of a ${o.t === 'val' ? o.ty.slice(1) : o.t}`)
     }
     if (o.t === 'sattr') return this.storeAttr(o.store, o.path ? `${o.path}.${f}` : f, x, q)
     const obj = q.heap.get(o.id)
@@ -3196,7 +3198,7 @@ export class Stepper {
         if (cut) return this.boundary(x, cut, q, !!fn.async)
         try { return this.evArgs(x, q, (args, kw, q2) => this.callFunc(fn, f.self, args, kw, x, q2, awaited || !fn.async, f.caps)) } catch (e) {
           // (refused before its body runs, an argument or the call itself: the function is where it may be cut)
-          if (e instanceof Refusal && this.inf && !(e as Framed).frames?.length) (e as Framed).frames = [{id: fn.id, roots: f.self && this.stateRef(f.self, q) ? fn.params.filter(x => x.self).map(x => x.name) : []}]
+          if (e instanceof Refusal && this.inf && !(e as Framed).frames?.length) (e as Framed).frames = [{id: fn.id, roots: [...(f.self && this.stateRef(f.self, q) ? fn.params.filter(x => x.self).map(x => x.name) : []), ...(f.caps ? [...f.caps].filter(([, v]) => this.stateRef(v, q)).map(([n]) => n) : [])]}]
           throw e
         }
       }
@@ -4207,7 +4209,7 @@ function keyKind(d: MapDecl, k: K, at: SX): void {
 }
 // An expression that reaches none of the module's own code and not `self`, nor what raises wherever it runs (a reader's
 // `raises`: a name nothing binds).
-const foreign = (x: unknown): boolean => !deep(x, o => o.e === 'fn' || (o.e === 'var' && o.n === 'self') || !!o.raises)
+const foreign = (x: unknown): boolean => !deep(x, o => o.e === 'fn' || o.e === 'closure' || (o.e === 'var' && o.n === 'self') || !!o.raises)
 // Two key templates name disjoint keys: they differ at some position of their fixed prefixes or of their fixed
 // suffixes (a hole's value can be any string, so only those parts tell keys apart).
 export function disjoint(a: string, b: string): boolean {
@@ -4505,8 +4507,9 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
         return
       }
       if (v.t === 'lock') { into.set(f, v); return }
-      // (a function of other code, json.dumps: a constant of the object, its calls other code's; a method rebinding it refused)
+      // (a function of other code, json.dumps, or a stateless/self-bound closure: a constant of the object; rebinding it refused)
       if (v.t === 'ext' && !v.recv) { into.set(f, v); g.frozen.add(path.join('.')); leaves.push({name: '', path, kind: 'frame'}); return }
+      if (v.t === 'fn' && !v.self && (!v.caps || [...v.caps.entries()].every(([k, cv]) => k === 'self' && cv.t === 'ref' && cv.id === 'this'))) { into.set(f, v); g.frozen.add(path.join('.')); leaves.push({name: '', path, kind: 'frame'}); return }
       // A field the constructor sets to None, of no declared type, or to a key's template (a lock's key made of its name):
       // a constant (a method setting it is refused).
       if (v.t === 'none' || v.t === 'fmt') { into.set(f, v); g.frozen.add(path.join('.')); leaves.push({name: '', path, kind: 'frame'}); return }
