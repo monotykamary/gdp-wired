@@ -3461,10 +3461,11 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
     return retainCounted({proven: c.proven, checked: c.proven, ...(c.why ? {why: c.why} : {}), found: {laws: c.laws.map(l => ({text: l.name}))}} as unknown as Verdict, c)
   }
   // A quantified existential law's witness search (proveSome/skolemOf) already explores smallOf(m); check the caller's
-  // laws at param size 2 during that same small-instance BFS/walks on the shared machine snapshot so broken ∀∃ rules
-  // stop early with a replay-verified trace while intact rules reuse the cached size-2 states in skolemOf at zero extra
-  // BFS cost (and multi-var tuple-each rules avoid paying size-3 interpreter walks before witness search).
-  const sm = r === originalRule ? captureMachine : r.machine
+  // laws at param size 2 during that same small-instance BFS/walks so broken ∀∃ rules stop early with a replay-verified
+  // trace while intact rules reuse the cached size-2 states in skolemOf at zero extra BFS cost (and multi-var tuple-each
+  // rules avoid paying size-3 interpreter walks before witness search). The machine is read here, not the one captured
+  // on entry: the divisors the laws read (mod 2's mod$2) are noted on the rule after that capture.
+  const sm = r.machine
   if (opts.search !== false && opts.from !== 'any' && laws.some(l => l.some?.length && l.forall && !l.witness)) {
     let earlyVerdict: Verdict | undefined
     smallOfChecked(sm, {
@@ -3748,7 +3749,8 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // ghosts' own laws beside it, on the rule with the ghosts (exists.ts's skolemOf), its verdict `back`'s; no join, whose
   // convex forms can't state a cell read at a key a ghost holds: the engine alone (the join's first whole-set query on
   // db_ae's plain laws took 234 counted s, past the budget, before the engine)
-  const skM = !lemmas && rule === r && searchCaptureMachine ? searchCaptureMachine : rule.machine
+  // (the rule's machine as it is now: one captured earlier may predate the divisors its laws read)
+  const skM = rule.machine
   if (!stepLaws.length && laws.some(l => l.some?.length && l.forall && !l.witness)) {
     let earlyVerdict: Verdict | undefined
     if (laws.some(l => l.some?.length === 1 && l.forall && !l.witness)) {
