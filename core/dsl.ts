@@ -263,6 +263,7 @@ export abstract class Kind<V> {
   // `int.from(({n}) => n.times(2))` typechecking as it runs)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from(init: Raw | ((p: any) => unknown)): Init<V> { return {kind: this, init} }
+  inspect?(): KindInfo
 }
 const v = (name: string) => new Term(variable(name), scope?.vars[name])
 // Concrete values for the builders to carry (crossCheck): variables by name, maps' cells, the keys a condition at every
@@ -2884,6 +2885,7 @@ export type KindInfo =
   | {kind: 'unknown', vars: string[]}
 
 export function inspectKind(k: Kind<unknown>): KindInfo {
+  if (k.inspect) return k.inspect()
   if (k instanceof NatKind) return k.maxValue === undefined ? {kind: 'nat'} : {kind: 'nat', max: k.maxValue}
   if (k instanceof BoolKind) return {kind: 'bool'}
   if (k instanceof OneOfKind) return {kind: 'oneOf', values: [...k.values]}
@@ -4561,18 +4563,18 @@ export type FoldMeta = {
 }
 
 export function inspectFoldMeta(f: FoldRule<Obj, Obj, Obj> | RoseFold<Obj, Obj, Obj, Obj>): FoldMeta {
-  const s = f['spec']
-  const params = s.params.map(([n, k]) => [n, k, inspectKind(k)] as [string, Kind<unknown>, KindInfo])
-  const inputs = s.inputs.map(([n, k]) => [n, k, inspectKind(k)] as [string, Kind<unknown>, KindInfo])
   if (f instanceof RoseFold) {
+    const s = f['spec']
+    const params = s.params.map(([n, k]) => [n, k, inspectKind(k)] as [string, Kind<unknown>, KindInfo])
+    const inputs = s.inputs.map(([n, k]) => [n, k, inspectKind(k)] as [string, Kind<unknown>, KindInfo])
     const pEnv = f['env'](false), env = f['env'](true), names = f['names']()
     const startMap = f['start'](pEnv)
     const accNames = Object.keys(f['kids'].from)
     const accVars = Object.fromEntries(accNames.map(a => [a, v(`$acc_${a}`)]))
     const kidVars = Object.fromEntries(names.map(n => [n, v(`$kid_${n}`)]))
-    const stepRaw = f['kids'].step(accVars as never, kidVars as never, pEnv as never)
-    const nodeRaw = f['nodeOf']!(env as never, accVars as never)
-    const leafRaw = s.leaf!(env as never)
+    const stepRaw = f['kids'].step(accVars as never, kidVars as never, pEnv as never) as Record<string, TermLike>
+    const nodeRaw = f['nodeOf']!(env as never, accVars as never) as Record<string, TermLike>
+    const leafRaw = s.leaf!(env as never) as Record<string, TermLike>
     return {
       name: s.name,
       rose: true,
@@ -4587,6 +4589,9 @@ export function inspectFoldMeta(f: FoldRule<Obj, Obj, Obj> | RoseFold<Obj, Obj, 
       ownedLaws: [...(ownedRoseLaws.get(f) ?? [])],
     }
   }
+  const s = f['spec']
+  const params = s.params.map(([n, k]) => [n, k, inspectKind(k)] as [string, Kind<unknown>, KindInfo])
+  const inputs = s.inputs.map(([n, k]) => [n, k, inspectKind(k)] as [string, Kind<unknown>, KindInfo])
   const names = f['names']()
   return {
     name: s.name,

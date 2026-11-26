@@ -1,6 +1,6 @@
 // Effect Schema's decoded-value domain as an ordinary Kind. No Effect import (including type imports): the
 // optional frontend reads the 3.22.x / 4.0.x AST, never runs a predicate, decoder, encoder, or transformation.
-import {Bool, Choice, Cond, Int, Kind, Maybe, Str, Term, any, bool, int, lit, oneOf, str, variant, type Init, type Raw, type RawObject, type TermLike, Variant} from './dsl.ts'
+import {Bool, Choice, Cond, Int, Kind, Maybe, Str, Term, any, bool, inspectKind, int, lit, oneOf, str, variant, type Init, type KindInfo, type Raw, type RawObject, type TermLike, Variant} from './dsl.ts'
 import type {Rand} from './machine.ts'
 
 export type SchemaLike = {readonly ast: unknown}
@@ -54,6 +54,7 @@ export class SchemaKind<V> extends Kind<V> {
   empty() { return this.inner.empty() }
   random(name: string, rand: Rand, bound: number) { return this.inner.random(name, rand, bound) }
   override sample(rand: Rand, bound: number) { return this.inner.sample(rand, bound) }
+  override inspect() { return inspectKind(this.inner) }
   // Unlike Kind.from's historical callback, no implicit any is handed to a schema callback. Annotate params.
   override from(init: Raw | ((params: never) => unknown)): Init<V> {
     if (typeof init !== 'function') this.encode('initial', init)
@@ -112,6 +113,7 @@ class IntegerKind extends Kind<Int> {
     return rand(4) === 0 ? edges[rand(edges.length)]! : lo + rand(hi - lo + 1)
   }
   random(name: string, rand: Rand, bound: number) { return this.encode(name, this.sample(rand, bound)) }
+  override inspect(): KindInfo { return {kind: 'int'} }
 }
 class BooleanKind extends Kind<Bool> {
   constructor(readonly literal?: boolean) { super() }
@@ -133,6 +135,7 @@ class BooleanKind extends Kind<Bool> {
   empty() { return this.literal ?? false }
   override sample(rand: Rand) { return this.literal ?? rand(2) === 1 }
   random(name: string, rand: Rand) { return this.encode(name, this.sample(rand)) }
+  override inspect(): KindInfo { return {kind: 'bool'} }
 }
 class ChoiceKind extends Kind<Choice<string>> {
   private readonly inner: Kind<Choice<string>>
@@ -152,6 +155,7 @@ class ChoiceKind extends Kind<Choice<string>> {
   }
   empty() { return this.inner.empty() }
   override sample(rand: Rand, bound: number) { return this.inner.sample(rand, bound) }
+  override inspect() { return inspectKind(this.inner) }
   random(name: string, rand: Rand, bound: number) { return this.inner.random(name, rand, bound) }
 }
 class StringKind extends Kind<Str> {
@@ -173,6 +177,7 @@ class StringKind extends Kind<Str> {
   }
   empty() { return '' }
   override sample(rand: Rand, bound: number) { return this.inner.sample(rand, bound) }
+  override inspect() { return inspectKind(this.inner) }
   random(name: string, rand: Rand, bound: number) { return this.inner.random(name, rand, bound) }
 }
 class NullableKind extends Kind<Maybe<unknown>> {
@@ -198,6 +203,7 @@ class NullableKind extends Kind<Maybe<unknown>> {
   empty() { return null }
   override sample(rand: Rand, bound: number) { return rand(4) === 0 ? null : this.inner.sample(rand, bound) }
   random(name: string, rand: Rand, bound: number) { return this.encode(name, this.sample(rand, bound)) }
+  override inspect(): KindInfo { return {kind: 'maybe', of: inspectKind(this.inner)} }
 }
 
 type Fields = Record<string, Kind<unknown>>
@@ -221,6 +227,7 @@ class StructKind extends Kind<Record<string, unknown>> {
   empty() { return Object.fromEntries(this.each('', (k, _, key) => [key, k.empty()])) as RawObject }
   override sample(rand: Rand, bound: number) { return Object.fromEntries(this.each('', (k, _, key) => [key, k.sample(rand, bound)])) as RawObject }
   random(name: string, rand: Rand, bound: number) { return this.encode(name, this.sample(rand, bound)) }
+  override inspect(): KindInfo { return {kind: 'record', fields: Object.entries(this.fields).map(([f, k]) => [f, inspectKind(k)])} }
 }
 class TaggedKind extends Kind<Variant<Record<string, Fields>, '_tag'>> {
   private readonly inner
@@ -249,6 +256,7 @@ class TaggedKind extends Kind<Variant<Record<string, Fields>, '_tag'>> {
   }
   empty() { return this.inner.empty() }
   override sample(rand: Rand, bound: number) { return this.inner.sample(rand, bound) }
+  override inspect() { return inspectKind(this.inner) }
   random(name: string, rand: Rand, bound: number) { return this.encode(name, this.sample(rand, bound)) }
 }
 

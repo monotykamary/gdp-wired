@@ -105,10 +105,9 @@ describe('emit metadata and digest primitives', () => {
       expect(sha256Hex(sample)).toBe(want)
     }
     // compileJs refusal contract preserved through shared core/codegen.ts printer
-    expect(() => compileJs({
-      name: 'tup-each', params: [], inputs: [], state: {}, maps: {M: 0},
-      step: {maps: {M: {each: 'k', value: {op: 'get', map: 'M', key: {op: 'tup', a: {op: 'var', name: 'k'}, b: {op: 'const', value: 1}}}}}},
-    })).toThrow('compileJs takes no tuple key at every key')
+    const tupEachMachine = rule('tup-each').sorts('N').relations({M: ['N', 'N']})
+      .step(({M}) => ({M: M.each((x, y) => M.has(x, y))})).machine
+    expect(() => compileJs(tupEachMachine)).toThrow('compileJs takes no tuple key at every key')
   })
 
   test('unproven rules and empty law lists throw Unproven by default', () => {
@@ -969,12 +968,12 @@ describe('100% enforced expressibility: every op, kind, and runtime feature', ()
       .flags(({n, M, Tag}) => ({
         allSmall: everyKey(j => M.at(j).atMost(10)),
         hasBig: someKey(j => M.at(j).gt(5)),
-        finOk: sizedSort('Slot', n).every(j => M.at(j).atMost(8)),
+        finAll: sizedSort('Slot', n).every(j => M.at(j).atMost(8)),
         uniqueTags: everyKey((i, j) => Tag.at(i).eq(Tag.at(j)).implies(i.eq(j))),
       }))
-      .step(({k, v, M, Tag, allSmall, hasBig, finOk, uniqueTags}) => ({
+      .step(({k, v, M, Tag, allSmall, hasBig, finAll, uniqueTags}) => ({
         M: M.set(k, v), Tag: Tag.set(k, v),
-        allOk: when(allSmall, 1, 0), anyHi: when(hasBig, 1, 0), finOk: when(finOk, 1, 0), uniq: when(uniqueTags, 1, 0),
+        allOk: when(allSmall, 1, 0), anyHi: when(hasBig, 1, 0), finOk: when(finAll, 1, 0), uniq: when(uniqueTags, 1, 0),
       }))
     expect(quantRule.crossCheck([]).failure).toBeUndefined()
     const qRes = emitRule(quantRule, {allowUnproven: true})
