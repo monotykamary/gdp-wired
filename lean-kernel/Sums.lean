@@ -177,6 +177,17 @@ theorem isSum_change {f f' : Nat → Nat} {s : Nat} (cs : List Nat) (h : IsSum f
   have e : s + dsum f' cs - dsum f cs = dsum f' cs + r := by omega
   rw [e]; exact this
 
+/-- Two-branch preservation: if `r = true` drives every key's value to `0` (`isSum_zero`),
+and `r = false` agrees with `f` outside `cs` (`isSum_change`), then `f'` sums to
+`if r then 0 else s + dsum f' cs - dsum f cs`. -/
+theorem isSum_reset {f f' : Nat → Nat} {s : Nat} (r : Bool) (cs : List Nat) (h : IsSum f s)
+    (hzero : r = true → ∀ k, f' k = 0)
+    (hag : r = false → ∀ k, k ∉ cs → f' k = f k) :
+    IsSum f' (if r then 0 else s + dsum f' cs - dsum f cs) := by
+  cases r with
+  | true => exact isSum_zero (hzero rfl)
+  | false => exact isSum_change cs h (hag rfl)
+
 /-! The term read at a key -/
 
 -- A term that reads its maps at the key variable k alone, and no variable but there.
@@ -270,7 +281,8 @@ structure SumDecl where
   cs : List E      -- the cover keys: every key a step may change the term at, over the step's view
   q : Nat          -- the quantified flag: at every key, the term there and at the cover keys is at most the sum
   w : Nat          -- its witness
-  x : Nat          -- the key a cover goal reads
+  x : Nat          -- the key a cover or reset goal reads
+  reset : Option C := none -- optional key-independent reset guard: when true, the post-step term is 0 at every key
 
 structure SumMachine where
   s : SMachine     -- the rule: its sums' variables are state it reads and no step sets
@@ -288,11 +300,26 @@ def postRd (s : SMachine) : Nat → E → E := fun mp key =>
     | some w => .ite (.eq key w.2.1) w.2.2 (.get mp key)
     | none => .get mp key
 
+-- A map read after a step with plain flags inlined, over the pre-flag view X (for `sumResetGoal`).
+def postRdInlined (s : SMachine) : Nat → E → E := fun mp key =>
+  match lookup (fun w => w.1 == mp) s.every with
+  | some w => substE [(w.2.1, key)] (inlineE s.f.flags w.2.2)
+  | none => match lookup (fun w => w.1 == mp) s.f.m.writes with
+    | some w => .ite (.eq key (inlineE s.f.flags w.2.1)) (inlineE s.f.flags w.2.2) (.get mp key)
+    | none => .get mp key
+
 -- The term at the key t, after the step.
 def gAfter (s : SMachine) (d : SumDecl) (t : E) : E := substRE [(d.k, t)] (postRd s) d.g
 
--- The sum after a step: the new values at the cover keys in, the old ones out.
-def sumNext (s : SMachine) (d : SumDecl) : E := .sub (.add (.var d.v) (dTermE (gAfter s d) d.cs)) (dTermE (gHere d) d.cs)
+-- The term at the key t, after the step, with plain flags inlined.
+def gAfterInlined (s : SMachine) (d : SumDecl) (t : E) : E := substRE [(d.k, t)] (postRdInlined s) d.g
+
+-- The sum after a step: 0 when `d.reset` holds, else the new values at the cover keys in, the old ones out.
+def sumNext (s : SMachine) (d : SumDecl) : E :=
+  let delta := .sub (.add (.var d.v) (dTermE (gAfter s d) d.cs)) (dTermE (gHere d) d.cs)
+  match d.reset with
+  | none => delta
+  | some r => .ite r (.const 0) delta
 -- The old values at the cover keys are at most the sum.
 def sumFact (d : SumDecl) : C := .le (dTermE (gHere d) d.cs) (.var d.v)
 -- At every key k: the term at k and at the cover keys, each key once, is at most the sum (a quantified flag's body, its
@@ -381,12 +408,32 @@ def cellLaws (ps : List SEntry) (d : SumDecl) : List C := ps.filterMap fun e =>
       then some (substC [(kv, .var d.x)] e.law.holds) else none
   | none => none
 
--- At a key x none of the cover keys is, a step the rule allows keeps the map's cell, the cells' laws holding at x.
+-- At a key x none of the cover keys is, when not resetting, a step the rule allows keeps the map's cell, the cells' laws holding at x.
 def sumCoverGoal (s : SMachine) (ps : List SEntry) (d : SumDecl) (w : Nat × Nat × E) : List C :=
-  [inlineC s.f.flags s.f.m.assume] ++ cellLaws ps d ++ d.cs.map (fun c => .not (.eq (.var d.x) (inlineE s.f.flags c)))
+  [inlineC s.f.flags s.f.m.assume]
+    ++ (match d.reset with | none => [] | some r => [.not (inlineC s.f.flags r)])
+    ++ cellLaws ps d ++ d.cs.map (fun c => .not (.eq (.var d.x) (inlineE s.f.flags c)))
     ++ [.not (.eq (substE [(w.2.1, .var d.x)] (inlineE s.f.flags w.2.2)) (.get w.1 (.var d.x)))]
 
+-- At any key x, when `d.reset` holds, a step the rule allows drives the post-step summand to 0, the cells' laws holding at x.
+def sumResetGoal (s : SMachine) (ps : List SEntry) (d : SumDecl) (r : C) : List C :=
+  [inlineC s.f.flags s.f.m.assume, inlineC s.f.flags r]
+    ++ cellLaws ps d
+    ++ [.not (.eq (gAfterInlined s d (.var d.x)) (.const 0))]
+
 def startVal (s : SMachine) (mp : Nat) : Nat := ((lookup (fun p => p.1 == mp) s.f.m.maps0).map (·.2)).getD 0
+
+-- Side conditions on an optional reset guard: key-independent (`d.k`, `d.x`, every `each`-write key) and
+-- avoids reading any map the sum aggregates over (even through plain flags).
+def resetOk (s : SMachine) (d : SumDecl) : Bool :=
+  match d.reset with
+  | none => true
+  | some r =>
+      avoids [d.k] r
+      && avoids [d.x] (inlineC s.f.flags r)
+      && (coverWs s d).all (fun w => avoids [w.2.1] (inlineC s.f.flags r))
+      && avoidsMaps (mapsE d.g) (inlineC s.f.flags r)
+      && s.f.m.writes.all (fun w => !occME w.1 d.g || (avoidsE [d.x] (inlineE s.f.flags w.2.1) && avoidsE [d.x] (inlineE s.f.flags w.2.2)))
 
 -- kernel.ts's conditions on each sum.
 def sumOk1 (h : SumMachine) (d : SumDecl) : Bool :=
@@ -406,15 +453,23 @@ def sumOk1 (h : SumMachine) (d : SumDecl) : Bool :=
     -- the sum's variable: no input, flag, quantified flag or witness, set by no start or step of the rule, not the key
     && !(s.f.m.inputs ++ flagVars s.f.flags ++ h.plain.qVars ++ h.plain.wVars ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)).contains d.v
     && d.v != d.k
+    && resetOk s d
 
 def sumOk (h : SumMachine) : Bool := distinct (h.sums.map (·.v)) && h.sums.all (sumOk1 h)
 
--- Per sum, per write at every key to a map it reads: (table, tree) for its cover goal, over the laws `ps` proven of the
--- plain machine.
-def checkSums (h : SumMachine) (ps : List SEntry) (covers : List (List (List VDef × Tree))) : Bool :=
+def checkSumReset (s : SMachine) (ps : List SEntry) (d : SumDecl) (rt : Option (List VDef × Tree)) : Bool :=
+  match d.reset, rt with
+  | none, none => true
+  | some r, some t => checkGoal ⟨t.1, sumResetGoal s ps d r⟩ t.2
+  | _, _ => false
+
+-- Per sum: ((table, tree) per write at every key to a map it reads, optional (table, tree) for its reset goal),
+-- over the laws `ps` proven of the plain machine.
+def checkSums (h : SumMachine) (ps : List SEntry) (covers : List (List (List VDef × Tree) × Option (List VDef × Tree))) : Bool :=
   sumOk h && covers.length == h.sums.length
-    && (h.sums.zip covers).all (fun p => (coverWs h.s p.1).length == p.2.length
-      && ((coverWs h.s p.1).zip p.2).all (fun x => checkGoal ⟨x.2.1, sumCoverGoal h.s ps p.1 x.1⟩ x.2.2))
+    && (h.sums.zip covers).all (fun p => (coverWs h.s p.1).length == p.2.1.length
+      && ((coverWs h.s p.1).zip p.2.1).all (fun x => checkGoal ⟨x.2.1, sumCoverGoal h.s ps p.1 x.1⟩ x.2.2)
+      && checkSumReset h.s ps p.1 p.2.2)
 
 /-! What the checks give -/
 
@@ -432,7 +487,7 @@ theorem sumOk1_parts {h : SumMachine} {d : SumDecl} (hd : sumOk1 h d = true) :
     ∧ d.v ≠ d.k := by
   simp only [sumOk1, Bool.and_eq_true, List.all_eq_true, List.any_eq_true, Bool.not_eq_true', beq_iff_eq, bne_iff_ne, ne_eq,
     Bool.or_eq_true, List.contains_iff_mem] at hd
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hg, hm⟩, h0⟩, hc⟩, hw⟩, hev⟩, hcs⟩, ha⟩, hv⟩, hvk⟩ := hd
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hg, hm⟩, h0⟩, hc⟩, hw⟩, hev⟩, hcs⟩, ha⟩, hv⟩, hvk⟩, _⟩ := hd
   refine ⟨hg, hm, h0, hc, fun w hw' ho => ?_, fun w hw' => ?_, hcs, ha, ?_, hvk⟩
   · rcases hw w hw' with h1 | h1
     · simp [h1] at ho
@@ -441,18 +496,43 @@ theorem sumOk1_parts {h : SumMachine} {d : SumDecl} (hd : sumOk1 h d = true) :
     exact ⟨fun p hp => by simpa using h1 p hp, by simpa using h2, h3, h4⟩
   · intro hm'; simp_all
 
+theorem sumOk1_resetOk {h : SumMachine} {d : SumDecl} (hd : sumOk1 h d = true) : resetOk h.s d = true := by
+  simp only [sumOk1, Bool.and_eq_true] at hd; exact hd.2
+
+theorem resetOk_parts {s : SMachine} {d : SumDecl} {r : C} (hr : d.reset = some r) (hok : resetOk s d = true) :
+    avoids [d.k] r = true
+    ∧ avoids [d.x] (inlineC s.f.flags r) = true
+    ∧ (∀ w ∈ coverWs s d, avoids [w.2.1] (inlineC s.f.flags r) = true)
+    ∧ avoidsMaps (mapsE d.g) (inlineC s.f.flags r) = true
+    ∧ ∀ w ∈ s.f.m.writes, occME w.1 d.g = true →
+        avoidsE [d.x] (inlineE s.f.flags w.2.1) = true ∧ avoidsE [d.x] (inlineE s.f.flags w.2.2) = true := by
+  simp only [resetOk, hr, Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hok
+  obtain ⟨⟨⟨⟨hk, hx⟩, hwk⟩, hm⟩, hw⟩ := hok
+  refine ⟨hk, hx, hwk, hm, fun w hwm ho => ?_⟩
+  rcases hw w hwm with h1 | h1
+  · simp [h1] at ho
+  · exact h1
+
 theorem sumOk_parts {h : SumMachine} (hok : sumOk h = true) : distinct (h.sums.map (·.v)) = true ∧ ∀ d ∈ h.sums, sumOk1 h d = true := by
   simp only [sumOk, Bool.and_eq_true, List.all_eq_true] at hok; exact hok
 
-theorem checkSums_parts {h : SumMachine} {ps : List SEntry} {covers : List (List (List VDef × Tree))} (hc : checkSums h ps covers = true) :
-    sumOk h = true ∧ ∀ d ∈ h.sums, ∀ w ∈ coverWs h.s d, ∃ t : List VDef × Tree, checkGoal ⟨t.1, sumCoverGoal h.s ps d w⟩ t.2 = true := by
+theorem checkSums_parts {h : SumMachine} {ps : List SEntry} {covers : List (List (List VDef × Tree) × Option (List VDef × Tree))} (hc : checkSums h ps covers = true) :
+    sumOk h = true
+    ∧ (∀ d ∈ h.sums, ∀ w ∈ coverWs h.s d, ∃ t : List VDef × Tree, checkGoal ⟨t.1, sumCoverGoal h.s ps d w⟩ t.2 = true)
+    ∧ (∀ d ∈ h.sums, ∀ r, d.reset = some r → ∃ t : List VDef × Tree, checkGoal ⟨t.1, sumResetGoal h.s ps d r⟩ t.2 = true) := by
   simp only [checkSums, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hc
   obtain ⟨⟨hok, hlen⟩, hall⟩ := hc
-  refine ⟨hok, fun d hd w hw => ?_⟩
-  obtain ⟨cl, hcl⟩ := zip_cover h.sums covers hlen.symm d hd
-  obtain ⟨hl2, hall2⟩ := hall _ hcl
-  obtain ⟨t, ht⟩ := zip_cover (coverWs h.s d) cl hl2 w hw
-  exact ⟨t, hall2 _ ht⟩
+  refine ⟨hok, fun d hd w hw => ?_, fun d hd r hr => ?_⟩
+  · obtain ⟨cl, hcl⟩ := zip_cover h.sums covers hlen.symm d hd
+    obtain ⟨⟨hl2, hall2⟩, _⟩ := hall _ hcl
+    obtain ⟨t, ht⟩ := zip_cover (coverWs h.s d) cl.1 hl2 w hw
+    exact ⟨t, hall2 _ ht⟩
+  · obtain ⟨cl, hcl⟩ := zip_cover h.sums covers hlen.symm d hd
+    obtain ⟨_, hres⟩ := hall _ hcl
+    simp only [checkSumReset, hr] at hres
+    cases hrt : cl.2 with
+    | none => simp [hrt] at hres
+    | some t => simp only [hrt] at hres; exact ⟨t, hres⟩
 
 /-! Lookups -/
 
@@ -543,14 +623,110 @@ theorem view_v {d : SumDecl} (hv : d.v ∉ h.s.f.m.inputs ++ flagVars h.s.f.flag
   show decideFlags h.s.f.flags (decideQ h.plain (withInputs h.s.f.m.inputs ρ ι) (withCarried h.s M κ)) (withCarried h.s M κ) d.v = ρ d.v
   rw [decide_other hv.1.1.1.1.2, decideQ_other hv.1.1.1.2, withInputs_other hv.1.1.1.1.1]
 
+-- Structural evaluation of `substRE [(k, t)] rd` on any `gOkE k` term / `gOkC k` condition, requiring `rd` agreement
+-- only on maps actually occurring in the term.
+mutual
+theorem substRE_gOkE (k : Nat) (t : E) (rd : Nat → E → E) (W : Nat → Nat) (N M' : Nat → Nat → Nat) :
+    (e : E) → gOkE k e = true →
+    (∀ mp, occME mp e = true → evalE W N (rd mp t) = M' mp (evalE W N t)) →
+    evalE W N (substRE [(k, t)] rd e) = evalE (fun _ => 0) (fun mp _ => M' mp (evalE W N t)) e
+  | .var _, hg, _ => by simp [gOkE] at hg
+  | .const _, _, _ => rfl
+  | .add a b, hg, hrd => by
+      simp only [gOkE, Bool.and_eq_true] at hg
+      simp only [substRE, evalE,
+        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occME, hm])),
+        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occME, hm]))]
+  | .sub a b, hg, hrd => by
+      simp only [gOkE, Bool.and_eq_true] at hg
+      simp only [substRE, evalE,
+        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occME, hm])),
+        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occME, hm]))]
+  | .mul _ a, hg, hrd => by
+      simp only [gOkE] at hg
+      simp only [substRE, evalE, substRE_gOkE k t rd W N M' a hg (fun mp hm => hrd mp (by simp [occME, hm]))]
+  | .min a b, hg, hrd => by
+      simp only [gOkE, Bool.and_eq_true] at hg
+      simp only [substRE, evalE,
+        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occME, hm])),
+        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occME, hm]))]
+  | .max a b, hg, hrd => by
+      simp only [gOkE, Bool.and_eq_true] at hg
+      simp only [substRE, evalE,
+        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occME, hm])),
+        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occME, hm]))]
+  | .prod a b, hg, hrd => by
+      simp only [gOkE, Bool.and_eq_true] at hg
+      simp only [substRE, evalE,
+        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occME, hm])),
+        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occME, hm]))]
+  | .ite c a b, hg, hrd => by
+      simp only [gOkE, Bool.and_eq_true] at hg
+      simp only [substRE, evalE,
+        substRC_gOkC k t rd W N M' c hg.1.1 (fun mp hm => hrd mp (by simp [occME, hm])),
+        substRE_gOkE k t rd W N M' a hg.1.2 (fun mp hm => hrd mp (by simp [occME, hm])),
+        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occME, hm]))]
+  | .get mp key, hg, hrd => by
+      cases key with
+      | var i =>
+        simp only [gOkE, beq_iff_eq] at hg
+        subst hg
+        simp only [substRE, assoc, lookup, beq_self_eq_true, evalE]
+        exact hrd mp (by simp [occME])
+      | _ => simp [gOkE] at hg
+  | .tup a b, hg, hrd => by
+      simp only [gOkE, Bool.and_eq_true] at hg
+      simp only [substRE, evalE,
+        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occME, hm])),
+        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occME, hm]))]
+  | .proj _ a, hg, hrd => by
+      simp only [gOkE] at hg
+      simp only [substRE, evalE, substRE_gOkE k t rd W N M' a hg (fun mp hm => hrd mp (by simp [occME, hm]))]
+
+theorem substRC_gOkC (k : Nat) (t : E) (rd : Nat → E → E) (W : Nat → Nat) (N M' : Nat → Nat → Nat) :
+    (c : C) → gOkC k c = true →
+    (∀ mp, occMC mp c = true → evalE W N (rd mp t) = M' mp (evalE W N t)) →
+    evalC W N (substRC [(k, t)] rd c) = evalC (fun _ => 0) (fun mp _ => M' mp (evalE W N t)) c
+  | .le a b, hg, hrd => by
+      simp only [gOkC, Bool.and_eq_true] at hg
+      simp only [substRC, evalC,
+        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occMC, hm])),
+        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occMC, hm]))]
+  | .lt a b, hg, hrd => by
+      simp only [gOkC, Bool.and_eq_true] at hg
+      simp only [substRC, evalC,
+        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occMC, hm])),
+        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occMC, hm]))]
+  | .eq a b, hg, hrd => by
+      simp only [gOkC, Bool.and_eq_true] at hg
+      simp only [substRC, evalC,
+        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occMC, hm])),
+        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occMC, hm]))]
+  | .and a b, hg, hrd => by
+      simp only [gOkC, Bool.and_eq_true] at hg
+      simp only [substRC, evalC,
+        substRC_gOkC k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occMC, hm])),
+        substRC_gOkC k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occMC, hm]))]
+  | .or a b, hg, hrd => by
+      simp only [gOkC, Bool.and_eq_true] at hg
+      simp only [substRC, evalC,
+        substRC_gOkC k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occMC, hm])),
+        substRC_gOkC k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occMC, hm]))]
+  | .not a, hg, hrd => by
+      simp only [gOkC] at hg
+      simp only [substRC, evalC, substRC_gOkC k t rd W N M' a hg (fun mp hm => hrd mp (by simp [occMC, hm]))]
+end
+
 /-- One step the rule's assumption allows keeps every sum exact, from a state where the laws hold. -/
-theorem sum_step (hL : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true) {ρ : Nat → Nat} {M : Nat → Nat → Nat}
+theorem sum_step {covers : List (List (List VDef × Tree) × Option (List VDef × Tree))}
+    (hL : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true) {ρ : Nat → Nat} {M : Nat → Nat → Nat}
     (hsum : ∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v)) (hlaws : ∀ e ∈ ps, e.Holds ρ M) (ι : Nat → Nat) (κ : Nat → Nat → Nat)
     (ha : evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 h.s.f.m.assume = true) :
     ∀ d ∈ h.sums, IsSum (gAt d.g (sNext h.plain ρ M ι κ).2) ((sNext h.plain ρ M ι κ).1 d.v) := by
-  obtain ⟨hok, hcov⟩ := checkSums_parts hc
+  obtain ⟨hok, hcov, hres⟩ := checkSums_parts hc
   obtain ⟨hdist, hall⟩ := sumOk_parts hok
   intro d hd
+  have hrok : resetOk h.s d = true := sumOk1_resetOk (hall d hd)
   obtain ⟨hg, _, _, hcar, hwr, hev, hcs, hax, hv, _⟩ := sumOk1_parts (hall d hd)
   let X := decideQ h.plain (withInputs h.s.f.m.inputs ρ ι) (withCarried h.s M κ)
   let N := withCarried h.s M κ
@@ -560,9 +736,19 @@ theorem sum_step (hL : checkSMachine h.plain ps = true) (hc : checkSums h ps cov
   let M' := everyMaps h.s V N
   have hM' : (sNext h.plain ρ M ι κ).2 = M' := rfl
   let cs' := d.cs.map (evalE V N)
-  -- The term moves only at the cover keys.
-  have hag : ∀ key, key ∉ cs' → gAt d.g M' key = gAt d.g M key := by
-    intro key hkey
+  have hold : evalE V N (dTermE (gHere d) d.cs) = dsum (gAt d.g M) cs' := by
+    rw [dTermE_eval V N d.cs (gHere d) (gAt d.g N) (fun t => gHere_eval d hg V N t), gAt_carried h d hcar]
+  have hnew : evalE V N (dTermE (gAfter h.s d) d.cs) = dsum (gAt d.g M') cs' :=
+    dTermE_eval V N d.cs (gAfter h.s d) (gAt d.g M') (fun t => gAfter_eval h d hg V N t)
+  have hstep_eq : (sNext h.plain ρ M ι κ).1 d.v = evalE V N (sumNext h.s d) := by
+    show applyS (h.s.f.m.step ++ h.sums.map (fun d => (d.v, sumNext h.s d))) V N d.v = _
+    simp only [applyS]
+    rw [assoc_after (fun hm => hv (by simp [hm])), assoc_sums (sumNext h.s) hdist hd]
+  -- Non-reset branch: the term moves only at the cover keys.
+  have hag_no_reset :
+      (∀ r, d.reset = some r → evalC V N r = false) →
+      ∀ key, key ∉ cs' → gAt d.g M' key = gAt d.g M key := by
+    intro hno key hkey
     apply gAt_congr; intro mp hmp
     have hNM : N mp key = M mp key := by
       simp only [N, withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using avoidsMapsE_occ hcar hmp)]
@@ -579,9 +765,18 @@ theorem sum_step (hL : checkSMachine h.plain ps = true) (hc : checkSums h ps cov
       apply sound ⟨t.1, sumCoverGoal h.s ps d w⟩ t.2 ht (upd X d.x key) N
       intro c hcm
       simp only [sumCoverGoal, List.mem_append, List.mem_singleton, List.mem_map] at hcm
-      rcases hcm with ((rfl | hcl) | ⟨c0, hc0, rfl⟩) | rfl
+      rcases hcm with (((rfl | hnr) | hcl) | ⟨c0, hc0, rfl⟩) | rfl
       · rw [congrC _ X N _ (fun i hi => by simp only [upd]; rw [if_neg (fun he => avoids_occ hax hi (by simp [he]))]), inline_evalC]
         exact ha
+      · cases hreset : d.reset with
+        | none => simp [hreset] at hnr
+        | some r =>
+          simp only [hreset, List.mem_singleton] at hnr
+          subst hnr
+          obtain ⟨_, hrx, _, _, _⟩ := resetOk_parts hreset hrok
+          simp only [evalC, Bool.not_eq_true']
+          rw [congrC _ X N _ (fun i hi => by simp only [upd]; rw [if_neg (fun he => avoids_occ hrx hi (by simp [he]))]), inline_evalC]
+          exact hno r hreset
       · refine cellLaw_holds hcl (carried := h.s.carried) (fun e he => (slaws_avoid hL e.law (List.mem_map_of_mem he)).2) hlaws _ N (fun mp hmp => ?_)
         simp only [upd_at, N, withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmp)]
       · have hc0' := (hcs c0 hc0).2
@@ -608,23 +803,74 @@ theorem sum_step (hL : checkSMachine h.plain ps = true) (hc : checkSums h ps cov
         have hne : key ≠ evalE V N w.2.1 := fun he => hkey (by rw [he]; exact hin)
         simp only [if_neg hne]; exact hNM
       | none => exact hNM
-  have hold : evalE V N (dTermE (gHere d) d.cs) = dsum (gAt d.g M) cs' := by
-    rw [dTermE_eval V N d.cs (gHere d) (gAt d.g N) (fun t => gHere_eval d hg V N t), gAt_carried h d hcar]
-  have hnew : evalE V N (dTermE (gAfter h.s d) d.cs) = dsum (gAt d.g M') cs' :=
-    dTermE_eval V N d.cs (gAfter h.s d) (gAt d.g M') (fun t => gAfter_eval h d hg V N t)
-  have hval : (sNext h.plain ρ M ι κ).1 d.v = ρ d.v + dsum (gAt d.g M') cs' - dsum (gAt d.g M) cs' := by
-    show applyS (h.s.f.m.step ++ h.sums.map (fun d => (d.v, sumNext h.s d))) V N d.v = _
-    simp only [applyS]
-    rw [assoc_after (fun hm => hv (by simp [hm])), assoc_sums (sumNext h.s) hdist hd]
-    simp only [sumNext, evalE, hold, hnew]
+  rw [hstep_eq, hM']
+  cases hreset : d.reset with
+  | none =>
+    simp only [sumNext, hreset, evalE, hold, hnew]
     rw [← hV, view_v h hv ρ M ι κ]
-  rw [hval, hM']
-  exact isSum_change cs' (hsum d hd) hag
+    exact isSum_change cs' (hsum d hd) (hag_no_reset (fun _ h' => by simp [hreset] at h'))
+  | some r =>
+    simp only [sumNext, hreset, evalE, hold, hnew]
+    rw [← hV, view_v h hv ρ M ι κ]
+    obtain ⟨_, hrx, _, _, hwrx⟩ := resetOk_parts hreset hrok
+    obtain ⟨tr, htr⟩ := hres d hd r hreset
+    have hzero : evalC V N r = true → ∀ key, gAt d.g M' key = 0 := by
+      intro hrt key
+      apply Decidable.byContradiction; intro hne
+      apply sound ⟨tr.1, sumResetGoal h.s ps d r⟩ tr.2 htr (upd X d.x key) N
+      intro c hcm
+      simp only [sumResetGoal, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hcm
+      rcases hcm with ((rfl | rfl) | hcl) | rfl
+      · rw [congrC _ X N _ (fun i hi => by simp only [upd]; rw [if_neg (fun he => avoids_occ hax hi (by simp [he]))]), inline_evalC]
+        exact ha
+      · rw [congrC _ X N _ (fun i hi => by simp only [upd]; rw [if_neg (fun he => avoids_occ hrx hi (by simp [he]))]), inline_evalC]
+        exact hrt
+      · refine cellLaw_holds hcl (carried := h.s.carried) (fun e he => (slaws_avoid hL e.law (List.mem_map_of_mem he)).2) hlaws _ N (fun mp hmp => ?_)
+        simp only [upd_at, N, withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmp)]
+      · simp only [evalC, evalE, Bool.not_eq_true']
+        have hga : evalE (upd X d.x key) N (gAfterInlined h.s d (.var d.x)) = gAt d.g M' key := by
+          have hpost : ∀ mp, occME mp d.g = true →
+              evalE (upd X d.x key) N (postRdInlined h.s mp (.var d.x)) = M' mp (evalE (upd X d.x key) N (.var d.x)) := by
+            intro mp hmp
+            simp only [evalE, upd_at, postRdInlined, M', everyMaps]
+            cases hl : lookup (fun w => w.1 == mp) h.s.every with
+            | some w =>
+              obtain ⟨hwm, hw1⟩ := lookup_some hl
+              simp only [beq_iff_eq] at hw1
+              have hwc : w ∈ coverWs h.s d := List.mem_filter.mpr ⟨hwm, by rw [hw1]; exact hmp⟩
+              obtain ⟨hfl, hbf, hxv, _⟩ := hev w hwc
+              rw [subst_evalE, applyS_single]
+              simp only [evalE, upd_at]
+              rw [congrE _ (upd X w.2.1 key) N _ (fun i hi => by
+                simp only [upd]; by_cases hib : i = w.2.1
+                · simp [hib]
+                · rw [if_neg hib, if_neg hib, if_neg (fun he => avoidsE_occ hxv hi (by simp [he]))]),
+                inline_evalE, decide_upd hbf (fun p hp => hfl p hp)]
+            | none =>
+              simp only [writeMaps]
+              cases hl2 : lookup (fun w => w.1 == mp) h.s.f.m.writes with
+              | some w =>
+                obtain ⟨hwm, hw1⟩ := lookup_some hl2
+                simp only [beq_iff_eq] at hw1
+                obtain ⟨hwx1, hwx2⟩ := hwrx w hwm (by rw [hw1]; exact hmp)
+                have hk1 : evalE (upd X d.x key) N (inlineE h.s.f.flags w.2.1) = evalE V N w.2.1 := by
+                  rw [congrE _ X N _ (fun i hi => by simp only [upd]; rw [if_neg (fun he => avoidsE_occ hwx1 hi (by simp [he]))]), inline_evalE]
+                have hk2 : evalE (upd X d.x key) N (inlineE h.s.f.flags w.2.2) = evalE V N w.2.2 := by
+                  rw [congrE _ X N _ (fun i hi => by simp only [upd]; rw [if_neg (fun he => avoidsE_occ hwx2 hi (by simp [he]))]), inline_evalE]
+                simp only [evalE, evalC, upd_at, hk1, hk2]
+                by_cases hk : key = evalE V N w.2.1 <;> simp [hk]
+              | none => simp only [evalE, upd_at]
+          have hsub := substRE_gOkE d.k (.var d.x) (postRdInlined h.s) (upd X d.x key) N M' d.g hg hpost
+          simpa [gAfterInlined, gAt, evalE, upd_at] using hsub
+        rw [hga]; exact decide_eq_false hne
+    exact isSum_reset (evalC V N r) cs' (hsum d hd) hzero (fun hrf => hag_no_reset (fun r' hr' => by
+      rw [hreset] at hr'; cases hr'; exact hrf))
 
 -- At the start every term is 0 at every key, and every sum 0.
-theorem sum_start (hc : checkSums h ps covers = true) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hM : StartMaps h.plain.f.m M) :
+theorem sum_start {covers : List (List (List VDef × Tree) × Option (List VDef × Tree))}
+    (hc : checkSums h ps covers = true) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hM : StartMaps h.plain.f.m M) :
     ∀ d ∈ h.sums, IsSum (gAt d.g M) (applyS h.plain.f.m.init ρ M d.v) := by
-  obtain ⟨hok, _⟩ := checkSums_parts hc
+  obtain ⟨hok, _, _⟩ := checkSums_parts hc
   obtain ⟨hdist, hall⟩ := sumOk_parts hok
   intro d hd
   obtain ⟨_, hm, h0, _, _, _, _, _, hv, _⟩ := sumOk1_parts (hall d hd)
@@ -652,10 +898,11 @@ theorem q_mem {d : SumDecl} (hd : d ∈ h.sums) : (d.q, [d.k], sumBody h.s d) �
   List.mem_append_right _ (List.mem_map.mpr ⟨d, hd, rfl⟩)
 
 /-- Where every sum is exact, the facts the plain machine assumes hold of every request, in its view. -/
-theorem sum_facts (hc : checkSums h ps covers = true) (hs : sOk h.plain = true) {ρ : Nat → Nat} {M : Nat → Nat → Nat}
+theorem sum_facts {covers : List (List (List VDef × Tree) × Option (List VDef × Tree))}
+    (hc : checkSums h ps covers = true) (hs : sOk h.plain = true) {ρ : Nat → Nat} {M : Nat → Nat → Nat}
     (hsum : ∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v)) (ι : Nat → Nat) (κ : Nat → Nat → Nat) :
     evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 (sumsC h.sums) = true := by
-  obtain ⟨hok, _⟩ := checkSums_parts hc
+  obtain ⟨hok, _, _⟩ := checkSums_parts hc
   obtain ⟨_, hall⟩ := sumOk_parts hok
   obtain ⟨_, hqd, _, _, hdx, _, _⟩ := sOk_parts h.plain hs
   let N := withCarried h.s M κ
@@ -844,7 +1091,7 @@ end project
 /-! Claims about the rule with its sums -/
 
 /-- The laws proven of the plain machine hold in every state it reaches, where every sum is exact. -/
-theorem sum_laws (h : SumMachine) (ps : List SEntry) (covers : List (List (List VDef × Tree)))
+theorem sum_laws (h : SumMachine) (ps : List SEntry) (covers : List (List (List VDef × Tree) × Option (List VDef × Tree)))
     (hl : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true) :
     ∀ ρ M, SReach h.plain ρ M → (∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v)) ∧ ∀ e ∈ ps, e.Holds ρ M :=
   sum_cells h hl hc
@@ -858,7 +1105,7 @@ structure SumRun (h : SumMachine) where
   next : ∀ n, st (n + 1) = sNext h.plain (st n).1 (st n).2 (req n).1 (req n).2
 
 -- It is a run of the plain machine: there the facts hold, so the plain machine allows each of its requests.
-def SumRun.plain {h : SumMachine} {ps : List SEntry} {covers : List (List (List VDef × Tree))} (hl : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true)
+def SumRun.plain {h : SumMachine} {ps : List SEntry} {covers : List (List (List VDef × Tree) × Option (List VDef × Tree))} (hl : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true)
     (run : SumRun h) : SRun h.plain :=
   have reach : ∀ n, SReach h.plain (run.st n).1 (run.st n).2 := fun n => by
     induction n with
@@ -869,7 +1116,7 @@ def SumRun.plain {h : SumMachine} {ps : List SEntry} {covers : List (List (List 
   ⟨run.st, run.req, run.start, fun n => by rw [sum_allowed h hl hc _ _ (reach n)]; exact run.allowed n, run.next⟩
 
 /-- Liveness of the rule with its sums, along every run that takes each helpful request infinitely often. -/
-theorem sumleads_sound (h : SumMachine) (covers : List (List (List VDef × Tree))) (ps : List SEntry) (l : Live) (sp cp : SProof) (hp : List SProof)
+theorem sumleads_sound (h : SumMachine) (covers : List (List (List VDef × Tree) × Option (List VDef × Tree))) (ps : List SEntry) (l : Live) (sp cp : SProof) (hp : List SProof)
     (hc : checkSums h ps covers = true) (hl : checkSMachine h.plain ps = true) (hok : sliveOk h.plain l = true)
     (hs : checkSKStep h.plain ps (sliveStep l l.pend (liveStayC l) sp) = true) (hcv : checkSKStep h.plain ps (sliveStep l l.pend (liveCoverC l) cp) = true)
     (hh : sliveHelpsOk h.plain ps l hp = true) (run : SumRun h)
@@ -879,7 +1126,7 @@ theorem sumleads_sound (h : SumMachine) (covers : List (List (List VDef × Tree)
 
 /-- Liveness of the rule with its sums under weak fairness of its own assumption: each helpful request is proven allowed
 by the rule's assumption in its region (the facts the plain machine assumes besides hold there). -/
-theorem sumleads_wf_sound (h : SumMachine) (covers : List (List (List VDef × Tree))) (ps : List SEntry) (l : Live) (sp cp : SProof)
+theorem sumleads_wf_sound (h : SumMachine) (covers : List (List (List VDef × Tree) × Option (List VDef × Tree))) (ps : List SEntry) (l : Live) (sp cp : SProof)
     (hp : List SProof) (ap : List (List (Nat × E) × SProof × List E))
     (hc : checkSums h ps covers = true) (hl : checkSMachine h.plain ps = true) (hok : sliveOk h.plain l = true)
     (hs : checkSKStep h.plain ps (sliveStep l l.pend (liveStayC l) sp) = true) (hcv : checkSKStep h.plain ps (sliveStep l l.pend (liveCoverC l) cp) = true)
@@ -891,7 +1138,7 @@ theorem sumleads_wf_sound (h : SumMachine) (covers : List (List (List VDef × Tr
   sleads_wf_soundA h.plain ps l sp cp hp ap h.s.f.m.assume hl hok hs hcv hh ha (run.plain hl hc) fair
 
 /-- The same under strong fairness (Live.lean's `sleads_sf_soundA`). -/
-theorem sumleads_sf_sound (h : SumMachine) (covers : List (List (List VDef × Tree))) (ps : List SEntry) (l : Live) (lv : List Nat) (sp cp : SProof)
+theorem sumleads_sf_sound (h : SumMachine) (covers : List (List (List VDef × Tree) × Option (List VDef × Tree))) (ps : List SEntry) (l : Live) (lv : List Nat) (sp cp : SProof)
     (hp : List SProof) (ap : List (List (Nat × E) × SProof × List E))
     (hc : checkSums h ps covers = true) (hl : checkSMachine h.plain ps = true) (hok : sliveOk h.plain l = true)
     (hs : checkSKStep h.plain ps (sliveStep l l.pend (liveStaySC l) sp) = true) (hcv : checkSKStep h.plain ps (sliveStep l l.pend (liveCoverC l) cp) = true)
@@ -905,6 +1152,7 @@ theorem sumleads_sf_sound (h : SumMachine) (covers : List (List (List VDef × Tr
 end Kern
 
 #print axioms Kern.isSum_change
+#print axioms Kern.isSum_reset
 #print axioms Kern.dsum_le
 #print axioms Kern.sum_cells
 #print axioms Kern.sum_holds

@@ -99,11 +99,11 @@ export function tryRadixSimulation({id,bundle,providedSourceAST:source,options}:
     for(const name of Object.keys(producerMachine.maps??{}))maps[m(name)]=name
     const terms=leanTerms(vars,maps,id)
     renderE=x=>`(${terms.e(x)})`
-    const ds=sums.map(([n,d])=>{const sp=sumParts(n),cells=covers[n]!.map(e=>{const map=(d.term as Extract<E,{op:'get'}>).map;return key(p,map,e)});return `⟨${v(n)}, ${v(d.key)}, ${renderE(d.term)}, ${list(cells.map(renderE))}, ${v('?'+sp.flag)}, ${v('w?'+sp.flag)}, ${v(sp.x)}⟩`})
+    const ds=sums.map(([n,d])=>{const sp=sumParts(n),cells=covers[n]!.map(e=>{const map=(d.term as Extract<E,{op:'get'}>).map;return key(p,map,e)});return `⟨${v(n)}, ${v(d.key)}, ${renderE(d.term)}, ${list(cells.map(renderE))}, ${v('?'+sp.flag)}, ${v('w?'+sp.flag)}, ${v(sp.x)}, none⟩`})
     extra=`def ${id}_source : SMachine := ${lit(source.machine)}\ndef ${id}_target_data : SumMachine := ⟨${lit(target)}, ${list(ds)}⟩\n`
     extra+=source.laws.map((l,j)=>`def ${id}_source_law${j} : MLaw := ⟨${c(l.holds)}, ${l.forall?'some '+v(l.forall):'none'}⟩\ndef ${id}_source_keys${j} : List Nat := ${list((l.keys??[]).map(v))}`).join('\n')+'\n'
     const oldbase={...p.sumMachine,sums:undefined,state:Object.fromEntries(Object.entries(p.sumMachine.state).filter(([n])=>!Object.hasOwn(p.sumMachine.sums??{},n)))}
-    extra+=`def ${id}_old_sums : SumMachine := ⟨${lit(oldbase)}, ${list(sums.map(([n,d])=>{const sp=sumParts(n);return `⟨${v(n)}, ${v(d.key)}, ${renderE(d.term)}, ${list(covers[n]!.map(renderE))}, ${v('?'+sp.flag)}, ${v('w?'+sp.flag)}, ${v(sp.x)}⟩`}))}⟩\n`
+    extra+=`def ${id}_old_sums : SumMachine := ⟨${lit(oldbase)}, ${list(sums.map(([n,d])=>{const sp=sumParts(n);return `⟨${v(n)}, ${v(d.key)}, ${renderE(d.term)}, ${list(covers[n]!.map(renderE))}, ${v('?'+sp.flag)}, ${v('w?'+sp.flag)}, ${v(sp.x)}, none⟩`}))}⟩\n`
     return ''
   }})
   const cut=emitted.indexOf(`\ntheorem ${raw}_check :`);if(cut<0)throw Error('unsupported current retained emission layout')
@@ -188,11 +188,11 @@ theorem ${id}_covers : Bapa.SemanticSums.Preserves ${id}_target_data ${id}_proof
 `
   })
   semantic+=`theorem ${id}_exact_sums : ∀ ρ M, SReach ${id}_target_data.plain ρ M → ∀ d ∈ ${id}_target_data.sums, IsSum (gAt d.g M) (ρ d.v) :=
-  Bapa.SemanticSums.sum_holds _ ${id}_check ${id}_sum_ok ${id}_covers
+  Bapa.SemanticSums.sum_holds _ ${id}_check ${id}_sum_ok (by decide +kernel) ${id}_covers
 theorem ${id}_own_admission : ∀ ρ M, SReach ${id}_target_data.plain ρ M → ∀ ι κ,
     evalC (sView ${id}_target_data.plain ρ M ι κ).1 (sView ${id}_target_data.plain ρ M ι κ).2 ${id}_target_data.plain.f.m.assume =
     evalC (sView ${id}_target_data.plain ρ M ι κ).1 (sView ${id}_target_data.plain ρ M ι κ).2 ${id}_target_data.s.f.m.assume :=
-  Bapa.SemanticSums.sum_allowed _ ${id}_check ${id}_sum_ok ${id}_covers
+  Bapa.SemanticSums.sum_allowed _ ${id}_check ${id}_sum_ok (by decide +kernel) ${id}_covers
 theorem ${id}_integrands : ${id}_target_data.sums.map (·.g) = ${id}_old_sums.sums.map (·.g) := by rfl
 `
   // Project only the ghost-independent kind entries; the inferred SUM law
@@ -200,7 +200,7 @@ theorem ${id}_integrands : ${id}_target_data.sums.map (·.g) = ${id}_old_sums.su
   for(const b of p.booleanEntries){
     const e=expanded.get(b.index)
     semantic+=`theorem ${id}_base_bound${b.index} (ρ M) (hr : SReach ${id}_target_data.s ρ M) (k : Nat) : M ${mx(b.map)} k ≤ 1 := by
-  have h := Bapa.SemanticSums.sum_project_laws _ ${id}_sum_ghosts ${id}_proof ${id}_check ${id}_sum_ok ${id}_covers ρ M hr ${id}_bound_entry${b.index} (List.getElem_mem (by rw [${id}_family_size]; decide +kernel)) (by decide +kernel)
+  have h := Bapa.SemanticSums.sum_project_laws _ ${id}_sum_ghosts ${id}_proof ${id}_check ${id}_sum_ok (by decide +kernel) ${id}_covers ρ M hr ${id}_bound_entry${b.index} (List.getElem_mem (by rw [${id}_family_size]; decide +kernel)) (by decide +kernel)
   change holdsOver ${id}_bound_entry${b.index}.law M ${id}_bound_entry${b.index}.keys2 ρ at h
   rw [${id}_bound_shape${b.index}.1, ${id}_bound_shape${b.index}.2] at h
   have hk := ${e?'h (cun k).2 (cun k).1':'h k'}
@@ -275,7 +275,7 @@ theorem ${id}_simulation : Bapa.FiniteSimulation.SSimulation ${id}_source ${id}_
     bridge+=`def ${strong} : SEntry := ${id}_proof[${n}]'(by rw [${id}_family_size]; decide +kernel)
 theorem ${sourceTheorems[j]} (ρ M) (hr : SReach ${id}_source ρ M) : holdsOver ${id}_source_law${j} M ${id}_source_keys${j} ρ := by
   have ht := ${id}_restricted.sreach ${id}_invariant hr
-  have h := Bapa.SemanticSums.sum_project_laws _ ${id}_sum_ghosts ${id}_proof ${id}_check ${id}_sum_ok ${id}_covers ρ M ht ${strong} (List.getElem_mem (by rw [${id}_family_size]; decide +kernel)) (by decide +kernel)
+  have h := Bapa.SemanticSums.sum_project_laws _ ${id}_sum_ghosts ${id}_proof ${id}_check ${id}_sum_ok (by decide +kernel) ${id}_covers ρ M ht ${strong} (List.getElem_mem (by rw [${id}_family_size]; decide +kernel)) (by decide +kernel)
   change holdsOver ${strong}.law M ${strong}.keys2 ρ at h
   have shape : ${strong}.law = ⟨${renderC(rewrite(p,p.producer.laws[n]!.holds) as C)}, ${l.forall?'some '+ix(l.forall):'none'}⟩ ∧ ${strong}.keys2 = ${list((l.keys??[]).map(ix))} := by constructor <;> rfl
   rw [shape.1, shape.2] at h

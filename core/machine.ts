@@ -177,9 +177,10 @@ export type Recurrence = {args: string[], zero: E, next: E, lemmas: {name: strin
 // order goes back.
 export type History = {keep: C, record: string[], sums: Record<string, E>, queries: Record<string, E>, relations?: {when: C, holds: C}[], prune?: {order: string, after: E}}
 // A sum over every key: `term` reads the maps only at `key` (M[key], a record's fields there), and is 0 where every map
-// it reads holds its start value. The kernel keeps the sum exact (each step moves it by the term's change at the keys
-// the step writes) and gives every goal that the term at any key, with the keys a step writes, is at most the sum.
-export type Sum = {key: string, term: E}
+// it reads holds its start value. The kernel keeps the sum exact (each step moves it to 0 when `reset` holds, else by
+// the term's change at the keys the step writes) and gives every goal that the term at any key, with the keys a step
+// writes, is at most the sum.
+export type Sum = {key: string, term: E, reset?: C}
 // A count: `j` the map's key, `key` the counted key, both bound (`below` reads j, not key; `body` reads both). Over two
 // parameters (`lo` and `base`): the map at x is the count with j at x / base and lo at x % base, so a law reads it at the
 // composed key base·a + b (b < base) of a relation (CountMachine.lean's atJ).
@@ -280,7 +281,7 @@ export function withArithmetic(m: Machine, more: readonly (E | C)[] = [], ks: It
 // Every term and condition a machine holds.
 export const machineTerms = (m: Machine): (E | C)[] => [...Object.values(m.state), ...(m.primitiveFailure ? [m.primitiveFailure] : []), ...Object.values(m.step.flags ?? {}), ...Object.values(m.step.state ?? {}),
   ...Object.values(m.step.maps ?? {}).flatMap(w => ('key' in w ? [w.key, w.value] : [w.value])), ...(m.pre ? [m.pre] : []), ...(m.assume ? [m.assume] : []),
-  ...(m.facts ?? []).map(f => f.holds), ...(m.history ? [m.history.keep, ...Object.values(m.history.sums), ...Object.values(m.history.queries), ...(m.history.relations ?? []).flatMap(r => [r.when, r.holds])] : [])]
+  ...(m.facts ?? []).map(f => f.holds), ...(m.sums ? Object.values(m.sums).flatMap(s => (s.reset ? [s.reset] : [])) : []), ...(m.history ? [m.history.keep, ...Object.values(m.history.sums), ...Object.values(m.history.queries), ...(m.history.relations ?? []).flatMap(r => [r.when, r.holds])] : [])]
 
 // --- the runtime ---------------------------------------------------------------------------------------------------
 

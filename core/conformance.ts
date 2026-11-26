@@ -459,19 +459,20 @@ export type SumCase = {m: Machine, laws: Law[], family: string, proof: {instance
 const sumKey = 'k$S', at = (key: E): E => ({op: 'get', map: 'M', key}), eqE = (a: E, b: E): C => ({op: '=', a, b}), and2 = (a: C, b: C): C => ({op: 'and', xs: [a, b]})
 const iteE = (c: C, a: E, b: E): E => ({op: 'if', c, then: a, else: b}), add = (a: E, b: E): E => ({op: 'add', a, b}), sub = (a: E, b: E): E => ({op: 'sub', a, b})
 export function randomSumMachine(): {m: Machine, laws: Law[], family: string} {
-  const family = pick(['set', 'two', 'move', 'flag'] as const), termFam = family === 'move' || family === 'flag' ? 'cell' : pick(['cell', 'count', 'cap'] as const)
+  const family = pick(['set', 'two', 'move', 'flag', 'reset'] as const), termFam = family === 'move' || family === 'flag' || family === 'reset' ? 'cell' : pick(['cell', 'count', 'cap'] as const)
   const cell = at(v(sumKey)), term: E = termFam === 'cell' ? cell : termFam === 'count' ? iteE({op: '<', a: k(0), b: cell}, k(1), k(0)) : {op: 'min', a: cell, b: k(3)}
   const op = (i: number) => eqE(v('op'), k(i)), K = v('k$w')
   const write = family === 'set' ? {key: v('w'), value: iteE(op(0), v('u'), iteE(op(1), add(at(v('w')), v('u')), sub(at(v('w')), v('u'))))}
     : family === 'two' ? {each: 'k$w', value: iteE(and2(op(0), eqE(K, v('w'))), add(at(K), v('u')), iteE(and2(op(1), eqE(K, v('w2'))), sub(at(K), v('u')), at(K)))}
     : family === 'flag' ? {each: 'k$w', value: iteE(and2(op(0), eqE(K, v('w'))), k(1), iteE(and2(op(1), eqE(K, v('w'))), k(0), iteE(eqE(at(K), k(1)), k(1), k(0))))}
+    : family === 'reset' ? {each: 'k$w', value: iteE(op(2), k(0), iteE(and2(op(0), eqE(K, v('w'))), add(at(K), v('u')), at(K)))}
     : {each: 'k$w', value: iteE(op(0), iteE(eqE(K, v('w')), add(at(K), v('u')), at(K)),
         iteE(and2(op(1), {op: '<=', a: v('u'), b: at(v('w'))}), add(sub(at(K), iteE(eqE(K, v('w')), v('u'), k(0))), iteE(eqE(K, v('w2')), v('u'), k(0))), at(K)))}
-  const m: Machine = {name: `sums ${family} ${termFam}`, params: [], inputs: ['op', 'w', 'w2', 'u'], state: {S: k(0), ...(family === 'move' ? {T: k(0)} : {})}, maps: {M: 0},
-    step: {maps: {M: write}, ...(family === 'move' ? {state: {T: iteE(op(0), add(v('T'), v('u')), v('T'))}} : {})},
-    assume: and2({op: '<=', a: v('op'), b: k(2)}, {op: '<=', a: v('u'), b: k(5)}), sums: {S: {key: sumKey, term}}}
+  const m: Machine = {name: `sums ${family} ${termFam}`, params: [], inputs: ['op', 'w', 'w2', 'u'], state: {S: k(0), ...(family === 'move' || family === 'reset' ? {T: k(0)} : {})}, maps: {M: 0},
+    step: {maps: {M: write}, ...(family === 'move' ? {state: {T: iteE(op(0), add(v('T'), v('u')), v('T'))}} : family === 'reset' ? {state: {T: iteE(op(2), k(0), iteE(op(0), add(v('T'), v('u')), v('T')))}} : {})},
+    assume: and2({op: '<=', a: v('op'), b: k(2)}, {op: '<=', a: v('u'), b: k(5)}), sums: {S: {key: sumKey, term, ...(family === 'reset' ? {reset: op(2)} : {})}}}
   const laws: Law[] = [{name: 'each key at most the sum', forall: 'k$l', holds: {op: '<=', a: JSON.parse(JSON.stringify(term).replaceAll('"k$S"', '"k$l"')) as E, b: v('S')}},
-    ...(family === 'move' ? [{name: 'the sum is the total', holds: eqE(v('S'), v('T'))}, {name: 'each cell at most the total', forall: 'k$l', holds: {op: '<=', a: at(v('k$l')), b: v('T')} as C}] : []),
+    ...(family === 'move' || family === 'reset' ? [{name: 'the sum is the total', holds: eqE(v('S'), v('T'))}, {name: 'each cell at most the total', forall: 'k$l', holds: {op: '<=', a: at(v('k$l')), b: v('T')} as C}] : []),
     ...(family === 'flag' ? [{name: 'every M cell is a value of its kind', forall: 'k$c', holds: {op: '<=', a: at(v('k$c')), b: k(1)} as C}] : [])]
   return {m, laws, family}
 }
@@ -517,6 +518,14 @@ export function sumCases(n: number): SumCase[] {
       const w = m.step.maps!.M! as {each: string, value: E}, K = v(w.each)
       const value = iteE(and2(eqE(v('op'), k(0)), eqE(K, add(v('w'), k(1)))), add(at(K), k(1)), w.value)
       tampers.push({what: 'a key past the cover written', m: {...m, step: {...m.step, maps: {M: {each: w.each, value}}}}, covers: {S: cs}})
+    }
+    if (family === 'reset') {
+      const w = m.step.maps!.M! as {each: string, value: E}, K = v(w.each)
+      tampers.push({what: 'partial wipe under reset', m: {...m, step: {...m.step, maps: {M: {each: w.each, value: iteE(and2(eqE(v('op'), k(2)), {op: '<', a: K, b: v('w2')}), k(0), iteE(and2(eqE(v('op'), k(0)), eqE(K, v('w'))), add(at(K), v('u')), at(K)))}}}}})
+      tampers.push({what: 'reset that also writes', m: {...m, step: {...m.step, maps: {M: {each: w.each, value: iteE(eqE(v('op'), k(2)), iteE(eqE(K, v('w')), v('u'), k(0)), iteE(and2(eqE(v('op'), k(0)), eqE(K, v('w'))), add(at(K), v('u')), at(K)))}}}}})
+      tampers.push({what: 'key-dependent reset guard', m: {...m, sums: {S: {...sum, reset: {op: '<', a: v(sumKey), b: v('w2')}}}}})
+      tampers.push({what: 'reset guard reading summed cell', m: {...m, sums: {S: {...sum, reset: and2(eqE(v('op'), k(2)), eqE(at(v('w')), k(0)))}}}})
+      tampers.push({what: 'reset dropped from declaration', m: {...m, sums: {S: {key: sum.key, term: sum.term}}}})
     }
     if (family === 'flag') {
       const j = laws.length - 1, kind = laws[j]!, others = laws.slice(0, j)

@@ -1408,7 +1408,7 @@ export function sumMachine(m: Machine, given?: Record<string, E[]>, laws: Law[] 
     ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))]
   const steps: Record<string, E> = Object.create(null), qflags: Record<string, C> = Object.create(null), facts: C[] = [], goals: Goal[] = []
   for (const [s, sum] of sums) {
-    const {term, key} = sum, {flag, x} = sumParts(s), cs = own(covers, s)!
+    const {term, key, reset} = sum, {flag, x} = sumParts(s), cs = own(covers, s)!
     const read = [...new Set([...JSON.stringify(term).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!))]
     const bad = (why: string) => { throw new Error(`${m.name}: the sum ${s}: ${why}`) }
     for (const name of [s, key, flag, x]) { plainName(m.name, name); if (names.includes(name) || Object.hasOwn(m.sums ?? {}, name) && name !== s) bad(`${name} is already a name of the machine`) }
@@ -1423,6 +1423,30 @@ export function sumMachine(m: Machine, given?: Record<string, E[]>, laws: Law[] 
     for (const c of cs) if (JSON.stringify(c).includes('"op":"flag"') || readsKey(c, key) || readsKey(c, x)) bad('a key a step writes it at reads a flag')
     // (Sums.lean's sumOk1: a map the term reads written at one key has that key among the cover keys)
     for (const map of read) { const w = own(m.step.maps ?? {}, map); if (w && !('each' in w) && !cs.some(c => JSON.stringify(c) === JSON.stringify(w.key))) bad(`the key ${map} is written at is no cover key`) }
+    // Plain flags inlined directly to their conditions (matching Progress.lean's eqOrFlag/inlineC and updateOf),
+    // quantified flags kept as `?f = 1`.
+    const lean: Subst = {vars: {}, maps: {}, flags: flagsOf(m)}
+    // Optional key-independent reset guard (Sums.lean's resetOk): unquantified, natural, only declared flags,
+    // reads no key variable (sum.key, x$S, any each-write bound key) and no map aggregated by `term` (even via flags).
+    let resetInlined: C | undefined
+    if (reset !== undefined) {
+      if (!naturalC(reset)) bad('its reset guard has a negative constant or factor')
+      unquantified(`${m.name}: the sum ${s}'s reset`, reset)
+      const rawReset = reads(reset)
+      for (const f of rawReset.flags) if (!Object.hasOwn(flags, f)) bad(`its reset guard reads undeclared flag ${f}`)
+      if (readsKey(reset, key) || readsKey(reset, x)) bad('its reset guard reads a key variable')
+      resetInlined = substC(reset, lean)
+      if (readsKey(resetInlined, key) || readsKey(resetInlined, x)) bad('its reset guard reads a key variable')
+      for (const w of Object.values(m.step.maps ?? {})) {
+        if ('each' in w && (readsKey(reset, w.each) || readsKey(resetInlined, w.each))) bad('its reset guard reads a write key')
+      }
+      const resetMaps = reads(resetInlined).maps
+      if (read.some(mp => resetMaps.has(mp))) bad('its reset guard reads a summed map')
+      for (const map of read) {
+        const w = own(m.step.maps ?? {}, map)
+        if (w && !('each' in w) && (readsKey(substE(w.key, lean), x) || readsKey(substE(w.value, lean), x))) bad(`the write to ${map} reads ${x}`)
+      }
+    }
     const here = (t: E): E => substE(term, {vars: {[key]: t}, maps: {}, flags: same})
     // A map read after the step, over the step's view (Sums.lean's postRd).
     const post = (map: string) => (k2: E): E => {
@@ -1433,19 +1457,39 @@ export function sumMachine(m: Machine, given?: Record<string, E[]>, laws: Law[] 
     }
     const after = (t: E): E => substE(term, {vars: {[key]: t}, maps: Object.fromEntries(read.map(map => [map, post(map)])), flags: same})
     const S: E = {op: 'var', name: s}
-    steps[s] = {op: 'sub', a: {op: 'add', a: S, b: dTerm(after, cs)}, b: dTerm(here, cs)}
+    const delta: E = {op: 'sub', a: {op: 'add', a: S, b: dTerm(after, cs)}, b: dTerm(here, cs)}
+    steps[s] = reset !== undefined ? {op: 'if', c: reset, then: ZERO, else: delta} : delta
     qflags[flag] = {op: 'all', key, c: {op: '<=', a: dTerm(here, [{op: 'var', name: key}, ...cs]), b: S}}
     facts.push({op: 'and', xs: [{op: '<=', a: dTerm(here, cs), b: S}, {op: 'flag', name: flag}]})
-    // A map it reads written at every key: at a key none of the cover keys is, the write keeps the cell. Built as
-    // Sums.lean's sumCoverGoal builds it (each write at every key in the machine's order, plain flags inlined directly
-    // to their conditions as Progress.lean's eqOrFlag/inlineC does, quantified flags kept as `?f = 1`), so the Lean
-    // export reads these goals as they are.
-    const lean: Subst = {vars: {}, maps: {}, flags: flagsOf(m)}
+    // A map it reads written at every key: under ¬reset, at a key none of the cover keys is, the write keeps the cell.
+    // Built as Sums.lean's sumCoverGoal builds it (each write at every key in the machine's order, flags inlined as Lean
+    // inlines them), so the Lean export reads these goals as they are.
+    const X: E = {op: 'var', name: x}
     for (const [map, w] of Object.entries(m.step.maps ?? {})) {
       if (!('each' in w) || !read.includes(map)) continue
-      const X: E = {op: 'var', name: x}
-      goals.push({name: `${s} @cover ${map}`, hyps: [substC(m.assume ?? TRUE_C, lean), ...cellLaws(laws, read, X), ...cs.map((c): C => ({op: 'not', x: {op: '=', a: X, b: c}})),
-        {op: 'not', x: {op: '=', a: substE(substE(w.value, lean), {vars: {[w.each]: X}, maps: {}, flags: {}}), b: {op: 'get', map, key: X}}}]})
+      goals.push({name: `${s} @cover ${map}`, hyps: [
+        substC(m.assume ?? TRUE_C, lean),
+        ...(resetInlined ? [{op: 'not' as const, x: resetInlined}] : []),
+        ...cellLaws(laws, read, X),
+        ...cs.map((c): C => ({op: 'not', x: {op: '=', a: X, b: c}})),
+        {op: 'not', x: {op: '=', a: substE(substE(w.value, lean), {vars: {[w.each]: X}, maps: {}, flags: {}}), b: {op: 'get', map, key: X}}},
+      ]})
+    }
+    // Optional reset goal (Sums.lean's sumResetGoal): under reset, at any key x, the post-step summand is 0.
+    if (resetInlined) {
+      const postInlined = (map: string) => (k2: E): E => {
+        const w = own(m.step.maps ?? {}, map)
+        if (!w) return {op: 'get', map, key: k2}
+        if ('each' in w) return substE(substE(w.value, lean), {vars: {[w.each]: k2}, maps: {}, flags: {}})
+        return {op: 'if', c: {op: '=', a: k2, b: substE(w.key, lean)}, then: substE(w.value, lean), else: {op: 'get', map, key: k2}}
+      }
+      const afterInlined = substE(term, {vars: {[key]: X}, maps: Object.fromEntries(read.map(map => [map, postInlined(map)])), flags: {}})
+      goals.push({name: `${s} @reset`, hyps: [
+        substC(m.assume ?? TRUE_C, lean),
+        resetInlined,
+        ...cellLaws(laws, read, X),
+        {op: 'not', x: {op: '=', a: afterInlined, b: ZERO}},
+      ]})
     }
   }
   // (Sums.lean's sumsC: each sum's facts, then the rest, ending in 0 ≤ 0)

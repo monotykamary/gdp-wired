@@ -50,7 +50,7 @@ test('a law with no total, or about two keys, has no covering shape', () => {
   expect(coveringShapes(members.machine, members.law('a pair', ({In, size}) => forall((k, j) => In.at(k).plus(In.at(j)).atMost(size.plus(1)))))).toHaveLength(0)
 })
 
-test('covering skips uncovered broadcast clears and still proves covered each writes', () => {
+test('covering proves whole-map broadcast clears, skips partial wipes, and still proves covered each writes', () => {
   const withClear = rule('broadcast-covering-clear')
     .inputs({op: oneOf('put', 'remove', 'clear'), id: nat, val: nat})
     .state({total: 0})
@@ -65,10 +65,28 @@ test('covering skips uncovered broadcast clears and still proves covered each wr
       M: M.each(k => when(clears, 0, when(puts.and(k.eq(id)), val, when(removes.and(k.eq(id)), 0, M.at(k))))),
     }))
   const clearLaw = withClear.law('every cell fits in total', ({M, total}) => forall(k => M.at(k).atMost(total)))
-  const vClear = proveRule(withClear, [clearLaw], {search: {ms: 2_000}})
-  expect(vClear.proven).toBe(false)
-  expect(vClear.checked).toBe(false)
-  expect(vClear.run).toBeUndefined()
+  const vClear = proveRule(withClear, [clearLaw], {search: {ms: 15_000}})
+  expect(vClear.proven && vClear.checked).toBe(true)
+  expect(vClear.found?.laws?.some(l => l.text.startsWith('covering'))).toBe(true)
+
+  const partialWipe = rule('broadcast-covering-partial')
+    .inputs({op: oneOf('put', 'remove', 'clearBelow'), id: nat, val: nat, limit: nat})
+    .state({total: 0})
+    .maps({M: 0})
+    .flags(({op, id, M}) => ({
+      puts: op.is('put').and(M.at(id).eq(0)),
+      removes: op.is('remove').and(M.at(id).gt(0)),
+      clears: op.is('clearBelow'),
+    }))
+    .step(({id, val, limit, total, M, puts, removes, clears}) => ({
+      total: when(puts, total.plus(val), when(removes, total.minus(M.at(id)), total)),
+      M: M.each(k => when(clears.and(k.lt(limit)), 0, when(puts.and(k.eq(id)), val, when(removes.and(k.eq(id)), 0, M.at(k))))),
+    }))
+  const partialLaw = partialWipe.law('every cell fits in total', ({M, total}) => forall(k => M.at(k).atMost(total)))
+  const vPartial = proveRule(partialWipe, [partialLaw], {search: {ms: 2_000}})
+  expect(vPartial.proven).toBe(false)
+  expect(vPartial.checked).toBe(false)
+  expect(vPartial.run).toBeUndefined()
 
   const coveredEach = rule('broadcast-covering-covered')
     .inputs({op: oneOf('put', 'remove'), id: nat, val: nat})
