@@ -2432,7 +2432,11 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
         if (srt && 'each' in w) walk(w.value, o => { const c = o as unknown as C; if (c.op === '=' && c.a.op === 'var' && c.b.op === 'var') { const q = c.a.name === w.each ? c.b.name : c.b.name === w.each ? c.a.name : undefined; if (q && m.params.includes(q)) elementOf.set(q, srt) } })
       }
       walk([m.step, m.assume], o => { const e = o as unknown as E; if (e.op === 'get' && e.key.op === 'var' && m.params.includes(e.key.name) && ks.plainRead.includes(e.map)) elementOf.set(e.key.name, ks.find(`M:${e.map}`)) })
-      for (const [mp, w] of Object.entries(m.step.maps ?? {})) for (const l of leaves(w.value)) relate(`V:${mp}`, node(l))
+      for (const [mp, w] of Object.entries(m.step.maps ?? {})) {
+        for (const l of leaves(w.value)) relate(`V:${mp}`, node(l))
+        const vs = ks.find(`V:${mp}`)
+        if (ss.includes(vs)) relate(`V:${mp}`, vs)
+      }
       const valueSort = (mp: string) => ss.find(q => vf(q) === vf(`V:${mp}`)), ordered = (q: string) => [...ord].some(o => vf(o) === vf(q))
       // (a function of a key whose values are a composed map's rows: Pending[idn(x)·N + y])
       const fnHi = Object.keys(m.fns ?? {}).filter(f => comp && ss.includes(ks.find(`F:${f}`)) && vf(`V:${f}`) === vf(comp[0]!))
@@ -2871,15 +2875,17 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
           R.forEach((r, k) => { if (holds(r)) bits[k >> 5]! |= 1 << (k & 31) })
           lits.push({lit, id, name, reads: rd, bits, ...(before ? {before} : {}), state: ('at' in lit ? [lit.at.atom] : lit.lin.coef.map(([a]) => a)).some(a => atoms[a]!.place !== undefined || eqAt.has(a) || (!atoms[a]!.term && !atoms[a]!.param))})
         }
+        const paramValued = new Set([...bounding.values()].flatMap(s => [...s]))
         const valued = (i: number) => atoms[i]!.place !== undefined && !!valueSort(atoms[i]!.parts[0]![0].split(AT)[2]!)
+        const nilValued = (i: number) => valued(i) || (atoms[i]!.place !== undefined && paramValued.has(ks.find(`V:${atoms[i]!.parts[0]![0].split(AT)[2]!}`)))
         for (const i of [...v.atoms.filter(j => !atoms[j]!.int && (!atoms[j]!.term || eqAt.has(j))), ...modes.filter(mo => !atoms[mo.atom]!.cell && !atoms[mo.atom]!.param).map(mo => mo.atom)]) {
           // (a relation's tuple: in it or not, whether or not the rows take both: "never in it" is a cube of one literal)
           const rel = atoms[i]!.place !== undefined && ks.tupled.has(atoms[i]!.parts[0]![0].split(AT)[2]!) && !!m.relations?.[atoms[i]!.parts[0]![0].split(AT)[2]!]
           const vals = rel || eqAt.has(i) ? [0, 1] : [...new Set(R.map(r => r[i]!))].sort((a, b) => a - b)
-          // (a value of a key's sort: 0 alone, an order literal below)
+          // (a value of a key's sort: 0 and >= 1 (nil vs non-nil), beside any order literals below)
           // (a projected place: only that it holds)
-          for (const value of atoms[i]!.place !== undefined && proj[atoms[i]!.place!] ? [1] : valued(i) ? vals.filter(q => q === 0) : vals.length <= 3 || few(vals) ? vals : []) {
-            const top = value > 0 && value === vals.at(-1)
+          for (const value of atoms[i]!.place !== undefined && proj[atoms[i]!.place!] ? [1] : nilValued(i) ? [...vals.filter(q => q === 0), ...(vals.some(q => q > 0) ? [1] : [])] : vals.length <= 3 || few(vals) ? vals : []) {
+            const top = value > 0 && (nilValued(i) || value === vals.at(-1))
             add(top ? {lin: {coef: [[i, -1]], d: -value}} : {at: {atom: i, value}}, `${i}`, ren => `${term(i, ren)}=${value}`, reads(i), r => (top ? r[i]! >= value : r[i] === value))
           }
         }
