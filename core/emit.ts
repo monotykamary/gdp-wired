@@ -1690,19 +1690,20 @@ function emitRuleInternal(r: AnyRule, opts: EmitRuleOptions, kind: 'rule' | 'cha
   stepBodyLines.push(...mapUpdateLines, ...itemUpdateLines)
 
   if (historyFields) {
-    const recReg = makeRegistry()
-    for (const [n, , k] of meta.params) registerKind(recReg, n, k, propAccess('params', n))
-    for (const [n, , k] of meta.inputs) registerKind(recReg, n, k, propAccess('input', n))
+    const curReg = makeRegistry()
+    for (const [n, , k] of meta.params) registerKind(curReg, n, k, propAccess('params', n))
+    for (const [n, , k] of meta.inputs) registerKind(curReg, n, k, propAccess('input', n))
     for (const rf of historyFields.recordFields) {
       const k = meta.inputs.find(([n]) => n === rf)?.[2] ?? {kind: 'nat' as const}
-      registerKind(recReg, `r.${rf}`, k, propAccess('$rec', rf))
+      registerKind(curReg, `r.${rf}`, k, propAccess('input', rf))
     }
-    const recEm = emitTsCode({...ctx, reg: recReg, flags: new Map(), maps: new Map(), cse: new Map()})
+    const curEm = emitTsCode({...ctx, reg: curReg, flags: new Map(), maps: new Map(), cse: new Map()})
     const keepExpr = em.emitCond(historyFields.keep)
     const recObj = `{ ${historyFields.recordFields.map(rf => `${propKey(rf)}: ${propAccess('input', rf)}`).join(', ')} }`
-    stepBodyLines.push(`  const $nextHistory = (${keepExpr}) ? [...$kept, ${recObj}] : $kept`)
+    stepBodyLines.push(`  const $keep = ${keepExpr}`)
+    stepBodyLines.push(`  const $nextHistory = $keep ? [...$kept, ${recObj}] : $kept`)
     for (const [sName, sE] of historyFields.sums) {
-      stepBodyLines.push(`  let ${safeVar('next_', sName)} = 0`, `  for (const $rec of $nextHistory) ${safeVar('next_', sName)} += ${recEm.emitNum(sE)}`)
+      stepBodyLines.push(`  const ${safeVar('next_', sName)} = ${propAccess('state', sName)} + ($keep ? ${curEm.emitNum(sE)} : 0)`)
       if (!meta.state.some(([n]) => n === sName)) nextHistoryFields.push([sName, safeVar('next_', sName)])
     }
   }
