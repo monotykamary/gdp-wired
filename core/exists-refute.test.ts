@@ -2,7 +2,7 @@
 import {expect, test} from 'bun:test'
 import {type C, type E, type Law, type Machine, type Request, type State, carriedView, compileC, compileE, cpair, cunpair, fastStep, interpret, numbersOf, walk} from './machine.ts'
 import {type Rule, all, bool, exists, fn, forall, nat, oneOf, proveRule, rule, sizedSort, when, yes} from './dsl.ts'
-import {someHolds} from './exists.ts'
+import {smallOf, smallOfChecked, someHolds} from './exists.ts'
 import {WatchUndecided, watch, watchUndecided} from './watch.ts'
 
 type Env = Record<string, number>
@@ -334,3 +334,14 @@ test('proveRule refutes broken tuple-existential rule (confirmed by compiled ora
   expect(ok.checked).toBe(true)
   expect(ok.run).toBeUndefined()
 }, 30_000)
+
+test('smallOfChecked caches per param size so smallOf reuses size-2 states without recomputation', () => {
+  const intact = makeMiniClientServer(false), lawI = miniCsLaw(intact), m = intact.machine
+  const pre = smallOfChecked(m, {laws: [lawI]}, undefined, [2])
+  expect(pre.violation).toBeUndefined()
+  expect(pre.samples?.length).toBe(1)
+  const full = smallOf(m)
+  expect(full.length).toBe(2)
+  expect(full[0]).toBe(pre.samples![0])
+  expect(smallOf(m)).toBe(full)
+})

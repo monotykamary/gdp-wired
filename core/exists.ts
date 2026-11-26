@@ -632,6 +632,7 @@ export function ghostOf(m: Machine, law: Law): SomeWitness | undefined {
 // the walks past it in a third as many; an instance whose params the machine refuses has no states. With no params,
 // 2 and 3 denote the same instance, so sample it only once. Read once a machine.
 const smalls = new WeakMap<Machine, {p: Env, sts: State[]}[]>()
+const smallByParam = new WeakMap<Machine, Map<number, {p: Env, sts: State[]}>>()
 // Adding fresh, unreferenced count definitions cannot change any transition.
 // Reuse the engine's original samples instead of enumerating that same graph
 // with every speculative count attached to every request. The structural check
@@ -647,50 +648,89 @@ export function smallOf(m: Machine, source?: Machine): {p: Env, sts: State[]}[] 
   checkWall('sample cache')
   let out = smalls.get(m)
   if (!out && source && source !== m && canReuseSmall(m, source)) smalls.set(m, (out = smallOf(source)))
-  if (!out) smalls.set(m, (out = (m.params.length ? [2, 3] : [2]).map(x => { const p = Object.fromEntries(m.params.map(q => [q, x])); try { return {p, sts: small(m, p, 3, 3000, 300_000, 100_000)} } catch (e) { if (e instanceof WallExpired) throw e; return {p, sts: []} } })))
+  if (!out) {
+    const by = smallByParam.get(m)
+    const sizes = m.params.length ? [2, 3] : [2]
+    out = sizes.map(x => {
+      const hit = by?.get(x)
+      if (hit) return hit
+      const p = Object.fromEntries(m.params.map(q => [q, x]))
+      try { return {p, sts: small(m, p, 3, 3000, 300_000, 100_000)} } catch (e) { if (e instanceof WallExpired) throw e; return {p, sts: []} }
+    })
+    smalls.set(m, out)
+  }
   return out
 }
 // Like smallOf, checking `check.laws` incrementally on every newly reached state so a broken law stops BFS/walks early
-// and returns its parent-pointer trace without polluting the smalls cache. When no violation is accepted, caches and
-// returns the complete small instances identical to smallOf.
-export function smallOfChecked(m: Machine, check: SmallCheck, source?: Machine): {samples?: {p: Env, sts: State[]}[], violation?: SmallViolation, checkedAll: boolean} {
+// and returns its parent-pointer trace without polluting the smalls cache. When no violation is accepted, caches each
+// finished parameter size (and populates `smalls` once all default sizes are complete) so subsequent `smallOf` calls
+// reuse the explored states at zero extra BFS cost.
+export function smallOfChecked(m: Machine, check: SmallCheck, source?: Machine, sizes?: readonly number[]): {samples?: {p: Env, sts: State[]}[], violation?: SmallViolation, checkedAll: boolean} {
   checkWall('sample cache')
   const evalM = check.machine ?? m
   const reuse = !!source && source !== m && canReuseSmall(m, source)
-  const cached = smalls.get(m) ?? (reuse ? smalls.get(source!) : undefined)
-  if (cached) {
-    if (!smalls.has(m)) smalls.set(m, cached)
-    let sawFailure = false
-    for (const {p, sts} of cached) {
-      let preOk = false
-      try { preOk = !evalM.pre || evalC(evalM.pre, p, {scalars: {}, maps: {}}, evalM) }
-      catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; preOk = false }
-      if (!preOk) { sawFailure = true; continue }
-      for (const st of sts) {
-        const res = checkSmallState(evalM, check, p, st, 4)
-        if (res.violation) return {violation: res.violation, checkedAll: false}
-        if (res.sawFailure) sawFailure = true
-      }
-    }
-    return {samples: cached, checkedAll: !sawFailure}
-  }
   const target = reuse ? source! : m
+  const allSizes = target.params.length ? [2, 3] : [2]
+  const want = sizes && sizes.length ? (target.params.length ? [...sizes] : [2]) : allSizes
+  const cachedFull = smalls.get(m) ?? (reuse ? smalls.get(source!) : undefined)
+  const checkEntry = (entry: {p: Env, sts: State[]}): {violation?: SmallViolation, sawFailure: boolean} => {
+    let preOk = false
+    try { preOk = !evalM.pre || evalC(evalM.pre, entry.p, {scalars: {}, maps: {}}, evalM) }
+    catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; preOk = false }
+    if (!preOk) return {sawFailure: true}
+    let sawFailure = false
+    for (const st of entry.sts) {
+      const res = checkSmallState(evalM, check, entry.p, st, 4)
+      if (res.violation) return {violation: res.violation, sawFailure: true}
+      if (res.sawFailure) sawFailure = true
+    }
+    return {sawFailure}
+  }
+  if (cachedFull) {
+    if (!smalls.has(m)) smalls.set(m, cachedFull)
+    let sawFailure = false
+    for (const entry of cachedFull) {
+      const res = checkEntry(entry)
+      if (res.violation) return {violation: res.violation, checkedAll: false}
+      if (res.sawFailure) sawFailure = true
+    }
+    return {samples: cachedFull, checkedAll: !sawFailure}
+  }
+  let by = smallByParam.get(target)
   const out: {p: Env, sts: State[]}[] = []
   let sawFailure = false
-  for (const x of target.params.length ? [2, 3] : [2]) {
+  for (const x of want) {
+    const existing = by?.get(x)
+    if (existing) {
+      const res = checkEntry(existing)
+      if (res.violation) return {violation: res.violation, checkedAll: false}
+      if (res.sawFailure) sawFailure = true
+      out.push(existing)
+      continue
+    }
     const p = Object.fromEntries(target.params.map(q => [q, x]))
     try {
       const res = withReachabilityWork(() => smallWithin(target, p, 3, 3000, 300_000, 100_000, {...check, machine: evalM}))
       if (res.violation) return {violation: res.violation, checkedAll: false}
       if (res.sawFailure) sawFailure = true
-      out.push({p, sts: res.sts})
+      const entry = {p, sts: res.sts}
+      if (!by) smallByParam.set(target, (by = new Map()))
+      by.set(x, entry)
+      out.push(entry)
     } catch (e) {
       if (e instanceof WallExpired || e instanceof BudgetExpired) throw e
-      out.push({p, sts: []})
+      const entry = {p, sts: []}
+      if (!by) smallByParam.set(target, (by = new Map()))
+      by.set(x, entry)
+      out.push(entry)
     }
   }
-  smalls.set(target, out)
-  if (target !== m) smalls.set(m, out)
+  if (by && allSizes.every(x => by!.has(x))) {
+    const full = allSizes.map(x => by!.get(x)!)
+    smalls.set(target, full)
+    if (target !== m) smalls.set(m, full)
+    return {samples: sizes ? out : full, checkedAll: !sawFailure}
+  }
   return {samples: out, checkedAll: !sawFailure}
 }
 // Laws true at every small state, at every key below one past their values. With `ghosted`, the machine with ghosts

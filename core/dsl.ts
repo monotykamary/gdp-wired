@@ -3444,24 +3444,26 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
     }
     return retainCounted({proven: c.proven, checked: c.proven, ...(c.why ? {why: c.why} : {}), found: {laws: c.laws.map(l => ({text: l.name}))}} as unknown as Verdict, c)
   }
-  // A quantified existential law's witness search (proveSome/skolemOf) already explores smallOf(r.machine); check the
-  // caller's laws during that same small-instance BFS/walks so broken ∀∃ rules stop early with a replay-verified trace
-  // while intact rules reuse the populated `smalls` cache at zero extra BFS cost.
+  // A quantified existential law's witness search (proveSome/skolemOf) already explores smallOf(m); check the caller's
+  // laws at param size 2 during that same small-instance BFS/walks on the shared machine snapshot so broken ∀∃ rules
+  // stop early with a replay-verified trace while intact rules reuse the cached size-2 states in skolemOf at zero extra
+  // BFS cost (and multi-var tuple-each rules avoid paying size-3 interpreter walks before witness search).
+  const sm = r === originalRule ? captureMachine : r.machine
   if (opts.search !== false && opts.from !== 'any' && laws.some(l => l.some?.length && l.forall && !l.witness)) {
     let earlyVerdict: Verdict | undefined
-    smallOfChecked(r.machine, {
+    smallOfChecked(sm, {
       laws,
       accept: v => {
         const verified = replayVerifiedRefutation(originalRule, laws, [], v)
         if (verified) { earlyVerdict = verified; return true }
         return false
       },
-    })
+    }, undefined, [2])
     if (earlyVerdict) return earlyVerdict
   }
   // (with a search budget, the laws as given within it on the wall: a step goal of hundreds of hypotheses has a second
   // each by its own budget, so the search would never start)
-  const ms = typeof opts.search === 'object' ? opts.search.ms : undefined, given = () => (opts.fast ? proveSetFast : proveLaws)(r.machine, withKinds(r, laws)) as ReturnType<typeof proveLaws>
+  const ms = typeof opts.search === 'object' ? opts.search.ms : undefined, given = () => (opts.fast ? proveSetFast : proveLaws)(sm, withKinds(r, laws)) as ReturnType<typeof proveLaws>
   // (a law with "there exists" about every key: half of it, as the plain search over its ghosts takes the law too; one
   // step goal of no_lost_keys' laws as given took 57 s of 60 choosing a witness term)
   // (an eighth where such a law binds several names: proveSome gives a ghost map to one bound name alone)
@@ -3730,7 +3732,22 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // ghosts' own laws beside it, on the rule with the ghosts (exists.ts's skolemOf), its verdict `back`'s; no join, whose
   // convex forms can't state a cell read at a key a ghost holds: the engine alone (the join's first whole-set query on
   // db_ae's plain laws took 234 counted s, past the budget, before the engine)
-  const sk = !stepLaws.length && laws.some(l => l.some?.length && l.forall) ? skolemOf(rule.machine, laws) : undefined
+  const skM = !lemmas && rule === r && searchCaptureMachine ? searchCaptureMachine : rule.machine
+  if (!stepLaws.length && laws.some(l => l.some?.length && l.forall && !l.witness)) {
+    let earlyVerdict: Verdict | undefined
+    if (laws.some(l => l.some?.length === 1 && l.forall && !l.witness)) {
+      smallOfChecked(skM, {
+        laws,
+        accept: cand => {
+          const verified = replayVerifiedRefutation(searchOriginalRule ?? r, laws, [], cand)
+          if (verified) { earlyVerdict = verified; return true }
+          return false
+        },
+      })
+      if (earlyVerdict) return earlyVerdict
+    }
+  }
+  const sk = !stepLaws.length && laws.some(l => l.some?.length && l.forall) ? skolemOf(skM, laws) : undefined
   const target = sk ? rule.withGhosts(sk.ghost) : rule, sought = sk?.laws ?? laws
   // (the set the search proved, as it proved it, over the rule with the ghosts (its goals settled again where they stand),
   // the ghosts checked to be the original's (kernel.ts's ghostedOk): each law with "there exists" holds, its value at its
