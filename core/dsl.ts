@@ -3463,9 +3463,9 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   // A quantified existential law's witness search (proveSome/skolemOf) already explores smallOf(m); check the caller's
   // laws at param size 2 during that same small-instance BFS/walks so broken ∀∃ rules stop early with a replay-verified
   // trace while intact rules reuse the cached size-2 states in skolemOf at zero extra BFS cost (and multi-var tuple-each
-  // rules avoid paying size-3 interpreter walks before witness search). The machine is read here, not the one captured
-  // on entry: the divisors the laws read (mod 2's mod$2) are noted on the rule after that capture.
-  const sm = r.machine
+  // rules avoid paying size-3 interpreter walks before witness search). The machine captured on entry only while it is
+  // still the rule's: the divisors the laws read (mod 2's mod$2) are noted on the rule after that capture.
+  const sm = r === originalRule && declaresDivisors(captureMachine, laws) ? captureMachine : r.machine
   if (opts.search !== false && opts.from !== 'any' && laws.some(l => l.some?.length && l.forall && !l.witness)) {
     let earlyVerdict: Verdict | undefined
     smallOfChecked(sm, {
@@ -3497,7 +3497,7 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
   const v: Verdict = out ? {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
     : {proven: false, checked: false, stuck: 'unknown'}
   if (out) retainFrom(v, [out])
-  return searched(r, laws, [], v, opts, originalRule, r === originalRule ? captureMachine : undefined)
+  return searched(r, laws, [], v, opts, originalRule, sm)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
   return watchdogVerdict(opts.watchdogMs, () => workVerdict(opts, plan => proveStepsWall(r, laws, stepLaws, plan)))
@@ -3589,6 +3589,9 @@ function stepGhosts(m: Machine, stepLaws: StepLaw[]): {machine: Machine, laws: L
 // The search, where the prover alone didn't prove the laws and nothing refuted them: the lemmas first where the rule has
 // recurrences or carried lists (the rule made again with them), then invariants over what it then is. The verdict is the
 // prover's on the laws with what was found; when nothing is found, the prover's own (with why).
+// A machine captured earlier is still the rule's for these laws when it already declares every divisor they read (the
+// divisors noted on the rule after the capture are its only change here).
+const declaresDivisors = (m: Machine, laws: Law[]): boolean => [...divisorsIn(laws as never)].every(k => !!m.fns?.[modName(k)])
 let searchOriginalRule: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj> | undefined
 let searchCaptureMachine: Machine | undefined
 function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions, original: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj> = r, capture?: Machine): Verdict {
@@ -3749,8 +3752,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // ghosts' own laws beside it, on the rule with the ghosts (exists.ts's skolemOf), its verdict `back`'s; no join, whose
   // convex forms can't state a cell read at a key a ghost holds: the engine alone (the join's first whole-set query on
   // db_ae's plain laws took 234 counted s, past the budget, before the engine)
-  // (the rule's machine as it is now: one captured earlier may predate the divisors its laws read)
-  const skM = rule.machine
+  const skM = !lemmas && rule === r && searchCaptureMachine && declaresDivisors(searchCaptureMachine, laws) ? searchCaptureMachine : rule.machine
   if (!stepLaws.length && laws.some(l => l.some?.length && l.forall && !l.witness)) {
     let earlyVerdict: Verdict | undefined
     if (laws.some(l => l.some?.length === 1 && l.forall && !l.witness)) {
