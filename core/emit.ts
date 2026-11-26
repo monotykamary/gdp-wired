@@ -1531,8 +1531,24 @@ function emitRuleInternal(r: AnyRule, opts: EmitRuleOptions, kind: 'rule' | 'cha
     const nextLenExpr = em.emitNum(lenE)
     const partNames = itemKind.kind === 'record' ? itemKind.fields.map(([f]) => `${itemName}.${f}`) : [itemName]
     const firstW = partNames.map(p => m.step.maps?.[p]).find(Boolean)
-    itemUpdateLines.push(`  const ${localList} = [...${propAccess('state', itemName)}]`)
-    if (firstW && 'key' in firstW) {
+    if (firstW && 'each' in firstW) {
+      const boundNames: string[] = []
+      for (const p of partNames) {
+        const pw = m.step.maps?.[p]
+        if (pw && 'each' in pw) { ctx.boundKeys.set(pw.each, '$k'); boundNames.push(pw.each) }
+      }
+      const valExpr = em.emitKindVal(itemKind, itemName, part => {
+        const pw = m.step.maps?.[part]
+        return pw && 'each' in pw ? pw.value : {op: 'get', map: part, key: {op: 'var', name: firstW.each}}
+      })
+      for (const bn of boundNames) ctx.boundKeys.delete(bn)
+      itemUpdateLines.push(
+        `  const $len_${itemName} = ${nextLenExpr}`,
+        `  const ${localList}: ${kindTsType(itemKind)}[] = []`,
+        `  for (let $k = 0; $k < $len_${itemName}; $k++) { ${localList}.push(${valExpr}) }`,
+      )
+    } else if (firstW && 'key' in firstW) {
+      itemUpdateLines.push(`  const ${localList} = [...${propAccess('state', itemName)}]`)
       const kExpr = em.emitNum(firstW.key)
       const valExpr = em.emitKindVal(itemKind, itemName, part => {
         const pw = m.step.maps?.[part]
@@ -1546,7 +1562,7 @@ function emitRuleInternal(r: AnyRule, opts: EmitRuleOptions, kind: 'rule' | 'cha
         `  else if ($idx_${itemName} < ${localList}.length) { ${localList}[$idx_${itemName}] = ${valExpr} }`,
       )
     } else {
-      itemUpdateLines.push(`  ${localList}.length = ${nextLenExpr}`)
+      itemUpdateLines.push(`  const ${localList} = [...${propAccess('state', itemName)}]`, `  ${localList}.length = ${nextLenExpr}`)
     }
     nextItemFields.push([itemName, localList])
   }

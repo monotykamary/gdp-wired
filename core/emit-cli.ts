@@ -456,7 +456,7 @@ export async function verifyEmittedFile(
       if (want.ok !== got.ok) {
         return `at args=${JSON.stringify(args)}, params=${JSON.stringify(params)}: ${want.ok ? `interpreter returned ${JSON.stringify(want.val)}, emitted threw (${(got as {err: string}).err})` : `interpreter refused (${(want as {err: string}).err}), emitted returned ${JSON.stringify((got as {val: unknown}).val)}`}`
       }
-      if (!want.ok) { throwsMatched++; return undefined }
+      if (!want.ok || !got.ok) { throwsMatched++; return undefined }
       if (!deepEq(got.val, want.val)) {
         return `at args=${JSON.stringify(args)}, params=${JSON.stringify(params)}: emitted ${JSON.stringify(got.val)} !== interpreter ${JSON.stringify(want.val)}`
       }
