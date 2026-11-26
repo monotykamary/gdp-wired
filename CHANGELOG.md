@@ -42,7 +42,7 @@ noted), each with the command that reproduces it.
   - On the language-coverage sample: Python `180 -> 331` of `1,322` units read, Ruby `22 -> 44`, Java `23 -> 29` of
     `244`; every unit read is checked against its running code (0 mismatches).
 
-Across all 545 real-world, DuoAI and IC3Syn intact and mutant laws (Node `v24.22.1`): 9 verdicts gained (5 proofs, 4 refutations), none lost, no mutant proven, and total wall time `-2.8%` (`2,134.8 s -> 2,074.8 s`).
+Across all 545 real-world, DuoAI and IC3Syn intact and mutant laws (Node `v24.22.1`): 9 verdicts gained (5 proofs, 4 refutations), none lost, no mutant proven, and total wall time `-0.8%` (`2,046.7 s -> 2,031.1 s`).
 
 ## 0.60.0
 
