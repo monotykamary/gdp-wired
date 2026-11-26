@@ -192,6 +192,97 @@ export function step(params: Params, state: State, input: Input): State {
 
 ---
 
-## Phase 2: One Code Generator (In Progress)
+## Phase 2: One Code Generator & 100% Enforced Expressibility
 
-*(To be filled upon completion of Phase 2: shared printer module for `compileJsMode` and `emit`, `core/sha256.ts`, slimmer `core/emit-cli.ts`, golden byte-identity checks, paired Boat `compiled()` timings forward+reverse, and full 7/7 shards.)*
+### 1. Shared Code Generator & Deduplication Architecture
+
+- **`core/codegen.ts` (513 lines)** — single expression, condition, rational, and helper printer shared by `compileJsMode` (`core/machine.ts`), `compileQJs` (`core/rationals.ts`), and `emit` (`core/emit.ts`):
+  - `createPrinter(hooks)`: single exhaustive `E` / `C` printer. `compileJsMode` keeps only its encoded slot-binding layer (persistent and in-place modes, `fork`, and its existing `"compileJs takes no tuple key at every key"` refusal); `emit` keeps only its typed named-value binding layer.
+  - `createQPrinter(hooks)`: single exhaustive `QE` / `QC` rational printer shared by `compileQJs` (`core/rationals.ts`) and `emitRatRule` (`core/emit.ts`).
+  - `JS_RUNTIME` / `runtimeFor` and `renderTypedHelpers`: single helper source for runtime arithmetic/quantifier/collection primitives (`$sub`, `$div`, `$rem`, `$wordDiv`, `$countCells`, `$everyTuple`, `$CountCells`, `$join`, `$sized`, etc.).
+  - Compile-time canonical op & machine-part tables: `E_OPS` (12 ops), `C_OPS` (7 ops), `QE_OPS` (11 ops), `QC_OPS` (6 ops), `MACHINE_PARTS` (all 26 `Machine` fields), and `unreachable(x: never): never`.
+- **`core/sha256.ts` (50 lines)** — single pure-JS SHA-256 implementation (zero `node:*` imports) used by `core/emit.ts` (`machineDigest`, `qMachineDigest`, `foldDigest`, `loopDigest`) and ready for the hints branch on merge.
+- **`core/cli-io.ts` (83 lines)** — shared CLI module loader, flag parser, line diff formatter, and repo-root resolver shared by `core/cli.ts` and `core/emit-cli.ts`.
+
+### 2. Line Counts Before vs After
+
+| File | `origin/main` | Phase 1 (`f53981041`) | Phase 2a dedup (`6e0566994`) | Phase 2 final (`f3fe9de84`) | Notes |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `core/machine.ts` | 1,525 | 1,525 | 1,453 (-72) | 1,453 (-72) | Delegates `E`/`C`/runtime helpers to `core/codegen.ts` |
+| `core/rationals.ts` | 273 | 299 | 286 (-13) | 286 (-13) | Delegates `QE`/`QC` printing to `core/codegen.ts` |
+| `core/cli.ts` | 1,481 | 1,483 | 1,466 (-17) | 1,466 (-17) | Shares `core/cli-io.ts` |
+| `core/emit-cli.ts` | — | 773 | 540 (-233) | 686 (-87) | Slimmed via `core/cli-io.ts`; +146 for fold/loop/nodes/lists/carries verify |
+| `core/emit.ts` | — | 1,903 | 1,735 (-168) | 3,079 | Deduplicated printers & SHA-256, then extended for 100% expressibility + `emitFold`/`emitLoop` |
+| `core/codegen.ts` | — | — | 275 | 513 | New shared Machine + Rational printer & runtime helpers |
+| `core/sha256.ts` | — | — | 50 | 50 | New shared pure-JS SHA-256 |
+| `core/cli-io.ts` | — | — | 83 | 83 | New shared CLI IO/diff/repo-root module |
+
+### 3. 100% Enforced Expressibility
+
+- **Compile-time `never` exhaustiveness**: every switch over `E`, `C`, `QE`, `QC`, `KindInfo`, and `Machine` parts (`E_OPS`, `C_OPS`, `QE_OPS`, `QC_OPS`, `KIND_NAMES`, `MACHINE_PARTS`, `EMIT_MACHINE_PARTS`) terminates in `unreachable(x: never)`. Adding any new AST op, `KindInfo`, or `Machine` property fails `tsc` until `emit` handles it.
+- **Zero `'not supported'` refusals**: `grep -n 'not supported' core/emit.ts` returns **0 lines** (asserted both in `core/emit.test.ts` and in the Boat quality gate).
+- **Complete runtime coverage**:
+  - Runtime quantified conditions (`everyKey` / `someKey` / `all` / `any` / `sizedSort` / multi-key `$join`) emitted as loops over live map keys matching interpreter semantics.
+  - Broadcast `each` writes on scalar, record, variant, and kinded maps; tuple keys at every key (`relations`, `$everyTuple`, while `compileJs` preserves its refusal contract); tuples, flags, and quantifiers inside `recur`/`fns`.
+  - Full support + crossCheck + `--verify` for `carries`, `carriesList` (with fold loops), `carriesSeq`, `carriesSeqs`, `lists`, `nodes`, `counts` (`$CountCells`), `leasts`, `sums` (`sumRuntime` + recomputed sums), `history`/`log`/`queries`/`prune`, `fixedInt` multi-limb + `wordDivision` (`$wordDiv`), `exists` skolems, Effect `fromSchema` (`Kind.inspect()` on `SchemaKind` and inner kinds in `core/effect-schema.ts`), binary `FoldRule` & `RoseFold` (`emitFold`), and `LoopRule` (`emitLoop`).
+- **Canonical op-by-op & kind-by-kind tests** (`core/emit.test.ts`): iterates `E_OPS`, `C_OPS`, `QE_OPS`, `QC_OPS`, and `KIND_NAMES`, constructs one rule per op/kind, emits, and passes differential `--verify`.
+
+### 4. Golden Byte-Identity Check (Phase 1 -> Phase 2)
+
+- Checked all **21** Phase-1 golden fixtures (`budget`, `caps`, `accounts`, `minutes`, `hold`, `seats`, `jobs`, `retry`, `larger`, `room`, `window`, `kinded`, `canEdit`, `approve`, `echoRounded`, `reviewRouting`, `feeSplit`, `limiter`, `ledger`, `orderChart`, `doorChart`):
+  - **21/21** produce **100% byte-identical emitted TypeScript code** (`examples/review-routing.generated.ts` is untouched and byte-identical).
+  - **20/21** are 100% byte-identical including every header line; **1 explained header-only difference**: `jobs` (items list) has identical emitted code, while line 3 (`// Digest: sha256:...`) varies with prior `keyCounter` calls in the same process because `jobs().machine.step.maps` holds an `each` binder named `k$N` (emitted TS normalizes the loop binder to `$k`, whereas `machineDigest` hashed the raw binder string).
+
+### 5. `compiled()` Unchanged — Paired Same-VM Boat Timings (Forward & Reverse)
+
+Boat batch `20261126-231426-idjwv7` (`paired-compiled-bench`, `research/emit/bench-compiled.ts`, 9 timed rounds per direction on VM `sc-2e2b3a28-yg954f17`, comparing pre-Phase-2 `compileJs` snapshot vs shared-printer `compileJs` on identical inputs):
+
+| Rule | Steps | JS Bytes | `jsIdentical` | `parityOk` | Forward (before / after median ms, ratio) | Reverse (before / after median ms, ratio) |
+| --- | ---: | ---: | :---: | :---: | --- | --- |
+| `budget` | 150,000 | 2,786 | `true` | `true` | `4.584` / `4.692` (**1.024x**) | `4.870` / `4.520` (**0.928x**) |
+| `caps` | 80,000 | 3,446 | `true` | `true` | `4.705` / `4.591` (**0.976x**) | `4.863` / `4.669` (**0.960x**) |
+| `accounts` | 80,000 | 3,870 | `true` | `true` | `5.569` / `5.808` (**1.043x**) | `5.562` / `5.573` (**1.002x**) |
+| `lock_server_sync` | 80,000 | 3,608 | `true` | `true` | `6.441` / `6.294` (**0.977x**) | `6.446` / `6.724` (**1.043x**) |
+| `two_phase_commit` | 30,000 | 8,482 | `true` | `true` | `32.048` / `30.372` (**0.948x**) | `32.799` / `30.411` (**0.927x**) |
+
+Every rule compiles to **byte-for-byte identical JavaScript** (`jsIdentical = true`), passes full step-by-step state parity (`parityOk = true`), and shows zero slowdown (ratios `0.927x`–`1.043x`, purely noise around `1.00x`).
+
+### 6. 100% Expressibility Coverage Sweep on Boat
+
+Boat batch `20261126-231426-idjwv7` (`sweep-1-of-4` through `sweep-4-of-4`, `research/emit/sweep.ts --runs 10 --steps 12`): emit + differential `--verify` against the interpreter on every rule, function, rational rule, statechart, fold, and loop across all 21 domains, all 41 standalone example modules, and the entire 545-law benchmark corpus:
+
+| Suite | Targets | Passed | Emit Refusals | Verify Diffs | Laws Covered | Differential Trials |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `domains` (21 `examples/domains/*.ts` + broken) | 402 | **402** | 0 | 0 | 723 | 51,814 |
+| `examples` (41 standalone `examples/*.ts`) | 39 | **39** | 0 | 0 | 39 | 5,357 |
+| `realworld` (545-law corpus) | 65 | **65** | 0 | 0 | 357 | 8,450 |
+| `duoai` (545-law corpus) | 12 | **12** | 0 | 0 | 12 | 1,560 |
+| `duoai-mutant` (545-law corpus) | 10 | **10** | 0 | 0 | 10 | 1,300 |
+| `ic3syn` (545-law corpus) | 29 | **29** | 0 | 0 | 33 | 3,770 |
+| `ic3syn-mutant` (545-law corpus) | 29 | **29** | 0 | 0 | 33 | 3,770 |
+| **Total** | **586** | **586 (100.0%)** | **0** | **0** | **1,207** | **76,021** |
+
+### 7. Final Phase-2 Verification (Boat & Local)
+
+- **Cross-VM Determinism** (`20261126-231426-idjwv7`, distinct VMs `sc-2e2b3a28-5whqahrh` vs `sc-2e2b3a28-6d018w20`, shifted `keyCounter` on box B): **5/5 byte-for-byte identical** (`budget`, `caps`, `accounts`, `feeSplit`, `reviewRouting` — identical digests and source SHA-256s across VMs).
+- **Full 7/7 Test Shards & Quality Gate** (Bun `1.4.3`, Node `v24.22.1`):
+  - `20261126-232700-7vds0o` (`quality-lint-build-node`, commit `f3fe9de84`):
+    - `grep -n 'not supported' core/emit.ts`: **0 matches**
+    - `tsc -p tsconfig.build.json --noEmit` + `tsc -p .` outside `research/vendor` + `research/emit/`: **0 errors**
+    - `oxlint --type-aware --deny-warnings --disable-nested-config core/ examples/ scripts/ research/emit/`: **0 warnings, 0 errors (748 files)**
+    - `bun run build`: **PASS (`dist: 798 entries`)**
+    - `bun test core/exports.test.ts core/emit.test.ts`: **49/49 PASS (15,179 expect() calls, 14.26s)** — `core/emit.test.ts` 21/21 PASS, `core/exports.test.ts` 28/28 PASS
+    - `bun examples/review-routing.ts`: **5/5 laws proven + sample run PASS**
+    - **Node 24 dual-module note**: invoking built `dist/core/cli.js` against repo-internal `examples/review-routing.ts` (which imports `../core/dsl.ts` rather than `gdp-wired`/`dist/core/dsl.js`) loads two `dsl` module instances so `dist/core/dsl.js`'s `funLawCallbacks` WeakMap does not see laws constructed by `../core/dsl.ts` (exit 2: `law was not stated on review routing`). Running `bun core/cli.ts` against repo source or `node dist/core/cli.js` against user code importing `'gdp-wired'` shares a single `dsl` instance; emitted `.ts` files themselves load directly in Node 24 strip-only mode.
+  - **7/7 Test Shards** (`20261126-231426-idjwv7` + `20261126-232700-7vds0o`):
+    - Shards `1/7`, `2/7`, `3/7`, `4/7`, `6/7`, `7/7`: **PASS**
+    - Shard `5/7`: **100% of `core/` tests PASS** (including `core/emit.test.ts` 21/21 PASS in 12.9s, `conformance`, `datatypes`, `folds`, `invoices`, `effect*`, all `count-*`); 1 pre-existing 1ms wall-clock failure in untouched `kernel/epr-clock.test.ts:18` (`EPR debits counted deadlines (rows)`, `withDeadline(start + 1, ...)` — `git diff origin/main -- kernel/` is empty).
+- **Private Gitignored Spec Verification** (`private/emit-intent/`, local only, never staged/committed, zero private source/fields/thresholds quoted): re-verified against Phase-2 emitter — **PASS** (5/5 laws proven, differential `--verify` PASS, 3/3 broken variants refused, 4/4 emitted mutants refuted, 0 hygiene matches).
+
+### 8. Follow-Ups
+
+- Alpha-normalize `each`/`all` binder names (`k$N`) inside `machineDigest` so rules using `items`/`each` have call-order-independent header digests across multiple constructions in the same process (emitted code itself is already deterministic).
+- Optional: key `funLawCallbacks` / `owned*Laws` by a `Symbol.for(...)` property (or global registry) if running built `dist/core/cli.js` against unbuilt `*.ts` source files importing `core/dsl.ts` directly needs to be supported.
+- Investigate/stabilize pre-existing 1ms `kernel/epr-clock.test.ts:18` timing sensitivity under Boat VM load (untouched `kernel/`).
+- Docs (`skills/gdp-wired/references/shipping.md`, `skills/gdp-wired/SKILL.md`) intentionally left untouched for Main to author.
+- Branch `feat/emit-source` remains local (unpushed) for Main review.
