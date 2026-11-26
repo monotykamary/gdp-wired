@@ -25,6 +25,76 @@ class Reader
     @recs, @funcs, @loads = {}, {}, []
     @caught = []
     @pre, @tmp = nil, 0
+    @schema = load_schema
+  end
+
+  # ActiveRecord schema.rb columns (if db/schema.rb exists under @root or its ancestors up to 3 levels).
+  def load_schema
+    tables = {}
+    dir = @root
+    paths = []
+    4.times do
+      paths.concat(Dir.glob(File.join(dir, 'db', 'schema.rb')))
+      paths.concat(Dir.glob(File.join(dir, '*', 'db', 'schema.rb')))
+      parent = File.dirname(dir)
+      break if parent == dir
+      dir = parent
+    end
+    paths.uniq.each do |sf|
+      tree = Prism.parse_file(sf).value rescue next
+      each_node(tree) do |n|
+        next unless n.is_a?(Prism::CallNode) && n.name == :create_table && n.block.is_a?(Prism::BlockNode)
+        tname = str_or_sym(n.arguments&.arguments&.first)
+        next unless tname
+        cols = (tables[tname] ||= {})
+        each_node(n.block) do |c|
+          next unless c.is_a?(Prism::CallNode) && c.receiver && (cname = str_or_sym(c.arguments&.arguments&.first))
+          t = ar_col_type(c.name.to_s)
+          next unless t
+          kw = kw_hash(c.arguments&.arguments)
+          nullable = !(kw['null'].is_a?(Prism::FalseNode)) && !kw.key?('default')
+          cols[cname] = {'t' => nullable ? {'k' => 'opt', 'of' => t} : t, 'dflt' => kw['default'], 'bool' => t['k'] == 'bool'}
+        end
+      end
+    end
+    tables
+  end
+  def str_or_sym(n)
+    return n.unescaped if n.is_a?(Prism::StringNode) || n.is_a?(Prism::SymbolNode)
+    nil
+  end
+  def kw_hash(args)
+    out = {}
+    (args || []).each do |a|
+      next unless a.is_a?(Prism::KeywordHashNode) || a.is_a?(Prism::HashNode)
+      a.elements.each do |el|
+        next unless el.is_a?(Prism::AssocNode)
+        k = str_or_sym(el.key)
+        out[k] = el.value if k
+      end
+    end
+    out
+  end
+  def ar_col_type(name)
+    case name
+    when 'integer', 'bigint', 'int' then {'k' => 'int'}
+    when 'float', 'decimal' then {'k' => 'float'}
+    when 'boolean', 'bool' then {'k' => 'bool'}
+    when 'string', 'text' then {'k' => 'str'}
+    end
+  end
+  def table_candidates(q)
+    snake = ->(s) { s.gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2').gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase }
+    plural = ->(s) { s.end_with?('y') && !s.end_with?('ay', 'ey', 'iy', 'oy', 'uy') ? "#{s[0..-2]}ies" : s.end_with?('s', 'x', 'z', 'ch', 'sh') ? "#{s}es" : "#{s}s" }
+    parts = q.split('::').map(&snake)
+    short = parts.last
+    [plural.(parts.join('_')), plural.(short), parts.join('_'), short].uniq
+  end
+  AR_MACROS = %i[attribute enum belongs_to has_one has_many validates validate alias_attribute scope before_save after_save before_validation after_create before_create].freeze
+  def ar_model?(cdef)
+    sup = cdef.superclass&.slice
+    return true if sup && sup =~ /\A(::)?(ActiveRecord::Base|ApplicationRecord|.*::Base|.*::ApplicationRecord)\z/
+    (cdef.body&.body || []).any? { |n| n.is_a?(Prism::CallNode) && !n.receiver && AR_MACROS.include?(n.name) }
   end
 
   # --- constants of the code: Mod::NAME = literal, from every file under the root -----------------------------------
@@ -134,8 +204,115 @@ class Reader
       end
     end
     @defs, @attrs = defs, attrs
+    @ar = ar_model?(cdef)
+    @ar_cols, @ar_assocs, @ar_aliases = {}, [], {}
+    if @ar
+      # 1) Schema columns matching this model's table name.
+      table_candidates(q).each do |tn|
+        if (sc = @schema[tn])
+          sc.each { |cn, info| @ar_cols[cn] = info.dup }
+          break
+        end
+      end
+      # 2) Class-body ActiveRecord declarations: attribute, enum, alias_attribute, validates, associations, where(...).
+      (cdef.body&.body || []).each do |n|
+        next unless n.is_a?(Prism::CallNode) && !n.receiver
+        as = n.arguments&.arguments || []
+        case n.name
+        when :belongs_to, :has_one, :has_many
+          a0 = str_or_sym(as[0])
+          @ar_assocs << a0 if a0
+        when :attribute
+          cn = str_or_sym(as[0])
+          t = ar_col_type(str_or_sym(as[1]).to_s)
+          if cn && t
+            kw = kw_hash(as)
+            @ar_cols[cn] = {'t' => t, 'dflt' => kw['default'], 'bool' => t['k'] == 'bool'}
+          end
+        when :enum
+          if (cn = str_or_sym(as[0])) && as[1]
+            vals = if as[1].is_a?(Prism::HashNode) || as[1].is_a?(Prism::KeywordHashNode)
+                     as[1].elements.filter_map { |el| str_or_sym(el.key) if el.is_a?(Prism::AssocNode) }
+                   elsif as[1].is_a?(Prism::ArrayNode)
+                     as[1].elements.filter_map { |el| str_or_sym(el) }
+                   end
+            @ar_cols[cn] = {'t' => {'k' => 'choice', 'values' => vals}, 'bool' => false} if vals&.any?
+          elsif as[0].is_a?(Prism::KeywordHashNode) || as[0].is_a?(Prism::HashNode)
+            as[0].elements.each do |el|
+              next unless el.is_a?(Prism::AssocNode) && (cn = str_or_sym(el.key))
+              vals = if el.value.is_a?(Prism::HashNode) || el.value.is_a?(Prism::KeywordHashNode)
+                       el.value.elements.filter_map { |e2| str_or_sym(e2.key) if e2.is_a?(Prism::AssocNode) }
+                     elsif el.value.is_a?(Prism::ArrayNode)
+                       el.value.elements.filter_map { |e2| str_or_sym(e2) }
+                     end
+              @ar_cols[cn] = {'t' => {'k' => 'choice', 'values' => vals}, 'bool' => false} if vals&.any?
+            end
+          end
+        when :alias_attribute
+          a0, a1 = str_or_sym(as[0]), str_or_sym(as[1])
+          @ar_aliases[a0] = a1 if a0 && a1
+        when :validates
+          kw = kw_hash(as)
+          as.each do |a|
+            cn = str_or_sym(a)
+            next unless cn && !@ar_assocs.include?(cn)
+            @ar_cols[cn] ||= {'t' => nil, 'inferred' => []}
+            if kw.key?('numericality')
+              (@ar_cols[cn]['inferred'] ||= []) << :int
+            elsif kw.key?('inclusion') && kw['inclusion'].slice =~ /true.*false|false.*true/
+              @ar_cols[cn]['t'] ||= {'k' => 'bool'}
+              @ar_cols[cn]['bool'] = true
+            end
+          end
+        end
+      end
+      # 3) ActiveRecord write_attribute/read_attribute/self[:col]/self.col= inside instance methods, and scalar where(col: lit) in scopes.
+      defs.each_value do |d|
+        each_node(d) do |n|
+          next unless n.is_a?(Prism::CallNode)
+          as = n.arguments&.arguments || []
+          if (!n.receiver || n.receiver.is_a?(Prism::SelfNode)) && n.name == :write_attribute && as.length >= 2 && (cn = str_or_sym(as[0]))
+            @ar_cols[cn] ||= {'t' => nil, 'inferred' => []}
+            (@ar_cols[cn]['inferred'] ||= []) << as[1]
+          elsif (!n.receiver || n.receiver.is_a?(Prism::SelfNode)) && n.name == :read_attribute && as.length >= 1 && (cn = str_or_sym(as[0]))
+            @ar_cols[cn] ||= {'t' => nil, 'inferred' => []}
+          elsif n.receiver.is_a?(Prism::SelfNode) && n.name == :[]= && as.length == 2 && (cn = str_or_sym(as[0]))
+            @ar_cols[cn] ||= {'t' => nil, 'inferred' => []}
+            (@ar_cols[cn]['inferred'] ||= []) << as[1]
+          elsif n.receiver.is_a?(Prism::SelfNode) && n.name == :[] && as.length == 1 && (cn = str_or_sym(as[0]))
+            @ar_cols[cn] ||= {'t' => nil, 'inferred' => []}
+          elsif n.receiver.is_a?(Prism::SelfNode) && n.name.to_s.end_with?('=') && as.length == 1
+            cn = n.name.to_s.chomp('=')
+            unless attrs[cn] || @ar_assocs.include?(cn) || @ar_aliases.key?(cn) || cn.empty? || %w[== != <= >= ===].include?(n.name.to_s)
+              @ar_cols[cn] ||= {'t' => nil, 'inferred' => []}
+              (@ar_cols[cn]['inferred'] ||= []) << as[0]
+            end
+          end
+        end
+      end
+      (cdef.body&.body || []).each do |bn|
+        next unless bn.is_a?(Prism::CallNode) && !bn.receiver && bn.name == :scope
+        each_node(bn) do |n|
+          next unless n.is_a?(Prism::CallNode) && n.name == :where
+          as = n.arguments&.arguments || []
+          next unless as.length == 1 && (as[0].is_a?(Prism::KeywordHashNode) || as[0].is_a?(Prism::HashNode))
+          as[0].elements.each do |el|
+            next unless el.is_a?(Prism::AssocNode) && (cn = str_or_sym(el.key)) && !@ar_assocs.include?(cn)
+            next unless el.value.is_a?(Prism::TrueNode) || el.value.is_a?(Prism::FalseNode) || el.value.is_a?(Prism::IntegerNode) || el.value.is_a?(Prism::StringNode) || el.value.is_a?(Prism::SymbolNode)
+            @ar_cols[cn] ||= {'t' => nil, 'inferred' => []}
+            (@ar_cols[cn]['inferred'] ||= []) << el.value
+          end
+        end
+      end
+      @ar_cols.each_key do |cn|
+        attrs[cn] ||= [:attr_accessor, cdef]
+      end
+    end
     # Every field the class assigns, and what each is: the state's types (a field read before it is set is nil).
     @ivars, @lvars = {}, {}
+    @ar_cols.each do |cn, info|
+      (@ivars["@#{cn}"] ||= []).concat(info['inferred'] || [])
+    end
     each_node(cdef) do |n|
       case n
       when Prism::LocalVariableWriteNode, Prism::LocalVariableOrWriteNode, Prism::LocalVariableAndWriteNode then (@lvars[n.name.to_s] ||= []) << n.value
@@ -155,28 +332,72 @@ class Reader
         end
       end
     end
-    fields = @ivars.map { |iv, _| {'name' => iv, 't' => ivar_type(iv)} }
+    fields = @ivars.map do |iv, _|
+      cn = iv.delete_prefix('@')
+      info = @ar_cols[cn]
+      t = (info && info['t']) || ivar_type(iv)
+      info['bool'] = true if info && (t['k'] == 'bool' || (t['k'] == 'opt' && t['of']&.[]('k') == 'bool'))
+      {'name' => iv, 't' => t}
+    end
+    field_types = fields.to_h { |f| [f['name'].delete_prefix('@'), f['t']] }
     methods, z = {}, "#{@base}:0:0"
     attrs.each do |name, (kind, node)|
       if kind != :attr_writer && !defs[name]
         fid = "#{q}##{name}"; methods[name] = fid
         @funcs[fid] = fn_of(fid, name, node, [], [{'s' => 'ret', 'p' => z, 'x' => ivar("@#{name}", node)}])
       end
+      if @ar_cols[name]&.[]('bool') && !defs["#{name}?"]
+        fid = "#{q}##{name}?"; methods["#{name}?"] = fid
+        @funcs[fid] = fn_of(fid, "#{name}?", node, [], [{'s' => 'ret', 'p' => z, 'x' => {'e' => 'not', 'x' => {'e' => 'not', 'x' => ivar("@#{name}", node), 'p' => z}, 'p' => z}}])
+      end
       next if kind == :attr_reader || defs["#{name}="]
       fid = "#{q}##{name}="; methods["#{name}="] = fid
-      @funcs[fid] = fn_of(fid, "#{name}=", node, [{'name' => 'v', 't' => {'k' => 'any'}}], [{'s' => 'set', 'p' => z, 'to' => ivar("@#{name}", node), 'x' => {'e' => 'var', 'n' => 'v', 'p' => where(node)}}, {'s' => 'ret', 'p' => z, 'x' => {'e' => 'var', 'n' => 'v', 'p' => where(node)}}])
+      vt = @ar_cols.key?(name) ? (field_types[name] || {'k' => 'any'}) : {'k' => 'any'}
+      @funcs[fid] = fn_of(fid, "#{name}=", node, [{'name' => 'v', 't' => vt}], [{'s' => 'set', 'p' => z, 'to' => ivar("@#{name}", node), 'x' => {'e' => 'var', 'n' => 'v', 'p' => where(node)}}, {'s' => 'ret', 'p' => z, 'x' => {'e' => 'var', 'n' => 'v', 'p' => where(node)}}])
+    end
+    @ar_aliases.each do |al, orig|
+      next unless @ar_cols[orig]
+      unless defs[al]
+        fid = "#{q}##{al}"; methods[al] = fid
+        @funcs[fid] = fn_of(fid, al, cdef, [], [{'s' => 'ret', 'p' => z, 'x' => ivar("@#{orig}", cdef)}])
+      end
+      unless defs["#{al}="]
+        fid = "#{q}##{al}="; methods["#{al}="] = fid
+        vt = field_types[orig] || {'k' => 'any'}
+        @funcs[fid] = fn_of(fid, "#{al}=", cdef, [{'name' => 'v', 't' => vt}], [{'s' => 'set', 'p' => z, 'to' => ivar("@#{orig}", cdef), 'x' => {'e' => 'var', 'n' => 'v', 'p' => z}}, {'s' => 'ret', 'p' => z, 'x' => {'e' => 'var', 'n' => 'v', 'p' => z}}])
+      end
     end
     defs.each do |name, d|
       key = name == 'initialize' ? '__init__' : name
       fid = "#{q}##{name}"; methods[key] = fid
       @funcs[fid] = func(fid, d, name == 'initialize' ? fields.map { |f| f['name'] } : nil)
     end
-    # (no initialize: every field nil, as Ruby's are)
+    # (no initialize: ActiveRecord initializes attributes from keyword params/defaults; plain Ruby sets every field nil)
     unless defs['initialize'] || fields.empty?
       fid = "#{q}#initialize"; methods['__init__'] = fid
-      @funcs[fid] = fn_of(fid, 'initialize', cdef, [], fields.map { |f| {'s' => 'set', 'p' => z, 'to' => ivar(f['name'], cdef), 'x' => {'e' => 'none', 'p' => where(cdef)}} })
+      if @ar && !@ar_cols.empty?
+        iparams, ibody = [], []
+        fields.each do |f|
+          cn = f['name'].delete_prefix('@')
+          if (info = @ar_cols[cn])
+            t = f['t']
+            if %w[int float bool str choice].include?(t['k']) || (t['k'] == 'opt' && %w[int float bool str choice].include?(t['of']&.[]('k')))
+              dflt = info['dflt'] ? expr(info['dflt']) : nil
+              iparams << {'name' => cn, 't' => t, 'kw' => true, **(dflt ? {'dflt' => dflt} : {})}
+              ibody << {'s' => 'set', 'p' => z, 'to' => ivar(f['name'], cdef), 'x' => {'e' => 'var', 'n' => cn, 'p' => where(cdef)}}
+            else
+              ibody << {'s' => 'set', 'p' => z, 'to' => ivar(f['name'], cdef), 'x' => {'e' => 'none', 'p' => where(cdef)}}
+            end
+          else
+            ibody << {'s' => 'set', 'p' => z, 'to' => ivar(f['name'], cdef), 'x' => {'e' => 'none', 'p' => where(cdef)}}
+          end
+        end
+        @funcs[fid] = fn_of(fid, 'initialize', cdef, iparams, ibody)
+      else
+        @funcs[fid] = fn_of(fid, 'initialize', cdef, [], fields.map { |f| {'s' => 'set', 'p' => z, 'to' => ivar(f['name'], cdef), 'x' => {'e' => 'none', 'p' => where(cdef)}} })
+      end
     end
-    @recs[q] = {'name' => q, 'short' => q.split('::').last, 'fields' => fields, 'methods' => methods, 'kinds' => [], 'own' => true, 'module' => q, 'p' => where(cdef)}
+    @recs[q] = {'name' => q, 'short' => q.split('::').last, 'fields' => fields, 'methods' => methods, 'kinds' => @ar ? ['activerecord'] : [], 'own' => true, 'module' => q, 'p' => where(cdef)}
     q
   end
   # The field an expression reads: @x, or x / self.x of an attribute reader.
@@ -256,8 +477,16 @@ class Reader
     k = dflt && kind(dflt)
     return {'k' => k} if %w[int float bool str].include?(k)
     return {'k' => 'int'} if ints
-    # (one the method keeps in a field: the field's type)
-    each_node(d) { |n| return ivar_type(n.name.to_s) if n.is_a?(Prism::InstanceVariableWriteNode) && n.value.is_a?(Prism::LocalVariableReadNode) && n.value.name.to_s == name }
+    # (one the method keeps in a field or ActiveRecord attribute: the field's type)
+    each_node(d) do |n|
+      return ivar_type(n.name.to_s) if n.is_a?(Prism::InstanceVariableWriteNode) && n.value.is_a?(Prism::LocalVariableReadNode) && n.value.name.to_s == name
+      if @ar && n.is_a?(Prism::CallNode) && (!n.receiver || n.receiver.is_a?(Prism::SelfNode)) && n.name == :write_attribute
+        as = n.arguments&.arguments || []
+        if as.length >= 2 && as[1].is_a?(Prism::LocalVariableReadNode) && as[1].name.to_s == name && (cn = str_or_sym(as[0]))
+          return @ar_cols[cn]&.[]('t') || ivar_type("@#{cn}")
+        end
+      end
+    end
     {'k' => 'any'}
   end
 
@@ -353,6 +582,14 @@ class Reader
       if s.name == :synchronize && s.block.is_a?(Prism::BlockNode) && s.receiver
         pre, rx = collect_pre { expr(s.receiver) }
         return pre + [{'s' => 'with', 'p' => p, 'items' => [{'x' => rx}], 'body' => block(body_of(s.block.body), tail)}]
+      end
+      if @ar && (!s.receiver || s.receiver.is_a?(Prism::SelfNode)) && (s.name == :write_attribute || (s.name == :[]= && s.receiver.is_a?(Prism::SelfNode)))
+        as = s.arguments&.arguments || []
+        if as.length == 2 && (cn = str_or_sym(as[0])) && @ar_cols.key?(cn)
+          pre, vx = collect_pre { expr(as[1]) }
+          iv = ivar("@#{cn}", s)
+          return pre + [{'s' => 'set', 'p' => p, 'to' => iv, 'x' => vx}, *(tail ? ret.(iv) : [])]
+        end
       end
       pre, x = collect_pre { expr(s) }
       pre + ret.(x)
@@ -457,7 +694,7 @@ class Reader
         tv
       end
     when Prism::InterpolatedStringNode
-      {'e' => 'fstr', 'parts' => x.parts.map { |q| q.is_a?(Prism::StringNode) ? q.unescaped : {'x' => q.statements&.body&.length == 1 ? expr(q.statements.body[0]) : no(q, 'an interpolation'), 'plain' => true} }, 'p' => p, 'text' => text(x)}
+      {'e' => 'fstr', 'parts' => x.parts.map { |q| q.is_a?(Prism::StringNode) ? q.unescaped : q.is_a?(Prism::EmbeddedVariableNode) ? {'x' => expr(q.variable), 'plain' => true} : {'x' => q.respond_to?(:statements) && q.statements&.body&.length == 1 ? expr(q.statements.body[0]) : no(q, 'an interpolation'), 'plain' => true} }, 'p' => p, 'text' => text(x)}
     when Prism::CallNode then call_expr(x)
     else no(x, "#{text(x)}: #{x.type} (outside the subset)")
     end
@@ -471,6 +708,15 @@ class Reader
     p, r, n, args = where(x), x.receiver, x.name, x.arguments&.arguments || []
     return no(x, "#{text(x)}: a block (a closure)") if x.block.is_a?(Prism::BlockNode)
     return {'e' => 'call', 'f' => {'e' => 'lib', 'q' => 'time.time', 'p' => p}, 'args' => [], 'kw' => [], 'p' => p, 'text' => text(x)} if clock?(x)
+    if @ar && (!r || r.is_a?(Prism::SelfNode)) && (n == :read_attribute || (n == :[] && r.is_a?(Prism::SelfNode))) && args.length == 1 && (cn = str_or_sym(args[0])) && @ar_cols.key?(cn)
+      return ivar("@#{cn}", x)
+    end
+    if @ar && (!r || r.is_a?(Prism::SelfNode)) && (n == :write_attribute || (n == :[]= && r.is_a?(Prism::SelfNode))) && args.length == 2 && (cn = str_or_sym(args[0])) && @ar_cols.key?(cn) && @pre
+      vx = expr(args[1])
+      iv = ivar("@#{cn}", x)
+      @pre << {'s' => 'set', 'p' => p, 'to' => iv, 'x' => vx}
+      return iv
+    end
     return self_call(n.to_s, args.map { |a| expr(a) }, x) if !r || r.is_a?(Prism::SelfNode)
     if x.safe_navigation?
       # Safe navigation (`r&.m(args)`): evaluate `r` once; return nil when `r` is nil without evaluating `args` or calling `m`.
