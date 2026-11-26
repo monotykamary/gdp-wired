@@ -312,7 +312,12 @@ function finiteValues(k: KindInfo, cap: number): Raw[] | undefined {
       }
       return out
     }
-    default: return undefined
+    case 'int':
+    case 'decimal':
+    case 'str':
+    case 'fixed':
+    case 'unknown':
+      return undefined
   }
 }
 
@@ -378,7 +383,9 @@ function sampleKind(k: KindInfo, rand: Rand, bound: number, hints: readonly numb
       const s = pool[rand(pool.length)]!
       return k.maxLength !== undefined ? s.slice(0, k.maxLength) : s
     }
-    default: return rand(bound + 1)
+    case 'fixed':
+    case 'unknown':
+      return rand(bound + 1)
   }
 }
 

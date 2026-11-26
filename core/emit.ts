@@ -317,7 +317,10 @@ function kindGuardChecks(k: KindInfo, expr: string): string[] {
       })
     case 'str':
       return k.maxLength !== undefined ? [`(${expr}.length > ${k.maxLength})`] : []
-    default:
+    case 'bool':
+    case 'decimal':
+    case 'fixed':
+    case 'unknown':
       return []
   }
 }
@@ -342,7 +345,16 @@ function addLin(dst: LinForm, e: E, scale: number): void {
     case 'var': dst.vars.set(e.name, (dst.vars.get(e.name) ?? 0) + scale); return
     case 'add': addLin(dst, e.a, scale); addLin(dst, e.b, scale); return
     case 'mul': addLin(dst, e.a, scale * e.k); return
-    default: dst.rest.push({coeff: scale, e})
+    case 'sub':
+    case 'prod':
+    case 'min':
+    case 'max':
+    case 'if':
+    case 'get':
+    case 'tup':
+    case 'proj':
+      dst.rest.push({coeff: scale, e})
+      return
   }
 }
 
@@ -1628,6 +1640,9 @@ function emitRuleInternal(r: AnyRule, opts: EmitRuleOptions, kind: 'rule' | 'cha
   }
   for (const [itemName, itemKind] of meta.items) lines.push(`  readonly ${propKey(itemName)}: readonly ${kindTsType(itemKind)}[]`)
   if (historyFields) {
+    for (const [sName] of historyFields.sums) {
+      if (!meta.state.some(([n]) => n === sName)) lines.push(`  readonly ${propKey(sName)}: number`)
+    }
     lines.push('  readonly _history: readonly HistoryRecord[]')
     if (historyFields.prune) lines.push('  readonly _last: number')
   }
@@ -1655,6 +1670,9 @@ function emitRuleInternal(r: AnyRule, opts: EmitRuleOptions, kind: 'rule' | 'cha
   }
   for (const [itemName] of meta.items) initBodyLines.push(`    ${propKey(itemName)}: [],`)
   if (historyFields) {
+    for (const [sName] of historyFields.sums) {
+      if (!meta.state.some(([n]) => n === sName)) initBodyLines.push(`    ${propKey(sName)}: 0,`)
+    }
     initBodyLines.push('    _history: [],')
     if (historyFields.prune) initBodyLines.push('    _last: 0,')
   }
@@ -1685,6 +1703,7 @@ function emitRuleInternal(r: AnyRule, opts: EmitRuleOptions, kind: 'rule' | 'cha
     stepBodyLines.push(`  const $nextHistory = (${keepExpr}) ? [...$kept, ${recObj}] : $kept`)
     for (const [sName, sE] of historyFields.sums) {
       stepBodyLines.push(`  let ${safeVar('next_', sName)} = 0`, `  for (const $rec of $nextHistory) ${safeVar('next_', sName)} += ${recEm.emitNum(sE)}`)
+      if (!meta.state.some(([n]) => n === sName)) nextHistoryFields.push([sName, safeVar('next_', sName)])
     }
   }
 
