@@ -225,7 +225,7 @@ type Pairing = {n: number, c: number, frame: C}
 // A place may leave parts of a relation's tuple free (`proj`, its parts' view keys, -1 where free): its cell is 1 where
 // some tuple of the relation agrees at the parts the keys hold (the relation projected), and its law reads the free
 // parts as keys of its own (`free`, beside the view's), so only "it holds" is a literal of it (a cube's at 1: ∀ again).
-type Proj = {mp: string, n: number, at: number[], free: string[]}
+type Proj = {mp: string, n: number, at: number[], free: string[], bounds?: C[]}
 type View = {vars: string[], names: string[], places: E[], covers: number[][], frame: C, need: number, rowsOf: (params: Env, st: State, full?: boolean) => Env[], atoms: number[], rows: Env[], printable: boolean, proj?: (Proj | undefined)[], defs?: (E | undefined)[]}
 // (a view's keys that are terms of the others (`defs`): its laws read the terms in their place, and quantify the rest)
 const defsOf = (v: View) => ({vars: Object.fromEntries(v.vars.flatMap((k, i) => (v.defs?.[i] ? [[k, v.defs[i]!]] : []))), maps: {}, flags: {}})
@@ -1211,8 +1211,21 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   }
   // (a form about every key says so first)
   const viewText = (v: View, t: string) => v.vars.reduce((acc, k2, i) => acc.replaceAll(k2, v.names[i]!), t).replace(/free\d+\$enum/g, '_')
-  // (the free parts a view's form reads, keys of its law beside the view's)
+  // (the free parts a view's form reads, keys of its law beside the view's, and their sort bounds)
   const freeOf = (f: Form, v: View): string[] => (v.proj ? [...new Set(atomsIn(f).flatMap(i => (atoms[i]!.place !== undefined ? v.proj![atoms[i]!.place!]?.free ?? [] : [])))] : [])
+  const freeBoundsOf = (f: Form, v: View): C[] => {
+    if (!v.proj) return []
+    const out: C[] = [], seen = new Set<number>()
+    for (const i of atomsIn(f)) {
+      const p = atoms[i]!.place
+      if (p === undefined || seen.has(p)) continue
+      seen.add(p)
+      const bs = v.proj[p]?.bounds
+      if (bs) out.push(...bs)
+    }
+    return out
+  }
+  const frameOf = (f: Form, v: View): C => { const bs = freeBoundsOf(f, v); return bs.length ? all(v.frame, ...bs) : v.frame }
   const textOf = (f: Form): string => {
     if (f.cells) return `every k: ${textIn(f)}`
     if (f.view === undefined) return textIn(f)
@@ -1536,7 +1549,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     let l = lawOf.get(f)
     // (about two keys: where the frame holds of them)
     const v = f.view !== undefined ? views[f.view]! : undefined
-    if (!l) lawOf.set(f, (l = {name: textOf(f), holds: v ? substC(any(not(v.frame), condOf(f)), defsOf(v)) : condOf(f), ...(f.cells ? {forall: KEY} : v ? {forall: v.vars[0]!, keys: [...v.vars.slice(1).filter((_, i) => !v.defs?.[i + 1]), ...freeOf(f, v)]} : {}), ...(f.cong ? {some: someOf(f)} : {})}))
+    if (!l) lawOf.set(f, (l = {name: textOf(f), holds: v ? substC(any(not(frameOf(f, v)), condOf(f)), defsOf(v)) : condOf(f), ...(f.cells ? {forall: KEY} : v ? {forall: v.vars[0]!, keys: [...v.vars.slice(1).filter((_, i) => !v.defs?.[i + 1]), ...freeOf(f, v)]} : {}), ...(f.cong ? {some: someOf(f)} : {})}))
     return l
   }
   const names = new Set(given.map(l => l.name))
@@ -2821,8 +2834,16 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
         for (const q of multi) if (inView(q.mp) && ks.tupled.has(q.mp) && m.relations?.[q.mp] && keys0.length < q.slots.length)
           for (const t of (q2 = q, ((base: number[][]) => (der ? [...base, ...place1(base, der.sort, keys0.length)] : base))(keys0.reduce<number[][]>((acc, s, i) => place1(acc, s, i), [q.slots.map(() => -1)])))) {
             if (!t.includes(-1)) continue
-            const free = t.flatMap(k => (k < 0 ? [`free${++freeCount}$enum`] : [])), fr = [...free]
-            pats[places.length] = t; proj[places.length] = {mp: q.mp, n: t.length, at: t, free}
+            const free: string[] = [], freeBounds: C[] = []
+            t.forEach((k, pos) => {
+              if (k >= 0) return
+              const fv = `free${++freeCount}$enum`, s = q.slots[pos]!
+              free.push(fv)
+              if (((comp && s === comp[1]) || multi.some(q3 => !ks.tupled.has(q3.mp) && q3.slots.slice(1).includes(s))) && !bounds.has(s)) freeBounds.push(atMost(x(fv), n(pairing!.n - 1)))
+              for (const g of [...new Set((bounds.get(s) ?? []).map(g2 => JSON.stringify(substC(g2, {vars: {[KEY]: x(fv)}, maps: {}, flags: {}}))))]) freeBounds.push(JSON.parse(g) as C)
+            })
+            const fr = [...free]
+            pats[places.length] = t; proj[places.length] = {mp: q.mp, n: t.length, at: t, free, ...(freeBounds.length ? {bounds: freeBounds} : {})}
             places.push(tuple(t.map(k => x(k < 0 ? fr.shift()! : vars[k]!)))); mapsAt.push([q.mp]); covers.push([...new Set(t.filter(k => k >= 0))])
           }
         for (const f of fnHi) keys.forEach((a, i) => keys.forEach((b, j) => { if (a === ks.find(`F:${f}`) && b === comp![1]) { places.push(ks.compose(get(f, x(vars[i]!)), x(vars[j]!))); mapsAt.push(ks.composedMaps); covers.push(i === j ? [i] : [i, j]) } }))
@@ -3071,7 +3092,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
       // (a sums pass's reserve where one follows: 10 s, or a quarter of what is left where less is)
       const v0 = views.length, reserve = rule?.withMapSums(false) ? Math.min(10_000, (eUntil - vnow()) / 4) : 0
       const implied = (f: Form) => {
-        const v = views[f.view!]!, sk = {vars: Object.fromEntries([...v.vars.filter((_, i) => !v.defs?.[i]), ...freeOf(f, v)].map(k => [k, x(`${k}#`)])), maps: {}, flags: {}}, hyps = [substC(substC(v.frame, defsOf(v)), sk), not(substC(substC(condOf(f), defsOf(v)), sk))]
+        const v = views[f.view!]!, sk = {vars: Object.fromEntries([...v.vars.filter((_, i) => !v.defs?.[i]), ...freeOf(f, v)].map(k => [k, x(`${k}#`)])), maps: {}, flags: {}}, hyps = [substC(substC(frameOf(f, v), defsOf(v)), sk), not(substC(substC(condOf(f), defsOf(v)), sk))]
         for (const l of given) {
           const b = [l.forall, ...(l.keys ?? [])].filter((q): q is string => !!q)
           if (v.vars.length ** b.length > 64) return false
@@ -3612,10 +3633,20 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
         if (asked > 1) perGoal = Math.max(perGoal, 250, cubeMs / (asked - 1))
         // (the next round's new cubes: what a quarter of what is left affords past the goals it asks again, 8 at least)
         const grow = (kept: Form[]) => { const ask = kept.filter(g => !kept2.has(g) && !stands.has(lawFor(g).name)).length, afford = perGoal ? Math.floor((eUntil - vnow()) / (4 * perGoal)) : 16; return relevant(Math.max(8, Math.min(256 - kept.length, afford - ask)), kept) }
-        if (blocked2.length) { if (drops.size) unstand(drops); demote(drops); const kept = [...cubes.filter(g => !drops.has(g)), ...back(), ...blocked2]; cubes = [...kept, ...grow(kept)]; return }
+        const restoreSubsumed = (dropped: Set<Form>, keptNow: Form[]): Form[] => {
+          if (!dropped.size || !minPool.by.size) return []
+          const inNow = new Set(keptNow), inNames = new Set(keptNow.map(textOf)), out: Form[] = []
+          for (const [b, as] of minPool.by) {
+            if (inNow.has(b) || pending.has(b) || dead.has(textOf(b)) || names.has(textOf(b)) || inNames.has(textOf(b))) continue
+            if (!as.some(a => dropped.has(a)) || as.some(a => inNow.has(a))) continue
+            if (!implied(b) && !atStart(b)) { inNames.add(textOf(b)); out.push(b) }
+          }
+          return out
+        }
+        if (blocked2.length) { if (drops.size) unstand(drops); demote(drops); const kept = [...cubes.filter(g => !drops.has(g)), ...back(), ...blocked2], restored = restoreSubsumed(drops, kept); cubes = [...kept, ...restored, ...grow([...kept, ...restored])]; return }
         if (again) return
         // (the caller's law unproven with no diagram: the cubes its counterexamples make relevant, while there are some)
-        if (caller && complete) { if (drops.size) unstand(drops); demote(drops); const kept = [...cubes.filter(g => !drops.has(g)), ...back()], more = grow(kept); if (more.length) { cubes = [...kept, ...more]; return } }
+        if (caller && complete) { if (drops.size) unstand(drops); demote(drops); const kept = [...cubes.filter(g => !drops.has(g)), ...back()], restored = restoreSubsumed(drops, kept), more = grow([...kept, ...restored]); if (restored.length || more.length) { cubes = [...kept, ...restored, ...more]; return } }
         // (the set's proof, relative induction over the set: a cube it fails at dropped and the proof asked again at once, the
         // rounds again only where the caller's law fails or a cube's goal can't be named)
         const gone: Form[] = []
@@ -3638,10 +3669,13 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
           if (wit2 && at.endsWith('@step')) subs.push(preOf(wit2))
           cubes = cubes.filter(c => c !== g); gone.push(g)
         }
-        if (!complete || caller || (!drops.size && !gone.length && !grown && !promoted.length && !pending.size) || enumProof) over = true
+        const droppedAll = new Set<Form>([...drops, ...gone])
+        const nextBase = [...cubes.filter(g => !drops.has(g)), ...back()]
+        const restored = restoreSubsumed(droppedAll, nextBase)
+        if (!complete || caller || (!drops.size && !gone.length && !grown && !promoted.length && !pending.size && !restored.length) || enumProof) over = true
         if (drops.size || gone.length) unstand([...drops, ...gone])
         demote([...drops, ...gone])
-        cubes = [...cubes.filter(g => !drops.has(g)), ...back()]
+        cubes = [...nextBase, ...restored]
         // (nothing changed and nothing left to push: the frames at their fixpoint, the set grown by relevance to the
         // counterexamples while there is something relevant)
         if (!enumProof && !drops.size && !gone.length && !grown && !promoted.length && [...pending].every(g => tried.get(g) === versionOf() || (backs.get(g) ?? 0) >= 2)) {

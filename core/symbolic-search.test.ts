@@ -56,3 +56,28 @@ test('bug 1: tuple-keyed valued map emits 1 <= Table[...] cubes linking ownershi
   const cubes = inferLaws(r, [law], [], {cubes: 2, ms: 5_000}).found.map(f => f.text)
   expect(cubes.some(t => t.includes('1 <= Table[') && t.includes('Owner[') && t.includes('is 0'))).toBe(true)
 })
+
+test('bug 2: projected free$enum carries sort bounds in law frame and proves symbolic lock server', () => {
+  const relTrue = bool.from(true)
+  const r = rule('mini lock server')
+    .params({clients: nat, servers: nat}).sorts('Client', 'Server')
+    .inputs({op: oneOf('connect', 'disconnect'), c: nat, s: nat})
+    .assume(({clients, servers, c, s}) => all(sizedSort('Client', clients).has(c), sizedSort('Server', servers).has(s)))
+    .maps({Semaphore: relTrue}).relations({Link: ['Client', 'Server']})
+    .flags(({op, c, s, Link, Semaphore}) => ({
+      connects: op.is('connect').and(Semaphore.at(s)),
+      disconnects: op.is('disconnect').and(Link.has(c, s)),
+    }))
+    .step(({c, s, connects, disconnects, Link, Semaphore}) => ({
+      Link: {...Link.add([c, s]), value: when(connects, 1, when(disconnects, 0, Link.at(c, s))).e},
+      Semaphore: Semaphore.set(s, when(connects, yes.not(), when(disconnects, yes, Semaphore.at(s)))),
+    }))
+  const law = r.law('one client per server', ({clients, servers, Link}) =>
+    forall((c1, c2, s) => all(sizedSort('Client', clients).has(c1), sizedSort('Client', clients).has(c2), sizedSort('Server', servers).has(s), Link.has(c1, s), Link.has(c2, s)).implies(c1.eq(c2))))
+  const v = proveRule(r, [law], {search: {ms: 15_000}})
+  expect(v.proven).toBe(true)
+  expect(v.checked).toBe(true)
+  const projLaw = v.found?.laws?.find(l => l.text.includes('Link[⟨_, x⟩]'))?.law
+  expect(projLaw).toBeDefined()
+  expect(JSON.stringify(projLaw!.holds)).toContain('"name":"clients"')
+}, 30_000)
