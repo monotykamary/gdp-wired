@@ -52,7 +52,7 @@ export type SFunc = {id: string, name: string, cls?: string, p: string, span: [s
   // recursion check, or after it)
   recv?: string, results?: number, why?: string, late?: string}
 // (rets: the declared result types of its methods, another module's class's too: an inferred answer's type)
-export type SRec = {initializers?: string[], orm?: {framework: 'django' | 'sqlalchemy' | 'prisma' | 'typeorm', key: string, why?: string}, name: string, short: string, fields: {name: string, t: SType, dflt?: SX, inject?: boolean}[], methods: Record<string, string | null>, kinds: string[], own: boolean, module: string, p: string, rets?: Record<string, SType>, cattrs?: Record<string, number | string | boolean | null>, mro?: string[] | null, declared?: string[], classCollections?: Record<string, string>}
+export type SRec = {initializers?: string[], orm?: {framework: 'django' | 'sqlalchemy' | 'prisma' | 'typeorm', key: string, why?: string}, name: string, short: string, fields: {name: string, t: SType, dflt?: SX, inject?: boolean}[], methods: Record<string, string | null>, kinds: string[], own: boolean, module: string, p: string, rets?: Record<string, SType>, cattrs?: Record<string, number | string | boolean | null>, mro?: string[] | null, knownMro?: string[] | null, abstractMethods?: string[], declared?: string[], classCollections?: Record<string, string>}
 export type SModule = {lang: string, file: string, path: string, module: string, root: string, consts?: Record<string, number | string | boolean>, entries: ({k: 'class', rec: string} | {k: 'func', id: string} | {k: 'missing', name: string})[], recs: Record<string, SRec>, funcs: Record<string, SFunc>, enums?: Record<string, {values: string[], discs: number[], data: boolean}>, error?: string,
   // false: a condition the path takes is kept whole (a negated disjunction not split into its parts: Go's reader's);
   // 'nil-false': only nil and false are false (Ruby's), not Python's truthiness
@@ -144,7 +144,7 @@ type V =
   // (firm: a value merged only with itself, refused where a path would make it another; Go's)
   // (ask: the value of a call of other code left out by inference, answered by the next run where it is read)
   // (sink: a field the rule leaves out that the code may write, a C float's: written as the code writes it, never kept)
-  | {t: 'opaque', why: string, firm?: boolean, ask?: string, sattr?: {store: string, path: string}, sink?: boolean}
+  | {t: 'opaque', why: string, firm?: boolean, ask?: string, sattr?: {store: string, path: string}, sink?: boolean, inert?: boolean}
   // (ret: the callee's declared result type; recv: the object its method is called on)
   | {t: 'ext', q: string, text: string, patch?: Patch, ret?: SType, recv?: V, nothrow?: boolean}
   | {t: 'fn', id: string, self?: V, caps?: Map<string, V>} | {t: 'cls', rec: string, patch?: Patch} | {t: 'builtin', n: string} | {t: 'lib', q: string}
@@ -420,7 +420,7 @@ export class Stepper {
     }
     // A value of another type: kept only where nothing the rule keeps reads it (the harness gives an inert one).
     // (a dict of no stated types: an empty one, as JSON takes it, where the code serializes it)
-    return [{t: 'opaque', why: `${name}: ${this.why(t)}`}, t.k === 'opaque' && /^dict\b/.test(t.why) ? {k: 'inert', dict: true} : {k: 'inert'}]
+    return [{t: 'opaque', why: `${name}: ${this.why(t)}`, inert: true}, t.k === 'opaque' && /^dict\b/.test(t.why) ? {k: 'inert', dict: true} : {k: 'inert'}]
   }
   // A fixed-width integer variable: its type, and (for a request) a value outside it refused: the claim is for the
   // type's values.
@@ -2241,6 +2241,10 @@ export class Stepper {
       return refuse(x, `${b.refusal}; it is given the rule's state, which ${b.own ? 'its code' : 'other code'} may change (if it doesn't, state it: skip: [${JSON.stringify(b.key.split('.').pop())}], or a \`gdp: skip\` comment on its line)`)
     const t = tag?.k === 'answer' ? (tag.arg ? tag.arg : b.ret && answerable(b.ret) ? b.ret : refuse(x, `${x.text}: tagged gdp: answer, and ${b.name} declares no type an answer takes: give it (gdp: answer float)`)) : this.inf!.answers.get(b.key)
     if (t) return this.answer(b.key, [b.name], b.patch, x, q, awaited, t, tag ? 'tagged' : 'inferred')
+    if (this.init && !tag) {
+      const inertArg = vals.find(v => v.t === 'opaque' && v.inert) as {why: string} | undefined
+      if (inertArg) return refuse(x, `${b.refusal}; it is given an inert constructor argument (${inertArg.why})`)
+    }
     const why = `${x.text ?? b.name}: the value of ${b.name}, other code left out`
     // (a call on an attribute of a store the rule doesn't state, a registry its constructor adds to: inert in the check)
     const ra = b.recv?.t === 'opaque' ? b.recv.sattr : b.recv?.t === 'sattr' ? {store: b.recv.store, path: b.recv.path} : undefined
@@ -2796,9 +2800,10 @@ export class Stepper {
     // Python super starts after the defining owner in the actual receiver's
     // C3 order. Only an owner's own binding may win, not its flattened methods.
     if (typeof x.superFrom === 'string') {
-      const index = r.mro?.indexOf(x.superFrom) ?? -1
+      const mro = r.mro ?? r.knownMro
+      const index = mro?.indexOf(x.superFrom) ?? -1
       if (index < 0) return refuse(x, `${x.text}: the receiver's MRO cannot be bound`)
-      const owner = r.mro!.slice(index + 1).find(name => this.rec(name, x).declared?.includes(f))
+      const owner = mro!.slice(index + 1).find(name => this.rec(name, x).declared?.includes(f))
       if (!owner) {
         if (f === '__init__') return [{t: 'builtin', n: '$object_init'}, q]
         return refuse(x, `${x.text}: no inherited attribute ${f} after ${x.superFrom}`)
@@ -3248,15 +3253,24 @@ export class Stepper {
   initMethod(r: SRec, at: {p: string}): string | null | undefined {
     const id = r.methods.__init__
     if (this.mod.lang !== 'python') return id
+    if (r.kinds.includes('direct-protocol')) return refuse(at, `${r.short}: a typing.Protocol cannot be instantiated`)
+    if (r.kinds.includes('abc') && r.abstractMethods?.length) return refuse(at, `${r.short}: abstract class cannot be instantiated (unimplemented abstract method: ${r.abstractMethods.join(', ')})`)
     const generated = r.kinds.includes('dataclass') || !!r.orm
-    if (!r.mro && !generated) return refuse(at, `${r.short}: construction needs a known static MRO`)
-    const order = (r.mro ?? [r.name]).map(n => this.rec(n, at))
+    const external = r.kinds.some(k => k === 'abc' || k === 'protocol' || k === 'pydantic' || k === 'generic' || k.startsWith('outside-base:'))
+    const mro = r.mro ?? (external ? r.knownMro : undefined)
+    if (!mro && !generated) return refuse(at, `${r.short}: construction needs a known static MRO`)
+    const order = (mro ?? [r.name]).map(n => this.rec(n, at))
     if (order.some(b => b.declared?.some(n => ['__new__', '__init_subclass__', '__getattribute__', '__getattr__', '__setattr__', '__delattr__'].includes(n))))
       return refuse(at, `${r.short}: custom allocation or attribute hooks are outside modeled construction`)
     const owner = order.find(b => b.declared?.includes('__init__'))
     if (owner && (!id || owner.methods.__init__ !== id)) return refuse(at, `${r.short}: final __init__ binding is not a known method`)
     if (id && this.func(id, at).decorators.some(d => !['override', 'typing.override', 'abstractmethod'].includes(d.name)))
       return refuse(at, `${r.short}: decorated __init__ is outside modeled construction`)
+    if (!r.mro && external) {
+      const extBases = r.kinds.filter(k => k.startsWith('outside-base:')).map(k => k.slice(13))
+      const label = extBases.length ? extBases.join(', ') : r.kinds.filter(k => ['abc', 'protocol', 'pydantic', 'generic'].includes(k)).join(', ')
+      this.notes.add(`${r.short}: external base (${label}) read as other code holding no state the methods read`)
+    }
     return id
   }
   construct(rec: string, args: V[], kw: [string, V][], x: SX, p: Path): [V, Path] {
@@ -3298,6 +3312,8 @@ export class Stepper {
       if (n === 'str' || n === 'repr') for (const v of args) this.checkOrmDisplay(v, x)
       // (int of a timestamp: its whole seconds)
       if (n === 'int' && args[0]?.t === 'val') return args[0].ty === '$ts' ? [{t: 'num', e: I.divk(1000, this.numOf(args[0].f.get('ms')!, x, q))}, q] : refuse(x, `${x.text}: int of a ${args[0].ty.slice(1)}`)
+      const inertOp = args.find(a => a.t === 'opaque' && a.inert) as {why: string} | undefined
+      if (inertOp && ['len', 'round', 'int', 'float'].includes(n)) return refuse(x, `${x.text}: ${n}() of ${inertOp.why}`)
       if (args.some(a => a.t === 'opaque') && ['str', 'repr', 'len', 'isinstance', 'round', 'int', 'float', 'bool'].includes(n)) { const ask = args.find(a => a.t === 'opaque' && a.ask) as {why: string, ask: string} | undefined; return [{t: 'opaque', why: `${x.text}: of a value outside the subset${ask ? ` (${ask.why})` : ''}`, ...(ask ? {ask: ask.ask} : {})}, q] }
       const v = args[0]
       // (a list the request carries: its length, an input)
@@ -4333,7 +4349,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
       const [, p2] = g.callFunc(fn, {t: 'ref', id: 'this'}, args, kw, {e: 'call', p: fn.p, text: `${r.short}()`}, p, false)
       made = p2
       if (ctor.length) g.notes.add(`${r.short} made by its constructor: its arguments are the rule's params`)
-    } else if (r.kinds.includes('dataclass') || r.orm) {
+    } else if (r.kinds.includes('dataclass') || r.orm || r.kinds.includes('pydantic')) {
       if (r.orm?.why) refuse(r, r.orm.why)
       const f = new Map<string, V>()
       let p = fresh

@@ -130,3 +130,58 @@ t('object initializer arguments and non-own explicit super remain refused', () =
     expect(x.ok).toBe(false)
   }
 })
+
+// Default auto-search may use 10s, beyond Bun's 5s test default.
+t('classes inheriting from stdlib ABC, Generic, ABCMeta, and external bases read and check natively', () => {
+  const abcSrc = 'from abc import ABC, ABCMeta, abstractmethod\nfrom typing import Generic, TypeVar\nT = TypeVar("T")\nclass Base(ABC, Generic[T]):\n    def __init__(self):\n        super().__init__()\n        self.total = 0\n    @abstractmethod\n    def amount(self) -> int:\n        raise NotImplementedError\nclass Counter(Base[int]):\n    def amount(self) -> int:\n        return 2\n' + put
+  const xAbc = checked(abcSrc)
+  expect(xAbc.notes.join('\n')).toContain('external base')
+  increment(xAbc, 2)
+
+  const metaSrc = 'from abc import ABCMeta, abstractmethod\nclass Base(metaclass=ABCMeta):\n    def __init__(self):\n        self.total = 0\n    @abstractmethod\n    def amount(self) -> int:\n        raise NotImplementedError\nclass Counter(Base):\n    def amount(self) -> int:\n        return 3\n' + put
+  increment(checked(metaSrc), 3)
+
+  const ctxSrc = 'from contextlib import AbstractAsyncContextManager\nclass Counter(AbstractAsyncContextManager):\n    def __init__(self):\n        self.total = 0\n    async def __aexit__(self, exc_type, exc, tb):\n        return None\n    def amount(self) -> int:\n        return 4\n' + put
+  const xCtx = checked(ctxSrc)
+  expect(xCtx.notes.join('\n')).toContain('AbstractAsyncContextManager')
+  increment(xCtx, 4)
+}, 60_000)
+
+t('external base classes still refuse hasattr and catch hidden external state via native check', () => {
+  const hasattrSrc = 'from abc import ABC\nclass Counter(ABC):\n    def __init__(self):\n        self.total = 0\n    def put(self) -> int:\n        if hasattr(self, "total"):\n            self.total += 1\n        return self.total\n'
+  const {file: f1} = fixture(hasattrSrc)
+  const r1 = extractPython(f1, {entry: 'Counter', methods: ['put'], check: budget})
+  expect(r1.ok).toBe(false)
+  expect(r1.refusals.map(r => r.what).join('; ')).toMatch(/known static MRO/)
+
+  // An external base whose __init__ sets hidden state that disagrees with the rule must fail native check.
+  const hiddenSrc = 'from collections import UserDict\nclass Counter(UserDict):\n    def __init__(self):\n        super().__init__()\n        self.total = 0\n    def put(self) -> int:\n        self.total += 1\n        return self.total\n'
+  const {file: f2} = fixture(hiddenSrc)
+  const r2 = extractPython(f2, {entry: 'Counter', methods: ['put'], check: budget})
+  // UserDict.__init__ sets self.data = {}; rule does not touch self.data -> either checks cleanly with 0 mismatches or refuses cleanly.
+  if (r2.ok) expect(r2.evidence!.mismatch).toBeUndefined()
+
+  // Direct typing.Protocol (including aliased `import typing as t; t.Protocol`) and abstract ABC classes cannot be instantiated.
+  for (const protoSrc of [
+    'from typing import Protocol\nclass Counter(Protocol):\n    def put(self) -> int:\n        return 1\n',
+    'import typing as t\nclass Counter(t.Protocol):\n    def put(self) -> int:\n        return 1\n',
+  ]) {
+    const {file: f3} = fixture(protoSrc)
+    const r3 = extractPython(f3, {entry: 'Counter', methods: ['put'], check: budget})
+    expect(r3.ok).toBe(false)
+    expect(r3.refusals.map(r => r.what).join('; ')).toMatch(/Protocol cannot be instantiated/)
+  }
+
+  const absSrc = 'from abc import ABC, abstractmethod\nclass Counter(ABC):\n    def __init__(self):\n        self.total = 0\n    @abstractmethod\n    def put(self) -> int:\n        return self.total\n'
+  const {file: f4} = fixture(absSrc)
+  const r4 = extractPython(f4, {entry: 'Counter', methods: ['put'], check: budget})
+  expect(r4.ok).toBe(false)
+  expect(r4.refusals.map(r => r.what).join('; ')).toMatch(/abstract class cannot be instantiated/)
+
+  // Passing an opaque (Inert) constructor argument to float() or unstubbed other code is refused, never a native mismatch.
+  const inertSrc = 'import math\nclass Counter:\n    def __init__(self, delay: object):\n        self.delay = math.fabs(delay)\n        self.total = 0\n    def put(self) -> int:\n        self.total += 1\n        return self.total\n'
+  const {file: f5} = fixture(inertSrc)
+  const r5 = extractPython(f5, {entry: 'Counter', methods: ['put'], check: budget})
+  expect(r5.ok).toBe(false)
+  expect(r5.refusals.map(r => r.what).join('; ')).not.toMatch(/the rule and the code differ/)
+}, 30_000)

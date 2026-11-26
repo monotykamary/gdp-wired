@@ -142,8 +142,8 @@ class Reader:
     self.local_stack = []
     self.caught = []  # (the names the handlers being read bind their exceptions to)
     self.based, self.supers, self.defs, self.local_imps = set(), [], {}, []  # (the bases read as bases; the bases of the class whose method is read)
-    self.class_mros, self.class_attrs, self.class_bound = {}, {}, {}
-    self.class_fields, self.class_methods, self.class_rets = {}, {}, {}
+    self.class_mros, self.known_mros, self.class_attrs, self.class_bound = {}, {}, {}, {}
+    self.class_fields, self.class_methods, self.class_rets, self.class_abstract = {}, {}, {}, {}
     self.class_collections = {}
 
   # --- types -------------------------------------------------------------------------------------------------------
@@ -187,10 +187,12 @@ class Reader:
     imp = m.imports.get(name)
     if imp and imp[0] == 'name': return self.ret_of(imp[1], imp[2], depth + 1)
     return None
-  def class_constants(self, cdef):
+  def class_constants(self, cdef, mod):
     """Own scalar literals and every name that shadows a base's literal. Mutable values are not constants."""
-    values, bound, collections, final_methods = {}, set(), set(), set()
+    values, bound, collections, final_methods, abstract_methods = {}, set(), set(), set(), set()
+    abc_meta = len(cdef.keywords) == 1 and cdef.keywords[0].arg == 'metaclass' and self.qualified(mod, cdef.keywords[0].value) == 'abc.ABCMeta'
     static = not cdef.keywords and not cdef.decorator_list
+    body_static = (not cdef.keywords or abc_meta) and not cdef.decorator_list
     for n in cdef.body:
       if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
         names = {n.name}
@@ -204,25 +206,31 @@ class Reader:
         values.clear()
         collections.clear()
         static = False
+        body_static = False
         continue
       bound.update(names)
       for name in names:
         values.pop(name, None)
         collections.discard(name)
         final_methods.discard(name)
-      if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)): final_methods.add(n.name)
+        abstract_methods.discard(name)
+      if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        final_methods.add(n.name)
+        if any((dotted(d.func if isinstance(d, ast.Call) else d) or '').split('.')[-1] == 'abstractmethod' for d in n.decorator_list):
+          abstract_methods.add(n.name)
       target = n.targets[0] if isinstance(n, ast.Assign) and len(n.targets) == 1 else n.target if isinstance(n, ast.AnnAssign) else None
       value = n.value if isinstance(n, (ast.Assign, ast.AnnAssign)) else None
       if isinstance(target, ast.Name) and isinstance(value, ast.Constant) and isinstance(value.value, (int, float, str, bool, type(None))) and not isinstance(value.value, bytes):
         values[target.id] = value.value
       if isinstance(target, ast.Name) and isinstance(value, (ast.List, ast.Tuple, ast.Dict, ast.Set)):
         collections.add(target.id)
-    return values, bound, static, collections, final_methods
+    return values, bound, static, body_static, abc_meta, collections, final_methods, abstract_methods
 
-  def class_mro(self, q, bases):
+  def class_mro(self, q, bases, table=None):
     """Python's C3 order, or no inherited constants if a base/order is not known."""
-    if len(set(bases)) != len(bases) or any(self.class_mros.get(b) is None for b in bases): return None
-    seqs = [list(self.class_mros[b]) for b in bases] + [list(bases)]
+    mros = self.class_mros if table is None else table
+    if len(set(bases)) != len(bases) or any(mros.get(b) is None for b in bases): return None
+    seqs = [list(mros[b]) for b in bases] + [list(bases)]
     order = [q]
     while any(seqs):
       seqs = [s for s in seqs if s]
@@ -318,26 +326,30 @@ class Reader:
     self.recs[q] = None  # (being read)
     fields, methods, bases, kinds, rets = [], {}, [], set(), {}
     own_fields, own_methods, own_rets = {}, {}, {}
-    cattrs, bound, static, collections, final_methods = self.class_constants(cdef)
+    cattrs, bound, static, body_static, abc_meta, collections, final_methods, abstract_methods = self.class_constants(cdef, mod)
     collections = {name: q for name in collections}
+    if abc_meta: kinds.add('abc')
     orm = self.orm_kind(mod, cdef)
-    if orm: static = False
+    if orm: static = False; body_static = False
     for b in cdef.bases:
-      bn = dotted(b.value if isinstance(b, ast.Subscript) else b)
+      bnode = b.value if isinstance(b, ast.Subscript) else b
+      bn = dotted(bnode)
+      qb = self.qualified(mod, bnode) if bnode is not None else ''
       if orm: continue  # ORM inheritance is schema, never an ordinary constructor.
-      if bn in ('TypedDict', 'typing.TypedDict', 'typing_extensions.TypedDict'): kinds.add('typeddict'); static = False; continue
-      if bn in ('BaseModel', 'pydantic.BaseModel'): kinds.add('pydantic'); static = False; continue
-      if bn in ('Protocol', 'typing.Protocol', 'ABC', 'abc.ABC'): kinds.add('protocol'); static = False; continue
-      if bn in ('Generic', 'object', 'Exception'):
-        if bn != 'object': static = False
-        continue
+      if qb in ('TypedDict', 'typing.TypedDict', 'typing_extensions.TypedDict') or bn == 'TypedDict': kinds.add('typeddict'); static = False; continue
+      if qb in ('BaseModel', 'pydantic.BaseModel', 'pydantic.main.BaseModel') or bn == 'BaseModel': kinds.add('pydantic'); static = False; continue
+      if qb in ('Protocol', 'typing.Protocol', 'typing_extensions.Protocol') or bn == 'Protocol': kinds.add('protocol'); kinds.add('direct-protocol'); static = False; continue
+      if qb in ('ABC', 'abc.ABC') or bn == 'ABC': kinds.add('abc'); static = False; continue
+      if qb in ('Generic', 'typing.Generic', 'typing_extensions.Generic') or bn == 'Generic': kinds.add('generic'); static = False; continue
+      if bn == 'object': continue
+      if bn == 'Exception': kinds.add('outside-base:Exception'); static = False; continue
       hit = self.find_class(mod, bn.split('.')[-1]) if bn else None
       if hit:
         bq = self.rec_of(*hit, base=base or mod.path == self.file)
         if bq and self.recs.get(bq):
           br = self.recs[bq]
           bases.append(bq)
-          kinds |= set(br.get('kinds', []))
+          kinds |= (set(br.get('kinds', [])) - {'direct-protocol'})
           for f in br['fields']:
             if not any(g['name'] == f['name'] for g in fields): fields.append(f)
           for m, fid in br['methods'].items(): methods[m] = fid
@@ -404,12 +416,16 @@ class Reader:
       own_rets.pop(name, None)
     self.class_attrs[q], self.class_bound[q] = cattrs, bound
     self.class_collections[q] = collections
-    self.class_fields[q], self.class_methods[q], self.class_rets[q] = own_fields, own_methods, own_rets
+    self.class_fields[q], self.class_methods[q], self.class_rets[q], self.class_abstract[q] = own_fields, own_methods, own_rets, abstract_methods
     order = self.class_mro(q, bases) if static else None
+    known_order = order if order is not None else (self.class_mro(q, bases, self.known_mros) if body_static else None)
     self.class_mros[q] = order
-    if order is not None:
-      cattrs, methods, rets, selected_fields, collections = {}, {}, {}, {}, {}
-      for owner in reversed(order):
+    self.known_mros[q] = known_order
+    merge_order = order if order is not None else known_order
+    merge_cattrs = order is not None or (known_order is not None and not any(k in ('pydantic', 'typeddict') or k.startswith('outside-base:') for k in kinds))
+    if merge_order is not None:
+      cattrs, methods, rets, selected_fields, collections, abstract_methods = {}, {}, {}, {}, {}, set()
+      for owner in reversed(merge_order):
         # Only declarations belong to an owner. A flattened base record can
         # select an ancestor too early in a diamond, or the wrong direct base.
         for name in self.class_bound[owner]:
@@ -417,17 +433,20 @@ class Reader:
           collections.pop(name, None)
           methods.pop(name, None)
           rets.pop(name, None)
-        cattrs.update(self.class_attrs[owner])
-        collections.update(self.class_collections[owner])
+          abstract_methods.discard(name)
+        if merge_cattrs:
+          cattrs.update(self.class_attrs[owner])
+          collections.update(self.class_collections[owner])
         methods.update(self.class_methods[owner])
         rets.update(self.class_rets[owner])
         selected_fields.update(self.class_fields[owner])
+        abstract_methods.update(self.class_abstract[owner])
       fields = list(selected_fields.values())
     # A scalar selected by attribute lookup also shadows an inherited method/property of that name.
     for name in cattrs:
       methods.pop(name, None)
       rets.pop(name, None)
-    r = {'name': q, 'short': cdef.name, 'fields': fields, 'methods': methods, 'bases': bases, 'mro': order, 'declared': sorted(bound), 'p': where(mod.path, cdef, self.repo.root), 'cattrs': cattrs, 'classCollections': collections,
+    r = {'name': q, 'short': cdef.name, 'fields': fields, 'methods': methods, 'bases': bases, 'mro': order, **({'knownMro': known_order} if order is None and known_order is not None else {}), **({'abstractMethods': sorted(abstract_methods)} if abstract_methods else {}), 'declared': sorted(bound), 'p': where(mod.path, cdef, self.repo.root), 'cattrs': cattrs, 'classCollections': collections,
          'kinds': sorted(kinds | ({'dataclass'} if dataclass else set()) | ({'frozen'} if frozen else set()) | (set() if total else {'partial'})),
          'own': mod.path == self.file, 'module': mod.name, **({'rets': rets} if rets else {})}
     if orm:
