@@ -3,6 +3,47 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.61.0
+
+### Added
+
+- **A sum can be reset to zero (`kernel/kernel.ts`, `lean-kernel/Sums.lean`, `core/sum-reset.ts`):** a step that clears
+  every cell of a summed map at once (a cache clear, a buffer flush, an epoch wipe: `each(k => when(clears, 0, ...))`)
+  used to be refused by the sum's cover check, which only admits writes at known keys. A sum now takes a reset guard
+  that reads no key and no summed cell: where it holds, the kernel checks that every cell's term is 0 after the step
+  and the sum becomes 0; elsewhere the cover check is unchanged. The guard is read from the rule's `each` writes, and
+  Lean checks the new case (`isSum_reset`) as it checks the others. A guard that reads a key, a partial wipe, a reset
+  that also writes, or a guard that reads the summed cells is refused.
+  - Spark's MemoryStore (`sum(Blocks) + sum(Unroll) <= maxMemory` and `sum(Blocks) <= maxMemory`, cleared by `clear`)
+    is now proven; the 19-law real-world cohort it belongs to has no unknown left (`17` proven, `2` refuted).
+  - Plain flags in the goals a sum's cover check states for Lean are now their conditions, as Lean states them, rather
+    than `(if c then 1 else 0) = 1`; no verdict changes (all 545 laws) and every existing sum export checks in Lean.
+
+### Changed
+
+- **More protocol proofs from the invariant search (`core/infer.ts`, `core/counts.ts`, `core/exists.ts`):** maps
+  holding values over a symbolic sort get `1 <= M[k]` literals and no constant caps; projected sort bounds stay in a
+  law's frame, and cubes dropped as subsumed come back when the cube that subsumed them is refuted; relations where at
+  most one entry is ever set get uniqueness views built on demand (the 3-key cap on general views is unchanged, so the
+  protocols wider views used to blow up get none); and ghost binders match tuple keys and `each` writes.
+  - IC3Syn: `23 -> 28` of `29` proven within 60 s (`lock_server`, `toy_consensus_forall`, `sharded_kv`,
+    `sharded_kv_no_lost_keys`, `simple_decentralized_lock`; the last `21.6 s unknown -> 1.2 s proven`).
+- **Laws with `exists` over tuple keys refute (`core/exists.ts`, `core/watch.ts`):** `someHolds` evaluates tuple keys
+  and several bound names over finite domains and the live cells, and an existential it cannot evaluate is reported
+  undecided instead of counted as holding.
+  - IC3Syn mutants: `25 -> 29` of `29` refuted (`firewall`, `client_server_ae`, `client_server_db_ae`,
+    `sharded_kv_no_lost_keys`, `29.3 s -> 0.43 s` together); every refutation is replayed on the compiled rule from
+    the start, and none of the intact protocols is refuted.
+- **The readers read more code:** C safety mode reads files that include `<string.h>` (glibc's internal macros are
+  allowed; a user's macro expanded inside a system header is still refused); Python classes with outside base classes
+  and `x is None` / `Optional[...]` inputs; Go package functions taking a `*Struct`; Ruby `||=`, `&&=`, `&.` and
+  ActiveRecord attributes; Swift contextual `.case` members across nested types and extensions; Java lambdas and
+  method references.
+  - On the language-coverage sample: Python `180 -> 331` of `1,322` units read, Ruby `22 -> 44`, Java `23 -> 29` of
+    `244`; every unit read is checked against its running code (0 mismatches).
+
+Across all 545 real-world, DuoAI and IC3Syn intact and mutant laws (Node `v24.22.1`): 9 verdicts gained (5 proofs, 4 refutations), none lost, no mutant proven, and total wall time `-2.8%` (`2,134.8 s -> 2,074.8 s`).
+
 ## 0.60.0
 
 ### Changed
