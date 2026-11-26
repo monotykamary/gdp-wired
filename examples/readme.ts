@@ -1,4 +1,4 @@
-// The README's "Writing laws" snippets, kept here so they type-check and prove (the suite runs this file).
+// The "Writing laws" snippets of the README and docs/writing-laws.md, kept here so they type-check and prove (the suite runs this file).
 //   bun examples/readme.ts
 import {bool, count, forall, fun, maybe, min, nat, no, oneOf, proveDecision, proveRule, proveSteps, record, recur, relation, rule, variant, when, yes} from '../core/dsl.ts'
 

@@ -447,6 +447,55 @@ Every `CSafetyResult` carries the four stated assumptions and checked-scope prem
    (`matchedSite`); unproven sites are never claimed proven or broken. Abstract stutter on fault
    is a monitor convention, not native rollback.
 
+### The four premises, in one place
+
+For C files, opt-in Stage 1 memory and undefined-behavior safety checking (`// gdp: safety`, `--safety`, or
+`extractC(file, {safety: true})`) proves absence of a first array/table-bounds, signed-overflow, or division/remainder
+fault over the covered C subset, naming the exact functions covered (`coveredFunctions`) and compiler/target/standard/macro
+configuration (`macroConfig`), re-checking every proof in the kernel (`verifyCSafetyProof`), and replaying every
+`broken` obligation under Clang ASan/UBSan (`matchedSite`). It relies on four explicit premises (returned on every
+result and documented in [docs/FRONTENDS.md](#opt-in-c-safety-stage-1)): (1) Clang resolved from a
+fixed safe `PATH` to a verified native executable (custom `clang` options, scripts, wrapper binaries, external `.cfg`
+files, and compiler flags outside `-I`/`-D`/`-U`/`-std=`/`-O*`/`-W*` are refused) running in a closed-world allowlisted
+environment (`PATH`, `LC_ALL=C`, `TMPDIR` only) with 8/16/32-bit two's-complement ABI, covered scalar/table/fixed-array
+types, and the reported target triple, compiler & absolute path, `libc` version (e.g. `glibc 2.39`), SHA-256 digest and
+path list of every included user file (`userFilesSha256`/`userFiles`) and every included system header
+(`systemHeadersSha256`/`systemHeaders`), C standard (`__STDC_VERSION__`/`std`),
+`-I`/`-D` flags, and `NDEBUG`/`__OPTIMIZE__`/`DEBUG` status (same-UID concurrent processes are trusted and outside the
+threat model, as a same-UID attacker could equally modify `gdp-wired` or Clang directly);
+(2) sequential execution on one live zero-initialized receiver (or single-declaration file-local `static` globals) with
+non-aliasing receiver and scalar out-parameters, no concurrency, and no external mutation from other translation units;
+(3) mechanically checked translation-unit closure across all non-system files classified strictly by resolved path
+under Clang's built-in search directories (never linemarker flag `3`, requiring both spelling and expansion locations to
+be system files; **caveat**: headers under Clang's default search list — including `/usr/local/include` on Linux and
+Homebrew directories such as `/opt/homebrew/include` on macOS — are trusted as system headers, with every included
+system header's path and snapshot SHA-256 reported in `macroConfig`; the full include closure of both user files and
+system headers is discovered by Clang `-E -H` on the original tree, resolved component-wise without collapsing `..`
+before symlinks, verified via `O_NONBLOCK`/`O_NOFOLLOW` `fstat` as regular files — refusing case-insensitive
+`/proc`/`/dev`/`/sys`, non-regular files/FIFOs, `-I` directories overlapping system directories, user-visible includes
+resolving into system directories, absolute includes, and user includes outside the root/`-I` boundary — snapshotted
+once into a private temp tree locked read-only (`0500` dirs, `0400` files) with `-nostdinc` and mapped `-I`/`-isystem`
+dirs, cross-checked via Clang `-H` on every snapshot pass — preprocessor, AST, expanded tokens, alt-path/cwd/mtime/`SOURCE_DATE_EPOCH`
+differentials, and build-mode alternates (which snapshot any extra variant system headers under `-nostdinc` and never
+fall back to live system dirs) — for exact include-list and order equality, walked at the end to refuse any modified,
+removed, or added files/dirs in the snapshot, digested from those snapshot bytes for both user and system files, and
+re-hashed on disk at the end to refuse concurrent writers (modified or added files in the snapshot plus modified
+original user/system files; same-UID concurrent processes remain outside the threat model); user-defined or `-D` macros expanded inside system
+headers are refused; user files are audited from Clang's `-Xclang -dump-raw-tokens` (byte-contiguous from byte 0/BOM to
+EOF with raw NUL bytes refused), `-Xclang -dump-tokens`, and `-E -H -dD`, refusing all 9 trigraphs and non-C23 digit-quote sequences outright,
+allowing only user-defined or `-D` macros in `#if`/`#ifdef`/`#ifndef`/`#elif`/`defined()` and only `#pragma once`,
+refusing predefined or undefined-elsewhere macros, `__has_*`, `_Pragma`, token pasting `##`, `<scratch space>`
+expansions, invocation-dependent macros `__FILE__`/`__BASE_FILE__`/`__FILE_NAME__`/`__TIMESTAMP__`/`__DATE__`/`__TIME__`/
+`__COUNTER__`/`__LINE__`/`__INCLUDE_LEVEL__`, `SourceLocExpr`/`PredefinedExpr`, and any `__builtin_*` identifier,
+backed by differential checks
+comparing both preprocessed tokens and folded AST facts (array sizes, constants, types) across alternate path/filename
+length, file mtime, `SOURCE_DATE_EPOCH` days, distinct empty working directories with `stdin=/dev/null`, and `NDEBUG`/`-O0`/`-O2`/`-Os`/`-fsanitize=address,undefined`/`DEBUG`; every non-system
+function body must be a selected method or inlined file-local `static` helper, or is refused as `unchecked` and named;
+symbol aliases/weak/file-scope `__asm__`/attributed or post-definition function declarations, non-system globals with
+pointers/fn-ptrs or function-referencing initializers, bodyless prototypes taking the entry type or pointers, and `fails`
+returns after state writes are also refused); and (4) first-fault monitor scope with site-matched ASan/UBSan replay
+(abstract stutter on fault is a monitor convention, not native rollback).
+
 ## Worked example: Python
 
 | Piece | File | Notes |

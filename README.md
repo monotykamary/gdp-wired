@@ -158,80 +158,21 @@ const x = extractEffect('./limiter.ts')
 proveRule(x.rule!, [...x.invariants ?? [], x.rule!.law('never below zero', ({tokens}) => tokens.atLeast(0))])
 ```
 
-`//` in Go, Rust, C, C++, Java, Kotlin and TypeScript (an Effect service's laws above its make effect, an XState
-machine's over its context, `value` and `event`); `@GdpLaw("<name>: <expr>")` on a Java or Kotlin method (with
-the annotation declared in your code), `@gdp_law("...")` in Python, `@gdp_law "..."` in Elixir, `#[doc = "gdp: law
-..."]` in Rust. The expression: comparisons, `+ - * k`, `and or not implies`, the state after the step by its fields
-(`self.`, `this.`, `@` or bare; `after.x`), `old(x)` or `before.x` before it, the request's arguments by name,
-`result`, `failed`, a call of other code answered by the request as `f(...)`, `x is None`, maps as the code reads them
-(`counts[user]`, `user in counts`, `cache["rl:" + user]`), `forall k in m: ...`, a choice by its value (`mode ==
-"closed"`). Anything else is refused with why, never dropped. Modelling choices a rule needs (`failures = "kept"` for
-laws about when it raises, a store's attributes, an untyped result) go in a `gdp.toml` beside the code (or `[tool.gdp]`
-in pyproject.toml, `"gdp"` in package.json), per rule under `[rules.<name>]`. When an individual stated invariant or step
-law ends `unknown` (neither proven nor refuted) in default reachable-state `check`, it is retried jointly with the other
-laws stated on the same rule within the time its own budget has left, crediting only that law and only if the kernel checks
-the whole joint family (never changing a proven or refuted verdict). The exit code is 1 when a stated law is
-broken, 2 when one couldn't be checked: `uses: monotykamary/gdp-wired@main` with `paths:` runs it in CI.
+A law comment is `#` or `//` as the language has it, or an annotation (`@GdpLaw`, `@gdp_law`, `#[doc = "gdp: law ..."]`).
+Its expression reads the code's own names: fields after the step, `old(x)` before it, arguments by name, `result`,
+`failed`, map lookups, `forall k in m: ...`. Anything it can't read is refused with the reason, never dropped.
+Modelling choices go in a `gdp.toml` beside the code. Laws about two runs (secrets, tenant isolation, migrations),
+durations and business days, and citing a law to a regulation's clause are covered in
+[docs/law-comments.md](docs/law-comments.md).
 
-Laws about two runs read the same way: `diagnosis never reaches status, result` (two runs differing only in the
-secret keep what is named the same, and fail alike), `isolated by user_id` (what the caller whose `user_id` is B sees
-is the same whatever the others do), `agrees with LimiterV1` (a migration: another class of the target, the same state
-after every history). A duration is linear over the request's time: `now - received < 30 days` (seconds, minutes,
-hours, days, weeks; a month or a year is refused). Business days are counted over a calendar stated once (`[calendar]`
-in gdp.toml: weekend days, holidays, a UTC offset): `now - received <= 10 business days`, decided in the same linear
-arithmetic, nothing trusted added. `gdp: cite <law name>: <clause>` ties a law to the clause it answers: printed with
-the law, and with `--cert <dir>` kept in the meta of each proven law's certificate, never in what is checked.
-`gdp-wired draft <file> --clause-file <f> --cite <ref> --llm <command>` asks a drafter (a model, by any command) for
-laws from the clause's text, reads each over the code's names and prints the comments to paste, each citation marked
-`[unreviewed: drafted by ...]` until a person signs it (`[reviewed-by: <name>, <date>]`); `check --require-review`
-refuses a law cited unreviewed (`research/regulated/DESIGN.md`, `research/regulated/DRAFTING.md`).
+The exit code is 1 when a stated law is broken and 2 when one couldn't be checked, so
+`uses: monotykamary/gdp-wired@main` with `paths:` runs it in CI.
 
-For C files, opt-in Stage 1 memory and undefined-behavior safety checking (`// gdp: safety`, `--safety`, or
-`extractC(file, {safety: true})`) proves absence of a first array/table-bounds, signed-overflow, or division/remainder
-fault over the covered C subset, naming the exact functions covered (`coveredFunctions`) and compiler/target/standard/macro
-configuration (`macroConfig`), re-checking every proof in the kernel (`verifyCSafetyProof`), and replaying every
-`broken` obligation under Clang ASan/UBSan (`matchedSite`). It relies on four explicit premises (returned on every
-result and documented in [docs/FRONTENDS.md](docs/FRONTENDS.md#opt-in-c-safety-stage-1)): (1) Clang resolved from a
-fixed safe `PATH` to a verified native executable (custom `clang` options, scripts, wrapper binaries, external `.cfg`
-files, and compiler flags outside `-I`/`-D`/`-U`/`-std=`/`-O*`/`-W*` are refused) running in a closed-world allowlisted
-environment (`PATH`, `LC_ALL=C`, `TMPDIR` only) with 8/16/32-bit two's-complement ABI, covered scalar/table/fixed-array
-types, and the reported target triple, compiler & absolute path, `libc` version (e.g. `glibc 2.39`), SHA-256 digest and
-path list of every included user file (`userFilesSha256`/`userFiles`) and every included system header
-(`systemHeadersSha256`/`systemHeaders`), C standard (`__STDC_VERSION__`/`std`),
-`-I`/`-D` flags, and `NDEBUG`/`__OPTIMIZE__`/`DEBUG` status (same-UID concurrent processes are trusted and outside the
-threat model, as a same-UID attacker could equally modify `gdp-wired` or Clang directly);
-(2) sequential execution on one live zero-initialized receiver (or single-declaration file-local `static` globals) with
-non-aliasing receiver and scalar out-parameters, no concurrency, and no external mutation from other translation units;
-(3) mechanically checked translation-unit closure across all non-system files classified strictly by resolved path
-under Clang's built-in search directories (never linemarker flag `3`, requiring both spelling and expansion locations to
-be system files; **caveat**: headers under Clang's default search list — including `/usr/local/include` on Linux and
-Homebrew directories such as `/opt/homebrew/include` on macOS — are trusted as system headers, with every included
-system header's path and snapshot SHA-256 reported in `macroConfig`; the full include closure of both user files and
-system headers is discovered by Clang `-E -H` on the original tree, resolved component-wise without collapsing `..`
-before symlinks, verified via `O_NONBLOCK`/`O_NOFOLLOW` `fstat` as regular files — refusing case-insensitive
-`/proc`/`/dev`/`/sys`, non-regular files/FIFOs, `-I` directories overlapping system directories, user-visible includes
-resolving into system directories, absolute includes, and user includes outside the root/`-I` boundary — snapshotted
-once into a private temp tree locked read-only (`0500` dirs, `0400` files) with `-nostdinc` and mapped `-I`/`-isystem`
-dirs, cross-checked via Clang `-H` on every snapshot pass — preprocessor, AST, expanded tokens, alt-path/cwd/mtime/`SOURCE_DATE_EPOCH`
-differentials, and build-mode alternates (which snapshot any extra variant system headers under `-nostdinc` and never
-fall back to live system dirs) — for exact include-list and order equality, walked at the end to refuse any modified,
-removed, or added files/dirs in the snapshot, digested from those snapshot bytes for both user and system files, and
-re-hashed on disk at the end to refuse concurrent writers (modified or added files in the snapshot plus modified
-original user/system files; same-UID concurrent processes remain outside the threat model); user-defined or `-D` macros expanded inside system
-headers are refused; user files are audited from Clang's `-Xclang -dump-raw-tokens` (byte-contiguous from byte 0/BOM to
-EOF with raw NUL bytes refused), `-Xclang -dump-tokens`, and `-E -H -dD`, refusing all 9 trigraphs and non-C23 digit-quote sequences outright,
-allowing only user-defined or `-D` macros in `#if`/`#ifdef`/`#ifndef`/`#elif`/`defined()` and only `#pragma once`,
-refusing predefined or undefined-elsewhere macros, `__has_*`, `_Pragma`, token pasting `##`, `<scratch space>`
-expansions, invocation-dependent macros `__FILE__`/`__BASE_FILE__`/`__FILE_NAME__`/`__TIMESTAMP__`/`__DATE__`/`__TIME__`/
-`__COUNTER__`/`__LINE__`/`__INCLUDE_LEVEL__`, `SourceLocExpr`/`PredefinedExpr`, and any `__builtin_*` identifier,
-backed by differential checks
-comparing both preprocessed tokens and folded AST facts (array sizes, constants, types) across alternate path/filename
-length, file mtime, `SOURCE_DATE_EPOCH` days, distinct empty working directories with `stdin=/dev/null`, and `NDEBUG`/`-O0`/`-O2`/`-Os`/`-fsanitize=address,undefined`/`DEBUG`; every non-system
-function body must be a selected method or inlined file-local `static` helper, or is refused as `unchecked` and named;
-symbol aliases/weak/file-scope `__asm__`/attributed or post-definition function declarations, non-system globals with
-pointers/fn-ptrs or function-referencing initializers, bodyless prototypes taking the entry type or pointers, and `fails`
-returns after state writes are also refused); and (4) first-fault monitor scope with site-matched ASan/UBSan replay
-(abstract stutter on fault is a monitor convention, not native rollback).
+For C, opt-in safety checking (`// gdp: safety`, or `--safety`) proves there is no out-of-bounds table access, signed
+overflow or division by zero in the functions it covers, and replays every failure under Clang's sanitizers. It names
+exactly which functions it covered and which compiler, flags and headers the proof assumes, and it refuses anything
+outside that: macros that reach into system headers, aliases, function pointers, and code it can't attribute. The full
+list of premises is in [docs/FRONTENDS.md](docs/FRONTENDS.md#opt-in-c-safety-stage-1).
 
 ## Where it fits
 
@@ -245,150 +186,33 @@ on the same rules.
 
 ## What it proves
 
-All of these are proven automatically, and each proof is also a Lean theorem:
+All of these are proven automatically, and each proof is also a Lean theorem.
+[docs/what-it-proves.md](docs/what-it-proves.md) has the details and the example behind each.
 
-- **Invariants**: a law that holds after every sequence of requests ("spend stays within the budget").
-- **Maps, sets and lists of names**: laws at every key ("no day passes its cap"), sets a request carries, conditions
-  about every key or every two keys ("a batch is taken only when its values increase"), lists kept in order
-  (`examples/sets.ts`, `examples/lists.ts`, `examples/pairs.ts`), and two groups of items with a set each, decided at
-  every pair at once (`examples/groups.ts`).
-- **Step laws**: what one step does ("a balance only goes down", "a grant adds one"), and laws over up to 64 steps in
-  a row (`examples/steps.ts`).
-- **Histories**: sums and queries over a log of requests, like a sliding-window rate limit.
-- **Statecharts**: `chart(name).states({...}).on(event, {from, to, when, set})`, with states nested to any depth,
-  parallel regions (at the top of the chart), a compound's history (deep), guards and extended state, compiled to a rule;
-  `check()` shows every state reached by a run (or proves it unreachable), no state stuck and no event ambiguous, and its
-  laws prove like any rule's (`examples/charts.ts`). Not yet: parallel regions inside a state (XState's entry and exit
-  actions, eventless and delayed transitions are read by `fromXState`, below).
-- **With XState and `@xstate/graph`** (`gdp-wired/xstate`, [`docs/xstate.md`](docs/xstate.md)): prove a rule or chart
-  and present it as XState v5 `ActorLogic` with `toLogic(ruleOrChart, {params, maxValue})` (copied states via
-  `rule.interpreter()`, canonical `serializeState` over maps and logs, small-edge default `events`) so `@xstate/graph`'s
-  `TestModel` generates shortest paths against your real app, and `runToEvents(ruleOrChart, run)` turns prover
-  counterexamples into `getPathsFromEvents` regression paths (`examples/xstate-mbt.ts`). For an existing XState v5/v4
-  machine, `fromXState(machine, {guards, actions})` translates it into a provable chart (nesting, parallel roots, deep
-  history, `invoke`/`after`, `always` and `entry`/`exit` macrosteps; unsupported keys refused) and `conforms(chart,
-  machine, createActor)` checks it against XState's own actor (`examples/xstate.ts`). The proof covers the logic;
-  model-based tests cover the app around it.
-- **Rules read from the code** (`gdp-wired/extract`): `extract('./bucket.ts')` reads a reducer, `useReducer`'s, functions
-  over one record, a class whose methods write its fields (with the classes it extends), or the object of functions a
-  factory returns, and returns the rule that steps the same way, as a builder value and as source to keep
-  (`toSource`); `extractXState('./machine.ts')` reads an XState machine, or a function that makes one, its guards and
-  actions named or inline, into a chart and its rule (xstate the one the file's project has). The extractor is untrusted: each rule is run beside the code it was read from (requests
-  from the start, steps from drawn states and from the prover's counterexamples, every state, cell, list, result and
-  refusal compared, the code's branches counted), and a difference refuses it. Its subset (integers, booleans, strings
-  and string-literal unions, values that may be null, records, Map and Record keyed state, arrays as lists, Dates as
-  their time, branches and early returns, throws as refusals, `Date.now()` as an input) and what it refuses, each with
-  the place and the reason, are in `core/extract.ts`.
-- **Effect services** (`gdp-wired/effect`, `effect` 3.x or 4.x): `extractEffect('./limiter.ts')` reads a service
-  whose make effect creates Refs (Ref, SynchronizedRef, SubscriptionRef, 4.x's TxRef) and returns an object of methods
-  (`Effect.fn` bodies, arrows returning an effect), with typed failures as its refusals and `Clock.currentTimeMillis` as
-  an input; the rule is checked by running the service on Effect's runtime (the `effect` the file's project has,
-  `Effect.runSyncExit`, the clock fixed at each request's time), every Ref, result and failure compared. Transactions
-  (3.x STM's TRef, 4.x `Effect.tx` over TxRefs) are atomic steps, waits (`STM.check`, `Effect.txRetry`) their guards,
-  and a method of several transactions is every fiber's steps (core/system.ts's `lift`), so a lost update comes back as
-  a run of two fibers; `Effect.retry` and `Effect.repeat` inside a method are part of its step. A `Schedule` is a rule of
-  its decisions (attempt, retries, delay, elapsed, done; exponential a `recur` function, jitter an input within its
-  range), every combinator a fragment of one machine, checked by stepping Effect's own schedule
-  (`examples/effect-retry.ts`, `examples/effect-stm.ts`). A `Queue` (bounded, dropping, sliding, unbounded) or a
-  `Semaphore` the service makes is modelled once, its own laws proven (bounded, nothing lost, FIFO, the permits) and
-  run beside Effect's own on random operations and fibers, so a law states only the service's own
-  (`examples/effect-queue.ts`: a worker pool, a release without its acquire refuted by a run). `conforms(rule, service)` runs a rule written by hand
-  beside a running service (Effect's own Semaphore, a store). `fromSchema(schema)` provides typed symbolic
-  [Schema kinds](docs/effect-schema.md): exact on declared closed decoded values by default, with checked integer
-  bounds and inspectable, opt-in approximation losses
-  (`examples/effect.ts`; what is read and refused, with what Effect projects write, in `research/effect/README.md`).
-- **What nobody stated, looked for when the prover alone stops**: where `proveRule` or `proveSteps` doesn't prove the laws
-  and no run breaks them, it looks for lemmas about the rule's recurrences and lists (`discover`), lemmas about the
-  functions it knows by their facts (`cycleLemmas`, each proven by a cyclic proof) and then invariants (`inferLaws`),
-  under a configurable search allowance (`{search: {ms: 10000}}` by default; `{search: false}`, the prover alone);
-  the verdict's `found` holds what proved them, as laws and lemmas with the source to paste. Callers who pass several
-  laws on the same rule (`proveRule(rule, [law1, law2])` or `proveSteps(rule, laws, [step1, step2])`) already get joint
-  proof — the search and kernel check all of them together as one family, rather than proving one law at a time.
-  [Explicit counted work and stop causes](docs/search-budgets.md) separate the search allowance from an optional
-  real-time safety watchdog; legacy `ms` is not a promise of machine-independent completion. Each invariant found holds in the states reachable from the
-  start, so a proof that needs one holds there and the verdict says so (`assumes: {states: 'reachable', laws}`). Code that
-  steps the rule from states it is handed proves with `{from: 'any'}`: every step law then holds from every state the
-  laws allow, reachable or not, and the search never adds an invariant.
-- **Invariants nobody wrote** (`gdp-wired/infer`): `inferLaws(rule, laws)` proves a law that holds but isn't inductive
-  alone, with the laws it finds (bounds, sums and differences over the state, the same where a flag or a choice holds
-  one value, remainders of a value or of a sum or difference of two, x mod 2 = 0 for a counter stepping by 2, and laws
-  about every key of a map), each proven by the kernel with yours and handed back as the
-  `r.law(...)` call that states it; a false law comes back with the run that breaks it (`examples/infer.ts`).
-- **There exists**: laws that say some value is a witness, `exists(k => x.eq(k.times(2)))` ("x is even"), over
-  naturals, integers, yes/nos or a map's keys, each proven through a witness the prover finds from the kernel's
-  counterexamples (a term of the state, or a ghost the run carries: the witness before, moved by the request's values)
-  or the one given; an existential in the assumption is a value each request brings, and `inferLaws` finds parities
-  and multiples this way. Lean states each as `∃ w, ...`, proven by ⟨witness, proof⟩ (`examples/exists.ts`).
-- **Orderings at any distance**: "a refund never follows a release", through ghost state that watches the rule.
-- **Liveness**: "every ticket issued is served", in every run that keeps sending the requests that help, including under
-  weak fairness (`examples/liveness.ts`).
-- **Refinement**: an implementation behaves like a simpler spec, step for step (`examples/composition.ts`).
-- **Functions**: division, remainder, and your own functions, known by their facts; a function defined in Lean brings
-  facts proven there (`examples/functions.ts`).
-- **Lemmas you state**: a function defined by a recurrence (`recur`), of one argument or several, reading other
-  functions, and lemmas about it proven by induction, at one point or between two, which every rule that reads it may
-  then use: a backoff delay is at most 64 at every attempt and never shrinks (`examples/lemmas.ts`).
-- **Lemmas nobody stated** (`gdp-wired/discover`): `discover(rule, laws, stepLaws)` finds what a recurrence or the folds
-  of a list a request carries need, from their values (bounds, linear relations, a closed form of degree 2 at most, a
-  law between two points), proves it by the same induction and keeps only what the laws need; `discoverFold(fold,
-  laws)` does the same for a fold over a tree. What it finds comes back as source to paste (`examples/discover.ts`).
-- **Cycles nobody shaped** (`gdp-wired/cycles`): `findCycles(facts, claims)` proves claims about functions defined by
-  their equations with nothing a proof needs stated: the rank each induction drops (from the runs, by linear
-  programming, in order: McCarthy's 91 by 101 − n, Ackermann's by (m, n)), where each cycle returns (the calls its
-  goal reads), and the lemma a stuck one needs (g(x, 0) = 2x through g(x, a) = a + 2x; a bound on another function);
-  `proveLoop` with no rank finds it (two phases' (x, y)) and the invariants it needs; the kernel checks the cyclic
-  proof (`examples/cycles.ts`).
-- **Runs that never end**: `proveNeverEnds(loop)` proves some run of a loop goes on forever (pagination that accepts an
-  empty page, a retry with no cap): a closed recurrent set with the turn from each of its states given, a start and a
-  stem into it, checked by the kernel and again in Lean (`NonTerm.lean`'s `never_ends_of`; `examples/nonterm.ts`).
-- **Rules over the rationals** (`gdp-wired/rationals`): `ratRule` with `rat` and `nonneg` params, inputs and state,
-  each value an exact rational (0.1 is 1/10, a third is 1/3: nothing scaled to cents or encoded as naturals), terms
-  linear (+, −, × and ÷ by a constant, min, max, when). Linear arithmetic over ℚ is decidable: a law is proven by
-  trees whose leaves are Farkas certificates with strict rows, or refuted by an exact run from the start. A fee split,
-  a rate limiter with fractional tokens and a ledger in decimals, and 12 laws true over one of ℕ and ℚ and false over
-  the other, each decided both ways (`examples/rationals.ts`); the proofs again in Lean (`Rationals.lean`'s
-  `Q.machine_sound`). Products of unknowns and transcendental functions stay outside.
-- **Recursive datatypes as values** (`gdp-wired/data`): lists, trees, rose trees and their forests, declared by their
-  constructors; functions over them by structural recursion, or by any recursion whose termination is proven first (a
-  merge of two lists, a quicksort: the measure found, (size xs, size ys) or a sum of sizes, and each call's decrease
-  proven by the kernel before the function's equation is used; one that doesn't terminate is refused with the reason);
-  `proveData` finds the induction (structural, mutual, or the function's own call graph ranked by its measure) and the
-  lemmas, each proof checked in Lean against the `inductive` and the functions as declared (`examples/data.ts`).
-  An abstract sort (`opaque('Elem')`: values compared by equality alone, any other read refused) makes a law hold at
-  every element type, not only the naturals; `unknownFn('f', [Elem], List)` is any function between sorts (a law about
-  every f, every default, every callback); `closures(...)` is a datatype of functions with its `apply`, for fields that
-  hold functions (`examples/abstract.ts`; Lean's twin doesn't yet close two shapes of its export there: a datatype of
-  two constructors with fields, and two constructor values compared inside a disjunction).
-- **Records and variants**: inputs, state, results, map cells and list items made of named fields, or one of several
-  cases each with fields of its own (a payment by card or in cash, a seat free, held or sold), every case covered
-  (`examples/datatypes.ts`).
-- **Lists a request carries, and trees**: an invoice's lines, with folds over them (the total, the taxable part) and
-  lemmas about the folds proven by induction over the lines (`examples/invoices.ts`); a fold over a tree as a value (a
-  spend roll-up, sign-offs over a document's sections, an org chart where a manager has any number of reports), its laws
-  proven by induction over the tree (`examples/folds.ts`); a search tree, and a sheet of rows of cells, kept in a rule's
-  state as tables of nodes (`examples/trees.ts`).
-- **Pure functions and two-run laws**: laws about what a function returns, and laws comparing two calls, like "the
-  secret never changes the answer". `examples/jev-fabric/` ports a Bend project's policy core and proves all 59 laws its
-  Bend proofs state.
-- **Laws about two runs of a stateful rule** (`gdp-wired/relational`): noninterference (`noninterference(rule, {secret,
-  visible})`: what a party sees never depends on the secret, nor which requests fail), tenant isolation (`isolation(rule,
-  {owner})`: what tenant B sees is the same whatever the others do) and migration agreement (`agreement(old, next)`),
-  on rules read from code as on written ones; `proveTwoRuns` proves the law of the two runs side by side as one rule, a
-  refutation the two runs (`research/regulated/`).
+| Claim | For example |
+| --- | --- |
+| Invariants | spend stays within the budget |
+| Laws at every key of a map, set or list | no day passes its cap |
+| Step laws, and laws over up to 64 steps in a row | a balance only goes down |
+| Histories: sums and queries over a log | a sliding-window rate limit |
+| Statecharts, and XState machines | every state reached or shown unreachable, none stuck |
+| Ordering at any distance | a refund never follows a release |
+| Liveness, including under fairness | every ticket issued is served |
+| Refinement | the implementation behaves like a simpler spec |
+| There exists | x is even |
+| Two runs side by side | the secret never changes the answer; tenants are isolated |
+| Functions known by their facts, and recurrences with your lemmas | a backoff delay never passes 64 |
+| Runs that never end | pagination that accepts an empty page loops forever |
+| Exact rationals | a fee split in decimals |
+| Recursive datatypes, records and variants | a law over every list or tree, by induction |
 
-When a law is false, the prover or GPU search finds a real run that breaks it, and `minimizeRun(rule, law, run)`
-([`docs/minimize.md`](docs/minimize.md)) shrinks a refuting run on the original rule until no single request can be
-removed. When a law needs an invariant nobody wrote, `proveRule` proposes checked covering sums for item-against-total
-laws and `inferLaws` finds invariants on the CPU (and the GPU synthesizer, at scale, in `research/synth/`) and the kernel proves it.
+When the prover alone doesn't get there, it searches: it looks for the lemmas and invariants a law needs, proves them,
+and hands them back as source to paste. When a law is false, it finds a real run that breaks it, and shrinks that run
+until every request matters.
 
-**What it leaves to Lean or Bend.** Two things, and neither is a gap the next feature closes: proofs the prover would
-have to invent (induction over a recursive structure whose proof needs a lemma nobody stated and `discover` doesn't find, and arithmetic with
-products of unknowns beyond what products of facts and sums of squares give; integer arithmetic with induction or
-with products is undecidable; a lemma you state about a recurrence is proven, and `proveData` finds the induction and lemmas for a recursive datatype as a value, up to six symbols a lemma, for
-functions structural or whose termination it proves, its values naturals, integers (`integer`, Lean's `Int`, beside
-`natural`) and datatypes), and shipping an arbitrary algorithm as its proved source (gdp-wired ships the rule as JavaScript; Bend
-compiles the proved source itself). The full list of what is and isn't in scope is in
-[`docs/comparison.md`](docs/comparison.md#gdp-wireds-scope-in-detail).
+**What it leaves to Lean or Bend.** Proofs it would have to invent (induction that needs a lemma nobody stated and the
+search doesn't find, or arithmetic with products of unknowns beyond what it decides), and shipping an arbitrary
+algorithm as its proved source. The full scope is in [docs/comparison.md](docs/comparison.md#gdp-wireds-scope-in-detail).
 
 ## Why you can trust a proof
 
@@ -457,199 +281,27 @@ was. `examples/gdp.ts` runs gdp-ts's own example this way; `@gdp-ts/core` is an 
 
 ## Writing laws
 
-The builders (`core/dsl.ts`) hand out typed values for every name you declare; everything compiles to the plain machine
-the kernel checks, so nothing in them is trusted.
+A rule declares its params, the request's inputs, its state and one step. Laws are callbacks over those names, typed,
+so a law that reads a name the rule doesn't have is a compile error:
 
 ```ts
-import {bool, count, forall, fun, maybe, min, nat, no, oneOf, proveSteps, record, recur, relation, rule, variant, when, yes} from 'gdp-wired'
+import {forall, nat, bool, proveSteps, rule} from 'gdp-wired'
 
-// Maps and flags: a grant is decided once per step; each map is written once; a map law holds at every key.
 const caps = rule('caps')
   .params({d: nat})
   .inputs({acct: nat, day: nat, ok: bool})
   .maps({Acct: 0, Day: 0})
   .flags(({ok, acct, day, d, Acct, Day}) => ({granted: ok.and(Acct.at(acct).lt(1), Day.at(day).lt(d))}))
   .step(({acct, day, granted, Acct, Day}) => ({Acct: Acct.bump(acct, granted), Day: Day.bump(day, granted)}))
+
 const dayCap = caps.law('day cap', ({Day, d}) => forall(k => Day.at(k).atMost(d)))
-
-// Step laws: about one step, for every request the rule allows; `after` reads the state and maps after it.
 const onlyUp = caps.stepLaw('no count goes down', ({Day}, after) => forall(k => Day.at(k).atMost(after.Day.at(k))))
-const once = caps.stepLaw('a grant adds one to its day', ({day, Day}, after) => after.Day.at(day).eq(Day.at(day).plus(1)), ({granted}) => granted)
-// k-step laws: about k steps in a row; `requests` holds each step's request, `when` narrows the j-th step's.
-const twice = caps.stepsLaw('two grants on one day add two', 2, ({day, Day}, after, [, next]) => next!.day.eq(day).implies(after.Day.at(day).eq(Day.at(day).plus(2))), ({granted}) => granted)
-proveSteps(caps, [dayCap], [onlyUp, once, twice]) // {proven: true, checked: true}
-
-// Histories: a log of requests, a sum over it (state), a query over it at the request's time (an input the runtime
-// computes), and a relation between them proven one record at a time.
-const window = rule('window limit')
-  .params({w: nat, c: nat, now: nat})
-  .inputs({forced: bool, t: nat})
-  .log('forced', 't')
-  .sums({ours: (r, {now, w}) => count(r.forced.not().and(r.t.atMost(now), now.lt(r.t.plus(w))))})
-  .queries({seen: (r, {t, w}) => count(t.lt(r.t.plus(w)))})
-  .flags(({forced, seen, c}) => ({admitted: forced.not().and(seen.plus(1).atMost(c))}))
-  .keep(({forced, admitted}) => forced.or(admitted))
-  .relations(({t, now, ours, seen}) => [relation(ours.atMost(seen), t.atMost(now))])
-  .prune('t', ({w}) => w) // requests in time order: records older than the window are dropped
-
-// Decisions over facts: optional facts and choices, every case covered.
-const trial = rule('trial').inputs({plan: oneOf('free', 'pro'), spent: maybe(nat), allowance: maybe(nat)})
-const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => spent.isNone,
-  ({plan, spent, allowance}) => plan.match({free: () => spent.match({none: () => yes, some: s => allowance.match({none: () => yes, some: a => s.atLeast(a)})}), pro: () => yes}))
-
-// Records and variants: a payment is by card or in cash, each with fields of its own, read only in `match`.
-const Pay = variant({card: {amount: nat, verified: bool}, cash: {amount: nat}})
-const approve = fun('approve').inputs({pay: Pay, who: record({limit: nat, blocked: bool})})
-  .returns(({pay, who}) => ({ok: who.blocked.not().and(pay.match({card: c => c.verified.and(c.amount.atMost(who.limit)), cash: c => c.amount.atMost(200)}))}))
-const unverified = approve.law('an unverified card is never approved', ({pay}, out) => [pay.match({card: c => c.verified.not(), cash: () => no}), out.ok], () => no)
-
-// A lemma you state, proven by induction: the backoff delay is defined by its recurrence, and its lemmas are facts
-// every rule that reads it may use (its two equations alone don't bound it at an unknown attempt).
-const delay = recur('delay', {zero: 1, next: (_, d) => min(d.times(2), 64)}, {'at least 1': (_, d) => d.atLeast(1), 'at most 64': (_, d) => d.atMost(64)})
-const retry = rule('retry').inputs({failed: bool, now: nat}).state({tries: 0, next: 0, last: 0}).fns({delay})
-  .assume(({now, last}) => now.atLeast(last))
-  .step(({failed, now, tries, next, delay}) => ({tries: when(failed, tries.plus(1), 0), next: when(failed.and(now.atLeast(next)), now.plus(delay(tries)), next), last: now}))
-const soon = retry.law('the next try is at most 64 after the last request', ({next, last}) => next.atMost(last.plus(64)))
+proveSteps(caps, [dayCap], [onlyUp]) // {proven: true, checked: true}
 ```
 
-
-- **Kinds**: `nat`, `upTo(k)`, `bool`, `oneOf(...)`, `maybe(kind)`, `int`, `decimal(places)`, `str({like, maxLength})`,
-  `record({...})`, `variant({...})`; their assumptions (a bit is 0 or 1, a choice is in range) go to the kernel by
-  themselves, and `encodeInput`/`encodeParams` turn runtime values into the numbers the machine reads.
-- **Records and variants**: `record({limit: nat, blocked: bool})` hands out an object of its fields' values;
-  `variant({card: {...}, cash: {...}})` a value with `is(case)` and `match({card: c => ..., cash: c => ...})`, the only
-  place a case's fields are read. `Pay.make({tag: 'card', amount, verified})` builds a case to write or to pass to
-  `when`, and `same(a, b)` compares two values of one kind part by part; `optional(c, value)` is a value present where c
-  holds (a result that may be missing). At runtime a record is an object of its fields and a variant `{tag: 'card',
-  ...fields}` (or the key given, `variant({...}, {tag: 'kind'})`); a field or case the kind doesn't declare is refused.
-  What a kind keeps true of the values a step writes (a case in range, a flag 0 or 1) is a law of its own, `r.kindLaws()`,
-  which proveRule, proveSteps and proveLeadsTo prove beside the laws they are given. Both are their fields'
-  variables underneath (`pay.card.amount`, and the case's index as `pay`), so the kernel, both runtimes and the Lean
-  twin see nothing new. Maps and lists of them: `.maps({Acct: record({...}).from({...})})` (`Acct.at(k)`,
-  `Acct.set(k, value)`, `Acct.each(k => value)`) and `.items({Queue: Job})` (`push`, `pop`, `set`, `insertAt`,
-  `removeAt`, `apply`, `has`, `within`, `increasing(by)`), one map per variable of the kind; `rule.decode` reads them back
-  as objects and arrays.
-- **Sequences a request carries** (`.carriesSeq('Path')`, and tables of them, `.carriesSeqs('Paths')`): a sequence of
-  naturals as positions and a length, `Path.at(i)`, `Path.len`, a table's row `Paths.row(r)`; `A.prefixOf(B)`,
-  `startsWith`, `equals`, `extends(B, k)`, `has(x)`, each a condition about every position below a length, so laws about
-  prefixes of paths need no induction or lemma. The request gives an array of naturals (interned names), a table an
-  array of them. `everyBelow(n, k => ...)` checks bookkeeping a request carries row by row (where each grant went). A
-  condition about every row of a table can't compare the rows' sequences (that is two keys at once); compare a row at a
-  named row, a witness, instead (`examples/scopes.ts`: pi-fabric's path scopes, covering, attenuation and normalization).
-- **Lists a request carries** (`.carriesList('Lines', Line, folds, lemmas)`): the items one carried map per variable of
-  the kind, the length `Lines.len`, each fold (`{total: {from: 0, step: (acc, line) => acc.plus(line.amount)}}`) a
-  carried map of its running values whose equations every request is assumed to meet (the encoding computes them from the
-  array, and a request that doesn't meet them isn't allowed), read as `Lines.fold.total`; `Lines.every`, `some`, `has`,
-  `increasing(by)`, `at(i)`. A lemma about the folds (`({taxed, total}) => taxed.atMost(total)`) is proven by induction
-  over the items when the rule is built, then assumed at every prefix; a decision (`decide`) assumes the equations and
-  lemmas too, at the list's end and wherever it reads the list. A lemma reads the folds, the prefix's length and the
-  params, not the items: a fact about every item is a fold's (a count of the items that meet it). A fold's start and
-  step, and a lemma, may read the params (`{from: ({fee}) => fee, step: (acc, line, {ceil}) => acc.plus(min(line.amount, ceil))}`); a request is then
-  encoded with them, `rule.encodeInput(values, params)` (`examples/invoices.ts`). `rule.foldsOf({Lines: [...]}, params)`
-  gives each fold at the list's end, computed the same way, without running the rule (to compare a decision's folds
-  with the code it describes).
-- **Folds over trees** (`fold(name).params(...).inputs(...).leaf(env => ({...})).node((env, left, right) => ({...}))`,
-  `proveFold`): a tree as a value (`{leaf: inputs}` or `{node: inputs, left, right}`), each leaf's values from its inputs
-  and each node's from its own and its children's; a law about the values is proven by induction over the tree (the
-  kernel's leaf and node goals, Lean's `fold_sound`), `f.run(tree, params)` evaluates the terms proven and `f.crossCheck`
-  holds the builders to them. Nodes with any number of children: `.children(from, (acc, kid) => ..., lemmas)` folds a
-  node's children into `kids`, then `.node((env, kids) => ...)`; it is the kernel's binary fold underneath (each child
-  list a chain of glue nodes), so Lean's `fold_sound` checks it unchanged, and `f.run` takes `{node, children: [...]}`
-  (`examples/folds.ts`).
-- **Trees in a rule's state, and lists of lists** (`.nodes('Tree', record({key: nat}), ['left', 'right'], folds)`): a
-  table of nodes that only grows, node 0 the empty tree, `Tree.make(value, {left, right}, when)` making node size + 1 from
-  nodes already there; each fold (`{lo: {empty: 0, node: (x, kids) => when(kids.left.empty, x.key, kids.left.fold.lo)}}`)
-  kept with its node when it is made, and may read a table declared before (a row's total over its cells). A law about
-  a subtree is then a law about one node (`Tree.node(n).fold.lo`), proven like any law about every key; the table's own
-  laws (children earlier, folds coherent, nothing past the end) are proven beside it (`examples/trees.ts`: a search tree,
-  a sheet of rows of cells). Claims that need a lemma about the tree's shape nobody stated stay Lean's.
-- **State of any kind**: `.state({open: bool.from(true), status: oneOf('new', 'done').from('new'), owner: str().from(''), note: maybe(nat).from(null)})`;
-  a step writes each kind's own values, `when(c, a, b)` chooses between any two values of a kind, and `rule.decode(state)`
-  reads them back as runtime values.
-- **Integers and decimals**: `int` and `decimal(places)` inputs, `.ints({...})` and `.decimals(places, {...})` state;
-  `plus`, `minus`, `negate`, `times(k)` (k may be negative), `min`, `max`, `abs`, `isNegative`, comparisons with numbers
-  (a decimal's literals are scaled: `price.atMost(19.99)`), and `modBy(k)`, `divBy(k)` by Euclid's rule (−7 div 2 is
-  −4, −7 mod 2 is 1, as SMT-LIB and Lean's `Int` read them); on a tick, `floorTo(k)`, `ceilTo(k)`, `roundTo(k, mode)`
-  (a half to the even one, up, down or away from 0) and `onTick(k)`, from those two. Each is two naturals underneath,
-  so the kernel twin sees nothing new; the Lean export states each law about integers again over `Int` (`law0_int`,
-  proven from the law over the naturals by `omega`), and `rule.decode(state)` reads them back as numbers. A natural's
-  `minus` stays truncated: an integer is a kind of its own, chosen where a value may go below 0 (`examples/arith.ts`).
-- **Strings**: `str({like: ['*.internal'], maxLength: 64})`. A string is its interned name, its length and a bit per
-  declared pattern (Cedar's glob), all computed from the string itself when the input is encoded. `s.like(pattern)`,
-  `s.eq('admin')` (which carries the literal's length and pattern bits, so laws reason from either), `s.isEmpty`,
-  `s.length`; sets of strings are carried maps keyed by `s.id`.
-- **Arithmetic** over the naturals: `plus`, `minus` (truncated), `times(k)`, `mul` (a product of two terms, a map's
-  cell among them: `Used.at(k).atMost(per.mul(Seats.at(k)))`), `modBy(k)` and `divBy(k)` by a constant k ≥ 1 (the rule's
-  functions mod$k and div$k, known to the kernel by x = k·(x div k) + x mod k and x mod k < k, Presburger arithmetic it
-  already decides; Lean's `%` and `/`, both facts proven by `omega`; division by a term isn't offered: x = y·q + r is a
-  product of two unknowns), `min`, `max`, `when(cond, a, b)`, `count(cond)`;
-  conditions `lt`, `atMost`, `eq`, `and`, `or`, `not`, `implies`. Where a law with products isn't linear in its
-  monomials, the prover multiplies facts together and adds squares, as Lean's `nlinarith` does: (x − y)² for each
-  product x·y the law reads, its factors as the step leaves them, and for each monomial split in two halves
-  (Cauchy–Schwarz's (ad − bc)²), times each factor past degree two (`research/frontier/nonlinear.ts`).
-- **Sets and quantifiers**: `.carries(...)` for sets a request brings, `everyKey(k => ...)` (and `has`, `subsetOf`,
-  `disjointFrom`, `sameAs`) anywhere in a step or inside a law, `everyKey((i, j) => ...)` in a step for every two keys
-  (each read on its own, compared with the other plainly: `i.lt(j)`), `M.each(k => ...)` to write every key, and
-  `someKey(k => ..., witness?)` for "some key where", proven through a witness the prover finds or the one given.
-- **There exists** (`exists(kind?, f, witness?)`, core/exists.ts): "some value of the kind (nat, int, bool, upTo(k))
-  where f holds", anywhere in a law where it reads so (under no `not`, not before `implies`), after its `forall` key if
-  it has one. The kernel never sees it: the law it proves is f with a witness term in place (a term of the state, for
-  each bound value), or f over ghosts the machine gains (a value at the start, and after each step one over the
-  witness before, the request and the state before), chosen by the kernel's counterexamples among what f's own atoms
-  solve for, 0, the state, the params, the request's values and shifts of the witness before, per case of the step; a
-  witness given, `exists(k => ..., lo)` or `{start, step: (k, env) => ...}`, is the only one tried. The verdict's
-  `witnesses` says how each reads. In the assumption (`exists(int, k => amount.eq(k.times(5)))`) or a precondition, it
-  is an input or a param the runtimes find (`encodeInput`, `encodeParams`: exact where it is one natural or integer
-  read linearly); a request no witness fits is refused. A run refutes a false one where no value can be a witness,
-  decided the same way.
-- **Functions** (`.fns({perMinute: divBy(60)})`, or `fn(arity, js, {facts, lean})` for your own): read like params that
-  take arguments, `perMinute(t)`; the kernel knows each only by its facts (`.facts(...)`, and a library function's
-  own), and the Lean export takes them as the hypothesis they are, proving them where the function has a Lean
-  definition. A function defined and proven in Lean is how a rule reaches past what the kernel decides: `examples/functions.ts`.
-- **Recurrences and their lemmas** (`recur(name, {args, fns, zero, next}, lemmas, between)`): f(0, a..) = zero and
-  f(x + 1, a..) = next(x, f(x, a..), a..), the further arguments `args` (up to four) fixed along the recursion, each term
-  the kernel's own or a read of a function in `fns` (`modBy(7)`, another recurrence), the start's too. Each lemma is a law about every x
-  and f(x), proven when the function is made, all of them together by induction (the recurrence run as a machine, each
-  lemma a law of it, so one lemma may lean on another, and on the facts of the functions it reads); each law `between`
-  is about every x <= y and f(x), f(y) ("never shrinks"), proven by induction on y from x, with the lemmas. One that
-  isn't proven throws `Unproven` with the induction step it breaks at. The two equations, the lemmas and the laws
-  between are the function's facts. The runtimes compute f by the recurrence, continuing from the last value computed at
-  the same further arguments (a rule that reads f at a growing count takes one step a request); the Lean export defines
-  `Recur.<name>` by it (a function of several arguments through an injective pairing, proven so in Lean) and checks the
-  kernel's own proof of every lemma and law between: the machine it was proven by, with its trees, and the run of it that
-  reaches x and f(x), so a lemma with a product (squares: f(x) = x·x) needs no tactic of Lean's (`examples/lemmas.ts`).
-- **Liveness** (`rule.leadsTo(name, {from, to, rank, helpful})`, `proveLeadsTo`): whenever `from` holds, `to` holds later in
-  every run that takes each helpful request infinitely often; proven by a rank no step raises while waiting and each
-  helpful request lowers in its region. `rank` may return several terms (compared in order) and `helpful` may be a list
-  of `{when, request}`; a request names only the inputs it fixes (`examples/liveness.ts`: batches, a history with a
-  query, a machine with sets).
-- **Pure functions** (`fun(name).inputs(...).returns(env => ({...}))`): each field of the result a term or a condition;
-  `f.law(name, given, then)` is a decision about the terms it returns and `f.run(values)` runs those terms compiled. A
-  decision assumes the functions' facts where it reads them.
-- **Two runs** (`r.relate(name, (a, b) => given, (a, b) => then)`, or `f.relate(...)` with both results): a decision
-  about two requests under the same params, for noninterference ("requests that differ only in a secret are decided
-  alike"); the second request's inputs show as `b.<input>` in a counterexample.
-- **Loops** (`loop(...)`): state, `while`, `body`, a `rank` (or a tuple of ranks) that must drop each turn. A loop is a
-  machine (its body taken while `while` holds) and its halting a liveness of it, so Lean checks it with the machine twin.
-- **Lean** (`gdp-wired/lean`): `toLean([{id, machine, laws, stepLaws}, ...])` writes the proofs as a Lean file, and
-  `leanProject(file)` a Lake project with the twin, so `lake build` checks them. Each law comes as the twin's theorem and
-  as a plain statement over named variables, e.g. `theorem budget.law0 (h : SReach budget_machine ρ μ) : ρ «s» ≤
-  (ρ «b» + ρ «m»)`, for a Lean development to cite.
-- **Retained proof lifting** (`gdp-wired/lift`): `gdp-wired lift capsule source.json --out proof` generates a fresh
-  Lean project from a data-only proof capsule and source model, without invariant search. The default command checks
-  the source laws in Lean; `--emit-only` does not claim acceptance. See [the lift guide](docs/lift.md) for supported
-  transports, hash-bound receipts, and the boundary between an encoded source theorem and an external specification.
-- **Composition** (`gdp-wired/compose`): `product(a, b)`, `interleave(a, b)`, `refinement(impl, spec, {relation, witness, stutter})`,
-  `steps(spec, k)` (k spec steps as one, each skippable) and `ghost(m, {name: ever(...) | count(...) | total(m, map, name)})`
-  build plain machines from machines (each side's state named `a_x`, `b_x`). A refinement's laws are the relation, proven
-  by induction, and its step law says the spec allows the request `witness` sends it at each of the implementation's:
-  `examples/composition.ts` proves a meter that counts down refines one that counts up, and refuses two broken ones;
-  a two-phase meter refines it with stuttering; an escrow never refunds after a release (at any distance); and the
-  connection pool's in-use count is the total of every client's holdings.
-- **Running it**: `rule.interpreter()` is persistent (searches branch from any state); `rule.compiled()` is what an app
-  ships: maps and the log updated in place, so a step costs the same however long the history. Both refuse params and
-  inputs that aren't naturals below 2^53 and any value past 2^53 − 1, where the proofs over the naturals stop describing
-  the run, and a request that fails the rule's `assume` (no proof covers the step it would take). The GPU searches refuse a space whose values could pass 2^32 − 1.
+[docs/writing-laws.md](docs/writing-laws.md) covers the rest: kinds (naturals, integers, decimals, strings, choices,
+optional values, records and variants), maps, sets and lists, histories, recurrences and their lemmas, liveness, pure
+functions and two-run laws, loops, the Lean export and composition.
 
 ## Numbers
 
@@ -688,8 +340,8 @@ Proving and checking: a law over 64 steps proves in about 5 s, and Lean checks i
 | `core/` | Machines, the interpreter and JS compiler, the builders, composition (`compose.ts`), the linear solver and its checker, Houdini invariants, models, the first Lean export |
 | `kernel/` | The trusted kernel and the untrusted prover, with soundness fuzz (`kernel.test.ts`, `history.test.ts`) |
 | `lean-kernel/` | The kernel's Lean twin, its soundness proofs, and the exported trees |
-| `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `guide.ts` (the guide's code), `groups.ts` (two groups decided at every pair), `budget.ts`, `gdp.ts` (gdp-ts's example, its checks proven), `exists.ts` (laws with "there exists"), `datatypes.ts` (records and variants), `lemmas.ts` (recurrences and their lemmas), `invoices.ts` (lists a request carries), `folds.ts` (folds over trees), `trees.ts` (trees and lists of lists in the state), `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `arith.ts` (division and remainder by a constant, integers in rules and datatypes), `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 64 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
-| `docs/` | [ARCHITECTURE.md](docs/ARCHITECTURE.md) (the trust boundaries and what guards each), [FRONTENDS.md](docs/FRONTENDS.md) (how a language's reader plugs in), [xstate.md](docs/xstate.md) (XState machines and model-based testing with `@xstate/graph`), [minimize.md](docs/minimize.md) (shrinking refuting runs with `minimizeRun`), [interchange.md](docs/interchange.md) (certificates as JSON, for checkers in other languages), the comparison with Bend and Lean |
+| `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), one file per feature (`budget.ts`, `liveness.ts`, `lemmas.ts`, `invoices.ts`, ...), `readme.ts` and `guide.ts` (the docs' code, kept proven), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
+| `docs/` | [what-it-proves.md](docs/what-it-proves.md), [writing-laws.md](docs/writing-laws.md) and [law-comments.md](docs/law-comments.md) (the reference behind this README), [ARCHITECTURE.md](docs/ARCHITECTURE.md) (the trust boundaries and what guards each), [FRONTENDS.md](docs/FRONTENDS.md) (how a language's reader plugs in), [xstate.md](docs/xstate.md) (XState machines and model-based testing with `@xstate/graph`), [minimize.md](docs/minimize.md) (shrinking refuting runs with `minimizeRun`), [interchange.md](docs/interchange.md) (certificates as JSON, for checkers in other languages), the comparison with Bend and Lean |
 | `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
 | `research/` | Everything around the library ([`research/README.md`](research/README.md)): the GPU searches (`search/`, `hw/`, `modal-gpu/`), invariant and rank synthesis (`synth/`), relational laws and guard synthesis (`next/`), bit-vector laws (`sat/`), the enumeration and benchmarks (`enum/`, `gpu/`, `perf/`), the first Lean checker (`lean/`) and the first prototype, the audit path (`audit/`) |
 | `supercomputer/` | Everything above as jobs on instabox boxes through [supercomputer](https://github.com/monotykamary/supercomputer): `suite.json` is the regression suite, `setup.sh` the boxes' image |
@@ -701,18 +353,21 @@ The npm package is built from `core/`, `kernel/` and `lean-kernel/` alone; nothi
 
 ## Running
 
-The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-wired/machine`), refutation run
-minimization (`gdp-wired/minimize`, also exported from `gdp-wired` and every frontend subpath), composition
-(`gdp-wired/compose`), XState machines and `@xstate/graph` model-based testing (`gdp-wired/xstate`, [`docs/xstate.md`](docs/xstate.md)), rules read from the code (`gdp-wired/extract`, with
-`typescript` installed), Effect services (`gdp-wired/effect`, with `typescript` and `effect`), lemmas nobody stated (`gdp-wired/discover`), invariant
-inference (`gdp-wired/infer`), the
-Lean export (`gdp-wired/lean`), the kernel (`gdp-wired/kernel`), the prover (`gdp-wired/prove`), the derivation checker
-and solver (`gdp-wired/check`, `gdp-wired/solver`), and the interchange reader and checker (`gdp-wired/interchange`, with
-the `gdp-wired-check` bin: `npx -p gdp-wired gdp-wired-check cert.json` checks a certificate `gdp-wired check --cert`
-wrote with the kernel alone, no search). Everything else here (examples, comparisons, the Lean twin, the GPU
-searches) runs from a clone and needs [Bun](https://bun.sh); Lean 4.34.0 for `lean/` and `lean-kernel/`; a WebGPU
-runtime (Chrome, or Dawn's node bindings) for the GPU parts. Releases: bump `version` in `package.json` and push to
-main; `.github/workflows/publish.yml` publishes it with npm provenance.
+The npm package is the library. Its entry points:
+
+| Import | What |
+| --- | --- |
+| `gdp-wired` | The builders, `proveRule` and the other provers, `minimizeRun` |
+| `gdp-wired/machine` | The runtimes: the interpreter, generated JavaScript, `search` |
+| `gdp-wired/extract`, `gdp-wired/effect`, `gdp-wired/xstate` | Rules read from TypeScript, Effect services and XState machines (need `typescript`; Effect needs `effect`) |
+| `gdp-wired/infer`, `gdp-wired/discover` | Invariants and lemmas nobody stated |
+| `gdp-wired/compose`, `gdp-wired/minimize` | Composition; shrinking a breaking run |
+| `gdp-wired/lean` | The Lean export |
+| `gdp-wired/kernel`, `gdp-wired/prove`, `gdp-wired/check`, `gdp-wired/solver` | The kernel, the prover, the derivation checker and the solver |
+| `gdp-wired/interchange` | Certificates as JSON; `npx -p gdp-wired gdp-wired-check cert.json` checks one with the kernel alone |
+
+Everything else here (examples, comparisons, the Lean twin, the GPU searches) runs from a clone with
+[Bun](https://bun.sh); Lean 4.34.0 for `lean/` and `lean-kernel/`, and a WebGPU runtime for the GPU parts.
 
 ```sh
 git clone --recursive https://github.com/monotykamary/gdp-wired && cd gdp-wired
@@ -729,6 +384,9 @@ supercomputer run --jobs supercomputer/suite.json --out runs/sc/suite
 ```
 
 Each directory's README has its own runs and results.
+
+Releases: bump `version` in `package.json` and push to main; `.github/workflows/publish.yml` gates it and publishes it
+with npm provenance.
 
 ## The skill
 
