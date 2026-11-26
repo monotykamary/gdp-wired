@@ -2468,8 +2468,97 @@ withClang('Review Probe 19: locked snapshot dirs (0500/0400), -H on every snapsh
       expect(leftovers, `${sig} must unlock and remove all snapshot dirs (sawSnap=${sawSnap})`).toEqual([])
     }
 
-    // (4) Known limit: <string.h> is documented in assumptions and refused (never falsely proven).
-    expect(assump).toContain('<string.h>')
+    // (4) <string.h> is no longer a known limit in C safety assumptions.
+    expect(assump).not.toContain('Known limit: C safety refuses files including <string.h>')
+  } finally {
+    rmSync(dir, {recursive: true, force: true})
+  }
+}, 180_000)
+
+withClang('C safety <string.h> support and glibc macro-hijack negative controls', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gdp-c-safety-stringh-'))
+  try {
+    // (1) Positive control: C safety file including <string.h> (triggering glibc __REDIRECT_NTH
+    //     <scratch space> expansion) proves cleanly, reports string.h in macroConfig.systemHeaders,
+    //     and still catches out-of-bounds faults natively under UBSan.
+    const okFile = join(dir, 'stringh_ok.c')
+    writeFileSync(
+      okFile,
+      '// gdp: safety\n#include <stdint.h>\n#include <string.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r, int32_t i) { if (i >= 0 && i < 8) return r->a[i]; return 0; }\nvoid put(struct ring *r, int32_t v) { if (r->n >= 0 && r->n < 8) { r->a[r->n] = v; r->n = r->n + 1; } }\n',
+    )
+    const rOk = await check([okFile], {propose: false})
+    expect(rOk.exit, '<string.h> safe file must prove (exit 0)').toBe(0)
+    expect(rOk.rules[0]?.safety).toMatchObject({status: 'proven', coveredFunctions: ['get', 'put']})
+    const sysHdrs = (rOk.rules[0]?.safety as {macroConfig?: {systemHeaders?: {path: string}[]}})?.macroConfig?.systemHeaders ?? []
+    expect(sysHdrs.some(h => h.path.endsWith('/string.h'))).toBe(true)
+
+    const badFile = join(dir, 'stringh_bad.c')
+    writeFileSync(
+      badFile,
+      '// gdp: safety\n#include <stdint.h>\n#include <string.h>\nstruct ring { int32_t n; int32_t a[8]; };\nint32_t get(struct ring *r, int32_t i) { if (i >= 0 && i <= 8) return r->a[i]; return 0; }\n',
+    )
+    const rBad = await check([badFile], {propose: false})
+    expect(rBad.exit, '<string.h> off-by-one file must report broken (exit 1)').toBe(1)
+    expect(rBad.rules[0]?.safety).toMatchObject({status: 'broken'})
+    expect(rBad.rules[0]?.safety?.issues.some(i => i.status === 'broken' && i.replay?.matchedSite)).toBe(true)
+
+    // (2) <string.h> file calling memcpy/strlen: passes the <string.h> macro audit and is soundly
+    //     refused at C safety call/type validation (never falsely proven, never blocked by the
+    //     system-header macro check); non-safety extractC reads <string.h> with strlen/memcpy via
+    //     answers/skip.
+    const memcpyFile = join(dir, 'stringh_memcpy.c')
+    writeFileSync(
+      memcpyFile,
+      '// gdp: safety\n#include <stdint.h>\n#include <string.h>\nstruct ring { int32_t n; int32_t a[8]; };\nvoid copy_n(struct ring *r, int32_t v) { int32_t t = v; memcpy(&r->n, &t, sizeof(t)); }\n',
+    )
+    const rMemcpy = await check([memcpyFile], {propose: false})
+    expect(rMemcpy.exit, 'unmodeled memcpy call in C safety must stay unchecked (exit 2)').toBe(2)
+    expect(rMemcpy.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+    const memcpyWhy = rMemcpy.rules[0]?.refusals.map(r => r.what).join('; ') ?? ''
+    expect(memcpyWhy).toContain('call to memcpy')
+    expect(memcpyWhy).not.toContain('user-defined macro expanded inside system header')
+
+    const strlenFile = join(dir, 'stringh_strlen.c')
+    writeFileSync(
+      strlenFile,
+      '// gdp: safety\n#include <stdint.h>\n#include <string.h>\nstruct ring { int32_t n; int32_t a[8]; };\nvoid set_len(struct ring *r) { int32_t k = (int32_t)strlen("abc"); if (k >= 0 && k < 8) r->n = k; }\n',
+    )
+    const rStrlen = await check([strlenFile], {propose: false})
+    expect(rStrlen.exit, 'unmodeled strlen call in C safety must stay unchecked (exit 2)').toBe(2)
+    expect(rStrlen.rules[0]?.safety).toMatchObject({status: 'unchecked'})
+    const strlenWhy = rStrlen.rules[0]?.refusals.map(r => r.what).join('; ') ?? ''
+    expect(strlenWhy).not.toContain('user-defined macro expanded inside system header')
+
+    const nonSafetyStr = join(dir, 'stringh_extract.c')
+    writeFileSync(
+      nonSafetyStr,
+      '#include <stdint.h>\n#include <string.h>\nstruct ring { int32_t n; };\nvoid copy_step(struct ring *r, int32_t v) { int32_t t = v; memcpy(&t, &v, sizeof(t)); int32_t k = (int32_t)strlen("abc"); if (k > 0) r->n = v; }\n',
+    )
+    const rNonSafety = extractC(nonSafetyStr, {entry: 'ring', methods: ['copy_step'], skip: ['memcpy'], answers: {strlen: 'int'}, check: {runs: 16, depth: 3, states: 16}})
+    expect(rNonSafety.ok, `extractC with <string.h> memcpy/strlen must succeed: ${JSON.stringify(rNonSafety.refusals)}`).toBe(true)
+
+    // (3) Hijack negative controls: user #define / #undef / -D of glibc-internal names
+    //     (__REDIRECT_NTH, ptrdiff_t, memcpy) or stringification (#x) must stay refused (exit 2).
+    const base = '// gdp: safety\n#include <stdint.h>\nstruct ring { int32_t n; int32_t a[8]; };\n'
+    const safeGet = 'int32_t get(struct ring *r, int32_t i) { if (i >= 0 && i < 8) return r->a[i]; return 0; }\n'
+    for (const [label, code, flags] of [
+      ['hijack-redir-body', base + '#define __REDIRECT_NTH(name, proto, alias) name proto; int32_t pub(int32_t x, int32_t y) { return x / y; } extern int __dummy proto\n#include <string.h>\n' + safeGet, [] as string[]],
+      ['hijack-redir-after-cdefs', base + '#include <sys/cdefs.h>\n#undef __REDIRECT_NTH\n#define __REDIRECT_NTH(name, proto, alias) name proto; int32_t pub(int32_t x, int32_t y) { return x / y; } extern int __dummy proto\n#include <string.h>\n' + safeGet, [] as string[]],
+      ['hijack-redir-strip', base + '#include <sys/cdefs.h>\n#undef __REDIRECT_NTH\n#define __REDIRECT_NTH(name, proto, alias) name proto\n#include <string.h>\n' + safeGet, [] as string[]],
+      ['hijack-redir-stringify', base + '#include <sys/cdefs.h>\n#undef __REDIRECT_NTH\n#define __REDIRECT_NTH(name, proto, alias) name proto __asm__(#alias)\n#include <string.h>\n' + safeGet, [] as string[]],
+      ['hijack-redir-cli-D', base + '#include <string.h>\n' + safeGet, ['-D__REDIRECT_NTH(name,proto,alias)=name proto']],
+      ['hijack-ptrdiff-strh', base + '#define ptrdiff_t PD_; int32_t pub(int32_t x, int32_t y) { return x / y; } typedef long PD2_\n#include <stddef.h>\n#include <string.h>\n#undef ptrdiff_t\n' + safeGet, [] as string[]],
+      ['hijack-ptrdiff-cli-D', base + '#include <stddef.h>\n#include <string.h>\n' + safeGet, ['-Dptrdiff_t=PD_; int32_t pub(int32_t x, int32_t y) { return x / y; } typedef long PD2_']],
+      ['hijack-memcpy-macro', base + '#define memcpy MY_MEMCPY_; int32_t pub(int32_t x, int32_t y) { return x / y; } extern void *MY_MEMCPY2_\n#include <string.h>\n#undef memcpy\n' + safeGet, [] as string[]],
+      ['hijack-memcpy-cli-D', base + '#include <string.h>\n' + safeGet, ['-Dmemcpy=MY_MEMCPY_; int32_t pub(int32_t x, int32_t y) { return x / y; } extern void *MY_MEMCPY2_']],
+      ['hijack-user-stringify', base + '#define STR(x) #x\n#include <string.h>\n' + safeGet, [] as string[]],
+    ] as const) {
+      const f = join(dir, `${label}.c`)
+      writeFileSync(f, code)
+      const res = await check([f], {propose: false, ...(flags.length ? {flags: [...flags]} : {})})
+      expect(res.exit, `${label} must exit 2`).toBe(2)
+      expect(res.rules[0]?.safety, `${label} must be unchecked`).toMatchObject({status: 'unchecked'})
+    }
   } finally {
     rmSync(dir, {recursive: true, force: true})
   }
