@@ -1437,10 +1437,10 @@ export function sumMachine(m: Machine, given?: Record<string, E[]>, laws: Law[] 
     qflags[flag] = {op: 'all', key, c: {op: '<=', a: dTerm(here, [{op: 'var', name: key}, ...cs]), b: S}}
     facts.push({op: 'and', xs: [{op: '<=', a: dTerm(here, cs), b: S}, {op: 'flag', name: flag}]})
     // A map it reads written at every key: at a key none of the cover keys is, the write keeps the cell. Built as
-    // Sums.lean's sumCoverGoal builds it (each write at every key in the machine's order, its flags inlined as Lean
-    // inlines them: a flag f read as (if f's condition then 1 else 0) = 1), so the Lean export reads these goals as they are.
-    const lean: Subst = {vars: {}, maps: {}, flags: Object.fromEntries(Object.entries(flagsOf(m)).map(([f, c]): [string, C] => [f, flags[f]!.op === 'all' ? c
-      : {op: '=', a: {op: 'if', c, then: {op: 'const', value: 1}, else: ZERO}, b: {op: 'const', value: 1}}]))}
+    // Sums.lean's sumCoverGoal builds it (each write at every key in the machine's order, plain flags inlined directly
+    // to their conditions as Progress.lean's eqOrFlag/inlineC does, quantified flags kept as `?f = 1`), so the Lean
+    // export reads these goals as they are.
+    const lean: Subst = {vars: {}, maps: {}, flags: flagsOf(m)}
     for (const [map, w] of Object.entries(m.step.maps ?? {})) {
       if (!('each' in w) || !read.includes(map)) continue
       const X: E = {op: 'var', name: x}

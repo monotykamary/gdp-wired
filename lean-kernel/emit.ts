@@ -1459,15 +1459,24 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
     return r2.proven ? r2 : undefined
   })] as const))
   const allowGoals = [...allowed.values()].flatMap(a => (a ? [a.out.goal!] : []))
-  // Each sum's cover goals (kernel.ts builds them as Sums.lean's sumCoverGoal does), per sum in order.
-  const covers = sm ? Object.keys(sm.sums!).map(s2 => sumMachine(sm, undefined, laws).goals.filter(g => g.name.startsWith(`${s2} @cover `))) : []
+  // Each sum's cover goals (exact `${s} @cover ${mp}` in step.maps order, matching Sums.lean's sumCoverGoal).
+  const sumGoalMap = sm ? new Map(sumMachine(sm, undefined, laws).goals.map(g => [g.name, g])) : new Map<string, Goal>()
+  const covers = sm ? Object.entries(sm.sums!).map(([s2, sum]) => {
+    const readMaps = new Set([...JSON.stringify(sum.term).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!))
+    return Object.entries(sm.step.maps ?? {}).flatMap(([mp, w]) => {
+      if (!('each' in w) || !readMaps.has(mp)) return []
+      const g = sumGoalMap.get(`${s2} @cover ${mp}`)
+      if (!g) throw new Error(`${id}: missing cover goal ${s2} @cover ${mp}`)
+      return [g]
+    })
+  }) : []
   const named = machineNames(m, laws, allSteps, stepLaws, {...opts, ...(hm ? {record: hm.history.record} : {})})
   const sumNames = sm ? Object.entries(sm.sums!).flatMap(([s2, sum]) => { const {flag, x} = sumParts(s2); return [s2, sum.key, `?${flag}`, `w?${flag}`, x] }) : []
   const vars = [...new Set([...named.vars, ...sumNames, ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? []), ...covers.flat(), ...(opts.kind ? [opts.kind.start.goal] : [])].flatMap(g => g.hyps.flatMap(varsOf))])]
   // A computation irrelevant to a proved law is still part of the source machine.
   // Include its getter namespace and all native schema helpers, not only goal reads.
   const sourceTerms = words ? [m, laws, allSteps] : []
-  const mapNames = [...new Set([...named.maps, ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals, ...sourceTerms]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!), ...wordSchemaMapNames(sourceTerms)])]
+  const mapNames = [...new Set([...named.maps, ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals, ...covers.flat(), ...sourceTerms]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!), ...wordSchemaMapNames(sourceTerms)])]
   const enc = (g: Goal, tree: Tree) => encode({name: `${id}: ${g.name}`, goal: g, tree}, false, true, vars, mapNames)
   const {e, c} = leanTerms(vars, mapNames, id)
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
