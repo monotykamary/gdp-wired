@@ -34,7 +34,7 @@ import {type TranslationFields, bindSourceMachine, inheritSource, isSourceBound,
 import {env as knobs} from './solver.ts'
 import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, exactMapSum, fnCall, hasFinite, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, sourceFreeFn, walk, withArithmetic} from './machine.ts'
 import {WatchUndecided, allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
-import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
+import {ghostOf, proveSome, skolemOf, smallOfChecked, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, sideGoals, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withModelRounds, type ModelRoundPolicy, withWall} from '../kernel/prove.ts'
 import {WallExpired, checkWall, checkBudget, checkWorkEndpoint, searchWall, withBudget, inBudget, BudgetExpired} from './wall.ts'
@@ -3443,6 +3443,21 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
       if (verified) return verified
     }
     return retainCounted({proven: c.proven, checked: c.proven, ...(c.why ? {why: c.why} : {}), found: {laws: c.laws.map(l => ({text: l.name}))}} as unknown as Verdict, c)
+  }
+  // A quantified existential law's witness search (proveSome/skolemOf) already explores smallOf(r.machine); check the
+  // caller's laws during that same small-instance BFS/walks so broken ∀∃ rules stop early with a replay-verified trace
+  // while intact rules reuse the populated `smalls` cache at zero extra BFS cost.
+  if (opts.search !== false && opts.from !== 'any' && laws.some(l => l.some?.length && l.forall && !l.witness)) {
+    let earlyVerdict: Verdict | undefined
+    smallOfChecked(r.machine, {
+      laws,
+      accept: v => {
+        const verified = replayVerifiedRefutation(originalRule, laws, [], v)
+        if (verified) { earlyVerdict = verified; return true }
+        return false
+      },
+    })
+    if (earlyVerdict) return earlyVerdict
   }
   // (with a search budget, the laws as given within it on the wall: a step goal of hundreds of hypotheses has a second
   // each by its own budget, so the search would never start)

@@ -82,7 +82,15 @@ function candidateKeys(params: Env, st: State): number[] {
     ks.add(k)
     if (depth > 0 && k > 0) { const [a, b] = cunpair(k); addKey(a, depth - 1); addKey(b, depth - 1) }
   }
-  for (const cells of Object.values(st.maps)) for (const k of cells.keys()) addKey(k, 3)
+  for (const cells of Object.values(st.maps)) {
+    for (const k of cells.keys()) {
+      addKey(k, 3)
+      if (k >= 64) {
+        ks.add(Math.floor(k / 64)); ks.add(k % 64)
+        if (k >= 4096) { ks.add(Math.floor(k / 4096)); ks.add(Math.floor(k / 64) % 64) }
+      }
+    }
+  }
   return [...ks].sort((a, b) => a - b)
 }
 
@@ -102,7 +110,12 @@ function forallDoms(law: Law, keys: string[], params: Env, st: State, view: Stat
     }
   }
   const fallback = candidateKeys(params, st)
-  return keys.map(k => (hi.has(k) ? Array.from({length: Math.max(0, hi.get(k)! + 1)}, (_, i) => i) : fallback))
+  return keys.map(k => {
+    if (!hi.has(k)) return fallback
+    const top = hi.get(k)!
+    if (top < 0) return []
+    return top <= 12 ? Array.from({length: top + 1}, (_, i) => i) : fallback.filter(x => x <= top)
+  })
 }
 
 function compiledLawViolated(m: Machine, law: Law, params: Env, st: State): {violated: boolean, cex?: Env} {

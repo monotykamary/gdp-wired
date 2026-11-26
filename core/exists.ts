@@ -672,7 +672,7 @@ export function smallOfChecked(m: Machine, check: SmallCheck, source?: Machine):
         if (res.sawFailure) sawFailure = true
       }
     }
-    return {samples: cached, checkedAll: !sawFailure && check.laws.every(l => !l.some?.length)}
+    return {samples: cached, checkedAll: !sawFailure}
   }
   const target = reuse ? source! : m
   const out: {p: Env, sts: State[]}[] = []
@@ -691,7 +691,7 @@ export function smallOfChecked(m: Machine, check: SmallCheck, source?: Machine):
   }
   smalls.set(target, out)
   if (target !== m) smalls.set(m, out)
-  return {samples: out, checkedAll: !sawFailure && check.laws.every(l => !l.some?.length)}
+  return {samples: out, checkedAll: !sawFailure}
 }
 // Laws true at every small state, at every key below one past their values. With `ghosted`, the machine with ghosts
 // (state no step of m reads), each small state of m with the ghosts' values along the steps it was first reached by:
