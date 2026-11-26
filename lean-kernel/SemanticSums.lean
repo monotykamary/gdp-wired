@@ -17,13 +17,14 @@ def Preserves (h : SumMachine) (ps : List SEntry) : Prop :=
       gAt d.g (sNext h.plain ρ M ι κ).2 key = gAt d.g M key
 
 variable (h : SumMachine)
-theorem sum_step (hok : sumOk h = true) (cover : Preserves h ps) {ρ M}
+theorem sum_step (hok : sumOk h = true) (hno : h.sums.all (fun d => d.reset.isNone) = true) (cover : Preserves h ps) {ρ M}
     (hsum : ∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v))
     (hlaws : ∀ e ∈ ps, e.Holds ρ M) (ι : Nat → Nat) (κ : Nat → Nat → Nat)
     (ha : evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 h.s.f.m.assume = true) :
     ∀ d ∈ h.sums, IsSum (gAt d.g (sNext h.plain ρ M ι κ).2) ((sNext h.plain ρ M ι κ).1 d.v) := by
   obtain ⟨hdist, hall⟩ := sumOk_parts hok
   intro d hd
+  have hnr : d.reset = none := Option.isNone_iff_eq_none.mp (List.all_eq_true.mp hno d hd)
   obtain ⟨hg, _, _, hcar, _, _, _, _, hv, _⟩ := sumOk1_parts (hall d hd)
   let V := (sView h.plain ρ M ι κ).1
   let N := withCarried h.s M κ
@@ -37,7 +38,7 @@ theorem sum_step (hok : sumOk h = true) (cover : Preserves h ps) {ρ M}
     show applyS (h.s.f.m.step ++ h.sums.map (fun d => (d.v, sumNext h.s d))) V N d.v = _
     simp only [applyS]
     rw [assoc_after (fun hm => hv (by simp [hm])), assoc_sums (sumNext h.s) hdist hd]
-    simp only [sumNext, evalE, hold, hnew]
+    simp only [sumNext, hnr, evalE, hold, hnew]
     have hview : V d.v = ρ d.v := view_v h hv ρ M ι κ
     rw [hview]
   rw [hval]
@@ -123,7 +124,7 @@ theorem sum_assume (hok : sumOk h = true) (hs : sOk h.plain = true) {ρ : Nat �
 
 
 theorem sum_cells (hl : checkSMachine h.plain ps = true) (hok : sumOk h = true)
-    (cover : Preserves h ps) :
+    (hno : h.sums.all (fun d => d.reset.isNone) = true) (cover : Preserves h ps) :
     ∀ ρ M, SReach h.plain ρ M →
       (∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v)) ∧ ∀ e ∈ ps, e.Holds ρ M := by
   intro ρ M hr
@@ -136,26 +137,26 @@ theorem sum_cells (hl : checkSMachine h.plain ps = true) (hok : sumOk h = true)
             (.and h.s.f.m.assume (sumsC h.sums)) = true := ha
         simp only [evalC, Bool.and_eq_true] at hboth
         exact hboth.1
-      exact ⟨sum_step h hok cover ih.1 ih.2 ι κ ha0,
+      exact ⟨sum_step h hok hno cover ih.1 ih.2 ι κ ha0,
         smachine_sound h.plain ps hl _ _ (.step ρ M ι κ hr ha)⟩
 
 theorem sum_holds (hl : checkSMachine h.plain ps = true) (hok : sumOk h = true)
-    (cover : Preserves h ps) :
+    (hno : h.sums.all (fun d => d.reset.isNone) = true) (cover : Preserves h ps) :
     ∀ ρ M, SReach h.plain ρ M → ∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v) :=
-  fun ρ M hr => (sum_cells h hl hok cover ρ M hr).1
+  fun ρ M hr => (sum_cells h hl hok hno cover ρ M hr).1
 
 theorem sum_allowed (hl : checkSMachine h.plain ps = true) (hok : sumOk h = true)
-    (cover : Preserves h ps) :
+    (hno : h.sums.all (fun d => d.reset.isNone) = true) (cover : Preserves h ps) :
     ∀ ρ M, SReach h.plain ρ M → ∀ ι κ,
       evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 h.plain.f.m.assume =
       evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 h.s.f.m.assume :=
-  fun ρ M hr ι κ => sum_assume h hok (sOk_of hl) (sum_holds h hl hok cover ρ M hr) ι κ
+  fun ρ M hr ι κ => sum_assume h hok (sOk_of hl) (sum_holds h hl hok hno cover ρ M hr) ι κ
 
 section project
 variable (hg : sghostOk h.ghosts = true)
 include hg
 theorem sum_project (hl : checkSMachine h.plain ps = true) (hok : sumOk h = true)
-    (cover : Preserves h ps) :
+    (hno : h.sums.all (fun d => d.reset.isNone) = true) (cover : Preserves h ps) :
     ∀ {ρ M}, SReach h.s ρ M → ∃ ρg, SReach h.plain ρg M ∧ Agree h.ghosts.vars ρg ρ := by
   intro ρ M hr
   induction hr with
@@ -171,14 +172,14 @@ theorem sum_project (hl : checkSMachine h.plain ps = true) (hok : sumOk h = true
     refine ⟨_, ?_, hS⟩
     rw [← hW]
     refine SReach.step ρg M ι κ hrg ?_
-    rw [sum_allowed h hl hok cover ρg M hrg ι κ, hA]; exact ha
+    rw [sum_allowed h hl hok hno cover ρg M hrg ι κ, hA]; exact ha
 
 /-- The laws of the plain machine that read no sum's name hold in every state the rule reaches. -/
 theorem sum_project_laws (ps : List SEntry) (hl : checkSMachine h.plain ps = true) (hok : sumOk h = true)
-    (cover : Preserves h ps) :
+    (hno : h.sums.all (fun d => d.reset.isNone) = true) (cover : Preserves h ps) :
     ∀ ρ M, SReach h.s ρ M → ∀ e ∈ ps, avoids h.ghosts.vars e.law.holds = true → e.Holds ρ M := by
   intro ρ M hr e he hav
-  obtain ⟨ρg, hrg, hag⟩ := sum_project h hg hl hok cover hr
+  obtain ⟨ρg, hrg, hag⟩ := sum_project h hg hl hok hno cover hr
   exact sentry_transfer (V := h.ghosts.vars) (MS := []) hav (by simp [avoidsMaps]) (fun i hi => (hag i hi).symm) (fun _ _ => rfl)
     (smachine_sound h.plain ps hl ρg M hrg e he)
 

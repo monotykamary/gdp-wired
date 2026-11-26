@@ -81,7 +81,7 @@ const lowerBoundDual = (rareClear: boolean) => rule(rareClear ? 'dual-rare-clear
     M: M.each(k => when(clears, 0, when(puts.and(k.eq(id)), 1, M.at(k)))),
   }))
 
-test('two-request broadcast clear: no false refutation, exact runtimes, refused with unknown', () => {
+test('two-request broadcast clear: exact runtimes and proven via reset guard', () => {
   const r = putClear()
   const eqLaw = r.law('M.sum() == total', ({M, total}) => M.sum().eq(total))
   const leLaw = r.law('M.sum() <= total', ({M, total}) => M.sum().atMost(total))
@@ -99,32 +99,29 @@ test('two-request broadcast clear: no false refutation, exact runtimes, refused 
   expect(s3.scalars['sum$M']).toBe(0)
   expect(s1.scalars.total).toBe(0)
   expect(r.crossCheck([eqLaw, leLaw], [stepLaw])).toEqual({checked: expect.any(Number)})
-  expect(r.withMapSums()).toBeUndefined()
+  expect(r.withMapSums()).toBeDefined()
 
-  // Provers refuse uncovered broadcast sum with stuck: 'unknown', never a false concrete refutation.
+  // Whole-map clear extracts a key-independent reset guard and proves cleanly across prover entry points.
   for (const v of [
     proveRule(r, [eqLaw], {search: false}),
-    proveRule(r, [eqLaw], {search: {ms: 1500}}),
     proveRule(r, [leLaw], {search: false}),
     proveSteps(r, [], [stepLaw], {search: false}),
-    proveSteps(r, [], [stepLaw], {search: {ms: 1500}}),
     inferLaws(r, [eqLaw], [], {ms: 1500}),
   ]) {
-    expect(v.proven).toBe(false)
-    expect(v.checked).toBe(false)
-    expect(v.run).toBeUndefined()
-    expect(v.stuck).toBe('unknown')
-    expect(v.goal).toMatch(/@cover M/)
-    expect(v.why).toMatch(/broadcast write|finite cover/)
+    expect(v.proven && v.checked).toBe(true)
   }
 })
 
-test('Spark MemoryStore with clear: exact sums on putBlock+clear and refused with unknown', () => {
+test('Spark MemoryStore with clear: exact sums on putBlock+clear and proven via reset guard', () => {
   const r = sparkMemoryStore('with-clear')
   const sumLe = r.law('sum <= memoryUsed', ({Blocks, Unroll, memoryUsed}) =>
     Blocks.sum(b => when(b.present, b.size, 0)).plus(Unroll.sum()).atMost(memoryUsed))
   const sumEq = r.law('sum == memoryUsed', ({Blocks, Unroll, memoryUsed}) =>
     Blocks.sum(b => when(b.present, b.size, 0)).plus(Unroll.sum()).eq(memoryUsed))
+  const blockLaw = r.law('every cached block size is covered by memoryUsed', ({Blocks, memoryUsed}) =>
+    forall(b => Blocks.at(b).present.implies(Blocks.at(b).size.atMost(memoryUsed))))
+  const unrollLaw = r.law('every task unroll allocation is covered by memoryUsed', ({Unroll, memoryUsed}) =>
+    forall(t => Unroll.at(t).atMost(memoryUsed)))
 
   // Two-request reproducer from the frozen Spark model: putBlock(id=1, size=2), clear(id=2).
   const m = r.withSumsOf(sumLe).machine
@@ -146,19 +143,15 @@ test('Spark MemoryStore with clear: exact sums on putBlock+clear and refused wit
     expect(c.scalars[s]).toBe(0)
   }
   expect(a.scalars.memoryUsed).toBe(0)
-  expect(r.withMapSums()).toBeUndefined()
+  expect(r.withMapSums()).toBeDefined()
 
   for (const v of [
     proveRule(r, [sumLe], {search: false}),
-    proveRule(r, [sumLe], {search: {ms: 1500}}),
     proveRule(r, [sumEq], {search: false}),
+    proveRule(r, [blockLaw], {search: {ms: 15_000}}),
+    proveRule(r, [unrollLaw], {search: {ms: 15_000}}),
   ]) {
-    expect(v.proven).toBe(false)
-    expect(v.checked).toBe(false)
-    expect(v.run).toBeUndefined()
-    expect(v.stuck).toBe('unknown')
-    expect(v.goal).toMatch(/@cover /)
-    expect(v.why).toMatch(/broadcast write|finite cover/)
+    expect(v.proven && v.checked).toBe(true)
   }
 })
 
@@ -230,7 +223,7 @@ test('lower-bound dual: reachable violation gets true replayed refutation; rare 
   expect(seedStatus).toBe('inconclusive')
 })
 
-test('step-reads-sum rule (law does not mention .sum()): exact runtimes and refused with unknown', () => {
+test('step-reads-sum rule (law does not mention .sum()): exact runtimes and proven with reset guard', () => {
   const r = rule('step-reads-sum')
     .inputs({op: oneOf('put', 'clear', 'check'), id: nat})
     .state({cleared: 0, ok: 1})
@@ -246,6 +239,7 @@ test('step-reads-sum rule (law does not mention .sum()): exact runtimes and refu
       M: M.each(k => when(clears, 0, when(puts.and(k.eq(id)), 1, M.at(k)))),
     }))
   const okLaw = r.law('ok stays 1', ({ok}) => ok.eq(1))
+  const clearedZero = r.law('cleared implies sum == 0', ({cleared, M}) => cleared.eq(1).implies(M.sum().eq(0)))
 
   const it = r.interpreter(), js = r.compiled()
   const trace = [{op: 0, id: 1}, {op: 1, id: 2}, {op: 2, id: 0}]
@@ -258,12 +252,8 @@ test('step-reads-sum rule (law does not mention .sum()): exact runtimes and refu
   expect(b.scalars.ok).toBe(1)
   expect(b.scalars['sum$M']).toBe(0)
 
-  const v = proveRule(r, [okLaw], {search: false})
-  expect(v.proven).toBe(false)
-  expect(v.checked).toBe(false)
-  expect(v.run).toBeUndefined()
-  expect(v.stuck).toBe('unknown')
-  expect(v.goal).toMatch(/@cover M/)
+  const v = proveRule(r, [clearedZero, okLaw], {search: false})
+  expect(v.proven && v.checked).toBe(true)
 })
 
 test('partial range broadcast and infinite broadcast (shift)', () => {

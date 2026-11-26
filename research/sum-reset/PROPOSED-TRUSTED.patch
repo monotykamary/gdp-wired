@@ -1,0 +1,984 @@
+diff --git a/core/conformance.ts b/core/conformance.ts
+index 46a68cf7b..9f7719f50 100644
+--- a/core/conformance.ts
++++ b/core/conformance.ts
+@@ -459,19 +459,20 @@ export type SumCase = {m: Machine, laws: Law[], family: string, proof: {instance
+ const sumKey = 'k$S', at = (key: E): E => ({op: 'get', map: 'M', key}), eqE = (a: E, b: E): C => ({op: '=', a, b}), and2 = (a: C, b: C): C => ({op: 'and', xs: [a, b]})
+ const iteE = (c: C, a: E, b: E): E => ({op: 'if', c, then: a, else: b}), add = (a: E, b: E): E => ({op: 'add', a, b}), sub = (a: E, b: E): E => ({op: 'sub', a, b})
+ export function randomSumMachine(): {m: Machine, laws: Law[], family: string} {
+-  const family = pick(['set', 'two', 'move', 'flag'] as const), termFam = family === 'move' || family === 'flag' ? 'cell' : pick(['cell', 'count', 'cap'] as const)
++  const family = pick(['set', 'two', 'move', 'flag', 'reset'] as const), termFam = family === 'move' || family === 'flag' || family === 'reset' ? 'cell' : pick(['cell', 'count', 'cap'] as const)
+   const cell = at(v(sumKey)), term: E = termFam === 'cell' ? cell : termFam === 'count' ? iteE({op: '<', a: k(0), b: cell}, k(1), k(0)) : {op: 'min', a: cell, b: k(3)}
+   const op = (i: number) => eqE(v('op'), k(i)), K = v('k$w')
+   const write = family === 'set' ? {key: v('w'), value: iteE(op(0), v('u'), iteE(op(1), add(at(v('w')), v('u')), sub(at(v('w')), v('u'))))}
+     : family === 'two' ? {each: 'k$w', value: iteE(and2(op(0), eqE(K, v('w'))), add(at(K), v('u')), iteE(and2(op(1), eqE(K, v('w2'))), sub(at(K), v('u')), at(K)))}
+     : family === 'flag' ? {each: 'k$w', value: iteE(and2(op(0), eqE(K, v('w'))), k(1), iteE(and2(op(1), eqE(K, v('w'))), k(0), iteE(eqE(at(K), k(1)), k(1), k(0))))}
++    : family === 'reset' ? {each: 'k$w', value: iteE(op(2), k(0), iteE(and2(op(0), eqE(K, v('w'))), add(at(K), v('u')), at(K)))}
+     : {each: 'k$w', value: iteE(op(0), iteE(eqE(K, v('w')), add(at(K), v('u')), at(K)),
+         iteE(and2(op(1), {op: '<=', a: v('u'), b: at(v('w'))}), add(sub(at(K), iteE(eqE(K, v('w')), v('u'), k(0))), iteE(eqE(K, v('w2')), v('u'), k(0))), at(K)))}
+-  const m: Machine = {name: `sums ${family} ${termFam}`, params: [], inputs: ['op', 'w', 'w2', 'u'], state: {S: k(0), ...(family === 'move' ? {T: k(0)} : {})}, maps: {M: 0},
+-    step: {maps: {M: write}, ...(family === 'move' ? {state: {T: iteE(op(0), add(v('T'), v('u')), v('T'))}} : {})},
+-    assume: and2({op: '<=', a: v('op'), b: k(2)}, {op: '<=', a: v('u'), b: k(5)}), sums: {S: {key: sumKey, term}}}
++  const m: Machine = {name: `sums ${family} ${termFam}`, params: [], inputs: ['op', 'w', 'w2', 'u'], state: {S: k(0), ...(family === 'move' || family === 'reset' ? {T: k(0)} : {})}, maps: {M: 0},
++    step: {maps: {M: write}, ...(family === 'move' ? {state: {T: iteE(op(0), add(v('T'), v('u')), v('T'))}} : family === 'reset' ? {state: {T: iteE(op(2), k(0), iteE(op(0), add(v('T'), v('u')), v('T')))}} : {})},
++    assume: and2({op: '<=', a: v('op'), b: k(2)}, {op: '<=', a: v('u'), b: k(5)}), sums: {S: {key: sumKey, term, ...(family === 'reset' ? {reset: op(2)} : {})}}}
+   const laws: Law[] = [{name: 'each key at most the sum', forall: 'k$l', holds: {op: '<=', a: JSON.parse(JSON.stringify(term).replaceAll('"k$S"', '"k$l"')) as E, b: v('S')}},
+-    ...(family === 'move' ? [{name: 'the sum is the total', holds: eqE(v('S'), v('T'))}, {name: 'each cell at most the total', forall: 'k$l', holds: {op: '<=', a: at(v('k$l')), b: v('T')} as C}] : []),
++    ...(family === 'move' || family === 'reset' ? [{name: 'the sum is the total', holds: eqE(v('S'), v('T'))}, {name: 'each cell at most the total', forall: 'k$l', holds: {op: '<=', a: at(v('k$l')), b: v('T')} as C}] : []),
+     ...(family === 'flag' ? [{name: 'every M cell is a value of its kind', forall: 'k$c', holds: {op: '<=', a: at(v('k$c')), b: k(1)} as C}] : [])]
+   return {m, laws, family}
+ }
+@@ -518,6 +519,14 @@ export function sumCases(n: number): SumCase[] {
+       const value = iteE(and2(eqE(v('op'), k(0)), eqE(K, add(v('w'), k(1)))), add(at(K), k(1)), w.value)
+       tampers.push({what: 'a key past the cover written', m: {...m, step: {...m.step, maps: {M: {each: w.each, value}}}}, covers: {S: cs}})
+     }
++    if (family === 'reset') {
++      const w = m.step.maps!.M! as {each: string, value: E}, K = v(w.each)
++      tampers.push({what: 'partial wipe under reset', m: {...m, step: {...m.step, maps: {M: {each: w.each, value: iteE(and2(eqE(v('op'), k(2)), {op: '<', a: K, b: v('w2')}), k(0), iteE(and2(eqE(v('op'), k(0)), eqE(K, v('w'))), add(at(K), v('u')), at(K)))}}}}})
++      tampers.push({what: 'reset that also writes', m: {...m, step: {...m.step, maps: {M: {each: w.each, value: iteE(eqE(v('op'), k(2)), iteE(eqE(K, v('w')), v('u'), k(0)), iteE(and2(eqE(v('op'), k(0)), eqE(K, v('w'))), add(at(K), v('u')), at(K)))}}}}})
++      tampers.push({what: 'key-dependent reset guard', m: {...m, sums: {S: {...sum, reset: {op: '<', a: v(sumKey), b: v('w2')}}}}})
++      tampers.push({what: 'reset guard reading summed cell', m: {...m, sums: {S: {...sum, reset: and2(eqE(v('op'), k(2)), eqE(at(v('w')), k(0)))}}}})
++      tampers.push({what: 'reset dropped from declaration', m: {...m, sums: {S: {key: sum.key, term: sum.term}}}})
++    }
+     if (family === 'flag') {
+       const j = laws.length - 1, kind = laws[j]!, others = laws.slice(0, j)
+       tampers.push({what: 'the kind left out of the cover goals', m, coverLaws: others})
+diff --git a/core/dsl.ts b/core/dsl.ts
+index 03285e83c..4b7ca9cba 100644
+--- a/core/dsl.ts
++++ b/core/dsl.ts
+@@ -1,6 +1,7 @@
+ import {retainFrom, retainCounted, retainAggregate, publishProof, withPublicRule, retainStepProof, publishStepProof, retainLiveProof, publishLiveProof} from './proof-output.ts'
+ import {searchAggregate} from './aggregate-search.ts'
+ import {type DeclareSum, cellSeeds, coveringSeeds} from './covering.ts'
++import {extractSumReset} from './sum-reset.ts'
+ import {searchNow as countedSearchNow} from './wall.ts'
+ // Typed builders for machines, decisions and loops: names are declared once and come back as typed values, so a
+ // misspelled name, a law that reads a request, or a step that sets an undeclared variable is a TypeScript error, and
+@@ -887,6 +888,14 @@ export const sumsIn = (ts: unknown[], more: Iterable<string> = []): Record<strin
+   const names = new Set([...more, ...[...JSON.stringify(ts).matchAll(/"op":"var","name":"(sum\$[^"]+)"/g)].map(x2 => x2[1]!.replace(/'$/, ''))].filter(n => sumDecls.has(n)))
+   return names.size ? Object.fromEntries([...names].sort().map(n => [n, sumDecls.get(n)!])) : undefined
+ }
++function withSumResets(m: Machine, sums: Record<string, Sum> | undefined): Record<string, Sum> | undefined {
++  if (!sums) return undefined
++  return Object.fromEntries(Object.entries(sums).map(([name, sum]) => {
++    if (sum.reset !== undefined) return [name, sum]
++    const reset = extractSumReset(m, sum, name)
++    return [name, reset ? {...sum, reset} : sum]
++  }))
++}
+ 
+ // A map from naturals to naturals, every cell starting at `init`. One write per map per step.
+ export class MapRef {
+@@ -1801,7 +1810,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M
+       const name = (new MapRef(map, 0).sum().e as {name: string}).name
+       if (have.has(name)) continue
+       try {
+-        const cand: Machine = {...m, sums: {...m.sums, ...sumsIn([], [name])}}
++        const cand: Machine = {...m, sums: {...m.sums, ...withSumResets(m, sumsIn([], [name]))}}
+         const {goals} = sumMachine(cand, undefined, kinds)
+         if (checkCovers && goals.length && refusedSumCover(cand, kinds)) continue
+         more.add(name)
+@@ -2339,7 +2348,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M
+       }
+     }
+     // (each sum a state variable from 0 the step never sets: sumMachine sets it, exact)
+-    const sums = sumsIn(machineTerms(m), s.sumsRead ?? [])
++    const sums = withSumResets(m, sumsIn(machineTerms(m), s.sumsRead ?? []))
+     const out = withArithmetic(sums ? {...m, state: {...m.state, ...Object.fromEntries(Object.keys(sums).map(n => [n, {op: 'const', value: 0} as E]))}, sums} : m, [], s.arith ?? [])
+     const encoded = encodeBinders(out, this.names().map(([n]) => n))
+     const machine = s.ghost ? s.ghost(encoded) : encoded
+@@ -3034,11 +3043,18 @@ function guidesOf(m: Machine): ((env: Record<string, number>, st: State, rand: R
+ // finite-cover approximation.
+ export function refusedSumCover(m: Machine, laws: Law[] = []): {goal: string, why: string} | undefined {
+   if (!m.sums || !Object.keys(m.sums).length) return undefined
+-  const covers = sideGoals(m, laws).filter(g => g.name.includes(' @cover '))
++  const covers = sideGoals(m, laws).filter(g => g.name.includes(' @cover ') || g.name.endsWith(' @reset'))
+   if (!covers.length) return undefined
+   for (const g of covers) {
+     const out = grow(g)
+     if (!('tree' in out) || !check(g, out.tree)) {
++      if (g.name.endsWith(' @reset')) {
++        const sumName = g.name.slice(0, -' @reset'.length)
++        return {
++          goal: g.name,
++          why: `sum ${sumName} cannot be reset to 0 across its reset guard`,
++        }
++      }
+       const [sumName, mapName] = g.name.split(' @cover ')
+       return {
+         goal: g.name,
+@@ -3317,7 +3333,7 @@ function tryCovering(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, law: Law,
+         const name = sumOfTerm(map, at, plain)
+         if (!Object.hasOwn(base.sums ?? {}, name)) {
+           const k = kinds ?? (kinds = r.kindLaws())
+-          const cand: Machine = {...base, sums: {...base.sums, ...sumsIn([], [name])}}
++          const cand: Machine = {...base, sums: {...base.sums, ...withSumResets(base, sumsIn([], [name]))}}
+           const {goals} = sumMachine(cand, undefined, k)
+           if (goals.length && refusedSumCover(cand, k)) return undefined
+         }
+diff --git a/core/machine.ts b/core/machine.ts
+index 20906f202..caa4fea1a 100644
+--- a/core/machine.ts
++++ b/core/machine.ts
+@@ -177,9 +177,10 @@ export type Recurrence = {args: string[], zero: E, next: E, lemmas: {name: strin
+ // order goes back.
+ export type History = {keep: C, record: string[], sums: Record<string, E>, queries: Record<string, E>, relations?: {when: C, holds: C}[], prune?: {order: string, after: E}}
+ // A sum over every key: `term` reads the maps only at `key` (M[key], a record's fields there), and is 0 where every map
+-// it reads holds its start value. The kernel keeps the sum exact (each step moves it by the term's change at the keys
+-// the step writes) and gives every goal that the term at any key, with the keys a step writes, is at most the sum.
+-export type Sum = {key: string, term: E}
++// it reads holds its start value. The kernel keeps the sum exact (each step moves it to 0 when `reset` holds, else by
++// the term's change at the keys the step writes) and gives every goal that the term at any key, with the keys a step
++// writes, is at most the sum.
++export type Sum = {key: string, term: E, reset?: C}
+ // A count: `j` the map's key, `key` the counted key, both bound (`below` reads j, not key; `body` reads both). Over two
+ // parameters (`lo` and `base`): the map at x is the count with j at x / base and lo at x % base, so a law reads it at the
+ // composed key base·a + b (b < base) of a relation (CountMachine.lean's atJ).
+@@ -280,7 +281,7 @@ export function withArithmetic(m: Machine, more: readonly (E | C)[] = [], ks: It
+ // Every term and condition a machine holds.
+ export const machineTerms = (m: Machine): (E | C)[] => [...Object.values(m.state), ...(m.primitiveFailure ? [m.primitiveFailure] : []), ...Object.values(m.step.flags ?? {}), ...Object.values(m.step.state ?? {}),
+   ...Object.values(m.step.maps ?? {}).flatMap(w => ('key' in w ? [w.key, w.value] : [w.value])), ...(m.pre ? [m.pre] : []), ...(m.assume ? [m.assume] : []),
+-  ...(m.facts ?? []).map(f => f.holds), ...(m.history ? [m.history.keep, ...Object.values(m.history.sums), ...Object.values(m.history.queries), ...(m.history.relations ?? []).flatMap(r => [r.when, r.holds])] : [])]
++  ...(m.facts ?? []).map(f => f.holds), ...(m.sums ? Object.values(m.sums).flatMap(s => (s.reset ? [s.reset] : [])) : []), ...(m.history ? [m.history.keep, ...Object.values(m.history.sums), ...Object.values(m.history.queries), ...(m.history.relations ?? []).flatMap(r => [r.when, r.holds])] : [])]
+ 
+ // --- the runtime ---------------------------------------------------------------------------------------------------
+ 
+diff --git a/kernel/README.md b/kernel/README.md
+index 788beeb2a..96c708047 100644
+--- a/kernel/README.md
++++ b/kernel/README.md
+@@ -8,7 +8,7 @@
+ | `qprove.ts` | Untrusted: `growQ`, the tree search for goals over ℚ. Each node's rows are the kernel's (`qLeafRows`); the incremental simplex over ℚ (`simplex.ts`, `integral` false) picks a conflict's rows and the elimination (`solver.ts`, no cut) refutes them exactly; otherwise a split on an open atom (a choice a term leaves open, a disjunction's or ≠'s comparison), and with none open the elimination decides the node, refuted or an exact model |
+ | `kernel.ts`: scope | Every name a machine, loop or fold reads is one it declares (params, inputs, state, maps, flags declared before, a law's own key); refused before any goal is made, since a goal would read a typo as one more free natural while the runtimes have no value for it |
+ | `kernel.ts`: histories | `historyMachine`: a machine that keeps a log of requests (`keep`, the recorded inputs read as `r.<input>`, a name prefix no other name may use). Sums are state, the sum over the log of a term of the record and params; queries are inputs, the sum over the log before the request of a term of the record, params and plain inputs; a relation `when ⇒ a ≤ b`, homogeneous over sums and queries with `when` over params and plain inputs, is proven for one record and then assumed at every step (both sides are sums over one list). `prune` adds a goal per query: a record whose order plus `after` is at most the request's adds 0, so the runtimes may drop it (they refuse requests out of order). Lean twin: `../lean-kernel/History.lean` |
+-| `kernel.ts`: sums over a map's keys | `sumMachine`: each sum (`m.sums[S] = {key, term}`, `M.sum()`) a state variable from 0, after each step `(S + new) ∸ old`, old and new the term at the cover keys (each once, `dTerm`) before and after the step; the assumption conjoined with `old ≤ S` and a quantified flag `cells$S`: at every key k, the term at k and at the cover keys is at most S. The cover keys (`sumCovers`): each map the term reads written at one key, that key; written at every key, the keys its value compares the bound key with, a cover goal per such write (`S @cover M`: at any other key the cell is kept, built as Lean builds it). Refused: a term reading anything but its maps at its key, not 0 at the start, a carried map or a function, a cover key reading a flag. `sumRuntime` is what the runtimes step (the sums' steps, the rule's own assumption); `plainOf` the plain machine of a history or sums. Lean twin: `../lean-kernel/Sums.lean` |
++| `kernel.ts`: sums over a map's keys | `sumMachine`: each sum (`m.sums[S] = {key, term, reset?}`, `M.sum()`) a state variable from 0, after each step `if reset then 0 else (S + new) ∸ old`, old and new the term at the cover keys (each once, `dTerm`) before and after the step; the assumption conjoined with `old ≤ S` and a quantified flag `cells$S`: at every key k, the term at k and at the cover keys is at most S. The cover keys (`sumCovers`): each map the term reads written at one key, that key; written at every key, the keys its value compares the bound key with, a cover goal per such write (`S @cover M`: under `¬reset`, at any other key the cell is kept, built as Lean builds it); with `reset`, one reset goal (`S @reset`: under `reset`, at any key the post-step term is 0). Refused: a term reading anything but its maps at its key, not 0 at the start, a carried map or a function, a cover key reading a flag, a reset guard reading any key variable or any summed map (even via plain flags). `sumRuntime` is what the runtimes step (the sums' steps, the rule's own assumption); `plainOf` the plain machine of a history or sums. Lean twin: `../lean-kernel/Sums.lean` |
+ | `kernel.ts`: strong fairness | `livenessParts` under `fairness: 'strong'`: the stay keeps `from` or reaches `to` with the rank never rising (no region kept), and each helpful request reaches `to`, lowers the rank or reaches the region of one of a higher `levels` (prove.ts's `chooseLevels` finds them; each helpful request then shown allowed in its region, its free inputs given witness terms). Lean twin: `../lean-kernel/Live.lean`'s `sleads_sf_soundA` |
+ | `kernel.ts`: sets | A request may carry whole maps (`inputMaps`); a step flag may hold at every key (`{op: 'all', key, c}`, its body reading no flag and the key only in key terms: alone, or plus or less a term that doesn't read it, as a map's key or a side of a comparison, so the runtimes decide it on finitely many breakpoints); a map may be written at every key (`{each, value}`). A goal reads a quantified flag f as its 0/1 variable `?f` and closes it: `?f ≤ 1`, `?f = 0 ∨ body(t)` at the keys t the proof names (instances under `?f`), and `?f = 1 ∨ ¬body(w?f)` at a fresh witness, which every real step satisfies. A later step of a k-step law reads `?f@j`, `w?f@j` and `Map@j`. A machine with a history takes none of these. (A quantifier written anywhere else in a step is named as a flag by `../core/dsl.ts`, and one inside a law pulled out as its key; one under a not in a law is some key, proven by `prove.ts` through a witness term, the law proven being the stronger one with the witness in place) |
+ | `kernel.ts`: nontermination | `checkRecur`: a loop has a run that never ends (NonTerm.lean's `NeverEnds`). The certificate is a closed recurrent set with its successor given: a condition over the state and params, a term per input over the state and params (the turn taken from the set), the params as values and a stem of turns' inputs from the start into the set. The start and the stem are evaluated exactly (bigint naturals, as Lean's `Nat`, map cells 0); the closure goal (`recurGoal`, built as Lean builds it: the set, and the witnessed turn failing `while` or the assumption or leaving the set) is a kernel goal. Lean twin: `../lean-kernel/NonTerm.lean` (`never_ends_of`) |
+diff --git a/kernel/kernel.ts b/kernel/kernel.ts
+index bbcf09125..716832eda 100644
+--- a/kernel/kernel.ts
++++ b/kernel/kernel.ts
+@@ -1408,7 +1408,7 @@ export function sumMachine(m: Machine, given?: Record<string, E[]>, laws: Law[]
+     ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))]
+   const steps: Record<string, E> = Object.create(null), qflags: Record<string, C> = Object.create(null), facts: C[] = [], goals: Goal[] = []
+   for (const [s, sum] of sums) {
+-    const {term, key} = sum, {flag, x} = sumParts(s), cs = own(covers, s)!
++    const {term, key, reset} = sum, {flag, x} = sumParts(s), cs = own(covers, s)!
+     const read = [...new Set([...JSON.stringify(term).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!))]
+     const bad = (why: string) => { throw new Error(`${m.name}: the sum ${s}: ${why}`) }
+     for (const name of [s, key, flag, x]) { plainName(m.name, name); if (names.includes(name) || Object.hasOwn(m.sums ?? {}, name) && name !== s) bad(`${name} is already a name of the machine`) }
+@@ -1423,6 +1423,30 @@ export function sumMachine(m: Machine, given?: Record<string, E[]>, laws: Law[]
+     for (const c of cs) if (JSON.stringify(c).includes('"op":"flag"') || readsKey(c, key) || readsKey(c, x)) bad('a key a step writes it at reads a flag')
+     // (Sums.lean's sumOk1: a map the term reads written at one key has that key among the cover keys)
+     for (const map of read) { const w = own(m.step.maps ?? {}, map); if (w && !('each' in w) && !cs.some(c => JSON.stringify(c) === JSON.stringify(w.key))) bad(`the key ${map} is written at is no cover key`) }
++    // Plain flags inlined directly to their conditions (matching Progress.lean's eqOrFlag/inlineC and updateOf),
++    // quantified flags kept as `?f = 1`.
++    const lean: Subst = {vars: {}, maps: {}, flags: flagsOf(m)}
++    // Optional key-independent reset guard (Sums.lean's resetOk): unquantified, natural, only declared flags,
++    // reads no key variable (sum.key, x$S, any each-write bound key) and no map aggregated by `term` (even via flags).
++    let resetInlined: C | undefined
++    if (reset !== undefined) {
++      if (!naturalC(reset)) bad('its reset guard has a negative constant or factor')
++      unquantified(`${m.name}: the sum ${s}'s reset`, reset)
++      const rawReset = reads(reset)
++      for (const f of rawReset.flags) if (!Object.hasOwn(flags, f)) bad(`its reset guard reads undeclared flag ${f}`)
++      if (readsKey(reset, key) || readsKey(reset, x)) bad('its reset guard reads a key variable')
++      resetInlined = substC(reset, lean)
++      if (readsKey(resetInlined, key) || readsKey(resetInlined, x)) bad('its reset guard reads a key variable')
++      for (const w of Object.values(m.step.maps ?? {})) {
++        if ('each' in w && (readsKey(reset, w.each) || readsKey(resetInlined, w.each))) bad('its reset guard reads a write key')
++      }
++      const resetMaps = reads(resetInlined).maps
++      if (read.some(mp => resetMaps.has(mp))) bad('its reset guard reads a summed map')
++      for (const map of read) {
++        const w = own(m.step.maps ?? {}, map)
++        if (w && !('each' in w) && (readsKey(substE(w.key, lean), x) || readsKey(substE(w.value, lean), x))) bad(`the write to ${map} reads ${x}`)
++      }
++    }
+     const here = (t: E): E => substE(term, {vars: {[key]: t}, maps: {}, flags: same})
+     // A map read after the step, over the step's view (Sums.lean's postRd).
+     const post = (map: string) => (k2: E): E => {
+@@ -1433,19 +1457,39 @@ export function sumMachine(m: Machine, given?: Record<string, E[]>, laws: Law[]
+     }
+     const after = (t: E): E => substE(term, {vars: {[key]: t}, maps: Object.fromEntries(read.map(map => [map, post(map)])), flags: same})
+     const S: E = {op: 'var', name: s}
+-    steps[s] = {op: 'sub', a: {op: 'add', a: S, b: dTerm(after, cs)}, b: dTerm(here, cs)}
++    const delta: E = {op: 'sub', a: {op: 'add', a: S, b: dTerm(after, cs)}, b: dTerm(here, cs)}
++    steps[s] = reset !== undefined ? {op: 'if', c: reset, then: ZERO, else: delta} : delta
+     qflags[flag] = {op: 'all', key, c: {op: '<=', a: dTerm(here, [{op: 'var', name: key}, ...cs]), b: S}}
+     facts.push({op: 'and', xs: [{op: '<=', a: dTerm(here, cs), b: S}, {op: 'flag', name: flag}]})
+-    // A map it reads written at every key: at a key none of the cover keys is, the write keeps the cell. Built as
+-    // Sums.lean's sumCoverGoal builds it (each write at every key in the machine's order, its flags inlined as Lean
+-    // inlines them: a flag f read as (if f's condition then 1 else 0) = 1), so the Lean export reads these goals as they are.
+-    const lean: Subst = {vars: {}, maps: {}, flags: Object.fromEntries(Object.entries(flagsOf(m)).map(([f, c]): [string, C] => [f, flags[f]!.op === 'all' ? c
+-      : {op: '=', a: {op: 'if', c, then: {op: 'const', value: 1}, else: ZERO}, b: {op: 'const', value: 1}}]))}
++    // A map it reads written at every key: under ¬reset, at a key none of the cover keys is, the write keeps the cell.
++    // Built as Sums.lean's sumCoverGoal builds it (each write at every key in the machine's order, flags inlined as Lean
++    // inlines them), so the Lean export reads these goals as they are.
++    const X: E = {op: 'var', name: x}
+     for (const [map, w] of Object.entries(m.step.maps ?? {})) {
+       if (!('each' in w) || !read.includes(map)) continue
+-      const X: E = {op: 'var', name: x}
+-      goals.push({name: `${s} @cover ${map}`, hyps: [substC(m.assume ?? TRUE_C, lean), ...cellLaws(laws, read, X), ...cs.map((c): C => ({op: 'not', x: {op: '=', a: X, b: c}})),
+-        {op: 'not', x: {op: '=', a: substE(substE(w.value, lean), {vars: {[w.each]: X}, maps: {}, flags: {}}), b: {op: 'get', map, key: X}}}]})
++      goals.push({name: `${s} @cover ${map}`, hyps: [
++        substC(m.assume ?? TRUE_C, lean),
++        ...(resetInlined ? [{op: 'not' as const, x: resetInlined}] : []),
++        ...cellLaws(laws, read, X),
++        ...cs.map((c): C => ({op: 'not', x: {op: '=', a: X, b: c}})),
++        {op: 'not', x: {op: '=', a: substE(substE(w.value, lean), {vars: {[w.each]: X}, maps: {}, flags: {}}), b: {op: 'get', map, key: X}}},
++      ]})
++    }
++    // Optional reset goal (Sums.lean's sumResetGoal): under reset, at any key x, the post-step summand is 0.
++    if (resetInlined) {
++      const postInlined = (map: string) => (k2: E): E => {
++        const w = own(m.step.maps ?? {}, map)
++        if (!w) return {op: 'get', map, key: k2}
++        if ('each' in w) return substE(substE(w.value, lean), {vars: {[w.each]: k2}, maps: {}, flags: {}})
++        return {op: 'if', c: {op: '=', a: k2, b: substE(w.key, lean)}, then: substE(w.value, lean), else: {op: 'get', map, key: k2}}
++      }
++      const afterInlined = substE(term, {vars: {[key]: X}, maps: Object.fromEntries(read.map(map => [map, postInlined(map)])), flags: {}})
++      goals.push({name: `${s} @reset`, hyps: [
++        substC(m.assume ?? TRUE_C, lean),
++        resetInlined,
++        ...cellLaws(laws, read, X),
++        {op: 'not', x: {op: '=', a: afterInlined, b: ZERO}},
++      ]})
+     }
+   }
+   // (Sums.lean's sumsC: each sum's facts, then the rest, ending in 0 ≤ 0)
+diff --git a/lean-kernel/RadixSumTransport.lean b/lean-kernel/RadixSumTransport.lean
+index 3e2861fb8..a76850919 100644
+--- a/lean-kernel/RadixSumTransport.lean
++++ b/lean-kernel/RadixSumTransport.lean
+@@ -141,6 +141,7 @@ def sumArity (p : Plan) (g : E) : Except Error (Option Nat) := do
+ def target (p : Plan) (old : SumMachine) : Except Error SumMachine := do
+   let base ← RadixCertificateTransport.liftSyntax (RadixTupleSyntax.machine (config p) old.s)
+   let sums ← old.sums.mapM fun d => do
++    if d.reset.isSome then throw (.syntax (.unsupportedKey 0))
+     let n ← sumArity p d.g
+     let cs ← d.cs.mapM fun k => RadixCertificateTransport.liftSyntax
+       (match n with | some n => rekey p.radix n [] k | none => expr p [] k)
+diff --git a/lean-kernel/SemanticSums.lean b/lean-kernel/SemanticSums.lean
+index 81e41e776..1717dc07e 100644
+--- a/lean-kernel/SemanticSums.lean
++++ b/lean-kernel/SemanticSums.lean
+@@ -17,13 +17,14 @@ def Preserves (h : SumMachine) (ps : List SEntry) : Prop :=
+       gAt d.g (sNext h.plain ρ M ι κ).2 key = gAt d.g M key
+ 
+ variable (h : SumMachine)
+-theorem sum_step (hok : sumOk h = true) (cover : Preserves h ps) {ρ M}
++theorem sum_step (hok : sumOk h = true) (hno : h.sums.all (fun d => d.reset.isNone) = true) (cover : Preserves h ps) {ρ M}
+     (hsum : ∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v))
+     (hlaws : ∀ e ∈ ps, e.Holds ρ M) (ι : Nat → Nat) (κ : Nat → Nat → Nat)
+     (ha : evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 h.s.f.m.assume = true) :
+     ∀ d ∈ h.sums, IsSum (gAt d.g (sNext h.plain ρ M ι κ).2) ((sNext h.plain ρ M ι κ).1 d.v) := by
+   obtain ⟨hdist, hall⟩ := sumOk_parts hok
+   intro d hd
++  have hnr : d.reset = none := Option.isNone_iff_eq_none.mp (List.all_eq_true.mp hno d hd)
+   obtain ⟨hg, _, _, hcar, _, _, _, _, hv, _⟩ := sumOk1_parts (hall d hd)
+   let V := (sView h.plain ρ M ι κ).1
+   let N := withCarried h.s M κ
+@@ -37,7 +38,7 @@ theorem sum_step (hok : sumOk h = true) (cover : Preserves h ps) {ρ M}
+     show applyS (h.s.f.m.step ++ h.sums.map (fun d => (d.v, sumNext h.s d))) V N d.v = _
+     simp only [applyS]
+     rw [assoc_after (fun hm => hv (by simp [hm])), assoc_sums (sumNext h.s) hdist hd]
+-    simp only [sumNext, evalE, hold, hnew]
++    simp only [sumNext, hnr, evalE, hold, hnew]
+     have hview : V d.v = ρ d.v := view_v h hv ρ M ι κ
+     rw [hview]
+   rw [hval]
+@@ -123,7 +124,7 @@ theorem sum_assume (hok : sumOk h = true) (hs : sOk h.plain = true) {ρ : Nat 
+ 
+ 
+ theorem sum_cells (hl : checkSMachine h.plain ps = true) (hok : sumOk h = true)
+-    (cover : Preserves h ps) :
++    (hno : h.sums.all (fun d => d.reset.isNone) = true) (cover : Preserves h ps) :
+     ∀ ρ M, SReach h.plain ρ M →
+       (∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v)) ∧ ∀ e ∈ ps, e.Holds ρ M := by
+   intro ρ M hr
+@@ -136,26 +137,26 @@ theorem sum_cells (hl : checkSMachine h.plain ps = true) (hok : sumOk h = true)
+             (.and h.s.f.m.assume (sumsC h.sums)) = true := ha
+         simp only [evalC, Bool.and_eq_true] at hboth
+         exact hboth.1
+-      exact ⟨sum_step h hok cover ih.1 ih.2 ι κ ha0,
++      exact ⟨sum_step h hok hno cover ih.1 ih.2 ι κ ha0,
+         smachine_sound h.plain ps hl _ _ (.step ρ M ι κ hr ha)⟩
+ 
+ theorem sum_holds (hl : checkSMachine h.plain ps = true) (hok : sumOk h = true)
+-    (cover : Preserves h ps) :
++    (hno : h.sums.all (fun d => d.reset.isNone) = true) (cover : Preserves h ps) :
+     ∀ ρ M, SReach h.plain ρ M → ∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v) :=
+-  fun ρ M hr => (sum_cells h hl hok cover ρ M hr).1
++  fun ρ M hr => (sum_cells h hl hok hno cover ρ M hr).1
+ 
+ theorem sum_allowed (hl : checkSMachine h.plain ps = true) (hok : sumOk h = true)
+-    (cover : Preserves h ps) :
++    (hno : h.sums.all (fun d => d.reset.isNone) = true) (cover : Preserves h ps) :
+     ∀ ρ M, SReach h.plain ρ M → ∀ ι κ,
+       evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 h.plain.f.m.assume =
+       evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 h.s.f.m.assume :=
+-  fun ρ M hr ι κ => sum_assume h hok (sOk_of hl) (sum_holds h hl hok cover ρ M hr) ι κ
++  fun ρ M hr ι κ => sum_assume h hok (sOk_of hl) (sum_holds h hl hok hno cover ρ M hr) ι κ
+ 
+ section project
+ variable (hg : sghostOk h.ghosts = true)
+ include hg
+ theorem sum_project (hl : checkSMachine h.plain ps = true) (hok : sumOk h = true)
+-    (cover : Preserves h ps) :
++    (hno : h.sums.all (fun d => d.reset.isNone) = true) (cover : Preserves h ps) :
+     ∀ {ρ M}, SReach h.s ρ M → ∃ ρg, SReach h.plain ρg M ∧ Agree h.ghosts.vars ρg ρ := by
+   intro ρ M hr
+   induction hr with
+@@ -171,14 +172,14 @@ theorem sum_project (hl : checkSMachine h.plain ps = true) (hok : sumOk h = true
+     refine ⟨_, ?_, hS⟩
+     rw [← hW]
+     refine SReach.step ρg M ι κ hrg ?_
+-    rw [sum_allowed h hl hok cover ρg M hrg ι κ, hA]; exact ha
++    rw [sum_allowed h hl hok hno cover ρg M hrg ι κ, hA]; exact ha
+ 
+ /-- The laws of the plain machine that read no sum's name hold in every state the rule reaches. -/
+ theorem sum_project_laws (ps : List SEntry) (hl : checkSMachine h.plain ps = true) (hok : sumOk h = true)
+-    (cover : Preserves h ps) :
++    (hno : h.sums.all (fun d => d.reset.isNone) = true) (cover : Preserves h ps) :
+     ∀ ρ M, SReach h.s ρ M → ∀ e ∈ ps, avoids h.ghosts.vars e.law.holds = true → e.Holds ρ M := by
+   intro ρ M hr e he hav
+-  obtain ⟨ρg, hrg, hag⟩ := sum_project h hg hl hok cover hr
++  obtain ⟨ρg, hrg, hag⟩ := sum_project h hg hl hok hno cover hr
+   exact sentry_transfer (V := h.ghosts.vars) (MS := []) hav (by simp [avoidsMaps]) (fun i hi => (hag i hi).symm) (fun _ _ => rfl)
+     (smachine_sound h.plain ps hl ρg M hrg e he)
+ 
+diff --git a/lean-kernel/Sums.lean b/lean-kernel/Sums.lean
+index 119dea260..6bb1bde34 100644
+--- a/lean-kernel/Sums.lean
++++ b/lean-kernel/Sums.lean
+@@ -177,6 +177,17 @@ theorem isSum_change {f f' : Nat → Nat} {s : Nat} (cs : List Nat) (h : IsSum f
+   have e : s + dsum f' cs - dsum f cs = dsum f' cs + r := by omega
+   rw [e]; exact this
+ 
++/-- Two-branch preservation: if `r = true` drives every key's value to `0` (`isSum_zero`),
++and `r = false` agrees with `f` outside `cs` (`isSum_change`), then `f'` sums to
++`if r then 0 else s + dsum f' cs - dsum f cs`. -/
++theorem isSum_reset {f f' : Nat → Nat} {s : Nat} (r : Bool) (cs : List Nat) (h : IsSum f s)
++    (hzero : r = true → ∀ k, f' k = 0)
++    (hag : r = false → ∀ k, k ∉ cs → f' k = f k) :
++    IsSum f' (if r then 0 else s + dsum f' cs - dsum f cs) := by
++  cases r with
++  | true => exact isSum_zero (hzero rfl)
++  | false => exact isSum_change cs h (hag rfl)
++
+ /-! The term read at a key -/
+ 
+ -- A term that reads its maps at the key variable k alone, and no variable but there.
+@@ -270,7 +281,8 @@ structure SumDecl where
+   cs : List E      -- the cover keys: every key a step may change the term at, over the step's view
+   q : Nat          -- the quantified flag: at every key, the term there and at the cover keys is at most the sum
+   w : Nat          -- its witness
+-  x : Nat          -- the key a cover goal reads
++  x : Nat          -- the key a cover or reset goal reads
++  reset : Option C := none -- optional key-independent reset guard: when true, the post-step term is 0 at every key
+ 
+ structure SumMachine where
+   s : SMachine     -- the rule: its sums' variables are state it reads and no step sets
+@@ -288,11 +300,26 @@ def postRd (s : SMachine) : Nat → E → E := fun mp key =>
+     | some w => .ite (.eq key w.2.1) w.2.2 (.get mp key)
+     | none => .get mp key
+ 
++-- A map read after a step with plain flags inlined, over the pre-flag view X (for `sumResetGoal`).
++def postRdInlined (s : SMachine) : Nat → E → E := fun mp key =>
++  match lookup (fun w => w.1 == mp) s.every with
++  | some w => substE [(w.2.1, key)] (inlineE s.f.flags w.2.2)
++  | none => match lookup (fun w => w.1 == mp) s.f.m.writes with
++    | some w => .ite (.eq key (inlineE s.f.flags w.2.1)) (inlineE s.f.flags w.2.2) (.get mp key)
++    | none => .get mp key
++
+ -- The term at the key t, after the step.
+ def gAfter (s : SMachine) (d : SumDecl) (t : E) : E := substRE [(d.k, t)] (postRd s) d.g
+ 
+--- The sum after a step: the new values at the cover keys in, the old ones out.
+-def sumNext (s : SMachine) (d : SumDecl) : E := .sub (.add (.var d.v) (dTermE (gAfter s d) d.cs)) (dTermE (gHere d) d.cs)
++-- The term at the key t, after the step, with plain flags inlined.
++def gAfterInlined (s : SMachine) (d : SumDecl) (t : E) : E := substRE [(d.k, t)] (postRdInlined s) d.g
++
++-- The sum after a step: 0 when `d.reset` holds, else the new values at the cover keys in, the old ones out.
++def sumNext (s : SMachine) (d : SumDecl) : E :=
++  let delta := .sub (.add (.var d.v) (dTermE (gAfter s d) d.cs)) (dTermE (gHere d) d.cs)
++  match d.reset with
++  | none => delta
++  | some r => .ite r (.const 0) delta
+ -- The old values at the cover keys are at most the sum.
+ def sumFact (d : SumDecl) : C := .le (dTermE (gHere d) d.cs) (.var d.v)
+ -- At every key k: the term at k and at the cover keys, each key once, is at most the sum (a quantified flag's body, its
+@@ -381,13 +408,33 @@ def cellLaws (ps : List SEntry) (d : SumDecl) : List C := ps.filterMap fun e =>
+       then some (substC [(kv, .var d.x)] e.law.holds) else none
+   | none => none
+ 
+--- At a key x none of the cover keys is, a step the rule allows keeps the map's cell, the cells' laws holding at x.
++-- At a key x none of the cover keys is, when not resetting, a step the rule allows keeps the map's cell, the cells' laws holding at x.
+ def sumCoverGoal (s : SMachine) (ps : List SEntry) (d : SumDecl) (w : Nat × Nat × E) : List C :=
+-  [inlineC s.f.flags s.f.m.assume] ++ cellLaws ps d ++ d.cs.map (fun c => .not (.eq (.var d.x) (inlineE s.f.flags c)))
++  [inlineC s.f.flags s.f.m.assume]
++    ++ (match d.reset with | none => [] | some r => [.not (inlineC s.f.flags r)])
++    ++ cellLaws ps d ++ d.cs.map (fun c => .not (.eq (.var d.x) (inlineE s.f.flags c)))
+     ++ [.not (.eq (substE [(w.2.1, .var d.x)] (inlineE s.f.flags w.2.2)) (.get w.1 (.var d.x)))]
+ 
++-- At any key x, when `d.reset` holds, a step the rule allows drives the post-step summand to 0, the cells' laws holding at x.
++def sumResetGoal (s : SMachine) (ps : List SEntry) (d : SumDecl) (r : C) : List C :=
++  [inlineC s.f.flags s.f.m.assume, inlineC s.f.flags r]
++    ++ cellLaws ps d
++    ++ [.not (.eq (gAfterInlined s d (.var d.x)) (.const 0))]
++
+ def startVal (s : SMachine) (mp : Nat) : Nat := ((lookup (fun p => p.1 == mp) s.f.m.maps0).map (·.2)).getD 0
+ 
++-- Side conditions on an optional reset guard: key-independent (`d.k`, `d.x`, every `each`-write key) and
++-- avoids reading any map the sum aggregates over (even through plain flags).
++def resetOk (s : SMachine) (d : SumDecl) : Bool :=
++  match d.reset with
++  | none => true
++  | some r =>
++      avoids [d.k] r
++      && avoids [d.x] (inlineC s.f.flags r)
++      && (coverWs s d).all (fun w => avoids [w.2.1] (inlineC s.f.flags r))
++      && avoidsMaps (mapsE d.g) (inlineC s.f.flags r)
++      && s.f.m.writes.all (fun w => !occME w.1 d.g || (avoidsE [d.x] (inlineE s.f.flags w.2.1) && avoidsE [d.x] (inlineE s.f.flags w.2.2)))
++
+ -- kernel.ts's conditions on each sum.
+ def sumOk1 (h : SumMachine) (d : SumDecl) : Bool :=
+   let s := h.s
+@@ -406,15 +453,23 @@ def sumOk1 (h : SumMachine) (d : SumDecl) : Bool :=
+     -- the sum's variable: no input, flag, quantified flag or witness, set by no start or step of the rule, not the key
+     && !(s.f.m.inputs ++ flagVars s.f.flags ++ h.plain.qVars ++ h.plain.wVars ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)).contains d.v
+     && d.v != d.k
++    && resetOk s d
+ 
+ def sumOk (h : SumMachine) : Bool := distinct (h.sums.map (·.v)) && h.sums.all (sumOk1 h)
+ 
+--- Per sum, per write at every key to a map it reads: (table, tree) for its cover goal, over the laws `ps` proven of the
+--- plain machine.
+-def checkSums (h : SumMachine) (ps : List SEntry) (covers : List (List (List VDef × Tree))) : Bool :=
++def checkSumReset (s : SMachine) (ps : List SEntry) (d : SumDecl) (rt : Option (List VDef × Tree)) : Bool :=
++  match d.reset, rt with
++  | none, none => true
++  | some r, some t => checkGoal ⟨t.1, sumResetGoal s ps d r⟩ t.2
++  | _, _ => false
++
++-- Per sum: ((table, tree) per write at every key to a map it reads, optional (table, tree) for its reset goal),
++-- over the laws `ps` proven of the plain machine.
++def checkSums (h : SumMachine) (ps : List SEntry) (covers : List (List (List VDef × Tree) × Option (List VDef × Tree))) : Bool :=
+   sumOk h && covers.length == h.sums.length
+-    && (h.sums.zip covers).all (fun p => (coverWs h.s p.1).length == p.2.length
+-      && ((coverWs h.s p.1).zip p.2).all (fun x => checkGoal ⟨x.2.1, sumCoverGoal h.s ps p.1 x.1⟩ x.2.2))
++    && (h.sums.zip covers).all (fun p => (coverWs h.s p.1).length == p.2.1.length
++      && ((coverWs h.s p.1).zip p.2.1).all (fun x => checkGoal ⟨x.2.1, sumCoverGoal h.s ps p.1 x.1⟩ x.2.2)
++      && checkSumReset h.s ps p.1 p.2.2)
+ 
+ /-! What the checks give -/
+ 
+@@ -432,7 +487,7 @@ theorem sumOk1_parts {h : SumMachine} {d : SumDecl} (hd : sumOk1 h d = true) :
+     ∧ d.v ≠ d.k := by
+   simp only [sumOk1, Bool.and_eq_true, List.all_eq_true, List.any_eq_true, Bool.not_eq_true', beq_iff_eq, bne_iff_ne, ne_eq,
+     Bool.or_eq_true, List.contains_iff_mem] at hd
+-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hg, hm⟩, h0⟩, hc⟩, hw⟩, hev⟩, hcs⟩, ha⟩, hv⟩, hvk⟩ := hd
++  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hg, hm⟩, h0⟩, hc⟩, hw⟩, hev⟩, hcs⟩, ha⟩, hv⟩, hvk⟩, _⟩ := hd
+   refine ⟨hg, hm, h0, hc, fun w hw' ho => ?_, fun w hw' => ?_, hcs, ha, ?_, hvk⟩
+   · rcases hw w hw' with h1 | h1
+     · simp [h1] at ho
+@@ -441,18 +496,43 @@ theorem sumOk1_parts {h : SumMachine} {d : SumDecl} (hd : sumOk1 h d = true) :
+     exact ⟨fun p hp => by simpa using h1 p hp, by simpa using h2, h3, h4⟩
+   · intro hm'; simp_all
+ 
++theorem sumOk1_resetOk {h : SumMachine} {d : SumDecl} (hd : sumOk1 h d = true) : resetOk h.s d = true := by
++  simp only [sumOk1, Bool.and_eq_true] at hd; exact hd.2
++
++theorem resetOk_parts {s : SMachine} {d : SumDecl} {r : C} (hr : d.reset = some r) (hok : resetOk s d = true) :
++    avoids [d.k] r = true
++    ∧ avoids [d.x] (inlineC s.f.flags r) = true
++    ∧ (∀ w ∈ coverWs s d, avoids [w.2.1] (inlineC s.f.flags r) = true)
++    ∧ avoidsMaps (mapsE d.g) (inlineC s.f.flags r) = true
++    ∧ ∀ w ∈ s.f.m.writes, occME w.1 d.g = true →
++        avoidsE [d.x] (inlineE s.f.flags w.2.1) = true ∧ avoidsE [d.x] (inlineE s.f.flags w.2.2) = true := by
++  simp only [resetOk, hr, Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hok
++  obtain ⟨⟨⟨⟨hk, hx⟩, hwk⟩, hm⟩, hw⟩ := hok
++  refine ⟨hk, hx, hwk, hm, fun w hwm ho => ?_⟩
++  rcases hw w hwm with h1 | h1
++  · simp [h1] at ho
++  · exact h1
++
+ theorem sumOk_parts {h : SumMachine} (hok : sumOk h = true) : distinct (h.sums.map (·.v)) = true ∧ ∀ d ∈ h.sums, sumOk1 h d = true := by
+   simp only [sumOk, Bool.and_eq_true, List.all_eq_true] at hok; exact hok
+ 
+-theorem checkSums_parts {h : SumMachine} {ps : List SEntry} {covers : List (List (List VDef × Tree))} (hc : checkSums h ps covers = true) :
+-    sumOk h = true ∧ ∀ d ∈ h.sums, ∀ w ∈ coverWs h.s d, ∃ t : List VDef × Tree, checkGoal ⟨t.1, sumCoverGoal h.s ps d w⟩ t.2 = true := by
++theorem checkSums_parts {h : SumMachine} {ps : List SEntry} {covers : List (List (List VDef × Tree) × Option (List VDef × Tree))} (hc : checkSums h ps covers = true) :
++    sumOk h = true
++    ∧ (∀ d ∈ h.sums, ∀ w ∈ coverWs h.s d, ∃ t : List VDef × Tree, checkGoal ⟨t.1, sumCoverGoal h.s ps d w⟩ t.2 = true)
++    ∧ (∀ d ∈ h.sums, ∀ r, d.reset = some r → ∃ t : List VDef × Tree, checkGoal ⟨t.1, sumResetGoal h.s ps d r⟩ t.2 = true) := by
+   simp only [checkSums, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hc
+   obtain ⟨⟨hok, hlen⟩, hall⟩ := hc
+-  refine ⟨hok, fun d hd w hw => ?_⟩
+-  obtain ⟨cl, hcl⟩ := zip_cover h.sums covers hlen.symm d hd
+-  obtain ⟨hl2, hall2⟩ := hall _ hcl
+-  obtain ⟨t, ht⟩ := zip_cover (coverWs h.s d) cl hl2 w hw
+-  exact ⟨t, hall2 _ ht⟩
++  refine ⟨hok, fun d hd w hw => ?_, fun d hd r hr => ?_⟩
++  · obtain ⟨cl, hcl⟩ := zip_cover h.sums covers hlen.symm d hd
++    obtain ⟨⟨hl2, hall2⟩, _⟩ := hall _ hcl
++    obtain ⟨t, ht⟩ := zip_cover (coverWs h.s d) cl.1 hl2 w hw
++    exact ⟨t, hall2 _ ht⟩
++  · obtain ⟨cl, hcl⟩ := zip_cover h.sums covers hlen.symm d hd
++    obtain ⟨_, hres⟩ := hall _ hcl
++    simp only [checkSumReset, hr] at hres
++    cases hrt : cl.2 with
++    | none => simp [hrt] at hres
++    | some t => simp only [hrt] at hres; exact ⟨t, hres⟩
+ 
+ /-! Lookups -/
+ 
+@@ -543,14 +623,110 @@ theorem view_v {d : SumDecl} (hv : d.v ∉ h.s.f.m.inputs ++ flagVars h.s.f.flag
+   show decideFlags h.s.f.flags (decideQ h.plain (withInputs h.s.f.m.inputs ρ ι) (withCarried h.s M κ)) (withCarried h.s M κ) d.v = ρ d.v
+   rw [decide_other hv.1.1.1.1.2, decideQ_other hv.1.1.1.2, withInputs_other hv.1.1.1.1.1]
+ 
++-- Structural evaluation of `substRE [(k, t)] rd` on any `gOkE k` term / `gOkC k` condition, requiring `rd` agreement
++-- only on maps actually occurring in the term.
++mutual
++theorem substRE_gOkE (k : Nat) (t : E) (rd : Nat → E → E) (W : Nat → Nat) (N M' : Nat → Nat → Nat) :
++    (e : E) → gOkE k e = true →
++    (∀ mp, occME mp e = true → evalE W N (rd mp t) = M' mp (evalE W N t)) →
++    evalE W N (substRE [(k, t)] rd e) = evalE (fun _ => 0) (fun mp _ => M' mp (evalE W N t)) e
++  | .var _, hg, _ => by simp [gOkE] at hg
++  | .const _, _, _ => rfl
++  | .add a b, hg, hrd => by
++      simp only [gOkE, Bool.and_eq_true] at hg
++      simp only [substRE, evalE,
++        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occME, hm])),
++        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occME, hm]))]
++  | .sub a b, hg, hrd => by
++      simp only [gOkE, Bool.and_eq_true] at hg
++      simp only [substRE, evalE,
++        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occME, hm])),
++        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occME, hm]))]
++  | .mul _ a, hg, hrd => by
++      simp only [gOkE] at hg
++      simp only [substRE, evalE, substRE_gOkE k t rd W N M' a hg (fun mp hm => hrd mp (by simp [occME, hm]))]
++  | .min a b, hg, hrd => by
++      simp only [gOkE, Bool.and_eq_true] at hg
++      simp only [substRE, evalE,
++        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occME, hm])),
++        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occME, hm]))]
++  | .max a b, hg, hrd => by
++      simp only [gOkE, Bool.and_eq_true] at hg
++      simp only [substRE, evalE,
++        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occME, hm])),
++        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occME, hm]))]
++  | .prod a b, hg, hrd => by
++      simp only [gOkE, Bool.and_eq_true] at hg
++      simp only [substRE, evalE,
++        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occME, hm])),
++        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occME, hm]))]
++  | .ite c a b, hg, hrd => by
++      simp only [gOkE, Bool.and_eq_true] at hg
++      simp only [substRE, evalE,
++        substRC_gOkC k t rd W N M' c hg.1.1 (fun mp hm => hrd mp (by simp [occME, hm])),
++        substRE_gOkE k t rd W N M' a hg.1.2 (fun mp hm => hrd mp (by simp [occME, hm])),
++        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occME, hm]))]
++  | .get mp key, hg, hrd => by
++      cases key with
++      | var i =>
++        simp only [gOkE, beq_iff_eq] at hg
++        subst hg
++        simp only [substRE, assoc, lookup, beq_self_eq_true, evalE]
++        exact hrd mp (by simp [occME])
++      | _ => simp [gOkE] at hg
++  | .tup a b, hg, hrd => by
++      simp only [gOkE, Bool.and_eq_true] at hg
++      simp only [substRE, evalE,
++        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occME, hm])),
++        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occME, hm]))]
++  | .proj _ a, hg, hrd => by
++      simp only [gOkE] at hg
++      simp only [substRE, evalE, substRE_gOkE k t rd W N M' a hg (fun mp hm => hrd mp (by simp [occME, hm]))]
++
++theorem substRC_gOkC (k : Nat) (t : E) (rd : Nat → E → E) (W : Nat → Nat) (N M' : Nat → Nat → Nat) :
++    (c : C) → gOkC k c = true →
++    (∀ mp, occMC mp c = true → evalE W N (rd mp t) = M' mp (evalE W N t)) →
++    evalC W N (substRC [(k, t)] rd c) = evalC (fun _ => 0) (fun mp _ => M' mp (evalE W N t)) c
++  | .le a b, hg, hrd => by
++      simp only [gOkC, Bool.and_eq_true] at hg
++      simp only [substRC, evalC,
++        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occMC, hm])),
++        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occMC, hm]))]
++  | .lt a b, hg, hrd => by
++      simp only [gOkC, Bool.and_eq_true] at hg
++      simp only [substRC, evalC,
++        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occMC, hm])),
++        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occMC, hm]))]
++  | .eq a b, hg, hrd => by
++      simp only [gOkC, Bool.and_eq_true] at hg
++      simp only [substRC, evalC,
++        substRE_gOkE k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occMC, hm])),
++        substRE_gOkE k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occMC, hm]))]
++  | .and a b, hg, hrd => by
++      simp only [gOkC, Bool.and_eq_true] at hg
++      simp only [substRC, evalC,
++        substRC_gOkC k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occMC, hm])),
++        substRC_gOkC k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occMC, hm]))]
++  | .or a b, hg, hrd => by
++      simp only [gOkC, Bool.and_eq_true] at hg
++      simp only [substRC, evalC,
++        substRC_gOkC k t rd W N M' a hg.1 (fun mp hm => hrd mp (by simp [occMC, hm])),
++        substRC_gOkC k t rd W N M' b hg.2 (fun mp hm => hrd mp (by simp [occMC, hm]))]
++  | .not a, hg, hrd => by
++      simp only [gOkC] at hg
++      simp only [substRC, evalC, substRC_gOkC k t rd W N M' a hg (fun mp hm => hrd mp (by simp [occMC, hm]))]
++end
++
+ /-- One step the rule's assumption allows keeps every sum exact, from a state where the laws hold. -/
+-theorem sum_step (hL : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true) {ρ : Nat → Nat} {M : Nat → Nat → Nat}
++theorem sum_step {covers : List (List (List VDef × Tree) × Option (List VDef × Tree))}
++    (hL : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true) {ρ : Nat → Nat} {M : Nat → Nat → Nat}
+     (hsum : ∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v)) (hlaws : ∀ e ∈ ps, e.Holds ρ M) (ι : Nat → Nat) (κ : Nat → Nat → Nat)
+     (ha : evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 h.s.f.m.assume = true) :
+     ∀ d ∈ h.sums, IsSum (gAt d.g (sNext h.plain ρ M ι κ).2) ((sNext h.plain ρ M ι κ).1 d.v) := by
+-  obtain ⟨hok, hcov⟩ := checkSums_parts hc
++  obtain ⟨hok, hcov, hres⟩ := checkSums_parts hc
+   obtain ⟨hdist, hall⟩ := sumOk_parts hok
+   intro d hd
++  have hrok : resetOk h.s d = true := sumOk1_resetOk (hall d hd)
+   obtain ⟨hg, _, _, hcar, hwr, hev, hcs, hax, hv, _⟩ := sumOk1_parts (hall d hd)
+   let X := decideQ h.plain (withInputs h.s.f.m.inputs ρ ι) (withCarried h.s M κ)
+   let N := withCarried h.s M κ
+@@ -560,9 +736,19 @@ theorem sum_step (hL : checkSMachine h.plain ps = true) (hc : checkSums h ps cov
+   let M' := everyMaps h.s V N
+   have hM' : (sNext h.plain ρ M ι κ).2 = M' := rfl
+   let cs' := d.cs.map (evalE V N)
+-  -- The term moves only at the cover keys.
+-  have hag : ∀ key, key ∉ cs' → gAt d.g M' key = gAt d.g M key := by
+-    intro key hkey
++  have hold : evalE V N (dTermE (gHere d) d.cs) = dsum (gAt d.g M) cs' := by
++    rw [dTermE_eval V N d.cs (gHere d) (gAt d.g N) (fun t => gHere_eval d hg V N t), gAt_carried h d hcar]
++  have hnew : evalE V N (dTermE (gAfter h.s d) d.cs) = dsum (gAt d.g M') cs' :=
++    dTermE_eval V N d.cs (gAfter h.s d) (gAt d.g M') (fun t => gAfter_eval h d hg V N t)
++  have hstep_eq : (sNext h.plain ρ M ι κ).1 d.v = evalE V N (sumNext h.s d) := by
++    show applyS (h.s.f.m.step ++ h.sums.map (fun d => (d.v, sumNext h.s d))) V N d.v = _
++    simp only [applyS]
++    rw [assoc_after (fun hm => hv (by simp [hm])), assoc_sums (sumNext h.s) hdist hd]
++  -- Non-reset branch: the term moves only at the cover keys.
++  have hag_no_reset :
++      (∀ r, d.reset = some r → evalC V N r = false) →
++      ∀ key, key ∉ cs' → gAt d.g M' key = gAt d.g M key := by
++    intro hno key hkey
+     apply gAt_congr; intro mp hmp
+     have hNM : N mp key = M mp key := by
+       simp only [N, withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using avoidsMapsE_occ hcar hmp)]
+@@ -579,9 +765,18 @@ theorem sum_step (hL : checkSMachine h.plain ps = true) (hc : checkSums h ps cov
+       apply sound ⟨t.1, sumCoverGoal h.s ps d w⟩ t.2 ht (upd X d.x key) N
+       intro c hcm
+       simp only [sumCoverGoal, List.mem_append, List.mem_singleton, List.mem_map] at hcm
+-      rcases hcm with ((rfl | hcl) | ⟨c0, hc0, rfl⟩) | rfl
++      rcases hcm with (((rfl | hnr) | hcl) | ⟨c0, hc0, rfl⟩) | rfl
+       · rw [congrC _ X N _ (fun i hi => by simp only [upd]; rw [if_neg (fun he => avoids_occ hax hi (by simp [he]))]), inline_evalC]
+         exact ha
++      · cases hreset : d.reset with
++        | none => simp [hreset] at hnr
++        | some r =>
++          simp only [hreset, List.mem_singleton] at hnr
++          subst hnr
++          obtain ⟨_, hrx, _, _, _⟩ := resetOk_parts hreset hrok
++          simp only [evalC, Bool.not_eq_true']
++          rw [congrC _ X N _ (fun i hi => by simp only [upd]; rw [if_neg (fun he => avoids_occ hrx hi (by simp [he]))]), inline_evalC]
++          exact hno r hreset
+       · refine cellLaw_holds hcl (carried := h.s.carried) (fun e he => (slaws_avoid hL e.law (List.mem_map_of_mem he)).2) hlaws _ N (fun mp hmp => ?_)
+         simp only [upd_at, N, withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmp)]
+       · have hc0' := (hcs c0 hc0).2
+@@ -608,23 +803,74 @@ theorem sum_step (hL : checkSMachine h.plain ps = true) (hc : checkSums h ps cov
+         have hne : key ≠ evalE V N w.2.1 := fun he => hkey (by rw [he]; exact hin)
+         simp only [if_neg hne]; exact hNM
+       | none => exact hNM
+-  have hold : evalE V N (dTermE (gHere d) d.cs) = dsum (gAt d.g M) cs' := by
+-    rw [dTermE_eval V N d.cs (gHere d) (gAt d.g N) (fun t => gHere_eval d hg V N t), gAt_carried h d hcar]
+-  have hnew : evalE V N (dTermE (gAfter h.s d) d.cs) = dsum (gAt d.g M') cs' :=
+-    dTermE_eval V N d.cs (gAfter h.s d) (gAt d.g M') (fun t => gAfter_eval h d hg V N t)
+-  have hval : (sNext h.plain ρ M ι κ).1 d.v = ρ d.v + dsum (gAt d.g M') cs' - dsum (gAt d.g M) cs' := by
+-    show applyS (h.s.f.m.step ++ h.sums.map (fun d => (d.v, sumNext h.s d))) V N d.v = _
+-    simp only [applyS]
+-    rw [assoc_after (fun hm => hv (by simp [hm])), assoc_sums (sumNext h.s) hdist hd]
+-    simp only [sumNext, evalE, hold, hnew]
++  rw [hstep_eq, hM']
++  cases hreset : d.reset with
++  | none =>
++    simp only [sumNext, hreset, evalE, hold, hnew]
++    rw [← hV, view_v h hv ρ M ι κ]
++    exact isSum_change cs' (hsum d hd) (hag_no_reset (fun _ h' => by simp [hreset] at h'))
++  | some r =>
++    simp only [sumNext, hreset, evalE, hold, hnew]
+     rw [← hV, view_v h hv ρ M ι κ]
+-  rw [hval, hM']
+-  exact isSum_change cs' (hsum d hd) hag
++    obtain ⟨_, hrx, _, _, hwrx⟩ := resetOk_parts hreset hrok
++    obtain ⟨tr, htr⟩ := hres d hd r hreset
++    have hzero : evalC V N r = true → ∀ key, gAt d.g M' key = 0 := by
++      intro hrt key
++      apply Decidable.byContradiction; intro hne
++      apply sound ⟨tr.1, sumResetGoal h.s ps d r⟩ tr.2 htr (upd X d.x key) N
++      intro c hcm
++      simp only [sumResetGoal, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hcm
++      rcases hcm with ((rfl | rfl) | hcl) | rfl
++      · rw [congrC _ X N _ (fun i hi => by simp only [upd]; rw [if_neg (fun he => avoids_occ hax hi (by simp [he]))]), inline_evalC]
++        exact ha
++      · rw [congrC _ X N _ (fun i hi => by simp only [upd]; rw [if_neg (fun he => avoids_occ hrx hi (by simp [he]))]), inline_evalC]
++        exact hrt
++      · refine cellLaw_holds hcl (carried := h.s.carried) (fun e he => (slaws_avoid hL e.law (List.mem_map_of_mem he)).2) hlaws _ N (fun mp hmp => ?_)
++        simp only [upd_at, N, withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmp)]
++      · simp only [evalC, evalE, Bool.not_eq_true']
++        have hga : evalE (upd X d.x key) N (gAfterInlined h.s d (.var d.x)) = gAt d.g M' key := by
++          have hpost : ∀ mp, occME mp d.g = true →
++              evalE (upd X d.x key) N (postRdInlined h.s mp (.var d.x)) = M' mp (evalE (upd X d.x key) N (.var d.x)) := by
++            intro mp hmp
++            simp only [evalE, upd_at, postRdInlined, M', everyMaps]
++            cases hl : lookup (fun w => w.1 == mp) h.s.every with
++            | some w =>
++              obtain ⟨hwm, hw1⟩ := lookup_some hl
++              simp only [beq_iff_eq] at hw1
++              have hwc : w ∈ coverWs h.s d := List.mem_filter.mpr ⟨hwm, by rw [hw1]; exact hmp⟩
++              obtain ⟨hfl, hbf, hxv, _⟩ := hev w hwc
++              rw [subst_evalE, applyS_single]
++              simp only [evalE, upd_at]
++              rw [congrE _ (upd X w.2.1 key) N _ (fun i hi => by
++                simp only [upd]; by_cases hib : i = w.2.1
++                · simp [hib]
++                · rw [if_neg hib, if_neg hib, if_neg (fun he => avoidsE_occ hxv hi (by simp [he]))]),
++                inline_evalE, decide_upd hbf (fun p hp => hfl p hp)]
++            | none =>
++              simp only [writeMaps]
++              cases hl2 : lookup (fun w => w.1 == mp) h.s.f.m.writes with
++              | some w =>
++                obtain ⟨hwm, hw1⟩ := lookup_some hl2
++                simp only [beq_iff_eq] at hw1
++                obtain ⟨hwx1, hwx2⟩ := hwrx w hwm (by rw [hw1]; exact hmp)
++                have hk1 : evalE (upd X d.x key) N (inlineE h.s.f.flags w.2.1) = evalE V N w.2.1 := by
++                  rw [congrE _ X N _ (fun i hi => by simp only [upd]; rw [if_neg (fun he => avoidsE_occ hwx1 hi (by simp [he]))]), inline_evalE]
++                have hk2 : evalE (upd X d.x key) N (inlineE h.s.f.flags w.2.2) = evalE V N w.2.2 := by
++                  rw [congrE _ X N _ (fun i hi => by simp only [upd]; rw [if_neg (fun he => avoidsE_occ hwx2 hi (by simp [he]))]), inline_evalE]
++                simp only [evalE, evalC, upd_at, hk1, hk2]
++                by_cases hk : key = evalE V N w.2.1 <;> simp [hk]
++              | none => simp only [evalE, upd_at]
++          have hsub := substRE_gOkE d.k (.var d.x) (postRdInlined h.s) (upd X d.x key) N M' d.g hg hpost
++          simpa [gAfterInlined, gAt, evalE, upd_at] using hsub
++        rw [hga]; exact decide_eq_false hne
++    exact isSum_reset (evalC V N r) cs' (hsum d hd) hzero (fun hrf => hag_no_reset (fun r' hr' => by
++      rw [hreset] at hr'; cases hr'; exact hrf))
+ 
+ -- At the start every term is 0 at every key, and every sum 0.
+-theorem sum_start (hc : checkSums h ps covers = true) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hM : StartMaps h.plain.f.m M) :
++theorem sum_start {covers : List (List (List VDef × Tree) × Option (List VDef × Tree))}
++    (hc : checkSums h ps covers = true) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hM : StartMaps h.plain.f.m M) :
+     ∀ d ∈ h.sums, IsSum (gAt d.g M) (applyS h.plain.f.m.init ρ M d.v) := by
+-  obtain ⟨hok, _⟩ := checkSums_parts hc
++  obtain ⟨hok, _, _⟩ := checkSums_parts hc
+   obtain ⟨hdist, hall⟩ := sumOk_parts hok
+   intro d hd
+   obtain ⟨_, hm, h0, _, _, _, _, _, hv, _⟩ := sumOk1_parts (hall d hd)
+@@ -652,10 +898,11 @@ theorem q_mem {d : SumDecl} (hd : d ∈ h.sums) : (d.q, [d.k], sumBody h.s d) 
+   List.mem_append_right _ (List.mem_map.mpr ⟨d, hd, rfl⟩)
+ 
+ /-- Where every sum is exact, the facts the plain machine assumes hold of every request, in its view. -/
+-theorem sum_facts (hc : checkSums h ps covers = true) (hs : sOk h.plain = true) {ρ : Nat → Nat} {M : Nat → Nat → Nat}
++theorem sum_facts {covers : List (List (List VDef × Tree) × Option (List VDef × Tree))}
++    (hc : checkSums h ps covers = true) (hs : sOk h.plain = true) {ρ : Nat → Nat} {M : Nat → Nat → Nat}
+     (hsum : ∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v)) (ι : Nat → Nat) (κ : Nat → Nat → Nat) :
+     evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 (sumsC h.sums) = true := by
+-  obtain ⟨hok, _⟩ := checkSums_parts hc
++  obtain ⟨hok, _, _⟩ := checkSums_parts hc
+   obtain ⟨_, hall⟩ := sumOk_parts hok
+   obtain ⟨_, hqd, _, _, hdx, _, _⟩ := sOk_parts h.plain hs
+   let N := withCarried h.s M κ
+@@ -844,7 +1091,7 @@ end project
+ /-! Claims about the rule with its sums -/
+ 
+ /-- The laws proven of the plain machine hold in every state it reaches, where every sum is exact. -/
+-theorem sum_laws (h : SumMachine) (ps : List SEntry) (covers : List (List (List VDef × Tree)))
++theorem sum_laws (h : SumMachine) (ps : List SEntry) (covers : List (List (List VDef × Tree) × Option (List VDef × Tree)))
+     (hl : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true) :
+     ∀ ρ M, SReach h.plain ρ M → (∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v)) ∧ ∀ e ∈ ps, e.Holds ρ M :=
+   sum_cells h hl hc
+@@ -858,7 +1105,7 @@ structure SumRun (h : SumMachine) where
+   next : ∀ n, st (n + 1) = sNext h.plain (st n).1 (st n).2 (req n).1 (req n).2
+ 
+ -- It is a run of the plain machine: there the facts hold, so the plain machine allows each of its requests.
+-def SumRun.plain {h : SumMachine} {ps : List SEntry} {covers : List (List (List VDef × Tree))} (hl : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true)
++def SumRun.plain {h : SumMachine} {ps : List SEntry} {covers : List (List (List VDef × Tree) × Option (List VDef × Tree))} (hl : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true)
+     (run : SumRun h) : SRun h.plain :=
+   have reach : ∀ n, SReach h.plain (run.st n).1 (run.st n).2 := fun n => by
+     induction n with
+@@ -869,7 +1116,7 @@ def SumRun.plain {h : SumMachine} {ps : List SEntry} {covers : List (List (List
+   ⟨run.st, run.req, run.start, fun n => by rw [sum_allowed h hl hc _ _ (reach n)]; exact run.allowed n, run.next⟩
+ 
+ /-- Liveness of the rule with its sums, along every run that takes each helpful request infinitely often. -/
+-theorem sumleads_sound (h : SumMachine) (covers : List (List (List VDef × Tree))) (ps : List SEntry) (l : Live) (sp cp : SProof) (hp : List SProof)
++theorem sumleads_sound (h : SumMachine) (covers : List (List (List VDef × Tree) × Option (List VDef × Tree))) (ps : List SEntry) (l : Live) (sp cp : SProof) (hp : List SProof)
+     (hc : checkSums h ps covers = true) (hl : checkSMachine h.plain ps = true) (hok : sliveOk h.plain l = true)
+     (hs : checkSKStep h.plain ps (sliveStep l l.pend (liveStayC l) sp) = true) (hcv : checkSKStep h.plain ps (sliveStep l l.pend (liveCoverC l) cp) = true)
+     (hh : sliveHelpsOk h.plain ps l hp = true) (run : SumRun h)
+@@ -879,7 +1126,7 @@ theorem sumleads_sound (h : SumMachine) (covers : List (List (List VDef × Tree)
+ 
+ /-- Liveness of the rule with its sums under weak fairness of its own assumption: each helpful request is proven allowed
+ by the rule's assumption in its region (the facts the plain machine assumes besides hold there). -/
+-theorem sumleads_wf_sound (h : SumMachine) (covers : List (List (List VDef × Tree))) (ps : List SEntry) (l : Live) (sp cp : SProof)
++theorem sumleads_wf_sound (h : SumMachine) (covers : List (List (List VDef × Tree) × Option (List VDef × Tree))) (ps : List SEntry) (l : Live) (sp cp : SProof)
+     (hp : List SProof) (ap : List (List (Nat × E) × SProof × List E))
+     (hc : checkSums h ps covers = true) (hl : checkSMachine h.plain ps = true) (hok : sliveOk h.plain l = true)
+     (hs : checkSKStep h.plain ps (sliveStep l l.pend (liveStayC l) sp) = true) (hcv : checkSKStep h.plain ps (sliveStep l l.pend (liveCoverC l) cp) = true)
+@@ -891,7 +1138,7 @@ theorem sumleads_wf_sound (h : SumMachine) (covers : List (List (List VDef × Tr
+   sleads_wf_soundA h.plain ps l sp cp hp ap h.s.f.m.assume hl hok hs hcv hh ha (run.plain hl hc) fair
+ 
+ /-- The same under strong fairness (Live.lean's `sleads_sf_soundA`). -/
+-theorem sumleads_sf_sound (h : SumMachine) (covers : List (List (List VDef × Tree))) (ps : List SEntry) (l : Live) (lv : List Nat) (sp cp : SProof)
++theorem sumleads_sf_sound (h : SumMachine) (covers : List (List (List VDef × Tree) × Option (List VDef × Tree))) (ps : List SEntry) (l : Live) (lv : List Nat) (sp cp : SProof)
+     (hp : List SProof) (ap : List (List (Nat × E) × SProof × List E))
+     (hc : checkSums h ps covers = true) (hl : checkSMachine h.plain ps = true) (hok : sliveOk h.plain l = true)
+     (hs : checkSKStep h.plain ps (sliveStep l l.pend (liveStaySC l) sp) = true) (hcv : checkSKStep h.plain ps (sliveStep l l.pend (liveCoverC l) cp) = true)
+@@ -905,6 +1152,7 @@ theorem sumleads_sf_sound (h : SumMachine) (covers : List (List (List VDef × Tr
+ end Kern
+ 
+ #print axioms Kern.isSum_change
++#print axioms Kern.isSum_reset
+ #print axioms Kern.dsum_le
+ #print axioms Kern.sum_cells
+ #print axioms Kern.sum_holds
+diff --git a/lean-kernel/emit.ts b/lean-kernel/emit.ts
+index e34268dab..84f8a5cc4 100644
+--- a/lean-kernel/emit.ts
++++ b/lean-kernel/emit.ts
+@@ -1459,15 +1459,28 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
+     return r2.proven ? r2 : undefined
+   })] as const))
+   const allowGoals = [...allowed.values()].flatMap(a => (a ? [a.out.goal!] : []))
+-  // Each sum's cover goals (kernel.ts builds them as Sums.lean's sumCoverGoal does), per sum in order.
+-  const covers = sm ? Object.keys(sm.sums!).map(s2 => sumMachine(sm, undefined, laws).goals.filter(g => g.name.startsWith(`${s2} @cover `))) : []
++  // Each sum's cover goals (exact `${s} @cover ${mp}` in step.maps order) and optional reset goal (`${s} @reset`).
++  const sumGoalMap = sm ? new Map(sumMachine(sm, undefined, laws).goals.map(g => [g.name, g])) : new Map<string, Goal>()
++  const sumSideGoals = sm ? Object.entries(sm.sums!).map(([s2, sum]) => {
++    const readMaps = new Set([...JSON.stringify(sum.term).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!))
++    const covers = Object.entries(sm.step.maps ?? {}).flatMap(([mp, w]) => {
++      if (!('each' in w) || !readMaps.has(mp)) return []
++      const g = sumGoalMap.get(`${s2} @cover ${mp}`)
++      if (!g) throw new Error(`${id}: missing cover goal ${s2} @cover ${mp}`)
++      return [g]
++    })
++    const reset = sum.reset !== undefined ? sumGoalMap.get(`${s2} @reset`) : undefined
++    if (sum.reset !== undefined && !reset) throw new Error(`${id}: missing reset goal ${s2} @reset`)
++    return {covers, reset}
++  }) : []
+   const named = machineNames(m, laws, allSteps, stepLaws, {...opts, ...(hm ? {record: hm.history.record} : {})})
+   const sumNames = sm ? Object.entries(sm.sums!).flatMap(([s2, sum]) => { const {flag, x} = sumParts(s2); return [s2, sum.key, `?${flag}`, `w?${flag}`, x] }) : []
+-  const vars = [...new Set([...named.vars, ...sumNames, ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? []), ...covers.flat(), ...(opts.kind ? [opts.kind.start.goal] : [])].flatMap(g => g.hyps.flatMap(varsOf))])]
++  const sumAllGoals = sumSideGoals.flatMap(sg => (sg.reset ? [...sg.covers, sg.reset] : sg.covers))
++  const vars = [...new Set([...named.vars, ...sumNames, ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? []), ...sumAllGoals, ...(opts.kind ? [opts.kind.start.goal] : [])].flatMap(g => g.hyps.flatMap(varsOf))])]
+   // A computation irrelevant to a proved law is still part of the source machine.
+   // Include its getter namespace and all native schema helpers, not only goal reads.
+   const sourceTerms = words ? [m, laws, allSteps] : []
+-  const mapNames = [...new Set([...named.maps, ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals, ...sourceTerms]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!), ...wordSchemaMapNames(sourceTerms)])]
++  const mapNames = [...new Set([...named.maps, ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals, ...sumAllGoals, ...sourceTerms]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!), ...wordSchemaMapNames(sourceTerms)])]
+   const enc = (g: Goal, tree: Tree) => encode({name: `${id}: ${g.name}`, goal: g, tree}, false, true, vars, mapNames)
+   const {e, c} = leanTerms(vars, mapNames, id)
+   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
+@@ -1494,28 +1507,30 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
+   ${list(rels.map(rel => { if (rel.holds.op !== '<=') throw new Error(`${id}: a relation is a <= b`); return `(${c(rel.when)}, ${e(rel.holds.a)}, ${e(rel.holds.b)})` }))}⟩`
+   }
+   // The sums: the rule without them (its state without their variables) and each sum (Sums.lean's SumDecl: the
+-  // variable, the term's key, the term, the cover keys, the quantified flag and its witness, the cover goals' key).
++  // variable, the term's key, the term, the cover keys, the quantified flag and its witness, the cover/reset goals'
++  // key, and the optional reset guard).
+   const sumsDef = () => {
+     const sums = Object.entries(sm!.sums!), cov = sumCovers(sm!)
+     const base: Machine = {...sm!, sums: undefined, state: Object.fromEntries(Object.entries(sm!.state).filter(([n2]) => !(n2 in sm!.sums!)))}
+     return `def ${id}_sums : SumMachine := ⟨${lit(base)},
+-  ${list(sums.map(([s2, sum]) => { const {flag, x} = sumParts(s2); return `⟨${ix(s2)}, ${ix(sum.key)}, ${e(sum.term)}, ${list(cov[s2]!.map(e))}, ${ix(`?${flag}`)}, ${ix(`w?${flag}`)}, ${ix(x)}⟩` }))}⟩
++  ${list(sums.map(([s2, sum]) => { const {flag, x} = sumParts(s2); return `⟨${ix(s2)}, ${ix(sum.key)}, ${e(sum.term)}, ${list(cov[s2]!.map(e))}, ${ix(`?${flag}`)}, ${ix(`w?${flag}`)}, ${ix(x)}, ${sum.reset ? `some (${c(sum.reset)})` : 'none'}⟩` }))}⟩
+ def ${id}_machine : SMachine := ${id}_sums.plain`
+   }
+-  // Each cover goal's tree, the sums' check, and what it gives: each sum exact, the rule's assumption the plain
++  // Each cover/reset goal's tree, the sums' check, and what it gives: each sum exact, the rule's assumption the plain
+   // machine's, the laws.
+   const sumsBlock = () => {
+-    const trees = covers.map(gs => list(gs.map(g => {
++    const treeOf = (g: Goal): string => {
+       const t2 = opts.coverTrees?.[g.name] ?? (() => {
+-        if (retainedOnly) throw new Error(`${id}: missing retained cover tree for ${g.name}`)
++        if (retainedOnly) throw new Error(`${id}: missing retained sum side-goal tree for ${g.name}`)
+         const out = grow(g); if (!('tree' in out)) throw new Error(`${id}: ${g.name} not proven`); return out.tree
+       })()
+       const x2 = enc(g, t2); return `(${x2.tab}, ${x2.tree})`
+-    })))
++    }
++    const certs = sumSideGoals.map(({covers: gs, reset: rg}) => `(${list(gs.map(treeOf))}, ${rg ? `some ${treeOf(rg)}` : 'none'})`)
+     const tamperLit = (t: {m: Machine, covers?: Record<string, E[]>}) => {
+       const cov = t.covers ?? sumCovers(t.m), base: Machine = {...t.m, sums: undefined, state: Object.fromEntries(Object.entries(t.m.state).filter(([n2]) => !(n2 in t.m.sums!)))}
+       return `(⟨${lit(base)},
+-  ${list(Object.entries(t.m.sums!).map(([s2, sum]) => { const {flag, x} = sumParts(s2); return `⟨${ix(s2)}, ${ix(sum.key)}, ${e(sum.term)}, ${list(cov[s2]!.map(e))}, ${ix(`?${flag}`)}, ${ix(`w?${flag}`)}, ${ix(x)}⟩` }))}⟩ : SumMachine)`
++  ${list(Object.entries(t.m.sums!).map(([s2, sum]) => { const {flag, x} = sumParts(s2); return `⟨${ix(s2)}, ${ix(sum.key)}, ${e(sum.term)}, ${list(cov[s2]!.map(e))}, ${ix(`?${flag}`)}, ${ix(`w?${flag}`)}, ${ix(x)}, ${sum.reset ? `some (${c(sum.reset)})` : 'none'}⟩` }))}⟩ : SumMachine)`
+     }
+     // The laws a twin's cover goals read: each the entry of its name, with its law and further keys as the twin has them.
+     const coverLit = (ls: Law[]) => list(ls.map(l => {
+@@ -1526,7 +1541,7 @@ def ${id}_machine : SMachine := ${id}_sums.plain`
+     const tampered = (opts.sumTampers ?? []).map(t => `-- TAMPERED: ${t.what}. Lean computes the check to ${t.expect}, kernel.ts's answer.
+ example : (checkSums ${tamperLit(t)} ${t.coverLaws ? coverLit(t.coverLaws) : `${id}_proof`} ${id}_covers && checkSMachine ${tamperLit(t)}.plain ${id}_proof) = ${t.expect} := by ${checkBy}`)
+     return `
+-def ${id}_covers : List (List (List VDef × Tree)) := ${list(trees)}
++def ${id}_covers : List (List (List VDef × Tree) × Option (List VDef × Tree)) := ${list(certs)}
+ theorem ${id}_scheck : checkSums ${id}_sums ${id}_proof ${id}_covers = true := by ${checkBy}
+ /-- Each sum's variable is, in every state the machine reaches, the sum over every key of its term there. -/
+ theorem ${id}_exact : ∀ ρ M, SReach ${id}_machine ρ M → ∀ d ∈ ${id}_sums.sums, IsSum (gAt d.g M) (ρ d.v) :=
+diff --git a/lean-kernel/lift-simulation/index.ts b/lean-kernel/lift-simulation/index.ts
+index a77248688..abd5fbaf7 100644
+--- a/lean-kernel/lift-simulation/index.ts
++++ b/lean-kernel/lift-simulation/index.ts
+@@ -99,11 +99,11 @@ export function tryRadixSimulation({id,bundle,providedSourceAST:source,options}:
+     for(const name of Object.keys(producerMachine.maps??{}))maps[m(name)]=name
+     const terms=leanTerms(vars,maps,id)
+     renderE=x=>`(${terms.e(x)})`
+-    const ds=sums.map(([n,d])=>{const sp=sumParts(n),cells=covers[n]!.map(e=>{const map=(d.term as Extract<E,{op:'get'}>).map;return key(p,map,e)});return `⟨${v(n)}, ${v(d.key)}, ${renderE(d.term)}, ${list(cells.map(renderE))}, ${v('?'+sp.flag)}, ${v('w?'+sp.flag)}, ${v(sp.x)}⟩`})
++    const ds=sums.map(([n,d])=>{const sp=sumParts(n),cells=covers[n]!.map(e=>{const map=(d.term as Extract<E,{op:'get'}>).map;return key(p,map,e)});return `⟨${v(n)}, ${v(d.key)}, ${renderE(d.term)}, ${list(cells.map(renderE))}, ${v('?'+sp.flag)}, ${v('w?'+sp.flag)}, ${v(sp.x)}, none⟩`})
+     extra=`def ${id}_source : SMachine := ${lit(source.machine)}\ndef ${id}_target_data : SumMachine := ⟨${lit(target)}, ${list(ds)}⟩\n`
+     extra+=source.laws.map((l,j)=>`def ${id}_source_law${j} : MLaw := ⟨${c(l.holds)}, ${l.forall?'some '+v(l.forall):'none'}⟩\ndef ${id}_source_keys${j} : List Nat := ${list((l.keys??[]).map(v))}`).join('\n')+'\n'
+     const oldbase={...p.sumMachine,sums:undefined,state:Object.fromEntries(Object.entries(p.sumMachine.state).filter(([n])=>!Object.hasOwn(p.sumMachine.sums??{},n)))}
+-    extra+=`def ${id}_old_sums : SumMachine := ⟨${lit(oldbase)}, ${list(sums.map(([n,d])=>{const sp=sumParts(n);return `⟨${v(n)}, ${v(d.key)}, ${renderE(d.term)}, ${list(covers[n]!.map(renderE))}, ${v('?'+sp.flag)}, ${v('w?'+sp.flag)}, ${v(sp.x)}⟩`}))}⟩\n`
++    extra+=`def ${id}_old_sums : SumMachine := ⟨${lit(oldbase)}, ${list(sums.map(([n,d])=>{const sp=sumParts(n);return `⟨${v(n)}, ${v(d.key)}, ${renderE(d.term)}, ${list(covers[n]!.map(renderE))}, ${v('?'+sp.flag)}, ${v('w?'+sp.flag)}, ${v(sp.x)}, none⟩`}))}⟩\n`
+     return ''
+   }})
+   const cut=emitted.indexOf(`\ntheorem ${raw}_check :`);if(cut<0)throw Error('unsupported current retained emission layout')
+@@ -188,11 +188,11 @@ theorem ${id}_covers : Bapa.SemanticSums.Preserves ${id}_target_data ${id}_proof
+ `
+   })
+   semantic+=`theorem ${id}_exact_sums : ∀ ρ M, SReach ${id}_target_data.plain ρ M → ∀ d ∈ ${id}_target_data.sums, IsSum (gAt d.g M) (ρ d.v) :=
+-  Bapa.SemanticSums.sum_holds _ ${id}_check ${id}_sum_ok ${id}_covers
++  Bapa.SemanticSums.sum_holds _ ${id}_check ${id}_sum_ok (by decide +kernel) ${id}_covers
+ theorem ${id}_own_admission : ∀ ρ M, SReach ${id}_target_data.plain ρ M → ∀ ι κ,
+     evalC (sView ${id}_target_data.plain ρ M ι κ).1 (sView ${id}_target_data.plain ρ M ι κ).2 ${id}_target_data.plain.f.m.assume =
+     evalC (sView ${id}_target_data.plain ρ M ι κ).1 (sView ${id}_target_data.plain ρ M ι κ).2 ${id}_target_data.s.f.m.assume :=
+-  Bapa.SemanticSums.sum_allowed _ ${id}_check ${id}_sum_ok ${id}_covers
++  Bapa.SemanticSums.sum_allowed _ ${id}_check ${id}_sum_ok (by decide +kernel) ${id}_covers
+ theorem ${id}_integrands : ${id}_target_data.sums.map (·.g) = ${id}_old_sums.sums.map (·.g) := by rfl
+ `
+   // Project only the ghost-independent kind entries; the inferred SUM law
+@@ -200,7 +200,7 @@ theorem ${id}_integrands : ${id}_target_data.sums.map (·.g) = ${id}_old_sums.su
+   for(const b of p.booleanEntries){
+     const e=expanded.get(b.index)
+     semantic+=`theorem ${id}_base_bound${b.index} (ρ M) (hr : SReach ${id}_target_data.s ρ M) (k : Nat) : M ${mx(b.map)} k ≤ 1 := by
+-  have h := Bapa.SemanticSums.sum_project_laws _ ${id}_sum_ghosts ${id}_proof ${id}_check ${id}_sum_ok ${id}_covers ρ M hr ${id}_bound_entry${b.index} (List.getElem_mem (by rw [${id}_family_size]; decide +kernel)) (by decide +kernel)
++  have h := Bapa.SemanticSums.sum_project_laws _ ${id}_sum_ghosts ${id}_proof ${id}_check ${id}_sum_ok (by decide +kernel) ${id}_covers ρ M hr ${id}_bound_entry${b.index} (List.getElem_mem (by rw [${id}_family_size]; decide +kernel)) (by decide +kernel)
+   change holdsOver ${id}_bound_entry${b.index}.law M ${id}_bound_entry${b.index}.keys2 ρ at h
+   rw [${id}_bound_shape${b.index}.1, ${id}_bound_shape${b.index}.2] at h
+   have hk := ${e?'h (cun k).2 (cun k).1':'h k'}
+@@ -275,7 +275,7 @@ theorem ${id}_simulation : Bapa.FiniteSimulation.SSimulation ${id}_source ${id}_
+     bridge+=`def ${strong} : SEntry := ${id}_proof[${n}]'(by rw [${id}_family_size]; decide +kernel)
+ theorem ${sourceTheorems[j]} (ρ M) (hr : SReach ${id}_source ρ M) : holdsOver ${id}_source_law${j} M ${id}_source_keys${j} ρ := by
+   have ht := ${id}_restricted.sreach ${id}_invariant hr
+-  have h := Bapa.SemanticSums.sum_project_laws _ ${id}_sum_ghosts ${id}_proof ${id}_check ${id}_sum_ok ${id}_covers ρ M ht ${strong} (List.getElem_mem (by rw [${id}_family_size]; decide +kernel)) (by decide +kernel)
++  have h := Bapa.SemanticSums.sum_project_laws _ ${id}_sum_ghosts ${id}_proof ${id}_check ${id}_sum_ok (by decide +kernel) ${id}_covers ρ M ht ${strong} (List.getElem_mem (by rw [${id}_family_size]; decide +kernel)) (by decide +kernel)
+   change holdsOver ${strong}.law M ${strong}.keys2 ρ at h
+   have shape : ${strong}.law = ⟨${renderC(rewrite(p,p.producer.laws[n]!.holds) as C)}, ${l.forall?'some '+ix(l.forall):'none'}⟩ ∧ ${strong}.keys2 = ${list((l.keys??[]).map(ix))} := by constructor <;> rfl
+   rw [shape.1, shape.2] at h

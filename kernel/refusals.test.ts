@@ -530,8 +530,10 @@ test('sums: the keys a write at every key compares its key with, either side; th
   const at = get('Bal', x('e')), each = (c: C): Machine => ({...tok, maps: {Bal: 0, O: 0}, step: {flags: {f: le(x('v'), n(3))}, maps: {Bal: {each: 'e', value: ite(c, plus(at, x('v')), at)}}}})
   expect(sumCovers(each(eq(x('from'), x('e'))))['S']).toEqual([x('from')])
   const m = each({op: 'and', xs: [{op: 'flag', name: 'f'}, eq(x('e'), x('from'))]})
-  // a plain flag read as (if f's condition then 1 else 0) = 1, as Lean inlines it
-  expect(JSON.stringify(sideGoals(m))).toContain('"then":{"op":"const","value":1},"else":{"op":"const","value":0}},"b":{"op":"const","value":1}')
+  // a plain flag inlined directly to its condition, as Progress.lean's eqOrFlag/inlineC inlines it
+  const coverJson = JSON.stringify(sideGoals(m))
+  expect(coverJson).toContain('"op":"<=","a":{"op":"var","name":"v"},"b":{"op":"const","value":3}')
+  expect(coverJson).not.toContain('"then":{"op":"const","value":1},"else":{"op":"const","value":0}},"b":{"op":"const","value":1}')
   // a law over Bal and O is no law of the term's cells: the cover goal doesn't assume it
   const other: Law = {name: 'Bal under O', forall: 'j', holds: le(get('Bal', x('j')), get('O', x('j')))}
   expect(sideGoals(m, [other])[0]!.hyps.length).toBe(sideGoals(m, [])[0]!.hyps.length)

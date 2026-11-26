@@ -36,7 +36,7 @@
     "Live.lean": "616b42f009e353e9c80099744e7a3fc4cccdf2149bdbd5128831eb2abeca671e",
     "NonTerm.lean": "ca3a781b4040c61b106014e45e9bc5e75b5693e58203da480f8fa88dc84df8a1",
     "Ghost.lean": "e0870a6337c21e2be173f27d21b445362fb218af6db1b5c2ab7a32386b166ba5",
-    "Sums.lean": "09bc24a050fe635f106167e1b86dc0308b7afe45dad611843ba8e37c62be1a00",
+    "Sums.lean": "d3c9b5a5dfea8b9c45f85ea410b04f93f1715eeb2f681a7211557bd17ed0a9ee",
     "Refine.lean": "6b6009f7cc9ed62186e43effc0aab0259e119bbcd2851e0716cf7dbaddd92afc",
     "Bridge.lean": "c0898836b87117821a3696bfa1e545000e04d0126d497af8a3196c74ffae129e",
     "BridgeRules.lean": "505b41b3280ec6fc30c4b049ab1a1bf1c46f8d7a1a7cdc7cba4ccdf5c1599d40",

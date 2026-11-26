@@ -141,6 +141,7 @@ def sumArity (p : Plan) (g : E) : Except Error (Option Nat) := do
 def target (p : Plan) (old : SumMachine) : Except Error SumMachine := do
   let base ← RadixCertificateTransport.liftSyntax (RadixTupleSyntax.machine (config p) old.s)
   let sums ← old.sums.mapM fun d => do
+    if d.reset.isSome then throw (.syntax (.unsupportedKey 0))
     let n ← sumArity p d.g
     let cs ← d.cs.mapM fun k => RadixCertificateTransport.liftSyntax
       (match n with | some n => rekey p.radix n [] k | none => expr p [] k)

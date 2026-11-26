@@ -1,6 +1,7 @@
 import {retainFrom, retainCounted, retainAggregate, publishProof, withPublicRule, retainStepProof, publishStepProof, retainLiveProof, publishLiveProof} from './proof-output.ts'
 import {searchAggregate} from './aggregate-search.ts'
 import {type DeclareSum, cellSeeds, coveringSeeds} from './covering.ts'
+import {extractSumReset} from './sum-reset.ts'
 import {searchNow as countedSearchNow} from './wall.ts'
 // Typed builders for machines, decisions and loops: names are declared once and come back as typed values, so a
 // misspelled name, a law that reads a request, or a step that sets an undeclared variable is a TypeScript error, and
@@ -886,6 +887,14 @@ export const sumsIn = (ts: unknown[], more: Iterable<string> = []): Record<strin
   // (a sum read after the step, primed, is the sum's too)
   const names = new Set([...more, ...[...JSON.stringify(ts).matchAll(/"op":"var","name":"(sum\$[^"]+)"/g)].map(x2 => x2[1]!.replace(/'$/, ''))].filter(n => sumDecls.has(n)))
   return names.size ? Object.fromEntries([...names].sort().map(n => [n, sumDecls.get(n)!])) : undefined
+}
+function withSumResets(m: Machine, sums: Record<string, Sum> | undefined): Record<string, Sum> | undefined {
+  if (!sums) return undefined
+  return Object.fromEntries(Object.entries(sums).map(([name, sum]) => {
+    if (sum.reset !== undefined) return [name, sum]
+    const reset = extractSumReset(m, sum, name)
+    return [name, reset ? {...sum, reset} : sum]
+  }))
 }
 
 // A map from naturals to naturals, every cell starting at `init`. One write per map per step.
@@ -1801,7 +1810,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       const name = (new MapRef(map, 0).sum().e as {name: string}).name
       if (have.has(name)) continue
       try {
-        const cand: Machine = {...m, sums: {...m.sums, ...sumsIn([], [name])}}
+        const cand: Machine = {...m, sums: {...m.sums, ...withSumResets(m, sumsIn([], [name]))}}
         const {goals} = sumMachine(cand, undefined, kinds)
         if (checkCovers && goals.length && refusedSumCover(cand, kinds)) continue
         more.add(name)
@@ -2339,7 +2348,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       }
     }
     // (each sum a state variable from 0 the step never sets: sumMachine sets it, exact)
-    const sums = sumsIn(machineTerms(m), s.sumsRead ?? [])
+    const sums = withSumResets(m, sumsIn(machineTerms(m), s.sumsRead ?? []))
     const out = withArithmetic(sums ? {...m, state: {...m.state, ...Object.fromEntries(Object.keys(sums).map(n => [n, {op: 'const', value: 0} as E]))}, sums} : m, [], s.arith ?? [])
     const encoded = encodeBinders(out, this.names().map(([n]) => n))
     const machine = s.ghost ? s.ghost(encoded) : encoded
@@ -3034,11 +3043,18 @@ function guidesOf(m: Machine): ((env: Record<string, number>, st: State, rand: R
 // finite-cover approximation.
 export function refusedSumCover(m: Machine, laws: Law[] = []): {goal: string, why: string} | undefined {
   if (!m.sums || !Object.keys(m.sums).length) return undefined
-  const covers = sideGoals(m, laws).filter(g => g.name.includes(' @cover '))
+  const covers = sideGoals(m, laws).filter(g => g.name.includes(' @cover ') || g.name.endsWith(' @reset'))
   if (!covers.length) return undefined
   for (const g of covers) {
     const out = grow(g)
     if (!('tree' in out) || !check(g, out.tree)) {
+      if (g.name.endsWith(' @reset')) {
+        const sumName = g.name.slice(0, -' @reset'.length)
+        return {
+          goal: g.name,
+          why: `sum ${sumName} cannot be reset to 0 across its reset guard`,
+        }
+      }
       const [sumName, mapName] = g.name.split(' @cover ')
       return {
         goal: g.name,
@@ -3324,7 +3340,7 @@ function tryCovering(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, law: Law, 
         const name = sumOfTerm(map, at, plain)
         if (!Object.hasOwn(base.sums ?? {}, name)) {
           const k = kinds ?? (kinds = r.kindLaws())
-          const cand: Machine = {...base, sums: {...base.sums, ...sumsIn([], [name])}}
+          const cand: Machine = {...base, sums: {...base.sums, ...withSumResets(base, sumsIn([], [name]))}}
           const {goals} = sumMachine(cand, undefined, k)
           if (goals.length && refusedSumCover(cand, k)) return undefined
         }

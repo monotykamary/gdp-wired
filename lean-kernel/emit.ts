@@ -1459,15 +1459,28 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
     return r2.proven ? r2 : undefined
   })] as const))
   const allowGoals = [...allowed.values()].flatMap(a => (a ? [a.out.goal!] : []))
-  // Each sum's cover goals (kernel.ts builds them as Sums.lean's sumCoverGoal does), per sum in order.
-  const covers = sm ? Object.keys(sm.sums!).map(s2 => sumMachine(sm, undefined, laws).goals.filter(g => g.name.startsWith(`${s2} @cover `))) : []
+  // Each sum's cover goals (exact `${s} @cover ${mp}` in step.maps order) and optional reset goal (`${s} @reset`).
+  const sumGoalMap = sm ? new Map(sumMachine(sm, undefined, laws).goals.map(g => [g.name, g])) : new Map<string, Goal>()
+  const sumSideGoals = sm ? Object.entries(sm.sums!).map(([s2, sum]) => {
+    const readMaps = new Set([...JSON.stringify(sum.term).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!))
+    const covers = Object.entries(sm.step.maps ?? {}).flatMap(([mp, w]) => {
+      if (!('each' in w) || !readMaps.has(mp)) return []
+      const g = sumGoalMap.get(`${s2} @cover ${mp}`)
+      if (!g) throw new Error(`${id}: missing cover goal ${s2} @cover ${mp}`)
+      return [g]
+    })
+    const reset = sum.reset !== undefined ? sumGoalMap.get(`${s2} @reset`) : undefined
+    if (sum.reset !== undefined && !reset) throw new Error(`${id}: missing reset goal ${s2} @reset`)
+    return {covers, reset}
+  }) : []
   const named = machineNames(m, laws, allSteps, stepLaws, {...opts, ...(hm ? {record: hm.history.record} : {})})
   const sumNames = sm ? Object.entries(sm.sums!).flatMap(([s2, sum]) => { const {flag, x} = sumParts(s2); return [s2, sum.key, `?${flag}`, `w?${flag}`, x] }) : []
-  const vars = [...new Set([...named.vars, ...sumNames, ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? []), ...covers.flat(), ...(opts.kind ? [opts.kind.start.goal] : [])].flatMap(g => g.hyps.flatMap(varsOf))])]
+  const sumAllGoals = sumSideGoals.flatMap(sg => (sg.reset ? [...sg.covers, sg.reset] : sg.covers))
+  const vars = [...new Set([...named.vars, ...sumNames, ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? []), ...sumAllGoals, ...(opts.kind ? [opts.kind.start.goal] : [])].flatMap(g => g.hyps.flatMap(varsOf))])]
   // A computation irrelevant to a proved law is still part of the source machine.
   // Include its getter namespace and all native schema helpers, not only goal reads.
   const sourceTerms = words ? [m, laws, allSteps] : []
-  const mapNames = [...new Set([...named.maps, ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals, ...sourceTerms]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!), ...wordSchemaMapNames(sourceTerms)])]
+  const mapNames = [...new Set([...named.maps, ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals, ...sumAllGoals, ...sourceTerms]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!), ...wordSchemaMapNames(sourceTerms)])]
   const enc = (g: Goal, tree: Tree) => encode({name: `${id}: ${g.name}`, goal: g, tree}, false, true, vars, mapNames)
   const {e, c} = leanTerms(vars, mapNames, id)
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
@@ -1494,28 +1507,30 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   ${list(rels.map(rel => { if (rel.holds.op !== '<=') throw new Error(`${id}: a relation is a <= b`); return `(${c(rel.when)}, ${e(rel.holds.a)}, ${e(rel.holds.b)})` }))}⟩`
   }
   // The sums: the rule without them (its state without their variables) and each sum (Sums.lean's SumDecl: the
-  // variable, the term's key, the term, the cover keys, the quantified flag and its witness, the cover goals' key).
+  // variable, the term's key, the term, the cover keys, the quantified flag and its witness, the cover/reset goals'
+  // key, and the optional reset guard).
   const sumsDef = () => {
     const sums = Object.entries(sm!.sums!), cov = sumCovers(sm!)
     const base: Machine = {...sm!, sums: undefined, state: Object.fromEntries(Object.entries(sm!.state).filter(([n2]) => !(n2 in sm!.sums!)))}
     return `def ${id}_sums : SumMachine := ⟨${lit(base)},
-  ${list(sums.map(([s2, sum]) => { const {flag, x} = sumParts(s2); return `⟨${ix(s2)}, ${ix(sum.key)}, ${e(sum.term)}, ${list(cov[s2]!.map(e))}, ${ix(`?${flag}`)}, ${ix(`w?${flag}`)}, ${ix(x)}⟩` }))}⟩
+  ${list(sums.map(([s2, sum]) => { const {flag, x} = sumParts(s2); return `⟨${ix(s2)}, ${ix(sum.key)}, ${e(sum.term)}, ${list(cov[s2]!.map(e))}, ${ix(`?${flag}`)}, ${ix(`w?${flag}`)}, ${ix(x)}, ${sum.reset ? `some (${c(sum.reset)})` : 'none'}⟩` }))}⟩
 def ${id}_machine : SMachine := ${id}_sums.plain`
   }
-  // Each cover goal's tree, the sums' check, and what it gives: each sum exact, the rule's assumption the plain
+  // Each cover/reset goal's tree, the sums' check, and what it gives: each sum exact, the rule's assumption the plain
   // machine's, the laws.
   const sumsBlock = () => {
-    const trees = covers.map(gs => list(gs.map(g => {
+    const treeOf = (g: Goal): string => {
       const t2 = opts.coverTrees?.[g.name] ?? (() => {
-        if (retainedOnly) throw new Error(`${id}: missing retained cover tree for ${g.name}`)
+        if (retainedOnly) throw new Error(`${id}: missing retained sum side-goal tree for ${g.name}`)
         const out = grow(g); if (!('tree' in out)) throw new Error(`${id}: ${g.name} not proven`); return out.tree
       })()
       const x2 = enc(g, t2); return `(${x2.tab}, ${x2.tree})`
-    })))
+    }
+    const certs = sumSideGoals.map(({covers: gs, reset: rg}) => `(${list(gs.map(treeOf))}, ${rg ? `some ${treeOf(rg)}` : 'none'})`)
     const tamperLit = (t: {m: Machine, covers?: Record<string, E[]>}) => {
       const cov = t.covers ?? sumCovers(t.m), base: Machine = {...t.m, sums: undefined, state: Object.fromEntries(Object.entries(t.m.state).filter(([n2]) => !(n2 in t.m.sums!)))}
       return `(⟨${lit(base)},
-  ${list(Object.entries(t.m.sums!).map(([s2, sum]) => { const {flag, x} = sumParts(s2); return `⟨${ix(s2)}, ${ix(sum.key)}, ${e(sum.term)}, ${list(cov[s2]!.map(e))}, ${ix(`?${flag}`)}, ${ix(`w?${flag}`)}, ${ix(x)}⟩` }))}⟩ : SumMachine)`
+  ${list(Object.entries(t.m.sums!).map(([s2, sum]) => { const {flag, x} = sumParts(s2); return `⟨${ix(s2)}, ${ix(sum.key)}, ${e(sum.term)}, ${list(cov[s2]!.map(e))}, ${ix(`?${flag}`)}, ${ix(`w?${flag}`)}, ${ix(x)}, ${sum.reset ? `some (${c(sum.reset)})` : 'none'}⟩` }))}⟩ : SumMachine)`
     }
     // The laws a twin's cover goals read: each the entry of its name, with its law and further keys as the twin has them.
     const coverLit = (ls: Law[]) => list(ls.map(l => {
@@ -1526,7 +1541,7 @@ def ${id}_machine : SMachine := ${id}_sums.plain`
     const tampered = (opts.sumTampers ?? []).map(t => `-- TAMPERED: ${t.what}. Lean computes the check to ${t.expect}, kernel.ts's answer.
 example : (checkSums ${tamperLit(t)} ${t.coverLaws ? coverLit(t.coverLaws) : `${id}_proof`} ${id}_covers && checkSMachine ${tamperLit(t)}.plain ${id}_proof) = ${t.expect} := by ${checkBy}`)
     return `
-def ${id}_covers : List (List (List VDef × Tree)) := ${list(trees)}
+def ${id}_covers : List (List (List VDef × Tree) × Option (List VDef × Tree)) := ${list(certs)}
 theorem ${id}_scheck : checkSums ${id}_sums ${id}_proof ${id}_covers = true := by ${checkBy}
 /-- Each sum's variable is, in every state the machine reaches, the sum over every key of its term there. -/
 theorem ${id}_exact : ∀ ρ M, SReach ${id}_machine ρ M → ∀ d ∈ ${id}_sums.sums, IsSum (gAt d.g M) (ρ d.v) :=
