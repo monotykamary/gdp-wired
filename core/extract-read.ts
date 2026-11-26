@@ -559,16 +559,9 @@ export class Exec {
       if (v.values.length !== values.length || v.values.some((value, i) => value !== values[i])) return refuse(at, 'a join or assignment between different ordered choice domains')
       return v.e
     }
-    if (v.t === 'str') {
-      const lift = (k: K): L => {
-        if (k.op === 'slit') {
-          if (!values.includes(k.value)) return refuse(at, `'${k.value}' is not one of ${values.map(x => `'${x}'`).join(', ')}`)
-          return I.llit(k.value, values)
-        }
-        if (k.op === 'kite') return I.lite(k.c, lift(k.a), lift(k.b))
-        return refuse(at, 'a string that is not one of a union\'s literals')
-      }
-      return lift(v.e)
+    if (v.t === 'str' && v.e.op === 'slit') {
+      if (!values.includes(v.e.value)) return refuse(at, `'${v.e.value}' is not one of ${values.map(x => `'${x}'`).join(', ')}`)
+      return I.llit(v.e.value, values)
     }
     return refuse(at, 'a string that is not one of a union\'s literals')
   }

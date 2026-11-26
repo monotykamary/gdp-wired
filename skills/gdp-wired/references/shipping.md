@@ -48,47 +48,6 @@ budget.compare({
 ones drawn with their edges, in bounded sequences. It is a test, never a proof; require no failure and
 `exhaustive: true` when you need full finite input coverage.
 
-## Shipping without the runtime
-
-When you want zero `gdp-wired` runtime dependency in production — strict CSP (no `new Function` / `eval`), edge
-workers, tiny bundles, or plain checked-in TypeScript your team can read and review in PRs — emit standalone source
-directly from the proven rule, function, rational rule, or statechart:
-
-```ts
-const {source, digest} = budget.emit({laws: [bounded]})
-```
-
-Or via the CLI, keeping `gdp-wired` as a dev dependency:
-
-```bash
-npx gdp-wired-cli emit src/rules/review-routing.ts#reviewRoutingBundle \
-  --out src/rules/review-routing.generated.ts --verify
-```
-
-Check the generated `.ts` file into git and gate CI with:
-
-```bash
-npx gdp-wired-cli emit src/rules/review-routing.ts#reviewRoutingBundle \
-  --out src/rules/review-routing.generated.ts --check --verify
-```
-
-- **Zero runtime dependencies**: generated files have zero imports, zero `new Function` / `eval`, and zero proof/kernel
-  code. They export clean types (`Params`, `Input`, `State`, `Result`) and functions (`init`, `step`, or `<name>`), using
-  the rule's own field names (never internal slots or raw choice indices). `RatRule` emits exact BigInt `[bigint, bigint]`
-  rational arithmetic with zero float rounding.
-- **Refuses unproven rules**: `emit` proves every law first and exits `2` (never writing) if any law fails, is not
-  kernel-checked, or carries unproven assumptions under `--from any`.
-- **Deterministic drift check (`--check`)**: regenerates in memory and exits `1` with a short diff if the file on disk
-  differs by even one character.
-- **Closed-loop verification (`--verify`)**: emitted files inside the TypeScript reader's subset carry `// gdp: law`
-  comments over the emitted code; `--verify` runs the TypeScript reader directly against the generated file so an emitter
-  bug or manual edit shows up as a refuted law (exit `1`), or exits `2` honestly if the rule uses constructs outside the
-  reader's subset (such as exact BigInt `RatRule`, variants, or histories).
-- **When to prefer `emit` over `compiled()`**: use `emit` when shipping to strict CSP / edge / browser environments,
-  when you want zero production dependency on `gdp-wired`, or when reviewers want inspectable TypeScript in git. Use
-  `compiled()` / `interpreter()` when rules are constructed dynamically at runtime or when keeping the single live rule
-  object in-process is simpler.
-
 ## Law comments
 
 `// gdp: law` comments checked with `npx gdp-wired-cli check` (gdp-wired then a dev dependency; the repository's

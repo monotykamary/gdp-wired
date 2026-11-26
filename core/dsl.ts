@@ -4434,4 +4434,4 @@ export {Chart, chart, type StateNode, type Transition} from './chart.ts'
 // Minimal refuting runs (core/minimize.ts): a run that breaks a law, cut down until no single request can go.
 export {minimizeRun, minimizeRunDetailed, type MinimizeOptions, type Minimized, type RunRequest, type RunTrace} from './minimize.ts'
 // Emit standalone zero-dependency TypeScript source from proven rules, functions, rational rules and statecharts.
-export {emitRule, emitFun, emitRatRule, emitChart, machineDigest, qMachineDigest, GDP_WIRED_VERSION, type EmitResult, type EmitLawReport, type EmitVerifyInfo, type EmitRuleOptions, type EmitFunOptions, type EmitRatOptions, type EmitChartOptions, type EmitBundle} from './emit.ts'
+export {emitRule, emitFun, emitRatRule, emitChart, machineDigest, qMachineDigest, GDP_WIRED_VERSION, type EmitResult, type EmitLawReport, type EmitRuleOptions, type EmitFunOptions, type EmitRatOptions, type EmitChartOptions, type EmitBundle} from './emit.ts'

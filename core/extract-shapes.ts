@@ -366,7 +366,7 @@ export function readStandalone(code: string, file: string, opts: ReadOptions): M
     const name = ts.isIdentifier(param.name) ? param.name.text : 'arg', t = s.checker.getTypeAtLocation(param), parts = t.isUnion() ? t.types : [t]
     if (!t.isUnion() && (t.flags & ts.TypeFlags.Object)) {
       const sh = shapeOf(t, s.checker, param)
-      if (sh.k !== 'rec' || !sh.fields.length || sh.fields.some(([key, field]) => ['__proto__', 'prototype', 'constructor'].includes(key) || (field.k !== 'bool' && field.k !== 'choice' && field.k !== 'num') || (field.k === 'num' && !!(field as {date?: true}).date) || (field.k === 'choice' && (field.values.length > 64 || field.values.some(x => !x))))) refuse(param, 'standalone: record inputs need numeric, boolean, or finite string choice fields')
+      if (sh.k !== 'rec' || !sh.fields.length || sh.fields.some(([key, field]) => ['__proto__', 'prototype', 'constructor'].includes(key) || (field.k !== 'bool' && field.k !== 'choice') || (field.k === 'choice' && (field.values.length > 64 || field.values.some(x => !x))))) refuse(param, 'standalone: record inputs need boolean or finite string choice fields')
       s.notes.add('standalone record inputs are immutable plain-data snapshots: own data properties only, no accessors or Proxies')
       const a = argOf(ex, param, `${name}_`, fn.body ?? fn)
       if (a.events.length !== 1 || Object.keys(a.events[0]!.select).length) refuse(param, 'standalone: record input has multiple variants')
@@ -401,7 +401,7 @@ export function readStandalone(code: string, file: string, opts: ReadOptions): M
   const sig = s.checker.getSignatureFromDeclaration(fn)!, rt = s.checker.getReturnTypeOfSignature(sig), parts = rt.isUnion() ? rt.types : [rt]
   if (!rt.isUnion() && (rt.flags & ts.TypeFlags.Object)) {
     const shape = shapeOf(rt, s.checker, fn)
-    if (shape.k !== 'rec' || !shape.fields.length || shape.fields.some(([key, field]) => ['__proto__', 'prototype', 'constructor'].includes(key) || (field.k !== 'bool' && field.k !== 'num' && field.k !== 'choice') || (field.k === 'num' && !!(field as {date?: true}).date) || (field.k === 'choice' && (field.values.length > 64 || field.values.some(x => !x))))) refuse(fn, 'standalone: record results need scalar boolean, numeric, or finite string choice fields')
+    if (shape.k !== 'rec' || !shape.fields.length || shape.fields.some(([key, field]) => ['__proto__', 'prototype', 'constructor'].includes(key) || (field.k !== 'bool' && field.k !== 'num'))) refuse(fn, 'standalone: record results need scalar boolean or numeric fields')
     const {layout} = build(ex, shape, [`${opts.entry}_result`], p.heap, 'fresh', fn)
     if (layout.k !== 'rec') throw new Error('standalone: record layout expected')
     const fields: [string, string][] = layout.fields.map(([f, sub]) => {

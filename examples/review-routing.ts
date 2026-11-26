@@ -1,8 +1,8 @@
 // Synthetic review-routing decision + escalation step, emitted to examples/review-routing.generated.ts with zero
-// runtime dependencies and re-verified by the TypeScript reader (`gdp-wired emit --verify`).
+// runtime dependencies and differentially verified against the interpreter (`gdp-wired emit --verify`).
 //   bun examples/review-routing.ts
 //   npx gdp-wired-cli emit examples/review-routing.ts#reviewRoutingBundle --out examples/review-routing.generated.ts --check --verify
-import {type EmitBundle, all, bool, decimal, fun, oneOf, proveDecision, when, yes} from '../core/dsl.ts'
+import {type EmitBundle, all, bool, decimal, fun, oneOf, proveDecision, when} from '../core/dsl.ts'
 
 export const Verdict = oneOf('approve', 'reject', 'review')
 
@@ -87,5 +87,4 @@ if (import.meta.main) {
   )
   console.log('sample run:', sanity)
   if (!ok || sanity.decision !== 'approve' || sanity.final !== 'approve') process.exit(1)
-  void yes
 }

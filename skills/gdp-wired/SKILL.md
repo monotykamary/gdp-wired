@@ -73,10 +73,8 @@ When adding or changing a rule whose invariants matter:
    host's, a stored one), prove with `{from: 'any'}` and require
    `proven && checked && !assumes`.
 5. **Ship the rule you proved.** Run it with `rule.interpreter()` or `rule.compiled()` (`fun.run()` or
-   `fun.compiled()` for a decision), or emit zero-dependency standalone TypeScript (`rule.emit()` / `fun.emit()` /
-   `ratRule.emit()` / `chart.emit()`, or `npx gdp-wired-cli emit <module>#<export> --out <file.ts> --check --verify`)
-   when you want no production runtime dependency or strict CSP compatibility ([shipping](references/shipping.md)).
-   Always run `rule.crossCheck(laws)` in tests. Code that already exists and can't be replaced yet is held to the rule
+   `fun.compiled()` for a decision), never a hand-written copy, and run `rule.crossCheck(laws)` in tests
+   ([shipping](references/shipping.md)). Code that already exists and can't be replaced yet is held to the rule
    with `rule.compare(reference)` until it is: a test, not a proof. With gdp-ts, mint its proofs from
    the proven check (`guard`, `gate` from `gdp-wired/gdp`) so every call site
    is held to it ([with gdp-ts](references/gdp-ts.md)).
