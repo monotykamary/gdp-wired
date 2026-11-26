@@ -24,6 +24,7 @@ class Reader
     ([@file] | Dir.glob(File.join(@root, '**', '*.rb'))).each { |f| index_consts(f) rescue nil }
     @recs, @funcs, @loads = {}, {}, []
     @caught = []
+    @pre, @tmp = nil, 0
   end
 
   # --- constants of the code: Mod::NAME = literal, from every file under the root -----------------------------------
@@ -149,6 +150,9 @@ class Reader
         if (ARITH.include?(n.name) || %i[< <= > >=].include?(n.name)) && n.receiver && n.arguments&.arguments&.length == 1
           [n.receiver, n.arguments.arguments.first].each { |x| iv = field_read(x); (@ivars[iv] ||= []) << :int if iv }
         end
+        if n.safe_navigation? && n.receiver && (iv = field_read(n.receiver))
+          (@ivars[iv] ||= []) << :none
+        end
       end
     end
     fields = @ivars.map { |iv, _| {'name' => iv, 't' => ivar_type(iv)} }
@@ -208,9 +212,10 @@ class Reader
     when Prism::ParenthesesNode then kind(v.body&.body&.last, locals)
     when Prism::IfNode then [kind(v.statements&.body&.last, locals), kind(else_of(v), locals)]
     when Prism::CallNode
-      return 'int' if clock?(v) || (ARITH.include?(v.name) && v.receiver) || %i[min max abs to_i size length count].include?(v.name)
-      return 'bool' if CMP.key?(v.name) || v.name.to_s.end_with?('?')
-      nil
+      k = if clock?(v) || (ARITH.include?(v.name) && v.receiver) || %i[min max abs to_i size length count].include?(v.name) then 'int'
+          elsif CMP.key?(v.name) || v.name.to_s.end_with?('?') then 'bool'
+          end
+      k && v.safe_navigation? ? [k, 'none'] : k
     end
   end
   def else_of(n)
@@ -283,6 +288,14 @@ class Reader
   end
 
   # --- statements: the last one's value is the method's (or the branch's) result -------------------------------------
+  def collect_pre
+    saved, @pre = @pre, []
+    val = yield
+    [@pre, val]
+  ensure
+    @pre = saved
+  end
+  def fresh_tmp = "$sn#{@tmp += 1}"
   def block(ss, tail)
     ss.each_with_index.flat_map { |s, i| stmt(s, tail && i == ss.length - 1) }.then { |out| tail && ss.empty? ? [{'s' => 'ret', 'p' => "#{@base}:0:0"}] : out }
   end
@@ -294,12 +307,12 @@ class Reader
     when Prism::IfNode, Prism::UnlessNode
       th = block(body_of(s.statements), tail)
       el = block(body_of(s.is_a?(Prism::IfNode) ? (s.respond_to?(:subsequent) ? s.subsequent : s.consequent) : s.else_clause), tail)
-      c = expr(s.predicate)
-      [{'s' => 'if', 'p' => p, 'c' => s.is_a?(Prism::UnlessNode) ? {'e' => 'not', 'x' => c, 'p' => p} : c, 'then' => th, 'else' => el}]
+      pre, c = collect_pre { expr(s.predicate) }
+      pre + [{'s' => 'if', 'p' => p, 'c' => s.is_a?(Prism::UnlessNode) ? {'e' => 'not', 'x' => c, 'p' => p} : c, 'then' => th, 'else' => el}]
     when Prism::CaseNode
       return [{'s' => 'no', 'p' => p, 'why' => 'case without a value'}] unless s.predicate
-      subj = expr(s.predicate)
-      s.conditions.reverse.reduce(block(body_of(s.else_clause), tail)) do |rest, w|
+      pre, subj = collect_pre { expr(s.predicate) }
+      pre + s.conditions.reverse.reduce(block(body_of(s.else_clause), tail)) do |rest, w|
         c = {'e' => 'or', 'xs' => w.conditions.map { |x| {'e' => 'cmp', 'op' => '==', 'x' => subj, 'y' => expr(x), 'p' => where(x), 'text' => text(x)} }, 'p' => where(w)}
         # (at line 0: Ruby counts no line at a when)
         [{'s' => 'if', 'p' => "#{@base}:0:0", 'c' => c, 'then' => block(body_of(w.statements), tail), 'else' => rest}]
@@ -309,18 +322,25 @@ class Reader
       if a.length == 1 && (a[0].is_a?(Prism::InstanceVariableOrWriteNode) || a[0].is_a?(Prism::LocalVariableOrWriteNode) || a[0].is_a?(Prism::InstanceVariableAndWriteNode) || a[0].is_a?(Prism::LocalVariableAndWriteNode))
         return stmt(a[0], true)
       end
-      [{'s' => 'ret', 'p' => p, **(a.length == 1 ? {'x' => expr(a[0])} : a.empty? ? {} : {'x' => no(s, 'a return of several values')})}]
-    when Prism::LocalVariableWriteNode then [{'s' => 'set', 'p' => p, 'to' => {'e' => 'var', 'n' => s.name.to_s, 'p' => p}, 'x' => expr(s.value)}, *(tail ? ret.({'e' => 'var', 'n' => s.name.to_s, 'p' => p}) : [])]
-    when Prism::InstanceVariableWriteNode then [{'s' => 'set', 'p' => p, 'to' => ivar(s.name.to_s, s), 'x' => expr(s.value)}, *(tail ? ret.(ivar(s.name.to_s, s)) : [])]
+      pre, x = a.length == 1 ? collect_pre { expr(a[0]) } : [[], nil]
+      pre + [{'s' => 'ret', 'p' => p, **(a.length == 1 ? {'x' => x} : a.empty? ? {} : {'x' => no(s, 'a return of several values')})}]
+    when Prism::LocalVariableWriteNode
+      pre, x = collect_pre { expr(s.value) }
+      pre + [{'s' => 'set', 'p' => p, 'to' => {'e' => 'var', 'n' => s.name.to_s, 'p' => p}, 'x' => x}, *(tail ? ret.({'e' => 'var', 'n' => s.name.to_s, 'p' => p}) : [])]
+    when Prism::InstanceVariableWriteNode
+      pre, x = collect_pre { expr(s.value) }
+      pre + [{'s' => 'set', 'p' => p, 'to' => ivar(s.name.to_s, s), 'x' => x}, *(tail ? ret.(ivar(s.name.to_s, s)) : [])]
     when Prism::InstanceVariableOrWriteNode, Prism::LocalVariableOrWriteNode, Prism::InstanceVariableAndWriteNode, Prism::LocalVariableAndWriteNode
       is_or = s.is_a?(Prism::InstanceVariableOrWriteNode) || s.is_a?(Prism::LocalVariableOrWriteNode)
       t = s.is_a?(Prism::LocalVariableOrWriteNode) || s.is_a?(Prism::LocalVariableAndWriteNode) ? {'e' => 'var', 'n' => s.name.to_s, 'p' => p} : ivar(s.name.to_s, s)
       c = is_or ? {'e' => 'not', 'x' => t, 'p' => p} : t
-      [{'s' => 'if', 'p' => p, 'c' => c, 'then' => [{'s' => 'set', 'p' => p, 'to' => t, 'x' => expr(s.value)}], 'else' => []}, *(tail ? ret.(t) : [])]
+      vpre, vx = collect_pre { expr(s.value) }
+      [{'s' => 'if', 'p' => p, 'c' => c, 'then' => vpre + [{'s' => 'set', 'p' => p, 'to' => t, 'x' => vx}], 'else' => []}, *(tail ? ret.(t) : [])]
     when Prism::InstanceVariableOperatorWriteNode, Prism::LocalVariableOperatorWriteNode
       t = s.is_a?(Prism::LocalVariableOperatorWriteNode) ? {'e' => 'var', 'n' => s.name.to_s, 'p' => p} : ivar(s.name.to_s, s)
       op = s.respond_to?(:binary_operator) ? s.binary_operator : s.operator
-      [{'s' => 'set', 'p' => p, 'to' => t, 'x' => binop(op, t, expr(s.value), s)}, *(tail ? ret.(t) : [])]
+      pre, vx = collect_pre { expr(s.value) }
+      pre + [{'s' => 'set', 'p' => p, 'to' => t, 'x' => binop(op, t, vx, s)}, *(tail ? ret.(t) : [])]
     when Prism::CallNode
       if s.name == :raise && !s.receiver
         # (the class raised and its bases; a bare raise, or of the exception a rescue bound, a re-raise)
@@ -331,9 +351,11 @@ class Reader
         return [{'s' => 'fail', 'p' => p, 'why' => "raise #{text(s.arguments || s)}".sub(/raise raise/, 'raise'), 'cls' => k[0], **(k[1] ? {'open' => true} : {})}]
       end
       if s.name == :synchronize && s.block.is_a?(Prism::BlockNode) && s.receiver
-        return [{'s' => 'with', 'p' => p, 'items' => [{'x' => expr(s.receiver)}], 'body' => block(body_of(s.block.body), tail)}]
+        pre, rx = collect_pre { expr(s.receiver) }
+        return pre + [{'s' => 'with', 'p' => p, 'items' => [{'x' => rx}], 'body' => block(body_of(s.block.body), tail)}]
       end
-      ret.(expr(s))
+      pre, x = collect_pre { expr(s) }
+      pre + ret.(x)
     when Prism::ParenthesesNode then block(body_of(s.body), tail)
     when Prism::WhileNode, Prism::UntilNode, Prism::ForNode then [{'s' => 'no', 'p' => p, 'why' => 'a loop'}]
     when Prism::BeginNode
@@ -356,7 +378,9 @@ class Reader
       end
       [{'s' => 'try', 'p' => p, 'body' => body, 'handlers' => hs, 'els' => s.else_clause ? block(body_of(s.else_clause), tail) : [], 'fin' => s.ensure_clause ? block(body_of(s.ensure_clause.statements), false) : []}]
     when Prism::DefNode, Prism::ClassNode, Prism::ModuleNode then [{'s' => 'no', 'p' => p, 'why' => 'a definition inside a method'}]
-    else ret.(expr(s))
+    else
+      pre, x = collect_pre { expr(s) }
+      pre + ret.(x)
     end
   end
   # A class an exception is: its name and its bases' ([names], open: some the reader can't know), from the file's
@@ -407,24 +431,76 @@ class Reader
     when Prism::InstanceVariableReadNode then ivar(x.name.to_s, x)
     when Prism::ConstantReadNode, Prism::ConstantPathNode then (c = const(x, @nest)) ? c.reject { |k, _| %w[sym file].include?(k) }.merge('p' => p) : no(x, "#{text(x)}: a constant the reader can't resolve to a literal")
     when Prism::ParenthesesNode then (b = body_of(x.body)).length == 1 ? expr(b[0]) : no(x, "#{text(x)}: several statements as a value")
-    when Prism::AndNode, Prism::OrNode then {'e' => x.is_a?(Prism::AndNode) ? 'and' : 'or', 'xs' => [expr(x.left), expr(x.right)], 'p' => p}
+    when Prism::AndNode, Prism::OrNode
+      lv = expr(x.left)
+      rpre, rv = collect_pre { expr(x.right) }
+      if rpre.empty? || !@pre
+        {'e' => x.is_a?(Prism::AndNode) ? 'and' : 'or', 'xs' => [lv, rv], 'p' => p}
+      else
+        tv = {'e' => 'var', 'n' => fresh_tmp, 'p' => p}
+        @pre << {'s' => 'set', 'p' => p, 'to' => tv, 'x' => lv}
+        c = x.is_a?(Prism::AndNode) ? tv : {'e' => 'not', 'x' => tv, 'p' => p}
+        @pre << {'s' => 'if', 'p' => p, 'c' => c, 'then' => rpre + [{'s' => 'set', 'p' => p, 'to' => tv, 'x' => rv}], 'else' => []}
+        tv
+      end
     when Prism::IfNode
       el = else_of(x)
       return no(x, "#{text(x)}: an if of several statements as a value") if (x.statements&.body || []).length > 1
-      {'e' => 'ite', 'c' => expr(x.predicate), 'a' => x.statements ? expr(x.statements.body.last) : {'e' => 'none', 'p' => p}, 'b' => el ? expr(el) : {'e' => 'none', 'p' => p}, 'p' => p}
+      cv = expr(x.predicate)
+      apre, av = collect_pre { x.statements ? expr(x.statements.body.last) : {'e' => 'none', 'p' => p} }
+      bpre, bv = collect_pre { el ? expr(el) : {'e' => 'none', 'p' => p} }
+      if (apre.empty? && bpre.empty?) || !@pre
+        {'e' => 'ite', 'c' => cv, 'a' => av, 'b' => bv, 'p' => p}
+      else
+        tv = {'e' => 'var', 'n' => fresh_tmp, 'p' => p}
+        @pre << {'s' => 'if', 'p' => p, 'c' => cv, 'then' => apre + [{'s' => 'set', 'p' => p, 'to' => tv, 'x' => av}], 'else' => bpre + [{'s' => 'set', 'p' => p, 'to' => tv, 'x' => bv}]}
+        tv
+      end
     when Prism::InterpolatedStringNode
       {'e' => 'fstr', 'parts' => x.parts.map { |q| q.is_a?(Prism::StringNode) ? q.unescaped : {'x' => q.statements&.body&.length == 1 ? expr(q.statements.body[0]) : no(q, 'an interpolation'), 'plain' => true} }, 'p' => p, 'text' => text(x)}
     when Prism::CallNode then call_expr(x)
     else no(x, "#{text(x)}: #{x.type} (outside the subset)")
     end
   end
+  def simple_recv?(r)
+    r.is_a?(Prism::LocalVariableReadNode) || r.is_a?(Prism::InstanceVariableReadNode) || r.is_a?(Prism::SelfNode) || r.is_a?(Prism::NilNode) ||
+      r.is_a?(Prism::IntegerNode) || r.is_a?(Prism::FloatNode) || r.is_a?(Prism::StringNode) || r.is_a?(Prism::SymbolNode) ||
+      r.is_a?(Prism::TrueNode) || r.is_a?(Prism::FalseNode) || r.is_a?(Prism::ConstantReadNode) || r.is_a?(Prism::ConstantPathNode)
+  end
   def call_expr(x)
     p, r, n, args = where(x), x.receiver, x.name, x.arguments&.arguments || []
     return no(x, "#{text(x)}: a block (a closure)") if x.block.is_a?(Prism::BlockNode)
-    return no(x, "#{text(x)}: &. (a call on a value that may be nil)") if x.safe_navigation?
     return {'e' => 'call', 'f' => {'e' => 'lib', 'q' => 'time.time', 'p' => p}, 'args' => [], 'kw' => [], 'p' => p, 'text' => text(x)} if clock?(x)
     return self_call(n.to_s, args.map { |a| expr(a) }, x) if !r || r.is_a?(Prism::SelfNode)
+    if x.safe_navigation?
+      # Safe navigation (`r&.m(args)`): evaluate `r` once; return nil when `r` is nil without evaluating `args` or calling `m`.
+      rv0 = r.is_a?(Prism::ArrayNode) ? nil : expr(r)
+      return call_on(x, r, rv0, n, args, p) if r.is_a?(Prism::ArrayNode)
+      if simple_recv?(r) || !@pre
+        bpre, bval = collect_pre { call_on(x, r, rv0, n, args, p) }
+        is_nil = {'e' => 'cmp', 'op' => 'is', 'x' => rv0, 'y' => {'e' => 'none', 'p' => p}, 'p' => p, 'text' => text(x)}
+        if bpre.empty? || !@pre
+          return {'e' => 'ite', 'c' => is_nil, 'a' => {'e' => 'none', 'p' => p}, 'b' => bval, 'p' => p}
+        end
+        res = {'e' => 'var', 'n' => fresh_tmp, 'p' => p}
+        @pre << {'s' => 'if', 'p' => p, 'c' => is_nil, 'then' => [{'s' => 'set', 'p' => p, 'to' => res, 'x' => {'e' => 'none', 'p' => p}}], 'else' => bpre + [{'s' => 'set', 'p' => p, 'to' => res, 'x' => bval}]}
+        return res
+      end
+      tv = {'e' => 'var', 'n' => fresh_tmp, 'p' => p}
+      @pre << {'s' => 'set', 'p' => p, 'to' => tv, 'x' => rv0}
+      is_nil = {'e' => 'cmp', 'op' => 'is', 'x' => tv, 'y' => {'e' => 'none', 'p' => p}, 'p' => p, 'text' => text(x)}
+      bpre, bval = collect_pre { call_on(x, nil, tv, n, args, p) }
+      if bpre.empty?
+        return {'e' => 'ite', 'c' => is_nil, 'a' => {'e' => 'none', 'p' => p}, 'b' => bval, 'p' => p}
+      end
+      res = {'e' => 'var', 'n' => fresh_tmp, 'p' => p}
+      @pre << {'s' => 'if', 'p' => p, 'c' => is_nil, 'then' => [{'s' => 'set', 'p' => p, 'to' => res, 'x' => {'e' => 'none', 'p' => p}}], 'else' => bpre + [{'s' => 'set', 'p' => p, 'to' => res, 'x' => bval}]}
+      return res
+    end
     rv = r.is_a?(Prism::ArrayNode) ? nil : expr(r)
+    call_on(x, r, rv, n, args, p)
+  end
+  def call_on(x, r, rv, n, args, p)
     return binop(n, rv, expr(args[0]), x) if ARITH.include?(n) && args.length == 1
     return {'e' => 'cmp', 'op' => CMP[n], 'x' => rv, 'y' => expr(args[0]), 'p' => p, 'text' => text(x)} if CMP.key?(n) && args.length == 1
     case n
@@ -442,7 +518,7 @@ class Reader
       return no(x, "#{text(x)}: clamp of a range") unless args.length == 2
       call({'e' => 'builtin', 'n' => 'max', 'p' => p}, [expr(args[0]), call({'e' => 'builtin', 'n' => 'min', 'p' => p}, [rv, expr(args[1])], x)], x)
     when :new
-      return {'e' => 'call', 'f' => {'e' => 'lib', 'q' => 'threading.Lock', 'p' => p}, 'args' => [], 'kw' => [], 'p' => p, 'text' => text(x)} if r.slice =~ /\A(::)?(Thread::)?(Mutex|Monitor)\z/
+      return {'e' => 'call', 'f' => {'e' => 'lib', 'q' => 'threading.Lock', 'p' => p}, 'args' => [], 'kw' => [], 'p' => p, 'text' => text(x)} if r && r.slice =~ /\A(::)?(Thread::)?(Mutex|Monitor)\z/
       no(x, "#{text(x)}: an object of another class made")
     else
       return no(x, "#{text(x)}: a method of an array") if r.is_a?(Prism::ArrayNode)

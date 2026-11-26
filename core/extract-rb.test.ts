@@ -450,3 +450,44 @@ end
   native(x, 'threshold sets 10 when nil', 'old(threshold) == nil implies threshold == 10 and hits == old(hits) + 1', 'threshold')
   native(x, 'local_memo defaults nil to 7', 'x <= 0 implies result == 7', 'local_memo')
 })
+
+t('Ruby safe navigation (&.) evaluates receiver once, short-circuits on nil only, and preserves argument skipping', () => {
+  const x = ok(rb(`
+class SafeNav
+  def initialize
+    @val = nil
+    @calls = 0
+    @arg_evals = 0
+  end
+  def set_val(n)
+    @val = n
+  end
+  def clear
+    @val = nil
+  end
+  def fetch
+    @calls += 1
+    @val
+  end
+  def bump_arg
+    @arg_evals += 1
+    1
+  end
+  def plus_one
+    fetch&.+ bump_arg
+  end
+  def chained
+    @val&.+ 2&.* 3
+  end
+  def false_is_not_nil
+    f = false
+    f&.nil?
+  end
+end
+`, 'SafeNav'))
+  expect(x.evidence!.mismatch).toBeUndefined()
+  native(x, 'plus_one calls fetch exactly once', 'calls == old(calls) + 1', 'plus_one')
+  native(x, 'plus_one skips bump_arg when nil', 'old(val) == nil implies arg_evals == old(arg_evals)', 'plus_one')
+  native(x, 'plus_one adds 1 when non-nil', 'old(val) != nil implies arg_evals == old(arg_evals) + 1', 'plus_one')
+  native(x, 'false&.nil? is false, not nil', 'result == false', 'false_is_not_nil')
+})
