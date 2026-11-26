@@ -10,16 +10,23 @@ import {
   type KindInfo,
   type Raw,
   Chart,
+  FoldRule,
   Fun,
+  LoopRule,
+  RoseFold,
   Rule,
   emitChart,
+  emitFold,
   emitFun,
+  emitLoop,
   emitRatRule,
   emitRule,
+  inspectFoldMeta,
   inspectFunMeta,
+  inspectLoopMeta,
   inspectRuleMeta,
 } from './dsl.ts'
-import {type Rand, evalC, seeded, unreachable} from './machine.ts'
+import {type Rand, evalC, evalE, seeded, unreachable} from './machine.ts'
 import {allowed as ruleAllowed} from './watch.ts'
 import {type RatLaw, RatRule, inspectRatRule, interpretQ} from './rationals.ts'
 import {qparse, qshow} from './q.ts'
@@ -127,14 +134,20 @@ type AnyFun = Fun<any, any, any>
 type AnyRatRule = RatRule<any, any, any>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyChart = Chart<any, any, any>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyFold = FoldRule<any, any, any> | RoseFold<any, any, any, any>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyLoop = LoopRule<any, any, any>
 
 export type ResolvedTarget =
   | {kind: 'rule', rule: AnyRule}
   | {kind: 'fun', fun: AnyFun, defaultParams?: Readonly<Record<string, Raw>>}
   | {kind: 'ratRule', ratRule: AnyRatRule}
   | {kind: 'chart', chart: AnyChart}
+  | {kind: 'fold', fold: AnyFold}
+  | {kind: 'loop', loop: AnyLoop}
 
-const isEmitBundle = (v: unknown): v is EmitBundle => typeof v === 'object' && v !== null && ('rule' in v || 'fun' in v || 'ratRule' in v || 'chart' in v)
+const isEmitBundle = (v: unknown): v is EmitBundle => typeof v === 'object' && v !== null && ('rule' in v || 'fun' in v || 'ratRule' in v || 'chart' in v || 'fold' in v || 'loop' in v)
 
 export async function resolveAndEmit(opts: EmitCliOptions): Promise<{resolved: ResolvedTarget, result: EmitResult}> {
   const hash = opts.target.lastIndexOf('#')
@@ -154,8 +167,10 @@ export async function resolveAndEmit(opts: EmitCliOptions): Promise<{resolved: R
     : rawTarget instanceof Fun ? {fun: rawTarget}
     : rawTarget instanceof RatRule ? {ratRule: rawTarget}
     : rawTarget instanceof Chart ? {chart: rawTarget}
+    : rawTarget instanceof FoldRule || rawTarget instanceof RoseFold ? {fold: rawTarget}
+    : rawTarget instanceof LoopRule ? {loop: rawTarget}
     : isEmitBundle(rawTarget) ? rawTarget : undefined
-  if (!bundle) throw new Error(`export "${expName}" is not a Rule, Fun, RatRule, Chart, or EmitBundle`)
+  if (!bundle) throw new Error(`export "${expName}" is not a Rule, Fun, RatRule, Chart, FoldRule, RoseFold, LoopRule, or EmitBundle`)
 
   const name = opts.name ?? bundle.name
   const ms = opts.ms ?? bundle.ms
@@ -182,6 +197,20 @@ export async function resolveAndEmit(opts: EmitCliOptions): Promise<{resolved: R
     return {
       resolved: {kind: 'ratRule', ratRule: bundle.ratRule},
       result: emitRatRule(bundle.ratRule, {...(laws ? {laws} : {}), ...common}),
+    }
+  }
+  if ('fold' in bundle) {
+    const laws = opts.laws ? resolveLawExport<Law>(mod, opts.laws, bundle.fold) : bundle.laws
+    return {
+      resolved: {kind: 'fold', fold: bundle.fold},
+      result: emitFold(bundle.fold, {...(laws ? {laws} : {}), ...common}),
+    }
+  }
+  if ('loop' in bundle) {
+    const laws = opts.laws ? resolveLawExport<Law>(mod, opts.laws, bundle.loop) : bundle.laws
+    return {
+      resolved: {kind: 'loop', loop: bundle.loop},
+      result: emitLoop(bundle.loop, {...(laws ? {laws} : {}), ...common}),
     }
   }
   const laws = opts.laws ? resolveLawExport<Law>(mod, opts.laws, bundle.chart) : bundle.laws
@@ -277,7 +306,12 @@ function sampleKind(k: KindInfo, rand: Rand, bound: number, hints: readonly numb
       const s = pool[rand(pool.length)]!
       return k.maxLength !== undefined ? s.slice(0, k.maxLength) : s
     }
-    case 'fixed': case 'unknown': return rand(bound + 1)
+    case 'fixed': {
+      const cap = k.width === 8 ? (k.signed ? 127 : 255) : Math.min(bound, 50)
+      const val = k.signed ? rand(2 * Math.min(bound, cap) + 1) - Math.min(bound, cap) : rand(Math.min(bound, cap) + 1)
+      return k.width === 64 ? String(val) : val
+    }
+    case 'unknown': return rand(bound + 1)
     default: return unreachable(k)
   }
 }
@@ -369,32 +403,55 @@ export async function verifyEmittedFile(
   if (resolved.kind === 'rule' || resolved.kind === 'chart') {
     const r = resolved.kind === 'chart' ? resolved.chart.rule : resolved.rule
     const initFn = mod.init as ((p: Record<string, Raw>) => Record<string, unknown>) | undefined
-    const stepFn = mod.step as ((p: Record<string, Raw>, s: Record<string, unknown>, i: Record<string, Raw>) => Record<string, unknown>) | undefined
+    const stepFn = mod.step as ((p: Record<string, Raw>, s: Record<string, unknown>, i: Record<string, unknown>) => Record<string, unknown>) | undefined
     if (typeof initFn !== 'function' || typeof stepFn !== 'function') {
       return {ok: false, exit: 2, checked: 0, exhaustive: false, throwsMatched: 0, mismatch: 'emitted module missing exported init/step functions'}
     }
     const meta = inspectRuleMeta(r), m = r.machine, interp = r.interpreter({compileHelpers: true})
+    const sumNames = Object.keys(m.sums ?? {}).filter(sn => !meta.state.some(([n]) => n === sn))
     const compareState = (stE: Record<string, unknown>, stI: ReturnType<typeof interp.init>, keysTouched: Set<number>): string | undefined => {
       const dec = r.decode(stI)
       for (const [n] of meta.state) if (!deepEq(stE[n], dec[n])) return `state.${n}: emitted ${JSON.stringify(stE[n])} !== interpreter ${JSON.stringify(dec[n])}`
-      for (const [mapName, dflt, cellKind] of meta.maps) {
+      for (const sn of sumNames) if (!deepEq(stE[sn], stI.scalars[sn])) return `state.${sn}: emitted ${JSON.stringify(stE[sn])} !== interpreter ${JSON.stringify(stI.scalars[sn])}`
+      for (const [mapName, dflt, cellKind, cellInit] of meta.maps) {
         const emMap = stE[mapName] as Map<number, unknown>
-        const emDef = !cellKind && Object.hasOwn(stE, `${mapName}_default`) ? (stE[`${mapName}_default`] as number) : dflt
+        const emDef = Object.hasOwn(stE, `${mapName}_default`) ? stE[`${mapName}_default`] : (cellKind ? (cellInit ?? emptyVal(cellKind)) : dflt)
         const decMap = (cellKind ? dec[mapName] : undefined) as Record<string, unknown> | undefined
+        const intDef = cellKind
+          ? (meta.maps.find(([mn]) => mn === mapName)?.[3] ?? emptyVal(cellKind))
+          : (stI.defaults?.[mapName] ?? dflt)
         const allKeys = new Set<number>([...keysTouched, ...emMap.keys(), ...(stI.maps[mapName]?.keys() ?? []), 0, 1, ...Object.keys(decMap ?? {}).map(Number)])
         for (const k of allKeys) {
-          const got = emMap.get(k) ?? (cellKind ? emptyVal(cellKind) : emDef)
-          const want = cellKind ? (decMap?.[String(k)] ?? emptyVal(cellKind)) : (stI.maps[mapName]?.get(k) ?? stI.defaults?.[mapName] ?? dflt)
+          const got = emMap.get(k) ?? emDef
+          let want: unknown
+          if (cellKind) {
+            if (decMap && Object.hasOwn(decMap, String(k))) want = decMap[String(k)]
+            else {
+              // Decode default cell from interpreter's defaults if broadcast-updated
+              const cellRef = r.kindsOfCells().find(([cn]) => cn === mapName)?.[1]
+              want = cellRef
+                ? cellRef.decode(mapName, Object.fromEntries(cellRef.vars(mapName).map(part => [part, stI.maps[part]?.get(k) ?? stI.defaults?.[part] ?? m.maps?.[part] ?? 0])))
+                : intDef
+            }
+          } else {
+            want = stI.maps[mapName]?.get(k) ?? stI.defaults?.[mapName] ?? dflt
+          }
           if (!deepEq(got, want)) return `state.${mapName}[${k}]: emitted ${JSON.stringify(got)} !== interpreter ${JSON.stringify(want)}`
         }
       }
+      for (const listName of meta.lists) {
+        const len = stI.scalars[`${listName}_len`] ?? 0
+        const want = Array.from({length: len}, (_, i) => stI.maps[listName]?.get(i) ?? 0)
+        if (!deepEq(stE[listName], want)) return `state.${listName}: emitted ${JSON.stringify(stE[listName])} !== interpreter ${JSON.stringify(want)}`
+      }
       for (const [itemName] of meta.items) if (!deepEq(stE[itemName], dec[itemName])) return `state.${itemName}: emitted ${JSON.stringify(stE[itemName])} !== interpreter ${JSON.stringify(dec[itemName])}`
+      for (const nt of meta.nodes) if (!deepEq(stE[nt.name], dec[nt.name])) return `state.${nt.name}: emitted ${JSON.stringify(stE[nt.name])} !== interpreter ${JSON.stringify(dec[nt.name])}`
       return undefined
     }
 
     for (let runIdx = 0; runIdx < (opts.runs ?? 25); runIdx++) {
       let pRaw: Record<string, Raw> = {}, ps: Record<string, number> = {}, validP = false
-      for (let attempt = 0; attempt < 30; attempt++) {
+      for (let attempt = 0; attempt < 40; attempt++) {
         pRaw = Object.fromEntries(meta.params.map(([n, , k]) => [n, sampleKind(k, rand, 12, [])]))
         const enc = tryCall(() => r.encodeParams(pRaw as never))
         if (enc.ok && (!m.pre || evalC(m.pre, enc.val, {scalars: {}, maps: {}}, m))) { ps = enc.val; validP = true; break }
@@ -409,13 +466,22 @@ export async function verifyEmittedFile(
       const initDiff = compareState(stE, stI, keysTouched)
       if (initDiff) return fail1(`init(${JSON.stringify(pRaw)}): ${initDiff}`)
 
-      const trace: Record<string, Raw>[] = []
+      const trace: Record<string, unknown>[] = []
       let monoClock = 0
       for (let s = 0; s < (opts.steps ?? 20); s++) {
-        const iRaw = Object.fromEntries(meta.inputs.map(([n, , k]) => {
+        const iRaw: Record<string, unknown> = Object.fromEntries(meta.inputs.map(([n, , k]) => {
           if (k.kind === 'nat' && (n === 't' || n === 'now' || n === r.orderedBy)) { monoClock += rand(8); return [n, monoClock] }
           return [n, sampleKind(k, rand, 15, [])]
         }))
+        for (const cn of meta.carried) {
+          const entries: [number, number][] = []
+          const len = rand(5)
+          for (let j = 0; j < len; j++) if (rand(2) === 1) entries.push([j, rand(2) === 0 ? 1 : rand(4) + 1])
+          iRaw[cn] = rand(2) === 0 ? new Map(entries) : entries.map(([k]) => k)
+        }
+        for (const sn of meta.seqs) iRaw[sn] = Array.from({length: rand(5)}, () => rand(5))
+        for (const tn of meta.seqTables) iRaw[tn] = Array.from({length: rand(4)}, () => Array.from({length: rand(4)}, () => rand(5)))
+        for (const cl of meta.carriedLists) iRaw[cl.name] = Array.from({length: rand(5)}, () => sampleKind(cl.kind, rand, 8, []))
         for (const v of Object.values(iRaw)) if (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v < 1000) keysTouched.add(v)
         const nextI = tryCall(() => {
           const enc = r.encodeInput(iRaw as never, pRaw as never)
@@ -425,16 +491,96 @@ export async function verifyEmittedFile(
         const nextE = tryCall(() => stepFn(pRaw, stE, iRaw))
         checked++
         if (nextI.ok !== nextE.ok) {
-          return fail1(`params=${JSON.stringify(pRaw)}, step ${s}, input=${JSON.stringify(iRaw)}: ${nextI.ok ? `interpreter succeeded, emitted threw (${(nextE as {err: string}).err})` : `interpreter refused (${(nextI as {err: string}).err}), emitted succeeded`}`)
+          return fail1(`params=${JSON.stringify(pRaw)}, step ${s}, input=${JSON.stringify(iRaw, (_k, v) => v instanceof Map ? Object.fromEntries(v) : v)}: ${nextI.ok ? `interpreter succeeded, emitted threw (${(nextE as {err: string}).err})` : `interpreter refused (${(nextI as {err: string}).err}), emitted succeeded`}`)
         }
         if (!nextI.ok || !nextE.ok) { throwsMatched++; continue }
         stI = nextI.val; stE = nextE.val; trace.push(iRaw)
         const diff = compareState(stE, stI, keysTouched)
-        if (diff) return fail1(`params=${JSON.stringify(pRaw)}, step ${s}, trace=${JSON.stringify(trace)}: ${diff}`)
+        if (diff) return fail1(`params=${JSON.stringify(pRaw)}, step ${s}: ${diff}`)
       }
     }
     return {ok: true, exit: 0, checked, exhaustive: false, throwsMatched}
   }
+
+  if (resolved.kind === 'fold') {
+    const f = resolved.fold
+    const fn = mod[res.exportName] as ((tree: unknown, params?: Record<string, Raw>) => Record<string, number>) | undefined
+    if (typeof fn !== 'function') return {ok: false, exit: 2, checked: 0, exhaustive: false, throwsMatched: 0, mismatch: `emitted fold missing exported function ${res.exportName}`}
+    const meta = inspectFoldMeta(f)
+    const mkTree = (d: number): unknown => {
+      const own = Object.fromEntries(meta.inputs.map(([n, , k]) => [n, sampleKind(k, rand, 12, [])]))
+      if (d === 0 || rand(3) === 0) return {leaf: own}
+      return meta.rose
+        ? {node: own, children: Array.from({length: rand(4)}, () => mkTree(d - 1))}
+        : {node: own, left: mkTree(d - 1), right: mkTree(d - 1)}
+    }
+    for (let t = 0; t < (opts.trials ?? 120); t++) {
+      const pRaw = Object.fromEntries(meta.params.map(([n, , k]) => [n, sampleKind(k, rand, 12, [])]))
+      const tree = mkTree(3)
+      const want = tryCall(() => f.run(tree as never, pRaw as never))
+      const got = tryCall(() => (meta.params.length ? fn(tree, pRaw) : fn(tree)))
+      checked++
+      if (want.ok !== got.ok) return fail1(`fold trial ${t}: ${want.ok ? `interpreter returned ${JSON.stringify(want.val)}, emitted threw (${(got as {err: string}).err})` : `interpreter threw (${(want as {err: string}).err}), emitted returned ${JSON.stringify((got as {val: unknown}).val)}`}`)
+      if (!want.ok || !got.ok) { throwsMatched++; continue }
+      if (!deepEq(got.val, want.val)) return fail1(`fold trial ${t}: emitted ${JSON.stringify(got.val)} !== interpreter ${JSON.stringify(want.val)}`)
+    }
+    return {ok: true, exit: 0, checked, exhaustive: false, throwsMatched}
+  }
+
+  if (resolved.kind === 'loop') {
+    const l = resolved.loop, meta = inspectLoopMeta(l), lp = meta.loop
+    const initFn = mod.init as ((p: Record<string, Raw>) => Record<string, number>) | undefined
+    const guardFn = mod.guard as ((p: Record<string, Raw>, s: Record<string, number>) => boolean) | undefined
+    const bodyFn = mod.body as ((p: Record<string, Raw>, s: Record<string, number>, i: Record<string, Raw>) => Record<string, number>) | undefined
+    const runFn = mod.run as ((p: Record<string, Raw>, xs: readonly Record<string, Raw>[]) => Record<string, number>) | undefined
+    if (!initFn || !guardFn || !bodyFn || !runFn) return {ok: false, exit: 2, checked: 0, exhaustive: false, throwsMatched: 0, mismatch: 'emitted loop missing init/guard/body/run exports'}
+    const emptyMachine = {name: lp.name, params: [], inputs: [], state: {}, step: {}}
+    const emptySt = {scalars: {}, maps: {}}
+    const encKinds = (kinds: readonly [string, {encode(n: string, raw: Raw): Record<string, number>}, KindInfo][], raw: Record<string, Raw>) =>
+      Object.assign({}, ...kinds.map(([n, k]) => k.encode(n, raw[n]!))) as Record<string, number>
+    for (let runIdx = 0; runIdx < (opts.runs ?? 25); runIdx++) {
+      const pRaw = Object.fromEntries(meta.params.map(([n, , k]) => [n, sampleKind(k, rand, 10, [])]))
+      const wantInit = tryCall(() => {
+        const ps = encKinds(meta.params, pRaw)
+        if (lp.pre && !evalC(lp.pre, ps, emptySt, emptyMachine)) throw new Error('pre')
+        return {ps, st: Object.fromEntries(meta.state.map(sn => [sn, evalE(lp.state[sn]!, ps, emptySt, emptyMachine)]))}
+      })
+      const gotInit = tryCall(() => initFn(pRaw))
+      checked++
+      if (wantInit.ok !== gotInit.ok) return fail1(`loop init(${JSON.stringify(pRaw)}): parity mismatch`)
+      if (!wantInit.ok || !gotInit.ok) { throwsMatched++; continue }
+      let stI = wantInit.val.st, stE = gotInit.val
+      const ps = wantInit.val.ps
+      if (!deepEq(stE, stI)) return fail1(`loop init(${JSON.stringify(pRaw)}): ${JSON.stringify(stE)} !== ${JSON.stringify(stI)}`)
+      const acceptedInputs: Record<string, Raw>[] = []
+      for (let stepIdx = 0; stepIdx < (opts.steps ?? 20); stepIdx++) {
+        const gI = evalC(lp.while, {...ps, ...stI}, emptySt, emptyMachine)
+        const gE = guardFn(pRaw, stE)
+        checked++
+        if (gI !== gE) return fail1(`loop guard mismatch at step ${stepIdx}: emitted ${gE} !== interpreter ${gI}`)
+        if (!gI) break
+        const iRaw = Object.fromEntries(meta.inputs.map(([n, , k]) => [n, sampleKind(k, rand, 10, [])]))
+        const nextI = tryCall(() => {
+          const inp = encKinds(meta.inputs, iRaw)
+          const env = {...ps, ...stI, ...inp}
+          if (lp.assume && !evalC(lp.assume, env, emptySt, emptyMachine)) throw new Error('assume')
+          return {...stI, ...Object.fromEntries(Object.entries(lp.body).map(([sn, e]) => [sn, evalE(e, env, emptySt, emptyMachine)]))}
+        })
+        const nextE = tryCall(() => bodyFn(pRaw, stE, iRaw))
+        checked++
+        if (nextI.ok !== nextE.ok) return fail1(`loop body parity mismatch at step ${stepIdx}`)
+        if (!nextI.ok || !nextE.ok) { throwsMatched++; continue }
+        stI = nextI.val; stE = nextE.val; acceptedInputs.push(iRaw)
+        if (!deepEq(stE, stI)) return fail1(`loop body step ${stepIdx}: ${JSON.stringify(stE)} !== ${JSON.stringify(stI)}`)
+      }
+      const runOut = runFn(pRaw, acceptedInputs)
+      checked++
+      if (!deepEq(runOut, stI)) return fail1(`loop run(): ${JSON.stringify(runOut)} !== ${JSON.stringify(stI)}`)
+    }
+    return {ok: true, exit: 0, checked, exhaustive: false, throwsMatched}
+  }
+
+  if (resolved.kind !== 'ratRule') return unreachable(resolved)
 
   // RatRule differential verification against interpretQ
   const meta = inspectRatRule(resolved.ratRule), qInterp = interpretQ(meta.machine)

@@ -62,7 +62,7 @@ import {findNeverEnds} from './nonterm.ts'
 import {findRing, leadsByTerms, type Ring} from './live.ts'
 import {leadsByWriteSupports} from './live-support.ts'
 import {type FreshLaw, freshLaws} from './fresh.ts'
-import {type EmitFunOptions, type EmitResult, type EmitRuleOptions, emitFun, emitRule} from './emit.ts'
+import {type EmitFoldOptions, type EmitFunOptions, type EmitLoopOptions, type EmitResult, type EmitRuleOptions, emitFold, emitFun, emitLoop, emitRule} from './emit.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
 
@@ -2865,6 +2865,9 @@ let inKindLaws = false
 const ownedRuleLaws = new WeakMap<Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, Law[]>()
 const ownedRuleStepLaws = new WeakMap<Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, StepLaw[]>()
 const ownedFunLaws = new WeakMap<Fun<Obj, Obj, Obj>, Decision[]>()
+const ownedLoopLaws = new WeakMap<LoopRule<Obj, Obj, Obj>, Law[]>()
+const ownedFoldLaws = new WeakMap<FoldRule<Obj, Obj, Obj>, Law[]>()
+const ownedRoseLaws = new WeakMap<RoseFold<Obj, Obj, Obj, Obj>, Law[]>()
 const funLawCallbacks = new WeakMap<Decision, {kind: 'law', given: (env: never, out: never) => Cond | Cond[], then: (out: never, env: never) => Cond} | {kind: 'relate'}>()
 
 export type KindInfo =
@@ -2895,13 +2898,35 @@ export function inspectKind(k: Kind<unknown>): KindInfo {
   return {kind: 'unknown', vars: k.vars('x')}
 }
 
+export type CarriedListMeta = {
+  readonly name: string
+  readonly kind: KindInfo
+  readonly rawKind: Kind<unknown>
+  readonly folds: readonly {readonly name: string, readonly fromE: E, readonly stepE: E}[]
+}
+
+export type NodeTableMeta = {
+  readonly name: string
+  readonly kind: KindInfo
+  readonly children: readonly string[]
+  readonly folds: readonly {readonly name: string, readonly empty: number}[]
+}
+
 export type RuleMeta = {
   name: string
   params: [string, Kind<unknown>, KindInfo][]
   inputs: [string, Kind<unknown>, KindInfo][]
   state: [string, KindInfo][]
-  maps: [string, number, KindInfo | undefined][]
+  maps: [string, number, KindInfo | undefined, Raw | undefined][]
+  lists: string[]
   items: [string, KindInfo][]
+  nodes: NodeTableMeta[]
+  carried: string[]
+  seqs: string[]
+  seqTables: string[]
+  carriedLists: CarriedListMeta[]
+  rels: [string, readonly string[]][]
+  skolems: {readonly params: readonly {readonly vars: readonly string[], readonly body: C}[], readonly inputs: readonly {readonly vars: readonly string[], readonly body: C}[]}
   hasCarried: boolean
   hasCounts: boolean
   hasLeasts: boolean
@@ -2915,8 +2940,11 @@ export type RuleMeta = {
 
 export function inspectRuleMeta(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>): RuleMeta {
   const s = r['spec']
+  // Ensure skolemsOf is populated for rules with exists(...) in pre/assume.
+  if (!skolemsOf.has(r)) void r.machine
   const kindedVars = new Set((s.kinded ?? []).flatMap(([n, k]) => k.vars(n)))
   const itemLens = new Set((s.items ?? []).map(([n]) => `${n}_len`))
+  const listNames = new Set(s.lists ?? [])
   const listLens = new Set((s.lists ?? []).map(n => `${n}_len`))
   const nodeSizes = new Set((s.nodes ?? []).map(([n]) => `${n}_size`))
   const state: [string, KindInfo][] = []
@@ -2928,22 +2956,61 @@ export function inspectRuleMeta(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>)
   for (const [n, k] of s.kinded ?? []) {
     if (!seenState.has(n)) { seenState.add(n); state.push([n, inspectKind(k)]) }
   }
+  const mapInit = new Map(s.maps)
   const cellVars = new Set((s.cells ?? []).flatMap(([n, k]) => k.vars(n)))
   const itemVars = new Set((s.items ?? []).flatMap(([n, k]) => k.vars(n)))
   const nodeVars = new Set((s.nodes ?? []).flatMap(([n, k, cs, fs]) => [...k.vars(n), ...cs.map(c => `${n}^${c}`), ...Object.keys(fs).map(f => `${n}$${f}`)]))
-  const maps: [string, number, KindInfo | undefined][] = []
+  const maps: [string, number, KindInfo | undefined, Raw | undefined][] = []
   for (const [n, dflt] of s.maps) {
-    if (cellVars.has(n) || itemVars.has(n) || nodeVars.has(n)) continue
-    maps.push([n, dflt, undefined])
+    if (cellVars.has(n) || itemVars.has(n) || nodeVars.has(n) || listNames.has(n)) continue
+    maps.push([n, dflt, undefined, undefined])
   }
-  for (const [n, k] of s.cells ?? []) maps.push([n, 0, inspectKind(k)])
+  for (const [n, k] of s.cells ?? []) {
+    const initParts = Object.fromEntries(k.vars(n).map(part => [part, mapInit.get(part) ?? 0]))
+    maps.push([n, 0, inspectKind(k), k.decode(n, initParts)])
+  }
+  const hiddenInputs = new Set<string>([
+    ...(s.seqs ?? []).map(n => `${n}_len`),
+    ...(s.seqTables ?? []).map(n => `${n}_rows`),
+    ...(s.lists2 ?? []).map(([n]) => `${n}_len`),
+  ])
+  const hiddenCarried = new Set<string>([
+    ...(s.seqs ?? []),
+    ...(s.seqTables ?? []).flatMap(n => [n, `${n}_base`, `${n}_len`]),
+    ...(s.lists2 ?? []).flatMap(([n, k, fs]) => [...k.vars(n), ...Object.keys(fs).map(f => `${n}$${f}`)]),
+  ])
+  const pEnv = Object.fromEntries(s.params.map(([n, k]) => [n, k.value(n)]))
+  const carriedLists: CarriedListMeta[] = (s.lists2 ?? []).map(([n, k, fs]) => {
+    const itemSym = k.build('$clitem', part => v(part))
+    const folds = Object.entries(fs).map(([fname, def]) => ({
+      name: fname,
+      fromE: termOf(typeof def.from === 'number' ? def.from : def.from(pEnv as never)),
+      stepE: termOf(def.step(v('$clacc'), itemSym, pEnv as never)),
+    }))
+    return {name: n, kind: inspectKind(k), rawKind: k, folds}
+  })
+  const nodes: NodeTableMeta[] = (s.nodes ?? []).map(([n, k, cs, fs]) => ({
+    name: n,
+    kind: inspectKind(k),
+    children: [...cs],
+    folds: Object.entries(fs).map(([fname, def]) => ({name: fname, empty: def.empty})),
+  }))
+  const sk = skolemsOf.get(r) ?? {params: [], inputs: []}
   return {
     name: s.name,
     params: s.params.map(([n, k]) => [n, k, inspectKind(k)]),
-    inputs: s.inputs.map(([n, k]) => [n, k, inspectKind(k)]),
+    inputs: s.inputs.filter(([n]) => !hiddenInputs.has(n)).map(([n, k]) => [n, k, inspectKind(k)]),
     state,
     maps,
+    lists: [...(s.lists ?? [])],
     items: (s.items ?? []).map(([n, k]) => [n, inspectKind(k)]),
+    nodes,
+    carried: (s.carried ?? []).filter(n => !hiddenCarried.has(n)),
+    seqs: [...(s.seqs ?? [])],
+    seqTables: [...(s.seqTables ?? [])],
+    carriedLists,
+    rels: (s.rels ?? []).map(([n, so]) => [n, [...so]] as [string, readonly string[]]),
+    skolems: {params: sk.params, inputs: sk.inputs},
     hasCarried: !!(s.carried?.length || s.seqs?.length || s.seqTables?.length || s.lists2?.length),
     hasCounts: !!s.counts?.length,
     hasLeasts: !!s.leasts?.length,
@@ -3072,7 +3139,14 @@ export class LoopRule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}
   pre(f: (p: P) => Cond): LoopRule<P, I, S> { return this.with({pre: [...this.spec.pre, f]}) }
   assume(f: (env: P & I & S) => Cond): LoopRule<P, I, S> { return this.with({assume: [...this.spec.assume, f]}) }
   rank(f: (env: P & S) => TermLike | TermLike[]): LoopRule<P, I, S> { return this.with({rank: f}) }
-  law(name: string, f: (env: P & S) => Cond): Law { return {name, holds: f(this.env(false) as never).c} }
+  law(name: string, f: (env: P & S) => Cond): Law {
+    const out: Law = {name, holds: f(this.env(false) as never).c}
+    const list = ownedLoopLaws.get(this as never) ?? []
+    list.push(out)
+    ownedLoopLaws.set(this as never, list)
+    return out
+  }
+  emit(opts?: import('./emit.ts').EmitLoopOptions): import('./emit.ts').EmitResult { return emitLoop(this as never, opts) }
   private env(inputs = true): Record<string, unknown> {
     const out: Record<string, unknown> = {}
     for (const [n, k] of this.spec.params) out[n] = k.value(n)
@@ -4242,7 +4316,14 @@ export class FoldRule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}
   }
   private side(prefix: string): Record<string, Term> { return Object.fromEntries(this.names().map(n => [n, v(`${prefix}${n}`)])) }
   // A law about the values (and the params): it reads no input.
-  law(name: string, f: (env: P & S) => Cond): Law { return {name, holds: f({...this.env(false), ...this.side('')} as never).c} }
+  law(name: string, f: (env: P & S) => Cond): Law {
+    const out: Law = {name, holds: f({...this.env(false), ...this.side('')} as never).c}
+    const list = ownedFoldLaws.get(this as never) ?? []
+    list.push(out)
+    ownedFoldLaws.set(this as never, list)
+    return out
+  }
+  emit(opts?: import('./emit.ts').EmitFoldOptions): import('./emit.ts').EmitResult { return emitFold(this as never, opts) }
   get fold(): Fold {
     const s = this.spec
     if (!s.leaf || !s.node) throw new Error(`${s.name}: a fold needs a leaf and a node`)
@@ -4351,7 +4432,14 @@ export class RoseFold<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}
   private accs(prefix: string): Record<string, Term> { return Object.fromEntries(Object.keys(this.kids.from).map(a => [a, v(`${prefix}kids$${a}`)])) }
   private start(p: Record<string, unknown>): Record<string, Term> { return Object.fromEntries(Object.entries(this.kids.from).map(([a, x]) => [a, typeof x === 'number' ? lit(x) : asTerm(x(p as never))])) }
   // A law about the values and the params, claimed of every node and leaf of the tree.
-  law(name: string, f: (env: P & S) => Cond): Law { return {name, holds: v('kind$').atLeast(1).or(f({...this.env(false), ...this.side('')} as never)).c} }
+  law(name: string, f: (env: P & S) => Cond): Law {
+    const out: Law = {name, holds: v('kind$').atLeast(1).or(f({...this.env(false), ...this.side('')} as never)).c}
+    const list = ownedRoseLaws.get(this as never) ?? []
+    list.push(out)
+    ownedRoseLaws.set(this as never, list)
+    return out
+  }
+  emit(opts?: import('./emit.ts').EmitFoldOptions): import('./emit.ts').EmitResult { return emitFold(this as never, opts) }
   // The children's lemmas (claimed of every glue node), and that kind$ is 0 or 1: proveFold adds them.
   get lemmas(): Law[] {
     const p = this.env(false)
@@ -4437,9 +4525,83 @@ export class RoseFold<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}
   }
 }
 
+export type LoopMeta = {
+  readonly name: string
+  readonly params: readonly [string, Kind<unknown>, KindInfo][]
+  readonly inputs: readonly [string, Kind<unknown>, KindInfo][]
+  readonly state: readonly string[]
+  readonly loop: Loop
+  readonly ownedLaws: readonly Law[]
+}
+
+export function inspectLoopMeta(l: LoopRule<Obj, Obj, Obj>): LoopMeta {
+  const s = l['spec']
+  return {
+    name: s.name,
+    params: s.params.map(([n, k]) => [n, k, inspectKind(k)]),
+    inputs: s.inputs.map(([n, k]) => [n, k, inspectKind(k)]),
+    state: s.state.map(([n]) => n),
+    loop: l.loop,
+    ownedLaws: [...(ownedLoopLaws.get(l) ?? [])],
+  }
+}
+
+export type FoldMeta = {
+  readonly name: string
+  readonly rose: boolean
+  readonly params: readonly [string, Kind<unknown>, KindInfo][]
+  readonly inputs: readonly [string, Kind<unknown>, KindInfo][]
+  readonly outputs: readonly string[]
+  readonly fold: Fold
+  readonly roseStart?: Readonly<Record<string, E>>
+  readonly roseStep?: Readonly<Record<string, E>>
+  readonly roseNode?: Readonly<Record<string, E>>
+  readonly roseLeaf?: Readonly<Record<string, E>>
+  readonly ownedLaws: readonly Law[]
+}
+
+export function inspectFoldMeta(f: FoldRule<Obj, Obj, Obj> | RoseFold<Obj, Obj, Obj, Obj>): FoldMeta {
+  const s = f['spec']
+  const params = s.params.map(([n, k]) => [n, k, inspectKind(k)] as [string, Kind<unknown>, KindInfo])
+  const inputs = s.inputs.map(([n, k]) => [n, k, inspectKind(k)] as [string, Kind<unknown>, KindInfo])
+  if (f instanceof RoseFold) {
+    const pEnv = f['env'](false), env = f['env'](true), names = f['names']()
+    const startMap = f['start'](pEnv)
+    const accNames = Object.keys(f['kids'].from)
+    const accVars = Object.fromEntries(accNames.map(a => [a, v(`$acc_${a}`)]))
+    const kidVars = Object.fromEntries(names.map(n => [n, v(`$kid_${n}`)]))
+    const stepRaw = f['kids'].step(accVars as never, kidVars as never, pEnv as never)
+    const nodeRaw = f['nodeOf']!(env as never, accVars as never)
+    const leafRaw = s.leaf!(env as never)
+    return {
+      name: s.name,
+      rose: true,
+      params,
+      inputs,
+      outputs: names,
+      fold: f.fold,
+      roseStart: Object.fromEntries(Object.entries(startMap).map(([a, t]) => [a, t.e])),
+      roseStep: Object.fromEntries(Object.entries(stepRaw).map(([a, t]) => [a, termOf(t)])),
+      roseNode: Object.fromEntries(Object.entries(nodeRaw).map(([n, t]) => [n, termOf(t)])),
+      roseLeaf: Object.fromEntries(Object.entries(leafRaw).map(([n, t]) => [n, termOf(t)])),
+      ownedLaws: [...(ownedRoseLaws.get(f) ?? [])],
+    }
+  }
+  const names = f['names']()
+  return {
+    name: s.name,
+    rose: false,
+    params,
+    inputs,
+    outputs: names,
+    fold: f.fold,
+    ownedLaws: [...(ownedFoldLaws.get(f) ?? [])],
+  }
+}
+
 // Statecharts (core/chart.ts): states nested and in parallel regions, compiled to a rule.
 export {Chart, chart, type StateNode, type Transition} from './chart.ts'
 // Minimal refuting runs (core/minimize.ts): a run that breaks a law, cut down until no single request can go.
 export {minimizeRun, minimizeRunDetailed, type MinimizeOptions, type Minimized, type RunRequest, type RunTrace} from './minimize.ts'
-// Emit standalone zero-dependency TypeScript source from proven rules, functions, rational rules and statecharts.
-export {emitRule, emitFun, emitRatRule, emitChart, machineDigest, qMachineDigest, GDP_WIRED_VERSION, type EmitResult, type EmitLawReport, type EmitRuleOptions, type EmitFunOptions, type EmitRatOptions, type EmitChartOptions, type EmitBundle} from './emit.ts'
+// Emit standalone zero-dependency TypeScript source from proven rules, functions, rational rules, statecharts, folds and loops.
+export {emitRule, emitFun, emitRatRule, emitChart, emitFold, emitLoop, machineDigest, qMachineDigest, GDP_WIRED_VERSION, type EmitResult, type EmitLawReport, type EmitRuleOptions, type EmitFunOptions, type EmitRatOptions, type EmitChartOptions, type EmitFoldOptions, type EmitLoopOptions, type EmitBundle} from './emit.ts'
