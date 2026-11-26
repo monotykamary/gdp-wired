@@ -74,7 +74,9 @@ When adding or changing a rule whose invariants matter:
    `proven && checked && !assumes`.
 5. **Ship the rule you proved.** Run it with `rule.interpreter()` or `rule.compiled()` (`fun.run()` or
    `fun.compiled()` for a decision), never a hand-written copy, and run `rule.crossCheck(laws)` in tests
-   ([shipping](references/shipping.md)). Code that already exists and can't be replaced yet is held to the rule
+   ([shipping](references/shipping.md)). Where gdp-wired can't be a runtime dependency, emit the proven rule as a
+   checked-in TypeScript file instead (`npx gdp-wired-cli emit <model>#<export> --out <file.ts>`, and `--check --verify`
+   in CI). Code that already exists and can't be replaced yet is held to the rule
    with `rule.compare(reference)` until it is: a test, not a proof. With gdp-ts, mint its proofs from
    the proven check (`guard`, `gate` from `gdp-wired/gdp`) so every call site
    is held to it ([with gdp-ts](references/gdp-ts.md)).
