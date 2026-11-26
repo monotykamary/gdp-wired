@@ -220,7 +220,9 @@ final class Reader {
       files.append(SrcFile(rel: rel, tree: folded, conv: SourceLocationConverter(fileName: rel, tree: folded)))
     }
     for f in files { with(file: f.rel) { for item in f.tree.statements { if case .decl(let d) = item.item { declare(d, outer: nil) } } } }
-    for f in files { with(file: f.rel) { for item in f.tree.statements { if case .decl(let d) = item.item { extend(d) } } } }
+    var deferredExt: [(String, DeclSyntax)] = []
+    for f in files { with(file: f.rel) { for item in f.tree.statements { if case .decl(let d) = item.item, !extend(d) { deferredExt.append((f.rel, d)) } } } }
+    for (rel, d) in deferredExt { with(file: rel) { _ = extend(d) } }
     for f in files { with(file: f.rel) { for item in f.tree.statements { if case .decl(let d) = item.item { constant(d, owner: nil) } } } }
     for t in allTypes { for (mf, d) in t.members { with(file: mf) { constant(d, owner: t) } } }
   }
@@ -246,12 +248,14 @@ final class Reader {
     guard let t = made else { return }
     for (_, m) in t.members { declare(m, outer: t) }
   }
-  func extend(_ d: DeclSyntax) {
-    guard let e = d.as(ExtensionDeclSyntax.self) else { return }
-    let name = e.extendedType.trimmedDescription.split(separator: ".").last.map(String.init) ?? ""
-    guard let t = types[name]?.first, e.genericWhereClause == nil else { return }
+  @discardableResult
+  func extend(_ d: DeclSyntax) -> Bool {
+    guard let e = d.as(ExtensionDeclSyntax.self) else { return true }
+    let full = e.extendedType.trimmedDescription
+    guard let t = ty(named: full), e.genericWhereClause == nil else { return false }
     for m in e.memberBlock.members { t.members.append((file, m.decl)); declare(m.decl, outer: t) }
     t.inherits += e.inheritanceClause?.inheritedTypes.map { $0.type.trimmedDescription } ?? []
+    return true
   }
   // A constant: a `let` (static, or at the file's top) whose value is a literal integer, boolean or string (or a fixed
   // width's max or min, or arithmetic of those).
@@ -277,6 +281,7 @@ final class Reader {
       if let ann = b.typeAnnotation?.type { t = parseType(ann.trimmedDescription) }
       if case .n(let n, _) = t, let (bits, signed) = INTS[n] { val["ty"] = ["k": "int", "bits": .i(bits), "signed": .b(signed), "sw": .s(n)] }
       consts[owner.map { "\($0.name).\(id.identifier.text)" } ?? id.identifier.text] = (val, t)
+      if let owner { consts["\(owner.qual).\(id.identifier.text)"] = (val, t) }
     }
   }
   func constValue(_ e: ExprSyntax) -> (J, TT)? {
@@ -309,10 +314,16 @@ final class Reader {
     let last = n.split(separator: ".").last.map(String.init) ?? n
     guard let cands = types[last], !cands.isEmpty else { return nil }
     if cands.count == 1 { return cands[0] }
-    if let q = cands.first(where: { $0.qual == n || $0.qual.hasSuffix(".\(n)") }) { return q }
+    if let q = cands.first(where: { $0.qual == n }) { return q }
     var o = from
-    while let x = o { if let c = cands.first(where: { $0.outer === x }) { return c }; o = x.outer }
-    return cands.first { $0.outer == nil } ?? cands[0]
+    while let x = o {
+      if x.qual == n || x.name == n { return x }
+      if let c = cands.first(where: { $0.qual == "\(x.qual).\(n)" || (!n.contains(".") && $0.outer === x) }) { return c }
+      o = x.outer
+    }
+    if n.contains("."), let q = cands.first(where: { $0.qual.hasSuffix(".\(n)") }) { return q }
+    if let top = cands.first(where: { $0.outer == nil && $0.file == file }) ?? cands.first(where: { $0.outer == nil }) { return top }
+    return cands.first { $0.file == file } ?? cands[0]
   }
   func resolve(_ t: TT) -> TT { if case .n(let n, let a) = t, a.isEmpty, let x = aliases[n], x != t { return resolve(x) }; return t }
 
@@ -801,26 +812,26 @@ final class Reader {
     }
   }
   // An if (a statement, or a value set into `into`): its conditions nested, the else lowered once and shared.
-  func ifStmt(_ i: IfExprSyntax, into: String?) -> [J] {
+  func ifStmt(_ i: IfExprSyntax, into: String?, expect: TT? = nil) -> [J] {
     let p = at(i)
     var els: [J] = []
     switch i.elseBody {
-    case .ifExpr(let e)?: els = scoped { ifStmt(e, into: into) }
-    case .codeBlock(let b)?: els = scoped { valued(b.statements, into) }
+    case .ifExpr(let e)?: els = scoped { ifStmt(e, into: into, expect: expect) }
+    case .codeBlock(let b)?: els = scoped { valued(b.statements, into, expect: expect) }
     case nil: els = []
     }
     return scoped {
       let (pre, cs) = conds(i.conditions)
-      return pre + nest(cs, 0, { valued(i.body.statements, into) }, els, p)
+      return pre + nest(cs, 0, { valued(i.body.statements, into, expect: expect) }, els, p)
     }
   }
   // A block whose last expression is the value (an if or switch used as an expression).
-  func valued(_ items: CodeBlockItemListSyntax, _ into: String?) -> [J] {
+  func valued(_ items: CodeBlockItemListSyntax, _ into: String?, expect: TT? = nil) -> [J] {
     guard let into, let last = items.last, case .expr(let e) = last.item else { return block(items) }
     let rest = block(CodeBlockItemListSyntax(items.dropLast()))
-    if let ie = e.as(IfExprSyntax.self) { return rest + ifStmt(ie, into: into) }
-    if let se = e.as(SwitchExprSyntax.self) { return rest + switchStmt(se, into: into) }
-    let (pre, x) = expr(e, expect: nil)
+    if let ie = e.as(IfExprSyntax.self) { return rest + ifStmt(ie, into: into, expect: expect) }
+    if let se = e.as(SwitchExprSyntax.self) { return rest + switchStmt(se, into: into, expect: expect) }
+    let (pre, x) = expr(e, expect: expect)
     return rest + pre + [S("set", at(e), [("to", v(into, at(e))), ("x", x)])]
   }
   func guardStmt(_ g: GuardStmtSyntax) -> [J] {
@@ -842,7 +853,7 @@ final class Reader {
   }
   // A switch: its cases a chain of ifs in order (the last a failure: Swift's switch is exhaustive, so it is unreachable
   // for the code's own values), inside a block a `break` leaves.
-  func switchStmt(_ sw: SwitchExprSyntax, into: String?) -> [J] {
+  func switchStmt(_ sw: SwitchExprSyntax, into: String?, expect: TT? = nil) -> [J] {
     let p = at(sw)
     let (pre, x) = expr(sw.subject, expect: nil)
     let st = typeOf(sw.subject)
@@ -854,7 +865,7 @@ final class Reader {
       let cp = at(sc)
       let r: [J] = scoped {
         switch sc.label {
-        case .default: return valued(sc.statements, into)
+        case .default: return valued(sc.statements, into, expect: expect)
         case .case(let lab):
           var tests: [J] = []
           var binds: [J] = []
@@ -870,7 +881,7 @@ final class Reader {
               guardX = wx
             }
           }
-          let body = valued(sc.statements, into)
+          let body = valued(sc.statements, into, expect: expect)
           let test = tests.count == 1 ? tests[0] : X("or", cp, [("xs", .a(tests)), ("strict", true)])
           if let gx = guardX { return [S("if", cp, [("c", test), ("then", .a(binds + [S("if", cp, [("c", gx), ("then", .a(body)), ("else", .a(chain))])])), ("else", .a(chain))])] }
           if test["e"].str == "bool", case .b(true) = test["v"] { return binds + body }
@@ -939,8 +950,9 @@ final class Reader {
     if let s = e.as(StringLiteralExprSyntax.self) { return stringLit(s, p, t) }
     if let tu = e.as(TupleExprSyntax.self) {
       if tu.elements.count == 1 { return expr(tu.elements.first!.expression, expect: expect) }
+      let ets: [TT]? = { if case .tup(let ts)? = expect.map(resolve) { return ts }; return nil }()
       var pre: [J] = [], xs: [J] = []
-      for el in tu.elements { let (a, x) = expr(el.expression, expect: nil); pre += a; xs.append(x) }
+      for (idx, el) in tu.elements.enumerated() { let (a, x) = expr(el.expression, expect: ets.flatMap { idx < $0.count ? $0[idx] : nil }); pre += a; xs.append(x) }
       return (pre, X("tuple", p, [("xs", .a(xs))]))
     }
     if let r = e.as(DeclReferenceExprSyntax.self) { return ([], name(r.baseName.text, p, t, expect)) }
@@ -991,8 +1003,8 @@ final class Reader {
       let r = temp()
       return (cp + [S("if", p, [("c", c), ("then", .a(ap + [S("set", p, [("to", v(r, p)), ("x", a)])])), ("else", .a(bp + [S("set", p, [("to", v(r, p)), ("x", b)])]))])], v(r, p))
     }
-    if let ie = e.as(IfExprSyntax.self) { let r = temp(); return (ifStmt(ie, into: r), v(r, p)) }
-    if let se = e.as(SwitchExprSyntax.self) { let r = temp(); return (switchStmt(se, into: r), v(r, p)) }
+    if let ie = e.as(IfExprSyntax.self) { let r = temp(); return (ifStmt(ie, into: r, expect: expect), v(r, p)) }
+    if let se = e.as(SwitchExprSyntax.self) { let r = temp(); return (switchStmt(se, into: r, expect: expect), v(r, p)) }
     if let d = e.as(DictionaryExprSyntax.self) {
       if case .colon = d.content { return ([], X("dict", p, [("keys", []), ("vals", []), ("text", .s(t))])) }
       return ([], no(p, "\(t): a dictionary literal with items"))
@@ -1045,14 +1057,24 @@ final class Reader {
   func member(_ m: MemberAccessExprSyntax, _ p: String, _ t: String, _ expect: TT?) -> ([J], J) {
     let n = m.declName.baseName.text
     guard let base = m.base else {
-      // .case: of the type the context expects (an Optional's .none), else the one own enum that has it
+      // .case / .staticMember: of the type the context expects (an Optional's .none), else the enclosing or unique own enum
       if case .opt? = expect, n == "none" { return ([], X("none", p)) }
       var et = expect.map(resolve)
       if case .opt(let i)? = et { et = i }
-      if case .n(let en, _)? = et, let x = ty(named: en, from: selfTy), let c = enumCase(x, n, p) { return ([], c) }
+      if case .n(let en0, _)? = et {
+        let en = en0 == "Self" ? selfTy?.qual ?? en0 : en0
+        if let x = ty(named: en, from: selfTy) {
+          if let c = enumCase(x, n, p) { return ([], c) }
+          if let c = consts["\(x.qual).\(n)"] ?? consts["\(x.name).\(n)"] { var j = c.0; j["p"] = .s(p); return ([], j) }
+        }
+      }
       if INTS[et?.name ?? ""] != nil, n == "max" || n == "min", let c = constValue(ExprSyntax(MemberAccessExprSyntax(base: ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier(et!.name!))), name: .identifier(n)))) { var j = c.0; j["p"] = .s(p); return ([], j) }
       let owners = allTypes.filter { $0.kind == "enum" && $0.cases.contains { $0.name == n } }
       if owners.count == 1, let c = enumCase(owners[0], n, p) { return ([], c) }
+      let scopedOwners = owners.filter { $0.outer === selfTy }
+      if scopedOwners.count == 1, let c = enumCase(scopedOwners[0], n, p) { return ([], c) }
+      let fileOwners = owners.filter { $0.file == file }
+      if fileOwners.count == 1, let c = enumCase(fileOwners[0], n, p) { return ([], c) }
       return ([], no(p, "\(t): a member of a type the context doesn't state"))
     }
     let bt = base.trimmedDescription
@@ -1129,6 +1151,15 @@ final class Reader {
       let n = m.declName.baseName.text
       guard let base = m.base else {
         if case .opt(let i)? = expect, n == "some", let a0 { let (pre, x) = expr(a0, expect: i); return (pre, X("some", p, [("x", x)])) }
+        var et = expect.map(resolve)
+        if case .opt(let i)? = et { et = i }
+        if case .n(let en0, _)? = et {
+          let en = en0 == "Self" ? selfTy?.qual ?? en0 : en0
+          if let x = ty(named: en, from: selfTy) {
+            if n == "init" { return construct(x, c, p, t) }
+            if let me = methodKey(x, n, labels), me.isStatic { return ownCall(X("fn", p, [("id", .s("\(x.qual).\(me.key)"))]), me, c, p, t) }
+          }
+        }
         return ([], no(p, "\(t): a case with associated values, or a static member the context doesn't state"))
       }
       let bt = base.trimmedDescription

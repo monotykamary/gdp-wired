@@ -203,3 +203,54 @@ for (const [seed, entry] of [[735726, 'Tally'], [739158, 'Meter'], [744834, 'Met
     expect(x.refusals[0]!.what).toMatch(/delimiter characters.*reader limit 32/)
   }, 60_000)
 }
+
+t('contextual .case resolves nested enums across sibling types, extensions, and switch/if expressions', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-swdotcase-`)
+  writeFileSync(`${dir}/Other.swift`, `
+struct OtherMachine {
+  enum State { case idle, closed }
+  var state: State = .idle
+}
+`)
+  writeFileSync(`${dir}/RequestMachine.swift`, `
+struct RequestMachine {
+  var state: State = .initialized
+  var transitions: Int = 0
+
+  init() {
+    self.state = .initialized
+  }
+
+  mutating func advance(ready: Bool) -> State {
+    let next: State = switch self.state {
+    case .initialized: ready ? .running : .initialized
+    case .running: .finished
+    case .finished: .finished
+    }
+    if next != self.state {
+      self.transitions = self.transitions &+ 1
+      self.state = next
+    }
+    return self.state
+  }
+
+  func isFinished() -> Bool {
+    return self.state == .finished
+  }
+}
+
+extension RequestMachine {
+  enum State {
+    case initialized
+    case running
+    case finished
+  }
+}
+`)
+  const x = ok(extractSwift(`${dir}/RequestMachine.swift`, {entry: 'RequestMachine', check: budget}))
+  expect(x.evidence!.mismatch).toBeUndefined()
+  const finishedStays = buildLaw(x, {name: 'finished is absorbing (native)', expr: 'old(state) == "finished" implies state == "finished" and transitions == old(transitions)', method: 'advance'})
+  const v = proveSteps(x.rule!, x.invariants ?? [], [finishedStays.law])
+  expect(v).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  expect(v.translationChecks).toBeGreaterThan(0)
+}, 900_000)

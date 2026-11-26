@@ -493,20 +493,38 @@ function dumpUserExpandedTokens(o: {
     const expFile = hm[1]!
     const expLine = hm[2]!
     const expCol = hm[3]!
-    if (o.userFiles && o.basename && !expFile.startsWith('<')) {
-      const expReal = o.mapFile ? o.mapFile(expFile) : (o.realPath ? o.realPath(expFile) : expFile)
-      if (o.userFiles.has(expReal)) {
-        if (loc.includes('<Spelling=<scratch space>:')) {
-          throw new Refusal(
-            `${o.basename(expReal)}:${expLine}:${expCol}`,
-            'invocation-dependent or synthesized macro expansion (<scratch space>) in user code is outside the C safety subset',
-          )
-        }
-        if (text.startsWith('__builtin_') && !ALLOWED_BUILTINS.has(text)) {
-          throw new Refusal(
-            `${o.basename(expReal)}:${expLine}:${expCol}`,
-            `compiler builtin ${text} in user code is outside the C safety subset`,
-          )
+    if (o.userFiles && o.basename) {
+      if (!expFile.startsWith('<')) {
+        const expReal = o.mapFile ? o.mapFile(expFile) : (o.realPath ? o.realPath(expFile) : expFile)
+        if (o.userFiles.has(expReal)) {
+          if (loc.includes('<Spelling=<scratch space>:')) {
+            throw new Refusal(
+              `${o.basename(expReal)}:${expLine}:${expCol}`,
+              'invocation-dependent or synthesized macro expansion (<scratch space>) in user code is outside the C safety subset',
+            )
+          }
+          if (text.startsWith('__builtin_') && !ALLOWED_BUILTINS.has(text)) {
+            throw new Refusal(
+              `${o.basename(expReal)}:${expLine}:${expCol}`,
+              `compiler builtin ${text} in user code is outside the C safety subset`,
+            )
+          }
+        } else if (o.isSystemExpFile(expFile) && loc.includes('<Spelling=')) {
+          // Audit every token expanded inside a system header: refuse any spelling from user
+          // files or `-D` (`<command line>`), even when Clang's JSON AST omits spelling locations
+          // (e.g. a user `#define __REDIRECT_NTH(...) name proto __asm__(#alias)`).
+          for (const seg of loc.split('<Spelling=').slice(1)) {
+            const cleaned = seg.trim().replace(/>+$/, '')
+            const sm = /^(.+):(\d+):(\d+)$/.exec(cleaned)
+            if (!sm) continue
+            const spFile = sm[1]!, spLine = sm[2]!
+            if (spFile === '<built-in>' || spFile === '<scratch space>') continue
+            if (!o.isSystemExpFile(spFile)) {
+              const spReal = spFile === '<command line>' ? spFile : (o.mapFile ? o.mapFile(spFile) : (o.realPath ? o.realPath(spFile) : spFile))
+              const where = spReal === '<command line>' ? '<command line>' : `${o.basename(spReal)}:${spLine}:1`
+              throw new Refusal(where, `user-defined macro expanded inside system header ${o.basename(expReal)}:${expLine} is outside the C safety subset`)
+            }
+          }
         }
       }
     }
@@ -565,7 +583,7 @@ function astFactsOf(tu: CN, isSystemFile: (rawPath: string) => boolean): string 
   for (const d of tu.inner ?? []) {
     const f = d.$at?.file
     if (!f) continue
-    const sys = isSystemFile(f) && (!d.$files || [...d.$files].every(sf => isSystemFile(sf)))
+    const sys = isSystemFile(f) && (!d.$files || [...d.$files].every(sf => isSystemFile(sf) || sf === '<scratch space>'))
     if (!sys) decls.push(project(d))
   }
   return JSON.stringify(decls)
@@ -696,6 +714,7 @@ function auditUserPreprocessor(o: {
   includesBeforeLine: Map<string, Map<number, string[]>>,
   activeUserDefines: Set<string>,
   activeUserUndefs: Set<string>,
+  systemDefinedMacros?: Set<string>,
   readBytes: (p: string) => Uint8Array,
   diskPath?: (p: string) => string,
   basename: (p: string) => string,
@@ -716,6 +735,10 @@ function auditUserPreprocessor(o: {
       throw new Refusal(where, `compiler builtin ${name} ${ctx}is outside the C safety subset`)
     if (predefinedMacros.has(name))
       throw new Refusal(where, `predefined macro ${name} ${ctx}is outside the C safety subset (only macros defined in user files or listed in -D flags are allowed)`)
+  }
+  const checkReservedDefName = (name: string, where: string, ctx: string): void => {
+    if (name.startsWith('__'))
+      throw new Refusal(where, `reserved implementation macro ${name} ${ctx}is outside the C safety subset`)
   }
   const checkRawTrigraphs = (rawText: string, fileLabel: string): void => {
     const hit = TRIGRAPH_RE.exec(rawText)
@@ -764,12 +787,14 @@ function auditUserPreprocessor(o: {
     const um = /^-U([A-Za-z_]\w*)$/.exec(f)
     if (um) {
       checkForbiddenName(um[1]!, '<command line>', 'in -U flag ')
+      checkReservedDefName(um[1]!, '<command line>', 'in -U flag ')
       continue
     }
     const dm = /^-D([A-Za-z_]\w*)(?:=([\s\S]*))?$/.exec(f)
     if (!dm) continue
     const name = dm[1]!, val = dm[2]
     checkForbiddenName(name, '<command line>', 'in -D flag ')
+    checkReservedDefName(name, '<command line>', 'in -D flag ')
     if (val !== undefined) checkRawTrigraphs(val, '<command line>')
     cliDefSpecs.push({name, ...(val !== undefined ? {val} : {})})
     cliDefines.add(name)
@@ -785,6 +810,8 @@ function auditUserPreprocessor(o: {
         const rawToks = dumpClangRawTokens(o.activeClang, o.stdFlags, defFile, new TextEncoder().encode(content), o.clangEnv, '<command line>')
         const toks = toLogicalLines(rawToks, '<command line>').flat()
         for (const tok of toks) {
+          if (tok.kind === 'hash')
+            throw new Refusal('<command line>', `preprocessor stringification (${tok.text}) in -D${d.name} value is outside the C safety subset`)
           if (tok.kind === 'raw_identifier') checkForbiddenName(tok.text, '<command line>', `in -D${d.name} value `)
         }
         cliMacroBodies.set(d.name, {params: new Set(), tokens: toks})
@@ -895,6 +922,7 @@ function auditUserPreprocessor(o: {
             throw new Refusal(where, 'malformed #define directive in user file')
           const mname = nameTok.text
           checkForbiddenName(mname, where, 'in #define ')
+          checkReservedDefName(mname, where, 'in #define ')
           const params = new Set<string>()
           let bodyIdx = 1
           if (rest[1]?.kind === 'l_paren' && !rest[1]!.hadSpaceBefore) {
@@ -909,6 +937,8 @@ function auditUserPreprocessor(o: {
           }
           const bodyToks = rest.slice(bodyIdx)
           for (const tok of bodyToks) {
+            if (tok.kind === 'hash')
+              throw new Refusal(`${label}:${tok.line}:${tok.col}`, `preprocessor stringification (${tok.text}) in #define ${mname} is outside the C safety subset`)
             if (tok.kind === 'raw_identifier' && !params.has(tok.text))
               checkForbiddenName(tok.text, `${label}:${tok.line}:${tok.col}`, `in #define ${mname} `)
           }
@@ -922,6 +952,9 @@ function auditUserPreprocessor(o: {
             throw new Refusal(where, 'malformed #undef directive in user file')
           const mname = nameTok.text
           checkForbiddenName(mname, where, 'in #undef ')
+          checkReservedDefName(mname, where, 'in #undef ')
+          if (o.systemDefinedMacros?.has(mname) && !userDefined.has(mname) && !cliDefines.has(mname))
+            throw new Refusal(where, `#undef of system-header macro ${mname} in user file is outside the C safety subset`)
           if (o.activeUserUndefs.has(`${uf}:${first.line}:${mname}`) || o.activeUserUndefs.has(`${uf}:${dirTok.line}:${mname}`)) {
             userDefined.delete(mname)
             cliDefines.delete(mname)
@@ -1546,6 +1579,7 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
     }
     const activeUserDefines = new Set<string>()
     const activeUserUndefs = new Set<string>()
+    const systemDefinedMacros = new Set<string>()
     let curFile = mainReal
     let curLine = 1
     for (const rawLine of ppRes.stdout.split('\n')) {
@@ -1598,6 +1632,9 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
           const um = /^#undef\s+([A-Za-z_]\w*)/.exec(rawLine)
           if (um) activeUserUndefs.add(`${curFile}:${curLine}:${um[1]!}`)
         }
+      } else if (systemFiles.has(curFile)) {
+        const dm = /^#define\s+([A-Za-z_]\w*)/.exec(rawLine)
+        if (dm) systemDefinedMacros.add(dm[1]!)
       }
       curLine++
     }
@@ -1628,6 +1665,7 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
       includesBeforeLine,
       activeUserDefines,
       activeUserUndefs,
+      systemDefinedMacros,
       readBytes: p => snapEntries.get(p)!.bytes,
       diskPath: p => snapEntries.get(p)!.snapPath,
       basename: p => path.basename(p),
@@ -3396,21 +3434,25 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       return !own({$at: {file: f, line: 0, col: 0, off: 0, tok: 0}} as CN)
     }
     // A node is system ONLY if BOTH its expansion location AND every spelling/expansion file in
-    // its loc/range chain are system files (never trusting expansionLoc alone when a user or -D
-    // macro is expanded inside a system header).
+    // its loc/range chain are system files (or compiler/system-header-synthesized `<scratch space>`,
+    // which user code and `-D` flags cannot produce because `##`, `#`, `_Pragma`, magic macros,
+    // and reserved `__*` definitions are refused by `auditUserPreprocessor` and every system-header
+    // token spelling chain is audited in `dumpUserExpandedTokens`).
     const isSystemNode = (n: CN): boolean => {
       if (!isSystemFile(n.$at?.file)) return false
       if (n.$files) {
-        for (const f of n.$files) if (!isSystemFile(f)) return false
+        for (const f of n.$files) if (!isSystemFile(f) && f !== '<scratch space>') return false
       }
       return true
     }
     // Whole-class refusal: refuse any user-defined (or -D command-line) macro expanded inside a
     // system header anywhere in the TU (prevents hiding functions, attributes, aliases, or globals
-    // inside system header locations via macro hijacking such as `#define ptrdiff_t ...`).
+    // inside system header locations via macro hijacking such as `#define ptrdiff_t ...` or
+    // `#define __REDIRECT_NTH ...`), while permitting compiler/system-header-synthesized
+    // `<scratch space>` expansions (such as glibc `__REDIRECT_NTH` inside `<string.h>`).
     const auditMacroExpansions = (n: CN): void => {
       for (const {spell, spellLine, expand, expandLine} of n.$macroExpansions ?? []) {
-        if (expand !== '<built-in>' && isSystemFile(expand) && !isSystemFile(spell)) {
+        if (expand !== '<built-in>' && isSystemFile(expand) && !isSystemFile(spell) && spell !== '<scratch space>') {
           const where = spell === '<command line>' ? '<command line>' : `${path.basename(spell)}:${spellLine}:1`
           throw new Refusal(where, `user-defined macro expanded inside system header ${path.basename(expand)}:${expandLine} is outside the C safety subset`)
         }

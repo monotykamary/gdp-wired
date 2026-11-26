@@ -115,11 +115,13 @@ function harness(pkg: GoPkg, read: GoRead, m: Model, discard: boolean): {code: s
         }
       }
     })
-    const argList = meth.params.map((_, i) => `a${i}`).join(', ')
+    const callArgs = meth.params.map((_, i) => `a${i}`)
+    if (meth.pkgParam !== undefined) callArgs.splice(meth.pkgParam, 0, 'o')
+    const argList = callArgs.join(', ')
     const kept = meth.results.filter((_, i) => !(meth.err && i === meth.results.length - 1))
     const outs = [...kept.map((_, i) => `r${i}`), ...(meth.err ? ['err'] : [])]
-    const recv = meth.ptr ? 'o' : '(*o)'
-    const invoke = outs.length ? `${outs.join(', ')} := ${recv}.${meth.name}(${argList})` : `${recv}.${meth.name}(${argList})`
+    const target = meth.pkgParam !== undefined ? meth.name : `${meth.ptr ? 'o' : '(*o)'}.${meth.name}`
+    const invoke = outs.length ? `${outs.join(', ')} := ${target}(${argList})` : `${target}(${argList})`
     const keptOut = kept.length ? (T(kept[0]!).k === 'int' ? `res.Out = ${intGet('r0', kept[0]!)}; res.HasOut = true` : 'res.Out = r0; res.HasOut = true') : ''
     const bindings = `gdpNativeFrame(func(e *gdpNativeEncoder) any { return e.record(reflect.Value{}, func() []any { return []any{${meth.params.map((pa, i) => `[]any{${JSON.stringify(pa.name)}, e.value(reflect.ValueOf(a${i}))}`).join(', ')}} }) })`
     calls.push(`case ${JSON.stringify(meth.name)}:\n\t\t${lines.join('\n\t\t')}\n\t\tbindings := ${bindings}\n\t\treturn func(res *gdpRes) { res.NativeBindings = bindings; ${invoke}; ${keptOut}${meth.err ? '; if err != nil { res.Err = err.Error() }' : ''} }, nil`)

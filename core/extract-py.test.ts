@@ -825,3 +825,51 @@ t('nested module exception sites retain their source identity through request st
   const m = readPython(`${dir}/pkg/m.py`, ['Book'], {root: dir})
   expect(Object.values(m.funcs).every(f => f.span[0] === 'pkg/m.py' && f.p.startsWith('pkg/m.py:'))).toBe(true)
 })
+
+t('Python x is None and Optional of external/collection types check natively while refusing truthiness', () => {
+  const src = `from typing import Optional, Any
+class Counter:
+    def __init__(self, cache):
+        self.cache = cache
+        self.total = 0
+    def bump(self, n: int, span: Optional["ExternalSpan"] = None, meta: Optional[dict] = None, raw: Any = None) -> int:
+        if self.cache.nested.redis is not None:
+            self.total += 100
+        if span is not None:
+            self.total += n
+        if meta is None:
+            self.total += 1
+        if raw is not None:
+            self.total += 2
+        return self.total
+`
+  const x = ok(py(src, {entry: 'Counter', methods: ['bump'], stores: {cache: {}}}))
+  expect(x.evidence!.mismatch).toBeUndefined()
+  expect(x.evidence!.requests).toBeGreaterThan(0)
+  expect(x.notes.join('\n')).toContain('cache.nested.redis')
+
+  // Truthiness of Optional[dict] stays refused (empty dict is falsy, Inert is truthy).
+  const badTruth = `from typing import Optional
+class Counter:
+    def __init__(self):
+        self.total = 0
+    def bump(self, meta: Optional[dict] = None) -> int:
+        if meta:
+            self.total += 1
+        return self.total
+`
+  refused(py(badTruth, {entry: 'Counter', methods: ['bump']}), /the truth of/)
+
+  // Calling a method on None inside `if raw is None:` fails with AttributeError cleanly (no native mismatch).
+  const badNone = `class Counter:
+    def __init__(self):
+        self.total = 0
+    def bump(self, raw) -> int:
+        if raw is None:
+            raw.ping()
+        self.total += 1
+        return self.total
+`
+  const xBad = ok(py(badNone, {entry: 'Counter', methods: ['bump'], failures: 'kept'}))
+  expect(xBad.evidence!.mismatch).toBeUndefined()
+}, 30_000)

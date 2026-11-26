@@ -417,3 +417,144 @@ end
 `, 'Limiter', {failures: 'kept'}))
   expect(x.source).toMatch(/failed/)
 })
+
+t('Ruby ||= and &&= on instance and local variables preserve nil-false truthiness and short-circuiting', () => {
+  const x = ok(rb(`
+class Memo
+  def initialize
+    @hits = 0
+  end
+  def bump_default
+    @hits += 1
+    10
+  end
+  def threshold
+    @threshold ||= bump_default
+  end
+  def set_zero
+    @threshold = 0
+  end
+  def clear_if_set
+    @threshold &&= 5
+  end
+  def local_memo(x)
+    v = x > 0 ? x : nil
+    v ||= 7
+    return v
+  end
+end
+`, 'Memo'))
+  expect(x.evidence!.mismatch).toBeUndefined()
+  // Once @threshold is initialized (even to 0, which is truthy in Ruby), threshold() must not call bump_default again.
+  native(x, 'threshold initializes once and preserves 0', 'old(threshold) != nil implies hits == old(hits)', 'threshold')
+  native(x, 'threshold sets 10 when nil', 'old(threshold) == nil implies threshold == 10 and hits == old(hits) + 1', 'threshold')
+  native(x, 'local_memo defaults nil to 7', 'x <= 0 implies result == 7', 'local_memo')
+})
+
+t('Ruby safe navigation (&.) evaluates receiver once, short-circuits on nil only, and preserves argument skipping', () => {
+  const x = ok(rb(`
+class SafeNav
+  def initialize
+    @val = nil
+    @calls = 0
+    @arg_evals = 0
+  end
+  def set_val(n)
+    @val = n
+  end
+  def clear
+    @val = nil
+  end
+  def fetch
+    @calls += 1
+    @val
+  end
+  def bump_arg
+    @arg_evals += 1
+    1
+  end
+  def plus_one
+    fetch&.+ bump_arg
+  end
+  def chained
+    @val&.+ 2&.* 3
+  end
+  def false_is_not_nil
+    f = false
+    f&.nil?
+  end
+end
+`, 'SafeNav'))
+  expect(x.evidence!.mismatch).toBeUndefined()
+  native(x, 'plus_one calls fetch exactly once', 'calls == old(calls) + 1', 'plus_one')
+  native(x, 'plus_one skips bump_arg when nil', 'old(val) == nil implies arg_evals == old(arg_evals)', 'plus_one')
+  native(x, 'plus_one adds 1 when non-nil', 'old(val) != nil implies arg_evals == old(arg_evals) + 1', 'plus_one')
+  native(x, 'false&.nil? is false, not nil', 'result == false', 'false_is_not_nil')
+})
+
+t('Ruby ActiveRecord attributes (attribute, enum, write_attribute/read_attribute, db/schema.rb) read and check natively', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-rbar-`)
+  execFileSync('mkdir', ['-p', `${dir}/db`])
+  writeFileSync(`${dir}/db/schema.rb`, `
+ActiveRecord::Schema.define do
+  create_table "stock_items" do |t|
+    t.integer "count_on_hand", default: 0, null: false
+    t.boolean "backorderable", default: false, null: false
+  end
+end
+`)
+  const file = `${dir}/stock_item.rb`
+  writeFileSync(file, `
+class ApplicationRecord
+  def initialize(attributes = {})
+    @attributes = {}
+    attributes.each { |k, v| write_attribute(k, v) }
+  end
+  def read_attribute(name) = @attributes[name.to_s]
+  def write_attribute(name, val) = @attributes[name.to_s] = val
+  def self.attribute(name, _type = nil, default: nil)
+    define_method(name) { @attributes.key?(name.to_s) ? @attributes[name.to_s] : default }
+    define_method("#{name}=") { |v| write_attribute(name, v) }
+    define_method("#{name}?") { !!send(name) }
+  end
+  def self.alias_attribute(al, orig)
+    define_method(al) { send(orig) }
+    define_method("#{al}=") { |v| send("#{orig}=", v) }
+  end
+end
+
+class StockItem < ApplicationRecord
+  attribute :count_on_hand, :integer, default: 0
+  attribute :backorderable, :boolean, default: false
+  alias_attribute :stock, :count_on_hand
+
+  def in_stock?
+    count_on_hand > 0
+  end
+
+  def available?
+    in_stock? || backorderable?
+  end
+
+  def reduce_count_on_hand_to_zero
+    write_attribute(:count_on_hand, 0) if count_on_hand > 0
+  end
+
+  def set_count_on_hand(value)
+    write_attribute(:count_on_hand, value)
+  end
+
+  def restock(n)
+    return false if n <= 0
+    self.stock = read_attribute(:count_on_hand) + n
+    true
+  end
+end
+`)
+  const x = ok(extractRuby(file, {entry: 'StockItem', root: dir, check: {runs: 30, depth: 6, states: 60}}))
+  expect(x.evidence!.mismatch).toBeUndefined()
+  native(x, 'in_stock? reflects positive count_on_hand', 'result == (old(count_on_hand) > 0)', 'in_stock?')
+  native(x, 'available? is in_stock or backorderable', 'result == (old(count_on_hand) > 0 or old(backorderable))', 'available?')
+  native(x, 'reduce_count_on_hand_to_zero never leaves positive stock', 'count_on_hand <= 0', 'reduce_count_on_hand_to_zero')
+  native(x, 'restock adds positive n', 'n > 0 implies count_on_hand == old(count_on_hand) + n', 'restock')
+})

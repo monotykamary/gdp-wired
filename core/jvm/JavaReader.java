@@ -527,8 +527,8 @@ public final class JavaReader implements Jvm.Env {
       case RETURN: {
         ReturnTree r = (ReturnTree) s;
         if (r.getExpression() == null) return List.of(s("ret", p));
-        TreePath mp = path; while (mp != null && !(mp.getLeaf() instanceof MethodTree)) mp = mp.getParentPath();
-        JT rt = mp == null ? null : jt(((ExecutableElement) trees.getElement(mp)).getReturnType());
+        TreePath mp = path; while (mp != null && !(mp.getLeaf() instanceof MethodTree || mp.getLeaf() instanceof LambdaExpressionTree)) mp = mp.getParentPath();
+        JT rt = mp == null ? null : mp.getLeaf() instanceof LambdaExpressionTree ? samReturn(mp) : jt(((ExecutableElement) trees.getElement(mp)).getReturnType());
         return List.of(s("ret", p, "x", at(ex(r.getExpression(), path), ty(path, r.getExpression()), rt)));
       }
       case THROW: return List.of(fail(p, text(path, s)));
@@ -692,7 +692,8 @@ public final class JavaReader implements Jvm.Env {
         return tb >= fb && !"char".equals(prim(type)) ? x("as", p, "x", v, "ity", ity(type)) : x("conv", p, "x", v, "ity", ity(type), "why", t);
       }
       case SWITCH_EXPRESSION: return no(p, t + ": a switch expression (the subset reads switch statements)");
-      case LAMBDA_EXPRESSION: case MEMBER_REFERENCE: return no(p, t + ": a lambda (a closure)");
+      case LAMBDA_EXPRESSION: return lambda((LambdaExpressionTree) e, path, p, t);
+      case MEMBER_REFERENCE: return memberRef((MemberReferenceTree) e, path, p, t);
       case INSTANCE_OF: return no(p, t + ": instanceof");
       case ASSIGNMENT: case PLUS_ASSIGNMENT: case MINUS_ASSIGNMENT: case PREFIX_INCREMENT: case POSTFIX_INCREMENT: case PREFIX_DECREMENT: case POSTFIX_DECREMENT: return no(p, t + ": an assignment inside an expression");
       case ARRAY_ACCESS: case NEW_ARRAY: return no(p, t + ": an array (outside the subset)");
@@ -829,11 +830,226 @@ public final class JavaReader implements Jvm.Env {
       return l;
     }
     String callee = sel.toString().replace("this.", "");
+    boolean samCall = isSam(owner, me);
     // (a method of an object of other code the class holds or is given: called on it, so an injected dependency is
     // read as one; a static method of other code: `ext`, its declared result the answer's type)
-    Map<String, Object> f = recv != null && recvT != null && other(recvT.n) != null ? get(recv, n, p, callee) : x("ext", p, "q", oq + "." + n, "text", callee, "patch", m("mod", oq, "path", List.of(n)), "ret", stype(out, this));
+    Map<String, Object> f = recv != null && ((recvT != null && other(recvT.n) != null) || samCall)
+      ? (samCall ? x("get", p, "x", recv, "f", n, "text", callee, "sam", true) : get(recv, n, p, callee))
+      : x("ext", p, "q", oq + "." + n, "text", callee, "patch", m("mod", oq, "path", List.of(n)), "ret", stype(out, this));
     return m("e", "call", "p", p, "text", t, "f", f, "args", argsRead(args), "kw", List.of(),
       "jt", String.valueOf(out), "ity", ity(out), "decl", oq, "iface", owner.getKind() == ElementKind.INTERFACE ? true : null, "span", span(path, mi), "tag", tag(path, mi));
+  }
+  // --- lambdas and method references (lowered onto lifted functions + closure IR) --------------------------------------
+  ExecutableElement samMethod(TypeMirror tm) {
+    if (!(tm instanceof DeclaredType dt) || !(dt.asElement() instanceof TypeElement iface) || iface.getKind() != ElementKind.INTERFACE) return null;
+    ExecutableElement hit = null;
+    for (Element e : els.getAllMembers(iface)) {
+      if (e.getKind() != ElementKind.METHOD || !e.getModifiers().contains(Modifier.ABSTRACT)) continue;
+      ExecutableElement me = (ExecutableElement) e;
+      String n = me.getSimpleName().toString();
+      int k = me.getParameters().size();
+      if ((n.equals("toString") && k == 0) || (n.equals("hashCode") && k == 0) || (n.equals("equals") && k == 1)) continue;
+      if (hit != null) return null;
+      hit = me;
+    }
+    return hit;
+  }
+  ExecutableType samType(TypeMirror tm, ExecutableElement sam) {
+    if (sam == null) return null;
+    if (tm instanceof DeclaredType dt) {
+      try { if (types.asMemberOf(dt, sam) instanceof ExecutableType et) return et; } catch (IllegalArgumentException ignored) { /* fallback */ }
+    }
+    return sam.asType() instanceof ExecutableType et ? et : null;
+  }
+  JT samReturn(TreePath lambdaPath) {
+    TypeMirror tm = trees.getTypeMirror(lambdaPath);
+    ExecutableElement sam = samMethod(tm);
+    ExecutableType st0 = samType(tm, sam);
+    return st0 != null ? jt(st0.getReturnType()) : null;
+  }
+  boolean isSam(TypeElement owner, ExecutableElement me) {
+    if (owner.getKind() != ElementKind.INTERFACE || !me.getModifiers().contains(Modifier.ABSTRACT)) return false;
+    ExecutableElement sam = samMethod(owner.asType());
+    return sam != null && sam.getSimpleName().equals(me.getSimpleName()) && sam.getParameters().size() == me.getParameters().size();
+  }
+  void collectCaps(Tree root, TreePath rootPath, Set<Element> bound, Map<String, JT> caps, boolean[] needsSelf) {
+    new TreePathScanner<Void, Void>() {
+      @Override public Void visitVariable(VariableTree vt, Void v) {
+        Element el = trees.getElement(getCurrentPath());
+        if (el != null) bound.add(el);
+        return super.visitVariable(vt, v);
+      }
+      @Override public Void visitIdentifier(IdentifierTree id, Void v) {
+        if (id.getName().contentEquals("this") || id.getName().contentEquals("super")) { needsSelf[0] = true; return null; }
+        Element el = trees.getElement(getCurrentPath());
+        if (el == null || bound.contains(el)) return null;
+        switch (el.getKind()) {
+          case LOCAL_VARIABLE: case PARAMETER: case RESOURCE_VARIABLE: case BINDING_VARIABLE: case EXCEPTION_PARAMETER:
+            caps.putIfAbsent(el.getSimpleName().toString(), jt(el.asType()));
+            break;
+          case FIELD: case METHOD:
+            if (!el.getModifiers().contains(Modifier.STATIC)) needsSelf[0] = true;
+            break;
+          default: break;
+        }
+        return null;
+      }
+    }.scan(rootPath, null);
+  }
+  Map<String, Object> lambda(LambdaExpressionTree lt, TreePath path, String p, String t) {
+    TypeMirror tm = trees.getTypeMirror(path);
+    ExecutableElement sam = samMethod(tm);
+    ExecutableType st0 = samType(tm, sam);
+    JT retT = st0 != null ? jt(st0.getReturnType()) : null;
+    Set<Element> bound = new HashSet<>();
+    for (VariableTree vp : lt.getParameters()) {
+      Element el = trees.getElement(new TreePath(path, vp));
+      if (el != null) bound.add(el);
+    }
+    Map<String, JT> caps = new LinkedHashMap<>();
+    boolean[] needsSelf = {false};
+    collectCaps(lt.getBody(), new TreePath(path, lt.getBody()), bound, caps, needsSelf);
+    List<Object> ps = new ArrayList<>();
+    List<String> capNames = new ArrayList<>();
+    if (needsSelf[0]) { ps.add(m("name", "self", "t", m("k", "any"), "cap", true)); capNames.add("self"); }
+    for (Map.Entry<String, JT> ce : caps.entrySet()) {
+      ps.add(m("name", ce.getKey(), "t", stype(ce.getValue(), this), "cap", true));
+      capNames.add(ce.getKey());
+    }
+    List<? extends VariableTree> lps = lt.getParameters();
+    for (int i = 0; i < lps.size(); i++) {
+      VariableTree vp = lps.get(i);
+      JT pt = ty(path, vp);
+      if (pt == null && st0 != null && i < st0.getParameterTypes().size()) pt = jt(st0.getParameterTypes().get(i));
+      ps.add(m("name", vp.getName().toString(), "t", stype(pt, this)));
+    }
+    List<Object> body;
+    if (lt.getBodyKind() == LambdaExpressionTree.BodyKind.EXPRESSION) {
+      ExpressionTree bx = (ExpressionTree) lt.getBody();
+      if (retT != null && "void".equals(prim(retT))) body = exprStmt(bx, path, where(path, bx));
+      else body = List.of(s("ret", where(path, bx), "x", at(ex(bx, path), ty(path, bx), retT)));
+    } else {
+      BlockTree bt = (BlockTree) lt.getBody();
+      body = block(bt.getStatements(), new TreePath(path, bt));
+    }
+    int idn = ++tmp;
+    String clsName = self != null ? els.getBinaryName(self).toString() : "lambda";
+    String fid = clsName + "$lambda" + idn;
+    funcs.put(fid, m("id", fid, "name", "lambda$" + idn, "cls", clsName, "p", p, "span", List.of(p.split(":")[0], 0, 0),
+      "params", ps, "ret", stype(retT, this), "body", body, "decorators", List.of(), "static", true));
+    return x("closure", p, "id", fid, "caps", capNames);
+  }
+  Map<String, Object> memberRef(MemberReferenceTree mr, TreePath path, String p, String t) {
+    TypeMirror tm = trees.getTypeMirror(path);
+    ExecutableElement sam = samMethod(tm);
+    ExecutableType st0 = samType(tm, sam);
+    JT retT = st0 != null ? jt(st0.getReturnType()) : null;
+    Element target = trees.getElement(path);
+    if (!(target instanceof ExecutableElement me)) return no(p, t + ": a method reference javac couldn't resolve");
+    int nParams = st0 != null ? st0.getParameterTypes().size() : me.getParameters().size();
+    List<JT> paramTs = new ArrayList<>();
+    for (int i = 0; i < nParams; i++) paramTs.add(st0 != null ? jt(st0.getParameterTypes().get(i)) : jt(me.getParameters().get(i).asType()));
+    boolean isVoid = retT != null && "void".equals(prim(retT));
+    List<Object> ps = new ArrayList<>();
+    List<String> capNames = new ArrayList<>();
+    List<Object> body;
+    if (mr.getMode() == MemberReferenceTree.ReferenceMode.NEW) {
+      TypeElement te = (TypeElement) me.getEnclosingElement();
+      String r = rec(te.getQualifiedName().toString());
+      List<Map<String, Object>> args = new ArrayList<>();
+      for (int i = 0; i < nParams; i++) {
+        String pn = "$a" + i;
+        ps.add(m("name", pn, "t", stype(paramTs.get(i), this)));
+        JT pt = i < me.getParameters().size() && !me.isVarArgs() ? jt(me.getParameters().get(i).asType()) : null;
+        args.add(pt != null && num(pt) ? at(var(pn, p), paramTs.get(i), pt) : var(pn, p));
+      }
+      Map<String, Object> made = r != null ? call(x("cls", p, "rec", r), args, p, t) : x("opaque", p, "why", t + ": an object of other code made", "jt", te.getQualifiedName().toString());
+      body = List.of(isVoid ? s("expr", p, "x", made) : s("ret", p, "x", made));
+    } else {
+      TypeElement owner = (TypeElement) me.getEnclosingElement();
+      boolean isStatic = me.getModifiers().contains(Modifier.STATIC);
+      ExpressionTree qual = mr.getQualifierExpression();
+      TreePath qpath = new TreePath(path, qual);
+      Element qel = trees.getElement(qpath);
+      boolean isTypeQual = qel instanceof TypeElement || qual instanceof ParameterizedTypeTree || qual instanceof PrimitiveTypeTree || qual instanceof ArrayTypeTree;
+      Map<String, Object> recv = null;
+      JT recvT = null;
+      int argStart = 0;
+      if (!isStatic && isTypeQual) {
+        if (nParams < 1) return no(p, t + ": an unbound method reference with no receiver parameter");
+        recv = var("$a0", p);
+        recvT = paramTs.get(0);
+        argStart = 1;
+      } else if (!isStatic) {
+        if (qual instanceof IdentifierTree id && (id.getName().contentEquals("this") || id.getName().contentEquals("super"))) {
+          ps.add(m("name", "self", "t", m("k", "any"), "cap", true));
+          capNames.add("self");
+          recv = self(p);
+          recvT = jt(owner.asType());
+        } else if (qual instanceof IdentifierTree && qel != null && (qel.getKind() == ElementKind.LOCAL_VARIABLE || qel.getKind() == ElementKind.PARAMETER || qel.getKind() == ElementKind.RESOURCE_VARIABLE || qel.getKind() == ElementKind.BINDING_VARIABLE || qel.getKind() == ElementKind.EXCEPTION_PARAMETER)) {
+          String cn = qel.getSimpleName().toString();
+          JT ct = jt(qel.asType());
+          ps.add(m("name", cn, "t", stype(ct, this), "cap", true));
+          capNames.add(cn);
+          recv = var(cn, p);
+          recvT = ct;
+        } else if (pure(qual) && qel instanceof VariableElement ve && ve.getModifiers().contains(Modifier.FINAL)) {
+          Map<String, JT> qcaps = new LinkedHashMap<>();
+          boolean[] qself = {false};
+          collectCaps(qual, qpath, new HashSet<>(), qcaps, qself);
+          if (qself[0]) { ps.add(m("name", "self", "t", m("k", "any"), "cap", true)); capNames.add("self"); }
+          for (Map.Entry<String, JT> ce : qcaps.entrySet()) { ps.add(m("name", ce.getKey(), "t", stype(ce.getValue(), this), "cap", true)); capNames.add(ce.getKey()); }
+          recv = ex(qual, path);
+          recvT = ty(path, qual);
+        } else {
+          return no(p, t + ": a method reference on a non-final or computed receiver (evaluated at creation)");
+        }
+      }
+      for (int i = 0; i < nParams; i++) ps.add(m("name", "$a" + i, "t", stype(paramTs.get(i), this)));
+      List<Map<String, Object>> args = new ArrayList<>();
+      List<JT> argT = new ArrayList<>();
+      for (int i = argStart; i < nParams; i++) {
+        int mi = i - argStart;
+        JT pt = mi < me.getParameters().size() && !me.isVarArgs() ? jt(me.getParameters().get(mi).asType()) : null;
+        JT at0 = paramTs.get(i);
+        Map<String, Object> av = pt != null && num(pt) ? at(var("$a" + i, p), at0, pt) : var("$a" + i, p);
+        args.add(av);
+        argT.add(pt != null && num(pt) ? pt : at0);
+      }
+      JT outT = retT != null ? retT : jt(me.getReturnType());
+      String oq = owner.getQualifiedName().toString(), mn = me.getSimpleName().toString();
+      Object callRes;
+      if (own(owner) || (recvT != null && rec(recvT.n) != null && trees.getPath(owner) != null)) {
+        if (isStatic) { String id = fid(me); if (!funcs.containsKey(id)) funcs.put(id, func(me)); callRes = call(x("fn", p, "id", id), args, p, t); }
+        else if (!own(owner)) { String f = getter(me); callRes = f != null ? get(recv, f, p, t) : no(p, t + ": a method of a value record (the subset reads its getters)"); }
+        else callRes = call(get(recv, key(me), p, t), args, p, t);
+      } else {
+        Low l = lib(new Call(oq, mn, recv, recvT == null ? jt(owner.asType()) : recvT, args, argT, outT, p, t, isVoid, true));
+        if (l != null) callRes = l;
+        else {
+          boolean samCall = isSam(owner, me);
+          String callee = qual + "." + mn;
+          Map<String, Object> f = recv != null && ((recvT != null && other(recvT.n) != null) || samCall)
+            ? (samCall ? x("get", p, "x", recv, "f", mn, "text", callee, "sam", true) : get(recv, mn, p, callee))
+            : x("ext", p, "q", oq + "." + mn, "text", callee, "patch", m("mod", oq, "path", List.of(mn)), "ret", stype(outT, this));
+          callRes = m("e", "call", "p", p, "text", t, "f", f, "args", argsRead(args), "kw", List.of(),
+            "jt", String.valueOf(outT), "ity", ity(outT), "decl", oq, "iface", owner.getKind() == ElementKind.INTERFACE ? true : null, "span", span(path, mr), "tag", tag(path, mr));
+        }
+      }
+      if (callRes instanceof Low l) {
+        if (l.ss() != null) body = l.ss();
+        else body = List.of(isVoid ? s("expr", p, "x", l.x()) : s("ret", p, "x", at(l.x(), outT, retT)));
+      } else {
+        @SuppressWarnings("unchecked") Map<String, Object> cx = (Map<String, Object>) callRes;
+        body = List.of(isVoid ? s("expr", p, "x", cx) : s("ret", p, "x", at(cx, outT, retT)));
+      }
+    }
+    int idn = ++tmp;
+    String clsName = self != null ? els.getBinaryName(self).toString() : "lambda";
+    String fid = clsName + "$lambda" + idn;
+    funcs.put(fid, m("id", fid, "name", "lambda$" + idn, "cls", clsName, "p", p, "span", List.of(p.split(":")[0], 0, 0),
+      "params", ps, "ret", stype(retT, this), "body", body, "decorators", List.of(), "static", true));
+    return x("closure", p, "id", fid, "caps", capNames);
   }
   static List<Object> prepend(Object a, List<Map<String, Object>> xs) { List<Object> out = new ArrayList<>(); out.add(a); out.addAll(xs); return out; }
   static List<Map<String, Object>> argsRead(List<Map<String, Object>> args) { return args; }

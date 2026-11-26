@@ -230,8 +230,7 @@ length, file mtime, `SOURCE_DATE_EPOCH` days, distinct empty working directories
 function body must be a selected method or inlined file-local `static` helper, or is refused as `unchecked` and named;
 symbol aliases/weak/file-scope `__asm__`/attributed or post-definition function declarations, non-system globals with
 pointers/fn-ptrs or function-referencing initializers, bodyless prototypes taking the entry type or pointers, and `fails`
-returns after state writes are also refused; known limit: C safety refuses files including `<string.h>` in this release
-due to glibc `__REDIRECT_NTH` macro expansion); and (4) first-fault monitor scope with site-matched ASan/UBSan replay
+returns after state writes are also refused); and (4) first-fault monitor scope with site-matched ASan/UBSan replay
 (abstract stutter on fault is a monitor convention, not native rollback).
 
 ## Where it fits

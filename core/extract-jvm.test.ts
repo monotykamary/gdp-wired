@@ -260,7 +260,7 @@ tj('refused where it leaves the subset, each with why', () => {
   const cases: [string, RegExp][] = [
     ['for (int i = 0; i < n; i++) x++;', /a loop/],
     ['try { x = n; } catch (RuntimeException e) { x = 0; }', /try/],
-    ['java.util.function.IntUnaryOperator f = v -> v + 1; x = f.applyAsInt(n);', /lambda|other code/],
+    ['Object o = new Object() {}; x = n;', /anonymous class/],
     ['int[] a = new int[3]; x = a[0];', /array/],
   ]
   for (const [body, why] of cases) {
@@ -429,3 +429,68 @@ for (const [seed, entry, reason] of [[724362, 'Budget', /required expression is 
     expect(x.refusals[0]!.what).toMatch(reason)
   })
 }
+
+tj('Java: lambdas and method references lower onto closure IR and verify natively', () => {
+  const x = ok(java(`
+import java.util.function.IntBinaryOperator;
+import java.util.function.IntUnaryOperator;
+public class Limiter {
+  private final IntUnaryOperator clampZero = v -> v < 0 ? 0 : v;
+  private final IntBinaryOperator pickMax = Math::max;
+  private int limit;
+  public Limiter(int limit) {
+    if (limit < 0 || limit > 100) throw new IllegalArgumentException();
+    this.limit = limit;
+  }
+  private int cap(int x) { return x > 100 ? 100 : x; }
+  public int adjust(int delta) {
+    IntUnaryOperator addDelta = x -> {
+      int sum = x + delta;
+      return clampZero.applyAsInt(sum);
+    };
+    IntUnaryOperator bound = this::cap;
+    int next = bound.applyAsInt(addDelta.applyAsInt(this.limit));
+    this.limit = pickMax.applyAsInt(0, next);
+    return this.limit;
+  }
+}`, 'Limiter'))
+  nativeInv(x, 'limit stays within [0, 100]', ({limit}) => limit.atLeast(0).and(limit.atMost(100)), 'limit >= 0 and limit <= 100')
+  step(x, 'adjust keeps limit non-negative and bounded', (_b, a) => a.limit.atLeast(0).and(a.limit.atMost(100)), b => b.limit.atLeast(0), 'old(limit) >= 0 implies limit >= 0 and limit <= 100', 'adjust')
+
+  // Reassigning a closure field initialized in the constructor is refused soundly (frame field).
+  const bad = java(`
+import java.util.function.IntUnaryOperator;
+public class Rebind {
+  private IntUnaryOperator fn = x -> x + 1;
+  private int n = 0;
+  public void setFn(int k) { this.fn = x -> x + k; }
+  public void inc() { this.n = fn.applyAsInt(this.n); }
+}`, 'Rebind', {methods: ['setFn']})
+  expect(bad.ok).toBe(false)
+  expect(bad.refusals.map(r => r.what).join('; ')).toMatch(/writes a field the constructor sets to a constant|outside the subset/)
+
+  // A method that does not touch a lambda-initialized field reads cleanly (VegasLimit.Builder pattern).
+  const b = ok(java(`
+import java.util.function.Function;
+public class Builder {
+  private Function<Integer, Integer> alphaFunc = limit -> limit * 3;
+  private int initialLimit = 20;
+  public Builder initialLimit(int n) {
+    if (n > 0) this.initialLimit = n;
+    return this;
+  }
+}`, 'Builder', {methods: ['initialLimit']}))
+  step(b, 'initialLimit stays positive', (_b, a) => a.initialLimit.atLeast(1), b0 => b0.initialLimit.atLeast(1), 'old(initialLimit) >= 1 implies initialLimit >= 1', 'initialLimit')
+
+  // Soundness: passing a closure that captures `this` to external code is refused (cannot silently mutate state).
+  const leak = java(`
+public class Leak {
+  private final Hook hook;
+  private int n = 0;
+  public Leak(Hook hook) { this.hook = hook; }
+  public void bump() { hook.accept(() -> { this.n++; }); }
+}`, 'Leak', {methods: ['bump']}, {
+    'Hook.java': 'public interface Hook { void accept(Runnable r); }',
+  })
+  expect(leak.ok).toBe(false)
+})

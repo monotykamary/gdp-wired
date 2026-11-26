@@ -73,7 +73,12 @@ def native_state(root, bindings: false, records: false)
       # An uninitialized Ruby instance variable reads as nil. Observe that
       # actual read for source-declared roots too (e.g. @last before first hit).
       if native_same?(value, root) && !bindings
-        declared = (S['leaves'] || []).filter_map { |l| l['path']&.first if l['kind'] != 'frame' }
+        declared = (S['leaves'] || []).filter_map { |l| l['path']&.first if l['kind'] != 'frame' }.uniq
+        if value.respond_to?(:read_attribute)
+          kind = 'object'
+          items = declared.map { |name| cn = name.delete_prefix('@'); [cn, encode.call(value.instance_variable_defined?(name) ? NATIVE_GET_VAR.bind_call(value, name.to_sym) : value.read_attribute(cn))] }
+          next {'kind' => kind, 'id' => id, 'items' => items}
+        end
         vars |= declared.filter_map { |name| name.to_sym if name.is_a?(String) && name.start_with?('@') }
       end
       raise ArgumentError, "unsupported native snapshot object #{native_class(value)}" if vars.empty? && native_class(value) != S['cls']
@@ -220,8 +225,24 @@ def build(spec)
   end
   raise ArgumentError, "an argument spec #{spec}"
 end
-def walk(o, path) = path.reduce(o) { |x, p| x.instance_variable_get(p) }
-def put(o, path, v) = walk(o, path[0..-2]).instance_variable_set(path[-1], v)
+def walk(o, path)
+  path.reduce(o) do |x, p|
+    if p.is_a?(String) && p.start_with?('@') && !x.instance_variable_defined?(p) && x.respond_to?(:read_attribute)
+      x.read_attribute(p.delete_prefix('@'))
+    else
+      x.instance_variable_get(p)
+    end
+  end
+end
+def put(o, path, v)
+  t = walk(o, path[0..-2])
+  p = path[-1]
+  if p.is_a?(String) && p.start_with?('@') && !t.instance_variable_defined?(p) && t.respond_to?(:write_attribute)
+    t.write_attribute(p.delete_prefix('@'), v)
+  else
+    t.instance_variable_set(p, v)
+  end
+end
 
 def state_of(obj)
   S['leaves'].each_with_object({}) do |l, s|
@@ -265,6 +286,15 @@ end
 # The arguments, by the method's own parameters: positional ones in order, keywords by name; a stated clock given.
 def call_args(m, specs)
   given = specs.to_h
+  # ActiveRecord-style initialize(attrs = {}) or (**attrs): build a hash of declared attribute values.
+  if m.name == :initialize && !given.empty? && (m.parameters == [[:opt, :attrs]] || m.parameters == [[:opt, :attributes]] || m.parameters == [[:keyrest, :attrs]] || (m.parameters.length == 1 && m.parameters[0][0] == :opt && S['cls'].method_defined?(:read_attribute)))
+    h = {}
+    given.each do |k, spec|
+      next if spec.nil? || spec['dflt'] || spec['inert']
+      h[k.to_sym] = build(spec)
+    end
+    return m.parameters[0][0] == :keyrest ? [[], h] : [[h], {}]
+  end
   pos, kw = [], {}
   m.parameters.each do |kind, name|
     n = name.to_s
