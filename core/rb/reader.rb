@@ -137,9 +137,11 @@ class Reader
     @ivars, @lvars = {}, {}
     each_node(cdef) do |n|
       case n
-      when Prism::LocalVariableWriteNode then (@lvars[n.name.to_s] ||= []) << n.value
+      when Prism::LocalVariableWriteNode, Prism::LocalVariableOrWriteNode, Prism::LocalVariableAndWriteNode then (@lvars[n.name.to_s] ||= []) << n.value
       when Prism::InstanceVariableWriteNode then (@ivars[n.name.to_s] ||= []) << n.value
-      when Prism::InstanceVariableOperatorWriteNode, Prism::InstanceVariableOrWriteNode then (@ivars[n.name.to_s] ||= []) << :int
+      when Prism::InstanceVariableOrWriteNode, Prism::InstanceVariableAndWriteNode
+        (@ivars[n.name.to_s] ||= []).push(:none, n.value)
+      when Prism::InstanceVariableOperatorWriteNode then (@ivars[n.name.to_s] ||= []) << :int
       when Prism::CallNode
         w = n.name.to_s.chomp('=')
         if n.name.to_s.end_with?('=') && n.receiver.is_a?(Prism::SelfNode) && attrs[w] && n.arguments then (@ivars["@#{w}"] ||= []) << n.arguments.arguments.first end
@@ -186,6 +188,7 @@ class Reader
   # --- types, inferred ----------------------------------------------------------------------------------------------
   def kind(v, locals = {})
     return 'int' if v == :int
+    return 'none' if v == :none
     case v
     when Prism::NilNode then 'none'
     when Prism::IntegerNode then 'int'
@@ -303,9 +306,17 @@ class Reader
       end
     when Prism::ReturnNode
       a = s.arguments&.arguments || []
+      if a.length == 1 && (a[0].is_a?(Prism::InstanceVariableOrWriteNode) || a[0].is_a?(Prism::LocalVariableOrWriteNode) || a[0].is_a?(Prism::InstanceVariableAndWriteNode) || a[0].is_a?(Prism::LocalVariableAndWriteNode))
+        return stmt(a[0], true)
+      end
       [{'s' => 'ret', 'p' => p, **(a.length == 1 ? {'x' => expr(a[0])} : a.empty? ? {} : {'x' => no(s, 'a return of several values')})}]
     when Prism::LocalVariableWriteNode then [{'s' => 'set', 'p' => p, 'to' => {'e' => 'var', 'n' => s.name.to_s, 'p' => p}, 'x' => expr(s.value)}, *(tail ? ret.({'e' => 'var', 'n' => s.name.to_s, 'p' => p}) : [])]
     when Prism::InstanceVariableWriteNode then [{'s' => 'set', 'p' => p, 'to' => ivar(s.name.to_s, s), 'x' => expr(s.value)}, *(tail ? ret.(ivar(s.name.to_s, s)) : [])]
+    when Prism::InstanceVariableOrWriteNode, Prism::LocalVariableOrWriteNode, Prism::InstanceVariableAndWriteNode, Prism::LocalVariableAndWriteNode
+      is_or = s.is_a?(Prism::InstanceVariableOrWriteNode) || s.is_a?(Prism::LocalVariableOrWriteNode)
+      t = s.is_a?(Prism::LocalVariableOrWriteNode) || s.is_a?(Prism::LocalVariableAndWriteNode) ? {'e' => 'var', 'n' => s.name.to_s, 'p' => p} : ivar(s.name.to_s, s)
+      c = is_or ? {'e' => 'not', 'x' => t, 'p' => p} : t
+      [{'s' => 'if', 'p' => p, 'c' => c, 'then' => [{'s' => 'set', 'p' => p, 'to' => t, 'x' => expr(s.value)}], 'else' => []}, *(tail ? ret.(t) : [])]
     when Prism::InstanceVariableOperatorWriteNode, Prism::LocalVariableOperatorWriteNode
       t = s.is_a?(Prism::LocalVariableOperatorWriteNode) ? {'e' => 'var', 'n' => s.name.to_s, 'p' => p} : ivar(s.name.to_s, s)
       op = s.respond_to?(:binary_operator) ? s.binary_operator : s.operator

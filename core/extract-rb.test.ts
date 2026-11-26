@@ -417,3 +417,36 @@ end
 `, 'Limiter', {failures: 'kept'}))
   expect(x.source).toMatch(/failed/)
 })
+
+t('Ruby ||= and &&= on instance and local variables preserve nil-false truthiness and short-circuiting', () => {
+  const x = ok(rb(`
+class Memo
+  def initialize
+    @hits = 0
+  end
+  def bump_default
+    @hits += 1
+    10
+  end
+  def threshold
+    @threshold ||= bump_default
+  end
+  def set_zero
+    @threshold = 0
+  end
+  def clear_if_set
+    @threshold &&= 5
+  end
+  def local_memo(x)
+    v = x > 0 ? x : nil
+    v ||= 7
+    return v
+  end
+end
+`, 'Memo'))
+  expect(x.evidence!.mismatch).toBeUndefined()
+  // Once @threshold is initialized (even to 0, which is truthy in Ruby), threshold() must not call bump_default again.
+  native(x, 'threshold initializes once and preserves 0', 'old(threshold) != nil implies hits == old(hits)', 'threshold')
+  native(x, 'threshold sets 10 when nil', 'old(threshold) == nil implies threshold == 10 and hits == old(hits) + 1', 'threshold')
+  native(x, 'local_memo defaults nil to 7', 'x <= 0 implies result == 7', 'local_memo')
+})
