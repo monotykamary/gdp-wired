@@ -144,7 +144,7 @@ type V =
   // (firm: a value merged only with itself, refused where a path would make it another; Go's)
   // (ask: the value of a call of other code left out by inference, answered by the next run where it is read)
   // (sink: a field the rule leaves out that the code may write, a C float's: written as the code writes it, never kept)
-  | {t: 'opaque', why: string, firm?: boolean, ask?: string, sattr?: {store: string, path: string}, sink?: boolean, inert?: boolean}
+  | {t: 'opaque', why: string, firm?: boolean, ask?: string, sattr?: {store: string, path: string}, sink?: boolean, inert?: boolean, opt?: {name: string, role: Var['role'], parg: PArg, none?: string}}
   // (ret: the callee's declared result type; recv: the object its method is called on)
   | {t: 'ext', q: string, text: string, patch?: Patch, ret?: SType, recv?: V, nothrow?: boolean}
   | {t: 'fn', id: string, self?: V, caps?: Map<string, V>} | {t: 'cls', rec: string, patch?: Patch} | {t: 'builtin', n: string} | {t: 'lib', q: string}
@@ -393,7 +393,13 @@ export class Stepper {
         return [{t: 'opt', has: I.not(I.bvar(none.name)), v}, {k: 'opt', none: none.name, v: a}]
       }
       const inner = this.scalar(t.of)
-      if (!inner) return refuse(at, `${name}: an optional ${this.why(t.of)}`)
+      if (!inner) {
+        if (this.mod.lang !== 'python') return refuse(at, `${name}: an optional ${this.why(t.of)}`)
+        const innerA: PArg = (t.of.k === 'opaque' && /^dict\b/.test(t.of.why)) || (t.of.k === 'map' && !t.of.set) ? {k: 'inert', dict: true} : {k: 'inert'}
+        if (role !== 'input') return [{t: 'opaque', why: `${name}: an optional ${this.why(t.of)}`, inert: true}, innerA]
+        const none = this.newVar(`${name}_none`, {k: 'bool'}, role, `whether ${name} is None`)
+        return [{t: 'opt', has: I.not(I.bvar(none.name)), v: {t: 'opaque', why: `${name}: ${this.why(t.of)}`, inert: true}}, {k: 'opt', none: none.name, v: innerA}]
+      }
       const v = this.newVar(name, inner, role, `0 where ${name} is None`), none = this.newVar(`${name}_none`, {k: 'bool'}, role, `whether ${name} is None`)
       this.typed(v, t.of, role, t.of.k === 'int' && t.of.unit?.startsWith('datetime-') ? I.and(this.sel, I.not(I.bvar(none.name))) : this.sel)
       return [{t: 'opt', has: I.not(I.bvar(none.name)), v: this.timeField(this.valueOf(v), t.of, true, at)}, {k: 'opt', none: none.name, v: {k: 'in', name: v.name, z: zeroRaw(inner), ...(t.of.k === 'int' && t.of.unit?.startsWith('datetime-') ? {time: t.of.unit} : {}), ...(t.of.k === 'float' ? {float: true} : {}), ...(t.of.k === 'str' && t.of.bytes ? {bytes: true} : {})}}]
@@ -420,7 +426,8 @@ export class Stepper {
     }
     // A value of another type: kept only where nothing the rule keeps reads it (the harness gives an inert one).
     // (a dict of no stated types: an empty one, as JSON takes it, where the code serializes it)
-    return [{t: 'opaque', why: `${name}: ${this.why(t)}`, inert: true}, t.k === 'opaque' && /^dict\b/.test(t.why) ? {k: 'inert', dict: true} : {k: 'inert'}]
+    const parg: PArg = (t.k === 'opaque' && /^dict\b/.test(t.why)) || (t.k === 'map' && !t.set) ? {k: 'inert', dict: true} : {k: 'inert'}
+    return [{t: 'opaque', why: `${name}: ${this.why(t)}`, inert: true, ...(this.mod.lang === 'python' && role === 'input' ? {opt: {name, role, parg}} : {})}, parg]
   }
   // A fixed-width integer variable: its type, and (for a request) a value outside it refused: the claim is for the
   // type's values.
@@ -1152,6 +1159,7 @@ export class Stepper {
 
   // A value that may be None, read where the path has decided which (after `if x is None: return`).
   narrow(v: V, p: Path): V {
+    if (v.t === 'opaque' && v.opt?.none) return this.narrow({t: 'opt', has: I.not(I.bvar(v.opt.none)), v: {...v, opt: undefined}}, p)
     if (v.t !== 'opt') return v
     const c = this.cond(p)
     if (I.and(c, I.not(v.has)).op === 'const') return this.narrow(v.v, p)
@@ -2772,7 +2780,10 @@ export class Stepper {
   get(x: SX, p: Path): [V, Path] {
     const [o, q] = this.ev(x.x as SX, p), f = String(x.f)
     switch (o.t) {
-      case 'opaque': if (o.sattr) return this.storeAttr(o.sattr.store, `${o.sattr.path}.${f}`, x, q); return [{t: 'opaque', why: o.why, ...(o.ask ? {ask: o.ask} : {})}, q]
+      case 'opaque':
+        if (o.opt?.none) return this.get({...x, x: {e: 'var', n: '$v', p: x.p}}, {...q, locals: new Map(q.locals).set('$v', {t: 'opt', has: I.not(I.bvar(o.opt.none)), v: {...o, opt: undefined}})})
+        if (o.sattr) return this.storeAttr(o.sattr.store, `${o.sattr.path}.${f}`, x, q)
+        return [{t: 'opaque', why: o.why, ...(o.ask ? {ask: o.ask} : {})}, q]
       case 'ext': return [{t: 'ext', q: `${o.q}.${f}`, text: `${o.text}.${f}`, ...(o.patch?.path ? {patch: {...o.patch, path: [...o.patch.path, f]}} : {}), ...(o.nothrow ? {nothrow: true} : {})}, q]
       case 'none': this.fail(q, I.T, x, `${x.text}: a field of None (an AttributeError)`); return [{t: 'opaque', why: 'unreachable'}, {...q, pc: [...q.pc, I.F]}]
       case 'opt': { this.fail(q, I.not(o.has), x, `${x.text}: a field of None (an AttributeError)`); const [v2, q3] = this.get({...x, x: {e: 'var', n: '$v', p: x.p}}, {...this.assume(q, o.has), locals: new Map(q.locals).set('$v', o.v)}); return [v2, {...q3, locals: q.locals}] }
@@ -2961,13 +2972,42 @@ export class Stepper {
     const op = String(x.op)
     const [a, q] = this.ev(x.x as SX, p), [b, q2] = this.ev(x.y as SX, q)
     const out = (e: B): [V, Path] => [{t: 'bool', e}, q2]
-    if (a.t === 'opaque' || b.t === 'opaque') return [a.t === 'opaque' ? a : b, q2]
-    if (op === 'is' || op === 'is not') {
-      const isNone = (v: V): B => (v.t === 'none' ? I.T : v.t === 'opt' ? I.not(v.has) : I.F)
-      if (b.t !== 'none' && a.t !== 'none') return refuse(x, `${x.text}: an identity test of other than None`)
-      const e = b.t === 'none' ? isNone(a) : isNone(b)
-      return out(op === 'is' ? e : I.not(e))
+    if (op === 'is' || op === 'is not' || ((op === '==' || op === '!=') && (a.t === 'none' || b.t === 'none'))) {
+      const eq = op === 'is' || op === '=='
+      if (a.t === 'none' || b.t === 'none') {
+        const other = b.t === 'none' ? a : b
+        if (other.t === 'opaque') {
+          if (other.sattr && this.inf) {
+            const {store, path} = other.sattr
+            const held = this.inertAttrs.some(i => i.store === store && (i.path === path || i.path.startsWith(`${path}.`)))
+            if (!held) {
+              const d = this.storeDecl(store)
+              d.attrs = {...d.attrs, [path]: null}
+              this.notes.add(`${store}.${path} (${x.p}): an unstated store attribute tested against None (inferred as None; state stores: {${store}: {attrs: {${JSON.stringify(path)}: ...}}} to configure it)`)
+            }
+            const isN = held ? I.F : I.T
+            return out(eq ? isN : I.not(isN))
+          }
+          if (other.opt) {
+            if (!other.opt.none) {
+              const nv = this.newVar(`${other.opt.name}_none`, {k: 'bool'}, other.opt.role, `whether ${other.opt.name} is None`)
+              const inner: PArg = {...other.opt.parg}
+              for (const k of Object.keys(other.opt.parg)) delete (other.opt.parg as Record<string, unknown>)[k]
+              Object.assign(other.opt.parg, {k: 'opt', none: nv.name, v: inner})
+              other.opt.none = nv.name
+            }
+            const isN = I.bvar(other.opt.none)
+            return out(eq ? isN : I.not(isN))
+          }
+          return [other, q2]
+        }
+        const isNone = (v: V): B => (v.t === 'none' ? I.T : v.t === 'opt' ? I.not(v.has) : I.F)
+        const e = isNone(other)
+        return out(eq ? e : I.not(e))
+      }
     }
+    if (a.t === 'opaque' || b.t === 'opaque') return [a.t === 'opaque' ? a : b, q2]
+    if (op === 'is' || op === 'is not') return refuse(x, `${x.text}: an identity test of other than None`)
     if ((op === 'in' || op === 'not in') && this.listOf(b, q2, x)) {
       // (an item of a list, the request's or the state's: any(item == a for item in it), the fold)
       if (!callFree(x.y)) return refuse(x, `${x.text}: in a list made by a call`)
