@@ -98,8 +98,10 @@ export type JointSpec =
   | {rule: AnyRule, prelude: Law[], kind: 'step', step: StepLaw}
 const invariantInputs = new WeakMap<RealLaw, readonly [AnyRule, Law]>()
 const jointSpecs = new WeakMap<RealLaw, JointSpec>()
+const decisionInputs = new WeakMap<RealLaw, AnyDecision>()
 export const invariantInput = (row: RealLaw) => invariantInputs.get(row)
 export const jointSpec = (row: RealLaw): JointSpec | undefined => jointSpecs.get(row)
+export const decisionInput = (row: RealLaw): AnyDecision | undefined => decisionInputs.get(row)
 // An invariant, alone, with the default search.
 export const invariant = (r: AnyRule, law: Law, kind: LawKind, intent: Intent, why: string): RealLaw => {
   const row: RealLaw = {name: law.name, kind, intent, why, form: 'invariant', prove: ms => proveRule(r, [law], search(ms))}
@@ -119,8 +121,11 @@ export const leadsTo = (r: AnyRule, l: Liveness, intent: Intent, why: string, ki
   return {name: l.name, kind, intent, why, form: 'leadsTo', live: {r, l}, prove: ms => proveLeadsTo(r, [], l, {ms})}
 }
 // A claim about one request (an access check, an entitlement).
-export const decision = (d: AnyDecision, kind: LawKind, intent: Intent, why: string): RealLaw =>
-  ({name: d.name, kind, intent, why, form: 'decision', prove: ms => proveDecision(d, {ms})})
+export const decision = (d: AnyDecision, kind: LawKind, intent: Intent, why: string): RealLaw => {
+  const row: RealLaw = {name: d.name, kind, intent, why, form: 'decision', prove: ms => proveDecision(d, {ms})}
+  decisionInputs.set(row, d)
+  return row
+}
 // A chart's law or step law: with the chart's structural laws, which `chart.prove` adds itself.
 export const chartLaw = (c: AnyChart, law: Law, kind: LawKind, intent: Intent, why: string): RealLaw => {
   const prelude = c.chartLaws()

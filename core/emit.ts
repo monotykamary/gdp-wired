@@ -1373,8 +1373,9 @@ function registerAnyCellParts(
 ): void {
   const mkGetter = (raw: string, retType: string, bodyExpr: string, fallback: string, fieldKind: KindInfo) => {
     const gid = safeVar(prefix, raw)
+    const dynamicDef = rootIsMap && /\bstate\b/.test(defExpr)
     const lookup = rootIsMap
-      ? `  const $c = m.get(k) ?? ${defExpr}`
+      ? `  const $c = m.get(k) ?? ${dynamicDef ? 'd' : defExpr}`
       : oneBased
         ? `  const $c = k >= 1 && k <= m.length ? m[k - 1] : undefined`
         : `  const $c = m[k]`
@@ -1382,14 +1383,14 @@ function registerAnyCellParts(
       ? (guard ? `  return (${guard}) ? ${bodyExpr} : ${fallback}` : `  return ${bodyExpr}`)
       : (guard ? `  return $c !== undefined && (${guard}) ? ${bodyExpr} : ${fallback}` : `  return $c !== undefined ? ${bodyExpr} : ${fallback}`)
     const paramType = rootIsMap ? `ReadonlyMap<number, ${rootType}>` : `readonly ${rootType}[]`
-    cellGetters.push(`function ${gid}(m: ${paramType}, k: number): ${retType} {`, lookup, ret, '}')
+    cellGetters.push(`function ${gid}(m: ${paramType}, k: number${dynamicDef ? `, d: ${rootType}` : ''}): ${retType} {`, lookup, ret, '}')
     ctxMaps.set(raw, {
       rawName: raw,
       mapName,
       stateExpr: containerExpr,
       defaultVal: mMaps?.[raw] ?? 0,
       fieldKind,
-      getterTpl: `${gid}(${containerExpr}, __K__)`,
+      getterTpl: `${gid}(${containerExpr}, __K__${dynamicDef ? `, ${defExpr}` : ''})`,
     })
   }
   const vExpr = valAccess('$c')

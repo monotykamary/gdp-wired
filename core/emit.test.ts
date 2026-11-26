@@ -19,31 +19,51 @@ import {
   chart,
   count,
   decimal,
+  everyKey,
+  fixedInt,
+  fold,
   forall,
   fun,
   int,
+  loop,
+  max,
   maybe,
   min,
   nat,
+  no,
   oneOf,
+  record,
   recur,
   relation,
   rule,
+  sizedSort,
+  someKey,
   str,
   upTo,
+  variant,
   when,
+  yes,
 } from './dsl.ts'
 import {DEC_ROUND_HELPER_LINES, scaleDecimalHalfEven} from './decimal-round.ts'
 import {compileJs, seeded} from './machine.ts'
-import {sha256Hex} from './emit.ts'
+import {C_OPS, E_OPS, MACHINE_PARTS, QC_OPS, QE_OPS} from './codegen.ts'
+import {KIND_NAMES, emitFold, emitLoop, emitRatRule, emitRule, sha256Hex} from './emit.ts'
 import {sha256Hex as sharedSha256Hex} from './sha256.ts'
 import {emitMain, verifyEmittedFile} from './emit-cli.ts'
-import {interpretQ, loadQJs} from './rationals.ts'
+import {interpretQ, loadQJs, nonneg, rat, ratRule, rmax, rmin, rwhen} from './rationals.ts'
 import {qparse, qshow} from './q.ts'
 import {approve, approveLaws, accounts, accountLaws, accountSteps, hold, holdLaws, holdSteps, jobs, jobLaws, jobSteps, seats, seatLaws, seatSteps} from '../examples/datatypes.ts'
 import {minutes, minuteLaws, larger, largerLaws, room, roomLaws} from '../examples/functions.ts'
 import {feeSplit, feeLaws, limiter, limiterLaws, ledger, ledgerLaws} from '../examples/rationals.ts'
 import {defaultReviewParams, makeReviewRouting, makeReviewRoutingLaws, reviewRouting, reviewRoutingLaws} from '../examples/review-routing.ts'
+import {scope as scopeList, scopeLaws} from '../examples/lists.ts'
+import {searchTree, searchTreeLaws, sheet, sheetLaws} from '../examples/trees.ts'
+import {invoices, invoiceLaws, metered, meteredLaws} from '../examples/invoices.ts'
+import {book as orderBook, bookLaws} from '../examples/orderbook.ts'
+import {rollup, rollupLaws, signoffs, signoffLaws, orgChart, orgChartLaws} from '../examples/folds.ts'
+import {pagesNonEmpty, retryCapped, sweepOnce} from '../examples/nonterm.ts'
+import {ledger as existsLedger, ledgerLaws as existsLedgerLaws} from '../examples/exists.ts'
+import {patterns as scopePatterns, grants as scopeGrants} from '../examples/scopes.ts'
 
 const root = join(import.meta.dir, '..')
 const tmp = mkdtempSync(join(tmpdir(), 'gdp-wired-emit-test-'))
@@ -804,5 +824,307 @@ describe('emit determinism, CLI, and emitter mutant refutation', () => {
     const verR = await verifyEmittedFile(mutRatFile, {kind: 'ratRule', ratRule: fs}, fsRes)
     expect(verR).toMatchObject({ok: false, exit: 1})
     expect(verR.mismatch).toBeTruthy()
+  })
+})
+
+// --- Phase 2: 100% enforced expressibility (op-by-op, kind-by-kind, and all runtime features) -----------------------
+
+describe('100% enforced expressibility: every op, kind, and runtime feature', () => {
+  test('core/emit.ts has zero "not supported" refusals and covers all canonical op/kind/machine lists', () => {
+    const emitSrc = readFileSync(join(root, 'core/emit.ts'), 'utf8')
+    expect(emitSrc).not.toMatch(/not supported/i)
+    expect(E_OPS.length).toBeGreaterThanOrEqual(12)
+    expect(C_OPS.length).toBeGreaterThanOrEqual(8)
+    expect(QE_OPS.length).toBeGreaterThanOrEqual(8)
+    expect(QC_OPS.length).toBeGreaterThanOrEqual(6)
+    expect(KIND_NAMES.length).toBeGreaterThanOrEqual(11)
+    expect(MACHINE_PARTS.length).toBeGreaterThanOrEqual(17)
+  })
+
+  test('every E op and C op from canonical E_OPS / C_OPS emits and passes --verify', async () => {
+    const makeRuleForE = (op: (typeof E_OPS)[number]) => {
+      switch (op) {
+        case 'const': return rule('op-const').inputs({x: nat}).state({s: 0}).step(() => ({s: 7}))
+        case 'var': return rule('op-var').inputs({x: nat}).state({s: 0}).step(({x}) => ({s: x}))
+        case 'add': return rule('op-add').inputs({x: nat}).state({s: 0}).step(({x, s}) => ({s: s.plus(x)}))
+        case 'sub': return rule('op-sub').inputs({x: nat}).state({s: 10}).step(({x, s}) => ({s: s.minus(x)}))
+        case 'mul': return rule('op-mul').inputs({x: nat}).state({s: 0}).step(({x}) => ({s: x.times(3)}))
+        case 'prod': return rule('op-prod').inputs({x: nat, y: nat}).state({s: 0}).step(({x, y}) => ({s: x.mul(y)}))
+        case 'min': return rule('op-min').inputs({x: nat, y: nat}).state({s: 0}).step(({x, y}) => ({s: min(x, y)}))
+        case 'max': return rule('op-max').inputs({x: nat, y: nat}).state({s: 0}).step(({x, y}) => ({s: max(x, y)}))
+        case 'if': return rule('op-if').inputs({x: nat}).state({s: 0}).step(({x, s}) => ({s: when(x.lt(5), x, s)}))
+        case 'get': return rule('op-get').inputs({k: nat, v: nat}).maps({M: 0}).state({last: 0}).step(({k, v, M}) => ({M: M.set(k, v), last: M.at(k)}))
+        case 'tup':
+        case 'proj': return rule(`op-${op}`).sorts('Node').inputs({a: nat, b: nat}).relations({R: ['Node', 'Node']}).state({hit: 0})
+          .step(({a, b, R}) => ({R: R.each((x, y) => R.has(x, y).or(x.eq(a).and(y.eq(b)))), hit: when(R.has(a, b), 1, 0)}))
+      }
+    }
+    for (const op of E_OPS) {
+      const r = makeRuleForE(op)
+      const res = emitRule(r, {allowUnproven: true})
+      const file = join(tmp, `eop-${op}-${++seq}.ts`)
+      writeFileSync(file, res.source)
+      const ver = await verifyEmittedFile(file, {kind: 'rule', rule: r}, res, {runs: 8, steps: 8})
+      expect({op, ok: ver.ok, mismatch: ver.mismatch}).toEqual({op, ok: true, mismatch: undefined})
+    }
+
+    const makeRuleForC = (op: (typeof C_OPS)[number]) => {
+      switch (op) {
+        case '<': return rule('cop-lt').inputs({x: nat, y: nat}).state({s: 0}).step(({x, y}) => ({s: when(x.lt(y), 1, 0)}))
+        case '<=': return rule('cop-le').inputs({x: nat, y: nat}).state({s: 0}).step(({x, y}) => ({s: when(x.atMost(y), 1, 0)}))
+        case '=': return rule('cop-eq').inputs({x: nat, y: nat}).state({s: 0}).step(({x, y}) => ({s: when(x.eq(y), 1, 0)}))
+        case 'and': return rule('cop-and').inputs({x: nat, y: nat}).state({s: 0}).step(({x, y}) => ({s: when(x.lt(5).and(y.lt(5)), 1, 0)}))
+        case 'or': return rule('cop-or').inputs({x: nat, y: nat}).state({s: 0}).step(({x, y}) => ({s: when(x.lt(5).or(y.lt(5)), 1, 0)}))
+        case 'not': return rule('cop-not').inputs({x: nat}).state({s: 0}).step(({x}) => ({s: when(x.lt(5).not(), 1, 0)}))
+        case 'flag': return rule('cop-flag').inputs({x: nat}).state({s: 0}).flags(({x}) => ({small: x.lt(5)})).step(({small}) => ({s: when(small, 1, 0)}))
+        case 'all': return rule('cop-all').inputs({k: nat, v: nat}).maps({M: 0}).state({ok: 0})
+          .flags(({M}) => ({allSmall: everyKey(j => M.at(j).atMost(10))}))
+          .step(({k, v, M, allSmall}) => ({M: M.set(k, v), ok: when(allSmall, 1, 0)}))
+      }
+    }
+    for (const op of C_OPS) {
+      const r = makeRuleForC(op)
+      const res = emitRule(r, {allowUnproven: true})
+      const file = join(tmp, `cop-${op.replace(/[^a-z]/g, 'x')}-${++seq}.ts`)
+      writeFileSync(file, res.source)
+      const ver = await verifyEmittedFile(file, {kind: 'rule', rule: r}, res, {runs: 8, steps: 8})
+      expect({op, ok: ver.ok, mismatch: ver.mismatch}).toEqual({op, ok: true, mismatch: undefined})
+    }
+  })
+
+  test('every QE op and QC op from canonical QE_OPS / QC_OPS emits and passes --verify', async () => {
+    const makeRatForE = (op: (typeof QE_OPS)[number]) => {
+      switch (op) {
+        case 'const': return ratRule('qe-const').state({s: 0}).step(() => ({s: '1/3'}))
+        case 'var': return ratRule('qe-var').inputs({x: rat}).state({s: 0}).step(({x}) => ({s: x}))
+        case 'add': return ratRule('qe-add').inputs({x: rat}).state({s: 0}).step(({x, s}) => ({s: s.plus(x)}))
+        case 'sub': return ratRule('qe-sub').inputs({x: rat}).state({s: 0}).step(({x, s}) => ({s: s.minus(x)}))
+        case 'mul': return ratRule('qe-mul').inputs({x: rat}).state({s: 0}).step(({x}) => ({s: x.times('0.25')}))
+        case 'min': return ratRule('qe-min').inputs({x: nonneg}).state({s: 1}).step(({x, s}) => ({s: rmin(s, x)}))
+        case 'max': return ratRule('qe-max').inputs({x: nonneg}).state({s: 0}).step(({x, s}) => ({s: rmax(s, x)}))
+        case 'if': return ratRule('qe-if').inputs({x: rat}).state({s: 0}).step(({x, s}) => ({s: rwhen(x.lt(1), x, s)}))
+      }
+    }
+    for (const op of QE_OPS) {
+      const r = makeRatForE(op)
+      const res = emitRatRule(r, {allowUnproven: true})
+      const file = join(tmp, `qe-${op}-${++seq}.ts`)
+      writeFileSync(file, res.source)
+      const ver = await verifyEmittedFile(file, {kind: 'ratRule', ratRule: r}, res, {runs: 8, steps: 8})
+      expect({op, ok: ver.ok, mismatch: ver.mismatch}).toEqual({op, ok: true, mismatch: undefined})
+    }
+
+    const makeRatForC = (op: (typeof QC_OPS)[number]) => {
+      switch (op) {
+        case '<=': return ratRule('qc-le').inputs({x: rat}).state({s: 0}).step(({x}) => ({s: rwhen(x.atMost(1), 1, 0)}))
+        case '<': return ratRule('qc-lt').inputs({x: rat}).state({s: 0}).step(({x}) => ({s: rwhen(x.lt(1), 1, 0)}))
+        case '=': return ratRule('qc-eq').inputs({x: rat}).state({s: 0}).step(({x}) => ({s: rwhen(x.eq(0), 1, 0)}))
+        case 'and': return ratRule('qc-and').inputs({x: rat}).state({s: 0}).step(({x}) => ({s: rwhen(x.atLeast(0).and(x.atMost(1)), 1, 0)}))
+        case 'or': return ratRule('qc-or').inputs({x: rat}).state({s: 0}).step(({x}) => ({s: rwhen(x.lt(0).or(x.gt(1)), 1, 0)}))
+        case 'not': return ratRule('qc-not').inputs({x: rat}).state({s: 0}).step(({x}) => ({s: rwhen(x.eq(0).not(), 1, 0)}))
+      }
+    }
+    for (const op of QC_OPS) {
+      const r = makeRatForC(op)
+      const res = emitRatRule(r, {allowUnproven: true})
+      const file = join(tmp, `qc-${op.replace(/[^a-z]/g, 'x')}-${++seq}.ts`)
+      writeFileSync(file, res.source)
+      const ver = await verifyEmittedFile(file, {kind: 'ratRule', ratRule: r}, res, {runs: 8, steps: 8})
+      expect({op, ok: ver.ok, mismatch: ver.mismatch}).toEqual({op, ok: true, mismatch: undefined})
+    }
+  })
+
+  test('every KindInfo from canonical KIND_NAMES emits and passes --verify', async () => {
+    const Rec = record({a: nat, b: bool})
+    const Var = variant({off: {}, on: {lvl: nat}})
+    const u16 = fixedInt(16, false)
+    const makeRuleForKind = (kind: (typeof KIND_NAMES)[number]) => {
+      switch (kind) {
+        case 'nat': case 'unknown': return rule(`k-${kind}`).inputs({x: nat}).state({s: 0}).step(({x}) => ({s: x}))
+        case 'bool': return rule('k-bool').inputs({x: bool}).state({s: bool.from(false)}).step(({x}) => ({s: x}))
+        case 'oneOf': return rule('k-oneOf').inputs({x: oneOf('a', 'b', 'c')}).state({s: oneOf('a', 'b', 'c').from('a')}).step(({x}) => ({s: x}))
+        case 'int': return rule('k-int').inputs({x: int}).ints({s: 0}).step(({x, s}) => ({s: s.plus(x)}))
+        case 'decimal': return rule('k-dec').inputs({x: decimal(2, {round: 'half-even'})}).decimals(2, {s: 0}).step(({x, s}) => ({s: s.plus(x)}))
+        case 'maybe': return rule('k-maybe').inputs({x: maybe(nat)}).state({s: maybe(nat).from(null)}).step(({x}) => ({s: x}))
+        case 'record': return rule('k-record').inputs({x: Rec}).state({s: Rec.from({a: 0, b: false})}).step(({x}) => ({s: x}))
+        case 'variant': return rule('k-variant').inputs({x: Var}).state({s: Var.from({tag: 'off'})}).step(({x}) => ({s: x}))
+        case 'str': return rule('k-str').inputs({x: str({like: ['a*']})}).state({hit: 0}).step(({x}) => ({hit: when(x.like('a*'), 1, 0)}))
+        case 'fixed': return rule('k-fixed').inputs({x: u16, y: u16}).state({s: u16.from(0)}).step(({x, y}) => ({s: x.plus(y, 'WRAP')}))
+      }
+    }
+    for (const kind of KIND_NAMES) {
+      const r = makeRuleForKind(kind)
+      const res = emitRule(r, {allowUnproven: true})
+      const file = join(tmp, `kind-${kind}-${++seq}.ts`)
+      writeFileSync(file, res.source)
+      const ver = await verifyEmittedFile(file, {kind: 'rule', rule: r}, res, {runs: 8, steps: 8})
+      expect({kind, ok: ver.ok, mismatch: ver.mismatch}).toEqual({kind, ok: true, mismatch: undefined})
+    }
+  })
+
+  test('runtime quantifiers, broadcast record/variant maps, tuple-at-every-key, and tuples in recur pass crossCheck + --verify', async () => {
+    // 1. Runtime quantifiers (everyKey, someKey, sizedSort, 2-key join)
+    const quantRule = rule('quant-all').params({n: nat}).pre(({n}) => n.atMost(5))
+      .inputs({k: nat, v: nat}).maps({M: 0, Tag: 0}).state({allOk: 0, anyHi: 0, finOk: 0, uniq: 0})
+      .flags(({n, M, Tag}) => ({
+        allSmall: everyKey(j => M.at(j).atMost(10)),
+        hasBig: someKey(j => M.at(j).gt(5)),
+        finOk: sizedSort('Slot', n).every(j => M.at(j).atMost(8)),
+        uniqueTags: everyKey((i, j) => Tag.at(i).eq(Tag.at(j)).implies(i.eq(j))),
+      }))
+      .step(({k, v, M, Tag, allSmall, hasBig, finOk, uniqueTags}) => ({
+        M: M.set(k, v), Tag: Tag.set(k, v),
+        allOk: when(allSmall, 1, 0), anyHi: when(hasBig, 1, 0), finOk: when(finOk, 1, 0), uniq: when(uniqueTags, 1, 0),
+      }))
+    expect(quantRule.crossCheck([]).failure).toBeUndefined()
+    const qRes = emitRule(quantRule, {allowUnproven: true})
+    const qFile = join(tmp, `quant-all-${++seq}.ts`)
+    writeFileSync(qFile, qRes.source)
+    expect((await verifyEmittedFile(qFile, {kind: 'rule', rule: quantRule}, qRes, {runs: 10, steps: 10})).ok).toBe(true)
+
+    // 2. Broadcast writes on record and variant maps
+    const Acc = record({bal: nat, frozen: bool})
+    const Job = variant({idle: {}, active: {step: nat}})
+    const bcastRule = rule('bcast-maps').inputs({op: oneOf('set', 'freeze', 'reset'), k: nat, amt: nat})
+      .maps({A: Acc.from({bal: 0, frozen: false}), J: Job.from({tag: 'idle'})})
+      .step(({op, k, amt, A, J}) => ({
+        A: A.each(i => ({
+          bal: when(op.is('set').and(i.eq(k)), amt, when(op.is('reset'), 0, A.at(i).bal)),
+          frozen: when(op.is('freeze'), yes, when(op.is('reset'), no, A.at(i).frozen)),
+        })),
+        J: J.each(i => when(op.is('set').and(i.eq(k)), Job.make({tag: 'active', step: amt}), when(op.is('reset'), Job.make({tag: 'idle'}), J.at(i)))),
+      }))
+    expect(bcastRule.crossCheck([]).failure).toBeUndefined()
+    const bRes = emitRule(bcastRule, {allowUnproven: true})
+    const bFile = join(tmp, `bcast-maps-${++seq}.ts`)
+    writeFileSync(bFile, bRes.source)
+    expect((await verifyEmittedFile(bFile, {kind: 'rule', rule: bcastRule}, bRes, {runs: 10, steps: 10})).ok).toBe(true)
+
+    // 3. Tuple keys at every key (relations each/union)
+    const relRule = rule('rel-tuple-each').sorts('Node').inputs({op: oneOf('add', 'clear', 'close'), a: nat, b: nat})
+      .relations({E: ['Node', 'Node']})
+      .step(({op, a, b, E}) => ({
+        E: E.each((x, y) => op.is('clear').not().and(
+          op.is('add').implies(E.has(x, y).or(x.eq(a).and(y.eq(b)))),
+          op.is('close').implies(E.has(x, y).or(E.has(x, a).and(E.has(a, y)))),
+        )),
+      }))
+    const relRes = emitRule(relRule, {allowUnproven: true})
+    const relFile = join(tmp, `rel-tuple-each-${++seq}.ts`)
+    writeFileSync(relFile, relRes.source)
+    expect((await verifyEmittedFile(relFile, {kind: 'rule', rule: relRule}, relRes, {runs: 10, steps: 10})).ok).toBe(true)
+
+    // 4. Recurrence with extra args (tuples in recur & call site)
+    const stepSum = recur('stepSum', {args: ['k'], zero: 0, next: (_, prev, {k}) => prev.plus(k)}, {'at least 0': (_, fx) => fx.atLeast(0)})
+    const recurRule = rule('recur-tup').fns({stepSum}).inputs({n: upTo(6), k: upTo(5)}).state({out: 0})
+      .step(({n, k, stepSum}) => ({out: stepSum(n, k)}))
+    const rRes = emitRule(recurRule, {allowUnproven: true})
+    const rFile = join(tmp, `recur-tup-${++seq}.ts`)
+    writeFileSync(rFile, rRes.source)
+    expect((await verifyEmittedFile(rFile, {kind: 'rule', rule: recurRule}, rRes, {runs: 10, steps: 10})).ok).toBe(true)
+  })
+
+  test('carries, carriesList, carriesSeq, carriesSeqs, lists, nodes, fold, roseFold, loop, counts, leasts, sums, fixedInt, and exists skolems pass crossCheck + --verify', async () => {
+    const verifyRuleCase = async (label: string, r: Parameters<typeof emitRule>[0], opts: Parameters<typeof emitRule>[1] = {allowUnproven: true}) => {
+      const res = emitRule(r, opts)
+      const file = join(tmp, `feat-${label}-${++seq}.ts`)
+      writeFileSync(file, res.source)
+      const ver = await verifyEmittedFile(file, {kind: 'rule', rule: r}, res, {runs: 10, steps: 10})
+      expect({label, ok: ver.ok, mismatch: ver.mismatch}).toEqual({label, ok: true, mismatch: undefined})
+    }
+
+    // Plain carries map + counts + sums
+    const carriedCounts = rule('carried-counts').params({n: nat}).pre(({n}) => n.atMost(5))
+      .inputs({k: nat}).carries('S').maps({M: 0})
+      .counts({hits: ({n, M, S}) => ({below: n, body: (x, i) => M.at(i).plus(S.at(i)).eq(x.plus(1))})})
+      .state({c0: 0})
+      .step(({k, M, S, hits}) => ({M: M.set(k, when(S.has(k), 1, M.at(k))), c0: hits.at(0)}))
+    expect(carriedCounts.crossCheck([]).failure).toBeUndefined()
+    await verifyRuleCase('carried-counts', carriedCounts)
+
+    const seatsSum = rule('seats-sum-rt').params({cap: nat}).inputs({op: oneOf('book', 'cancel'), seat: nat}).maps({Taken: 0})
+      .flags(({op, seat, cap, Taken}) => ({books: op.is('book').and(Taken.at(seat).eq(0), Taken.sum().lt(cap)), cancels: op.is('cancel')}))
+      .step(({seat, Taken, books, cancels}) => ({Taken: Taken.set(seat, when(books, 1, when(cancels, 0, Taken.at(seat))))}))
+    expect(seatsSum.crossCheck([]).failure).toBeUndefined()
+    await verifyRuleCase('seats-sum', seatsSum)
+
+    // Lists, nodes, carriesList, carriesSeq, carriesSeqs, leasts (orderbook), exists skolems, fixedInt word division
+    const sc = scopeList()
+    expect(sc.crossCheck(scopeLaws(sc)).failure).toBeUndefined()
+    await verifyRuleCase('lists-scope', sc, {laws: scopeLaws(sc)})
+
+    const st = searchTree()
+    expect(st.crossCheck(searchTreeLaws(st)).failure).toBeUndefined()
+    await verifyRuleCase('nodes-searchTree', st, {laws: searchTreeLaws(st)})
+
+    const sh = sheet()
+    expect(sh.crossCheck(sheetLaws(sh)).failure).toBeUndefined()
+    await verifyRuleCase('nodes-sheet', sh, {laws: sheetLaws(sh)})
+
+    const inv = invoices()
+    expect(inv.crossCheck(invoiceLaws(inv)).failure).toBeUndefined()
+    await verifyRuleCase('carriesList-invoices', inv, {laws: invoiceLaws(inv)})
+
+    const met = metered()
+    expect(met.crossCheck(meteredLaws(met)).failure).toBeUndefined()
+    await verifyRuleCase('carriesList-metered', met, {laws: meteredLaws(met)})
+
+    const ob = orderBook()
+    await verifyRuleCase('leasts-orderbook', ob, {laws: bookLaws(ob)})
+
+    const pat = scopePatterns()
+    await verifyRuleCase('carriesSeq-patterns', pat)
+    const gr = scopeGrants()
+    await verifyRuleCase('carriesSeqs-grants', gr)
+
+    const exL = existsLedger()
+    await verifyRuleCase('exists-ledger', exL, {laws: existsLedgerLaws(exL)})
+
+    const u8 = fixedInt(8, false)
+    const fxDiv = rule('fx-div').inputs({a: u8, b: u8}).state({q: u8.from(0), rem: u8.from(0)})
+      .step(({a, b}) => ({q: a.div(b, 'TRUNCATING', 'TRAP'), rem: a.rem(b, 'TRUNCATING', 'TRAP')}))
+    await verifyRuleCase('fixed-worddiv', fxDiv)
+
+    // Binary folds & RoseFold
+    for (const [label, f, ls] of [
+      ['rollup', rollup(), rollupLaws()],
+      ['signoffs', signoffs(), signoffLaws()],
+      ['orgChart', orgChart(), orgChartLaws()],
+    ] as const) {
+      expect(f.crossCheck(ls).failure).toBeUndefined()
+      const res = emitFold(f, {laws: ls})
+      expect(res.allProven).toBe(true)
+      const file = join(tmp, `fold-${label}-${++seq}.ts`)
+      writeFileSync(file, res.source)
+      const ver = await verifyEmittedFile(file, {kind: 'fold', fold: f}, res, {trials: 60})
+      expect({label, ok: ver.ok, mismatch: ver.mismatch}).toEqual({label, ok: true, mismatch: undefined})
+    }
+
+    // Loops
+    for (const [label, lp] of [
+      ['pagesNonEmpty', pagesNonEmpty],
+      ['retryCapped', retryCapped],
+      ['sweepOnce', sweepOnce],
+    ] as const) {
+      const res = emitLoop(lp)
+      expect(res.allProven).toBe(true)
+      const file = join(tmp, `loop-${label}-${++seq}.ts`)
+      writeFileSync(file, res.source)
+      const ver = await verifyEmittedFile(file, {kind: 'loop', loop: lp}, res, {runs: 15, steps: 15})
+      expect({label, ok: ver.ok, mismatch: ver.mismatch}).toEqual({label, ok: true, mismatch: undefined})
+    }
+
+    // Custom FoldRule + LoopRule via builder
+    const customFold = fold('sum-tree').inputs({v: nat}).leaf(({v}) => ({s: v})).node(({v}, l, r) => ({s: l.s.plus(r.s).plus(v)}))
+    const cfRes = customFold.emit({laws: [customFold.law('nonneg', ({s}) => s.atLeast(0))]})
+    const cfFile = join(tmp, `cfold-${++seq}.ts`)
+    writeFileSync(cfFile, cfRes.source)
+    expect((await verifyEmittedFile(cfFile, {kind: 'fold', fold: customFold}, cfRes, {trials: 40})).ok).toBe(true)
+
+    const customLoop = loop('countdown').params({n: nat}).state({i: ({n}) => n}).while(({i}) => i.gt(0)).body(({i}) => ({i: i.minus(1)})).rank(({i}) => i)
+    const clRes = customLoop.emit()
+    const clFile = join(tmp, `cloop-${++seq}.ts`)
+    writeFileSync(clFile, clRes.source)
+    expect((await verifyEmittedFile(clFile, {kind: 'loop', loop: customLoop}, clRes, {runs: 10, steps: 15})).ok).toBe(true)
   })
 })
