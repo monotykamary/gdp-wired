@@ -170,12 +170,34 @@ export type ResolvedTarget =
   | {kind: 'ratRule', ratRule: AnyRatRule}
   | {kind: 'chart', chart: AnyChart}
 
+export function findRepoRoot(startDir: string): string {
+  let dir = path.resolve(startDir)
+  while (true) {
+    if (fs.existsSync(path.join(dir, '.git'))) return dir
+    const parent = path.dirname(dir)
+    if (parent === dir) return path.resolve(proc.cwd())
+    dir = parent
+  }
+}
+
+function toRepoRel(baseDir: string, absPath: string): string {
+  const rel = path.relative(baseDir, absPath).split('\\').join('/')
+  return rel || '.'
+}
+
 export async function resolveAndEmit(opts: EmitCliOptions): Promise<{resolved: ResolvedTarget, result: EmitResult}> {
   const hash = opts.target.lastIndexOf('#')
   if (hash <= 0 || hash === opts.target.length - 1) throw new Error(`expected <module>#<export>, got "${opts.target}"`)
   const modPath = path.resolve(proc.cwd(), opts.target.slice(0, hash))
   const expName = opts.target.slice(hash + 1)
   if (!fs.existsSync(modPath)) throw new Error(`module not found: ${opts.target.slice(0, hash)}`)
+
+  const repoRoot = findRepoRoot(path.dirname(modPath))
+  const outAbs = opts.out ? path.resolve(proc.cwd(), opts.out) : undefined
+  const provenance = {
+    model: `${toRepoRel(repoRoot, modPath)}#${expName}`,
+    ...(outAbs ? {out: toRepoRel(repoRoot, outAbs)} : {}),
+  }
 
   const mod = await import(urlMod.pathToFileURL(modPath).href) as Record<string, unknown>
   if (!(expName in mod)) {
@@ -188,21 +210,21 @@ export async function resolveAndEmit(opts: EmitCliOptions): Promise<{resolved: R
     const stepLaws = opts.stepLaws ? resolveLawExport<StepLaw>(mod, opts.stepLaws, target) : undefined
     return {
       resolved: {kind: 'rule', rule: target as never},
-      result: emitRule(target, {...(laws ? {laws} : {}), ...(stepLaws ? {stepLaws} : {}), ...(opts.name ? {name: opts.name} : {}), ...(opts.from ? {from: opts.from} : {}), ...(opts.ms !== undefined ? {ms: opts.ms} : {}), allowUnproven: true}),
+      result: emitRule(target, {...(laws ? {laws} : {}), ...(stepLaws ? {stepLaws} : {}), ...(opts.name ? {name: opts.name} : {}), ...(opts.from ? {from: opts.from} : {}), ...(opts.ms !== undefined ? {ms: opts.ms} : {}), provenance, allowUnproven: true}),
     }
   }
   if (target instanceof Fun) {
     const laws = opts.laws ? resolveLawExport<Decision>(mod, opts.laws, target) : undefined
     return {
       resolved: {kind: 'fun', fun: target as never},
-      result: emitFun(target, {...(laws ? {laws} : {}), ...(opts.name ? {name: opts.name} : {}), ...(opts.ms !== undefined ? {ms: opts.ms} : {}), allowUnproven: true}),
+      result: emitFun(target, {...(laws ? {laws} : {}), ...(opts.name ? {name: opts.name} : {}), ...(opts.ms !== undefined ? {ms: opts.ms} : {}), provenance, allowUnproven: true}),
     }
   }
   if (target instanceof RatRule) {
     const laws = opts.laws ? resolveLawExport<RatLaw<string, string>>(mod, opts.laws, target) : undefined
     return {
       resolved: {kind: 'ratRule', ratRule: target as never},
-      result: emitRatRule(target, {...(laws ? {laws} : {}), ...(opts.name ? {name: opts.name} : {}), ...(opts.ms !== undefined ? {ms: opts.ms} : {}), allowUnproven: true}),
+      result: emitRatRule(target, {...(laws ? {laws} : {}), ...(opts.name ? {name: opts.name} : {}), ...(opts.ms !== undefined ? {ms: opts.ms} : {}), provenance, allowUnproven: true}),
     }
   }
   if (target instanceof Chart) {
@@ -210,7 +232,7 @@ export async function resolveAndEmit(opts: EmitCliOptions): Promise<{resolved: R
     const stepLaws = opts.stepLaws ? resolveLawExport<StepLaw>(mod, opts.stepLaws, target) : undefined
     return {
       resolved: {kind: 'chart', chart: target as never},
-      result: emitChart(target, {...(laws ? {laws} : {}), ...(stepLaws ? {stepLaws} : {}), ...(opts.name ? {name: opts.name} : {}), ...(opts.from ? {from: opts.from} : {}), ...(opts.ms !== undefined ? {ms: opts.ms} : {}), allowUnproven: true}),
+      result: emitChart(target, {...(laws ? {laws} : {}), ...(stepLaws ? {stepLaws} : {}), ...(opts.name ? {name: opts.name} : {}), ...(opts.from ? {from: opts.from} : {}), ...(opts.ms !== undefined ? {ms: opts.ms} : {}), provenance, allowUnproven: true}),
     }
   }
   if (isEmitBundle(target)) {
@@ -219,21 +241,21 @@ export async function resolveAndEmit(opts: EmitCliOptions): Promise<{resolved: R
       const stepLaws = opts.stepLaws ? resolveLawExport<StepLaw>(mod, opts.stepLaws, target.rule) : target.stepLaws
       return {
         resolved: {kind: 'rule', rule: target.rule},
-        result: emitRule(target.rule, {...(laws ? {laws} : {}), ...(stepLaws ? {stepLaws} : {}), ...(opts.name ?? target.name ? {name: opts.name ?? target.name} : {}), ...(opts.from ?? target.from ? {from: opts.from ?? target.from} : {}), ...(opts.ms ?? target.ms !== undefined ? {ms: opts.ms ?? target.ms} : {}), allowUnproven: true}),
+        result: emitRule(target.rule, {...(laws ? {laws} : {}), ...(stepLaws ? {stepLaws} : {}), ...(opts.name ?? target.name ? {name: opts.name ?? target.name} : {}), ...(opts.from ?? target.from ? {from: opts.from ?? target.from} : {}), ...(opts.ms ?? target.ms !== undefined ? {ms: opts.ms ?? target.ms} : {}), provenance, allowUnproven: true}),
       }
     }
     if ('fun' in target) {
       const laws = opts.laws ? resolveLawExport<Decision>(mod, opts.laws, target.fun) : target.laws
       return {
         resolved: {kind: 'fun', fun: target.fun, ...(target.defaultParams ? {defaultParams: target.defaultParams} : {})},
-        result: emitFun(target.fun, {...(laws ? {laws} : {}), ...(target.defaultParams ? {defaultParams: target.defaultParams} : {}), ...(opts.name ?? target.name ? {name: opts.name ?? target.name} : {}), ...(opts.ms ?? target.ms !== undefined ? {ms: opts.ms ?? target.ms} : {}), allowUnproven: true}),
+        result: emitFun(target.fun, {...(laws ? {laws} : {}), ...(target.defaultParams ? {defaultParams: target.defaultParams} : {}), ...(opts.name ?? target.name ? {name: opts.name ?? target.name} : {}), ...(opts.ms ?? target.ms !== undefined ? {ms: opts.ms ?? target.ms} : {}), provenance, allowUnproven: true}),
       }
     }
     if ('ratRule' in target) {
       const laws = opts.laws ? resolveLawExport<RatLaw<string, string>>(mod, opts.laws, target.ratRule) : target.laws
       return {
         resolved: {kind: 'ratRule', ratRule: target.ratRule},
-        result: emitRatRule(target.ratRule, {...(laws ? {laws} : {}), ...(opts.name ?? target.name ? {name: opts.name ?? target.name} : {}), ...(opts.ms ?? target.ms !== undefined ? {ms: opts.ms ?? target.ms} : {}), allowUnproven: true}),
+        result: emitRatRule(target.ratRule, {...(laws ? {laws} : {}), ...(opts.name ?? target.name ? {name: opts.name ?? target.name} : {}), ...(opts.ms ?? target.ms !== undefined ? {ms: opts.ms ?? target.ms} : {}), provenance, allowUnproven: true}),
       }
     }
     if ('chart' in target) {
@@ -241,7 +263,7 @@ export async function resolveAndEmit(opts: EmitCliOptions): Promise<{resolved: R
       const stepLaws = opts.stepLaws ? resolveLawExport<StepLaw>(mod, opts.stepLaws, target.chart) : target.stepLaws
       return {
         resolved: {kind: 'chart', chart: target.chart},
-        result: emitChart(target.chart, {...(laws ? {laws} : {}), ...(stepLaws ? {stepLaws} : {}), ...(opts.name ?? target.name ? {name: opts.name ?? target.name} : {}), ...(opts.from ?? target.from ? {from: opts.from ?? target.from} : {}), ...(opts.ms ?? target.ms !== undefined ? {ms: opts.ms ?? target.ms} : {}), allowUnproven: true}),
+        result: emitChart(target.chart, {...(laws ? {laws} : {}), ...(stepLaws ? {stepLaws} : {}), ...(opts.name ?? target.name ? {name: opts.name ?? target.name} : {}), ...(opts.from ?? target.from ? {from: opts.from ?? target.from} : {}), ...(opts.ms ?? target.ms !== undefined ? {ms: opts.ms ?? target.ms} : {}), provenance, allowUnproven: true}),
       }
     }
   }
@@ -333,6 +355,11 @@ function sampleKind(k: KindInfo, rand: Rand, bound: number, hints: readonly numb
     }
     case 'int': return rand(2 * bound + 1) - bound
     case 'decimal': {
+      if (k.round === 'half-even' && rand(3) === 0) {
+        const halfEvenPool = [0.00005, 0.00015, 0.00025, 0.73219, 1e-7, 5e-7, 5e-5, 1.5e-4, 2.5e-4, 0.99995, 0.99996]
+        if (rand(2) === 0) return halfEvenPool[rand(halfEvenPool.length)]!
+        return rand(1_000_001) / 1_000_000
+      }
       const pool = sampleDecimalPool(k.places, hints)
       if (rand(2) === 0) return pool[rand(pool.length)]!
       const scale = 10 ** k.places
@@ -451,11 +478,11 @@ export async function verifyEmittedFile(
           if (diff) return {ok: false, exit: 1, checked, exhaustive: false, throwsMatched, mismatch: diff}
         }
       }
-      // 2. Explicit precision/range error parity probes (including >p decimal places like 0.73219!)
+      // 2. Explicit precision/rounding/range parity probes (more places, exact halves, negatives, exponent forms, out-of-range)
       for (const [n, , k] of meta.inputs) {
         const base = Object.fromEntries(meta.inputs.map(([fn0, fk0]) => [fn0, fk0.empty()]))
         const probes: Raw[] = k.kind === 'decimal'
-          ? [0.73219, 0.00001, -0.0001, 1.0001, Number.NaN]
+          ? [0.73219, 0.00001, 0.00005, 0.00015, 0.00025, -0.00005, -0.00015, -0.00025, 1e-7, 5e-7, 5e-5, 1.5e-4, 2.5e-4, 0.99995, 0.99996, -0.0001, 1.0001, Number.NaN]
           : k.kind === 'nat'
             ? [-1, 1.5, ...(k.max !== undefined ? [k.max + 1] : [])]
             : []

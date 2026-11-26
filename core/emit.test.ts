@@ -18,6 +18,7 @@ import {
   bool,
   chart,
   count,
+  decimal,
   forall,
   fun,
   int,
@@ -32,6 +33,7 @@ import {
   upTo,
   when,
 } from './dsl.ts'
+import {DEC_ROUND_HELPER_LINES, scaleDecimalHalfEven} from './decimal-round.ts'
 import {seeded} from './machine.ts'
 import {sha256Hex} from './emit.ts'
 import {emitMain, verifyEmittedFile} from './emit-cli.ts'
@@ -61,9 +63,9 @@ async function loadEmitted<T = Record<string, unknown>>(name: string, source: st
   return {file, mod}
 }
 
-function runCli(args: string[]): {status: number, stdout: string, stderr: string} {
+function runCli(args: string[], cwd: string = root): {status: number, stdout: string, stderr: string} {
   const r = spawnSync(process.execPath, [join(root, 'core/cli.ts'), ...args], {
-    cwd: root,
+    cwd,
     encoding: 'utf8',
     timeout: 60_000,
   })
@@ -428,15 +430,104 @@ describe('emit crossCheck across Rule, Fun, RatRule, and Chart', () => {
     expect(verA).toMatchObject({ok: true, exit: 0})
   })
 
-  test('examples/review-routing.generated.ts: clean CSE output, >4-decimal RangeError parity, crossCheck, and differential --verify', async () => {
+  test('decimal(places, {round: "half-even"}): exact digit rounding, negatives, exponents, strict default unchanged, and shared implementation', async () => {
+    // 1. Strict default decimal(4) still throws past 4 places
+    const strictDec = decimal(4)
+    expect(() => strictDec.encode('x', 0.73219)).toThrow(RangeError)
+    expect(() => strictDec.encode('x', 0.00005)).toThrow(RangeError)
+    expect(() => strictDec.encode('x', 1e-7)).toThrow(RangeError)
+    expect(() => strictDec.encode('x', 1e-5)).toThrow(RangeError)
+
+    // 2. Half-even digit rounding on exact halves, more places, negatives, and exponent forms
+    const cases: [number | string, number][] = [
+      [0, 0],
+      [-0, 0],
+      [0.00005, 0],
+      [0.00015, 2],
+      [0.00025, 2],
+      [0.00035, 4],
+      [0.00045, 4],
+      [0.000051, 1],
+      [0.73219, 7322],
+      [0.73214, 7321],
+      [0.99995, 10000],
+      [0.99996, 10000],
+      [1.00005, 10000],
+      [1.00015, 10002],
+      [-0.00005, 0],
+      [-0.00015, -2],
+      [-0.00025, -2],
+      [-0.00035, -4],
+      [-0.73219, -7322],
+      [1e-7, 0],
+      [5e-7, 0],
+      [5e-5, 0],
+      [1.5e-4, 2],
+      [2.5e-4, 2],
+      [-1.5e-4, -2],
+      [-2.5e-4, -2],
+      [1.23e-2, 123],
+      ['1e-7', 0],
+      ['5e-5', 0],
+      ['1.5e-4', 2],
+      ['2.5e-4', 2],
+      ['-0.00015', -2],
+    ]
+    const roundedDec = decimal(4, {round: 'half-even'})
+    for (const [input, scaled] of cases) {
+      expect(scaleDecimalHalfEven(input, 4, 'x')).toBe(scaled)
+      expect(Object.is(scaleDecimalHalfEven(input, 4, 'x'), -0)).toBe(false)
+      const enc = roundedDec.encode('x', input)
+      expect((enc.x ?? 0) - (enc['x$neg'] ?? 0)).toBe(scaled)
+    }
+    expect(() => scaleDecimalHalfEven(Number.NaN, 4, 'x')).toThrow(RangeError)
+    expect(() => scaleDecimalHalfEven(Number.POSITIVE_INFINITY, 4, 'x')).toThrow(RangeError)
+
+    // 3. Shared implementation invariant: DEC_ROUND_HELPER_LINES body matches scaleDecimalHalfEven core logic
+    const helperText = DEC_ROUND_HELPER_LINES.join('\n')
+    expect(helperText).toContain('const shift = exp - fracPart.length + places')
+    expect(helperText).toContain("const odd = '13579'.includes(wholeStr[wholeStr.length - 1]!)")
+    expect(helperText).toContain("const up = firstDrop > '5' || (firstDrop === '5' && (hasMore || odd))")
+
+    // 4. Round-trip Fun with decimal(4, {round: 'half-even'}) + exact halves + differential --verify + mutant refutation
+    const echo = fun('echo rounded')
+      .inputs({x: decimal(4, {round: 'half-even'})})
+      .returns(({x}) => ({y: x, nonneg: x.atLeast(0)}))
+    const echoLaw = echo.law('nonneg matches y >= 0', ({x}) => x.atLeast(0), out => out.nonneg)
+    const res = echo.emit({laws: [echoLaw]})
+    expect(res.allProven).toBe(true)
+    expect(res.source).toContain('inputs rounded half-even to 10^-4; laws hold for the rounded values')
+    const {file, mod} = await loadEmitted<{echoRounded: (a: {x: number}) => {y: number, nonneg: boolean}}>('echoRounded', res.source)
+    for (const [raw, scaled] of cases) {
+      if (typeof raw !== 'number') continue
+      const got = mod.echoRounded({x: raw})
+      const want = echo.run({x: raw})
+      expect(got).toEqual(want)
+      expect(got.y).toBe(scaled / 10000)
+    }
+    const ver = await verifyEmittedFile(file, {kind: 'fun', fun: echo}, res)
+    expect(ver).toMatchObject({ok: true, exit: 0})
+
+    // Mutant: change half-even tie-break `(hasMore || odd)` to half-up `true` -> differential --verify MUST exit 1!
+    expect(res.source).toContain('(hasMore || odd)')
+    const mutFile = join(tmp, `mut-round-${++seq}.ts`)
+    writeFileSync(mutFile, res.source.replace('(hasMore || odd)', 'true'))
+    const mutVer = await verifyEmittedFile(mutFile, {kind: 'fun', fun: echo}, res)
+    expect(mutVer).toMatchObject({ok: false, exit: 1})
+    expect(mutVer.mismatch).toBeTruthy()
+  })
+
+  test('examples/review-routing.generated.ts: clean CSE output, half-even rounding parity, repo-root header, crossCheck, and differential --verify', async () => {
     const genPath = join(root, 'examples/review-routing.generated.ts')
     const genSource = readFileSync(genPath, 'utf8')
     expect(genSource).not.toMatch(HYGIENE_RE)
     expect(genSource).not.toContain('// gdp: law')
+    expect(genSource).toContain('// Generated by gdp-wired 0.61.0 from examples/review-routing.ts#reviewRoutingBundle. Do not edit.')
+    expect(genSource).toContain('// To change behavior, edit the model and its laws, then run from the repository root: npx gdp-wired-cli emit examples/review-routing.ts#reviewRoutingBundle --out examples/review-routing.generated.ts')
+    expect(genSource).toContain('inputs rounded half-even to 10^-4; laws hold for the rounded values')
     // Shared subterm `decision` is bound once and reused in `final` (no duplicated decision tree).
     expect(genSource).toContain('const decision:')
     expect(genSource).toContain('const final:')
-    expect(genSource).toContain('throws RangeError on inputs exceeding 4 decimal places')
 
     const genMod = await import(pathToFileURL(genPath).href) as {
       reviewRouting: (args: Record<string, unknown>, params?: Record<string, unknown>) => {decision: string, final: string}
@@ -445,9 +536,9 @@ describe('emit crossCheck across Rule, Fun, RatRule, and Chart', () => {
     expect(genMod.defaultParams()).toEqual({...defaultReviewParams})
     const comp = reviewRouting.compiled(), rand = seeded(83)
     const verdicts = ['approve', 'reject', 'review'] as const
-    const edges = [0, 0.1499, 0.15, 0.1501, 0.3499, 0.35, 0.3501, 0.4499, 0.45, 0.4501, 0.5499, 0.55, 0.5501, 0.7499, 0.75, 0.7501, 1]
+    const edges = [0, 0.00005, 0.00015, 0.00025, 1e-7, 5e-5, 1.5e-4, 0.14995, 0.15, 0.15005, 0.34995, 0.35, 0.35005, 0.44995, 0.45, 0.45005, 0.54995, 0.55, 0.55005, 0.73219, 0.74995, 0.75, 0.75005, 0.99995, 1]
     for (let k = 0; k < 150; k++) {
-      const pick = () => (rand(3) === 0 ? edges[rand(edges.length)]! : rand(10001) / 10000)
+      const pick = () => (rand(2) === 0 ? edges[rand(edges.length)]! : rand(1_000_001) / 1_000_000)
       const inp = {
         relevance: pick(),
         risk: pick(),
@@ -460,12 +551,23 @@ describe('emit crossCheck across Rule, Fun, RatRule, and Chart', () => {
       expect(genMod.reviewRouting(inp)).toEqual(comp(inp, defaultReviewParams))
     }
 
-    // Inputs with >4 decimal places (e.g. raw model probability 0.73219): emitted $dec matches encodeInput identically (both throw RangeError).
-    const unrounded = {relevance: 0.73219, risk: 0.12, ageConcern: 0.05, tamperSuspected: false, explicitRequest: false, secondOpinion: 'review' as const}
-    expect(() => reviewRouting.run(unrounded, defaultReviewParams)).toThrow(RangeError)
-    expect(() => genMod.reviewRouting(unrounded)).toThrow(RangeError)
+    // Raw model probabilities (>4 decimal places, exact halves, exponents) round half-even identically in emitted and interpreter.
+    for (const rel of [0.73219, 0.00005, 0.00015, 0.00025, 1e-7, 5e-5, 1.5e-4, 0.55005]) {
+      const inp = {relevance: rel, risk: 0.12345, ageConcern: 1e-7, tamperSuspected: false, explicitRequest: false, secondOpinion: 'review' as const}
+      expect(genMod.reviewRouting(inp)).toEqual(reviewRouting.run(inp, defaultReviewParams))
+    }
+    // Strict decimal(4) threshold params still reject >4 decimal places identically in emitted and interpreter.
+    const badParam = {...defaultReviewParams, approveAt: 0.55123}
+    const baseInp = {relevance: 0.72, risk: 0.12, ageConcern: 0.05, tamperSuspected: false, explicitRequest: false, secondOpinion: 'review' as const}
+    expect(() => reviewRouting.run(baseInp, badParam)).toThrow(RangeError)
+    expect(() => genMod.reviewRouting(baseInp, badParam)).toThrow(RangeError)
 
-    const res = reviewRouting.emit({laws: reviewRoutingLaws, defaultParams: defaultReviewParams, name: 'reviewRouting'})
+    const res = reviewRouting.emit({
+      laws: reviewRoutingLaws,
+      defaultParams: defaultReviewParams,
+      name: 'reviewRouting',
+      provenance: {model: 'examples/review-routing.ts#reviewRoutingBundle', out: 'examples/review-routing.generated.ts'},
+    })
     expect(res.source).toBe(genSource)
     const ver = await verifyEmittedFile(genPath, {kind: 'fun', fun: reviewRouting, defaultParams: defaultReviewParams}, res)
     expect(ver).toMatchObject({ok: true, exit: 0})
@@ -550,7 +652,7 @@ describe('emit crossCheck across Rule, Fun, RatRule, and Chart', () => {
 // --- Determinism, CLI (--out, --check, --verify), and Emitter Mutant Refutation --------------------------------------
 
 describe('emit determinism, CLI, and emitter mutant refutation', () => {
-  test('byte-identical output and digest in-process and across two separate subprocesses', () => {
+  test('byte-identical output and digest in-process, across subprocesses, and from repo root vs subdirectory', () => {
     const a = reviewRouting.emit({laws: reviewRoutingLaws, defaultParams: defaultReviewParams, name: 'reviewRouting'})
     const b = reviewRouting.emit({laws: reviewRoutingLaws, defaultParams: defaultReviewParams, name: 'reviewRouting'})
     expect(a.source).toBe(b.source)
@@ -558,10 +660,17 @@ describe('emit determinism, CLI, and emitter mutant refutation', () => {
 
     const p1 = runCli(['emit', 'examples/review-routing.ts#reviewRoutingBundle'])
     const p2 = runCli(['emit', 'examples/review-routing.ts#reviewRoutingBundle'])
+    const pSub = runCli(['emit', 'review-routing.ts#reviewRoutingBundle'], join(root, 'examples'))
     expect(p1.status).toBe(0)
     expect(p2.status).toBe(0)
+    expect(pSub.status).toBe(0)
     expect(p1.stdout).toBe(p2.stdout)
-    expect(p1.stdout).toBe(a.source)
+    expect(pSub.stdout).toBe(p1.stdout)
+    expect(p1.stdout).toContain('// Generated by gdp-wired 0.61.0 from examples/review-routing.ts#reviewRoutingBundle. Do not edit.')
+
+    // --check from a subdirectory passes against the repo-root-generated file
+    const checkFromSub = runCli(['emit', 'review-routing.ts#reviewRoutingBundle', '--out', 'review-routing.generated.ts', '--check', '--verify'], join(root, 'examples'))
+    expect(checkFromSub.status).toBe(0)
   })
 
   test('CLI --out, --check (pass, 1-char edit diff -> exit 1, missing -> exit 1), --verify, and unproven -> exit 2', async () => {
@@ -620,7 +729,7 @@ describe('emit determinism, CLI, and emitter mutant refutation', () => {
       ['drop tamper guard', 'args.tamperSuspected ? "reject" :', 'false ? "reject" :'],
       ['flip clearRisk comparison', '$a_risk < $p_clearRisk', '$a_risk <= $p_clearRisk'],
       ['break escalation reject->approve', 'decision === "review"', 'decision === "review" || decision === "reject"'],
-      ['silently truncate >4-decimal input', 'if (frac.length > places) throw new RangeError', 'if (false && frac.length > places) throw new RangeError'],
+      ['corrupt half-even tie-break to half-up', 'firstDrop === \'5\' && (hasMore || odd)', 'firstDrop === \'5\''],
     ]
     for (const [label, from, to] of reviewMutants) {
       expect(reviewRes.source).toContain(from)

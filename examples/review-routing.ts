@@ -24,9 +24,9 @@ export const makeReviewRouting = (bug?: 'drop-tamper' | 'flip-clear-risk' | 'bad
       ageLimit: decimal(4),
     })
     .inputs({
-      relevance: decimal(4),
-      risk: decimal(4),
-      ageConcern: decimal(4),
+      relevance: decimal(4, {round: 'half-even'}),
+      risk: decimal(4, {round: 'half-even'}),
+      ageConcern: decimal(4, {round: 'half-even'}),
       tamperSuspected: bool,
       explicitRequest: bool,
       secondOpinion: Verdict,

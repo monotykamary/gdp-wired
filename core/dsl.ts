@@ -22,6 +22,7 @@ import {searchNow as countedSearchNow} from './wall.ts'
 // both runtimes do.
 import {FixedWord, fixedFailure, fixedSelect} from './fixed-integers.ts'
 import {captureFixed} from './fixed-division.ts'
+import {scaleDecimalHalfEven} from './decimal-round.ts'
 export {fixedInt, FixedWord, fixedFailure, fixedSelect} from './fixed-integers.ts'
 import {binder, copyVariable, encodeBinders, generatedVariable, guardReserved, internalName, plainDeclaration, variable} from './dsl-binders.ts'
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
@@ -772,28 +773,35 @@ class IntKind extends Kind<Int> {
 }
 export const int: Kind<Int> = new IntKind()
 // A decimal with `places` places, encoded as its integer count of 10^-places: given as a number or a string ("12.50").
+// By default inputs needing more than `places` decimal places throw RangeError; `{round: 'half-even'}` rounds from
+// the shortest round-trip decimal string (`String(x)`) using exact digit-level half-even rounding.
+export type DecimalRound = 'half-even'
+export type DecimalOptions = {readonly round?: DecimalRound}
 class DecimalKind extends Kind<Decimal> {
-  constructor(readonly places: number) { super() }
+  constructor(readonly places: number, readonly round?: DecimalRound) { super() }
   vars(name: string) { return [name, `${name}$neg`] }
   assume() { return [] }
   build(name: string, get: (part: string) => Term) { return new Decimal(new Int(get(name), get(`${name}$neg`)), this.places) }
   store(name: string, value: unknown) {
-    const i = normal(typeof value === 'string' ? Int.of(scaledOf(value, this.places)) : new Decimal(Int.of(0), this.places).lift(value as DecimalLike))
+    const i = normal(typeof value === 'string'
+      ? Int.of(this.round === 'half-even' ? scaleDecimalHalfEven(value, this.places, name) : scaledOf(value, this.places))
+      : new Decimal(Int.of(0), this.places).lift(value as DecimalLike))
     return {[name]: i.pos, [`${name}$neg`]: i.neg}
   }
   decode(name: string, vars: Record<string, number>) { return (vars[name]! - vars[`${name}$neg`]!) / 10 ** this.places }
   empty() { return 0 }
   encode(name: string, raw: Raw) {
     if (typeof raw !== 'number' && typeof raw !== 'string') throw new RangeError(`${name} must be a decimal, not ${shown(raw)}`)
-    const x = scaledOf(raw, this.places, `a decimal (${name})`)
+    const x = this.round === 'half-even' ? scaleDecimalHalfEven(raw, this.places, name) : scaledOf(raw, this.places, `a decimal (${name})`)
     return {[name]: Math.max(x, 0), [`${name}$neg`]: Math.max(-x, 0)}
   }
   random(name: string, rand: Rand, bound: number) { return new IntKind().random(name, rand, bound) }
   sample(rand: Rand, bound: number) { return (rand(2 * bound * 10 ** this.places + 1) - bound * 10 ** this.places) / 10 ** this.places }
 }
-export const decimal = (places: number): Kind<Decimal> => {
+export const decimal = (places: number, opts?: DecimalOptions): Kind<Decimal> => {
   if (!Number.isInteger(places) || places < 0 || places > 8) throw new RangeError('a decimal has 0 to 8 places')
-  return new DecimalKind(places)
+  if (opts?.round !== undefined && opts.round !== 'half-even') throw new RangeError(`unknown decimal rounding mode: ${String(opts.round)}`)
+  return new DecimalKind(places, opts?.round)
 }
 
 // --- maps, laws, relations ------------------------------------------------------------------------------------------
@@ -2864,7 +2872,7 @@ export type KindInfo =
   | {kind: 'bool'}
   | {kind: 'oneOf', values: readonly string[]}
   | {kind: 'int'}
-  | {kind: 'decimal', places: number}
+  | {kind: 'decimal', places: number, round?: DecimalRound}
   | {kind: 'maybe', of: KindInfo}
   | {kind: 'record', fields: [string, KindInfo][]}
   | {kind: 'variant', tagKey: string, cases: [string, [string, KindInfo][]][]}
@@ -2877,7 +2885,7 @@ export function inspectKind(k: Kind<unknown>): KindInfo {
   if (k instanceof BoolKind) return {kind: 'bool'}
   if (k instanceof OneOfKind) return {kind: 'oneOf', values: [...k.values]}
   if (k instanceof IntKind) return {kind: 'int'}
-  if (k instanceof DecimalKind) return {kind: 'decimal', places: k.places}
+  if (k instanceof DecimalKind) return k.round ? {kind: 'decimal', places: k.places, round: k.round} : {kind: 'decimal', places: k.places}
   if (k instanceof MaybeKind) return {kind: 'maybe', of: inspectKind(k.of)}
   if (k instanceof RecordKind) return {kind: 'record', fields: k.names.map(f => [f, inspectKind(k.fields[f]!)])}
   if (k instanceof VariantKind) return {kind: 'variant', tagKey: k.tagKey, cases: k.names.map(c => [c, Object.entries(k.cases[c]!).map(([f, fk]) => [f, inspectKind(fk as Kind<unknown>)])])}
