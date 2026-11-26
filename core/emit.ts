@@ -3,8 +3,8 @@
 // Header comments record the rule name, version, canonical machine digest, exact arithmetic semantics, and every
 // law's proof status. Differential verification (`gdp-wired emit --verify`) tests the emitted module directly against
 // the proven rule's interpreter on exhaustive small domains and randomized runs.
-import type {QMachine, QC, QE, QLaw, StepLaw} from '../kernel/kernel.ts'
-import {type C, type DirectFn, type E, type Fn, type Law, type Machine, directOf, pairedArgs} from './machine.ts'
+import type {QMachine, QLaw, StepLaw} from '../kernel/kernel.ts'
+import {type C, type DirectFn, type E, type Fn, type Law, type Machine, directOf, pairedArgs, unreachable} from './machine.ts'
 import {
   type Decision,
   type Fun,
@@ -25,12 +25,18 @@ import {
 } from './dsl.ts'
 import {type RatLaw, type RatRule, inspectRatRule, proveRatRule} from './rationals.ts'
 import {type Chart, inspectChart} from './chart.ts'
-import {type EmitHelper, createPrinter, renderTypedHelpers} from './codegen.ts'
+import {type EmitHelper, createPrinter, createQPrinter, renderTypedHelpers} from './codegen.ts'
 import {sha256Hex} from './sha256.ts'
-import {q} from './q.ts'
 export {sha256Hex} from './sha256.ts'
 
 export const GDP_WIRED_VERSION = '0.61.0'
+
+// Compile-time exhaustive Kind and Machine-part tables: adding any new KindInfo variant or Machine property fails `tsc`.
+const KIND_INFO_TABLE: Record<KindInfo['kind'], true> = {
+  nat: true, bool: true, oneOf: true, int: true, decimal: true, maybe: true,
+  record: true, variant: true, str: true, fixed: true, unknown: true,
+}
+export const KIND_NAMES = Object.keys(KIND_INFO_TABLE) as readonly KindInfo['kind'][]
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRule = Rule<any, any, any, any, any, any, any, any>
@@ -210,6 +216,7 @@ function kindTsType(k: KindInfo): string {
     case 'str': return 'string'
     case 'fixed': return k.width === 64 ? 'string' : 'number'
     case 'unknown': return 'number'
+    default: return unreachable(k)
   }
 }
 
@@ -228,6 +235,7 @@ function kindDefaultTs(k: KindInfo): string {
     case 'str': return "''"
     case 'fixed': return k.width === 64 ? "'0'" : '0'
     case 'unknown': return '0'
+    default: return unreachable(k)
   }
 }
 
@@ -276,6 +284,7 @@ function kindGuardChecks(k: KindInfo, expr: string): string[] {
     case 'fixed':
     case 'unknown':
       return []
+    default: return unreachable(k)
   }
 }
 
@@ -309,6 +318,7 @@ function addLin(dst: LinForm, e: E, scale: number): void {
     case 'proj':
       dst.rest.push({coeff: scale, e})
       return
+    default: return unreachable(e)
   }
 }
 
@@ -411,6 +421,7 @@ function registerKind(reg: SlotRegistry, rawName: string, kind: KindInfo, tsExpr
       for (let i = 0; i < limbs; i++) reg.slots.set(`${rawName}$${i}`, {kind: 'nat', ts: `${safeVar('$limb_', rawName)}_${i}`})
       return
     }
+    default: return unreachable(kind)
   }
 }
 
@@ -462,6 +473,7 @@ function emitTsCode(ctx: EmitCtx) {
       }
       case 'strId':
         return s.ts
+      default: return unreachable(s)
     }
   }
 
@@ -502,9 +514,10 @@ function emitTsCode(ctx: EmitCtx) {
       return hit?.kind.kind === 'nat' ? hit.ts : undefined
     },
     onVar: slotAsNum,
-    onAdd: e => {
+    onAdd: (a, b) => {
       const lin = emptyLin()
-      addLin(lin, e, 1)
+      addLin(lin, a, 1)
+      addLin(lin, b, 1)
       cancelSigned(lin, ctx.reg.signedVars)
       return formatLin(lin)
     },
@@ -758,6 +771,7 @@ function emitTsCode(ctx: EmitCtx) {
         }
         return kind.width === 64 ? `String(${acc})` : `Number(${acc})`
       }
+      default: return unreachable(kind)
     }
   }
 
@@ -1602,29 +1616,17 @@ export function emitRatRule(r: AnyRatRule, opts: EmitRatOptions = {}): EmitResul
     return name
   }
 
-  const emitQE = (t: QE, scope: 'init' | 'step'): string => {
-    switch (t.op) {
-      case 'var': return varTs(t.name, scope)
-      case 'const': { const r0 = q(t.q.num, t.q.den); return `[${r0.num}n, ${r0.den}n]` }
-      case 'add': return `$add(${emitQE(t.a, scope)}, ${emitQE(t.b, scope)})`
-      case 'sub': return `$sub(${emitQE(t.a, scope)}, ${emitQE(t.b, scope)})`
-      case 'mul': { const r0 = q(t.k.num, t.k.den); return `$mul([${r0.num}n, ${r0.den}n], ${emitQE(t.a, scope)})` }
-      case 'min': return `$min(${emitQE(t.a, scope)}, ${emitQE(t.b, scope)})`
-      case 'max': return `$max(${emitQE(t.a, scope)}, ${emitQE(t.b, scope)})`
-      case 'if': return `(${emitQC(t.c, scope)} ? ${emitQE(t.then, scope)} : ${emitQE(t.else, scope)})`
-    }
-  }
-
-  const emitQC = (t: QC, scope: 'init' | 'step'): string => {
-    switch (t.op) {
-      case '<=': return `($cmp(${emitQE(t.a, scope)}, ${emitQE(t.b, scope)}) <= 0)`
-      case '<': return `($cmp(${emitQE(t.a, scope)}, ${emitQE(t.b, scope)}) < 0)`
-      case '=': return `($cmp(${emitQE(t.a, scope)}, ${emitQE(t.b, scope)}) === 0)`
-      case 'and': return `(${emitQC(t.a, scope)} && ${emitQC(t.b, scope)})`
-      case 'or': return `(${emitQC(t.a, scope)} || ${emitQC(t.b, scope)})`
-      case 'not': return `!(${emitQC(t.x, scope)})`
-    }
-  }
+  const makeQPrinter = (scope: 'init' | 'step') => createQPrinter({
+    onVar: name => varTs(name, scope),
+    add: (a, b) => `$add(${a}, ${b})`,
+    sub: (a, b) => `$sub(${a}, ${b})`,
+    mul: (kLit, a) => `$mul(${kLit}, ${a})`,
+    min: (a, b) => `$min(${a}, ${b})`,
+    max: (a, b) => `$max(${a}, ${b})`,
+    cmp: (a, b) => `$cmp(${a}, ${b})`,
+    onNot: inner => `!(${inner})`,
+  })
+  const initQ = makeQPrinter('init'), stepQ = makeQPrinter('step')
 
   const lines: string[] = [
     ...renderHeader({
@@ -1688,16 +1690,16 @@ export function emitRatRule(r: AnyRatRule, opts: EmitRatOptions = {}): EmitResul
 
   // init
   const initBody: string[] = []
-  const preCheck = m.pre ? emitQC(m.pre, 'init') : undefined
+  const preCheck = m.pre ? initQ.printQC(m.pre) : undefined
   if (preCheck) initBody.push(`  if (!(${preCheck})) throw new RangeError(${JSON.stringify(`${meta.name}: params violate precondition`)})`)
   initBody.push('  return {')
-  for (const s of meta.state) initBody.push(`    ${propKey(s)}: ${emitQE(m.state[s]!, 'init')},`)
+  for (const s of meta.state) initBody.push(`    ${propKey(s)}: ${initQ.printQE(m.state[s]!)},`)
   initBody.push('  }')
   const initSig = hasParams ? (initBody.some(l => /\bparams\b/.test(l)) ? 'params: Params' : '_params: Params') : '_params: Params = {}'
   lines.push(`export function init(${initSig}): State {`, ...initBody, '}', '')
 
   // allowed
-  const allowExpr = m.assume ? emitQC(m.assume, 'step') : 'true'
+  const allowExpr = m.assume ? stepQ.printQC(m.assume) : 'true'
   const allowP = /\bparams\b/.test(allowExpr) ? 'params: Params' : '_params: Params'
   const allowS = /\bstate\b/.test(allowExpr) ? 'state: State' : '_state: State'
   const allowI = /\binput\b/.test(allowExpr) ? 'input: Input' : '_input: Input'
@@ -1705,7 +1707,7 @@ export function emitRatRule(r: AnyRatRule, opts: EmitRatOptions = {}): EmitResul
 
   // step
   const stepBody: string[] = []
-  const stateFields = meta.state.map(s => `    ${propKey(s)}: ${m.step[s] ? emitQE(m.step[s]!, 'step') : propAccess('state', s)},`)
+  const stateFields = meta.state.map(s => `    ${propKey(s)}: ${m.step[s] ? stepQ.printQE(m.step[s]!) : propAccess('state', s)},`)
   const stepUsesP = stateFields.some(l => /\bparams\b/.test(l)) || !!m.assume
   const stepUsesS = stateFields.some(l => /\bstate\b/.test(l)) || !!m.assume
   const stepUsesI = stateFields.some(l => /\binput\b/.test(l)) || !!m.assume

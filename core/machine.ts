@@ -303,7 +303,7 @@ type Env = Record<string, number>
 export type Request = Record<string, number | ReadonlyMap<number, number>>
 // A condition at every key, or a value at every key. Where the bound key is read only as a map's key, each key a map
 // read holds a cell at, and one key past them all (where every map reads its default), are every case there is.
-const mapsIn = (t: E | C): string[] => [...new Set([...JSON.stringify(t).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x => x[1]!))]
+export const mapsIn = (t: E | C): string[] => [...new Set([...JSON.stringify(t).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x => x[1]!))]
 function keysAt(st: State, maps: string[]): number[] {
   const keys = new Set<number>()
   let past = 0
@@ -316,9 +316,9 @@ function keysAt(st: State, maps: string[]): number[] {
 // breakpoint p with p - 1 .. p + 2, 0, and one past them all are every case: between two keys that are none of those,
 // no comparison turns and no read moves onto a cell.
 // A read at a tuple key whose i-th of n parts is a key term reads the i-th part of each cell's key (`part`).
-type Breaks = {reads: {map: string, off?: E, minus: boolean, part?: [number, number]}[], cmps: {value: E, off?: E, minus: boolean}[]}
+export type Breaks = {reads: {map: string, off?: E, minus: boolean, part?: [number, number]}[], cmps: {value: E, off?: E, minus: boolean}[]}
 const breaksCache = new WeakMap<object, Map<string, Breaks>>()
-function breaksOf(t: E | C, key: string): Breaks {
+export function breaksOf(t: E | C, key: string): Breaks {
   const hit = breaksCache.get(t)?.get(key)
   if (hit) return hit
   const out: Breaks = {reads: [], cmps: []}
@@ -750,7 +750,7 @@ export function exactMapSum(m: Machine, name: string, sum: {key: string, term: E
 }
 // Sums whose term reads at least one map written at every key (`each`): sumRuntime's finite-cover delta is only valid
 // when the write's cover goal holds, so the runtimes recompute these sums directly from the post-step maps instead.
-function recomputedSums(m: Machine): Set<string> {
+export function recomputedSums(m: Machine): Set<string> {
   const out = new Set<string>()
   for (const [name, sum] of Object.entries(m.sums ?? {})) {
     if (mapsIn(sum.term).some(mp => { const w = m.step.maps?.[mp]; return !!w && 'each' in w })) out.add(name)
@@ -914,7 +914,7 @@ export function interpret(m: Machine, checkpoint?: () => void) {
 // A condition over two keys, k and k1, that holds wherever a term of k alone differs from a term of k1 alone: an
 // implication (a not-and, or an or with one) whose premises include x(k) = y(k1). The runtime then reads only the pairs
 // whose values match ($join), the rest holding by the premise: rows plus matches, not rows squared.
-function joinOf(c: C, k: string, k1: string): {x: E, y: E} | undefined {
+export function joinOf(c: C, k: string, k1: string): {x: E, y: E} | undefined {
   const reads = (t: E | C, key: string) => JSON.stringify(t).includes(`"op":"var","name":${JSON.stringify(key)}`)
   const premises = c.op === 'not' && c.x.op === 'and' ? c.x.xs : c.op === 'or' ? c.xs.flatMap(x => (x.op === 'not' ? (x.x.op === 'and' ? x.x.xs : [x.x]) : [])) : []
   for (const p of premises) {

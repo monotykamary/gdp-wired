@@ -19,7 +19,7 @@ import {
   inspectFunMeta,
   inspectRuleMeta,
 } from './dsl.ts'
-import {type Rand, evalC, seeded} from './machine.ts'
+import {type Rand, evalC, seeded, unreachable} from './machine.ts'
 import {allowed as ruleAllowed} from './watch.ts'
 import {type RatLaw, RatRule, inspectRatRule, interpretQ} from './rationals.ts'
 import {qparse, qshow} from './q.ts'
@@ -230,6 +230,7 @@ function finiteValues(k: KindInfo, cap: number): Raw[] | undefined {
       return acc
     }
     case 'int': case 'decimal': case 'str': case 'fixed': case 'unknown': return undefined
+    default: return unreachable(k)
   }
 }
 
@@ -277,6 +278,7 @@ function sampleKind(k: KindInfo, rand: Rand, bound: number, hints: readonly numb
       return k.maxLength !== undefined ? s.slice(0, k.maxLength) : s
     }
     case 'fixed': case 'unknown': return rand(bound + 1)
+    default: return unreachable(k)
   }
 }
 
@@ -290,6 +292,7 @@ function emptyVal(k: KindInfo): Raw {
     case 'variant': { const [c, fs] = k.cases[0]!; return {[k.tagKey]: c, ...Object.fromEntries(fs.map(([f, fk]) => [f, emptyVal(fk)]))} }
     case 'str': return ''
     case 'fixed': return k.width === 64 ? '0' : 0
+    default: return unreachable(k)
   }
 }
 

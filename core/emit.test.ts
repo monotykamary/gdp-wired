@@ -87,7 +87,7 @@ describe('emit metadata and digest primitives', () => {
     // compileJs refusal contract preserved through shared core/codegen.ts printer
     expect(() => compileJs({
       name: 'tup-each', params: [], inputs: [], state: {}, maps: {M: 0},
-      step: {maps: {M: {each: 'k', value: {op: 'tup', a: {op: 'var', name: 'k'}, b: {op: 'const', value: 1}}}}},
+      step: {maps: {M: {each: 'k', value: {op: 'get', map: 'M', key: {op: 'tup', a: {op: 'var', name: 'k'}, b: {op: 'const', value: 1}}}}}},
     })).toThrow('compileJs takes no tuple key at every key')
   })
 

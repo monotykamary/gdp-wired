@@ -1,8 +1,36 @@
 // Shared expression, condition, and helper printer for BOTH `compileJsMode` (`core/machine.ts`) and standalone
 // TypeScript source emission (`core/emit.ts`). Each caller supplies only its binding layer (slot-encoded runtime maps
 // and safe-int `$x` checks in `core/machine.ts`; typed named fields, signed cancellation, and CSE in `core/emit.ts`).
-import type {C, E} from './machine.ts'
+import {type QC, type QE, unreachable} from '../kernel/kernel.ts'
+import type {C, E, Machine} from './machine.ts'
 import {DEC_ROUND_HELPER_LINES} from './decimal-round.ts'
+import {q} from './q.ts'
+
+// Compile-time exhaustive op and machine-part tables: adding any new AST op or Machine field fails `tsc` here until
+// the shared printer and `core/emit.ts` handle it.
+const E_OP_TABLE: Record<E['op'], true> = {
+  var: true, const: true, add: true, sub: true, mul: true, prod: true,
+  min: true, max: true, if: true, get: true, tup: true, proj: true,
+}
+const C_OP_TABLE: Record<C['op'], true> = {
+  '<': true, '<=': true, '=': true, and: true, or: true, not: true, flag: true, all: true,
+}
+const QE_OP_TABLE: Record<QE['op'], true> = {
+  var: true, const: true, add: true, sub: true, mul: true, min: true, max: true, if: true,
+}
+const QC_OP_TABLE: Record<QC['op'], true> = {
+  '<=': true, '<': true, '=': true, and: true, or: true, not: true,
+}
+const MACHINE_PART_TABLE: Record<keyof Machine, true> = {
+  name: true, params: true, inputs: true, state: true, maps: true, inputMaps: true,
+  step: true, pre: true, assume: true, primitiveFailure: true, history: true,
+  sums: true, counts: true, leasts: true, fns: true, facts: true, relations: true,
+}
+export const E_OPS = Object.keys(E_OP_TABLE) as readonly E['op'][]
+export const C_OPS = Object.keys(C_OP_TABLE) as readonly C['op'][]
+export const QE_OPS = Object.keys(QE_OP_TABLE) as readonly QE['op'][]
+export const QC_OPS = Object.keys(QC_OP_TABLE) as readonly QC['op'][]
+export const MACHINE_PARTS = Object.keys(MACHINE_PART_TABLE) as readonly (keyof Machine)[]
 
 export type ExprHooks = {
   readonly onVar: (name: string) => string
@@ -13,7 +41,7 @@ export type ExprHooks = {
   readonly onPair?: (a: string, b: string) => string
   readonly onProj?: (a: string, k: 0 | 1) => string
   readonly preExpr?: (e: E) => string | undefined
-  readonly onAdd?: (e: Extract<E, {op: 'add'}>, printE: (e: E) => string) => string
+  readonly onAdd?: (a: E, b: E, printE: (e: E) => string) => string
   readonly simplifyMul?: boolean
   readonly onCmp?: (op: '<' | '<=' | '=', a: E, b: E, negated: boolean, printE: (e: E) => string) => string
   readonly onNot?: (x: C, printC: (c: C) => string) => string
@@ -29,7 +57,7 @@ export function createPrinter(hooks: ExprHooks): {printE: (e: E) => string, prin
     switch (e.op) {
       case 'const': return String(e.value)
       case 'var': return hooks.onVar(e.name)
-      case 'add': return hooks.onAdd ? hooks.onAdd(e, printE) : wrap(`${printE(e.a)} + ${printE(e.b)}`)
+      case 'add': return hooks.onAdd ? hooks.onAdd(e.a, e.b, printE) : wrap(`${printE(e.a)} + ${printE(e.b)}`)
       case 'sub': return `Math.max(0, ${printE(e.a)} - ${printE(e.b)})`
       case 'mul':
         if (hooks.simplifyMul) {
@@ -44,6 +72,7 @@ export function createPrinter(hooks: ExprHooks): {printE: (e: E) => string, prin
       case 'tup': return hooks.onPair ? hooks.onPair(printE(e.a), printE(e.b)) : `$p(${printE(e.a)}, ${printE(e.b)})`
       case 'proj': return hooks.onProj ? hooks.onProj(printE(e.a), e.k) : `$u(${printE(e.a)})[${e.k}]`
       case 'get': return hooks.onGet(e.map, e.key, printE)
+      default: return unreachable(e)
     }
   }
 
@@ -79,10 +108,55 @@ export function createPrinter(hooks: ExprHooks): {printE: (e: E) => string, prin
         return hooks.onNot ? hooks.onNot(c.x, printC) : `(!${printC(c.x)})`
       case 'flag': return hooks.onFlag(c.name)
       case 'all': return hooks.onAll(c, printE, printC)
+      default: return unreachable(c)
     }
   }
 
   return {printE, printC}
+}
+
+export type QExprHooks = {
+  readonly onVar: (name: string) => string
+  readonly add: (a: string, b: string) => string
+  readonly sub: (a: string, b: string) => string
+  readonly mul: (kLit: string, a: string) => string
+  readonly min: (a: string, b: string) => string
+  readonly max: (a: string, b: string) => string
+  readonly cmp: (a: string, b: string) => string
+  readonly onNot?: (inner: string) => string
+}
+
+// Shared rational expression/condition printer for BOTH `compileQJs` (`core/rationals.ts`) and `emitRatRule` (`core/emit.ts`).
+export function createQPrinter(hooks: QExprHooks): {printQE: (t: QE) => string, printQC: (t: QC) => string} {
+  const lit = (num: bigint, den: bigint): string => {
+    const r = q(num, den)
+    return `[${r.num}n, ${r.den}n]`
+  }
+  const printQE = (t: QE): string => {
+    switch (t.op) {
+      case 'var': return hooks.onVar(t.name)
+      case 'const': return lit(t.q.num, t.q.den)
+      case 'add': return hooks.add(printQE(t.a), printQE(t.b))
+      case 'sub': return hooks.sub(printQE(t.a), printQE(t.b))
+      case 'mul': return hooks.mul(lit(t.k.num, t.k.den), printQE(t.a))
+      case 'min': return hooks.min(printQE(t.a), printQE(t.b))
+      case 'max': return hooks.max(printQE(t.a), printQE(t.b))
+      case 'if': return `(${printQC(t.c)} ? ${printQE(t.then)} : ${printQE(t.else)})`
+      default: return unreachable(t)
+    }
+  }
+  const printQC = (t: QC): string => {
+    switch (t.op) {
+      case '<=': return `(${hooks.cmp(printQE(t.a), printQE(t.b))} <= 0)`
+      case '<': return `(${hooks.cmp(printQE(t.a), printQE(t.b))} < 0)`
+      case '=': return `(${hooks.cmp(printQE(t.a), printQE(t.b))} === 0)`
+      case 'and': return `(${printQC(t.a)} && ${printQC(t.b)})`
+      case 'or': return `(${printQC(t.a)} || ${printQC(t.b)})`
+      case 'not': return hooks.onNot ? hooks.onNot(printQC(t.x)) : `!${printQC(t.x)}`
+      default: return unreachable(t)
+    }
+  }
+  return {printQE, printQC}
 }
 
 // --- Shared runtime helpers (Cantor pair/unpair, compiled JS runtime, typed TS helpers) ------------------------------

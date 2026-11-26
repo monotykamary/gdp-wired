@@ -20,6 +20,7 @@ import {type QC, type QE, type QGoal, type QLaw, type QMachine, type Tree, check
 import {growQ} from '../kernel/qprove.ts'
 import {type Rat, Q0, q, qadd, qcmp, qeq, qmax, qmin, qmul, qparse, qshow, qsub} from './q.ts'
 import {type EmitRatOptions, type EmitResult, emitRatRule} from './emit.ts'
+import {createQPrinter} from './codegen.ts'
 
 export type {Rat}
 export type RatLike = RatTerm | number | string | bigint | Rat
@@ -188,29 +189,15 @@ export function interpretQ(m: QMachine): QRuntime {
 }
 // The same machine as generated JavaScript over bigint fractions (each value [num, den], reduced).
 export function compileQJs(m: QMachine): string {
-  const lit = (r: Rat) => `[${r.num}n, ${r.den}n]`
-  const e = (t: QE): string => {
-    switch (t.op) {
-      case 'var': return `v[${JSON.stringify(t.name)}]`
-      case 'const': return lit(q(t.q.num, t.q.den))
-      case 'add': return `A(${e(t.a)}, ${e(t.b)})`
-      case 'sub': return `S(${e(t.a)}, ${e(t.b)})`
-      case 'mul': return `M(${lit(q(t.k.num, t.k.den))}, ${e(t.a)})`
-      case 'min': return `(x => (y => C(x, y) <= 0 ? x : y)(${e(t.b)}))(${e(t.a)})`
-      case 'max': return `(x => (y => C(x, y) <= 0 ? y : x)(${e(t.b)}))(${e(t.a)})`
-      case 'if': return `(${c(t.c)} ? ${e(t.then)} : ${e(t.else)})`
-    }
-  }
-  const c = (t: QC): string => {
-    switch (t.op) {
-      case '<=': return `(C(${e(t.a)}, ${e(t.b)}) <= 0)`
-      case '<': return `(C(${e(t.a)}, ${e(t.b)}) < 0)`
-      case '=': return `(C(${e(t.a)}, ${e(t.b)}) === 0)`
-      case 'and': return `(${c(t.a)} && ${c(t.b)})`
-      case 'or': return `(${c(t.a)} || ${c(t.b)})`
-      case 'not': return `!${c(t.x)}`
-    }
-  }
+  const {printQE: e, printQC: c} = createQPrinter({
+    onVar: name => `v[${JSON.stringify(name)}]`,
+    add: (a, b) => `A(${a}, ${b})`,
+    sub: (a, b) => `S(${a}, ${b})`,
+    mul: (kLit, a) => `M(${kLit}, ${a})`,
+    min: (a, b) => `(x => (y => C(x, y) <= 0 ? x : y)(${b}))(${a})`,
+    max: (a, b) => `(x => (y => C(x, y) <= 0 ? y : x)(${b}))(${a})`,
+    cmp: (a, b) => `C(${a}, ${b})`,
+  })
   const obj = (r: Record<string, QE>) => `{${Object.entries(r).map(([n, t]) => `${JSON.stringify(n)}: ${e(t)}`).join(', ')}}`
   return `const G = (a, b) => { a = a < 0n ? -a : a; b = b < 0n ? -b : b; while (b) [a, b] = [b, a % b]; return a }
 const N = (n, d) => { if (d < 0n) { n = -n; d = -d } const g = G(n, d) || 1n; return [n / g, d / g] }
