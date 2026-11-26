@@ -458,8 +458,9 @@ export type SumTamper = {what: string, m: Machine, covers?: Record<string, E[]>,
 export type SumCase = {m: Machine, laws: Law[], family: string, proof: {instances: Record<string, Record<string, E[]>>, trees: Record<string, Tree>}, tampers: SumTamper[]}
 const sumKey = 'k$S', at = (key: E): E => ({op: 'get', map: 'M', key}), eqE = (a: E, b: E): C => ({op: '=', a, b}), and2 = (a: C, b: C): C => ({op: 'and', xs: [a, b]})
 const iteE = (c: C, a: E, b: E): E => ({op: 'if', c, then: a, else: b}), add = (a: E, b: E): E => ({op: 'add', a, b}), sub = (a: E, b: E): E => ({op: 'sub', a, b})
-export function randomSumMachine(): {m: Machine, laws: Law[], family: string} {
-  const family = pick(['set', 'two', 'move', 'flag', 'reset'] as const), termFam = family === 'move' || family === 'flag' || family === 'reset' ? 'cell' : pick(['cell', 'count', 'cap'] as const)
+const sumFamilies = ['set', 'two', 'move', 'flag', 'reset'] as const
+export function randomSumMachine(given?: typeof sumFamilies[number]): {m: Machine, laws: Law[], family: string} {
+  const family = given ?? pick(sumFamilies), termFam = family === 'move' || family === 'flag' || family === 'reset' ? 'cell' : pick(['cell', 'count', 'cap'] as const)
   const cell = at(v(sumKey)), term: E = termFam === 'cell' ? cell : termFam === 'count' ? iteE({op: '<', a: k(0), b: cell}, k(1), k(0)) : {op: 'min', a: cell, b: k(3)}
   const op = (i: number) => eqE(v('op'), k(i)), K = v('k$w')
   const write = family === 'set' ? {key: v('w'), value: iteE(op(0), v('u'), iteE(op(1), add(at(v('w')), v('u')), sub(at(v('w')), v('u'))))}
@@ -505,7 +506,8 @@ export const sumAnswer = (m: Machine, laws: Law[], proof: SumCase['proof'], cove
 export function sumCases(n: number): SumCase[] {
   const out: SumCase[] = []
   for (let i = 0; i < n; i++) {
-    const {m, laws, family} = randomSumMachine()
+    // (each family once first, so every family's tampers are made whatever the seed)
+    const {m, laws, family} = randomSumMachine(i < sumFamilies.length ? sumFamilies[i] : undefined)
     const r = proveLaws(m, laws)
     if (!r.proven || !r.proof) throw new Error(`${m.name}: not proven (${r.failed?.goal}: ${r.failed?.stuck})`)
     const sum = m.sums!.S!, cs = sumCovers(m).S ?? []
