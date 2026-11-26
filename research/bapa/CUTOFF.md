@@ -154,9 +154,9 @@ not a claimed bug in the existing certificates.
 
 ## Read-first material and independent review
 
-Read Fable sections 63 (`49d2a2a0b`) and 64 (`876a55a10`), `BAPA-PLAN.md`,
-`BAPA-OBSERVED-PLAN.md`, `BAPA-SLICE3-LOWERING-RESULTS.md`,
-`BAPA-FUNCTION-INSTANTIATION.md`, slice-1 `Bounded.lean`, the slice-2
+Read Fable sections 63 (`49d2a2a0b`) and 64 (`876a55a10`), `research/bapa/notes/BAPA-PLAN.md`,
+`research/bapa/notes/BAPA-OBSERVED-PLAN.md`, `research/bapa/notes/BAPA-SLICE3-LOWERING-RESULTS.md`,
+`research/bapa/notes/BAPA-FUNCTION-INSTANTIATION.md`, slice-1 `Bounded.lean`, the slice-2
 `lock-server-sized.ts`, and the retained output/receipt examples above.
 Section 63 explicitly separates symbolic-bounded and fixed-64 sorts. Section 64
 is a design proposal, not a cutoff proof. The original-Ivy naive-consensus

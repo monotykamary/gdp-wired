@@ -1,6 +1,6 @@
 # General prover gap: rigid-function axiom instantiation
 
-2026-11-14. Historical proposal for Fable/D review. Main subsequently authorized a narrow opt-in/default-OFF implementation on `after/bapa`; see `BAPA-FUNCTION-INSTANTIATION.md` for current results. The proposal and original failed search below are retained unchanged as history.
+2026-11-14. Historical proposal for Fable/D review. Main subsequently authorized a narrow opt-in/default-OFF implementation on `after/bapa`; see `research/bapa/notes/BAPA-FUNCTION-INSTANTIATION.md` for current results. The proposal and original failed search below are retained unchanged as history.
 
 ## Reproducer and evidence
 

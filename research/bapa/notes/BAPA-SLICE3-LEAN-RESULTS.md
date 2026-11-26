@@ -10,7 +10,7 @@ Batch `20261114-053505-nlevsb`, job `rigid-lean-bridge`, native exit 0. Fetched 
 - `lean-kernel/RigidNaive.lean`: exact three source relations and three actions, all three **given** source invariants inductive, and original agreement under the original Ivy intersection axiom, for arbitrary symbolic finite Node/Quorum/Value sizes. Initial/step/reach invariant and original safety theorems print **no axioms**.
 - `lean-kernel/RigidMutants.lean`: finite countermodels to dropped witness range, missing membership conjunct, and diagonal-only universal coverage. Compiles; one harmless unused-variable warning.
 
-The original Ivy law ASSUMES intersection, covers any intersecting family, and uses helpers given, not found. It does not replace the canonical suite's majority/counting port, whose intersection is PROVED by counting. Endive TLA+ lacked the axiom; the exact restored source is the pinned Ivy file documented in `BAPA-SLICE3-PLAN.md`.
+The original Ivy law ASSUMES intersection, covers any intersecting family, and uses helpers given, not found. It does not replace the canonical suite's majority/counting port, whose intersection is PROVED by counting. Endive TLA+ lacked the axiom; the exact restored source is the pinned Ivy file documented in `research/bapa/notes/BAPA-SLICE3-PLAN.md`.
 
 ## Not yet delivered
 

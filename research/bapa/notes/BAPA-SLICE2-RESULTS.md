@@ -29,7 +29,7 @@ Neither completed search found a proof/helper. **Both returned early**, not at t
 
 ## Prover issue isolated, not fixed
 
-Fresh alpha-renamed DSL binders can reuse stale fast-memo instances. Ordinary `proveLaws` falls back and produces the checked proofs above. The one-map minimal repro and the unchanged old `lock_server` kind-law repro are in `BAPA-MEMO-REPRO.md`. No core fix or disabled production check is bundled with this port.
+Fresh alpha-renamed DSL binders can reuse stale fast-memo instances. Ordinary `proveLaws` falls back and produces the checked proofs above. The one-map minimal repro and the unchanged old `lock_server` kind-law repro are in `research/bapa/notes/BAPA-MEMO-REPRO.md`. No core fix or disabled production check is bundled with this port.
 
 ## Retained batches
 
@@ -43,4 +43,4 @@ Fresh alpha-renamed DSL binders can reuse stale fast-memo instances. Ordinary `p
 - `20261114-052625-0dqgc2`: unchanged old lock-server kind-law reproduction.
 - `20261114-052608-x6j97p`: independent 60s / 600s no-given-helper search caps.
 
-The final gate above was fetched and inspected before committing. Canonical29 is separately pending a final frozen candidate, static review, fresh sealed input, and exact authority (`BAPA-CANONICAL29-PREP.md`); nothing here reuses the consumed canonical packet.
+The final gate above was fetched and inspected before committing. Canonical29 is separately pending a final frozen candidate, static review, fresh sealed input, and exact authority (`research/bapa/notes/BAPA-CANONICAL29-PREP.md`); nothing here reuses the consumed canonical packet.

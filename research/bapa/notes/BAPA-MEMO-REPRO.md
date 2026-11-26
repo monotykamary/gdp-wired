@@ -34,4 +34,4 @@ Static reachability: `core/infer.ts:728–740` calls `proveSetFast` for fast can
 
 ## Run only on boat
 
-Use `bapa-minimal-repro.jobs.json` and `bapa-old-memo.jobs.json` through supercomputer. Their JSON outputs deliberately report observations rather than asserting the bug must remain. See `bapa-fast-cache.jobs.json` for the three controlled tuple-port variants. Fix review belongs to D/Fable; no core edit is bundled here.
+Use `research/bapa/jobs/bapa-minimal-repro.jobs.json` and `research/bapa/jobs/bapa-old-memo.jobs.json` through supercomputer. Their JSON outputs deliberately report observations rather than asserting the bug must remain. See `research/bapa/jobs/bapa-fast-cache.jobs.json` for the three controlled tuple-port variants. Fix review belongs to D/Fable; no core edit is bundled here.

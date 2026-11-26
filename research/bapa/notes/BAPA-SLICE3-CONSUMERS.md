@@ -1,6 +1,6 @@
 # Slice 3 consumer addendum — multiple sorts and rigid reads
 
-This is an addendum to `BAPA-CONSUMERS.md`, not a change to the frozen slice-1/2 implementation. No shared core/kernel/emitter file is changed by this work.
+This is an addendum to `research/bapa/notes/BAPA-CONSUMERS.md`, not a change to the frozen slice-1/2 implementation. No shared core/kernel/emitter file is changed by this work.
 
 ## Actual multi-sort control
 
@@ -22,6 +22,6 @@ The source instance is JSON tables validated by exact enumeration. Binding accep
 
 ## Evidence
 
-Batch `20261114-060236-uzr4jk`, fetched to `runs/bapa-rigid-minimal-06-fetch`, passed the expanded 20-test isolated suite (76 expectations), strict TypeScript and actual generated Lean/source-wrapper checking. The later capability-lookalike rejection and relevant unchanged legacy regressions are in the final-check job; consult `BAPA-SLICE3-LOWERING-RESULTS.md` for its terminal status.
+Batch `20261114-060236-uzr4jk`, fetched to `runs/bapa-rigid-minimal-06-fetch`, passed the expanded 20-test isolated suite (76 expectations), strict TypeScript and actual generated Lean/source-wrapper checking. The later capability-lookalike rejection and relevant unchanged legacy regressions are in the final-check job; consult `research/bapa/notes/BAPA-SLICE3-LOWERING-RESULTS.md` for its terminal status.
 
 These are foundation/consumer controls, not the original naive-consensus transition comparison or its ghost-map certificate.

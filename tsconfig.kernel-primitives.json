@@ -1,1 +1,0 @@
-{"extends":"./tsconfig.json","include":["core/fixed-*.ts","kernel/integer-primitives*.ts","kernel/word-division*.ts","lean-kernel/emit.ts","kernel/mutants.ts","lean-kernel/integer-primitives.ts","lean-kernel/generic-word-export.test.ts","research/kernel-primitives/**/*.ts"],"exclude":["node_modules","dist","vendor","runs"]}

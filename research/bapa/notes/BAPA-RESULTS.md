@@ -15,7 +15,7 @@ const r = rule('bounded-read').params({size: nat}).state({ok: 1}).maps({A: 0})
 
 The `finite` label is an operational annotation, **not a new trusted axiom**. The literal formula remains `forall k, k < size -> body`; existential is its negated-universal dual. `finiteBound` checks that shape before the finite runtime path or scope exemption. `closing`, `assumed`, proof tags and certificates are unchanged. Nested/multi-sort quantifiers, metadata-based existential witnesses inside finite universals, finite step laws and finite bulk writes are deliberately refused.
 
-The interpreter and closure compiler enumerate exactly with cancellation. Standalone generated finite modules require a fourth cancellation callback to `step`; `loadJs` supplies the normal runtime cancellation bridge. `fastStep`, BMC, request quotient, small-model screens, speculative domain compilation and GPU paths refuse unsupported marked inputs. Interchange 1.1 refuses to erase the marker. Full census: [BAPA-CONSUMERS.md](BAPA-CONSUMERS.md).
+The interpreter and closure compiler enumerate exactly with cancellation. Standalone generated finite modules require a fourth cancellation callback to `step`; `loadJs` supplies the normal runtime cancellation bridge. `fastStep`, BMC, request quotient, small-model screens, speculative domain compilation and GPU paths refuse unsupported marked inputs. Interchange 1.1 refuses to erase the marker. Full census: [research/bapa/notes/BAPA-CONSUMERS.md](research/bapa/notes/BAPA-CONSUMERS.md).
 
 ## Verified receipts (all work on boat, fetched by batch ID)
 

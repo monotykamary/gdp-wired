@@ -1,0 +1,5 @@
+{
+  "extends": "../../../tsconfig.json",
+  "include": [],
+  "files": ["../../../core/sized-sort.test.ts", "../../../lean-kernel/bounded-examples.ts"]
+}

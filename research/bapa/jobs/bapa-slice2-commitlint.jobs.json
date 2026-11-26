@@ -1,0 +1,3 @@
+[
+ {"name":"slice2-commitlint","cmd":"set -euo pipefail; bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/bapa/notes/BAPA-SLICE2-COMMIT.txt > \"$SUPERCOMPUTER_OUTPUT_DIR/commitlint.log\" 2>&1","cpu":2,"memory":4096,"timeout":300,"required_agent_capabilities":{"output_files_protocol":1,"result_files_protocol":1}}
+]

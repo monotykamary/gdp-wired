@@ -35,4 +35,4 @@ Both failed outputs remain in their numbered fetch directories.
 
 This is finite testing, **not** a symbolic-size theorem, proof certificate, ghost elimination, source-wrapper export, completeness result, or release acceptance. The original intersection axiom is ASSUMED here; the old suite's majority port proves intersection by counting. Helpers are still GIVEN, not found.
 
-The opt-in untrusted strategy and its caps are unchanged. The next proof attempt remains pending Fable's reading of `BAPA-FABLE-PROGRESS-REQUEST.md`; no speculative full-port retry was made. D's diff review remains required before merge or counted use.
+The opt-in untrusted strategy and its caps are unchanged. The next proof attempt remains pending Fable's reading of `research/bapa/notes/BAPA-FABLE-PROGRESS-REQUEST.md`; no speculative full-port retry was made. D's diff review remains required before merge or counted use.
