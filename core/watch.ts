@@ -96,6 +96,14 @@ function turns(c: C, names: string[]): (i: number, env: Env, st: State, m: Machi
 
 // The tuples every watch has read a law at (core/dsl.ts's refuteByRuns counts its budget in them).
 export const watchWork = {n: 0}
+// Count of existential evaluations where someHolds could not decide the law (fail-visible rather than silently true).
+export const watchUndecided = {n: 0}
+export class WatchUndecided extends Error {
+  constructor(readonly law: string) {
+    super(`watch: existential law "${law}" is undecided on this state`)
+    this.name = 'WatchUndecided'
+  }
+}
 // Watches one law or step law along one run: `start` with the state at the start, `step` after each step the run takes
 // (the state before, the request, the state after). Each says whether the law still holds.
 export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: number) {
@@ -120,9 +128,14 @@ export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: 
     return withEvaluationAdmission(() => go(0))
   }
   if (!isStepLaw(w)) {
-    // A law with "there exists" (core/exists.ts): broken only where no value can be a witness, as far as that is decided
-    // (one natural or integer read linearly); undecided, it is kept.
-    const at = (env: Env, st: State) => (w.some?.length ? someHolds(w.holds, w.some, {...env}, st, m, true)?.holds ?? true : evalC(w.holds, env, st, m))
+    // A law with "there exists" (core/exists.ts): decided by someHolds; when undecided, fail visibly with WatchUndecided
+    // instead of coercing to true.
+    const at = (env: Env, st: State) => {
+      if (!w.some?.length) return evalC(w.holds, env, st, m)
+      const res = someHolds(w.holds, w.some, {...env}, st, m, true)
+      if (res === undefined) { watchUndecided.n++; throw new WatchUndecided(w.name) }
+      return res.holds
+    }
     const finite = finiteLawBound(w)
     const holds = (st: State) => finite
       ? evalC({op: 'all', key: w.forall!, c: w.holds, finite: w.finite}, params, st, m)

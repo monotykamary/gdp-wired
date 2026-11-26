@@ -225,7 +225,7 @@ type Pairing = {n: number, c: number, frame: C}
 // A place may leave parts of a relation's tuple free (`proj`, its parts' view keys, -1 where free): its cell is 1 where
 // some tuple of the relation agrees at the parts the keys hold (the relation projected), and its law reads the free
 // parts as keys of its own (`free`, beside the view's), so only "it holds" is a literal of it (a cube's at 1: ∀ again).
-type Proj = {mp: string, n: number, at: number[], free: string[]}
+type Proj = {mp: string, n: number, at: number[], free: string[], bounds?: C[]}
 type View = {vars: string[], names: string[], places: E[], covers: number[][], frame: C, need: number, rowsOf: (params: Env, st: State, full?: boolean) => Env[], atoms: number[], rows: Env[], printable: boolean, proj?: (Proj | undefined)[], defs?: (E | undefined)[]}
 // (a view's keys that are terms of the others (`defs`): its laws read the terms in their place, and quantify the rest)
 const defsOf = (v: View) => ({vars: Object.fromEntries(v.vars.flatMap((k, i) => (v.defs?.[i] ? [[k, v.defs[i]!]] : []))), maps: {}, flags: {}})
@@ -1211,8 +1211,21 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
   }
   // (a form about every key says so first)
   const viewText = (v: View, t: string) => v.vars.reduce((acc, k2, i) => acc.replaceAll(k2, v.names[i]!), t).replace(/free\d+\$enum/g, '_')
-  // (the free parts a view's form reads, keys of its law beside the view's)
+  // (the free parts a view's form reads, keys of its law beside the view's, and their sort bounds)
   const freeOf = (f: Form, v: View): string[] => (v.proj ? [...new Set(atomsIn(f).flatMap(i => (atoms[i]!.place !== undefined ? v.proj![atoms[i]!.place!]?.free ?? [] : [])))] : [])
+  const freeBoundsOf = (f: Form, v: View): C[] => {
+    if (!v.proj) return []
+    const out: C[] = [], seen = new Set<number>()
+    for (const i of atomsIn(f)) {
+      const p = atoms[i]!.place
+      if (p === undefined || seen.has(p)) continue
+      seen.add(p)
+      const bs = v.proj[p]?.bounds
+      if (bs) out.push(...bs)
+    }
+    return out
+  }
+  const frameOf = (f: Form, v: View): C => { const bs = freeBoundsOf(f, v); return bs.length ? all(v.frame, ...bs) : v.frame }
   const textOf = (f: Form): string => {
     if (f.cells) return `every k: ${textIn(f)}`
     if (f.view === undefined) return textIn(f)
@@ -1536,7 +1549,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
     let l = lawOf.get(f)
     // (about two keys: where the frame holds of them)
     const v = f.view !== undefined ? views[f.view]! : undefined
-    if (!l) lawOf.set(f, (l = {name: textOf(f), holds: v ? substC(any(not(v.frame), condOf(f)), defsOf(v)) : condOf(f), ...(f.cells ? {forall: KEY} : v ? {forall: v.vars[0]!, keys: [...v.vars.slice(1).filter((_, i) => !v.defs?.[i + 1]), ...freeOf(f, v)]} : {}), ...(f.cong ? {some: someOf(f)} : {})}))
+    if (!l) lawOf.set(f, (l = {name: textOf(f), holds: v ? substC(any(not(frameOf(f, v)), condOf(f)), defsOf(v)) : condOf(f), ...(f.cells ? {forall: KEY} : v ? {forall: v.vars[0]!, keys: [...v.vars.slice(1).filter((_, i) => !v.defs?.[i + 1]), ...freeOf(f, v)]} : {}), ...(f.cong ? {some: someOf(f)} : {})}))
     return l
   }
   const names = new Set(given.map(l => l.name))
@@ -2432,7 +2445,11 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
         if (srt && 'each' in w) walk(w.value, o => { const c = o as unknown as C; if (c.op === '=' && c.a.op === 'var' && c.b.op === 'var') { const q = c.a.name === w.each ? c.b.name : c.b.name === w.each ? c.a.name : undefined; if (q && m.params.includes(q)) elementOf.set(q, srt) } })
       }
       walk([m.step, m.assume], o => { const e = o as unknown as E; if (e.op === 'get' && e.key.op === 'var' && m.params.includes(e.key.name) && ks.plainRead.includes(e.map)) elementOf.set(e.key.name, ks.find(`M:${e.map}`)) })
-      for (const [mp, w] of Object.entries(m.step.maps ?? {})) for (const l of leaves(w.value)) relate(`V:${mp}`, node(l))
+      for (const [mp, w] of Object.entries(m.step.maps ?? {})) {
+        for (const l of leaves(w.value)) relate(`V:${mp}`, node(l))
+        const vs = ks.find(`V:${mp}`)
+        if (ss.includes(vs)) relate(`V:${mp}`, vs)
+      }
       const valueSort = (mp: string) => ss.find(q => vf(q) === vf(`V:${mp}`)), ordered = (q: string) => [...ord].some(o => vf(o) === vf(q))
       // (a function of a key whose values are a composed map's rows: Pending[idn(x)·N + y])
       const fnHi = Object.keys(m.fns ?? {}).filter(f => comp && ss.includes(ks.find(`F:${f}`)) && vf(`V:${f}`) === vf(comp[0]!))
@@ -2791,6 +2808,44 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
         return [{mp, key, sort, at: (k: E): E => (c ? {op: 'sub', a: get(mp, k), b: n(c)} : get(mp, k))}]
       })
       const out: Form[] = []
+      // Demand-driven relation uniqueness check over `smallAll` (keeps the 3-key cap on general multi-relation views):
+      // detect relations with global singleton (`|active(R)| <= 1`) or single-slot functional uniqueness (`arity >= 3`,
+      // one slot determines the rest) so 4/5-key uniqueness laws are expressed via sort-bounded 2/3-key projections.
+      const singletonRels = new Set<string>(), funcRels = new Map<string, number[]>()
+      if (Object.keys(m.relations ?? {}).length && smallAll.length) {
+        for (const q of multi) {
+          if (!ks.tupled.has(q.mp) || !m.relations?.[q.mp] || q.slots.length < 2) continue
+          const ar = q.slots.length
+          let anyActive = false, isSingleton = true
+          const funcOk = ar >= 3 ? Array.from({length: ar}, () => true) : []
+          for (const s0 of smallAll) {
+            const cells = s0.st.maps[q.mp]
+            if (!cells || !cells.size) continue
+            const active: number[][] = []
+            for (const [k2, v2] of cells) if (v2 >= 1) active.push(tupleOf(k2, ar))
+            if (!active.length) continue
+            anyActive = true
+            if (active.length > 1) {
+              isSingleton = false
+              for (let p = 0; p < funcOk.length; p++) {
+                if (!funcOk[p]) continue
+                const seenSlot = new Set<number>()
+                for (const t of active) {
+                  if (seenSlot.has(t[p]!)) { funcOk[p] = false; break }
+                  seenSlot.add(t[p]!)
+                }
+              }
+            }
+            if (!isSingleton && funcOk.every(ok => !ok)) break
+          }
+          if (!anyActive) continue
+          if (isSingleton) singletonRels.add(q.mp)
+          else {
+            const ps = funcOk.flatMap((ok, p) => (ok ? [p] : []))
+            if (ps.length) funcRels.set(q.mp, ps)
+          }
+        }
+      }
       for (const counts of width.reduce<number[][]>((acc, w) => acc.flatMap(c => Array.from({length: w + 1}, (_, k) => [...c, k])), [[]])) {
         const keys0 = ss.flatMap((s, i) => Array.from({length: counts[i]!}, () => s)), vars0 = keys0.map((_, i) => `key${i + 1}$enum`)
         // (on a rule of relations three keys at most, a map's value as a fourth: the cubes over its tuples read no more)
@@ -2815,10 +2870,18 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
         const place1 = (acc: number[][], s: string, i: number) => acc.flatMap(p => q2!.slots.flatMap((s2, pos) => (s2 === s && p[pos] === -1 ? [p.map((y, k) => (k === pos ? i : y))] : [])))
         let q2: typeof multi[number] | undefined
         for (const q of multi) if (inView(q.mp) && ks.tupled.has(q.mp) && m.relations?.[q.mp] && keys0.length < q.slots.length)
-          for (const t of (q2 = q, ((base: number[][]) => (der ? [...base, ...place1(base, der.sort, keys0.length)] : base))(keys0.reduce<number[][]>((acc, s, i) => place1(acc, s, i), [q.slots.map(() => -1)])))) {
+          for (const t of (q2 = q, ((base: number[][]) => (der ? [...base, ...place1(base, der.sort, keys0.length)] : base))(keys0.reduce<number[][]>((acc, s, i) => place1(acc, s, i), [q.slots.map(() => -1)]))).concat(keys0.length === 1 && !der && singletonRels.has(q.mp) ? [q.slots.map(() => -1)] : [])) {
             if (!t.includes(-1)) continue
-            const free = t.flatMap(k => (k < 0 ? [`free${++freeCount}$enum`] : [])), fr = [...free]
-            pats[places.length] = t; proj[places.length] = {mp: q.mp, n: t.length, at: t, free}
+            const free: string[] = [], freeBounds: C[] = []
+            t.forEach((k, pos) => {
+              if (k >= 0) return
+              const fv = `free${++freeCount}$enum`, s = q.slots[pos]!
+              free.push(fv)
+              if (((comp && s === comp[1]) || multi.some(q3 => !ks.tupled.has(q3.mp) && q3.slots.slice(1).includes(s))) && !bounds.has(s)) freeBounds.push(atMost(x(fv), n(pairing!.n - 1)))
+              for (const g of [...new Set((bounds.get(s) ?? []).map(g2 => JSON.stringify(substC(g2, {vars: {[KEY]: x(fv)}, maps: {}, flags: {}}))))]) freeBounds.push(JSON.parse(g) as C)
+            })
+            const fr = [...free]
+            pats[places.length] = t; proj[places.length] = {mp: q.mp, n: t.length, at: t, free, ...(freeBounds.length ? {bounds: freeBounds} : {})}
             places.push(tuple(t.map(k => x(k < 0 ? fr.shift()! : vars[k]!)))); mapsAt.push([q.mp]); covers.push([...new Set(t.filter(k => k >= 0))])
           }
         for (const f of fnHi) keys.forEach((a, i) => keys.forEach((b, j) => { if (a === ks.find(`F:${f}`) && b === comp![1]) { places.push(ks.compose(get(f, x(vars[i]!)), x(vars[j]!))); mapsAt.push(ks.composedMaps); covers.push(i === j ? [i] : [i, j]) } }))
@@ -2871,15 +2934,17 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
           R.forEach((r, k) => { if (holds(r)) bits[k >> 5]! |= 1 << (k & 31) })
           lits.push({lit, id, name, reads: rd, bits, ...(before ? {before} : {}), state: ('at' in lit ? [lit.at.atom] : lit.lin.coef.map(([a]) => a)).some(a => atoms[a]!.place !== undefined || eqAt.has(a) || (!atoms[a]!.term && !atoms[a]!.param))})
         }
+        const paramValued = new Set([...bounding.values()].flatMap(s => [...s]))
         const valued = (i: number) => atoms[i]!.place !== undefined && !!valueSort(atoms[i]!.parts[0]![0].split(AT)[2]!)
+        const nilValued = (i: number) => valued(i) || (atoms[i]!.place !== undefined && paramValued.has(ks.find(`V:${atoms[i]!.parts[0]![0].split(AT)[2]!}`)))
         for (const i of [...v.atoms.filter(j => !atoms[j]!.int && (!atoms[j]!.term || eqAt.has(j))), ...modes.filter(mo => !atoms[mo.atom]!.cell && !atoms[mo.atom]!.param).map(mo => mo.atom)]) {
           // (a relation's tuple: in it or not, whether or not the rows take both: "never in it" is a cube of one literal)
           const rel = atoms[i]!.place !== undefined && ks.tupled.has(atoms[i]!.parts[0]![0].split(AT)[2]!) && !!m.relations?.[atoms[i]!.parts[0]![0].split(AT)[2]!]
           const vals = rel || eqAt.has(i) ? [0, 1] : [...new Set(R.map(r => r[i]!))].sort((a, b) => a - b)
-          // (a value of a key's sort: 0 alone, an order literal below)
+          // (a value of a key's sort: 0 and >= 1 (nil vs non-nil), beside any order literals below)
           // (a projected place: only that it holds)
-          for (const value of atoms[i]!.place !== undefined && proj[atoms[i]!.place!] ? [1] : valued(i) ? vals.filter(q => q === 0) : vals.length <= 3 || few(vals) ? vals : []) {
-            const top = value > 0 && value === vals.at(-1)
+          for (const value of atoms[i]!.place !== undefined && proj[atoms[i]!.place!] ? [1] : nilValued(i) ? [...vals.filter(q => q === 0), ...(vals.some(q => q > 0) ? [1] : [])] : vals.length <= 3 || few(vals) ? vals : []) {
+            const top = value > 0 && (nilValued(i) || value === vals.at(-1))
             add(top ? {lin: {coef: [[i, -1]], d: -value}} : {at: {atom: i, value}}, `${i}`, ren => `${term(i, ren)}=${value}`, reads(i), r => (top ? r[i]! >= value : r[i] === value))
           }
         }
@@ -2979,6 +3044,59 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
         out.push(...[...found1, ...found.map(ls => ls.map(l => lits[l]!.lit))].map(c => formOf(c, vi)))
         }
       }
+      // Emit demand-driven projected uniqueness cubes for relations passing the `smallAll` singleton / functional check.
+      if ((singletonRels.size || funcRels.size) && !stop()) {
+        const boundsFor = (fv: string, s: string): C[] => {
+          const out2: C[] = []
+          if (((comp && s === comp[1]) || multi.some(q3 => !ks.tupled.has(q3.mp) && q3.slots.slice(1).includes(s))) && !bounds.has(s)) out2.push(atMost(x(fv), n(pairing!.n - 1)))
+          for (const g of [...new Set((bounds.get(s) ?? []).map(g2 => JSON.stringify(substC(g2, {vars: {[KEY]: x(fv)}, maps: {}, flags: {}}))))]) out2.push(JSON.parse(g) as C)
+          return out2
+        }
+        const emitPairCube = (q: typeof multi[number], sharedPos: number | undefined, diffPos: number) => {
+          const keys = sharedPos === undefined ? [q.slots[diffPos]!, q.slots[diffPos]!] : [q.slots[sharedPos]!, q.slots[diffPos]!, q.slots[diffPos]!]
+          const vars = keys.map((_, i) => `key${i + 1}$enum`), names = ['x', 'y', 'z'].slice(0, keys.length)
+          const iA = sharedPos === undefined ? 0 : 1, iB = sharedPos === undefined ? 1 : 2
+          const makeProj = (diffIdx: number): {place: E, pj: Proj} => {
+            const pat = q.slots.map((_, pos) => (pos === sharedPos ? 0 : pos === diffPos ? diffIdx : -1))
+            const free: string[] = [], freeBounds: C[] = []
+            pat.forEach((k, pos) => {
+              if (k >= 0) return
+              const fv = `free${++freeCount}$enum`
+              free.push(fv)
+              freeBounds.push(...boundsFor(fv, q.slots[pos]!))
+            })
+            const fr = [...free]
+            return {place: tuple(pat.map(k => x(k < 0 ? fr.shift()! : vars[k]!))), pj: {mp: q.mp, n: pat.length, at: pat, free, ...(freeBounds.length ? {bounds: freeBounds} : {})}}
+          }
+          const pA = makeProj(iA), pB = makeProj(iB)
+          const places = [pA.place, pB.place], mapsAt = [[q.mp], [q.mp]]
+          const covers = [sharedPos === undefined ? [iA] : [0, iA], sharedPos === undefined ? [iB] : [0, iB]]
+          const proj: (Proj | undefined)[] = [pA.pj, pB.pj]
+          const frame = all(...keys.flatMap((s, i) => boundsFor(vars[i]!, s)), not(same(x(vars[iA]!), x(vars[iB]!))))
+          const vi = views.length
+          addView({vars, names, places, covers, frame, need: keys.length, printable: false, proj}, mapsAt, st => keys.map(s => ks.valuesAt(st, s)), Math.max(2, Math.floor(64 ** (1 / keys.length))), [], true)
+          viewSorts.set(vi, keys)
+          const v = views[vi]!
+          if (v.atoms.length !== 2) return
+          const lits: Lit[] = v.atoms.map(a => ({lin: {coef: [[a, -1]], d: -1}}))
+          let ok = true
+          for (const s0 of smallAll) {
+            for (const row of withTable(s0.params, () => v.rowsOf(s0.params, s0.st))) {
+              if (valueOf(atoms[v.atoms[0]!]!, row) >= 1 && valueOf(atoms[v.atoms[1]!]!, row) >= 1) { ok = false; break }
+            }
+            if (!ok) break
+          }
+          if (ok) out.push(formOf(lits, vi))
+        }
+        for (const q of multi) {
+          if (singletonRels.has(q.mp)) {
+            for (let p = 0; p < q.slots.length; p++) emitPairCube(q, undefined, p)
+          } else {
+            const fps = funcRels.get(q.mp)
+            if (fps) for (const sp of fps) for (let dp = 0; dp < q.slots.length; dp++) if (dp !== sp) emitPairCube(q, sp, dp)
+          }
+        }
+      }
       const seenText = new Set<string>(), made1 = out.filter(f => { const t = textOf(f); return !set.some(g => textOf(g) === t) && !seenText.has(t) && !!seenText.add(t) })
       const made0 = rel && made1.length > 600 ? (relationalSupport ? diverse(made1) : [...made1].sort((a,b) => a.cube!.length-b.cube!.length)).slice(0, 600) : made1
       return env.GDP_POOL !== '0' ? dataFilter(made0) : made0
@@ -3065,7 +3183,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
       // (a sums pass's reserve where one follows: 10 s, or a quarter of what is left where less is)
       const v0 = views.length, reserve = rule?.withMapSums(false) ? Math.min(10_000, (eUntil - vnow()) / 4) : 0
       const implied = (f: Form) => {
-        const v = views[f.view!]!, sk = {vars: Object.fromEntries([...v.vars.filter((_, i) => !v.defs?.[i]), ...freeOf(f, v)].map(k => [k, x(`${k}#`)])), maps: {}, flags: {}}, hyps = [substC(substC(v.frame, defsOf(v)), sk), not(substC(substC(condOf(f), defsOf(v)), sk))]
+        const v = views[f.view!]!, sk = {vars: Object.fromEntries([...v.vars.filter((_, i) => !v.defs?.[i]), ...freeOf(f, v)].map(k => [k, x(`${k}#`)])), maps: {}, flags: {}}, hyps = [substC(substC(frameOf(f, v), defsOf(v)), sk), not(substC(substC(condOf(f), defsOf(v)), sk))]
         for (const l of given) {
           const b = [l.forall, ...(l.keys ?? [])].filter((q): q is string => !!q)
           if (v.vars.length ** b.length > 64) return false
@@ -3308,7 +3426,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
           return 'at' in l ? {sum: nm(l.at.atom), d: 0, at: l.at.value} : {sum: l.lin.coef.map(([i, c]) => `${c}*${nm(i)}`).sort().join('+'), d: l.lin.d}
         })
         // (a projected place's free part, _, matches any key there: P[x, x, y, y] in it entails P[x, _, y, _] in it)
-        const pat = new Map<string, RegExp>(), same3 = (a: string, b: string) => a === b || (a.includes('_') && (pat.get(a) ?? (pat.set(a, new RegExp(`^${a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/_/g, '(?:[xyzwu]|\\w+\\([xyzwu]\\))')}$`)), pat.get(a)!)).test(b))
+        const pat = new Map<string, RegExp>(), same3 = (a: string, b: string) => a === b || (a.includes('_') && (pat.get(a) ?? (pat.set(a, new RegExp(`^${a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/_/g, '(?:[xyzwu_]|\\w+\\([xyzwu]\\))')}$`)), pat.get(a)!)).test(b))
         const entails = (b: L2, a: L2) => (a.at !== undefined ? b.at !== undefined && b.sum === a.sum && b.at === a.at
           : b.at !== undefined ? same3(a.sum, `-1*${b.sum}`) && -b.at <= a.d : same3(a.sum, b.sum) && b.d <= a.d)
         const sortsOf = (f: Form) => viewSorts.get(f.view!) ?? []
@@ -3606,10 +3724,20 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
         if (asked > 1) perGoal = Math.max(perGoal, 250, cubeMs / (asked - 1))
         // (the next round's new cubes: what a quarter of what is left affords past the goals it asks again, 8 at least)
         const grow = (kept: Form[]) => { const ask = kept.filter(g => !kept2.has(g) && !stands.has(lawFor(g).name)).length, afford = perGoal ? Math.floor((eUntil - vnow()) / (4 * perGoal)) : 16; return relevant(Math.max(8, Math.min(256 - kept.length, afford - ask)), kept) }
-        if (blocked2.length) { if (drops.size) unstand(drops); demote(drops); const kept = [...cubes.filter(g => !drops.has(g)), ...back(), ...blocked2]; cubes = [...kept, ...grow(kept)]; return }
+        const restoreSubsumed = (dropped: Set<Form>, keptNow: Form[]): Form[] => {
+          if (!dropped.size || !minPool.by.size) return []
+          const inNow = new Set(keptNow), inNames = new Set(keptNow.map(textOf)), out: Form[] = []
+          for (const [b, as] of minPool.by) {
+            if (inNow.has(b) || pending.has(b) || dead.has(textOf(b)) || names.has(textOf(b)) || inNames.has(textOf(b))) continue
+            if (!as.some(a => dropped.has(a)) || as.some(a => inNow.has(a))) continue
+            if (!implied(b) && !atStart(b)) { inNames.add(textOf(b)); out.push(b) }
+          }
+          return out
+        }
+        if (blocked2.length) { if (drops.size) unstand(drops); demote(drops); const kept = [...cubes.filter(g => !drops.has(g)), ...back(), ...blocked2], restored = restoreSubsumed(drops, kept); cubes = [...kept, ...restored, ...grow([...kept, ...restored])]; return }
         if (again) return
         // (the caller's law unproven with no diagram: the cubes its counterexamples make relevant, while there are some)
-        if (caller && complete) { if (drops.size) unstand(drops); demote(drops); const kept = [...cubes.filter(g => !drops.has(g)), ...back()], more = grow(kept); if (more.length) { cubes = [...kept, ...more]; return } }
+        if (caller && complete) { if (drops.size) unstand(drops); demote(drops); const kept = [...cubes.filter(g => !drops.has(g)), ...back()], restored = restoreSubsumed(drops, kept), more = grow([...kept, ...restored]); if (restored.length || more.length) { cubes = [...kept, ...restored, ...more]; return } }
         // (the set's proof, relative induction over the set: a cube it fails at dropped and the proof asked again at once, the
         // rounds again only where the caller's law fails or a cube's goal can't be named)
         const gone: Form[] = []
@@ -3632,10 +3760,13 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
           if (wit2 && at.endsWith('@step')) subs.push(preOf(wit2))
           cubes = cubes.filter(c => c !== g); gone.push(g)
         }
-        if (!complete || caller || (!drops.size && !gone.length && !grown && !promoted.length && !pending.size) || enumProof) over = true
+        const droppedAll = new Set<Form>([...drops, ...gone])
+        const nextBase = [...cubes.filter(g => !drops.has(g)), ...back()]
+        const restored = restoreSubsumed(droppedAll, nextBase)
+        if (!complete || caller || (!drops.size && !gone.length && !grown && !promoted.length && !pending.size && !restored.length) || enumProof) over = true
         if (drops.size || gone.length) unstand([...drops, ...gone])
         demote([...drops, ...gone])
-        cubes = [...cubes.filter(g => !drops.has(g)), ...back()]
+        cubes = [...nextBase, ...restored]
         // (nothing changed and nothing left to push: the frames at their fixpoint, the set grown by relevance to the
         // counterexamples while there is something relevant)
         if (!enumProof && !drops.size && !gone.length && !grown && !promoted.length && [...pending].every(g => tried.get(g) === versionOf() || (backs.get(g) ?? 0) >= 2)) {

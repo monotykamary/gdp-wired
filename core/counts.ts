@@ -16,7 +16,7 @@ import {searchNow as countedSearchNow, traceNow as countedTraceNow,wallDeadline}
 //   4. counted induction: prove the proposed set together, drop failed helpers, and carry proofs whose instantiated
 //      support survives. Avoid proving the same helpers in several preliminary cone contexts; checkCountedLaws
 //      checks the final set. The ∃ search still uses `cone`: relative induction from already-kept candidates.
-import {type C, type E, type Law, type Machine} from './machine.ts'
+import {type C, type E, type Law, type Machine, walk} from './machine.ts'
 import {isLocalCountExpiration} from './count-tier-budget.ts'
 import {withSearchAllowance} from './count-search-allowance.ts'
 import {canUseCountedProxy,withCountedSearchPolicy} from './search-policy.ts'
@@ -352,9 +352,27 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
   // comparison with a second request count), has no value at a state, and is not proposed)
   const ofState = (l: Law) => { try { scope(m, [l]); return true } catch(error) { if(publish&&error instanceof BudgetExpired)throw error;return false } }
   const trueAll = (l: Law) => clock() < until && ofState(l) && trueSmall(m, [l])
-  const kinds: Law[] = Object.keys(m.maps ?? {}).map(mp => {
-    const most = Math.max(0, ...states.flatMap(({sts}) => sts.flatMap(st => [...(st.maps[mp]?.values() ?? [])])))
-    return {name: `${mp} at most ${most}`, forall: 'a$c', holds: {op: '<=', a: {op: 'get', map: mp, key: v('a$c')}, b: k(most)}} as Law
+  const paramBounded = new Set<string>(m.params)
+  if (m.assume) {
+    const flat = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(flat) : [c])
+    for (const c of flat(m.assume)) {
+      if ((c.op === '<' || c.op === '<=') && c.a.op === 'var' && c.b.op === 'var' && m.params.includes(c.b.name)) paramBounded.add(c.a.name)
+    }
+  }
+  const leavesOf = (e: E): E[] => (e.op === 'if' ? [...leavesOf(e.then), ...leavesOf(e.else)] : [e])
+  const readsParamBounded = (e: E): boolean => {
+    let hit = false
+    walk(e, o => { if (o.op === 'var' && typeof o.name === 'string' && paramBounded.has(o.name)) hit = true })
+    return hit
+  }
+  const kinds: Law[] = Object.keys(m.maps ?? {}).flatMap(mp => {
+    const w = m.step.maps?.[mp]
+    const dynamic = !!w && leavesOf(w.value).some(l => l.op !== 'const' && !(l.op === 'get' && l.map === mp))
+    const symbolic = !!w && leavesOf(w.value).some(l => l.op !== 'const' && !(l.op === 'get' && l.map === mp) && readsParamBounded(l))
+    const per = states.map(({sts}) => Math.max(0, ...sts.flatMap(st => [...(st.maps[mp]?.values() ?? [])])))
+    if (symbolic || (dynamic && per.length > 1 && new Set(per).size > 1)) return []
+    const most = Math.max(0, ...per)
+    return [{name: `${mp} at most ${most}`, forall: 'a$c', holds: {op: '<=', a: {op: 'get', map: mp, key: v('a$c')}, b: k(most)}} as Law]
   })
   // (a relation written at a composed key N·a + b under a quantified flag that its row a (or column b) holds no cell:
   // at most one b a row (one a a column), three keys read, which the engine's cubes of two keys can't state: one

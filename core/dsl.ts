@@ -33,8 +33,8 @@ import {stepSeedFamilies, tryStepSeed} from './step-seeds.ts'
 import {type TranslationFields, bindSourceMachine, inheritSource, isSourceBound, translationVerdict} from './source-check.ts'
 import {env as knobs} from './solver.ts'
 import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, exactMapSum, fnCall, hasFinite, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, sourceFreeFn, walk, withArithmetic} from './machine.ts'
-import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
-import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
+import {WatchUndecided, allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
+import {ghostOf, proveSome, skolemOf, smallOfChecked, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, sideGoals, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withModelRounds, type ModelRoundPolicy, withWall} from '../kernel/prove.ts'
 import {WallExpired, checkWall, checkBudget, checkWorkEndpoint, searchWall, withBudget, inBudget, BudgetExpired} from './wall.ts'
@@ -3173,8 +3173,11 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       // The witness: the params, the state the breaking step starts from (or the start) and its request's own values.
       const broken = (w: Law | StepLaw, at: string, before: State, input?: Request) =>
         ({goal: `${w.name} ${at}`, witness: {...params, ...before.scalars, ...(input ? numbersOf(input) : {})}, run: {params, trace: trace.map(shown)}})
-      for (const {w, on} of watching) if (!('then' in w) && !on.start(st)) {
-        if (replayRefutation(original, laws, stepLaws, params, [], bound, w)) return broken(w, '@start', st)
+      for (const {w, on} of watching) {
+        if ('then' in w) continue
+        let ok: boolean
+        try { ok = on.start(st) } catch (e) { if (e instanceof WatchUndecided) continue; throw e }
+        if (!ok && replayRefutation(original, laws, stepLaws, params, [], bound, w)) return broken(w, '@start', st)
       }
       for (let d = 0, tries = 0; d < budget.depth && tries < 40 && watchWork.n <= cap && !late(); tries++) {
         const input = r.randomInput(rand, bound, params)
@@ -3187,10 +3190,14 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
         try { next = run.step(params, st, input) } catch (e) { if (e instanceof WallExpired || e instanceof WatchdogExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); break }
         trace.push(input)
         let unconfirmed = false
-        for (const {w, on} of watching) if (!on.step(st, input, next)) {
-          if (replayRefutation(original, laws, stepLaws, params, trace, bound, w)) return broken(w, !('then' in w) ? '@step' : (w.steps ?? 1) > 1 ? `@${w.steps} steps` : '@step law', st, input)
-          unconfirmed = true
-          break
+        for (const {w, on} of watching) {
+          let ok: boolean
+          try { ok = on.step(st, input, next) } catch (e) { if (e instanceof WatchUndecided) continue; throw e }
+          if (!ok) {
+            if (replayRefutation(original, laws, stepLaws, params, trace, bound, w)) return broken(w, !('then' in w) ? '@step' : (w.steps ?? 1) > 1 ? `@${w.steps} steps` : '@step law', st, input)
+            unconfirmed = true
+            break
+          }
         }
         if (unconfirmed) break
         st = next
@@ -3216,14 +3223,14 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
         }
         if (!sumOk) continue
       }
-      if (!given.every(l => watch(m, run, l, params, bound).start(st))) continue
+      if (!given.every(l => { try { return watch(m, run, l, params, bound).start(st) } catch (e) { if (e instanceof WatchUndecided) return false; throw e } })) continue
       const input = r.randomInput(rand, bound, params)
       if (!allowed(m, run, params, st, input)) continue
       let next: State
       try { next = run.step(params, st, input) } catch (e) { if (e instanceof WallExpired || e instanceof WatchdogExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); continue }
       const witness = () => ({...params, ...st.scalars, ...numbersOf(input)})
-      for (const sl of steps1) if (!watch(m, run, sl, params, bound).step(st, input, next)) return {goal: `${sl.name} @step law`, witness: witness()}
-      for (const l of lawsHere) if (!watch(m, run, l, params, bound).step(st, input, next)) return {goal: `${l.name} @step`, witness: witness()}
+      for (const sl of steps1) { try { if (!watch(m, run, sl, params, bound).step(st, input, next)) return {goal: `${sl.name} @step law`, witness: witness()} } catch (e) { if (!(e instanceof WatchUndecided)) throw e } }
+      for (const l of lawsHere) { try { if (!watch(m, run, l, params, bound).step(st, input, next)) return {goal: `${l.name} @step`, witness: witness()} } catch (e) { if (!(e instanceof WatchUndecided)) throw e } }
     }
   } catch (e) { if (e instanceof WallExpired || e instanceof WatchdogExpired) throw e; if (e instanceof BudgetExpired) checkWorkEndpoint(e.phase); return undefined }
   return undefined
@@ -3437,9 +3444,26 @@ function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[
     }
     return retainCounted({proven: c.proven, checked: c.proven, ...(c.why ? {why: c.why} : {}), found: {laws: c.laws.map(l => ({text: l.name}))}} as unknown as Verdict, c)
   }
+  // A quantified existential law's witness search (proveSome/skolemOf) already explores smallOf(m); check the caller's
+  // laws at param size 2 during that same small-instance BFS/walks on the shared machine snapshot so broken ∀∃ rules
+  // stop early with a replay-verified trace while intact rules reuse the cached size-2 states in skolemOf at zero extra
+  // BFS cost (and multi-var tuple-each rules avoid paying size-3 interpreter walks before witness search).
+  const sm = r === originalRule ? captureMachine : r.machine
+  if (opts.search !== false && opts.from !== 'any' && laws.some(l => l.some?.length && l.forall && !l.witness)) {
+    let earlyVerdict: Verdict | undefined
+    smallOfChecked(sm, {
+      laws,
+      accept: v => {
+        const verified = replayVerifiedRefutation(originalRule, laws, [], v)
+        if (verified) { earlyVerdict = verified; return true }
+        return false
+      },
+    }, undefined, [2])
+    if (earlyVerdict) return earlyVerdict
+  }
   // (with a search budget, the laws as given within it on the wall: a step goal of hundreds of hypotheses has a second
   // each by its own budget, so the search would never start)
-  const ms = typeof opts.search === 'object' ? opts.search.ms : undefined, given = () => (opts.fast ? proveSetFast : proveLaws)(r.machine, withKinds(r, laws)) as ReturnType<typeof proveLaws>
+  const ms = typeof opts.search === 'object' ? opts.search.ms : undefined, given = () => (opts.fast ? proveSetFast : proveLaws)(sm, withKinds(r, laws)) as ReturnType<typeof proveLaws>
   // (a law with "there exists" about every key: half of it, as the plain search over its ghosts takes the law too; one
   // step goal of no_lost_keys' laws as given took 57 s of 60 choosing a witness term)
   // (an eighth where such a law binds several names: proveSome gives a ghost map to one bound name alone)
@@ -3708,7 +3732,22 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // ghosts' own laws beside it, on the rule with the ghosts (exists.ts's skolemOf), its verdict `back`'s; no join, whose
   // convex forms can't state a cell read at a key a ghost holds: the engine alone (the join's first whole-set query on
   // db_ae's plain laws took 234 counted s, past the budget, before the engine)
-  const sk = !stepLaws.length && laws.some(l => l.some?.length && l.forall) ? skolemOf(rule.machine, laws) : undefined
+  const skM = !lemmas && rule === r && searchCaptureMachine ? searchCaptureMachine : rule.machine
+  if (!stepLaws.length && laws.some(l => l.some?.length && l.forall && !l.witness)) {
+    let earlyVerdict: Verdict | undefined
+    if (laws.some(l => l.some?.length === 1 && l.forall && !l.witness)) {
+      smallOfChecked(skM, {
+        laws,
+        accept: cand => {
+          const verified = replayVerifiedRefutation(searchOriginalRule ?? r, laws, [], cand)
+          if (verified) { earlyVerdict = verified; return true }
+          return false
+        },
+      })
+      if (earlyVerdict) return earlyVerdict
+    }
+  }
+  const sk = !stepLaws.length && laws.some(l => l.some?.length && l.forall) ? skolemOf(skM, laws) : undefined
   const target = sk ? rule.withGhosts(sk.ghost) : rule, sought = sk?.laws ?? laws
   // (the set the search proved, as it proved it, over the rule with the ghosts (its goals settled again where they stand),
   // the ghosts checked to be the original's (kernel.ts's ghostedOk): each law with "there exists" holds, its value at its

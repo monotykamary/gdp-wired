@@ -18,11 +18,11 @@ import {requestQuotient} from './request-quotient.ts'
 // value before, shifts of it, the request's values and the state before; each is chosen to satisfy P at every
 // counterexample so far, per case of the step (the conditions its updates split on: the request's clause, say).
 // A law under a `forall` key takes witness terms only (a ghost per key would be a map).
-import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, compileC, evalC, evalE, fastStep, interpret, n as k, walk, x as v} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, compileC, cunpair, evalC, evalE, fastStep, interpret, n as k, numbersOf, walk, x as v} from './machine.ts'
 import {type Report, clock, proveLaw, proveLaws, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {env} from './solver.ts'
 import {WallExpired, checkWall} from './wall.ts'
-import {type Ghosted, finiteLawBound, ghostedMachine, ghostedOk, substC} from '../kernel/kernel.ts'
+import {type Ghosted, eachParts, finiteLawBound, ghostedMachine, ghostedOk, substC, tuple, tupleParts} from '../kernel/kernel.ts'
 
 type Env = Record<string, number>
 // A bound value's naturals: [x], or an integer's [x, x$neg].
@@ -158,7 +158,6 @@ export type SmallCheck = {laws: Law[], machine?: Machine, accept?: (v: SmallViol
 function checkSmallState(evalM: Machine, check: SmallCheck, p: Env, st: State, b: number): {violation?: SmallViolation, sawFailure: boolean} {
   let sawFailure = false
   for (const law of check.laws) {
-    if (law.some?.length) continue
     let ok: boolean
     try { ok = holdsAt(evalM, law, p, st, b) } catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; sawFailure = true; continue }
     if (ok) continue
@@ -633,6 +632,7 @@ export function ghostOf(m: Machine, law: Law): SomeWitness | undefined {
 // the walks past it in a third as many; an instance whose params the machine refuses has no states. With no params,
 // 2 and 3 denote the same instance, so sample it only once. Read once a machine.
 const smalls = new WeakMap<Machine, {p: Env, sts: State[]}[]>()
+const smallByParam = new WeakMap<Machine, Map<number, {p: Env, sts: State[]}>>()
 // Adding fresh, unreferenced count definitions cannot change any transition.
 // Reuse the engine's original samples instead of enumerating that same graph
 // with every speculative count attached to every request. The structural check
@@ -648,72 +648,178 @@ export function smallOf(m: Machine, source?: Machine): {p: Env, sts: State[]}[] 
   checkWall('sample cache')
   let out = smalls.get(m)
   if (!out && source && source !== m && canReuseSmall(m, source)) smalls.set(m, (out = smallOf(source)))
-  if (!out) smalls.set(m, (out = (m.params.length ? [2, 3] : [2]).map(x => { const p = Object.fromEntries(m.params.map(q => [q, x])); try { return {p, sts: small(m, p, 3, 3000, 300_000, 100_000)} } catch (e) { if (e instanceof WallExpired) throw e; return {p, sts: []} } })))
+  if (!out) {
+    const by = smallByParam.get(m)
+    const sizes = m.params.length ? [2, 3] : [2]
+    out = sizes.map(x => {
+      const hit = by?.get(x)
+      if (hit) return hit
+      const p = Object.fromEntries(m.params.map(q => [q, x]))
+      try { return {p, sts: small(m, p, 3, 3000, 300_000, 100_000)} } catch (e) { if (e instanceof WallExpired) throw e; return {p, sts: []} }
+    })
+    smalls.set(m, out)
+  }
   return out
 }
 // Like smallOf, checking `check.laws` incrementally on every newly reached state so a broken law stops BFS/walks early
-// and returns its parent-pointer trace without polluting the smalls cache. When no violation is accepted, caches and
-// returns the complete small instances identical to smallOf.
-export function smallOfChecked(m: Machine, check: SmallCheck, source?: Machine): {samples?: {p: Env, sts: State[]}[], violation?: SmallViolation, checkedAll: boolean} {
+// and returns its parent-pointer trace without polluting the smalls cache. When no violation is accepted, caches each
+// finished parameter size (and populates `smalls` once all default sizes are complete) so subsequent `smallOf` calls
+// reuse the explored states at zero extra BFS cost.
+export function smallOfChecked(m: Machine, check: SmallCheck, source?: Machine, sizes?: readonly number[]): {samples?: {p: Env, sts: State[]}[], violation?: SmallViolation, checkedAll: boolean} {
   checkWall('sample cache')
   const evalM = check.machine ?? m
   const reuse = !!source && source !== m && canReuseSmall(m, source)
-  const cached = smalls.get(m) ?? (reuse ? smalls.get(source!) : undefined)
-  if (cached) {
-    if (!smalls.has(m)) smalls.set(m, cached)
-    let sawFailure = false
-    for (const {p, sts} of cached) {
-      let preOk = false
-      try { preOk = !evalM.pre || evalC(evalM.pre, p, {scalars: {}, maps: {}}, evalM) }
-      catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; preOk = false }
-      if (!preOk) { sawFailure = true; continue }
-      for (const st of sts) {
-        const res = checkSmallState(evalM, check, p, st, 4)
-        if (res.violation) return {violation: res.violation, checkedAll: false}
-        if (res.sawFailure) sawFailure = true
-      }
-    }
-    return {samples: cached, checkedAll: !sawFailure && check.laws.every(l => !l.some?.length)}
-  }
   const target = reuse ? source! : m
+  const allSizes = target.params.length ? [2, 3] : [2]
+  const want = sizes && sizes.length ? (target.params.length ? [...sizes] : [2]) : allSizes
+  const cachedFull = smalls.get(m) ?? (reuse ? smalls.get(source!) : undefined)
+  const checkEntry = (entry: {p: Env, sts: State[]}): {violation?: SmallViolation, sawFailure: boolean} => {
+    let preOk = false
+    try { preOk = !evalM.pre || evalC(evalM.pre, entry.p, {scalars: {}, maps: {}}, evalM) }
+    catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; preOk = false }
+    if (!preOk) return {sawFailure: true}
+    let sawFailure = false
+    for (const st of entry.sts) {
+      const res = checkSmallState(evalM, check, entry.p, st, 4)
+      if (res.violation) return {violation: res.violation, sawFailure: true}
+      if (res.sawFailure) sawFailure = true
+    }
+    return {sawFailure}
+  }
+  if (cachedFull) {
+    if (!smalls.has(m)) smalls.set(m, cachedFull)
+    let sawFailure = false
+    for (const entry of cachedFull) {
+      const res = checkEntry(entry)
+      if (res.violation) return {violation: res.violation, checkedAll: false}
+      if (res.sawFailure) sawFailure = true
+    }
+    return {samples: cachedFull, checkedAll: !sawFailure}
+  }
+  let by = smallByParam.get(target)
   const out: {p: Env, sts: State[]}[] = []
   let sawFailure = false
-  for (const x of target.params.length ? [2, 3] : [2]) {
+  for (const x of want) {
+    const existing = by?.get(x)
+    if (existing) {
+      const res = checkEntry(existing)
+      if (res.violation) return {violation: res.violation, checkedAll: false}
+      if (res.sawFailure) sawFailure = true
+      out.push(existing)
+      continue
+    }
     const p = Object.fromEntries(target.params.map(q => [q, x]))
     try {
       const res = withReachabilityWork(() => smallWithin(target, p, 3, 3000, 300_000, 100_000, {...check, machine: evalM}))
       if (res.violation) return {violation: res.violation, checkedAll: false}
       if (res.sawFailure) sawFailure = true
-      out.push({p, sts: res.sts})
+      const entry = {p, sts: res.sts}
+      if (!by) smallByParam.set(target, (by = new Map()))
+      by.set(x, entry)
+      out.push(entry)
     } catch (e) {
       if (e instanceof WallExpired || e instanceof BudgetExpired) throw e
-      out.push({p, sts: []})
+      const entry = {p, sts: []}
+      if (!by) smallByParam.set(target, (by = new Map()))
+      by.set(x, entry)
+      out.push(entry)
     }
   }
-  smalls.set(target, out)
-  if (target !== m) smalls.set(m, out)
-  return {samples: out, checkedAll: !sawFailure && check.laws.every(l => !l.some?.length)}
+  if (by && allSizes.every(x => by!.has(x))) {
+    const full = allSizes.map(x => by!.get(x)!)
+    smalls.set(target, full)
+    if (target !== m) smalls.set(m, full)
+    return {samples: sizes ? out : full, checkedAll: !sawFailure}
+  }
+  return {samples: out, checkedAll: !sawFailure}
 }
 // Laws true at every small state, at every key below one past their values. With `ghosted`, the machine with ghosts
 // (state no step of m reads), each small state of m with the ghosts' values along the steps it was first reached by:
 // one instance a machine, however many ghosts are asked of it.
-export function trueSmall(m: Machine, laws: Law[], ghosted?: Machine): boolean {
-  const g = ghosted ?? m, run = ghosted && interpret(ghosted)
-  const native = Object.values(g.step.maps ?? {}).some(w => !('each' in w) && w.key.op === 'tup')
-  let steps = 0, step = run?.step
-  return smallOf(m).every(({p, sts}) => {
-    const at = new Map<State, State>()
-    return sts.every(st => {
-      let s = st
-      if (run) {
-        if (native && ++steps === 1000) step = fastStep(g) ?? run.step
-        const from = pathTo.get(st)
-        try { s = from ? step!(p, at.get(from[0])!, from[1]) : run.init(p) } catch { return false }
-        at.set(st, s)
+const ghostSmalls = new WeakMap<Machine, {p: Env, sts: State[]}[]>()
+function replayGhostSamples(m: Machine, ghosted: Machine, base: {p: Env, sts: State[]}[]): {p: Env, sts: State[]}[] | undefined {
+  const cached = ghostSmalls.get(ghosted)
+  if (cached) return cached
+  const origMaps = m.maps ?? {}, gMaps = ghosted.maps ?? {}
+  const addedMaps = Object.keys(gMaps).filter(mp => !(mp in origMaps))
+  const pureMapGhosts = addedMaps.length > 0
+    && Object.keys(ghosted.state).length === Object.keys(m.state).length
+    && addedMaps.every(mp => { const w = ghosted.step.maps?.[mp]; return !!w && !('each' in w) })
+  if (pureMapGhosts) {
+    const flagNames = new Set<string>()
+    const collectFlags = (t: unknown): void => walk(t, o => {
+      if (o.op === 'flag' && typeof o.name === 'string' && !flagNames.has(o.name)) {
+        flagNames.add(o.name)
+        collectFlags(ghosted.step.flags?.[o.name])
       }
-      return laws.every(l => holdsAt(g, l, p, s, 4))
     })
-  })
+    for (const mp of addedMaps) collectFlags(ghosted.step.maps![mp])
+    const orderedFlags = Object.entries(ghosted.step.flags ?? {}).filter(([nm]) => flagNames.has(nm))
+    const out: {p: Env, sts: State[]}[] = []
+    for (const {p, sts} of base) {
+      const at = new Map<State, State>(), gsts: State[] = []
+      for (const st of sts) {
+        const from = pathTo.get(st)
+        let s: State
+        if (!from) {
+          const maps: Record<string, Map<number, number>> = {...st.maps}
+          for (const mp of addedMaps) maps[mp] = new Map()
+          const defaults = st.defaults ? {...st.defaults, ...Object.fromEntries(addedMaps.map(mp => [mp, gMaps[mp]!]))} : undefined
+          s = {scalars: st.scalars, maps, ...(defaults ? {defaults} : {})}
+        } else {
+          const prev = at.get(from[0])!, req = from[1]
+          const env: Env = {...p, ...prev.scalars, ...numbersOf(req)}
+          const view = carriedView(ghosted, prev, req, undefined, p)
+          try {
+            for (const [nm, fc] of orderedFlags) env[`?${nm}`] = evalC(fc, env, view, ghosted) ? 1 : 0
+            const maps: Record<string, Map<number, number>> = {...st.maps}
+            for (const mp of addedMaps) {
+              const w = ghosted.step.maps![mp]! as {key: E, value: E}
+              const gk = evalE(w.key, env, view, ghosted)
+              const gv = evalE(w.value, env, view, ghosted)
+              const prevMap = prev.maps[mp]!
+              const dflt = gMaps[mp]!
+              if (gv === (prevMap.get(gk) ?? dflt)) maps[mp] = prevMap
+              else {
+                const nextMap = new Map(prevMap)
+                if (gv === dflt) nextMap.delete(gk); else nextMap.set(gk, gv)
+                maps[mp] = nextMap
+              }
+            }
+            const defaults = st.defaults ? {...st.defaults, ...Object.fromEntries(addedMaps.map(mp => [mp, gMaps[mp]!]))} : undefined
+            s = {scalars: st.scalars, maps, ...(defaults ? {defaults} : {})}
+          } catch { return undefined }
+        }
+        at.set(st, s); gsts.push(s)
+      }
+      out.push({p, sts: gsts})
+    }
+    ghostSmalls.set(ghosted, out)
+    return out
+  }
+  const run = interpret(ghosted)
+  const native = Object.values(ghosted.step.maps ?? {}).some(w => !('each' in w) && w.key.op === 'tup')
+  let steps = 0, step = run.step
+  const out: {p: Env, sts: State[]}[] = []
+  for (const {p, sts} of base) {
+    const at = new Map<State, State>(), gsts: State[] = []
+    for (const st of sts) {
+      if (native && ++steps === 1000) step = fastStep(ghosted) ?? run.step
+      const from = pathTo.get(st)
+      let s: State
+      try { s = from ? step(p, at.get(from[0])!, from[1]) : run.init(p) } catch { return undefined }
+      at.set(st, s); gsts.push(s)
+    }
+    out.push({p, sts: gsts})
+  }
+  ghostSmalls.set(ghosted, out)
+  return out
+}
+export function trueSmall(m: Machine, laws: Law[], ghosted?: Machine, samples?: {p: Env, sts: State[]}[]): boolean {
+  const g = ghosted ?? m, base = samples ?? smallOf(m)
+  const runSamples = ghosted ? replayGhostSamples(m, ghosted, base) : base
+  if (!runSamples) return false
+  return runSamples.every(({p, sts}) => sts.every(s => laws.every(l => holdsAt(g, l, p, s, 4))))
 }
 // A law at a state, its counts the state's, at every key below b.
 // (a state's view once: a law is read at every state, and every law at each)
@@ -745,6 +851,25 @@ function holdsAtWithin(m: Machine, law: Law, p: Env, st: State, b: number): bool
   // Poll at entry and every 256 visited tuple prefixes, rather than paying for
   // a wall-clock read at every binding. Each new state/law starts with a poll.
   let visited = 0
+  if (law.some?.length) {
+    const goSome = (depth: number): boolean => {
+      if ((visited++ & 255) === 0) checkWall('sample law bindings')
+      if (depth === keys.length) {
+        const res = someHolds(law.holds, law.some!, {...env}, view!, m, true)
+        if (res === undefined) throw new Error(`holdsAt: existential law "${law.name}" is undecided`)
+        return res.holds
+      }
+      const name = keys[depth]!, was = env[name]
+      try {
+        for (const value of values) {
+          if (!fixed.has(name)) env[name] = value
+          if (!goSome(depth + 1)) return false
+        }
+        return true
+      } finally { if (!fixed.has(name)) env[name] = was! }
+    }
+    return goSome(0)
+  }
   const go = (depth: number): boolean => {
     if ((visited++ & 255) === 0) checkWall('sample law bindings')
     if (depth === keys.length) return test!(env, view!)
@@ -762,27 +887,259 @@ function holdsAtWithin(m: Machine, law: Law, p: Env, st: State, b: number): bool
 
 // --- evaluating ∃ on a state ----------------------------------------------------------------------------------------
 
-// Whether ∃ vars. P holds where env and st give every other value, with a witness: exact when the bound values are one
-// natural or one integer read linearly (P's truth changes only next to the values its atoms solve for, so those, their
-// neighbours, 0 and one past them are every case); otherwise found among those points, or undefined.
-// (what P is, apart from the state: its groups, atoms and shape, read once a law; a run reads a law with "there exists"
-// at every tuple of its keys at every state, and P's atoms are quadratic in its size to read)
-const shapes = new WeakMap<C, Map<string, {groups: Group[], atoms: Atom[], linearOnly: boolean, reads: boolean}>>()
+const flattenOr = (c: C): C[] => (c.op === 'or' ? c.xs.flatMap(flattenOr) : [c])
+const isTupleKeyPattern = (e: E, bound: Set<string>): boolean => {
+  if (e.op === 'tup') return isTupleKeyPattern(e.a, bound) && isTupleKeyPattern(e.b, bound)
+  if (e.op === 'var' && bound.has(e.name)) return true
+  return !namesOf(e).some(n => bound.has(n))
+}
+const matchTupleKey = (pat: E, cellKey: number, bound: Set<string>, freeEval: (e: E) => number | undefined, out: Env): boolean => {
+  if (pat.op === 'tup') {
+    const [a, b] = cunpair(cellKey)
+    return matchTupleKey(pat.a, a, bound, freeEval, out) && matchTupleKey(pat.b, b, bound, freeEval, out)
+  }
+  if (pat.op === 'var' && bound.has(pat.name)) {
+    if (pat.name in out) return out[pat.name] === cellKey
+    out[pat.name] = cellKey
+    return true
+  }
+  if (!namesOf(pat).some(n => bound.has(n))) {
+    const want = freeEval(pat)
+    return want !== undefined && want === cellKey
+  }
+  return false
+}
+type LiveCellFilter = {
+  map: string
+  key: E
+  boundVars: string[]
+  rhs: E
+  op: '<' | '<=' | '='
+  mapOnLeft: boolean
+  negated: boolean
+}
+type BoundConstraint = {
+  varName: string
+  kind: 'lt' | 'le' | 'gt' | 'ge' | 'eq'
+  rhs: E
+  rhsVars: string[]
+}
+type TupleReadPat = {map: string, key: E}
+type DisjunctShape = {
+  body: C
+  vars: string[]
+  groups: Group[]
+  natOnly: boolean
+  atoms: Atom[]
+  linearOnlyPlain: boolean
+  linearOnlyMaps: string[]
+  reads: boolean
+  liveFilters: LiveCellFilter[]
+  bounds: BoundConstraint[]
+  tupleReads: TupleReadPat[]
+}
+
+function analyzeDisjunct(body: C, allGroups: Group[]): DisjunctShape {
+  const used = new Set(namesOf(body))
+  const groups = allGroups.filter(g => g.some(n => used.has(n)))
+  const vars = groups.flatMap(g => g)
+  const bound = new Set(vars)
+  const natOnly = groups.every(g => g.length === 1)
+  const conjs = topConjuncts(body)
+  const liveFilters: LiveCellFilter[] = []
+  const bounds: BoundConstraint[] = []
+  if (natOnly && vars.length) {
+    for (const c of conjs) {
+      const inner = c.op === 'not' ? c.x : c, negated = c.op === 'not'
+      if (inner.op === '<' || inner.op === '<=' || inner.op === '=') {
+        if (!negated) {
+          const aVar = inner.a.op === 'var' && bound.has(inner.a.name) ? inner.a.name : undefined
+          const bVar = inner.b.op === 'var' && bound.has(inner.b.name) ? inner.b.name : undefined
+          if (aVar && !namesOf(inner.b).includes(aVar)) {
+            bounds.push({varName: aVar, kind: inner.op === '<' ? 'lt' : inner.op === '<=' ? 'le' : 'eq', rhs: inner.b, rhsVars: namesOf(inner.b).filter(n => bound.has(n))})
+          }
+          if (bVar && !namesOf(inner.a).includes(bVar)) {
+            bounds.push({varName: bVar, kind: inner.op === '<' ? 'gt' : inner.op === '<=' ? 'ge' : 'eq', rhs: inner.a, rhsVars: namesOf(inner.a).filter(n => bound.has(n))})
+          }
+        }
+        const tryGet = (g: E, rhs: E, mapOnLeft: boolean) => {
+          if (g.op !== 'get') return
+          if (namesOf(rhs).some(n => bound.has(n))) return
+          const kVars = namesOf(g.key).filter(n => bound.has(n))
+          if (!kVars.length || !isTupleKeyPattern(g.key, bound)) return
+          liveFilters.push({map: g.map, key: g.key, boundVars: [...new Set(kVars)], rhs, op: inner.op, mapOnLeft, negated})
+        }
+        tryGet(inner.a, inner.b, true)
+        tryGet(inner.b, inner.a, false)
+      }
+    }
+  }
+  const tupleReads: TupleReadPat[] = []
+  if (groups.length === 1 && natOnly) {
+    walk(body, o => {
+      if (o.op === 'get' && (o.key as E).op === 'tup' && isTupleKeyPattern(o.key as E, bound) && namesOf(o.key as E).some(n => bound.has(n))) {
+        tupleReads.push({map: o.map as string, key: o.key as E})
+      }
+    })
+  }
+  const keyMaps = new Set<string>()
+  const linearOnlyPlain = linearIn(body, bound, keyMaps)
+  return {
+    body, vars, groups, natOnly,
+    atoms: atomsOf(body, bound),
+    linearOnlyPlain,
+    linearOnlyMaps: [...keyMaps],
+    reads: JSON.stringify(body).includes('"op":"get"'),
+    liveFilters, bounds, tupleReads,
+  }
+}
+
+// Whether ∃ vars. P holds where env and st give every other value, with a witness: exact for
+//   - disjunctions decomposed into independent existential branches (0-var guard branches in O(1)),
+//   - multi-var / tuple-key natural branches bounded by non-default live map cells and/or finite upper bounds,
+//   - one natural or one integer read linearly or as a piecewise-constant map/tuple key;
+// otherwise found among sampled points, or undefined (never falsely claims false).
+// (what P is, apart from the state: its groups, disjuncts, atoms and shape, read once a law; a run reads a law with
+// "there exists" at every tuple of its keys at every state, and P's atoms are quadratic in its size to read)
+const shapes = new WeakMap<C, Map<string, {groups: Group[], disjuncts: DisjunctShape[]}>>()
 const shapeOf = (body: C, vars: string[]) => {
   let byVars = shapes.get(body)
   if (!byVars) shapes.set(body, (byVars = new Map()))
   const id = vars.join(','), had = byVars.get(id)
   if (had) return had
-  const bound = new Set(vars), out = {groups: groupsOf(vars), atoms: atomsOf(body, bound), linearOnly: linearIn(body, bound), reads: JSON.stringify(body).includes('"op":"get"')}
+  const groups = groupsOf(vars)
+  const raw = flattenOr(body).map(d => analyzeDisjunct(d, groups))
+  // Check 0-var guard disjuncts first so guard-false tuples decide in O(1).
+  const disjuncts = [...raw.filter(d => d.groups.length === 0), ...raw.filter(d => d.groups.length > 0)]
+  const out = {groups, disjuncts}
   byVars.set(id, out)
   return out
 }
-// (`quick`: a run's watch, which reads only whether it holds: first 0, then the points without the cells, a witness there
-// one; the verdict and its cap as without)
-export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machine, quick = false): {holds: boolean, witness?: Env} | undefined {
-  const {groups, atoms, linearOnly, reads} = shapeOf(body, vars)
-  const value = (e: E): number | undefined => { try { return evalE(e, env, st, m) } catch { return undefined } }
-  // A bound natural read as a map's key: the cells the maps hold, and one past them, are every case a read gives.
+
+const isStateMap = (m: Machine, mp: string): boolean =>
+  !(m.fns && Object.hasOwn(m.fns, mp)) && !(m.counts && Object.hasOwn(m.counts, mp))
+
+const mapDefault = (m: Machine, st: State, mp: string): number =>
+  (st.defaults && Object.hasOwn(st.defaults, mp) ? st.defaults[mp]! : m.maps && Object.hasOwn(m.maps, mp) ? m.maps[mp]! : 0)
+
+const cmpHolds = (op: '<' | '<=' | '=', lhs: number, rhs: number, negated: boolean): boolean => {
+  const r = op === '=' ? lhs === rhs : op === '<' ? lhs < rhs : lhs <= rhs
+  return negated ? !r : r
+}
+
+function evalDisjunct(d: DisjunctShape, env: Env, st: State, m: Machine, quick: boolean): {holds: boolean, witness?: Env} | undefined {
+  if (d.groups.length === 0) {
+    try { return evalC(d.body, env, st, m) ? {holds: true, witness: {}} : {holds: false} }
+    catch { return undefined }
+  }
+  const valueAt = (e: E, curEnv: Env): number | undefined => { try { return evalE(e, curEnv, st, m) } catch { return undefined } }
+  const value = (e: E): number | undefined => valueAt(e, env)
+  const test = (w: Env): boolean | undefined => { try { return evalC(d.body, {...env, ...w}, st, m) } catch { return undefined } }
+
+  // Regime A: exact live map-cell tuple support + finite domain bounds (1-var or multi-var naturals).
+  if (d.natOnly && (d.liveFilters.length > 0 || d.bounds.length > 0)) {
+    const natBound = new Set(d.vars)
+    // 1. Apply every non-default live map-cell filter to obtain exact partial/full bindings.
+    let partials: Env[] | undefined
+    for (const f of d.liveFilters) {
+      if (!isStateMap(m, f.map)) continue
+      const rhs = value(f.rhs)
+      if (rhs === undefined) continue
+      const dflt = mapDefault(m, st, f.map)
+      const dfltOk = f.mapOnLeft ? cmpHolds(f.op, dflt, rhs, f.negated) : cmpHolds(f.op, rhs, dflt, f.negated)
+      if (dfltOk) continue // Default cells satisfy this conjunct: cannot restrict to stored cells.
+      const cells = st.maps[f.map]
+      const matches: Env[] = []
+      let evalErr = false
+      const safeValue = (e: E): number | undefined => { const r = value(e); if (r === undefined) evalErr = true; return r }
+      if (cells) {
+        for (const [cellKey, cellVal] of cells) {
+          const ok = f.mapOnLeft ? cmpHolds(f.op, cellVal, rhs, f.negated) : cmpHolds(f.op, rhs, cellVal, f.negated)
+          if (!ok) continue
+          const bind: Env = {}
+          if (matchTupleKey(f.key, cellKey, natBound, safeValue, bind)) matches.push(bind)
+          if (evalErr) break
+        }
+      }
+      if (evalErr) continue
+      if (matches.length === 0) return {holds: false}
+      if (partials === undefined) {
+        partials = matches
+      } else {
+        const joined: Env[] = []
+        for (const p of partials) {
+          for (const q of matches) {
+            let compat = true
+            for (const [k2, val2] of Object.entries(q)) if (k2 in p && p[k2] !== val2) { compat = false; break }
+            if (compat) {
+              joined.push({...p, ...q})
+              if (joined.length > 65_536) break
+            }
+          }
+          if (joined.length > 65_536) break
+        }
+        if (joined.length === 0) return {holds: false}
+        if (joined.length <= 65_536) partials = joined
+      }
+    }
+    const basePartials = partials ?? [{}]
+    const boundByLive = new Set(Object.keys(basePartials[0] ?? {}))
+    const remaining = d.vars.filter(x => !boundByLive.has(x))
+    // Order remaining vars topologically so a var whose bound depends on an earlier var comes after it.
+    const orderedRem: string[] = []
+    const resolved = new Set(boundByLive)
+    let progressed = true
+    while (orderedRem.length < remaining.length && progressed) {
+      progressed = false
+      for (const rv of remaining) {
+        if (resolved.has(rv)) continue
+        const hasUpper = d.bounds.some(b => b.varName === rv && (b.kind === 'lt' || b.kind === 'le' || b.kind === 'eq') && b.rhsVars.every(u => resolved.has(u)))
+        if (hasUpper) { orderedRem.push(rv); resolved.add(rv); progressed = true }
+      }
+    }
+    if (orderedRem.length === remaining.length && basePartials.length <= 65_536) {
+      let tried = 0, unknown = false, capHit = false
+      const CAP = 65_536
+      const runRem = (idx: number, w: Env): Env | undefined => {
+        if (idx === orderedRem.length) {
+          if (++tried > CAP) { capHit = true; return undefined }
+          const t = test(w)
+          if (t === undefined) unknown = true
+          return t ? w : undefined
+        }
+        const rv = orderedRem[idx]!, curEnv: Env = {...env, ...w}
+        let lo = 0, hi = Infinity
+        for (const b of d.bounds) {
+          if (b.varName !== rv || !b.rhsVars.every(u => u in w)) continue
+          const val = valueAt(b.rhs, curEnv)
+          if (val === undefined) continue
+          if (b.kind === 'lt') hi = Math.min(hi, val - 1)
+          else if (b.kind === 'le') hi = Math.min(hi, val)
+          else if (b.kind === 'gt') lo = Math.max(lo, val + 1)
+          else if (b.kind === 'ge') lo = Math.max(lo, val)
+          else { lo = Math.max(lo, val); hi = Math.min(hi, val) }
+        }
+        if (!Number.isFinite(hi)) { unknown = true; return undefined }
+        if (hi < lo) return undefined
+        for (let x = lo; x <= hi; x++) {
+          if (capHit) return undefined
+          const hit = runRem(idx + 1, {...w, [rv]: x})
+          if (hit) return hit
+        }
+        return undefined
+      }
+      for (const p of basePartials) {
+        const hit = runRem(0, p)
+        if (hit) return {holds: true, witness: hit}
+        if (capHit) break
+      }
+      if (!unknown && !capHit) return {holds: false}
+    }
+  }
+
+  // Regime B: existing 1-group linear / piecewise-constant map-key solver (now supporting tuple map keys too).
+  const {groups, atoms, reads} = d
+  const linearOnly = d.linearOnlyPlain && d.linearOnlyMaps.every(mp => isStateMap(m, mp))
   const points = (g: Group, cells: Set<number>): number[] => {
     const ps = new Set<number>([0, 1, ...cells, ...[...cells].map(c => c + 1)])
     for (const a of atoms) {
@@ -790,22 +1147,19 @@ export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machi
       if (!s || (g.length === 2 && s2 !== -s) || Object.keys(a.k).some(n => !g.includes(n))) continue
       const r = (sumOf(a.plus, value) ?? NaN) - (sumOf(a.minus, value) ?? NaN)
       if (!Number.isFinite(r)) continue
-      for (const p of [Math.floor(r / s), Math.ceil(r / s)]) for (const d of [-1, 0, 1]) ps.add(p + d)
+      for (const p of [Math.floor(r / s), Math.ceil(r / s)]) for (const d2 of [-1, 0, 1]) ps.add(p + d2)
     }
     const xs = [...ps].filter(p => g.length === 2 || p >= 0)
     const hi = Math.max(...xs), lo = Math.min(...xs)
     return [...new Set([...xs, hi + 1, ...(g.length === 2 ? [lo - 1] : [])])].sort((a, b) => a - b)
   }
   const at = (g: Group, p: number): Env => (g.length === 2 ? {[g[0]!]: Math.max(p, 0), [g[1]!]: Math.max(-p, 0)} : {[g[0]!]: p})
-  const test = (w: Env): boolean | undefined => { try { return evalC(body, {...env, ...w}, st, m) } catch { return undefined } }
   let tried = 0, unknown = false, lists: number[][] = []
   const go = (i: number, w: Env): Env | undefined => {
     if (i === groups.length) { tried++; const t = test(w); if (t === undefined) unknown = true; return t ? w : undefined }
     for (const p of lists[i]!) { if (tried > 4096) return undefined; const hit = go(i + 1, {...w, ...at(groups[i]!, p)}); if (hit) return hit }
     return undefined
   }
-  // (first the points without the cells: P's guard false at a tuple, as at most of a law's, holds at 0 at once; a witness
-  // there is one; then every point, as before, its verdict and cap the same)
   const none = new Set<number>()
   if (reads && quick) {
     const w0 = Object.assign({}, ...groups.map(g => at(g, 0))) as Env
@@ -813,35 +1167,69 @@ export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machi
     lists = groups.map(g => points(g, none)); const near = go(0, {}); if (near) return {holds: true, witness: near}
   }
   const cells = new Set<number>()
-  if (reads) for (const c of Object.values(st.maps)) for (const key of c.keys()) cells.add(key)
+  if (reads) {
+    for (const c of Object.values(st.maps)) for (const key2 of c.keys()) cells.add(key2)
+    if (d.tupleReads.length && groups.length === 1 && d.natOnly) {
+      const bset = new Set(d.vars)
+      for (const tr of d.tupleReads) {
+        if (!isStateMap(m, tr.map)) continue
+        const mapCells = st.maps[tr.map]
+        if (!mapCells) continue
+        for (const cellKey of mapCells.keys()) {
+          const bind: Env = {}
+          if (matchTupleKey(tr.key, cellKey, bset, value, bind)) cells.add(bind[d.vars[0]!]!)
+        }
+      }
+    }
+  }
   lists = groups.map(g => points(g, cells)); tried = 0; unknown = false
   const hit = go(0, {})
   if (hit) return {holds: true, witness: hit}
   return groups.length === 1 && linearOnly && !unknown && tried <= 4096 ? {holds: false} : undefined
+}
+
+// (`quick`: a run's watch, which reads only whether it holds: 0-var guards first, then live/bounded or near points;
+// the verdict and its cap as without)
+export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machine, quick = false): {holds: boolean, witness?: Env} | undefined {
+  const {disjuncts} = shapeOf(body, vars)
+  let anyUndecided = false
+  for (const d of disjuncts) {
+    const res = evalDisjunct(d, env, st, m, quick)
+    if (res?.holds) {
+      const witness: Env = {}
+      for (const name of vars) witness[name] = res.witness?.[name] ?? 0
+      return {holds: true, witness}
+    }
+    if (res === undefined) anyUndecided = true
+  }
+  return anyUndecided ? undefined : {holds: false}
 }
 const sumOf = (es: E[], value: (e: E) => number | undefined): number | undefined => {
   let s = 0
   for (const e of es) { const x = value(e); if (x === undefined) return undefined; s += x }
   return s
 }
-// Every read of a bound natural is linear (through + and × by a constant only, up to an atom).
-function linearIn(c: C, bound: Set<string>): boolean {
+// Every read of a bound natural is linear (through + and × by a constant only, up to an atom) or a piecewise-constant map key.
+function linearIn(c: C, bound: Set<string>, keyMaps: Set<string>): boolean {
   switch (c.op) {
-    case 'not': return linearIn(c.x, bound)
-    case 'and': case 'or': return c.xs.every(y => linearIn(y, bound))
+    case 'not': return linearIn(c.x, bound, keyMaps)
+    case 'and': case 'or': return c.xs.every(y => linearIn(y, bound, keyMaps))
     case 'flag': return true
     case 'all': return !namesOf(c.c).some(n => bound.has(n))
-    case '<': case '<=': case '=': return (lin(c.a, bound) !== undefined && lin(c.b, bound) !== undefined) || (onlyKeys(c.a, bound) && onlyKeys(c.b, bound))
+    case '<': case '<=': case '=': return (lin(c.a, bound) !== undefined && lin(c.b, bound) !== undefined) || (onlyKeys(c.a, bound, keyMaps) && onlyKeys(c.b, bound, keyMaps))
   }
 }
-// Every read of a bound natural is a map's whole key (M[x]: piecewise constant, its pieces the cells).
-function onlyKeys(e: E, bound: Set<string>): boolean {
-  if (e.op === 'get' && e.key.op === 'var' && bound.has(e.key.name)) return true
+// Every read of a bound natural is a map's whole key or pure tuple key (M[x] or M[⟨..., x, ...⟩]: piecewise constant).
+function onlyKeys(e: E, bound: Set<string>, keyMaps: Set<string>): boolean {
+  if (e.op === 'get' && isTupleKeyPattern(e.key, bound) && namesOf(e.key).some(n => bound.has(n))) {
+    keyMaps.add(e.map)
+    return true
+  }
   if (!namesOf(e).some(n => bound.has(n))) return true
   switch (e.op) {
     case 'var': case 'const': return false
-    case 'add': case 'sub': case 'min': case 'max': case 'prod': return onlyKeys(e.a, bound) && onlyKeys(e.b, bound)
-    case 'mul': return onlyKeys(e.a, bound)
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': return onlyKeys(e.a, bound, keyMaps) && onlyKeys(e.b, bound, keyMaps)
+    case 'mul': return onlyKeys(e.a, bound, keyMaps)
     case 'if': case 'tup': case 'proj': return false
     case 'get': return false
   }
@@ -962,71 +1350,202 @@ function provenanceOf(m: Machine, mp2: string, val2: string, taken: Set<string>,
   const inv: Law = {name: `${gname} where ${mp2} is set`, forall: ks[0]!, ...(ks.length > 1 ? {keys: ks.slice(1)} : {}), holds: {op: 'or', xs: [{op: 'not', x: {op: '<=', a: k(1), b: {op: 'get', map: mp2, key: K2}}}, says.length === 1 ? says[0]! : {op: 'and', xs: says}]}}
   return {name: gname, write: {key: w2.key, value: {op: 'if', c: set2, then: v(val2), else: G(w2.key)}}, inv}
 }
+// Simplify constant arithmetic/boolean sub-conditions inside a setter guard so tuple `each` writes collapse cleanly.
+function simplifySet(c: C): C {
+  const T: C = {op: '<=', a: k(0), b: k(0)}, F: C = {op: '<=', a: k(1), b: k(0)}
+  const isT = (x: C) => x.op === '<=' && x.a.op === 'const' && x.b.op === 'const' && x.a.value <= x.b.value
+  const isF = (x: C) => x.op === '<=' && x.a.op === 'const' && x.b.op === 'const' && x.a.value > x.b.value
+  const go = (x: C): C => {
+    switch (x.op) {
+      case 'flag': case 'all': return x
+      case '=':
+        if (key(x.a) === key(x.b)) return T
+        if (x.a.op === 'const' && x.b.op === 'const') return x.a.value === x.b.value ? T : F
+        return x
+      case '<':
+        if (x.a.op === 'const' && x.b.op === 'const') return x.a.value < x.b.value ? T : F
+        return x
+      case '<=':
+        if (x.a.op === 'const' && x.b.op === 'const') return x.a.value <= x.b.value ? T : F
+        if (x.a.op === 'const' && x.a.value === 1 && x.b.op === 'if' && x.b.then.op === 'const' && x.b.else.op === 'const') {
+          if (x.b.then.value >= 1 && x.b.else.value === 0) return go(x.b.c)
+          if (x.b.then.value === 0 && x.b.else.value >= 1) return go({op: 'not', x: x.b.c})
+        }
+        return x
+      case 'not': { const y = go(x.x); return isT(y) ? F : isF(y) ? T : {op: 'not', x: y} }
+      case 'and': {
+        const ys: C[] = []
+        for (const z of x.xs) { const y = go(z); if (isF(y)) return F; if (!isT(y)) ys.push(y) }
+        return ys.length === 0 ? T : ys.length === 1 ? ys[0]! : {op: 'and', xs: ys}
+      }
+      case 'or': {
+        const ys: C[] = []
+        for (const z of x.xs) { const y = go(z); if (isT(y)) return T; if (!isF(y)) ys.push(y) }
+        return ys.length === 0 ? F : ys.length === 1 ? ys[0]! : {op: 'or', xs: ys}
+      }
+    }
+  }
+  return go(c)
+}
 // The writes that set a map's cell from 0: the cell as a term of the request alone and the condition it is set under, a
-// write at one key (its key), or at every key where its value reads `each = τ`, τ over the request alone.
+// write at one key (its key), or at every key where its value reads `each = τ` (or tuple parts via `eachParts`), τ over
+// the request alone.
 function settersOf(m: Machine, mp: string): {at: E, set: C}[] {
   const w = m.step.maps?.[mp]
   if (!w) return []
   const flags = Object.fromEntries(Object.keys(m.step.flags ?? {}).map(f => [f, {op: 'flag', name: f} as C]))
-  const setAt = (val: E): C => substC({op: '<=', a: k(1), b: val}, {vars: {}, maps: {[mp]: () => k(0)}, flags})
+  const setAt = (val: E): C => simplifySet(substC({op: '<=', a: k(1), b: val}, {vars: {}, maps: {[mp]: () => k(0)}, flags}))
   const reqOnly = (t: E) => !readsMaps(t) && namesOf(t).length > 0 && namesOf(t).every(n => m.inputs.includes(n))
   if (!('each' in w)) return reqOnly(w.key) ? [{at: w.key, set: setAt(w.value)}] : []
   const ats = new Map<string, E>()
   walk(w.value, o => { if (o.op === '=') for (const [a, b] of [[o.a, o.b], [o.b, o.a]] as [E, E][]) if (a.op === 'var' && a.name === w.each && reqOnly(b)) ats.set(key(b), b) })
-  return [...ats.values()].map(at => ({at, set: setAt(substVarsE(w.value, {[w.each]: at}))}))
+  const out = [...ats.values()].map(at => ({at, set: setAt(substVarsE(w.value, {[w.each]: at}))}))
+  const arity = m.relations?.[mp]?.length ?? 0
+  if (arity > 1) {
+    const ep = eachParts(w, arity), nameSet = new Set(ep.names)
+    const flatAnd = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(flatAnd) : [c])
+    const collect = (c: C) => {
+      if (c.op === 'or') { c.xs.forEach(collect); return }
+      const eqs = new Map<string, E>()
+      for (const a of flatAnd(c)) {
+        if (a.op !== '=') continue
+        for (const [lhs, rhs] of [[a.a, a.b], [a.b, a.a]] as [E, E][]) {
+          if (lhs.op === 'var' && nameSet.has(lhs.name) && reqOnly(rhs)) eqs.set(lhs.name, rhs)
+        }
+      }
+      if (eqs.size === arity) {
+        const parts = ep.names.map(nm => eqs.get(nm)!), at = tuple(parts), id = key(at)
+        if (!ats.has(id)) {
+          ats.set(id, at)
+          const sub = Object.fromEntries(ep.names.map((nm, i) => [nm, parts[i]!]))
+          out.push({at, set: setAt(substVarsE(ep.value, sub))})
+        }
+      }
+    }
+    walk(ep.value, o => { if (o.op === 'if') collect(o.c as C) })
+  }
+  return out
 }
 // The supports a law made plain by binderGhostsOf may need, those the small instances keep: each ghost below the bound the
-// assumption puts on the input it holds (G[k] := n, n < 64: G[k] < 64); each disjunct with its names at their terms,
+// assumption puts on the input it holds (G[k] := n, n < 64 or n < param); each disjunct with its names at their terms,
 // where one or two control facts hold (a scalar at a value, a cell at the law's key of a map written at one input's
 // key): what keeps a witness before the law reads it (no_lost_keys: Owner at Owner$n[k] where Owned[k] before start);
-// and each map empty at every key while a scalar holds a value (no transfer before start).
-function ghostSupports(m: Machine, law: Law, c: {maps: Ghosted['maps'], sub: Record<string, E>}, gm: Machine): Law[] {
+// and each scalar-keyed map empty at every key while a scalar holds a value (no transfer before start).
+function ghostSupports(m: Machine, law: Law, c: {maps: Ghosted['maps'], sub: Record<string, E>}, gm: Machine, samples?: {p: Env, sts: State[]}[]): Law[] {
   const L = law.forall!, out: Law[] = [], cmp = (op: '<' | '=', a: E, b: E): C => ({op, a, b} as C), lim = (m.assume ? atomsOf2(m.assume) : [])
+  const tupleMaps = new Set<string>(Object.entries(m.relations ?? {}).filter(([, s]) => s.length > 1).map(([mp]) => mp))
+  for (const [mp, w] of Object.entries(m.step.maps ?? {})) if (!('each' in w) && w.key.op === 'tup') tupleMaps.add(mp)
   for (const [name, w] of Object.entries(c.maps)) {
     const val = (w.write as {value: E}).value, i = val.op === 'if' && val.then.op === 'var' ? val.then.name : undefined
-    const bound = lim.find(a => a.op === '<' && a.a.op === 'var' && a.a.name === i && a.b.op === 'const')
+    const bound = lim.find(a => a.op === '<' && a.a.op === 'var' && a.a.name === i && (a.b.op === 'const' || (a.b.op === 'var' && m.params.includes(a.b.name))))
     if (bound) out.push({name: `${name} below ${showE((bound as {b: E}).b)}`, forall: L, holds: cmp('<', {op: 'get', map: name, key: v(L)}, (bound as {b: E}).b)})
   }
-  const sts = smallOf(m).flatMap(q => q.sts), seen = (n: string) => [...new Set(sts.map(st => st.scalars[n] ?? 0))].slice(0, 3)
+  const sts = (samples ?? smallOf(m)).flatMap(q => q.sts), seen = (n: string) => [...new Set(sts.map(st => st.scalars[n] ?? 0))].slice(0, 3)
   const facts: C[] = [...Object.keys(m.state).flatMap(n => seen(n).map(x => cmp('=', v(n), k(x)))),
     ...Object.entries(m.step.maps ?? {}).flatMap(([mp, w]) => ('each' in w || w.key.op !== 'var' ? [] : [0, 1].map(x => cmp('=', {op: 'get', map: mp, key: v(L)}, k(x)))))]
   const ds = (law.holds.op === 'or' ? law.holds.xs : [law.holds]).flatMap(d => (d.op === 'or' ? d.xs : [d])).filter(d => law.some!.some(x => namesOf(d).includes(x)))
   const holds = (g: C[], d: C): C => ({op: 'or', xs: [{op: 'not', x: g.length === 1 ? g[0]! : {op: 'and', xs: g}}, d]})
   for (const d of ds) for (const [j, f] of facts.entries()) for (const g of [[f], ...facts.slice(j + 1).filter(f2 => key((f2 as {a: E}).a) !== key((f as {a: E}).a)).map(f2 => [f, f2])]) out.push({name: `${showC(holds(g, d)).slice(0, 80)} (${out.length})`, forall: L, holds: holds(g, substC(d, {vars: c.sub, maps: {}, flags: {}}))})
-  for (const f of facts.filter(f2 => !readsMaps(f2))) for (const mp of Object.keys(m.maps ?? {})) out.push({name: `${mp} empty where ${showC(f)} (${out.length})`, forall: L, holds: holds([f], cmp('=', {op: 'get', map: mp, key: v(L)}, k(0)))})
-  return out.filter(l2 => { try { return trueSmall(m, [l2], gm) } catch { return false } }).slice(0, 24)
+  for (const f of facts.filter(f2 => !readsMaps(f2))) for (const mp of Object.keys(m.maps ?? {})) if (!tupleMaps.has(mp)) out.push({name: `${mp} empty where ${showC(f)} (${out.length})`, forall: L, holds: holds([f], cmp('=', {op: 'get', map: mp, key: v(L)}, k(0)))})
+  return out.filter(l2 => { try { return trueSmall(m, [l2], gm, samples) } catch { return false } }).slice(0, 24)
 }
-// Ghost maps for a law about one key with several bound names (a disjunction of ∃s, each name in its own disjuncts): for
-// each name, a write that sets a cell the law reads at a key holding the name: the name the request's value the write's
-// key holds there (Owner[N·k + x] set at N·k + n: x is n), or the cell itself (TransferMsg[z] set at τ: z is τ, the
-// law's key one input of τ and each other a ghost map at it: G[k] := n where the cell is set). Each name a term over the
-// ghosts (kernel.ts's someOfGhostsOk reads them so); every choice of one a name, at most 64.
+// Ghost maps for a law about one key with several bound names (a disjunction of ∃s, each name or coupled tuple of names
+// in its own disjuncts): for each group, a write that sets a cell the law reads at a key holding the group's names:
+// single-var (Owner[⟨k, x⟩] set at ⟨k, n⟩: x is n, or TransferMsg[z] set at τ: z is τ) or coupled tuple-key vars
+// (TransferMsg[⟨n, ⟨j, v⟩⟩] set at ⟨n2, ⟨k, v⟩⟩: j is L, n is TransferMsg$n2[L], v is TransferMsg$v[L]). Each name a
+// term over the ghosts (kernel.ts's someOfGhostsOk reads them so); every choice of one a group, at most 64.
 function binderGhostsOf(m: Machine, law: Law, taken: Set<string>): {maps: Ghosted['maps'], sub: Record<string, E>}[] {
   const L = law.forall!, xs = law.some!
   if (law.keys?.length || xs.some(x => x.endsWith('$neg'))) return []
-  const options = xs.map((x, jx) => {
-    const out: {maps: Ghosted['maps'], term: E}[] = [], reads: {mp: string, at: E}[] = []
-    walk(law.holds, o => { if (o.op === 'get' && namesOf(o.key as E).includes(x)) reads.push({mp: o.map as string, at: o.key as E}) })
-    for (const {mp, at: kappa} of reads) for (const {at: tau, set} of settersOf(m, mp)) for (const ki of namesOf(tau)) {
-      const ghostOf = (i: string): [string, Ghosted['maps'][string]] => {
-        let name = `${mp}$${i}${jx || ''}`
-        for (let j = 2; taken.has(name); j++) name = `${mp}$${i}${jx || ''}~${j}`
-        return [name, {start: 0, write: {key: v(ki), value: {op: 'if', c: set, then: v(i), else: {op: 'get', map: name, key: v(ki)}}}}]
+  const xSet = new Set(xs)
+  const allReads: {mp: string, at: E, vars: string[]}[] = []
+  walk(law.holds, o => {
+    if (o.op === 'get') {
+      const vs = namesOf(o.key as E).filter(n => xSet.has(n))
+      if (vs.length) allReads.push({mp: o.map as string, at: o.key as E, vars: vs})
+    }
+  })
+  // Group existential variables that co-occur in the same map-read key (e.g. TransferMsg[⟨n, ⟨j, v⟩⟩]).
+  const parent = new Map<string, string>(xs.map(x => [x, x]))
+  const find = (a: string): string => { const p = parent.get(a)!; if (p === a) return a; const r = find(p); parent.set(a, r); return r }
+  const union = (a: string, b: string) => { const ra = find(a), rb = find(b); if (ra !== rb) parent.set(ra, rb) }
+  for (const r of allReads) for (let i = 1; i < r.vars.length; i++) union(r.vars[0]!, r.vars[i]!)
+  const grpMap = new Map<string, string[]>()
+  for (const x of xs) { const r = find(x); grpMap.set(r, [...(grpMap.get(r) ?? []), x]) }
+  const groups = [...grpMap.values()]
+  // Infer the param/const bound of L in law.holds (e.g. L < keys) to prioritize matching setter inputs first.
+  const lBounds = new Set<string>()
+  walk(law.holds, o => { if (o.op === '<' && (o.a as E).op === 'var' && (o.a as {name: string}).name === L) lBounds.add(key(o.b)) })
+  const inputBound = new Map<string, string>()
+  if (m.assume) walk(m.assume, o => { if (o.op === '<' && (o.a as E).op === 'var' && m.inputs.includes((o.a as {name: string}).name)) inputBound.set((o.a as {name: string}).name, key(o.b)) })
+
+  const options = groups.map((grp, jg) => {
+    const out: {maps: Ghosted['maps'], sub: Record<string, E>}[] = []
+    const makeGhost = (mp: string, ki: string, set: C, i: string): [string, Ghosted['maps'][string]] => {
+      let name = `${mp}$${i}${jg || ''}`
+      for (let j = 2; taken.has(name); j++) name = `${mp}$${i}${jg || ''}~${j}`
+      return [name, {start: 0, write: {key: v(ki), value: {op: 'if', c: set, then: v(i), else: {op: 'get', map: name, key: v(ki)}}}}]
+    }
+    if (grp.length === 1) {
+      const x = grp[0]!, reads = allReads.filter(r => r.vars.length === 1 && r.vars[0] === x)
+      for (const {mp, at: kappa} of reads) for (const {at: tau, set} of settersOf(m, mp)) for (const ki of namesOf(tau)) {
+        const others = namesOf(tau).filter(i => i !== ki)
+        if (kappa.op === 'var' && kappa.name === x) {
+          const gs = others.map(i => [i, makeGhost(mp, ki, set, i)] as const)
+          out.push({maps: Object.fromEntries(gs.map(([, q]) => q)), sub: {[x]: substVarsE(tau, {[ki]: v(L), ...Object.fromEntries(gs.map(([i, q]) => [i, {op: 'get', map: q[0], key: v(L)} as E]))})}})
+        } else for (const i of others) {
+          if (key(substVarsE(kappa, {[L]: v(ki), [x]: v(i)})) !== key(tau)) continue
+          const q = makeGhost(mp, ki, set, i)
+          out.push({maps: {[q[0]]: q[1]}, sub: {[x]: {op: 'get', map: q[0], key: v(L)}}})
+        }
       }
-      const others = namesOf(tau).filter(i => i !== ki)
-      if (kappa.op === 'var' && kappa.name === x) {
-        const gs = others.map(i => [i, ghostOf(i)] as const)
-        out.push({maps: Object.fromEntries(gs.map(([, q]) => q)), term: substVarsE(tau, {[ki]: v(L), ...Object.fromEntries(gs.map(([i, q]) => [i, {op: 'get', map: q[0], key: v(L)} as E]))})})
-      } else for (const i of others) {
-        if (key(substVarsE(kappa, {[L]: v(ki), [x]: v(i)})) !== key(tau)) continue
-        const q = ghostOf(i)
-        out.push({maps: {[q[0]]: q[1]}, term: {op: 'get', map: q[0], key: v(L)}})
+      return out
+    }
+    // Coupled multi-variable tuple key (e.g. TransferMsg[⟨some$2, ⟨some$3, some$4⟩⟩]).
+    const grpSet = new Set(grp)
+    const reads = allReads.filter(r => r.at.op === 'tup' && grp.every(x => r.vars.includes(x)))
+    for (const {mp, at: kappa} of reads) {
+      const kParts = tupleParts(kappa)
+      for (const {at: tau, set} of settersOf(m, mp)) {
+        const tParts = tupleParts(tau)
+        if (tParts.length !== kParts.length) continue
+        const varInput = new Map<string, string>()
+        let pinnedKi: string | undefined, ok = true
+        for (let p = 0; p < kParts.length; p++) {
+          const kp = kParts[p]!, tp = tParts[p]!
+          if (kp.op === 'var' && grpSet.has(kp.name)) {
+            if (tp.op !== 'var' || !m.inputs.includes(tp.name)) { ok = false; break }
+            const prev = varInput.get(kp.name)
+            if (prev !== undefined && prev !== tp.name) { ok = false; break }
+            varInput.set(kp.name, tp.name)
+          } else if (kp.op === 'var' && kp.name === L) {
+            if (tp.op !== 'var' || !m.inputs.includes(tp.name)) { ok = false; break }
+            if (pinnedKi !== undefined && pinnedKi !== tp.name) { ok = false; break }
+            pinnedKi = tp.name
+          } else if (key(kp) !== key(tp)) { ok = false; break }
+        }
+        if (!ok || varInput.size !== grp.length) continue
+        const kis = pinnedKi ? [pinnedKi] : [...namesOf(tau)].sort((a, b) => Number(lBounds.has(inputBound.get(b) ?? '')) - Number(lBounds.has(inputBound.get(a) ?? '')))
+        for (const ki of kis) {
+          const maps: Ghosted['maps'] = {}, sub: Record<string, E> = {}, byInput = new Map<string, string>()
+          for (const x of grp) {
+            const inp = varInput.get(x)!
+            if (inp === ki) { sub[x] = v(L); continue }
+            let gname = byInput.get(inp)
+            if (!gname) {
+              const q = makeGhost(mp, ki, set, inp)
+              gname = q[0]; maps[gname] = q[1]; byInput.set(inp, gname)
+            }
+            sub[x] = {op: 'get', map: gname, key: v(L)}
+          }
+          out.push({maps, sub})
+        }
       }
     }
     return out
   })
   let combos: {maps: Ghosted['maps'], sub: Record<string, E>}[] = [{maps: {}, sub: {}}]
-  xs.forEach((x, j) => { combos = combos.flatMap(c => options[j]!.map(o => ({maps: {...c.maps, ...o.maps}, sub: {...c.sub, [x]: o.term}}))).slice(0, 64) })
+  for (const opts of options) combos = combos.flatMap(c => opts.map(o => ({maps: {...c.maps, ...o.maps}, sub: {...c.sub, ...o.sub}}))).slice(0, 64)
   return combos
 }
 // A witness's local proof need not instantiate unrelated provenance functions.
@@ -1185,14 +1704,15 @@ export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Mach
     // holds on the small instances)
     if (l.some.length > 1) {
       const holdsOf = (sub: Record<string, E>) => substC(l.holds, {vars: sub, maps: {}, flags: {}})
-      const c = binderGhostsOf(m, l, taken).find(c2 => { try { return trueSmall(m, [{...plain, holds: holdsOf(c2.sub)}], ghost(m, Object.entries(c2.maps).map(([name, w]) => ({name, write: w.write as Part['write']})))) } catch { return false } })
+      const fastSamples = !smalls.has(m) && smallByParam.get(m)?.has(2) && !fastStep(m) ? [smallByParam.get(m)!.get(2)!] : undefined
+      const c = binderGhostsOf(m, l, taken).find(c2 => { try { return trueSmall(m, [{...plain, holds: holdsOf(c2.sub)}], ghost(m, Object.entries(c2.maps).map(([name, w]) => ({name, write: w.write as Part['write']}))), fastSamples) } catch { return false } })
       if (!c) return undefined
       for (const [name, w] of Object.entries(c.maps)) { parts.push({name, write: w.write as Part['write']}); taken.add(name) }
       const pl: Law = {...plain, holds: holdsOf(c.sub)}
       out.push(pl)
       plains[l.name] = {plain: pl, sub: c.sub}
       witnesses[l.name] = [...l.some.map(x => `${x} = ${showE(c.sub[x]!)}`), ...Object.entries(c.maps).map(([name, w]) => { const u = w.write as Part['write']; return `${name}[${showE(u.key)}] := ${showE(u.value)}` })].join(', ')
-      cands.push(...ghostSupports(m, l, c, ghost(m)))
+      cands.push(...ghostSupports(m, l, c, ghost(m), fastSamples))
       continue
     }
     const g = mapGhostsOf(m, l, taken).find(c => { try { return trueSmall(m, [...(c.inner ? [c.inner.inv] : []), c.inv, {...l, holds: c.holds, some: undefined}], ghost(m, own(c))) } catch { return false } })
