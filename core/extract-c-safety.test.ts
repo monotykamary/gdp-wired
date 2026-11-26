@@ -2500,7 +2500,7 @@ withClang('C safety <string.h> support and glibc macro-hijack negative controls'
     const rBad = await check([badFile], {propose: false})
     expect(rBad.exit, '<string.h> off-by-one file must report broken (exit 1)').toBe(1)
     expect(rBad.rules[0]?.safety).toMatchObject({status: 'broken'})
-    expect(rBad.rules[0]?.safety?.issues.some(i => i.status === 'broken' && i.replay?.matchedSite)).toBe(true)
+    expect((rBad.rules[0]?.safety as {issues?: {status: string, replay?: {matchedSite?: unknown}}[]})?.issues?.some(i => i.status === 'broken' && i.replay?.matchedSite)).toBe(true)
 
     // (2) <string.h> file calling memcpy/strlen: passes the <string.h> macro audit and is soundly
     //     refused at C safety call/type validation (never falsely proven, never blocked by the
