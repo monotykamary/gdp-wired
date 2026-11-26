@@ -34,8 +34,9 @@ import {
   when,
 } from './dsl.ts'
 import {DEC_ROUND_HELPER_LINES, scaleDecimalHalfEven} from './decimal-round.ts'
-import {seeded} from './machine.ts'
+import {compileJs, seeded} from './machine.ts'
 import {sha256Hex} from './emit.ts'
+import {sha256Hex as sharedSha256Hex} from './sha256.ts'
 import {emitMain, verifyEmittedFile} from './emit-cli.ts'
 import {interpretQ, loadQJs} from './rationals.ts'
 import {qparse, qshow} from './q.ts'
@@ -76,12 +77,18 @@ function runCli(args: string[], cwd: string = root): {status: number, stdout: st
 
 describe('emit metadata and digest primitives', () => {
   test('GDP_WIRED_VERSION matches package.json and pure-JS sha256 matches node:crypto', () => {
+    expect(sha256Hex).toBe(sharedSha256Hex)
     const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {version: string}
     expect(GDP_WIRED_VERSION).toBe(pkg.version)
     for (const sample of ['', 'abc', 'hello world', 'a'.repeat(55), 'a'.repeat(56), 'a'.repeat(64), 'gdp-wired emit λ 0.61.0']) {
       const want = createHash('sha256').update(sample, 'utf8').digest('hex')
       expect(sha256Hex(sample)).toBe(want)
     }
+    // compileJs refusal contract preserved through shared core/codegen.ts printer
+    expect(() => compileJs({
+      name: 'tup-each', params: [], inputs: [], state: {}, maps: {M: 0},
+      step: {maps: {M: {each: 'k', value: {op: 'tup', a: {op: 'var', name: 'k'}, b: {op: 'const', value: 1}}}}},
+    })).toThrow('compileJs takes no tuple key at every key')
   })
 
   test('unproven rules and empty law lists throw Unproven by default', () => {

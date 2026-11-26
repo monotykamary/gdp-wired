@@ -25,8 +25,10 @@ import {
 } from './dsl.ts'
 import {type RatLaw, type RatRule, inspectRatRule, proveRatRule} from './rationals.ts'
 import {type Chart, inspectChart} from './chart.ts'
-import {DEC_ROUND_HELPER_LINES} from './decimal-round.ts'
+import {type EmitHelper, createPrinter, renderTypedHelpers} from './codegen.ts'
+import {sha256Hex} from './sha256.ts'
 import {q} from './q.ts'
+export {sha256Hex} from './sha256.ts'
 
 export const GDP_WIRED_VERSION = '0.61.0'
 
@@ -111,55 +113,7 @@ export type EmitBundle =
   | {readonly ratRule: AnyRatRule, readonly laws?: readonly RatLaw<string, string>[], readonly name?: string, readonly ms?: number}
   | {readonly chart: AnyChart, readonly laws?: readonly Law[], readonly stepLaws?: readonly StepLaw[], readonly name?: string, readonly from?: 'any', readonly ms?: number}
 
-// --- Pure-JS SHA-256 & canonical machine digest ----------------------------------------------------------------------
-
-const SHA256_K = [
-  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-  0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-  0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-  0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-  0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-  0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
-] as const
-
-export function sha256Hex(text: string): string {
-  const bytes = new TextEncoder().encode(text)
-  const bitLen = bytes.length * 8
-  const padLen = ((bytes.length + 9 + 63) >> 6) << 6
-  const buf = new Uint8Array(padLen)
-  buf.set(bytes)
-  buf[bytes.length] = 0x80
-  const view = new DataView(buf.buffer)
-  view.setUint32(padLen - 8, Math.floor(bitLen / 0x100000000), false)
-  view.setUint32(padLen - 4, bitLen >>> 0, false)
-  let h0 = 0x6a09e667, h1 = 0xbb67ae85, h2 = 0x3c6ef372, h3 = 0xa54ff53a
-  let h4 = 0x510e527f, h5 = 0x9b05688c, h6 = 0x1f83d9ab, h7 = 0x5be0cd19
-  const w = new Uint32Array(64)
-  const rotr = (x: number, n: number) => (x >>> n) | (x << (32 - n))
-  for (let off = 0; off < padLen; off += 64) {
-    for (let i = 0; i < 16; i++) w[i] = view.getUint32(off + i * 4, false)
-    for (let i = 16; i < 64; i++) {
-      const s0 = rotr(w[i - 15]!, 7) ^ rotr(w[i - 15]!, 18) ^ (w[i - 15]! >>> 3)
-      const s1 = rotr(w[i - 2]!, 17) ^ rotr(w[i - 2]!, 19) ^ (w[i - 2]! >>> 10)
-      w[i] = (w[i - 16]! + s0 + w[i - 7]! + s1) >>> 0
-    }
-    let a = h0, b = h1, c = h2, d = h3, e = h4, f = h5, g = h6, h = h7
-    for (let i = 0; i < 64; i++) {
-      const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)
-      const ch = (e & f) ^ (~e & g)
-      const t1 = (h + S1 + ch + SHA256_K[i]! + w[i]!) >>> 0
-      const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)
-      const maj = (a & b) ^ (a & c) ^ (b & c)
-      const t2 = (S0 + maj) >>> 0
-      h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0
-    }
-    h0 = (h0 + a) >>> 0; h1 = (h1 + b) >>> 0; h2 = (h2 + c) >>> 0; h3 = (h3 + d) >>> 0
-    h4 = (h4 + e) >>> 0; h5 = (h5 + f) >>> 0; h6 = (h6 + g) >>> 0; h7 = (h7 + h) >>> 0
-  }
-  return [h0, h1, h2, h3, h4, h5, h6, h7].map(x => x.toString(16).padStart(8, '0')).join('')
-}
+// --- Canonical machine digest (SHA-256 lives in core/sha256.ts) ------------------------------------------------------
 
 function canonicalJson(v: unknown): string {
   if (v === null || typeof v === 'boolean' || typeof v === 'string') return JSON.stringify(v)
@@ -477,7 +431,7 @@ type EmitCtx = {
   readonly flags: Map<string, string>
   readonly maps: Map<string, MapInfo>
   readonly fns: Record<string, Fn>
-  readonly helpers: Set<'glob' | 'cpair' | 'cunpair' | 'dec' | 'decRound' | 'idx'>
+  readonly helpers: Set<EmitHelper>
   readonly fnNames: Map<string, string>
   readonly boundKeys: Map<string, string>
   readonly cse: Map<string, {ts: string, kind: KindInfo}>
@@ -541,41 +495,44 @@ function emitTsCode(ctx: EmitCtx) {
     return `${fnId}(${emitNum(key)})`
   }
 
-  const emitNum = (e: E): string => {
-    if (ctx.cse.size) {
+  const {printE: emitNum, printC: emitCond} = createPrinter({
+    preExpr: e => {
+      if (!ctx.cse.size) return undefined
       const hit = ctx.cse.get(JSON.stringify(e))
-      if (hit?.kind.kind === 'nat') return hit.ts
-    }
-    switch (e.op) {
-      case 'const': return String(e.value)
-      case 'var': return slotAsNum(e.name)
-      case 'add': {
-        const lin = emptyLin()
-        addLin(lin, e, 1)
-        cancelSigned(lin, ctx.reg.signedVars)
-        return formatLin(lin)
+      return hit?.kind.kind === 'nat' ? hit.ts : undefined
+    },
+    onVar: slotAsNum,
+    onAdd: e => {
+      const lin = emptyLin()
+      addLin(lin, e, 1)
+      cancelSigned(lin, ctx.reg.signedVars)
+      return formatLin(lin)
+    },
+    simplifyMul: true,
+    onPair: (a, b) => { ctx.helpers.add('cpair'); return `$cpair(${a}, ${b})` },
+    onProj: (a, k) => { ctx.helpers.add('cunpair'); return `$cunpair(${a})[${k}]` },
+    onGet: (map, key) => {
+      const fnExpr = emitFnCall(map, key)
+      if (fnExpr !== undefined) return fnExpr
+      const r = mapReadExpr(map, key)
+      if (r.kind.kind === 'bool') return `(${r.expr} ? 1 : 0)`
+      if (r.kind.kind === 'oneOf') {
+        ctx.helpers.add('idx')
+        return `$idx(${r.expr}, [${r.kind.values.map(v => JSON.stringify(v)).join(', ')}])`
       }
-      case 'sub': return `Math.max(0, ${emitNum(e.a)} - ${emitNum(e.b)})`
-      case 'mul': return e.k === 0 ? '0' : e.k === 1 ? emitNum(e.a) : `(${e.k} * ${emitNum(e.a)})`
-      case 'prod': return `(${emitNum(e.a)} * ${emitNum(e.b)})`
-      case 'min': return `Math.min(${emitNum(e.a)}, ${emitNum(e.b)})`
-      case 'max': return `Math.max(${emitNum(e.a)}, ${emitNum(e.b)})`
-      case 'if': return `(${emitCond(e.c)} ? ${emitNum(e.then)} : ${emitNum(e.else)})`
-      case 'tup': ctx.helpers.add('cpair'); return `$cpair(${emitNum(e.a)}, ${emitNum(e.b)})`
-      case 'proj': ctx.helpers.add('cunpair'); return `$cunpair(${emitNum(e.a)})[${e.k}]`
-      case 'get': {
-        const fnExpr = emitFnCall(e.map, e.key)
-        if (fnExpr !== undefined) return fnExpr
-        const r = mapReadExpr(e.map, e.key)
-        if (r.kind.kind === 'bool') return `(${r.expr} ? 1 : 0)`
-        if (r.kind.kind === 'oneOf') {
-          ctx.helpers.add('idx')
-          return `$idx(${r.expr}, [${r.kind.values.map(v => JSON.stringify(v)).join(', ')}])`
-        }
-        return r.expr
-      }
-    }
-  }
+      return r.expr
+    },
+    onCmp: (op, a, b, negated) => emitCmp(op, a, b, negated),
+    onNot: (x, printC) => {
+      if (x.op === 'not') return printC(x.x)
+      if (x.op === '<' || x.op === '<=' || x.op === '=') return emitCmp(x.op, x.a, x.b, true)
+      const inner = printC(x)
+      return inner === 'true' ? 'false' : inner === 'false' ? 'true' : `!(${inner})`
+    },
+    simplifyBool: true,
+    onFlag: name => ctx.flags.get(name) ?? name,
+    onAll: () => { throw new Error('emit: quantified condition in runtime code is not supported yet') },
+  })
 
   const formatLin = (lin: LinForm): string => {
     const pos: string[] = [], neg: string[] = []
@@ -709,38 +666,6 @@ function emitTsCode(ctx: EmitCtx) {
     return `(${formatLin(lhs)} ${effOp} ${formatLin(rhs)})`
   }
 
-  const emitCond = (c: C): string => {
-    switch (c.op) {
-      case '<': case '<=': case '=': return emitCmp(c.op, c.a, c.b, false)
-      case 'not': {
-        if (c.x.op === 'not') return emitCond(c.x.x)
-        if (c.x.op === '<' || c.x.op === '<=' || c.x.op === '=') return emitCmp(c.x.op, c.x.a, c.x.b, true)
-        const inner = emitCond(c.x)
-        return inner === 'true' ? 'false' : inner === 'false' ? 'true' : `!(${inner})`
-      }
-      case 'and': {
-        const parts: string[] = []
-        for (const x of c.xs) {
-          const s = emitCond(x)
-          if (s === 'false') return 'false'
-          if (s !== 'true' && !parts.includes(s)) parts.push(s)
-        }
-        return parts.length === 0 ? 'true' : parts.length === 1 ? parts[0]! : `(${parts.join(' && ')})`
-      }
-      case 'or': {
-        const parts: string[] = []
-        for (const x of c.xs) {
-          const s = emitCond(x)
-          if (s === 'true') return 'true'
-          if (s !== 'false' && !parts.includes(s)) parts.push(s)
-        }
-        return parts.length === 0 ? 'false' : parts.length === 1 ? parts[0]! : `(${parts.join(' || ')})`
-      }
-      case 'flag': return ctx.flags.get(c.name) ?? c.name
-      case 'all': throw new Error('emit: quantified condition in runtime code is not supported yet')
-    }
-  }
-
   const emitBoolVal = (e: E): string => {
     if (e.op === 'const') return e.value === 0 ? 'false' : 'true'
     const b = boolSlotOf(e)
@@ -839,79 +764,7 @@ function emitTsCode(ctx: EmitCtx) {
   return {emitNum, emitCond, emitSignedDiff, emitBoolVal, emitChoiceVal, emitKindVal}
 }
 
-// --- Helper functions emitted only when used -------------------------------------------------------------------------
-
-function renderHelpers(helpers: ReadonlySet<string>): string[] {
-  const out: string[] = []
-  if (helpers.has('idx')) out.push('function $idx<T extends string>(v: T, xs: readonly T[]): number { const i = xs.indexOf(v); if (i < 0) throw new RangeError(`unexpected choice ${v}`); return i }')
-  if (helpers.has('dec')) {
-    out.push(
-      'function $dec(x: number, places: number, scale: number, name: string): number {',
-      '  if (!Number.isFinite(x)) throw new RangeError(`${name}: expected finite decimal`)',
-      '  const text = x.toFixed(places + 3)',
-      '  const m = /^(-?)(\\d+)(?:\\.(\\d+))?$/.exec(text)',
-      '  if (!m) throw new RangeError(`${name}: invalid decimal ${x}`)',
-      "  const frac = (m[3] ?? '').replace(/0+$/, '')",
-      '  if (frac.length > places) throw new RangeError(`${name}: needs more than ${places} decimal places`)',
-      "  const n = Number(m[2]) * scale + Number(frac.padEnd(places, '0') || '0')",
-      '  if (!Number.isSafeInteger(n)) throw new RangeError(`${name}: decimal out of safe integer range`)',
-      '  return m[1] && n !== 0 ? -n : n',
-      '}',
-    )
-  }
-  if (helpers.has('decRound')) {
-    out.push(...DEC_ROUND_HELPER_LINES)
-  }
-  if (helpers.has('glob')) {
-    out.push(
-      'function $globMatch(pattern: string, text: string): boolean {',
-      '  const parts: string[][] = [[]]',
-      '  for (let i = 0; i < pattern.length; i++) {',
-      "    if (pattern[i] === '\\\\' && pattern[i + 1] === '*') { parts[parts.length - 1]!.push('*'); i++ }",
-      "    else if (pattern[i] === '*') parts.push([])",
-      '    else parts[parts.length - 1]!.push(pattern[i]!)',
-      '  }',
-      "  const lits = parts.map(p => p.join(''))",
-      '  if (lits.length === 1) return text === lits[0]',
-      '  const head = lits[0]!, tail = lits[lits.length - 1]!',
-      '  if (!text.startsWith(head) || !text.endsWith(tail) || text.length < head.length + tail.length) return false',
-      '  let at = head.length',
-      '  const end = text.length - tail.length',
-      '  for (const lit of lits.slice(1, -1)) {',
-      '    const idx = text.indexOf(lit, at)',
-      '    if (idx < 0 || idx + lit.length > end) return false',
-      '    at = idx + lit.length',
-      '  }',
-      '  return true',
-      '}',
-    )
-  }
-  if (helpers.has('cpair')) {
-    out.push(
-      'function $cpair(a: number, b: number): number {',
-      '  const s = a + b',
-      '  const v = s % 2 === 0 ? (s / 2) * (s + 1) + b : s * ((s + 1) / 2) + b',
-      "  if (!Number.isSafeInteger(v)) throw new RangeError('tuple key passed safe integer range')",
-      '  return v',
-      '}',
-    )
-  }
-  if (helpers.has('cunpair')) {
-    out.push(
-      'function $cunpair(z: number): readonly [number, number] {',
-      '  const tri = (s: number) => (s % 2 === 0 ? (s / 2) * (s + 1) : s * ((s + 1) / 2))',
-      '  let s = Math.floor((Math.sqrt(8 * z + 1) - 1) / 2)',
-      '  while (s > 0 && tri(s) > z) s--',
-      '  while (tri(s + 1) <= z) s++',
-      '  const b = z - tri(s)',
-      '  return [s - b, b]',
-      '}',
-    )
-  }
-  return out
-}
-
-// --- Direct recurrence / custom fn emitter ---------------------------------------------------------------------------
+// --- Direct recurrence / custom fn emitter (typed helpers live in core/codegen.ts) -----------------------------------
 
 function emitRuleFnHelper(fnId: string, fn: Fn): string[] {
   const direct = directOf(fn)
@@ -935,36 +788,19 @@ function emitRecurHelper(fnId: string, d: Extract<DirectFn, {kind: 'recur'}>): s
     else if (ud?.kind === 'recur') lines.push(...emitRecurHelper(uid, ud))
     else lines.push(...emitRuleFnHelper(uid, ufn))
   }
-  const emitE = (e: E): string => {
-    switch (e.op) {
-      case 'var': return e.name
-      case 'const': return String(e.value)
-      case 'add': return `(${emitE(e.a)} + ${emitE(e.b)})`
-      case 'sub': return `Math.max(0, ${emitE(e.a)} - ${emitE(e.b)})`
-      case 'mul': return `(${e.k} * ${emitE(e.a)})`
-      case 'prod': return `(${emitE(e.a)} * ${emitE(e.b)})`
-      case 'min': return `Math.min(${emitE(e.a)}, ${emitE(e.b)})`
-      case 'max': return `Math.max(${emitE(e.a)}, ${emitE(e.b)})`
-      case 'if': return `(${emitC(e.c)} ? ${emitE(e.then)} : ${emitE(e.else)})`
-      case 'get': {
-        const ufn = d.uses[e.map]!, uid = useNames.get(e.map)!, arity = ufn.arity ?? 1
-        const args = arity > 1 ? pairedArgs(e.key, arity) : undefined
-        return args ? `${uid}(${args.map(emitE).join(', ')})` : `${uid}(${emitE(e.key)})`
-      }
-      case 'tup': case 'proj': throw new Error('emit: tuple in recurrence')
-    }
-  }
-  const emitC = (c: C): string => {
-    switch (c.op) {
-      case '<': return `(${emitE(c.a)} < ${emitE(c.b)})`
-      case '<=': return `(${emitE(c.a)} <= ${emitE(c.b)})`
-      case '=': return `(${emitE(c.a)} === ${emitE(c.b)})`
-      case 'and': return c.xs.length ? `(${c.xs.map(emitC).join(' && ')})` : 'true'
-      case 'or': return c.xs.length ? `(${c.xs.map(emitC).join(' || ')})` : 'false'
-      case 'not': return `!(${emitC(c.x)})`
-      case 'flag': case 'all': throw new Error('emit: flag/quantifier in recurrence')
-    }
-  }
+  const {printE: emitE} = createPrinter({
+    onVar: n => n,
+    onGet: (map, key, printE) => {
+      const ufn = d.uses[map]!, uid = useNames.get(map)!, arity = ufn.arity ?? 1
+      const args = arity > 1 ? pairedArgs(key, arity) : undefined
+      return args ? `${uid}(${args.map(printE).join(', ')})` : `${uid}(${printE(key)})`
+    },
+    onPair: () => { throw new Error('emit: tuple in recurrence') },
+    onProj: () => { throw new Error('emit: tuple in recurrence') },
+    onNot: (x, printC) => `!(${printC(x)})`,
+    onFlag: () => { throw new Error('emit: flag/quantifier in recurrence') },
+    onAll: () => { throw new Error('emit: flag/quantifier in recurrence') },
+  })
   const sig = ['n: number', ...d.args.map(a => `${a}: number`)].join(', ')
   lines.push(
     `function ${fnId}(${sig}): number {`,
@@ -977,6 +813,32 @@ function emitRecurHelper(fnId: string, d: Extract<DirectFn, {kind: 'recur'}>): s
     '}',
   )
   return lines
+}
+
+function collectFnHelpers(fns: Record<string, Fn> | undefined): {fnNames: Map<string, string>, fnHelperLines: string[]} {
+  const fnNames = new Map<string, string>()
+  const fnHelperLines: string[] = []
+  for (const [k, fn] of Object.entries(fns ?? {})) {
+    if (/^(div|mod)\$\d+$/.test(k)) continue
+    const d = directOf(fn)
+    if (d?.kind === 'div' || d?.kind === 'mod' || d?.kind === 'const') continue
+    const id = safeVar('$fn_', k)
+    fnNames.set(k, id)
+    fnHelperLines.push(...emitRuleFnHelper(id, fn))
+  }
+  return {fnNames, fnHelperLines}
+}
+
+function buildArithDesc(decPlaces: ReadonlySet<number>, roundedPlaces: ReadonlySet<number>): string {
+  const placesList = [...decPlaces].sort((a, b) => a - b)
+  const roundedList = [...roundedPlaces].sort((a, b) => a - b)
+  if (roundedList.length > 0) {
+    return `exact scaled fixed-point integers (${placesList.map(p => `10^-${p}`).join(', ')}); inputs rounded half-even to ${roundedList.map(p => `10^-${p}`).join(', ')}; laws hold for the rounded values; safe integer range <= 2^53 - 1`
+  }
+  if (placesList.length > 0) {
+    return `exact scaled fixed-point integers (${placesList.map(p => `10^-${p}`).join(', ')}); throws RangeError on inputs exceeding ${placesList.join('/')} decimal places (matching encodeInput); safe integer range <= 2^53 - 1`
+  }
+  return 'exact JavaScript safe integers over N/Z (truncated natural subtraction max(0, a - b); safe range <= 2^53 - 1)'
 }
 
 // --- Header comment formatter ----------------------------------------------------------------------------------------
@@ -1053,22 +915,12 @@ export function emitFun(f: AnyFun, opts: EmitFunOptions = {}): EmitResult {
     decimalPlacesIn(k, decPlaces)
     decimalRoundedPlacesIn(k, roundedPlaces)
   }
-  const hasDecimals = decPlaces.size > 0
 
-  const fnNames = new Map<string, string>()
-  const fnHelperLines: string[] = []
-  for (const [k, fn] of Object.entries(m.fns ?? {})) {
-    if (/^(div|mod)\$\d+$/.test(k)) continue
-    const d = directOf(fn)
-    if (d?.kind === 'div' || d?.kind === 'mod' || d?.kind === 'const') continue
-    const id = safeVar('$fn_', k)
-    fnNames.set(k, id)
-    fnHelperLines.push(...emitRuleFnHelper(id, fn))
-  }
+  const {fnNames, fnHelperLines} = collectFnHelpers(m.fns)
 
   const reg = makeRegistry()
   const scaleLines: string[] = []
-  const helpers = new Set<'glob' | 'cpair' | 'cunpair' | 'dec' | 'decRound' | 'idx'>()
+  const helpers = new Set<EmitHelper>()
 
   // Register params & inputs; top-level decimal fields get clean scaled locals (e.g. `const $p_approveAt = $dec(...)`)
   for (const [n, , k] of meta.params) {
@@ -1135,13 +987,7 @@ export function emitFun(f: AnyFun, opts: EmitFunOptions = {}): EmitResult {
     }
   }
 
-  const placesList = [...decPlaces].sort((a, b) => a - b)
-  const roundedList = [...roundedPlaces].sort((a, b) => a - b)
-  const arithDesc = roundedList.length > 0
-    ? `exact scaled fixed-point integers (${placesList.map(p => `10^-${p}`).join(', ')}); inputs rounded half-even to ${roundedList.map(p => `10^-${p}`).join(', ')}; laws hold for the rounded values; safe integer range <= 2^53 - 1`
-    : hasDecimals
-      ? `exact scaled fixed-point integers (${placesList.map(p => `10^-${p}`).join(', ')}); throws RangeError on inputs exceeding ${placesList.join('/')} decimal places (matching encodeInput); safe integer range <= 2^53 - 1`
-      : 'exact JavaScript safe integers over N/Z (truncated natural subtraction max(0, a - b); safe range <= 2^53 - 1)'
+  const arithDesc = buildArithDesc(decPlaces, roundedPlaces)
 
   const lines: string[] = [
     ...renderHeader({name: meta.name, kind: 'fun', digest, arithmetic: arithDesc, laws: reports, ...(opts.provenance ? {provenance: opts.provenance} : {})}),
@@ -1159,7 +1005,7 @@ export function emitFun(f: AnyFun, opts: EmitFunOptions = {}): EmitResult {
   for (const [n, , k] of meta.outputs) lines.push(`  readonly ${propKey(n)}: ${kindTsType(k)}`)
   lines.push('}', '')
 
-  const helperLines = renderHelpers(ctx.helpers)
+  const helperLines = renderTypedHelpers(ctx.helpers)
   if (helperLines.length) lines.push(...helperLines, '')
   if (fnHelperLines.length) lines.push(...fnHelperLines, '')
 
@@ -1281,20 +1127,10 @@ function emitRuleInternal(r: AnyRule, opts: EmitRuleOptions, kind: 'rule' | 'cha
   }
   for (const [, k] of meta.state) { decimalPlacesIn(k, decPlaces); decimalRoundedPlacesIn(k, roundedPlaces) }
   for (const [, , k] of meta.maps) if (k) { decimalPlacesIn(k, decPlaces); decimalRoundedPlacesIn(k, roundedPlaces) }
-  const hasDecimals = decPlaces.size > 0
 
-  const fnNames = new Map<string, string>()
-  const fnHelperLines: string[] = []
-  for (const [k, fn] of Object.entries(m.fns ?? {})) {
-    if (/^(div|mod)\$\d+$/.test(k)) continue
-    const d = directOf(fn)
-    if (d?.kind === 'div' || d?.kind === 'mod' || d?.kind === 'const') continue
-    const id = safeVar('$fn_', k)
-    fnNames.set(k, id)
-    fnHelperLines.push(...emitRuleFnHelper(id, fn))
-  }
+  const {fnNames, fnHelperLines} = collectFnHelpers(m.fns)
 
-  const helpers = new Set<'glob' | 'cpair' | 'cunpair' | 'dec' | 'decRound' | 'idx'>()
+  const helpers = new Set<EmitHelper>()
   const initScaleLines: string[] = []
   const stepScaleLines: string[] = []
   const reg = makeRegistry()
@@ -1607,13 +1443,7 @@ function emitRuleInternal(r: AnyRule, opts: EmitRuleOptions, kind: 'rule' | 'cha
     if (historyFields.prune) nextHistoryFields.push(['_last', propAccess('input', historyFields.prune.order)])
   }
 
-  const placesList = [...decPlaces].sort((a, b) => a - b)
-  const roundedList = [...roundedPlaces].sort((a, b) => a - b)
-  const arithDesc = roundedList.length > 0
-    ? `exact scaled fixed-point integers (${placesList.map(p => `10^-${p}`).join(', ')}); inputs rounded half-even to ${roundedList.map(p => `10^-${p}`).join(', ')}; laws hold for the rounded values; safe integer range <= 2^53 - 1`
-    : hasDecimals
-      ? `exact scaled fixed-point integers (${placesList.map(p => `10^-${p}`).join(', ')}); throws RangeError on inputs exceeding ${placesList.join('/')} decimal places (matching encodeInput); safe integer range <= 2^53 - 1`
-      : 'exact JavaScript safe integers over N/Z (truncated natural subtraction max(0, a - b); safe range <= 2^53 - 1)'
+  const arithDesc = buildArithDesc(decPlaces, roundedPlaces)
 
   const lines: string[] = [
     ...renderHeader({name: meta.name, kind, digest, arithmetic: arithDesc, laws: reports, ...(opts.provenance ? {provenance: opts.provenance} : {})}),
@@ -1648,7 +1478,7 @@ function emitRuleInternal(r: AnyRule, opts: EmitRuleOptions, kind: 'rule' | 'cha
   }
   lines.push('}', '')
 
-  const helperLines = renderHelpers(ctx.helpers)
+  const helperLines = renderTypedHelpers(ctx.helpers)
   if (helperLines.length) lines.push(...helperLines, '')
   if (fnHelperLines.length) lines.push(...fnHelperLines, '')
   if (cellGetters.length) lines.push(...cellGetters, '')

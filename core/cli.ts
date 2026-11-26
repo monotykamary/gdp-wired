@@ -33,14 +33,8 @@ const proveLeadsTo: typeof rawLeadsTo = (...a) => admitted(() => rawLeadsTo(...a
 const proveTwoRuns: typeof rawTwoRuns = (...a) => admitted(() => rawTwoRuns(...a))
 const cliNow = () => syncControl ? traceNow() : Date.now()
 import {type InEnv, contend, envOf, inEnv, shrinkRun} from './system.ts'
-
-type FS = {existsSync: (p: string) => boolean, readFileSync: (p: string, e: string) => string, readdirSync: (p: string) => string[], statSync: (p: string) => {isDirectory: () => boolean},
-  mkdirSync: (p: string, o: {recursive: boolean}) => unknown, writeFileSync: (p: string, s: string) => void}
-type Path = {resolve: (...p: string[]) => string, dirname: (p: string) => string, join: (...p: string[]) => string, basename: (p: string) => string, extname: (p: string) => string, relative: (a: string, b: string) => string}
-const proc = (globalThis as unknown as {process: {argv: string[], exitCode?: number, cwd: () => string, env: Record<string, string | undefined>, stdout: {write: (s: string) => void, isTTY?: boolean}, stderr?: {write: (s: string) => void}, getBuiltinModule: (id: string) => unknown, on?: (ev: string, fn: () => void) => void, exit?: (code?: number) => never}}).process
-const fs = proc.getBuiltinModule('node:fs') as FS, path = proc.getBuiltinModule('node:path') as Path
-const out = (s = '') => proc.stdout.write(`${s}\n`)
-const err = (s: string) => (proc.stderr ?? proc.stdout).write(`${s}\n`)
+import {cliErr as err, cliFs as fs, cliOut as out, cliPath as path, cliProc as proc, parseCliFlags, up} from './cli-io.ts'
+export {up} from './cli-io.ts'
 // Color, plain ANSI: only on a terminal, never with --json, NO_COLOR (any value) or TERM=dumb; FORCE_COLOR turns it on.
 // Uncolored, the text is the same byte for byte.
 export const colors = (env: Record<string, string | undefined>, tty: boolean, json = false): boolean =>
@@ -53,23 +47,16 @@ const VERDICT = {proven: 'green', broken: 'red', unknown: 'yellow', 'not read': 
 // --- the options ---------------------------------------------------------------------------------------------------------
 export type Opts = {entry?: string, mode?: 'standalone', methods?: string[], failures?: 'refuse' | 'kept', onError?: 'refuse' | 'discard', json?: boolean, ms: number, work?: number, watchdogMs?: number, propose: boolean, root?: string,
   python?: string, clock?: string, cert?: string, [k: string]: unknown}
+const CLI_BOOL_FLAGS = new Set(['--json', '--no-propose', '--security', '--safety', '--require-review'])
 function args(argv: string[]): {cmd: string, targets: string[], o: Partial<Opts>} {
-  const o: Partial<Opts> = {propose: true}, targets: string[] = []
-  let cmd = ''
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i]!
-    if (a === '--json') o.json = true
-    else if (a === '--no-propose') o.propose = false
-    else if (a === '--security') o.security = true
-    else if (a === '--safety') o.safety = true
-    else if (a === '--require-review') o.requireReview = true
-    else if (a.startsWith('--')) {
-      const [k, inline] = a.slice(2).split('=') as [string, string | undefined], v = inline ?? argv[++i] ?? ''
-      const key = k.replace(/-(\w)/g, (_, c: string) => c.toUpperCase())
-      o[key] = key === 'methods' ? v.split(',') : key === 'ms' || key === 'work' || key === 'watchdogMs' ? Number(v) : v
-    } else if (!cmd) cmd = a
-    else targets.push(a)
+  const {positionals, flags} = parseCliFlags(argv, CLI_BOOL_FLAGS, true)
+  const o: Partial<Opts> = {propose: true}
+  for (const [key, val] of Object.entries(flags)) {
+    if (key === 'noPropose') o.propose = false
+    else if (typeof val === 'boolean') o[key] = val
+    else o[key] = key === 'methods' ? val.split(',') : key === 'ms' || key === 'work' || key === 'watchdogMs' ? Number(val) : val
   }
+  const [cmd = '', ...targets] = positionals
   return {cmd, targets, o}
 }
 
@@ -98,11 +85,7 @@ function targetsOf(p: string): Target[] {
   return [{lang, at: abs, files: [abs]}]
 }
 const swiftFiles = (d: string): string[] => (fs.existsSync(d) ? fs.readdirSync(d).flatMap(f => { const p = path.join(d, f); return fs.statSync(p).isDirectory() ? swiftFiles(p) : f.endsWith('.swift') ? [p] : [] }) : [])
-const rustFiles = (crate: string): string[] => { const d = path.join(crate, 'src'); return fs.existsSync(d) ? fs.readdirSync(d).filter(f => f.endsWith('.rs')).map(f => path.join(d, f)) : [] }
-// The nearest directory from `d` up where `ok` holds.
-export function up(d: string, ok: (d: string) => boolean): string | undefined {
-  for (let x = d; ; x = path.dirname(x)) { if (ok(x)) return x; if (path.dirname(x) === x) return undefined }
-}
+const rustFiles = (crate: string): string[] => { const d = path.join(crate, 'src'); return fs.existsSync(d) ? fs.readdirSync(d).filter(f => f.endsWith('.rs')).map(f => path.join(crate, 'src', f)) : [] }
 
 // A front end run on a target with the options (each loaded only when its language is read).
 async function extractOne(t: Target, o: Record<string, unknown>): Promise<Extraction> {

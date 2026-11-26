@@ -15,6 +15,7 @@ import {observeEval} from './work-observe.ts'
 import {observeAst} from './meter.ts'
 import {startWork} from './work-admission.ts'
 import {completeWorkProfile} from './work-profile.ts'
+import {createPrinter, runtimeFor} from './codegen.ts'
 
 
 // The one generator of the repo's random draws: x' = (1103515245 x + 12345) mod 2^31, exact (Math.imul). In doubles
@@ -908,43 +909,7 @@ export function interpret(m: Machine, checkpoint?: () => void) {
 
 // The same machine as JavaScript source: what an app ships. A step reads the state it was given (every query, flag,
 // scalar, key and value first), then writes the maps and the records in place, so it costs the same however large they
-// grow; the state passed in is consumed. fork copies a state to branch from.
-// The runtime's helpers: a compiled module declares the ones it calls (and the ones those call), no others.
-const RUNTIME: [string, string][] = [
-  ['$n', `function $n(v, what) { if (typeof v !== 'number' || !Number.isSafeInteger(v) || v < 0) throw new RangeError(what + ' must be a natural below 2^53, not ' + v); return v; }`],
-  ['$x', `function $x(v) { if (v > 9007199254740991) throw new RangeError('a value passed 2^53 - 1, past which the proofs over the naturals no longer describe the run'); return v; }`],
-  ['$p', `function $p(a, b) { const s = a + b, v = (s % 2 === 0 ? (s / 2) * (s + 1) : s * ((s + 1) / 2)) + b; if (!Number.isSafeInteger(v)) throw new RangeError('a tuple key passed 2^53 - 1, past which the proofs over the naturals no longer describe the run'); return v; }`],
-  ['$u', `function $u(z) { const tri = t => (t % 2 === 0 ? (t / 2) * (t + 1) : t * ((t + 1) / 2)); let s = Math.floor((Math.sqrt(8 * z + 1) - 1) / 2); while (s > 0 && tri(s) > z) s--; while (tri(s + 1) <= z) s++; const b = z - tri(s); return [s - b, b]; }`],
-  ['$m', `function $m(v, what) { if (!(v instanceof Map)) throw new RangeError(what + ' must be a Map of naturals'); for (const [key, x] of v) { $n(key, 'a key of ' + what); $n(x, 'a cell of ' + what); } return v; }`],
-  // ($unique: the naturals of `vals` (each at most `top`) sorted and made unique. A dense range is marked in a reused
-  // stamp buffer and read back in key order, no sort and no Set per step; a sparse one falls back to a Set and a sort.
-  // The stamp never reaches 2^32 − 1: at that count the buffer is zeroed and the stamps restart at 1, so a stale mark
-  // can never equal a live stamp; a grown buffer starts at 0 likewise.)
-  ['$unique', `function $unique(vals, top) { if (top > 4 * vals.length + 64 || top > 1048576) return [...new Set(vals)].sort((a, b) => a - b); let buf = $unique.buf; if (!buf || buf.length <= top) { buf = new Uint32Array(Math.max(top + 1, buf ? 2 * buf.length : 256)); $unique.buf = buf; $unique.stamp = 0; } let s = $unique.stamp + 1; if (s >= 0xFFFFFFFF) { buf.fill(0); s = 1; } $unique.stamp = s; for (let i = 0; i < vals.length; i++) buf[vals[i]] = s; const out = []; for (let i = 0; i <= top; i++) if (buf[i] === s) out.push(i); return out; }`],
-  ['$keys', `function $keys(maps, names) { const keys = []; let past = 0; for (const n of Object.keys(maps)) for (const key of maps[n].keys()) if (key + 1 > past) past = key + 1; for (const n of names) for (const key of maps[n].keys()) keys.push(key); const out = $unique(keys, past); out.push(past); return out; }`],
-  // ($breaks: every breakpoint q of the reads and comparisons and its neighbours q − 1 .. q + 2, sorted and unique, then one
-  // past the last. A dense set is marked straight into $unique's stamp buffer (no array of the neighbours and no second
-  // pass); a sparse one goes through $unique's Set path. Both give the same list.)
-  ['$breaks', `function $breaks(maps, reads, cmps) { const p = [0]; let top = 0; for (const [n, d, minus] of reads) { for (const s of maps[n].keys()) { const q = minus ? s + d : s - d; if (q >= 0) { p.push(q); if (q > top) top = q; } } if (minus) { p.push(d); if (d > top) top = d; } } for (const [v, d, minus] of cmps) { if (minus) { p.push(v + d); p.push(d); if (v + d > top) top = v + d; } else if (v >= d) { p.push(v - d); if (v - d > top) top = v - d; } } const t2 = top + 2; if (t2 > 16 * p.length + 64 || t2 > 1048576) { const vals = []; for (let j = 0; j < p.length; j++) { const q = p[j]; for (let i = -1; i <= 2; i++) if (q + i >= 0) vals.push(q + i); } const out = $unique(vals, t2); out.push(out[out.length - 1] + 1); return out; } let buf = $unique.buf; if (!buf || buf.length <= t2) { buf = new Uint32Array(Math.max(t2 + 1, buf ? 2 * buf.length : 256)); $unique.buf = buf; $unique.stamp = 0; } let s = $unique.stamp + 1; if (s >= 0xFFFFFFFF) { buf.fill(0); s = 1; } $unique.stamp = s; for (let j = 0; j < p.length; j++) { const q = p[j]; for (let i = q > 0 ? q - 1 : 0; i <= q + 2; i++) buf[i] = s; } const out = []; for (let i = 0; i <= t2; i++) if (buf[i] === s) out.push(i); out.push(out[out.length - 1] + 1); return out; }`],
-  // A condition at every two keys that holds wherever x(k) differs from y(k1): only the pairs whose values match are read.
-  ['$join', `function $join(ks, x, y, f) { const by = new Map(); for (const k1 of ks) { const v = y(k1), l = by.get(v); if (l) l.push(k1); else by.set(v, [k1]); } return ks.every(k => { const l = by.get(x(k)); return l === undefined || l.every(k1 => f(k, k1)); }); }`],
-  ['$spread', `function $spread(keys, n) { const vals = []; let top = 0; for (const k of keys) for (let i = 0; i < n; i++) { vals.push(k + i); if (k + i > top) top = k + i; } return $unique(vals, top); }`],
-  // (the interpreter's writeEvery: each breakpoint, and each stretch between two at one key of it, filled only where it
-  // holds other than the value past the last)
-  ['$dense', `function $dense(keys, f) { const top = keys[keys.length - 1], d = f(top), cells = new Map(); for (let i = 0; i + 1 < keys.length; i++) { const key = keys[i], v = f(key); if (v !== d) cells.set(key, v); if (keys[i + 1] > key + 1) { const u = f(key + 1); if (u !== d) { if (keys[i + 1] - key > 1000000) throw new RangeError('a write at every key fills a stretch of more than a million keys (' + (key + 1) + ' to ' + (keys[i + 1] - 1) + ')'); for (let k2 = key + 1; k2 < keys[i + 1]; k2++) cells.set(k2, u); } } } return {cells, d}; }`],
-  // (a request's count map in the generated code: each cell its sum, computed when first read, as carriedView's CountCells)
-  ['$cells', `class $cells extends Map { constructor(at) { super(); this.at = at; } get(x) { let v = super.get(x); if (v === undefined) { v = this.at(x); super.set(x, v); } return v; } }`],
-  ['$every', `function $every(keys, f) { const past = keys[keys.length - 1], d = f(past), cells = new Map(); for (let i = 0; i < keys.length - 1; i++) { const v = f(keys[i]); if (v !== d) cells.set(keys[i], v); } return {cells, d}; }`],
-]
-function runtimeFor(code: string): string {
-  const used = new Set<string>()
-  for (let grew = true; grew;) {
-    grew = false
-    const text = code + RUNTIME.filter(([name]) => used.has(name)).map(([, src]) => src).join('')
-    for (const [name] of RUNTIME) if (!used.has(name) && text.includes(`${name}(`)) { used.add(name); grew = true }
-  }
-  return RUNTIME.filter(([name]) => used.has(name)).map(([, src]) => `${src}\n`).join('')
-}
+// grow; the state passed in is consumed. fork copies a state to branch from. (Runtime helpers live in core/codegen.ts.)
 
 // A condition over two keys, k and k1, that holds wherever a term of k alone differs from a term of k1 alone: an
 // implication (a not-and, or an or with one) whose premises include x(k) = y(k1). The runtime then reads only the pairs
@@ -975,67 +940,46 @@ function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): 
   const flags = Object.keys(plain.step.flags ?? {}), carriedMaps = m.inputMaps ?? [], fns = Object.keys(m.fns ?? {})
   // A key bound by a quantified flag or a write at every key is the JS parameter k (k1, k2 for a flag's further keys).
   let bound: Record<string, string> = {}
-  const ex = (e: E): string => {
-    switch (e.op) {
-      case 'var': return bound[e.name] ?? (e.name.startsWith('r.') ? `r[${id(e.name.slice(2))}]` : plain.params.includes(e.name) || plain.inputs.includes(e.name) ? `env[${id(e.name)}]` : `s[${id(e.name)}]`)
-      case 'const': return String(e.value)
-      case 'add': return `$x(${ex(e.a)} + ${ex(e.b)})`
-      case 'sub': return `Math.max(0, ${ex(e.a)} - ${ex(e.b)})`
-      case 'mul': return `$x(${e.k} * ${ex(e.a)})`
-      case 'prod': return `$x(${ex(e.a)} * ${ex(e.b)})`
-      case 'min': return `Math.min(${ex(e.a)}, ${ex(e.b)})`
-      case 'max': return `Math.max(${ex(e.a)}, ${ex(e.b)})`
-      case 'if': return `(${cx(e.c)} ? ${ex(e.then)} : ${ex(e.else)})`
-      case 'tup': return `$p(${ex(e.a)}, ${ex(e.b)})`
-      case 'proj': return `$u(${ex(e.a)})[${e.k}]`
-      case 'get': {
-        const intrinsic = parseWordDivisionName(e.map)
-        if (intrinsic) {
-          const args = wordDivisionArgs(e.key, intrinsic.width)
-          if (!args) throw new Error(`${e.map} needs a right-nested word division tuple key`)
-          return `$wordDivisionValue(${intrinsic.width}, ${id(intrinsic.part)}, ${intrinsic.index}, [${args.map(ex).join(', ')}])`
-        }
-        const fn = m.fns && Object.hasOwn(m.fns, e.map) ? m.fns[e.map] : undefined, args = fn?.call ? pairedArgs(e.key, fn.arity!) : undefined
-        if (args) return `$n(fnc${fns.indexOf(e.map)}(${args.map(ex).join(', ')}), ${id(`${e.map}()`)})`
-        return fns.includes(e.map) ? `$n(fn${fns.indexOf(e.map)}(${ex(e.key)}), ${id(`${e.map}()`)})` : `(maps[${id(e.map)}].get(${ex(e.key)}) ?? ${carriedMaps.includes(e.map) ? '0' : `dft[${id(e.map)}] ?? ${plain.maps![e.map]}`})`
+  const {printE: ex, printC: cx} = createPrinter({
+    wrapArith: s => `$x(${s})`,
+    onVar: name => bound[name] ?? (name.startsWith('r.') ? `r[${id(name.slice(2))}]` : plain.params.includes(name) || plain.inputs.includes(name) ? `env[${id(name)}]` : `s[${id(name)}]`),
+    onGet: (map, key, printE) => {
+      const intrinsic = parseWordDivisionName(map)
+      if (intrinsic) {
+        const args = wordDivisionArgs(key, intrinsic.width)
+        if (!args) throw new Error(`${map} needs a right-nested word division tuple key`)
+        return `$wordDivisionValue(${intrinsic.width}, ${id(intrinsic.part)}, ${intrinsic.index}, [${args.map(printE).join(', ')}])`
       }
-    }
-  }
-  const cx = (c: C): string => {
-    switch (c.op) {
-      case '<': return `(${ex(c.a)} < ${ex(c.b)})`
-      case '<=': return `(${ex(c.a)} <= ${ex(c.b)})`
-      case '=': return `(${ex(c.a)} === ${ex(c.b)})`
-      case 'and': return c.xs.length ? `(${c.xs.map(cx).join(' && ')})` : 'true'
-      case 'or': return c.xs.length ? `(${c.xs.map(cx).join(' || ')})` : 'false'
-      case 'not': return `(!${cx(c.x)})`
-      case 'flag': return `flag${flags.indexOf(c.name)}`
-      case 'all': {
-        const finite = finiteBound(c)
-        if (finite) {
-          const size = ex(finite), outer = bound
-          bound = {...bound, [c.key]: 'fk'}
-          const body = cx(c.c)
-          bound = outer
-          return `(fn => { $finite(); for (let fk = 0; fk < fn; fk++) { if ((fk & 255) === 0) $finite(); if (!${body}) return false; } return true; })($n(${size}, ${id(`size of ${c.finite}`)}))`
-        }
-        const names = boundOf(c), ks = names.map((_, i) => (i ? `k${i}` : 'k')), keys = names.length === 1 ? keysJs(c.c, c.key) : tupleJs(c), outer = bound
-        bound = {...bound, ...Object.fromEntries(names.map((n, i) => [n, ks[i]!]))}
-        const body = cx(c.c)
+      const fn = m.fns && Object.hasOwn(m.fns, map) ? m.fns[map] : undefined, args = fn?.call ? pairedArgs(key, fn.arity!) : undefined
+      if (args) return `$n(fnc${fns.indexOf(map)}(${args.map(printE).join(', ')}), ${id(`${map}()`)})`
+      return fns.includes(map) ? `$n(fn${fns.indexOf(map)}(${printE(key)}), ${id(`${map}()`)})` : `(maps[${id(map)}].get(${printE(key)}) ?? ${carriedMaps.includes(map) ? '0' : `dft[${id(map)}] ?? ${plain.maps![map]}`})`
+    },
+    onFlag: name => `flag${flags.indexOf(name)}`,
+    onAll: (c, printE, printC) => {
+      const finite = finiteBound(c)
+      if (finite) {
+        const size = printE(finite), outer = bound
+        bound = {...bound, [c.key]: 'fk'}
+        const body = printC(c.c)
         bound = outer
-        if (names.length === 2) {
-          const j = joinOf(c.c, names[0]!, names[1]!)
-          if (j) {
-            bound = {...bound, [names[0]!]: 'k', [names[1]!]: 'k1'}
-            const x = ex(j.x), y = ex(j.y)
-            bound = outer
-            return `$join(${keys}, k => ${x}, k1 => ${y}, (k, k1) => ${body})`
-          }
-        }
-        return names.length === 1 ? `${keys}.every(k => ${body})` : `(ks => ${ks.map(k => `ks.every(${k} => `).join('')}${body}${')'.repeat(ks.length)})(${keys})`
+        return `(fn => { $finite(); for (let fk = 0; fk < fn; fk++) { if ((fk & 255) === 0) $finite(); if (!${body}) return false; } return true; })($n(${size}, ${id(`size of ${c.finite}`)}))`
       }
-    }
-  }
+      const names = boundOf(c), ks = names.map((_, i) => (i ? `k${i}` : 'k')), keys = names.length === 1 ? keysJs(c.c, c.key) : tupleJs(c), outer = bound
+      bound = {...bound, ...Object.fromEntries(names.map((n, i) => [n, ks[i]!]))}
+      const body = printC(c.c)
+      bound = outer
+      if (names.length === 2) {
+        const j = joinOf(c.c, names[0]!, names[1]!)
+        if (j) {
+          bound = {...bound, [names[0]!]: 'k', [names[1]!]: 'k1'}
+          const x = printE(j.x), y = printE(j.y)
+          bound = outer
+          return `$join(${keys}, k => ${x}, k1 => ${y}, (k, k1) => ${body})`
+        }
+      }
+      return names.length === 1 ? `${keys}.every(k => ${body})` : `(ks => ${ks.map(k => `ks.every(${k} => `).join('')}${body}${')'.repeat(ks.length)})(${keys})`
+    },
+  })
   // The keys a quantifier or a write at every key is decided on (the interpreter's keysAt, or its breakKeys).
   const keysJs = (t: E | C, key: string): string => {
     if (plainKey(t, key)) return `$keys(maps, ${JSON.stringify(mapsIn(t).filter(mp => !fns.includes(mp)))})`
@@ -1090,31 +1034,15 @@ function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): 
     const better = l.by.map((b, i) => `by[${i}] !== bb[${i}] ? by[${i}] ${b.desc ? '>' : '<'} bb[${i}] : `).join('') + 'false'
     lines.push(`{ const ks = $keys(maps, ${JSON.stringify(ms)}), past = ks.pop(); let lk = past; if (${where}) throw new RangeError(${id(`${m.name}: ${name} has no least (its condition holds at every key past the cells)`)}); let bk, bb; for (lk of ks.sort((a, b) => a - b)) { if (!(${where})) continue; const by = [${by.join(', ')}]; if (bk === undefined || (${better})) { bk = lk; bb = by; } } env[${id(name)}] = bk ?? 0; env[${id(l.some)}] = bk === undefined ? 0 : 1; }`)
   }
-  const sumEx = (e: E, keyVar?: string): string => {
-    switch (e.op) {
-      case 'const': return String(e.value)
-      case 'add': return `$x(${sumEx(e.a, keyVar)} + ${sumEx(e.b, keyVar)})`
-      case 'sub': return `Math.max(0, ${sumEx(e.a, keyVar)} - ${sumEx(e.b, keyVar)})`
-      case 'mul': return `$x(${e.k} * ${sumEx(e.a, keyVar)})`
-      case 'prod': return `$x(${sumEx(e.a, keyVar)} * ${sumEx(e.b, keyVar)})`
-      case 'min': return `Math.min(${sumEx(e.a, keyVar)}, ${sumEx(e.b, keyVar)})`
-      case 'max': return `Math.max(${sumEx(e.a, keyVar)}, ${sumEx(e.b, keyVar)})`
-      case 'if': return `(${sumCx(e.c, keyVar)} ? ${sumEx(e.then, keyVar)} : ${sumEx(e.else, keyVar)})`
-      case 'get': return keyVar ? `(state.maps[${id(e.map)}].get(${keyVar}) ?? dft[${id(e.map)}] ?? ${plain.maps![e.map]!})` : `(dft[${id(e.map)}] ?? ${plain.maps![e.map]!})`
-      case 'var': case 'tup': case 'proj': throw new Error(`${m.name}: unexpected expression ${e.op} in sum term`)
-    }
-  }
-  const sumCx = (c: C, keyVar?: string): string => {
-    switch (c.op) {
-      case '<': return `(${sumEx(c.a, keyVar)} < ${sumEx(c.b, keyVar)})`
-      case '<=': return `(${sumEx(c.a, keyVar)} <= ${sumEx(c.b, keyVar)})`
-      case '=': return `(${sumEx(c.a, keyVar)} === ${sumEx(c.b, keyVar)})`
-      case 'and': return c.xs.length ? `(${c.xs.map(y => sumCx(y, keyVar)).join(' && ')})` : 'true'
-      case 'or': return c.xs.length ? `(${c.xs.map(y => sumCx(y, keyVar)).join(' || ')})` : 'false'
-      case 'not': return `(!${sumCx(c.x, keyVar)})`
-      case 'flag': case 'all': throw new Error(`${m.name}: unexpected condition ${c.op} in sum term`)
-    }
-  }
+  const sumEx = (e: E, keyVar?: string): string => createPrinter({
+    wrapArith: s => `$x(${s})`,
+    onVar: () => { throw new Error(`${m.name}: unexpected expression var in sum term`) },
+    onPair: () => { throw new Error(`${m.name}: unexpected expression tup in sum term`) },
+    onProj: () => { throw new Error(`${m.name}: unexpected expression proj in sum term`) },
+    onGet: map => (keyVar ? `(state.maps[${id(map)}].get(${keyVar}) ?? dft[${id(map)}] ?? ${plain.maps![map]!})` : `(dft[${id(map)}] ?? ${plain.maps![map]!})`),
+    onFlag: () => { throw new Error(`${m.name}: unexpected condition flag in sum term`) },
+    onAll: () => { throw new Error(`${m.name}: unexpected condition all in sum term`) },
+  }).printE(e)
   const stepScalars = Object.entries(plain.step.state ?? {}).filter(([name]) => !recompute.has(name))
   lines.push(...flags.map((name, i) => `const flag${i} = ${cx(plain.step.flags![name]!)};`),
     // The rule's own assumption, as `allowed` (core/watch.ts) reads it (a history's machine assumes more: its relations).
