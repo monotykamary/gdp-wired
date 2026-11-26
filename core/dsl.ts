@@ -62,7 +62,7 @@ import {findNeverEnds} from './nonterm.ts'
 import {findRing, leadsByTerms, type Ring} from './live.ts'
 import {leadsByWriteSupports} from './live-support.ts'
 import {type FreshLaw, freshLaws} from './fresh.ts'
-import {type EmitFoldOptions, type EmitFunOptions, type EmitLoopOptions, type EmitResult, type EmitRuleOptions, emitFold, emitFun, emitLoop, emitRule} from './emit.ts'
+import {type EmitFunOptions, type EmitResult, type EmitRuleOptions, emitFold, emitFun, emitLoop, emitRule} from './emit.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
 

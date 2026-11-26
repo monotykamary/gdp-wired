@@ -81,7 +81,7 @@ function runSteps(comp: Compiled, params: Record<string, number>, inputs: Reques
 }
 
 function stateSig(st: State): string {
-  const maps = Object.fromEntries(Object.entries(st.maps).sort().map(([k, m]) => [k, [...m.entries()].sort((a, b) => a[0] - b[0])]))
+  const maps = Object.fromEntries(Object.entries(st.maps).sort((a, b) => a[0].localeCompare(b[0])).map(([k, m]) => [k, [...m.entries()].sort((a, b) => a[0] - b[0])]))
   return JSON.stringify({scalars: st.scalars, maps, defaults: st.defaults ?? {}})
 }
 

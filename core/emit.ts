@@ -331,7 +331,7 @@ function rawToTsLiteral(val: Raw | undefined, k: KindInfo): string {
       return `{ ${propKey(k.tagKey)}: ${JSON.stringify(found[0])}${rest ? `, ${rest}` : ''} }`
     }
     case 'str': return typeof val === 'string' ? (val === '' ? "''" : JSON.stringify(val)) : "''"
-    case 'fixed': return k.width === 64 ? JSON.stringify(String(val)) : String(Number(val))
+    case 'fixed': return k.width === 64 ? JSON.stringify(typeof val === 'string' || typeof val === 'number' || typeof val === 'bigint' ? String(val) : '0') : String(Number(val))
     default: return unreachable(k)
   }
 }
