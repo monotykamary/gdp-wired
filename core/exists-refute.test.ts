@@ -1,7 +1,8 @@
 // Independent compiled-rule refutation oracle and fail-visible existential watch tests.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Law, type Machine, type Request, type State, carriedView, compileC, compileE, cunpair, fastStep, interpret, numbersOf, walk} from './machine.ts'
-import {type Rule, all, bool, exists, forall, nat, oneOf, proveRule, rule, sizedSort, when, yes} from './dsl.ts'
+import {type C, type E, type Law, type Machine, type Request, type State, carriedView, compileC, compileE, cpair, cunpair, fastStep, interpret, numbersOf, walk} from './machine.ts'
+import {type Rule, all, bool, exists, fn, forall, nat, oneOf, proveRule, rule, sizedSort, when, yes} from './dsl.ts'
+import {someHolds} from './exists.ts'
 import {WatchUndecided, watch, watchUndecided} from './watch.ts'
 
 type Env = Record<string, number>
@@ -244,3 +245,79 @@ test('watch fails visibly with WatchUndecided instead of silently coercing uneva
   expect(v.run).toBeUndefined()
   void bool
 })
+
+test('someHolds: exact on tuple-key, multi-var disjoint branches, unbounded tuple keys, non-zero defaults, and fn safety', () => {
+  // 1. Tuple-key 1-var bounded existential (client_server_ae shape).
+  const cs = makeMiniClientServer(true), csLaw = miniCsLaw(cs), cm = cs.machine
+  const stHit: State = {
+    scalars: {started: 1},
+    maps: {
+      Match: new Map([[cpair(3, 1), 1]]),
+      RequestSent: new Map([[cpair(0, 3), 1]]),
+      ResponseSent: new Map([[cpair(0, 1), 1]]),
+      ResponseReceived: new Map([[cpair(0, 1), 1]]),
+    },
+  }
+  const stMiss: State = {
+    scalars: {started: 1},
+    maps: {
+      Match: new Map([[cpair(2, 1), 1]]),
+      RequestSent: new Map([[cpair(0, 3), 1]]),
+      ResponseSent: new Map([[cpair(0, 1), 1]]),
+      ResponseReceived: new Map([[cpair(0, 1), 1]]),
+    },
+  }
+  const fk0 = csLaw.forall!, fk1 = csLaw.keys![0]!
+  expect(someHolds(csLaw.holds, csLaw.some!, {nodes: 4, reqs: 5, resps: 4, [fk0]: 0, [fk1]: 1}, stHit, cm, true)).toMatchObject({holds: true, witness: {[csLaw.some![0]!]: 3}})
+  expect(someHolds(csLaw.holds, csLaw.some!, {nodes: 4, reqs: 5, resps: 4, [fk0]: 0, [fk1]: 1}, stMiss, cm, true)).toEqual({holds: false})
+
+  // 2. Multi-var disjoint-branch nested tuple existential (sharded_kv_no_lost_keys shape).
+  const kv = rule('mini kv')
+    .params({nodes: nat, keys: nat, values: nat})
+    .sorts('Node', 'Key', 'Value')
+    .state({started: 0})
+    .relations({Owner: ['Key', 'Node'], TransferMsg: ['Node', 'Key', 'Value']})
+  const kvLaw = kv.law('no lost', ({nodes, keys, values, started, Owner, TransferMsg}) =>
+    forall(k => k.lt(keys).and(started.eq(1)).implies(
+      exists(x => x.lt(nodes).and(Owner.has(k, x))).or(
+        exists(n => exists(j => exists(val => all(n.lt(nodes), j.lt(keys), val.lt(values), TransferMsg.has(n, j, val)))))))))
+  const km = kv.machine, kKey = kvLaw.forall!
+  const stEmpty: State = {scalars: {started: 1}, maps: {Owner: new Map(), TransferMsg: new Map()}}
+  const stOwned: State = {scalars: {started: 1}, maps: {Owner: new Map([[cpair(1, 2), 1]]), TransferMsg: new Map()}}
+  const stXfer: State = {scalars: {started: 1}, maps: {Owner: new Map(), TransferMsg: new Map([[cpair(2, cpair(0, 1)), 1]])}}
+  expect(someHolds(kvLaw.holds, kvLaw.some!, {nodes: 3, keys: 2, values: 2, [kKey]: 1}, stEmpty, km, true)).toEqual({holds: false})
+  expect(someHolds(kvLaw.holds, kvLaw.some!, {nodes: 3, keys: 2, values: 2, [kKey]: 1}, stOwned, km, true)?.holds).toBe(true)
+  expect(someHolds(kvLaw.holds, kvLaw.some!, {nodes: 3, keys: 2, values: 2, [kKey]: 1}, stXfer, km, true)?.holds).toBe(true)
+
+  // 3. Unbounded 1-var tuple key existential (piecewise-constant via cunpair) + non-zero default safety.
+  const rm = rule('rel default').sorts('A', 'B').maps({M: 1}).relations({R: ['A', 'B']}).machine
+  const tupRead = (mp: string, a: E, b: E): E => ({op: 'get', map: mp, key: {op: 'tup', a, b}})
+  const unbTrue: C = {op: '=', a: tupRead('R', {op: 'const', value: 7}, {op: 'var', name: 'w'}), b: {op: 'const', value: 5}}
+  expect(someHolds(unbTrue, ['w'], {}, {scalars: {}, maps: {M: new Map(), R: new Map([[cpair(7, 42), 5]])}}, rm)).toMatchObject({holds: true, witness: {w: 42}})
+  expect(someHolds(unbTrue, ['w'], {}, {scalars: {}, maps: {M: new Map(), R: new Map([[cpair(7, 42), 4]])}}, rm)).toEqual({holds: false})
+  // Non-zero default (M defaults to 1): ∃w. M[w] >= 1 holds even with empty stored cells!
+  const nonZeroDef: C = {op: '<=', a: {op: 'const', value: 1}, b: {op: 'get', map: 'M', key: {op: 'var', name: 'w'}}}
+  expect(someHolds(nonZeroDef, ['w'], {}, {scalars: {}, maps: {M: new Map(), R: new Map()}}, rm)?.holds).toBe(true)
+
+  // 4. Uninterpreted fn map is NOT treated as piecewise-constant stored map (must NOT falsely return holds: false).
+  const f = fn(1, (x: number) => (x === 999 ? 1 : 0))
+  const fm = rule('fn rule').fns({f}).state({z: 0}).machine
+  const fnQuery: C = {op: '=', a: {op: 'get', map: 'f', key: {op: 'var', name: 'w'}}, b: {op: 'const', value: 1}}
+  expect(someHolds(fnQuery, ['w'], {}, {scalars: {z: 0}, maps: {}}, fm)).toBeUndefined()
+})
+
+test('proveRule refutes broken tuple-existential rule (confirmed by compiled oracle) and proves intact control', () => {
+  const broken = makeMiniClientServer(true), lawB = miniCsLaw(broken)
+  const ref = proveRule(broken, [lawB], {search: {ms: 10_000}})
+  expect(ref.proven).toBe(false)
+  expect(ref.run).toBeDefined()
+  const chk = verifyRefutationCompiled(broken, [lawB], ref.run!.params, ref.run!.trace)
+  expect(chk.confirmed).toBe(true)
+  expect(chk.stepEngine).toBe('compiled')
+
+  const intact = makeMiniClientServer(false), lawI = miniCsLaw(intact)
+  const ok = proveRule(intact, [lawI], {search: {ms: 15_000}})
+  expect(ok.proven).toBe(true)
+  expect(ok.checked).toBe(true)
+  expect(ok.run).toBeUndefined()
+}, 30_000)

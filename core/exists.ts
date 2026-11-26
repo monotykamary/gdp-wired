@@ -18,7 +18,7 @@ import {requestQuotient} from './request-quotient.ts'
 // value before, shifts of it, the request's values and the state before; each is chosen to satisfy P at every
 // counterexample so far, per case of the step (the conditions its updates split on: the request's clause, say).
 // A law under a `forall` key takes witness terms only (a ghost per key would be a map).
-import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, compileC, evalC, evalE, fastStep, interpret, n as k, walk, x as v} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, compileC, cunpair, evalC, evalE, fastStep, interpret, n as k, walk, x as v} from './machine.ts'
 import {type Report, clock, proveLaw, proveLaws, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {env} from './solver.ts'
 import {WallExpired, checkWall} from './wall.ts'
@@ -158,7 +158,6 @@ export type SmallCheck = {laws: Law[], machine?: Machine, accept?: (v: SmallViol
 function checkSmallState(evalM: Machine, check: SmallCheck, p: Env, st: State, b: number): {violation?: SmallViolation, sawFailure: boolean} {
   let sawFailure = false
   for (const law of check.laws) {
-    if (law.some?.length) continue
     let ok: boolean
     try { ok = holdsAt(evalM, law, p, st, b) } catch (e) { if (e instanceof WallExpired || e instanceof BudgetExpired) throw e; sawFailure = true; continue }
     if (ok) continue
@@ -745,6 +744,25 @@ function holdsAtWithin(m: Machine, law: Law, p: Env, st: State, b: number): bool
   // Poll at entry and every 256 visited tuple prefixes, rather than paying for
   // a wall-clock read at every binding. Each new state/law starts with a poll.
   let visited = 0
+  if (law.some?.length) {
+    const goSome = (depth: number): boolean => {
+      if ((visited++ & 255) === 0) checkWall('sample law bindings')
+      if (depth === keys.length) {
+        const res = someHolds(law.holds, law.some!, {...env}, view!, m, true)
+        if (res === undefined) throw new Error(`holdsAt: existential law "${law.name}" is undecided`)
+        return res.holds
+      }
+      const name = keys[depth]!, was = env[name]
+      try {
+        for (const value of values) {
+          if (!fixed.has(name)) env[name] = value
+          if (!goSome(depth + 1)) return false
+        }
+        return true
+      } finally { if (!fixed.has(name)) env[name] = was! }
+    }
+    return goSome(0)
+  }
   const go = (depth: number): boolean => {
     if ((visited++ & 255) === 0) checkWall('sample law bindings')
     if (depth === keys.length) return test!(env, view!)
@@ -762,27 +780,259 @@ function holdsAtWithin(m: Machine, law: Law, p: Env, st: State, b: number): bool
 
 // --- evaluating ∃ on a state ----------------------------------------------------------------------------------------
 
-// Whether ∃ vars. P holds where env and st give every other value, with a witness: exact when the bound values are one
-// natural or one integer read linearly (P's truth changes only next to the values its atoms solve for, so those, their
-// neighbours, 0 and one past them are every case); otherwise found among those points, or undefined.
-// (what P is, apart from the state: its groups, atoms and shape, read once a law; a run reads a law with "there exists"
-// at every tuple of its keys at every state, and P's atoms are quadratic in its size to read)
-const shapes = new WeakMap<C, Map<string, {groups: Group[], atoms: Atom[], linearOnly: boolean, reads: boolean}>>()
+const flattenOr = (c: C): C[] => (c.op === 'or' ? c.xs.flatMap(flattenOr) : [c])
+const isTupleKeyPattern = (e: E, bound: Set<string>): boolean => {
+  if (e.op === 'tup') return isTupleKeyPattern(e.a, bound) && isTupleKeyPattern(e.b, bound)
+  if (e.op === 'var' && bound.has(e.name)) return true
+  return !namesOf(e).some(n => bound.has(n))
+}
+const matchTupleKey = (pat: E, cellKey: number, bound: Set<string>, freeEval: (e: E) => number | undefined, out: Env): boolean => {
+  if (pat.op === 'tup') {
+    const [a, b] = cunpair(cellKey)
+    return matchTupleKey(pat.a, a, bound, freeEval, out) && matchTupleKey(pat.b, b, bound, freeEval, out)
+  }
+  if (pat.op === 'var' && bound.has(pat.name)) {
+    if (pat.name in out) return out[pat.name] === cellKey
+    out[pat.name] = cellKey
+    return true
+  }
+  if (!namesOf(pat).some(n => bound.has(n))) {
+    const want = freeEval(pat)
+    return want !== undefined && want === cellKey
+  }
+  return false
+}
+type LiveCellFilter = {
+  map: string
+  key: E
+  boundVars: string[]
+  rhs: E
+  op: '<' | '<=' | '='
+  mapOnLeft: boolean
+  negated: boolean
+}
+type BoundConstraint = {
+  varName: string
+  kind: 'lt' | 'le' | 'gt' | 'ge' | 'eq'
+  rhs: E
+  rhsVars: string[]
+}
+type TupleReadPat = {map: string, key: E}
+type DisjunctShape = {
+  body: C
+  vars: string[]
+  groups: Group[]
+  natOnly: boolean
+  atoms: Atom[]
+  linearOnlyPlain: boolean
+  linearOnlyMaps: string[]
+  reads: boolean
+  liveFilters: LiveCellFilter[]
+  bounds: BoundConstraint[]
+  tupleReads: TupleReadPat[]
+}
+
+function analyzeDisjunct(body: C, allGroups: Group[]): DisjunctShape {
+  const used = new Set(namesOf(body))
+  const groups = allGroups.filter(g => g.some(n => used.has(n)))
+  const vars = groups.flatMap(g => g)
+  const bound = new Set(vars)
+  const natOnly = groups.every(g => g.length === 1)
+  const conjs = topConjuncts(body)
+  const liveFilters: LiveCellFilter[] = []
+  const bounds: BoundConstraint[] = []
+  if (natOnly && vars.length) {
+    for (const c of conjs) {
+      const inner = c.op === 'not' ? c.x : c, negated = c.op === 'not'
+      if (inner.op === '<' || inner.op === '<=' || inner.op === '=') {
+        if (!negated) {
+          const aVar = inner.a.op === 'var' && bound.has(inner.a.name) ? inner.a.name : undefined
+          const bVar = inner.b.op === 'var' && bound.has(inner.b.name) ? inner.b.name : undefined
+          if (aVar && !namesOf(inner.b).includes(aVar)) {
+            bounds.push({varName: aVar, kind: inner.op === '<' ? 'lt' : inner.op === '<=' ? 'le' : 'eq', rhs: inner.b, rhsVars: namesOf(inner.b).filter(n => bound.has(n))})
+          }
+          if (bVar && !namesOf(inner.a).includes(bVar)) {
+            bounds.push({varName: bVar, kind: inner.op === '<' ? 'gt' : inner.op === '<=' ? 'ge' : 'eq', rhs: inner.a, rhsVars: namesOf(inner.a).filter(n => bound.has(n))})
+          }
+        }
+        const tryGet = (g: E, rhs: E, mapOnLeft: boolean) => {
+          if (g.op !== 'get') return
+          if (namesOf(rhs).some(n => bound.has(n))) return
+          const kVars = namesOf(g.key).filter(n => bound.has(n))
+          if (!kVars.length || !isTupleKeyPattern(g.key, bound)) return
+          liveFilters.push({map: g.map, key: g.key, boundVars: [...new Set(kVars)], rhs, op: inner.op, mapOnLeft, negated})
+        }
+        tryGet(inner.a, inner.b, true)
+        tryGet(inner.b, inner.a, false)
+      }
+    }
+  }
+  const tupleReads: TupleReadPat[] = []
+  if (groups.length === 1 && natOnly) {
+    walk(body, o => {
+      if (o.op === 'get' && (o.key as E).op === 'tup' && isTupleKeyPattern(o.key as E, bound) && namesOf(o.key as E).some(n => bound.has(n))) {
+        tupleReads.push({map: o.map as string, key: o.key as E})
+      }
+    })
+  }
+  const keyMaps = new Set<string>()
+  const linearOnlyPlain = linearIn(body, bound, keyMaps)
+  return {
+    body, vars, groups, natOnly,
+    atoms: atomsOf(body, bound),
+    linearOnlyPlain,
+    linearOnlyMaps: [...keyMaps],
+    reads: JSON.stringify(body).includes('"op":"get"'),
+    liveFilters, bounds, tupleReads,
+  }
+}
+
+// Whether ∃ vars. P holds where env and st give every other value, with a witness: exact for
+//   - disjunctions decomposed into independent existential branches (0-var guard branches in O(1)),
+//   - multi-var / tuple-key natural branches bounded by non-default live map cells and/or finite upper bounds,
+//   - one natural or one integer read linearly or as a piecewise-constant map/tuple key;
+// otherwise found among sampled points, or undefined (never falsely claims false).
+// (what P is, apart from the state: its groups, disjuncts, atoms and shape, read once a law; a run reads a law with
+// "there exists" at every tuple of its keys at every state, and P's atoms are quadratic in its size to read)
+const shapes = new WeakMap<C, Map<string, {groups: Group[], disjuncts: DisjunctShape[]}>>()
 const shapeOf = (body: C, vars: string[]) => {
   let byVars = shapes.get(body)
   if (!byVars) shapes.set(body, (byVars = new Map()))
   const id = vars.join(','), had = byVars.get(id)
   if (had) return had
-  const bound = new Set(vars), out = {groups: groupsOf(vars), atoms: atomsOf(body, bound), linearOnly: linearIn(body, bound), reads: JSON.stringify(body).includes('"op":"get"')}
+  const groups = groupsOf(vars)
+  const raw = flattenOr(body).map(d => analyzeDisjunct(d, groups))
+  // Check 0-var guard disjuncts first so guard-false tuples decide in O(1).
+  const disjuncts = [...raw.filter(d => d.groups.length === 0), ...raw.filter(d => d.groups.length > 0)]
+  const out = {groups, disjuncts}
   byVars.set(id, out)
   return out
 }
-// (`quick`: a run's watch, which reads only whether it holds: first 0, then the points without the cells, a witness there
-// one; the verdict and its cap as without)
-export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machine, quick = false): {holds: boolean, witness?: Env} | undefined {
-  const {groups, atoms, linearOnly, reads} = shapeOf(body, vars)
-  const value = (e: E): number | undefined => { try { return evalE(e, env, st, m) } catch { return undefined } }
-  // A bound natural read as a map's key: the cells the maps hold, and one past them, are every case a read gives.
+
+const isStateMap = (m: Machine, mp: string): boolean =>
+  !(m.fns && Object.hasOwn(m.fns, mp)) && !(m.counts && Object.hasOwn(m.counts, mp))
+
+const mapDefault = (m: Machine, st: State, mp: string): number =>
+  (st.defaults && Object.hasOwn(st.defaults, mp) ? st.defaults[mp]! : m.maps && Object.hasOwn(m.maps, mp) ? m.maps[mp]! : 0)
+
+const cmpHolds = (op: '<' | '<=' | '=', lhs: number, rhs: number, negated: boolean): boolean => {
+  const r = op === '=' ? lhs === rhs : op === '<' ? lhs < rhs : lhs <= rhs
+  return negated ? !r : r
+}
+
+function evalDisjunct(d: DisjunctShape, env: Env, st: State, m: Machine, quick: boolean): {holds: boolean, witness?: Env} | undefined {
+  if (d.groups.length === 0) {
+    try { return evalC(d.body, env, st, m) ? {holds: true, witness: {}} : {holds: false} }
+    catch { return undefined }
+  }
+  const valueAt = (e: E, curEnv: Env): number | undefined => { try { return evalE(e, curEnv, st, m) } catch { return undefined } }
+  const value = (e: E): number | undefined => valueAt(e, env)
+  const test = (w: Env): boolean | undefined => { try { return evalC(d.body, {...env, ...w}, st, m) } catch { return undefined } }
+
+  // Regime A: exact live map-cell tuple support + finite domain bounds (1-var or multi-var naturals).
+  if (d.natOnly && (d.liveFilters.length > 0 || d.bounds.length > 0)) {
+    const natBound = new Set(d.vars)
+    // 1. Apply every non-default live map-cell filter to obtain exact partial/full bindings.
+    let partials: Env[] | undefined
+    for (const f of d.liveFilters) {
+      if (!isStateMap(m, f.map)) continue
+      const rhs = value(f.rhs)
+      if (rhs === undefined) continue
+      const dflt = mapDefault(m, st, f.map)
+      const dfltOk = f.mapOnLeft ? cmpHolds(f.op, dflt, rhs, f.negated) : cmpHolds(f.op, rhs, dflt, f.negated)
+      if (dfltOk) continue // Default cells satisfy this conjunct: cannot restrict to stored cells.
+      const cells = st.maps[f.map]
+      const matches: Env[] = []
+      let evalErr = false
+      const safeValue = (e: E): number | undefined => { const r = value(e); if (r === undefined) evalErr = true; return r }
+      if (cells) {
+        for (const [cellKey, cellVal] of cells) {
+          const ok = f.mapOnLeft ? cmpHolds(f.op, cellVal, rhs, f.negated) : cmpHolds(f.op, rhs, cellVal, f.negated)
+          if (!ok) continue
+          const bind: Env = {}
+          if (matchTupleKey(f.key, cellKey, natBound, safeValue, bind)) matches.push(bind)
+          if (evalErr) break
+        }
+      }
+      if (evalErr) continue
+      if (matches.length === 0) return {holds: false}
+      if (partials === undefined) {
+        partials = matches
+      } else {
+        const joined: Env[] = []
+        for (const p of partials) {
+          for (const q of matches) {
+            let compat = true
+            for (const [k2, val2] of Object.entries(q)) if (k2 in p && p[k2] !== val2) { compat = false; break }
+            if (compat) {
+              joined.push({...p, ...q})
+              if (joined.length > 65_536) break
+            }
+          }
+          if (joined.length > 65_536) break
+        }
+        if (joined.length === 0) return {holds: false}
+        if (joined.length <= 65_536) partials = joined
+      }
+    }
+    const basePartials = partials ?? [{}]
+    const boundByLive = new Set(Object.keys(basePartials[0] ?? {}))
+    const remaining = d.vars.filter(x => !boundByLive.has(x))
+    // Order remaining vars topologically so a var whose bound depends on an earlier var comes after it.
+    const orderedRem: string[] = []
+    const resolved = new Set(boundByLive)
+    let progressed = true
+    while (orderedRem.length < remaining.length && progressed) {
+      progressed = false
+      for (const rv of remaining) {
+        if (resolved.has(rv)) continue
+        const hasUpper = d.bounds.some(b => b.varName === rv && (b.kind === 'lt' || b.kind === 'le' || b.kind === 'eq') && b.rhsVars.every(u => resolved.has(u)))
+        if (hasUpper) { orderedRem.push(rv); resolved.add(rv); progressed = true }
+      }
+    }
+    if (orderedRem.length === remaining.length && basePartials.length <= 65_536) {
+      let tried = 0, unknown = false, capHit = false
+      const CAP = 65_536
+      const runRem = (idx: number, w: Env): Env | undefined => {
+        if (idx === orderedRem.length) {
+          if (++tried > CAP) { capHit = true; return undefined }
+          const t = test(w)
+          if (t === undefined) unknown = true
+          return t ? w : undefined
+        }
+        const rv = orderedRem[idx]!, curEnv: Env = {...env, ...w}
+        let lo = 0, hi = Infinity
+        for (const b of d.bounds) {
+          if (b.varName !== rv || !b.rhsVars.every(u => u in w)) continue
+          const val = valueAt(b.rhs, curEnv)
+          if (val === undefined) continue
+          if (b.kind === 'lt') hi = Math.min(hi, val - 1)
+          else if (b.kind === 'le') hi = Math.min(hi, val)
+          else if (b.kind === 'gt') lo = Math.max(lo, val + 1)
+          else if (b.kind === 'ge') lo = Math.max(lo, val)
+          else { lo = Math.max(lo, val); hi = Math.min(hi, val) }
+        }
+        if (!Number.isFinite(hi)) { unknown = true; return undefined }
+        if (hi < lo) return undefined
+        for (let x = lo; x <= hi; x++) {
+          if (capHit) return undefined
+          const hit = runRem(idx + 1, {...w, [rv]: x})
+          if (hit) return hit
+        }
+        return undefined
+      }
+      for (const p of basePartials) {
+        const hit = runRem(0, p)
+        if (hit) return {holds: true, witness: hit}
+        if (capHit) break
+      }
+      if (!unknown && !capHit) return {holds: false}
+    }
+  }
+
+  // Regime B: existing 1-group linear / piecewise-constant map-key solver (now supporting tuple map keys too).
+  const {groups, atoms, reads} = d
+  const linearOnly = d.linearOnlyPlain && d.linearOnlyMaps.every(mp => isStateMap(m, mp))
   const points = (g: Group, cells: Set<number>): number[] => {
     const ps = new Set<number>([0, 1, ...cells, ...[...cells].map(c => c + 1)])
     for (const a of atoms) {
@@ -790,22 +1040,19 @@ export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machi
       if (!s || (g.length === 2 && s2 !== -s) || Object.keys(a.k).some(n => !g.includes(n))) continue
       const r = (sumOf(a.plus, value) ?? NaN) - (sumOf(a.minus, value) ?? NaN)
       if (!Number.isFinite(r)) continue
-      for (const p of [Math.floor(r / s), Math.ceil(r / s)]) for (const d of [-1, 0, 1]) ps.add(p + d)
+      for (const p of [Math.floor(r / s), Math.ceil(r / s)]) for (const d2 of [-1, 0, 1]) ps.add(p + d2)
     }
     const xs = [...ps].filter(p => g.length === 2 || p >= 0)
     const hi = Math.max(...xs), lo = Math.min(...xs)
     return [...new Set([...xs, hi + 1, ...(g.length === 2 ? [lo - 1] : [])])].sort((a, b) => a - b)
   }
   const at = (g: Group, p: number): Env => (g.length === 2 ? {[g[0]!]: Math.max(p, 0), [g[1]!]: Math.max(-p, 0)} : {[g[0]!]: p})
-  const test = (w: Env): boolean | undefined => { try { return evalC(body, {...env, ...w}, st, m) } catch { return undefined } }
   let tried = 0, unknown = false, lists: number[][] = []
   const go = (i: number, w: Env): Env | undefined => {
     if (i === groups.length) { tried++; const t = test(w); if (t === undefined) unknown = true; return t ? w : undefined }
     for (const p of lists[i]!) { if (tried > 4096) return undefined; const hit = go(i + 1, {...w, ...at(groups[i]!, p)}); if (hit) return hit }
     return undefined
   }
-  // (first the points without the cells: P's guard false at a tuple, as at most of a law's, holds at 0 at once; a witness
-  // there is one; then every point, as before, its verdict and cap the same)
   const none = new Set<number>()
   if (reads && quick) {
     const w0 = Object.assign({}, ...groups.map(g => at(g, 0))) as Env
@@ -813,35 +1060,69 @@ export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machi
     lists = groups.map(g => points(g, none)); const near = go(0, {}); if (near) return {holds: true, witness: near}
   }
   const cells = new Set<number>()
-  if (reads) for (const c of Object.values(st.maps)) for (const key of c.keys()) cells.add(key)
+  if (reads) {
+    for (const c of Object.values(st.maps)) for (const key2 of c.keys()) cells.add(key2)
+    if (d.tupleReads.length && groups.length === 1 && d.natOnly) {
+      const bset = new Set(d.vars)
+      for (const tr of d.tupleReads) {
+        if (!isStateMap(m, tr.map)) continue
+        const mapCells = st.maps[tr.map]
+        if (!mapCells) continue
+        for (const cellKey of mapCells.keys()) {
+          const bind: Env = {}
+          if (matchTupleKey(tr.key, cellKey, bset, value, bind)) cells.add(bind[d.vars[0]!]!)
+        }
+      }
+    }
+  }
   lists = groups.map(g => points(g, cells)); tried = 0; unknown = false
   const hit = go(0, {})
   if (hit) return {holds: true, witness: hit}
   return groups.length === 1 && linearOnly && !unknown && tried <= 4096 ? {holds: false} : undefined
+}
+
+// (`quick`: a run's watch, which reads only whether it holds: 0-var guards first, then live/bounded or near points;
+// the verdict and its cap as without)
+export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machine, quick = false): {holds: boolean, witness?: Env} | undefined {
+  const {disjuncts} = shapeOf(body, vars)
+  let anyUndecided = false
+  for (const d of disjuncts) {
+    const res = evalDisjunct(d, env, st, m, quick)
+    if (res?.holds) {
+      const witness: Env = {}
+      for (const name of vars) witness[name] = res.witness?.[name] ?? 0
+      return {holds: true, witness}
+    }
+    if (res === undefined) anyUndecided = true
+  }
+  return anyUndecided ? undefined : {holds: false}
 }
 const sumOf = (es: E[], value: (e: E) => number | undefined): number | undefined => {
   let s = 0
   for (const e of es) { const x = value(e); if (x === undefined) return undefined; s += x }
   return s
 }
-// Every read of a bound natural is linear (through + and × by a constant only, up to an atom).
-function linearIn(c: C, bound: Set<string>): boolean {
+// Every read of a bound natural is linear (through + and × by a constant only, up to an atom) or a piecewise-constant map key.
+function linearIn(c: C, bound: Set<string>, keyMaps: Set<string>): boolean {
   switch (c.op) {
-    case 'not': return linearIn(c.x, bound)
-    case 'and': case 'or': return c.xs.every(y => linearIn(y, bound))
+    case 'not': return linearIn(c.x, bound, keyMaps)
+    case 'and': case 'or': return c.xs.every(y => linearIn(y, bound, keyMaps))
     case 'flag': return true
     case 'all': return !namesOf(c.c).some(n => bound.has(n))
-    case '<': case '<=': case '=': return (lin(c.a, bound) !== undefined && lin(c.b, bound) !== undefined) || (onlyKeys(c.a, bound) && onlyKeys(c.b, bound))
+    case '<': case '<=': case '=': return (lin(c.a, bound) !== undefined && lin(c.b, bound) !== undefined) || (onlyKeys(c.a, bound, keyMaps) && onlyKeys(c.b, bound, keyMaps))
   }
 }
-// Every read of a bound natural is a map's whole key (M[x]: piecewise constant, its pieces the cells).
-function onlyKeys(e: E, bound: Set<string>): boolean {
-  if (e.op === 'get' && e.key.op === 'var' && bound.has(e.key.name)) return true
+// Every read of a bound natural is a map's whole key or pure tuple key (M[x] or M[⟨..., x, ...⟩]: piecewise constant).
+function onlyKeys(e: E, bound: Set<string>, keyMaps: Set<string>): boolean {
+  if (e.op === 'get' && isTupleKeyPattern(e.key, bound) && namesOf(e.key).some(n => bound.has(n))) {
+    keyMaps.add(e.map)
+    return true
+  }
   if (!namesOf(e).some(n => bound.has(n))) return true
   switch (e.op) {
     case 'var': case 'const': return false
-    case 'add': case 'sub': case 'min': case 'max': case 'prod': return onlyKeys(e.a, bound) && onlyKeys(e.b, bound)
-    case 'mul': return onlyKeys(e.a, bound)
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': return onlyKeys(e.a, bound, keyMaps) && onlyKeys(e.b, bound, keyMaps)
+    case 'mul': return onlyKeys(e.a, bound, keyMaps)
     case 'if': case 'tup': case 'proj': return false
     case 'get': return false
   }
