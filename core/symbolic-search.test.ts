@@ -1,7 +1,7 @@
 // Regression tests for symbolic-size & tuple-view search bugs (Item 2):
 // (1) valued-map nil/non-nil literals (`1 <= M[...]`) and symbolic-sort constant-cap suppression.
 import {expect, test} from 'bun:test'
-import {Term, all, bool, everyKey, forall, nat, oneOf, proveRule, rule, sizedSort, when, yes} from './dsl.ts'
+import {Term, all, bool, everyKey, exists, forall, nat, oneOf, proveRule, rule, sizedSort, when, yes} from './dsl.ts'
 import {tuple} from './machine.ts'
 import {inferLaws} from './infer.ts'
 
@@ -109,3 +109,49 @@ test('bug 3: demand-driven projected uniqueness proves symbolic simple decentral
   expect(texts.some(t => t.includes('Message[⟨x, _⟩]') && t.includes('Message[⟨y, _⟩]'))).toBe(true)
   expect(texts.some(t => t.includes('Message[⟨_, x⟩]') && t.includes('Message[⟨_, y⟩]'))).toBe(true)
 }, 30_000)
+
+test('bug 4: tuple each-write setters and coupled binderGhostsOf prove sharded kv no-lost-keys', () => {
+  const rel = bool.from(false)
+  const makeRule = (broken: boolean) => rule('mini sharded no lost')
+    .params({nodes: nat, keys: nat, values: nat}).sorts('Node', 'Key', 'Value')
+    .inputs({op: oneOf('own', 'start', 'reshard', 'recv', 'put'), n: nat, k: nat, v: nat, n2: nat})
+    .assume(({n, k, v, n2, nodes, keys, values}) => all(
+      sizedSort('Node', nodes).has(n), sizedSort('Node', nodes).has(n2),
+      sizedSort('Key', keys).has(k), sizedSort('Value', values).has(v),
+    ))
+    .state({started: 0})
+    .maps({Table: 0, Owned: rel}).relations({Owner: ['Key', 'Node'], TransferMsg: ['Node', 'Key', 'Value']})
+    .flags(({k, keys, nodes, Owner, Owned}) => ({
+      unowned: everyKey(m => sizedSort('Node', nodes).has(m).implies(Owner.has(k, m).not())),
+      allOwned: everyKey(m => sizedSort('Key', keys).has(m).implies(Owned.at(m))),
+    }))
+    .flags(({op, n, k, v, started, unowned, allOwned, Table, Owner, TransferMsg}) => ({
+      owns: op.is('own').and(started.eq(0), unowned),
+      starts: op.is('start').and(started.eq(0), allOwned),
+      reshards: op.is('reshard').and(started.eq(1), Table.at(new Term(tuple([n.e, k.e]))).eq(v.plus(1))),
+      receives: op.is('recv').and(started.eq(1), TransferMsg.has(n, k, v)),
+      puts: op.is('put').and(started.eq(1), Owner.has(k, n)),
+    }))
+    .step(({n, k, v, n2, owns, starts, reshards, receives, puts, started, Table, Owner, TransferMsg, Owned}) => ({
+      started: when(starts, 1, started),
+      Table: Table.set(new Term(tuple([n.e, k.e])), when(reshards, 0, when(receives.or(puts), v.plus(1), Table.at(new Term(tuple([n.e, k.e])))))),
+      Owner: {...Owner.add([k, n]), value: when(owns.or(receives), 1, when(reshards, 0, Owner.at(k, n))).e},
+      TransferMsg: TransferMsg.each((a, b, c) => reshards.and(a.eq(n2), b.eq(k), c.eq(v))
+        .and(broken ? TransferMsg.has(a, b, c) : yes)
+        .or(TransferMsg.has(a, b, c).and(reshards.and(a.eq(n2), b.eq(k), c.eq(v)).not(), receives.and(a.eq(n), b.eq(k), c.eq(v)).not()))),
+      Owned: Owned.set(k, when(owns, yes, Owned.at(k))),
+    }))
+  const makeLaw = (r: ReturnType<typeof makeRule>) => r.law('no lost keys', ({nodes, keys, values, started, Owner, TransferMsg}) =>
+    forall(k => k.lt(keys).and(started.eq(1)).implies(
+      exists(x => x.lt(nodes).and(Owner.has(k, x))).or(
+        exists(n => exists(j => exists(v => all(n.lt(nodes), j.lt(keys), v.lt(values), TransferMsg.has(n, j, v)))))))))
+
+  const intact = makeRule(false), vOk = proveRule(intact, [makeLaw(intact)], {search: {ms: 20_000}})
+  expect(vOk.proven).toBe(true)
+  expect(vOk.checked).toBe(true)
+  expect(vOk.run).toBeUndefined()
+
+  const broken = makeRule(true), vBad = proveRule(broken, [makeLaw(broken)], {search: {ms: 10_000}})
+  expect(vBad.proven).toBe(false)
+  expect(vBad.run).toBeDefined()
+}, 40_000)
