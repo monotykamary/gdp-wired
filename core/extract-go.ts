@@ -534,11 +534,13 @@ class Go {
   input(x: Var, t: number, sel: B): V { return this.g.valueOfIn(x, this.intTy(t), sel) }
   // The arguments of a method or a function: each an input (a pointer to a struct of the package a fresh object whose
   // fields read are inputs, a *big.Int one whose value is).
-  bindParams(fn: GoFunc, sel: B, p0: Path): {p: Path, args: Arg[], params: {name: string, t: number, arg: Arg}[]} {
+  bindParams(fn: GoFunc, sel: B, p0: Path, skipIdx = -1): {p: Path, args: Arg[], params: {name: string, t: number, arg: Arg}[]} {
     const g = this.g, args: Arg[] = [], params: {name: string, t: number, arg: Arg}[] = []
     let p = p0
     if (fn.params.some(x => x.variadic)) refuse(fn, `${fn.name}: a variadic method`)
-    for (const pa of fn.params) {
+    for (let idx = 0; idx < fn.params.length; idx++) {
+      if (idx === skipIdx) continue
+      const pa = fn.params[idx]!
       const name = `${fn.name}_${pa.name ?? 'arg'}`, tt = this.T(pa.t), s = this.scalar(pa.t)
       let v: V, arg: Arg
       if (typeof s !== 'string') { const x = g.newVar(name, s, 'input'); v = this.input(x, pa.t, sel); arg = {k: 'input', name: x.name} }
@@ -596,8 +598,18 @@ class Go {
 // --- the model --------------------------------------------------------------------------------------------------------
 // (answers: the calls answered, each request's values the last argument of its event; ranges: each one's type's)
 export type GoClock = {p: string, end: string, callee: string}
-export type GoRead = {safety?: {sites: (SafetySite & {condition: B})[]}, clocks?: GoClock[], answers?: (Answer & {range?: [number, number]})[], leftOut?: string[], ctor?: {name: string, t: number, arg: Arg}[], model: Model, edges: B[], unsigned: string[], leaves: GoLeaf[], spans: [string, number, number][], entry: string, methods: {name: string, ptr: boolean, params: {name: string, t: number, arg: Arg}[], results: number[], err: boolean}[]}
+export type GoRead = {safety?: {sites: (SafetySite & {condition: B})[]}, clocks?: GoClock[], answers?: (Answer & {range?: [number, number]})[], leftOut?: string[], ctor?: {name: string, t: number, arg: Arg}[], model: Model, edges: B[], unsigned: string[], leaves: GoLeaf[], spans: [string, number, number][], entry: string, methods: {name: string, ptr: boolean, pkgParam?: number, params: {name: string, t: number, arg: Arg}[], results: number[], err: boolean}[]}
 type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: V, when: B}
+// The parameter index of a Go package function that carries *entry (unique *entry param, or param 0 if several), or -1.
+export function goPkgRecvParam(pkg: GoPkg, f: GoFunc, entryT: number): number {
+  if ((pkg.lang && pkg.lang !== 'go') || f.recv || !f.body || f.generic || f.params.some(p => p.variadic)) return -1
+  const hits: number[] = []
+  for (let i = 0; i < f.params.length; i++) {
+    const pt = pkg.ttab[f.params[i]!.t]
+    if (pt?.k === 'ptr' && pt.elem === entryT) hits.push(i)
+  }
+  return hits.length === 1 ? hits[0]! : hits[0] === 0 ? 0 : -1
+}
 // Read with the boundary inferred unless strict (core/extract-step.ts's readStep: each refused run adds what the next
 // infers): Go's check can't stub a call, so a call of another package is left out where nothing reads its value.
 export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
@@ -610,12 +622,24 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
   }
   if (pkg.safety) refuse(pkg.files[0]?.name ?? '?', 'checked C source requires safety lowering')
   if (!opts.entry && !opts.strict) {
-    // No entry: the package's one struct whose exported methods write it (core/extract-step.ts's writesState).
-    const g = new Go(pkg, opts).g, writing = (t: string) => pkg.funcs.filter(f => f.recv?.type === t && f.body && (pkg.lang === 'c' || pkg.lang === 'cpp' || /^[A-Z]/.test(f.name)) && g.writesState(`${t}.${f.name}`, new Set([g.mod.funcs[`${t}.${f.name}`]?.recv ?? ''])))
-    const cands = pkg.types.filter(t => writing(t.name).length)
+    // No entry: the package's one struct whose exported methods (or package functions taking *Struct) write it.
+    const g = new Go(pkg, opts).g
+    const writing = (t: string) => pkg.funcs.filter(f => f.recv?.type === t && f.body && (pkg.lang === 'c' || pkg.lang === 'cpp' || /^[A-Z]/.test(f.name)) && g.writesState(`${t}.${f.name}`, new Set([g.mod.funcs[`${t}.${f.name}`]?.recv ?? ''])))
+    let cands = pkg.types.filter(t => writing(t.name).length)
+    let byPkgFunc = false
+    if (!cands.length && (!pkg.lang || pkg.lang === 'go')) {
+      const writingPkg = (td: GoPkg['types'][number]) => pkg.funcs.filter(f => {
+        if (!/^[A-Z]/.test(f.name)) return false
+        const idx = goPkgRecvParam(pkg, f, td.t)
+        const id = idx >= 0 ? f.params[idx]!.id : undefined
+        return !!id && g.writesState(`.${f.name}`, new Set([id]))
+      })
+      cands = pkg.types.filter(t => pkg.ttab[t.t]?.k === 'struct' && writingPkg(t).length)
+      byPkgFunc = cands.length > 0
+    }
     if (cands.length !== 1) refuse(pkg.files[0]?.name ?? '?', cands.length ? `several structs write their state (${cands.map(t => t.name).join(', ')}): name one (entry)` : 'no struct whose exported methods write it: name the entry')
     const r = readGo(pkg, {...opts, entry: cands[0]!.name})
-    r.model.notes.unshift(`the entry inferred: ${cands[0]!.name}, the struct whose exported methods write it`)
+    r.model.notes.unshift(`the entry inferred: ${cands[0]!.name}, the struct whose exported ${byPkgFunc ? 'package functions' : 'methods'} write it`)
     return r
   }
   if (opts.strict) return readGo1(pkg, opts, new Go(pkg, opts))
@@ -680,9 +704,14 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
     if (m.lists.size || m.maps.size) refuse(fn, 'a constructor that writes an array (a list starts as zeros)')
     ctorInit = m.leaves
   }
-  // The methods: each an event.
+  // The methods (and Go package functions taking *Entry): each an event.
   const all = pkg.funcs.filter(f => f.recv?.type === opts.entry && f.body)
-  const chosen = opts.methods ? opts.methods.map(n => all.find(f => f.name === n) ?? refuse(td, `no method ${opts.entry}.${n} with a body`)) : all.filter(f => /^[A-Z]/.test(f.name))
+  const methodNames = new Set(all.map(f => f.name))
+  const pkgFuncs = pkg.funcs.filter(f => !methodNames.has(f.name) && goPkgRecvParam(pkg, f, td.t) >= 0)
+  const exportedMethods = all.filter(f => /^[A-Z]/.test(f.name))
+  const chosen = opts.methods
+    ? opts.methods.map(n => all.find(f => f.name === n) ?? pkgFuncs.find(f => f.name === n) ?? refuse(td, `no method ${opts.entry}.${n} with a body`))
+    : exportedMethods.length ? exportedMethods : pkgFuncs.filter(f => /^[A-Z]/.test(f.name))
   if (!chosen.length) refuse(td, `${opts.entry} has no methods to read`)
   const names = chosen.map(f => f.name), ev = g.newVar('method', {k: 'choice', values: names}, 'input')
   const evL = {op: 'var' as const, name: ev.name, values: names}
@@ -697,13 +726,19 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
     const sel = I.is(evL, fn.name)
     let p: Path = {pc: [sel], locals: new Map(), heap: new Map(heap), called: [], locks: [], defers: []}
     const beforeInput = g.refusals.length
-    const bound = go.bindParams(fn, sel, p), args = bound.args, params = bound.params
+    const pkgIdx = fn.recv ? -1 : goPkgRecvParam(pkg, fn, td.t)
+    const bound = go.bindParams(fn, sel, p, pkgIdx), args = bound.args, params = bound.params
     p = bound.p
     // (an out-parameter a path leaves as the caller gave it: what the caller gave, an input, read at the start)
-    for (const pa of fn.params) { const pt = go.T(pa.t); if (pt.k === 'ptr' && go.T(pt.elem!).box && (go.T(pt.elem!).fields ?? []).length === 1 && boxKept(lowered0(fn), pa.id)) g.lazyFieldIn(`in:${fn.name}_${pa.name ?? 'arg'}`, 'value', p, fn) }
+    for (let idx = 0; idx < fn.params.length; idx++) { if (idx === pkgIdx) continue; const pa = fn.params[idx]!; const pt = go.T(pa.t); if (pt.k === 'ptr' && go.T(pt.elem!).box && (go.T(pt.elem!).fields ?? []).length === 1 && boxKept(lowered0(fn), pa.id)) g.lazyFieldIn(`in:${fn.name}_${pa.name ?? 'arg'}`, 'value', p, fn) }
     if (g.safety) p = g.assume(p, I.not(I.or(...g.refusals.slice(beforeInput))))
-    // The receiver.
+    // The receiver (or the *Entry parameter of a package function).
     if (fn.recv?.id) p = g.bindLocal(fn.recv.id, fn.recv.ptr ? {t: 'ptr', to: {k: 'obj', id: 'this', path: []}} : {t: 'struct', ty: String(td.t), f: fields}, fn, p)
+    else if (pkgIdx >= 0) {
+      const rp = fn.params[pkgIdx]!
+      if (rp.id) p = g.bindLocal(rp.id, {t: 'ptr', to: {k: 'obj', id: 'this', path: []}}, fn, p)
+      g.notes.add(`${fn.name}: package function taking *${opts.entry} (parameter ${rp.name || `#${pkgIdx + 1}`} bound as the rule's state)`)
+    }
     const errAt = fn.results.length && go.T(fn.results.at(-1)!.t).k === 'error' ? fn.results.length - 1 : -1
     const kept = fn.results.filter((_, i) => i !== errAt)
     if (kept.length > 1) refuse(fn, `${fn.name} returns ${kept.length} values (a result kept is one value)`)
@@ -805,7 +840,7 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
     if (more.length) results[fn.name] = {k: 'rec', fields: [...(out ? [['result', out[0]] as [string, string]] : []), ...more.map(([n]) => [n.slice(fn.name.length + 1), n] as [string, string])]}
     finals.push({sel, ...materialize(go, final, fn), ...(out ? {out} : {}), ...(more.length ? {more} : {})})
     events.push({select: {[ev.name]: fn.name}, call: fn.name, args})
-    methods.push({name: fn.name, ptr: !!fn.recv?.ptr, params, results: fn.results.map(r => r.t), err: errAt >= 0})
+    methods.push({name: fn.name, ptr: fn.recv ? fn.recv.ptr : true, ...(pkgIdx >= 0 ? {pkgParam: pkgIdx} : {}), params, results: fn.results.map(r => r.t), err: errAt >= 0})
   }
   // The lazy inputs' records: the fields read.
   const recOf = (a: Arg): Arg => (a.k === 'lazy' ? {k: 'rec', fields: (g.lazyIn.get(`in:${a.prefix}`)?.fields ?? []).map(([f, n]) => [f, {k: 'input', name: n} as Arg])} : a)

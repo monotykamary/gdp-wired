@@ -645,3 +645,39 @@ t('reader fuzz 685506: return arity is checked before result types are read', ()
   const src = readFileSync(new URL('./reader-fixtures/go-685506.go', import.meta.url), 'utf8')
   refused(go(src.replace(/^package p\n/, ''), 'C'), /return has 1 values, but the function declares 0 results/)
 }, 60_000)
+
+t('package functions taking *Struct read, prove, and check natively (including non-first *Struct param and auto-entry)', () => {
+  const src = `import "context"
+
+type Quota struct {
+	Used int64
+	Cap  int64
+}
+
+func Take(q *Quota, n int64) bool {
+	if n < 0 || q.Used > q.Cap-n {
+		return false
+	}
+	q.Used += n
+	return true
+}
+
+func TakeCtx(ctx context.Context, q *Quota, n int64) bool {
+	_ = ctx
+	return Take(q, n)
+}
+
+func Unrelated(x int64) int64 { return x + 1 }
+`
+  // Auto-infers entry Quota and its exported package functions taking *Quota.
+  const x = ok(go(src, undefined as never))
+  expect(x.evidence!.mismatch).toBeUndefined()
+  expect(x.notes.join('\n')).toMatch(/the entry inferred: Quota, the struct whose exported package functions write it/)
+  expect(x.notes.join('\n')).toMatch(/Take: package function taking \*Quota/)
+  const r = x.rule! as any
+  expect(proveSteps(r, x.invariants ?? [], [r.stepLaw('Take never exceeds Cap', (_b: any, a: any) => a.Used.atMost(a.Cap), (b: any) => b.Used.atMost(b.Cap))])).toMatchObject(modelOnly)
+  native(x, 'Take never exceeds Cap (native)', 'old(Used) <= old(Cap) implies Used <= Cap')
+
+  // Package functions not taking *Quota stay refused when requested explicitly.
+  refused(go(src, 'Quota', {methods: ['Unrelated']}), /no method Quota\.Unrelated/)
+}, 600_000)
