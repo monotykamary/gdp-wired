@@ -81,3 +81,31 @@ test('bug 2: projected free$enum carries sort bounds in law frame and proves sym
   expect(projLaw).toBeDefined()
   expect(JSON.stringify(projLaw!.holds)).toContain('"name":"clients"')
 }, 30_000)
+
+test('bug 3: demand-driven projected uniqueness proves symbolic simple decentralized lock without 4-key views', () => {
+  const rel = bool.from(false)
+  const r = rule('mini decentralized lock')
+    .params({size: nat}).sorts('Node')
+    .inputs({op: oneOf('init', 'send', 'recv'), src: nat, dst: nat})
+    .assume(({src, dst, size}) => all(sizedSort('Node', size).has(src), sizedSort('Node', size).has(dst)))
+    .state({started: 0})
+    .maps({HasLock: rel}).relations({Message: ['Node', 'Node']})
+    .flags(({op, src, dst, started, Message, HasLock}) => ({
+      inits: op.is('init').and(started.eq(0)),
+      sends: op.is('send').and(started.eq(1), HasLock.at(src)),
+      recvs: op.is('recv').and(started.eq(1), Message.has(src, dst)),
+    }))
+    .step(({src, dst, inits, sends, recvs, started, Message, HasLock}) => ({
+      started: when(inits, 1, started),
+      Message: {...Message.add([src, dst]), value: when(sends, 1, when(recvs, 0, Message.at(src, dst))).e},
+      HasLock: HasLock.each(k => when(inits.and(k.eq(src)), yes, when(sends.and(k.eq(src)), yes.not(), when(recvs.and(k.eq(dst)), yes, HasLock.at(k))))),
+    }))
+  const law = r.law('one node holds the lock', ({size, HasLock}) =>
+    forall((a, b) => all(sizedSort('Node', size).has(a), sizedSort('Node', size).has(b), HasLock.at(a), HasLock.at(b)).implies(a.eq(b))))
+  const v = proveRule(r, [law], {search: {ms: 15_000}})
+  expect(v.proven).toBe(true)
+  expect(v.checked).toBe(true)
+  const texts = (v.found?.laws ?? []).map(l => l.text)
+  expect(texts.some(t => t.includes('Message[⟨x, _⟩]') && t.includes('Message[⟨y, _⟩]'))).toBe(true)
+  expect(texts.some(t => t.includes('Message[⟨_, x⟩]') && t.includes('Message[⟨_, y⟩]'))).toBe(true)
+}, 30_000)

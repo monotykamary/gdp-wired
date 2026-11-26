@@ -2808,6 +2808,44 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
         return [{mp, key, sort, at: (k: E): E => (c ? {op: 'sub', a: get(mp, k), b: n(c)} : get(mp, k))}]
       })
       const out: Form[] = []
+      // Demand-driven relation uniqueness check over `smallAll` (keeps the 3-key cap on general multi-relation views):
+      // detect relations with global singleton (`|active(R)| <= 1`) or single-slot functional uniqueness (`arity >= 3`,
+      // one slot determines the rest) so 4/5-key uniqueness laws are expressed via sort-bounded 2/3-key projections.
+      const singletonRels = new Set<string>(), funcRels = new Map<string, number[]>()
+      if (Object.keys(m.relations ?? {}).length && smallAll.length) {
+        for (const q of multi) {
+          if (!ks.tupled.has(q.mp) || !m.relations?.[q.mp] || q.slots.length < 2) continue
+          const ar = q.slots.length
+          let anyActive = false, isSingleton = true
+          const funcOk = ar >= 3 ? Array.from({length: ar}, () => true) : []
+          for (const s0 of smallAll) {
+            const cells = s0.st.maps[q.mp]
+            if (!cells || !cells.size) continue
+            const active: number[][] = []
+            for (const [k2, v2] of cells) if (v2 >= 1) active.push(tupleOf(k2, ar))
+            if (!active.length) continue
+            anyActive = true
+            if (active.length > 1) {
+              isSingleton = false
+              for (let p = 0; p < funcOk.length; p++) {
+                if (!funcOk[p]) continue
+                const seenSlot = new Set<number>()
+                for (const t of active) {
+                  if (seenSlot.has(t[p]!)) { funcOk[p] = false; break }
+                  seenSlot.add(t[p]!)
+                }
+              }
+            }
+            if (!isSingleton && funcOk.every(ok => !ok)) break
+          }
+          if (!anyActive) continue
+          if (isSingleton) singletonRels.add(q.mp)
+          else {
+            const ps = funcOk.flatMap((ok, p) => (ok ? [p] : []))
+            if (ps.length) funcRels.set(q.mp, ps)
+          }
+        }
+      }
       for (const counts of width.reduce<number[][]>((acc, w) => acc.flatMap(c => Array.from({length: w + 1}, (_, k) => [...c, k])), [[]])) {
         const keys0 = ss.flatMap((s, i) => Array.from({length: counts[i]!}, () => s)), vars0 = keys0.map((_, i) => `key${i + 1}$enum`)
         // (on a rule of relations three keys at most, a map's value as a fourth: the cubes over its tuples read no more)
@@ -2832,7 +2870,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
         const place1 = (acc: number[][], s: string, i: number) => acc.flatMap(p => q2!.slots.flatMap((s2, pos) => (s2 === s && p[pos] === -1 ? [p.map((y, k) => (k === pos ? i : y))] : [])))
         let q2: typeof multi[number] | undefined
         for (const q of multi) if (inView(q.mp) && ks.tupled.has(q.mp) && m.relations?.[q.mp] && keys0.length < q.slots.length)
-          for (const t of (q2 = q, ((base: number[][]) => (der ? [...base, ...place1(base, der.sort, keys0.length)] : base))(keys0.reduce<number[][]>((acc, s, i) => place1(acc, s, i), [q.slots.map(() => -1)])))) {
+          for (const t of (q2 = q, ((base: number[][]) => (der ? [...base, ...place1(base, der.sort, keys0.length)] : base))(keys0.reduce<number[][]>((acc, s, i) => place1(acc, s, i), [q.slots.map(() => -1)]))).concat(keys0.length === 1 && !der && singletonRels.has(q.mp) ? [q.slots.map(() => -1)] : [])) {
             if (!t.includes(-1)) continue
             const free: string[] = [], freeBounds: C[] = []
             t.forEach((k, pos) => {
@@ -3004,6 +3042,59 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
         }
         known.set(vi, {R, lits: all0})
         out.push(...[...found1, ...found.map(ls => ls.map(l => lits[l]!.lit))].map(c => formOf(c, vi)))
+        }
+      }
+      // Emit demand-driven projected uniqueness cubes for relations passing the `smallAll` singleton / functional check.
+      if ((singletonRels.size || funcRels.size) && !stop()) {
+        const boundsFor = (fv: string, s: string): C[] => {
+          const out2: C[] = []
+          if (((comp && s === comp[1]) || multi.some(q3 => !ks.tupled.has(q3.mp) && q3.slots.slice(1).includes(s))) && !bounds.has(s)) out2.push(atMost(x(fv), n(pairing!.n - 1)))
+          for (const g of [...new Set((bounds.get(s) ?? []).map(g2 => JSON.stringify(substC(g2, {vars: {[KEY]: x(fv)}, maps: {}, flags: {}}))))]) out2.push(JSON.parse(g) as C)
+          return out2
+        }
+        const emitPairCube = (q: typeof multi[number], sharedPos: number | undefined, diffPos: number) => {
+          const keys = sharedPos === undefined ? [q.slots[diffPos]!, q.slots[diffPos]!] : [q.slots[sharedPos]!, q.slots[diffPos]!, q.slots[diffPos]!]
+          const vars = keys.map((_, i) => `key${i + 1}$enum`), names = ['x', 'y', 'z'].slice(0, keys.length)
+          const iA = sharedPos === undefined ? 0 : 1, iB = sharedPos === undefined ? 1 : 2
+          const makeProj = (diffIdx: number): {place: E, pj: Proj} => {
+            const pat = q.slots.map((_, pos) => (pos === sharedPos ? 0 : pos === diffPos ? diffIdx : -1))
+            const free: string[] = [], freeBounds: C[] = []
+            pat.forEach((k, pos) => {
+              if (k >= 0) return
+              const fv = `free${++freeCount}$enum`
+              free.push(fv)
+              freeBounds.push(...boundsFor(fv, q.slots[pos]!))
+            })
+            const fr = [...free]
+            return {place: tuple(pat.map(k => x(k < 0 ? fr.shift()! : vars[k]!))), pj: {mp: q.mp, n: pat.length, at: pat, free, ...(freeBounds.length ? {bounds: freeBounds} : {})}}
+          }
+          const pA = makeProj(iA), pB = makeProj(iB)
+          const places = [pA.place, pB.place], mapsAt = [[q.mp], [q.mp]]
+          const covers = [sharedPos === undefined ? [iA] : [0, iA], sharedPos === undefined ? [iB] : [0, iB]]
+          const proj: (Proj | undefined)[] = [pA.pj, pB.pj]
+          const frame = all(...keys.flatMap((s, i) => boundsFor(vars[i]!, s)), not(same(x(vars[iA]!), x(vars[iB]!))))
+          const vi = views.length
+          addView({vars, names, places, covers, frame, need: keys.length, printable: false, proj}, mapsAt, st => keys.map(s => ks.valuesAt(st, s)), Math.max(2, Math.floor(64 ** (1 / keys.length))), [], true)
+          viewSorts.set(vi, keys)
+          const v = views[vi]!
+          if (v.atoms.length !== 2) return
+          const lits: Lit[] = v.atoms.map(a => ({lin: {coef: [[a, -1]], d: -1}}))
+          let ok = true
+          for (const s0 of smallAll) {
+            for (const row of withTable(s0.params, () => v.rowsOf(s0.params, s0.st))) {
+              if (valueOf(atoms[v.atoms[0]!]!, row) >= 1 && valueOf(atoms[v.atoms[1]!]!, row) >= 1) { ok = false; break }
+            }
+            if (!ok) break
+          }
+          if (ok) out.push(formOf(lits, vi))
+        }
+        for (const q of multi) {
+          if (singletonRels.has(q.mp)) {
+            for (let p = 0; p < q.slots.length; p++) emitPairCube(q, undefined, p)
+          } else {
+            const fps = funcRels.get(q.mp)
+            if (fps) for (const sp of fps) for (let dp = 0; dp < q.slots.length; dp++) if (dp !== sp) emitPairCube(q, sp, dp)
+          }
         }
       }
       const seenText = new Set<string>(), made1 = out.filter(f => { const t = textOf(f); return !set.some(g => textOf(g) === t) && !seenText.has(t) && !!seenText.add(t) })
@@ -3335,7 +3426,7 @@ function inferLawsSearchIn(target: AnyRule | Machine, laws: Law[], stepLaws: Ste
           return 'at' in l ? {sum: nm(l.at.atom), d: 0, at: l.at.value} : {sum: l.lin.coef.map(([i, c]) => `${c}*${nm(i)}`).sort().join('+'), d: l.lin.d}
         })
         // (a projected place's free part, _, matches any key there: P[x, x, y, y] in it entails P[x, _, y, _] in it)
-        const pat = new Map<string, RegExp>(), same3 = (a: string, b: string) => a === b || (a.includes('_') && (pat.get(a) ?? (pat.set(a, new RegExp(`^${a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/_/g, '(?:[xyzwu]|\\w+\\([xyzwu]\\))')}$`)), pat.get(a)!)).test(b))
+        const pat = new Map<string, RegExp>(), same3 = (a: string, b: string) => a === b || (a.includes('_') && (pat.get(a) ?? (pat.set(a, new RegExp(`^${a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/_/g, '(?:[xyzwu_]|\\w+\\([xyzwu]\\))')}$`)), pat.get(a)!)).test(b))
         const entails = (b: L2, a: L2) => (a.at !== undefined ? b.at !== undefined && b.sum === a.sum && b.at === a.at
           : b.at !== undefined ? same3(a.sum, `-1*${b.sum}`) && -b.at <= a.d : same3(a.sum, b.sum) && b.d <= a.d)
         const sortsOf = (f: Form) => viewSorts.get(f.view!) ?? []
