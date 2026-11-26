@@ -40,6 +40,10 @@
       "types": "./dist/core/minimize.d.ts",
       "default": "./dist/core/minimize.js"
     },
+    "./emit": {
+      "types": "./dist/core/emit.d.ts",
+      "default": "./dist/core/emit.js"
+    },
     "./machine": {
       "types": "./dist/core/machine.d.ts",
       "default": "./dist/core/machine.js"

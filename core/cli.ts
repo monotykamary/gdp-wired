@@ -1342,6 +1342,7 @@ function printRule(r: RuleOut, o: Opts) {
 const label = (n: Name) => (n.role === 'answer' ? `${n.code.split('.').pop()}(...)` : n.role === 'input' && n.method ? `${n.method}(${n.code})` : n.role === 'result' && n.method ? `${n.method}() result` : n.code)
 
 const USAGE = `gdp-wired check <file|dir>... [--entry X] [--mode standalone] [--methods a,b] [--failures kept] [--on-error discard] [--json] [--ms 10000 | --work UNITS] [--watchdog-ms MS] [--no-propose] [--clock s|ms] [--cert <dir>] [--from any] [--require-review] [--security]
+gdp-wired emit <module>#<export> [--out <file.ts>] [--check] [--verify] [--laws <export>] [--step-laws <export>] [--name <ident>] [--from any] [--ms 10000] [--json]
 gdp-wired lift <capsule> <source.json> [--out DIR] [--emit-only] [--sha256 HASH] [--json]
 gdp-wired mutate <config.json> [--json]
 gdp-wired draft <file> --clause <text> | --clause-file <file> --cite <ref> [--llm <command> | --answer <file>] [--by <who>]
@@ -1408,6 +1409,7 @@ async function draft(target: string, o: Opts): Promise<number> {
 // --require-review, one cited unreviewed).
 export async function main(argv: string[]): Promise<number> {
   if (argv[0] === 'lift') return (await import('./lift-cli.ts')).liftMain(argv.slice(1))
+  if (argv[0] === 'emit') return (await import('./emit-cli.ts')).emitMain(argv.slice(1))
   const {cmd, targets, o: given} = args(argv)
   const o: Opts = {ms: 10_000, propose: true, ...given}
   if (cmd === 'mutate' && targets.length === 1) {

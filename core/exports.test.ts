@@ -91,6 +91,22 @@ test('run minimization: exported from root and ./minimize subpath', async () => 
   }
 })
 
+test('source emit: exported from root and ./emit subpath with no runtime dependencies', async () => {
+  const e = pkg.exports['./emit']!
+  expect(e.types).toBe('./dist/core/emit.d.ts')
+  expect(build.files).toContain('core/emit.ts')
+  expect(build.files).toContain('core/emit-cli.ts')
+  for (const [sub, src] of [['', 'core/dsl.ts'], ['/emit', 'core/emit.ts']] as const) {
+    const mod = await import(built ? `${pkg.name}${sub}` : `${root}${src}`) as Record<string, unknown>
+    expect(typeof mod.emitRule).toBe('function')
+    expect(typeof mod.emitFun).toBe('function')
+    expect(typeof mod.emitRatRule).toBe('function')
+    expect(typeof mod.emitChart).toBe('function')
+    expect(typeof mod.machineDigest).toBe('function')
+    expect(typeof mod.GDP_WIRED_VERSION).toBe('string')
+  }
+})
+
 test('Effect Schema: public typed frontend stays on the existing optional Effect subpath', async () => {
   const mod = await import(built ? `${pkg.name}/effect` : `${root}core/effect.ts`)
   expect(typeof mod.fromSchema).toBe('function')

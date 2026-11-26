@@ -21,6 +21,7 @@ import {type Law, type Request, type State, interpret, numbersOf} from './machin
 import {allowed} from './watch.ts'
 import {reservedName} from './dsl-binders.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
+import {type EmitChartOptions, type EmitResult, emitChart} from './emit.ts'
 
 // A state: a leaf, or a compound with its children (the first is the initial one unless `initial` names another).
 export type StateNode = {states?: Record<string, StateNode>, initial?: string, history?: boolean, final?: boolean}
@@ -196,10 +197,21 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
     return env[r.historyFields.get(c)!] as Choice<string>
   }
   private wrap(env: Obj): Obj { return Object.assign(Object.create(null), env, {in: (p: string) => this.in(env, p), last: (c: string) => this.last(env, c)}) }
-  law(name: string, f: (env: After<P & X>) => Cond): Law { return this.rule.law(name, (env: Obj) => f(this.wrap(env) as never)) }
-  stepLaw(name: string, then: (before: Env<P, I, X>, after: After<X>) => Cond, when?: (before: Env<P, I, X>) => Cond): StepLaw {
-    return this.rule.stepLaw(name, (b: Obj, a: Obj) => then(this.wrap(b) as never, this.wrap(a) as never), when && ((b: Obj) => when(this.wrap(b) as never)))
+  law(name: string, f: (env: After<P & X>) => Cond): Law {
+    const l = this.rule.law(name, (env: Obj) => f(this.wrap(env) as never))
+    const list = ownedChartLaws.get(this as never) ?? []
+    list.push(l)
+    ownedChartLaws.set(this as never, list)
+    return l
   }
+  stepLaw(name: string, then: (before: Env<P, I, X>, after: After<X>) => Cond, when?: (before: Env<P, I, X>) => Cond): StepLaw {
+    const l = this.rule.stepLaw(name, (b: Obj, a: Obj) => then(this.wrap(b) as never, this.wrap(a) as never), when && ((b: Obj) => when(this.wrap(b) as never)))
+    const list = ownedChartStepLaws.get(this as never) ?? []
+    list.push(l)
+    ownedChartStepLaws.set(this as never, list)
+    return l
+  }
+  emit(opts?: EmitChartOptions): EmitResult { return emitChart(this as never, opts) }
   // What the chart keeps true by its construction: each compound's history is one of its own states. Proven beside the
   // laws `prove` and `check` are given (as a rule's kind laws are), since a law about entering a compound may need it.
   chartLaws(): Law[] {
@@ -282,6 +294,11 @@ function grouped(writes: {i: number, region: string, value: unknown}[], env: Obj
   return groups.reduceRight<unknown>((acc, g) => when(any(...g.takes), g.value as never, acc as never), base) as never
 }
 export const chart = (name: string): Chart => new Chart({name, params: {}, inputs: {}, context: {}, outputs: {}, regions: [], on: []})
+const ownedChartLaws = new WeakMap<Chart<Obj, Obj, Obj>, Law[]>()
+const ownedChartStepLaws = new WeakMap<Chart<Obj, Obj, Obj>, StepLaw[]>()
+export function inspectChart(c: Chart<Obj, Obj, Obj>): {ownedLaws: Law[], ownedStepLaws: StepLaw[]} {
+  return {ownedLaws: [...(ownedChartLaws.get(c) ?? [])], ownedStepLaws: [...(ownedChartStepLaws.get(c) ?? [])]}
+}
 // An output's default as a value of its kind: a number, a choice's named value, or a yes/no.
 function defaultOf(current: unknown, init: unknown, name: string): unknown {
   if (typeof init === 'number') return init

@@ -19,6 +19,7 @@ import {searchNow as countedSearchNow} from './wall.ts'
 import {type QC, type QE, type QGoal, type QLaw, type QMachine, type Tree, checkQMachine, qObligations, qSubstC, qSubstE, qTrue} from '../kernel/kernel.ts'
 import {growQ} from '../kernel/qprove.ts'
 import {type Rat, Q0, q, qadd, qcmp, qeq, qmax, qmin, qmul, qparse, qshow, qsub} from './q.ts'
+import {type EmitRatOptions, type EmitResult, emitRatRule} from './emit.ts'
 
 export type {Rat}
 export type RatLike = RatTerm | number | string | bigint | Rat
@@ -107,7 +108,14 @@ export class RatRule<P extends string = never, I extends string = never, S exten
     return {name: this.name, params: this.paramNames, inputs: this.inputNames, state, step, pre: pre.c, assume: assume.c}
   }
   // A law over the state and the params.
-  law(name: string, fn: (x: Terms<P | S>) => RatCond): RatLaw<S, P> { return {name, holds: fn(terms([...this.paramNames, ...this.stateNames]) as Terms<P | S>).c} }
+  law(name: string, fn: (x: Terms<P | S>) => RatCond): RatLaw<S, P> {
+    const l: RatLaw<S, P> = {name, holds: fn(terms([...this.paramNames, ...this.stateNames]) as Terms<P | S>).c}
+    const list = ownedRatLaws.get(this as never) ?? []
+    list.push(l)
+    ownedRatLaws.set(this as never, list)
+    return l
+  }
+  emit(opts?: EmitRatOptions): EmitResult { return emitRatRule(this as never, opts) }
   // The rule run exactly: the states after each request, from params (each value a number, decimal text or fraction).
   run(params: Record<P, RatLike>, requests: Record<I, RatLike>[]): Record<S, string>[] {
     const r = interpretQ(this.machine), ps = Object.fromEntries(Object.entries(params).map(([n, x]) => [n, qparse(x as Exclude<RatLike, RatTerm>)]))
@@ -123,6 +131,24 @@ export class RatRule<P extends string = never, I extends string = never, S exten
   }
 }
 export const ratRule = (name: string): RatRule => new RatRule(name)
+const ownedRatLaws = new WeakMap<RatRule<string, string, string>, RatLaw<string, string>[]>()
+export function inspectRatRule(r: RatRule<string, string, string>): {
+  name: string
+  params: [string, RatKind][]
+  inputs: [string, RatKind][]
+  state: string[]
+  machine: QMachine
+  ownedLaws: RatLaw<string, string>[]
+} {
+  return {
+    name: r.name,
+    params: Object.entries(r['p']),
+    inputs: Object.entries(r['i']),
+    state: r.stateNames,
+    machine: r.machine,
+    ownedLaws: [...(ownedRatLaws.get(r) ?? [])],
+  }
+}
 
 // --- runtimes: exact, as the proofs read the terms --------------------------------------------------------------------
 

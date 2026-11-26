@@ -61,6 +61,7 @@ import {findNeverEnds} from './nonterm.ts'
 import {findRing, leadsByTerms, type Ring} from './live.ts'
 import {leadsByWriteSupports} from './live-support.ts'
 import {type FreshLaw, freshLaws} from './fresh.ts'
+import {type EmitFunOptions, type EmitResult, type EmitRuleOptions, emitFun, emitRule} from './emit.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
 
@@ -1971,7 +1972,11 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   prune(order: keyof R & string, after: (p: P) => TermLike): Rule<P, I, S, M, F, R, Su, Q> { return this.with({prune: {order, after: after as (p: never) => TermLike}}) }
 
   // A law about the params, the state, the maps and the sums (not a request): `forall` for every key of a map.
-  law(name: string, f: (env: P & S & M & Su) => Cond | Forall): Law { return withSource(this.lawOf(name, f(this.env({flags: false, inputs: false, queries: false}) as never)), {law: f as never}) }
+  law(name: string, f: (env: P & S & M & Su) => Cond | Forall): Law {
+    const out = withSource(this.lawOf(name, f(this.env({flags: false, inputs: false, queries: false}) as never)), {law: f as never})
+    if (!inKindLaws) { const list = ownedRuleLaws.get(this as never) ?? []; list.push(out); ownedRuleLaws.set(this as never, list) }
+    return out
+  }
   private lawOf(name: string, out: Cond | Forall): Law {
     const key = binder('key', ++keyCounter)
     if (out instanceof Cond) { const p = prenex(out.c, `law ${name}`, key); return this.divides(this.someOf(name, out, p ? {name, forall: key, holds: p, ...(out.c.op === 'all' && out.c.finite !== undefined ? {finite: out.c.finite} : {})} : {name, holds: out.c})) }
@@ -2017,17 +2022,21 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   private kinds?: Law[]
   kindLaws(): Law[] { return [...(this.kinds ??= this.kindLawsOf())] }
   private kindLawsOf(): Law[] {
-    const out: Law[] = []
-    const of = (env: unknown, n: string) => (env as Record<string, unknown>)[n]
-    for (const [n, k] of this.spec.kinded ?? []) if (k.invariant(k.value(n)).length) out.push(this.law(`${n} is a value of its kind`, env => all(...k.invariant(of(env, n)))))
-    for (const [n, k] of [...this.spec.cells ?? [], ...this.spec.items ?? []]) if (k.invariant(k.value(n)).length) {
-      out.push(this.law(`every ${n} cell is a value of its kind`, env => forall(key => all(...k.invariant((of(env, n) as CellsRef<unknown>).at(key))))))
-    }
-    for (const [n, k] of this.spec.nodes ?? []) {
-      if (k.invariant(k.value(n)).length) out.push(this.law(`every ${n} node is a value of its kind`, env => forall(key => all(...k.invariant((of(env, n) as NodeTable<unknown>).at(key))))))
-      for (const [name] of (this.env({flags: false, inputs: false, queries: false})[n] as NodeTable<unknown>).laws()) out.push(this.law(name, env => (of(env, n) as NodeTable<unknown>).laws().find(([m]) => m === name)![1]))
-    }
-    return out
+    const prev = inKindLaws
+    inKindLaws = true
+    try {
+      const out: Law[] = []
+      const of = (env: unknown, n: string) => (env as Record<string, unknown>)[n]
+      for (const [n, k] of this.spec.kinded ?? []) if (k.invariant(k.value(n)).length) out.push(this.law(`${n} is a value of its kind`, env => all(...k.invariant(of(env, n)))))
+      for (const [n, k] of [...this.spec.cells ?? [], ...this.spec.items ?? []]) if (k.invariant(k.value(n)).length) {
+        out.push(this.law(`every ${n} cell is a value of its kind`, env => forall(key => all(...k.invariant((of(env, n) as CellsRef<unknown>).at(key))))))
+      }
+      for (const [n, k] of this.spec.nodes ?? []) {
+        if (k.invariant(k.value(n)).length) out.push(this.law(`every ${n} node is a value of its kind`, env => forall(key => all(...k.invariant((of(env, n) as NodeTable<unknown>).at(key))))))
+        for (const [name] of (this.env({flags: false, inputs: false, queries: false})[n] as NodeTable<unknown>).laws()) out.push(this.law(name, env => (of(env, n) as NodeTable<unknown>).laws().find(([m]) => m === name)![1]))
+      }
+      return out
+    } finally { inKindLaws = prev }
   }
 
   // A law about one step, for every request the rule allows: `then(before, after)` relates what the step reads (params,
@@ -2038,9 +2047,15 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const after = this.afterEnv()
     const out = then(env, after as never), w = when ? {when: when(env).c} : {}
     const key = binder('key', ++keyCounter), src: Sources = {step: {then: then as never, ...(when ? {when: when as never} : {})}}
-    if (out instanceof Cond) { const p = prenex(out.c, `step law ${name}`, key); return withSource(this.divides(p ? {name, forall: key, then: p, ...w} : {name, then: out.c, ...w}), src) }
-    const [k1, more] = keysFor(out), c = out.forall(v(k1), ...more.map(v)).c
-    return withSource(this.divides(more.length ? {name, forall: k1, keys: more, then: c, ...w} : {name, forall: k1, then: prenex(c, `step law ${name}`, k1, true) ?? c, ...w}), src)
+    const res = (() => {
+      if (out instanceof Cond) { const p = prenex(out.c, `step law ${name}`, key); return withSource(this.divides(p ? {name, forall: key, then: p, ...w} : {name, then: out.c, ...w}), src) }
+      const [k1, more] = keysFor(out), c = out.forall(v(k1), ...more.map(v)).c
+      return withSource(this.divides(more.length ? {name, forall: k1, keys: more, then: c, ...w} : {name, forall: k1, then: prenex(c, `step law ${name}`, k1, true) ?? c, ...w}), src)
+    })()
+    const list = ownedRuleStepLaws.get(this as never) ?? []
+    list.push(res)
+    ownedRuleStepLaws.set(this as never, list)
+    return res
   }
 
   // A law about k steps in a row (k from 2 to 64): `then(first, last, requests)` relates what the first step reads to the
@@ -2690,6 +2705,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   compiled(): {init: (params: object) => State & {head?: number}, fork: (st: State) => State, step: (params: object, st: State, input: object) => State & {head?: number}} {
     return loadJs(this.machine)
   }
+  emit(opts?: EmitRuleOptions): EmitResult { return emitRule(this as never, opts) }
 }
 // A step's writes to maps and lists of a kind, as the writes to their parts' maps.
 const expandParts = <T extends Record<string, unknown>>(updates: T): T => {
@@ -2753,11 +2769,21 @@ export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
   }
   // Whenever the arguments (and the result) meet `given`, the result meets `then`.
   law(name: string, given: (env: P & I, out: O) => Cond | Cond[], then: (out: O, env: P & I) => Cond): Decision {
-    return lawOfFun(this as never, this.r.decide(name, env => given(env, this.result(env) as never), env => then(this.result(env) as never, env)))
+    const d = lawOfFun(this as never, this.r.decide(name, env => given(env, this.result(env) as never), env => then(this.result(env) as never, env)))
+    funLawCallbacks.set(d, {kind: 'law', given: given as never, then: then as never})
+    const list = ownedFunLaws.get(this as never) ?? []
+    list.push(d)
+    ownedFunLaws.set(this as never, list)
+    return d
   }
   // A law about two calls under the same params: `then(outA, outB, a, b)` given `given(a, b)` (noninterference, say).
   relate(name: string, given: (a: P & I, b: P & I) => Cond | Cond[], then: (outA: O, outB: O, a: P & I, b: P & I) => Cond): Decision {
-    return lawOfFun(this as never, this.r.relate(name, given, (a, b) => then(this.result(a) as never, this.result(b) as never, a, b)))
+    const d = lawOfFun(this as never, this.r.relate(name, given, (a, b) => then(this.result(a) as never, this.result(b) as never, a, b)))
+    funLawCallbacks.set(d, {kind: 'relate'})
+    const list = ownedFunLaws.get(this as never) ?? []
+    list.push(d)
+    ownedFunLaws.set(this as never, list)
+    return d
   }
 
   // Against the code it describes: `reference` called with the same arguments (drawn by their kinds, or by `draw`, the
@@ -2823,8 +2849,143 @@ export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
   run(values: {[k in keyof I]: Raw}, params: {[k in keyof P]?: Raw} = {}): Value<O> { return this.runner('interpreted')(values, params) }
   // Explicit dynamic-code opt-in. Cache this callable at startup; it has run()'s argument and result types.
   compiled(): FunRunner<P, I, O> { return this.runner('compiled') }
+  emit(opts?: EmitFunOptions): EmitResult { return emitFun(this as never, opts) }
 }
 export const fun = (name: string): Fun => new Fun(rule(name))
+// Owned laws & symbolic Fun law callbacks for core/emit.ts.
+let inKindLaws = false
+const ownedRuleLaws = new WeakMap<Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, Law[]>()
+const ownedRuleStepLaws = new WeakMap<Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, StepLaw[]>()
+const ownedFunLaws = new WeakMap<Fun<Obj, Obj, Obj>, Decision[]>()
+const funLawCallbacks = new WeakMap<Decision, {kind: 'law', given: (env: never, out: never) => Cond | Cond[], then: (out: never, env: never) => Cond} | {kind: 'relate'}>()
+
+export type KindInfo =
+  | {kind: 'nat', max?: number}
+  | {kind: 'bool'}
+  | {kind: 'oneOf', values: readonly string[]}
+  | {kind: 'int'}
+  | {kind: 'decimal', places: number}
+  | {kind: 'maybe', of: KindInfo}
+  | {kind: 'record', fields: [string, KindInfo][]}
+  | {kind: 'variant', tagKey: string, cases: [string, [string, KindInfo][]][]}
+  | {kind: 'str', patterns: readonly string[], maxLength?: number}
+  | {kind: 'fixed', width: 8 | 16 | 32 | 64, signed: boolean}
+  | {kind: 'unknown', vars: string[]}
+
+export function inspectKind(k: Kind<unknown>): KindInfo {
+  if (k instanceof NatKind) return k.maxValue === undefined ? {kind: 'nat'} : {kind: 'nat', max: k.maxValue}
+  if (k instanceof BoolKind) return {kind: 'bool'}
+  if (k instanceof OneOfKind) return {kind: 'oneOf', values: [...k.values]}
+  if (k instanceof IntKind) return {kind: 'int'}
+  if (k instanceof DecimalKind) return {kind: 'decimal', places: k.places}
+  if (k instanceof MaybeKind) return {kind: 'maybe', of: inspectKind(k.of)}
+  if (k instanceof RecordKind) return {kind: 'record', fields: k.names.map(f => [f, inspectKind(k.fields[f]!)])}
+  if (k instanceof VariantKind) return {kind: 'variant', tagKey: k.tagKey, cases: k.names.map(c => [c, Object.entries(k.cases[c]!).map(([f, fk]) => [f, inspectKind(fk as Kind<unknown>)])])}
+  if (k instanceof StrKind) return {kind: 'str', patterns: [...k.patterns], ...(k.maxLength === undefined ? {} : {maxLength: k.maxLength})}
+  const sample = k.value('x')
+  if (sample instanceof FixedWord) return {kind: 'fixed', width: sample.width, signed: sample.signed}
+  return {kind: 'unknown', vars: k.vars('x')}
+}
+
+export type RuleMeta = {
+  name: string
+  params: [string, Kind<unknown>, KindInfo][]
+  inputs: [string, Kind<unknown>, KindInfo][]
+  state: [string, KindInfo][]
+  maps: [string, number, KindInfo | undefined][]
+  items: [string, KindInfo][]
+  hasCarried: boolean
+  hasCounts: boolean
+  hasLeasts: boolean
+  hasHistory: boolean
+  hasNodes: boolean
+  hasRels: boolean
+  hasSums: boolean
+  ownedLaws: Law[]
+  ownedStepLaws: StepLaw[]
+}
+
+export function inspectRuleMeta(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>): RuleMeta {
+  const s = r['spec']
+  const kindedVars = new Set((s.kinded ?? []).flatMap(([n, k]) => k.vars(n)))
+  const itemLens = new Set((s.items ?? []).map(([n]) => `${n}_len`))
+  const listLens = new Set((s.lists ?? []).map(n => `${n}_len`))
+  const nodeSizes = new Set((s.nodes ?? []).map(([n]) => `${n}_size`))
+  const state: [string, KindInfo][] = []
+  const seenState = new Set<string>()
+  for (const [n] of s.state) {
+    if (kindedVars.has(n) || itemLens.has(n) || listLens.has(n) || nodeSizes.has(n)) continue
+    if (!seenState.has(n)) { seenState.add(n); state.push([n, {kind: 'nat'}]) }
+  }
+  for (const [n, k] of s.kinded ?? []) {
+    if (!seenState.has(n)) { seenState.add(n); state.push([n, inspectKind(k)]) }
+  }
+  const cellVars = new Set((s.cells ?? []).flatMap(([n, k]) => k.vars(n)))
+  const itemVars = new Set((s.items ?? []).flatMap(([n, k]) => k.vars(n)))
+  const nodeVars = new Set((s.nodes ?? []).flatMap(([n, k, cs, fs]) => [...k.vars(n), ...cs.map(c => `${n}^${c}`), ...Object.keys(fs).map(f => `${n}$${f}`)]))
+  const maps: [string, number, KindInfo | undefined][] = []
+  for (const [n, dflt] of s.maps) {
+    if (cellVars.has(n) || itemVars.has(n) || nodeVars.has(n)) continue
+    maps.push([n, dflt, undefined])
+  }
+  for (const [n, k] of s.cells ?? []) maps.push([n, 0, inspectKind(k)])
+  return {
+    name: s.name,
+    params: s.params.map(([n, k]) => [n, k, inspectKind(k)]),
+    inputs: s.inputs.map(([n, k]) => [n, k, inspectKind(k)]),
+    state,
+    maps,
+    items: (s.items ?? []).map(([n, k]) => [n, inspectKind(k)]),
+    hasCarried: !!(s.carried?.length || s.seqs?.length || s.seqTables?.length || s.lists2?.length),
+    hasCounts: !!s.counts?.length,
+    hasLeasts: !!s.leasts?.length,
+    hasHistory: !!(s.record || s.queries.length || s.sums.length || s.keep || s.prune),
+    hasNodes: !!s.nodes?.length,
+    hasRels: !!s.rels?.length,
+    hasSums: !!(s.sumsRead?.size),
+    ownedLaws: [...(ownedRuleLaws.get(r) ?? [])],
+    ownedStepLaws: [...(ownedRuleStepLaws.get(r) ?? [])],
+  }
+}
+
+export type FunMeta = {
+  name: string
+  rule: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>
+  params: [string, Kind<unknown>, KindInfo][]
+  inputs: [string, Kind<unknown>, KindInfo][]
+  outputs: [string, Kind<unknown>, KindInfo][]
+  ownedLaws: Decision[]
+}
+
+export function inspectFunMeta(f: Fun<Obj, Obj, Obj>): FunMeta {
+  const r = f['r'], s = r['spec']
+  const rawFields = Object.entries(f['result'](r['env']({flags: false, state: false, queries: false})))
+  const outputs: [string, Kind<unknown>, KindInfo][] = rawFields.map(([k, t]) => {
+    const kd = kindOf(t)
+    return [k, kd, inspectKind(kd)]
+  })
+  return {
+    name: f.name,
+    rule: f.rule as never,
+    params: s.params.map(([n, k]) => [n, k, inspectKind(k)]),
+    inputs: s.inputs.map(([n, k]) => [n, k, inspectKind(k)]),
+    outputs,
+    ownedLaws: [...(ownedFunLaws.get(f) ?? [])],
+  }
+}
+
+export function funSymbolicLaw(f: Fun<Obj, Obj, Obj>, d: Decision): {kind: 'law', given: C[], then: C} | {kind: 'relate'} | undefined {
+  const cb = funLawCallbacks.get(d)
+  if (!cb) return undefined
+  if (cb.kind === 'relate') return {kind: 'relate'}
+  const r = f['r']
+  const inEnv = r['env']({flags: false, state: false, queries: false})
+  const rawFields = Object.entries(f['result'](inEnv))
+  const symOut = Object.fromEntries(rawFields.map(([k, t]) => [k, kindOf(t).value(`$out.${k}`)]))
+  const g = cb.given(inEnv as never, symOut as never)
+  const t = cb.then(symOut as never, inEnv as never)
+  return {kind: 'law', given: (Array.isArray(g) ? g : [g]).map(c => c.c), then: t.c}
+}
 // The function a law was stated about. Variants of one function share its arguments, so a law's terms alone don't say
 // which result it is about; a guard (gdp.ts) takes only laws stated about the function it runs.
 const lawsOfFuns = new WeakMap<Decision, Fun<Obj, Obj, Obj>>()
@@ -4272,3 +4433,5 @@ export class RoseFold<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}
 export {Chart, chart, type StateNode, type Transition} from './chart.ts'
 // Minimal refuting runs (core/minimize.ts): a run that breaks a law, cut down until no single request can go.
 export {minimizeRun, minimizeRunDetailed, type MinimizeOptions, type Minimized, type RunRequest, type RunTrace} from './minimize.ts'
+// Emit standalone zero-dependency TypeScript source from proven rules, functions, rational rules and statecharts.
+export {emitRule, emitFun, emitRatRule, emitChart, machineDigest, qMachineDigest, GDP_WIRED_VERSION, type EmitResult, type EmitLawReport, type EmitVerifyInfo, type EmitRuleOptions, type EmitFunOptions, type EmitRatOptions, type EmitChartOptions, type EmitBundle} from './emit.ts'

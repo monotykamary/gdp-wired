@@ -23,7 +23,7 @@ const runs = (cmds: string) => cmds.split(/\s+/).filter(Boolean).map((f): Unit =
 
 const units: Unit[] = [
   {name: 'scripts/gen-lean-library.ts --check', dir: '.', args: ['scripts/gen-lean-library.ts', '--check'], test: false},
-  ...tests('core', `agent-consult.test.ts agent-consult/workspace.test.ts exports.test.ts proof-output.test.ts protocol-refusal.test.ts deterministic-work.test.ts public-budget-ownership.test.ts search-watchdog.test.ts effect-budget.test.ts infer-termination.test.ts infer-completion-boundary.test.ts guarded.test.ts cli.test.ts cli-deadline.test.ts cli-failsafe.test.ts cli-two-run-budget.test.ts joint-fallback.test.ts lift-cli.test.ts security.test.ts solver.test.ts rand.test.ts dsl.test.ts dsl-binders.test.ts dsl-binder-groups.test.ts prenex-admission.test.ts generated-provenance.test.ts sums.test.ts sum-broadcast.test.ts sum-reset.test.ts covering.test.ts minimize.test.ts
+  ...tests('core', `agent-consult.test.ts agent-consult/workspace.test.ts exports.test.ts proof-output.test.ts protocol-refusal.test.ts deterministic-work.test.ts public-budget-ownership.test.ts search-watchdog.test.ts effect-budget.test.ts infer-termination.test.ts infer-completion-boundary.test.ts guarded.test.ts cli.test.ts cli-deadline.test.ts cli-failsafe.test.ts cli-two-run-budget.test.ts joint-fallback.test.ts lift-cli.test.ts emit.test.ts security.test.ts solver.test.ts rand.test.ts dsl.test.ts dsl-binders.test.ts dsl-binder-groups.test.ts prenex-admission.test.ts generated-provenance.test.ts sums.test.ts sum-broadcast.test.ts sum-reset.test.ts covering.test.ts minimize.test.ts
     arith.test.ts compare.test.ts mutate.test.ts mutate-terms.test.ts runtime-default.test.ts conformance.test.ts compose.test.ts relational.test.ts quantifiers.test.ts functions.test.ts
     keyterms.test.ts lists.test.ts liveness.test.ts live-search.test.ts row-seeds.test.ts unguard-seeds.test.ts accel-refute.test.ts sizes.test.ts values.test.ts rationals.test.ts builders.test.ts
     gdp.test.ts datatypes.test.ts lemmas.test.ts discover.test.ts discover-budget.test.ts infer.test.ts infer-input.test.ts infer-relational-houdini.test.ts cyclic.test.ts cycles.test.ts
@@ -106,7 +106,7 @@ const units: Unit[] = [
   ...tests('.', 'compare/tip/translate.test.ts research/security/surface-lowering.test.ts research/security/score.test.ts research/security/fixed-reader.test.ts research/security/mutants/mutants.test.ts research/security/mutants-upstream/upstream.test.ts'),
   ...runs(`examples/scopes.ts examples/lists.ts examples/sizes.ts examples/liveness.ts examples/sums.ts
     examples/nonterm.ts examples/rationals.ts examples/budget.ts examples/gdp.ts examples/steps.ts
-    examples/jev-fabric/run.ts`),
+    examples/review-routing.ts examples/jev-fabric/run.ts`),
   ...tests('gates', 'bar-lib.test.ts'),
 ]
 
@@ -147,6 +147,7 @@ const unitConfig: Record<string, UnitConfig> = {
   'core/cli-deadline.test.ts': {...rootProcess, timeoutMs: 300000},
   'core/cli-failsafe.test.ts': {...rootProcess, timeoutMs: 120000},
   'core/cli-two-run-budget.test.ts': {...rootProcess, timeoutMs: 120000},
+  'core/emit.test.ts': {...rootProcess, timeoutMs: 120000},
   'core/extract-step-native.test.ts': {...rootProcess, timeoutMs: 180000},
   'core/extract-py-decorator.test.ts': {...rootProcess, timeoutMs: 180000},
   'core/inherited-wall.test.ts': rootProcess,
