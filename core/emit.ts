@@ -66,7 +66,7 @@ import {type EmitHelper, createPrinter, createQPrinter, renderTypedHelpers} from
 import {sha256Hex} from './sha256.ts'
 export {sha256Hex} from './sha256.ts'
 
-export const GDP_WIRED_VERSION = '0.61.0'
+export const GDP_WIRED_VERSION = '0.62.0'
 
 // Compile-time exhaustive Kind and Machine-part tables: adding any new KindInfo variant or Machine property fails `tsc`.
 const KIND_INFO_TABLE: Record<KindInfo['kind'], true> = {

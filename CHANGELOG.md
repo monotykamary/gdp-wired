@@ -3,6 +3,28 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.62.0
+
+### Added
+
+- **Ship a proven rule without the runtime (`core/emit.ts`, `core/emit-cli.ts`):** `rule.emit()`, `fun.emit()`,
+  `ratRule` and `chart` emission, and `npx gdp-wired-cli emit <module>#<export> --out <file.ts>` turn a proven rule
+  into a TypeScript file with no imports and no `new Function`/`eval`, byte-identical on every run. It holds the
+  decision or the step and nothing else, with typed `Params`/`Input`/`State` (or `Result`) over the rule's own names;
+  its header names the model it came from, the command that regenerates it, every law with its proof status, the
+  version and the machine's digest. `emit` refuses while a law isn't proven (exit 2). In CI, `--check` exits 1 with a
+  short diff when the file no longer matches its model, and `--verify` runs the emitted module beside the rule's
+  interpreter (exhaustive on small domains, random draws beyond) and exits 1 on the first input where they differ.
+  Every rule the interpreter runs can be emitted: maps of records and variants, conditions over every key, tuple
+  keys, lists, trees, folds, loops, histories, rationals and statecharts; `--verify` passed on all 586 rules of the
+  examples and the 545-law benchmark. `compiled()`, `run()` and `interpreter()` are unchanged: `compiled()` now prints
+  through the same printer as `emit`, and generates the same JavaScript as before. See "Shipping without the runtime"
+  in the skill's shipping reference.
+- **Rounding decimals to their grid (`core/decimal-round.ts`):** `decimal(places, {round: 'half-even'})` rounds a
+  value with more places than its kind half-even on its decimal digits (never through float arithmetic), the same way
+  in `encodeInput` and in emitted code; the laws hold for the rounded values. Without the option, such a value still
+  throws, as before.
+
 ## 0.61.0
 
 ### Added
